@@ -2,6 +2,7 @@ import { isAddress, type Address } from 'viem';
 import { mainnet } from 'viem/chains';
 
 import { publicClientFor } from './chains';
+import { ensNames } from './ens-cache';
 import { viemEns } from './viem-ens';
 
 function ensClient() {
@@ -14,7 +15,6 @@ export const CoinType = {
 } as const;
 
 const forwardCache = new Map<string, Address | null>();
-const reverseCache = new Map<string, string | null>();
 const coinCache = new Map<string, string | null>();
 
 function normalizedName(value: string): string | null {
@@ -60,15 +60,11 @@ export async function resolveNameForCoin(input: string, coinType: bigint): Promi
   return address ?? null;
 }
 
-export async function lookupName(address: Address): Promise<string | null> {
-  const key = address.toLowerCase();
-  if (reverseCache.has(key)) return reverseCache.get(key) ?? null;
+/** Rejects when the chain cannot be reached, which is not the same as having no name. */
+export function lookupName(address: Address): Promise<string | null> {
+  return ensNames.load(address.toLowerCase(), () => ensClient().getEnsName({ address }));
+}
 
-  try {
-    const name = await ensClient().getEnsName({ address });
-    reverseCache.set(key, name);
-    return name;
-  } catch {
-    return null;
-  }
+export function cachedEnsName(address: string): string | null | undefined {
+  return ensNames.peek(address.toLowerCase());
 }

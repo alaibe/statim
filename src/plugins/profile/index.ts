@@ -32,7 +32,7 @@ export const profilePlugin: Plugin = {
             const address = context.identity.address;
 
             if (isLocalConversation(conversationId)) {
-              const name = await lookupName(address);
+              const name = await lookupName(address).catch(() => null);
               await respond({
                 kind: 'widget',
                 fallback: `Your address: ${address}`,

@@ -1,4 +1,5 @@
-import { clearEnsProfileCache, resolveEnsProfile, resolveEnsProfiles } from './ens-profile';
+import { clearEnsCache, forgetEns, hydrateEnsCache } from './ens-cache';
+import { resolveEnsProfile, resolveEnsProfiles } from './ens-profile';
 import { lookupName } from './ens';
 import { publicClientFor } from './chains';
 
@@ -25,7 +26,7 @@ function client(overrides: Partial<Record<string, unknown>> = {}) {
 }
 
 beforeEach(() => {
-  clearEnsProfileCache();
+  clearEnsCache();
   jest.clearAllMocks();
   mockClientFor.mockReturnValue(client() as never);
 });
@@ -103,6 +104,49 @@ describe('resolveEnsProfile', () => {
     await resolveEnsProfile(ADDRESS.toUpperCase() as typeof ADDRESS);
 
     expect(mockLookup).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('across launches', () => {
+  function fakeStorage() {
+    const store = new Map<string, unknown>();
+    return {
+      get: jest.fn(async (name: string) => (store.get(name) ?? null) as never),
+      set: jest.fn(async (name: string, value: unknown) => {
+        store.set(name, JSON.parse(JSON.stringify(value)));
+      }),
+    };
+  }
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('answers from the saved profile, date included, without asking the chain', async () => {
+    jest.useFakeTimers();
+    const storage = fakeStorage();
+    await hydrateEnsCache(storage);
+    mockLookup.mockResolvedValue('alice.eth');
+    const first = await resolveEnsProfile(ADDRESS);
+    jest.runAllTimers();
+
+    clearEnsCache();
+    await hydrateEnsCache(storage);
+    const again = await resolveEnsProfile(ADDRESS);
+
+    expect(again).toEqual(first);
+    expect(again?.paidUntil).toBeInstanceOf(Date);
+    expect(mockLookup).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks again once the owner went to change the name', async () => {
+    mockLookup.mockResolvedValue(null);
+    await resolveEnsProfile(ADDRESS);
+
+    forgetEns(ADDRESS.toUpperCase());
+    mockLookup.mockResolvedValue('alice.eth');
+
+    expect((await resolveEnsProfile(ADDRESS))?.name).toBe('alice.eth');
   });
 });
 

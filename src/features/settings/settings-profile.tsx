@@ -6,10 +6,11 @@ import { Avatar, Badge, IconButton, Text } from '@/design';
 import { useIdentityStore } from '@/core/identity/identity-store';
 import { shortAddress } from '@/core/identity/keyring';
 import { useChatStore } from '@/core/messaging/chat-store';
-import { lookupName } from '@/lib/evm/ens';
+import { cachedEnsName, lookupName } from '@/lib/evm/ens';
+import { forgetEns } from '@/lib/evm/ens-cache';
 import { openInBrowser } from '@/lib/open-url';
 
-/** Looked up again whenever `revision` changes, so a name claimed on the ENS site shows on the way back. */
+/** Looked up again whenever `revision` changes; the ENS button forgets the kept name, so one claimed there shows on the way back. */
 export function useEnsName(revision: unknown): string | null {
   const address = useIdentityStore((s) => s.keyring?.address);
   const [ens, setEns] = useState<{ address: string; name: string | null } | null>(null);
@@ -27,7 +28,8 @@ export function useEnsName(revision: unknown): string | null {
     };
   }, [address, revision]);
 
-  return ens && ens.address === address ? ens.name : null;
+  if (!address) return null;
+  return ens && ens.address === address ? ens.name : (cachedEnsName(address) ?? null);
 }
 
 /** The account at the top of Settings: who you are, and whether you are connected. */
@@ -59,7 +61,10 @@ export function SettingsProfile({ ensName }: { ensName: string | null }) {
           testID="settings-ens"
           icon={ensName ? 'create-outline' : 'add-circle-outline'}
           label={ensName ? `Edit ${ensName} on ENS` : 'Get an ENS name'}
-          onPress={() => openInBrowser('https://app.ens.domains', { fullScreen: true })}
+          onPress={() => {
+            if (keyring) forgetEns(keyring.address);
+            openInBrowser('https://app.ens.domains', { fullScreen: true });
+          }}
         />
       </View>
 

@@ -3,6 +3,7 @@ import { reportError } from './report-error';
 import type { Keyring } from '../identity/keyring';
 import { useAppearanceStore } from './appearance';
 import { clearLinkPreviewCache, hydrateLinkPreviewCache } from '../messaging/link-preview-cache';
+import { clearEnsCache, hydrateEnsCache } from '@/lib/evm/ens-cache';
 import { loadProtocolConfig, saveProtocolConfig, type ProtocolConfig } from '../messaging/config';
 import {
   clearChatProjection,
@@ -224,7 +225,7 @@ export class AccountRuntime {
     projectAccount(storage);
     const cache = new ConversationCache(storage.messages);
 
-    const [readAt, chatPrefs, drafts, mediaIndex, prefs, , , cached] = await Promise.all([
+    const [readAt, chatPrefs, drafts, mediaIndex, prefs, , , , cached] = await Promise.all([
       readReadState(storage),
       loadChatPrefs(storage),
       loadDrafts(storage),
@@ -232,6 +233,7 @@ export class AccountRuntime {
       loadPluginPrefs(storage),
       useAppearanceStore.getState().hydrate(storage),
       hydrateLinkPreviewCache(storage),
+      hydrateEnsCache(storage),
       cache.restore(),
     ]);
     if (!this.isCurrent(generation)) return;
@@ -373,6 +375,7 @@ export class AccountRuntime {
       clearChatProjection();
       useAppearanceStore.getState().clear();
       clearLinkPreviewCache();
+      clearEnsCache();
     }
   }
 
@@ -394,6 +397,7 @@ export class AccountRuntime {
       clearChatProjection(status);
       useAppearanceStore.getState().clear();
       clearLinkPreviewCache();
+      clearEnsCache();
     }
     return this.generation;
   }

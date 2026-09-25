@@ -58,7 +58,7 @@ describe('link preview cache', () => {
     await Promise.resolve();
     expect(storage.set).toHaveBeenCalledWith(
       'link-previews',
-      expect.objectContaining({ 'https://a.co/': expect.objectContaining({ preview }) })
+      expect.objectContaining({ 'https://a.co/': expect.objectContaining({ value: preview }) })
     );
 
     expect(await loadLinkPreview('https://a.co/')).toEqual(preview);
@@ -85,9 +85,9 @@ describe('link preview cache', () => {
     const now = Date.now();
     const storage = fakeStorage({
       'link-previews': {
-        'https://fresh.example/': { preview, at: now - 1000 },
-        'https://stale.example/': { preview, at: now - 8 * 24 * 60 * 60 * 1000 },
-        'https://miss.example/': { preview: null, at: now - 60 * 60 * 1000 },
+        'https://fresh.example/': { value: preview, at: now - 1000 },
+        'https://stale.example/': { value: preview, at: now - 8 * 24 * 60 * 60 * 1000 },
+        'https://miss.example/': { value: null, at: now - 60 * 60 * 1000 },
       },
     });
     await hydrateLinkPreviewCache(storage);
