@@ -287,6 +287,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
             data={rows}
             keyExtractor={(row) => (row.kind === 'chat' ? row.conversation.id : row.directory)}
             getItemType={(row) => row.kind}
+            drawDistance={process.env.EXPO_OS === 'web' ? 2000 : undefined}
             ItemSeparatorComponent={Separator}
             contentInsetAdjustmentBehavior="automatic"
             ListEmptyComponent={

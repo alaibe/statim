@@ -1,4 +1,3 @@
-import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { useState } from 'react';
 import { KeyboardAvoidingView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,6 +32,7 @@ import { DateSeparator } from './date-separator';
 import { CommandPending } from './command-pending';
 import { ForwardSheet } from './forward-sheet';
 import { MessageBubble, type ReplyPreview } from './message-bubble';
+import { MessageList } from './message-list';
 import {
   conversationPeers,
   conversationTitle,
@@ -120,8 +120,6 @@ export function ConversationView({ id, thread, onOpenThread, onBack }: Conversat
     loadOlderMessages,
     list,
     followNewest,
-    trackScroll,
-    followIfNeeded,
     loadEarlier,
     highlighted,
   } = useConversationTimeline(id, thread, conversation, session, Boolean(onOpenThread));
@@ -192,7 +190,7 @@ export function ConversationView({ id, thread, onOpenThread, onBack }: Conversat
     ? (messageId: MessageId, optionIds: number[]) => votePoll(id, messageId, optionIds)
     : undefined;
 
-  const renderItem = ({ item, index }: ListRenderItemInfo<ChatMessage>) => (
+  const renderItem = (item: ChatMessage, index: number) => (
     <MessageRow
       message={item}
       previous={messages[index - 1]}
@@ -261,22 +259,13 @@ export function ConversationView({ id, thread, onOpenThread, onBack }: Conversat
             ) : null}
           </View>
         ) : (
-          <FlashList
+          <MessageList
             key={id}
             ref={list}
-            data={messages}
-            onScroll={trackScroll}
-            scrollEventThrottle={32}
-            onContentSizeChange={followIfNeeded}
+            messages={messages}
+            renderMessage={renderItem}
             onStartReached={loadEarlier}
-            onStartReachedThreshold={0.5}
-            keyExtractor={(m) => m.id}
-            getItemType={(m) => m.content.kind}
-            maintainVisibleContentPosition={{
-              startRenderingFromBottom: true,
-              autoscrollToBottomThreshold: 0.2,
-            }}
-            ListHeaderComponent={
+            header={
               <View>
                 {!thread && messageHistory?.hasOlder ? (
                   <Pressable
@@ -305,14 +294,8 @@ export function ConversationView({ id, thread, onOpenThread, onBack }: Conversat
                 ) : null}
               </View>
             }
-            ListFooterComponent={running ? <CommandPending label={`Running ${running}…`} /> : null}
-            contentContainerStyle={{
-              paddingTop: insets.top + frame.top + (pinnedMessages.length ? 116 : 62),
-              paddingBottom: 8,
-            }}
-            keyboardDismissMode="interactive"
-            keyboardShouldPersistTaps="handled"
-            renderItem={renderItem}
+            footer={running ? <CommandPending label={`Running ${running}…`} /> : null}
+            topInset={insets.top + frame.top + (pinnedMessages.length ? 116 : 62)}
           />
         )}
 
