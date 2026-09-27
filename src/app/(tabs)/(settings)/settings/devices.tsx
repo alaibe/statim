@@ -1,8 +1,19 @@
 import { Stack } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { ScrollView } from 'react-native';
 
-import { Badge, ConfirmSheet, Icon, ListItem, Note, Screen, Section, Text, toast } from '@/design';
+import {
+  Badge,
+  ConfirmSheet,
+  Icon,
+  ListItem,
+  Loading,
+  Note,
+  Screen,
+  Section,
+  Text,
+  toast,
+} from '@/design';
 import { errorMessage } from '@/core/errors';
 import { useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
 import { formatDayLabel } from '@/core/messaging/preview';
@@ -67,9 +78,7 @@ export default function DevicesScreen() {
 
       <ScrollView contentContainerStyle={{ paddingTop: 16, paddingBottom: 48 }}>
         {installations === null ? (
-          <View className="py-10">
-            <ActivityIndicator />
-          </View>
+          <Loading />
         ) : (
           <>
             <Section

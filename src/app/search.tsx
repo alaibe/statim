@@ -2,16 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { FlatList, View } from 'react-native';
 
-import {
-  EmptyState,
-  ErrorText,
-  Icon,
-  ListItem,
-  ModalHeader,
-  Screen,
-  SearchField,
-  Text,
-} from '@/design';
+import { EmptyState, ErrorText, ListItem, ModalHeader, Screen, SearchField, Text } from '@/design';
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { ChatMessage } from '@/core/messaging/types';
 import { contentPreview, formatTimestamp } from '@/core/messaging/preview';
@@ -82,10 +73,7 @@ export default function SearchScreen() {
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
           trimmed && !searching && !error ? (
-            <EmptyState
-              icon={<Icon name="search-outline" size={40} tone="subtle" />}
-              title="No messages found"
-            />
+            <EmptyState icon="search-outline" title="No messages found" />
           ) : null
         }
         renderItem={({ item }) => (

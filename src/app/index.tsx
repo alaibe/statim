@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router';
-import { ActivityIndicator, View } from 'react-native';
 
+import { Loading } from '@/design';
 import { useIdentityStore } from '@/core/identity/identity-store';
 
 export default function Index() {
@@ -11,11 +11,7 @@ export default function Index() {
   if (status === 'invalidated') return <Redirect href="/recover" />;
 
   if (status === 'loading' || status === 'blocked' || status === 'error') {
-    return (
-      <View className="flex-1 items-center justify-center bg-canvas">
-        <ActivityIndicator />
-      </View>
-    );
+    return <Loading className="flex-1 bg-canvas" />;
   }
 
   return <Redirect href="/(onboarding)/welcome" />;

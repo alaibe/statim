@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import {
   Avatar,
@@ -8,6 +8,7 @@ import {
   Field,
   Icon,
   ListItem,
+  Loading,
   ModalHeader,
   Note,
   Pressable,
@@ -152,9 +153,7 @@ export default function InviteScreen() {
         </Section>
 
         {loading ? (
-          <View className="py-10">
-            <ActivityIndicator />
-          </View>
+          <Loading />
         ) : access === 'unavailable' ? (
           <Note className="mx-gutter mt-6" icon="lock-closed-outline">
             <Text variant="footnote">

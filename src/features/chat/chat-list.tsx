@@ -271,7 +271,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
         <ConnectingState />
       ) : conversations.length === 0 ? (
         <EmptyState
-          icon={<Icon name="chatbubbles-outline" size={44} tone="subtle" />}
+          icon="chatbubbles-outline"
           title="No conversations yet"
           description="Start one with an Ethereum address on XMTP, or a public key on Nostr or Waku."
           actionLabel="New conversation"
@@ -291,7 +291,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
             contentInsetAdjustmentBehavior="automatic"
             ListEmptyComponent={
               <EmptyState
-                icon={<Icon name="search-outline" size={40} tone="subtle" />}
+                icon="search-outline"
                 title={
                   trimmed
                     ? 'No matching chats'

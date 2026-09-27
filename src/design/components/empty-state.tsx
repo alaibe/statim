@@ -1,12 +1,13 @@
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
+import { Icon, type IconName } from '../icon';
 import { Enter } from '../motion';
 import { Button } from './button';
 import { Text } from './text';
 
 export interface EmptyStateProps {
-  icon?: React.ReactNode;
+  icon?: IconName;
   title: string;
   description?: string;
   actionLabel?: string;
@@ -18,7 +19,11 @@ export function EmptyState({ icon, title, description, actionLabel, onAction }: 
     <Animated.View
       entering={Enter.content()}
       className="flex-1 items-center justify-center gap-3 px-8">
-      {icon ? <View className="mb-1 opacity-60">{icon}</View> : null}
+      {icon ? (
+        <View className="mb-1 opacity-60">
+          <Icon name={icon} size={44} tone="subtle" />
+        </View>
+      ) : null}
       <Text variant="title" className="text-center">
         {title}
       </Text>

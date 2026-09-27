@@ -242,13 +242,7 @@ export function ConversationView({ id, thread, onOpenThread, onBack }: Conversat
             <HistoryStatus protocol={conversation?.protocol} />
             {messageHistory || isBot ? (
               <EmptyState
-                icon={
-                  <Icon
-                    name={isBot ? 'sparkles-outline' : 'lock-closed-outline'}
-                    size={40}
-                    tone="subtle"
-                  />
-                }
+                icon={isBot ? 'sparkles-outline' : 'lock-closed-outline'}
                 title={fetchingHistory ? 'Fetching history…' : 'No messages yet'}
                 description={
                   isBot
