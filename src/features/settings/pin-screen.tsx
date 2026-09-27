@@ -55,14 +55,15 @@ const FAILED: Record<PinTask['run'], string> = {
 
 const desktop = process.env.EXPO_OS === 'web';
 
-/** The route: the flow is settled once, so saving a new PIN does not turn it into a change. */
 export function PinRoute({ requested }: { requested: 'change' | 'off' }) {
   const setup = useLockStore((s) => s.setup);
   if (!setup) return null;
-  return <PinScreen kind={pinFlowKind(requested, setup.pin)} />;
+  return <PinScreen opening={pinFlowKind(requested, setup.pin)} />;
 }
 
-function PinScreen({ kind }: { kind: SettingsPinFlow }) {
+/** The flow is settled when the screen opens, so saving a new PIN does not turn it into a change. */
+function PinScreen({ opening }: { opening: SettingsPinFlow }) {
+  const [kind] = useState(opening);
   const focused = useIsFocused();
   const verifyPin = useLockStore((s) => s.verifyPin);
   const setPin = useLockStore((s) => s.setPin);

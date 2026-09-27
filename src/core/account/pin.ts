@@ -26,7 +26,7 @@ export interface PinKdf {
 export const PIN_KDF: PinKdf =
   process.env.EXPO_OS === 'web'
     ? { name: 'scrypt', N: 2 ** 15, r: 8, p: 1, dkLen: 32 }
-    : { name: 'scrypt', N: 2 ** 10, r: 8, p: 1, dkLen: 32 };
+    : { name: 'scrypt', N: 2 ** 9, r: 8, p: 1, dkLen: 32 };
 
 interface SealedPin {
   kdf: PinKdf;

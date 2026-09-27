@@ -19,8 +19,7 @@ export function openTab(href: Href): void {
   router.navigate(href);
 }
 
-/** Once a settings page has done its job. */
+/** Back to the settings list, even when the page was opened from a chat. */
 export function leaveSettingsPage(): void {
-  if (router.canGoBack()) router.back();
-  else router.navigate('/settings');
+  router.dismissTo('/settings');
 }
