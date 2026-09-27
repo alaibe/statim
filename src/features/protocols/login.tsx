@@ -1,13 +1,41 @@
 import { useState } from 'react';
+import type { TextInputProps } from 'react-native';
 
 import { Button, Card, Field, Text } from '@/design';
 import type { ChatSession, LoginState } from '@/core/messaging/protocol';
 import { useAction } from '@/features/chat/use-action';
 
-const COPY: Record<LoginState['step'], { label: string; placeholder: string; action: string }> = {
-  phone: { label: 'Phone number', placeholder: '+44 7700 900123', action: 'Send code' },
-  code: { label: 'Code', placeholder: '12345', action: 'Continue' },
-  password: { label: 'Password', placeholder: 'Your password', action: 'Sign in' },
+const COPY: Record<
+  LoginState['step'],
+  { label: string; placeholder: string; action: string } & Pick<
+    TextInputProps,
+    'keyboardType' | 'autoComplete' | 'textContentType'
+  >
+> = {
+  phone: {
+    label: 'Phone number',
+    placeholder: '+44 7700 900123',
+    action: 'Send code',
+    keyboardType: 'phone-pad',
+    autoComplete: 'tel',
+    textContentType: 'telephoneNumber',
+  },
+  code: {
+    label: 'Code',
+    placeholder: '12345',
+    action: 'Continue',
+    keyboardType: 'number-pad',
+    autoComplete: 'one-time-code',
+    textContentType: 'oneTimeCode',
+  },
+  password: {
+    label: 'Password',
+    placeholder: 'Your password',
+    action: 'Sign in',
+    keyboardType: 'default',
+    autoComplete: 'password',
+    textContentType: 'password',
+  },
 };
 
 /**
@@ -50,24 +78,10 @@ export function LoginStep({
         autoCapitalize="none"
         autoCorrect={false}
         autoFocus
-        keyboardType={
-          login.step === 'password'
-            ? 'default'
-            : login.step === 'phone'
-              ? 'phone-pad'
-              : 'number-pad'
-        }
+        keyboardType={copy.keyboardType}
         secureTextEntry={login.step === 'password'}
-        autoComplete={
-          login.step === 'phone' ? 'tel' : login.step === 'code' ? 'one-time-code' : 'password'
-        }
-        textContentType={
-          login.step === 'phone'
-            ? 'telephoneNumber'
-            : login.step === 'code'
-              ? 'oneTimeCode'
-              : 'password'
-        }
+        autoComplete={copy.autoComplete}
+        textContentType={copy.textContentType}
       />
       <Button
         testID="protocol-login-submit"
