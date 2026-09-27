@@ -40,7 +40,7 @@ there when Face ID fails. With **Also protect keys** on, opening the app after
 a restart needs Face ID, because the PIN cannot unseal the keys.
 
 Five wrong PINs in a row start a 30-second wait, and each wrong PIN after that
-doubles it. Quitting the app does not reset the count.
+doubles it, up to a day. Quitting the app does not reset the count.
 
 ### If you forget the PIN
 
