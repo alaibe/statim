@@ -47,6 +47,7 @@ function stubContext(): PluginContext {
       openExternalUrl: async () => {},
       openChat: () => {},
       openProfile: () => {},
+      openSettings: () => {},
     },
     plugins: {
       list: () => [],

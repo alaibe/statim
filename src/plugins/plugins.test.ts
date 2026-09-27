@@ -57,6 +57,7 @@ function stubContext() {
       openExternalUrl: throwing,
       openChat: () => {},
       openProfile: () => {},
+      openSettings: () => {},
     },
     plugins: { list: () => [], setEnabled: throwing, commands: () => [] },
   } as never;

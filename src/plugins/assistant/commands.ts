@@ -73,6 +73,18 @@ export function assistantCommands(views: { plugins: PluginView }): SlashCommand[
     },
 
     {
+      name: 'security',
+      hidden: true,
+      showIn: ['channel'],
+      description: 'Open Security in Settings, or set a PIN',
+      usage: '/security [pin]',
+      async run({ args, context }) {
+        context.ui.openSettings(args[0] === 'pin' ? 'pin' : 'security');
+        return { type: 'handled' };
+      },
+    },
+
+    {
       name: 'whoami',
       aliases: ['me'],
       description: 'Show the address someone else would message you at',

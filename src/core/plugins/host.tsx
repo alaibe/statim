@@ -51,7 +51,7 @@ export function usePluginHost(): PluginHostValue {
   return value;
 }
 
-export type HostUi = Pick<PluginUiApi, 'notify' | 'openChat'>;
+export type HostUi = Pick<PluginUiApi, 'notify' | 'openChat' | 'openSettings'>;
 
 export interface PluginProviderProps {
   plugins: Plugin[];
@@ -260,6 +260,10 @@ function makePluginContext(
       openChat(chatId) {
         active();
         ui.openChat(chatId);
+      },
+      openSettings(page) {
+        active();
+        ui.openSettings(page);
       },
       openProfile(chatId, participantId) {
         active();

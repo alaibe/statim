@@ -22,6 +22,8 @@ taps.
   a received file opens in whatever handles its type.
 - Sharing means copying to the clipboard. An invite also opens Messages.
 - Unread messages show as a badge on the Dock icon.
+- Touch ID does not lock the app. **Set PIN** under **Settings → Security**
+  does, and the lock screen takes digits typed on the keyboard.
 
 ## Where your data lives
 

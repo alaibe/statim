@@ -61,12 +61,16 @@ Nothing is shared between them, including which protocols are connected.
 
 ## Lock it
 
-**Settings → Recovery phrase** shows the words again, after Face ID or your
-passcode, and holds two switches:
+**Settings → Security** holds the lock:
 
 - **Require Face ID** to open the app at all.
+- **Set PIN** for a 6-digit PIN of its own, separate from the phone's
+  passcode. It is the lock on the Mac.
 - **Also protect keys**, which seals the phrase in the keychain so that nothing
   can read it, or sign with it, without Face ID first.
+
+[Settings](./settings#security) explains how the PIN works and what happens if
+you forget it. **Settings → Recovery phrase** shows the words again.
 
 The phrase is stored in the device keychain, marked as this-device-only, and
 never leaves it.

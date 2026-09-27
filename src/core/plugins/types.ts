@@ -93,7 +93,11 @@ export interface PluginUiApi {
   openExternalUrl(url: string): Promise<void>;
   openChat(chatId: ChatId): void;
   openProfile(chatId: ChatId, participantId?: ParticipantId): void;
+  openSettings(page: SettingsLink): void;
 }
+
+/** The parts of Settings a plugin can send the user to: its Security section, or setting a PIN. */
+export type SettingsLink = 'security' | 'pin';
 
 export interface PluginSummary {
   id: PluginId;

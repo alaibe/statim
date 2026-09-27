@@ -11,12 +11,44 @@
   switch.
 - **My QR code** shows your addresses as a code someone can scan to start a
   chat.
-- **Recovery phrase** shows the words again and holds the security switches:
-  *Require Face ID* to open the app, and *Also protect keys*, which seals the
-  phrase in the keychain so nothing reads it or signs with it without Face ID
-  first.
+- **Recovery phrase** shows the words again.
 - **Erase this account** is covered under
   [Your account](./account#erase-an-account).
+
+## Security
+
+- **Require Face ID** (phones only) asks for Face ID before the app shows
+  anything, and again after a minute in the background. On Android the switch
+  is named for your fingerprint or face unlock.
+- **Also protect keys** seals the recovery phrase in the keychain so nothing
+  reads it or signs with it without Face ID first.
+- **Set PIN** locks the app with a 6-digit PIN of its own. On the Mac it is
+  the only lock. Once a PIN is set, the row becomes **Change PIN** and
+  **Turn off PIN**, and both ask for the current PIN.
+
+### The PIN
+
+The app asks for the PIN whenever it opens and after a minute in the
+background. The PIN is separate from your phone's passcode: once it is set, the
+Face ID prompt stops offering the passcode, so someone who knows the passcode
+still cannot open the app. The PIN itself is never stored. The app keeps a
+one-way fingerprint of it in the keychain, which can check a PIN but cannot be
+turned back into one.
+
+With Face ID and a PIN both on, the app asks for Face ID, and **Use PIN** is
+there when Face ID fails. With **Also protect keys** on, opening the app after
+a restart needs Face ID, because the PIN cannot unseal the keys.
+
+Five wrong PINs in a row start a 30-second wait, and each wrong PIN after that
+doubles it. Quitting the app does not reset the count.
+
+### If you forget the PIN
+
+A PIN cannot be recovered or reset. On the lock screen, tap **Forgot PIN?** and
+type `erase`. The app then deletes everything it keeps on this device,
+including every account's keys, chats and settings, and you restore each
+account from its recovery phrase. Notes kept only on this device are lost, so
+write the recovery phrase down before you set a PIN.
 
 ## Preferences
 

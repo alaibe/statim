@@ -25,7 +25,7 @@ import { useCliServer } from '@/features/cli/server';
 import { LockGate } from '@/features/account/lock-gate';
 import { AppFrame } from '@/features/navigation/app-frame';
 import { Dialog } from '@/features/navigation/dialog';
-import { openChat } from '@/features/navigation/open';
+import { openChat, openTab } from '@/features/navigation/open';
 import { DIALOG_ROUTES } from '@/features/navigation/routes';
 import { stackScreenOptions } from '@/features/navigation/stack-options';
 import { ALL_PLUGINS, DEFAULT_ENABLED_PLUGINS } from '@/plugins';
@@ -39,6 +39,7 @@ Observe.configure({
 const HOST_UI: HostUi = {
   notify: (message, tone = 'info') => toast[tone](message),
   openChat,
+  openSettings: (page) => openTab(page === 'pin' ? '/settings/pin' : '/settings'),
 };
 
 /**

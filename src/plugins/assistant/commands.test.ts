@@ -259,3 +259,16 @@ describe('/disable', () => {
     );
   });
 });
+
+describe('/security', () => {
+  it('opens setting a PIN, or the Security section, and is never listed', async () => {
+    const openSettings = jest.fn();
+    const context = { ...makeContext([]), ui: { openSettings } } as unknown as PluginContext;
+
+    expect(find('security', context).hidden).toBe(true);
+    await run('security', ['pin'], context);
+    await run('security', [], context);
+
+    expect(openSettings.mock.calls).toEqual([['pin'], ['security']]);
+  });
+});
