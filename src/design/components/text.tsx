@@ -6,6 +6,7 @@ const VARIANTS = {
   display: 'text-display font-sans font-semibold tracking-tight text-content',
   headline: 'text-headline font-sans font-semibold tracking-tight text-content',
   title: 'text-title font-sans font-semibold text-content',
+  amount: 'text-[1.625rem] font-sans font-semibold tracking-tight tabular-nums text-content',
   body: 'text-body font-sans text-content',
   bodyMuted: 'text-body font-sans text-content-muted',
   footnote: 'text-footnote font-sans text-content-muted',

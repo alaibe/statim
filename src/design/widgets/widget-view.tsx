@@ -136,11 +136,7 @@ function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) 
       const body = (
         <View className="gap-0.5">
           {widget.label ? <Text variant="caption">{widget.label}</Text> : null}
-          <Text
-            className={cn(
-              'text-[1.625rem] font-semibold tracking-tight tabular-nums',
-              TEXT_TONE[widget.tone ?? 'neutral']
-            )}>
+          <Text variant="amount" className={TEXT_TONE[widget.tone ?? 'neutral']}>
             {widget.value}
           </Text>
           {widget.caption ? <Text variant="caption">{widget.caption}</Text> : null}

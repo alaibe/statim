@@ -115,7 +115,7 @@ function PaymentRequestCard({
         </View>
 
         <View className="gap-0.5">
-          <Text className="text-[1.625rem] font-semibold tracking-tight tabular-nums text-content">
+          <Text variant="amount">
             {data.amount} {data.symbol}
           </Text>
           <Text variant="caption">
@@ -196,7 +196,7 @@ function SplitRequestCard({ data, fromMe, context, message }: MessageRendererPro
         <Eyebrow>{data.note ? `Split · ${data.note}` : 'Split'}</Eyebrow>
       </View>
 
-      <Text className="text-[1.625rem] font-semibold tracking-tight tabular-nums">
+      <Text variant="amount">
         {data.share} {data.symbol}
       </Text>
       <Text variant="caption">
@@ -237,7 +237,7 @@ function PaymentReceiptCard({ data, fromMe }: MessageRendererProps<PaymentReceip
         <Eyebrow tone="success">Payment sent</Eyebrow>
       </View>
 
-      <Text className="text-[1.375rem] font-semibold tracking-tight tabular-nums text-content">
+      <Text variant="amount" className="text-[1.375rem]">
         {data.amount} {data.symbol}
       </Text>
 
