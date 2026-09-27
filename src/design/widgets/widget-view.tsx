@@ -3,7 +3,6 @@ import { View } from 'react-native';
 import { useState } from 'react';
 
 import { ActionSheet, Badge, Button, Eyebrow, Pressable, Text } from '../components';
-import { useThemeColors } from '../hooks/use-theme-colors';
 import { Icon } from '../icon';
 import { cn } from '../lib/cn';
 import { copyText } from '../copy-text';
@@ -78,13 +77,7 @@ function affordanceFor(actions: WidgetAction[] | undefined): string | null {
   return actions.length === 1 ? actions[0].label : 'Options';
 }
 
-function Affordance({
-  actions,
-  tint,
-}: {
-  actions: WidgetAction[] | undefined;
-  tint: (tone: WidgetTone | undefined) => string;
-}) {
+function Affordance({ actions }: { actions: WidgetAction[] | undefined }) {
   const label = affordanceFor(actions);
   if (!label || !actions?.length) return null;
 
@@ -96,7 +89,7 @@ function Affordance({
   if (primary.icon) {
     return (
       <View className="h-7 w-7 items-center justify-center rounded-pill bg-surface-sunken">
-        <Icon name={primary.icon} size={15} color={tint(primary.tone)} />
+        <Icon name={primary.icon} size={15} tone={primary.tone === 'danger' ? 'danger' : 'brand'} />
       </View>
     );
   }
@@ -115,6 +108,36 @@ function Affordance({
   );
 }
 
+/** Pressable, offering `actions` under `heading`, when there are any. */
+function Offerable({
+  actions,
+  heading,
+  label,
+  className,
+  onOffer,
+  children,
+}: {
+  actions: WidgetAction[] | undefined;
+  heading: { title: string; subtitle?: string };
+  label?: string;
+  className?: string;
+  onOffer: WidgetViewProps['onOffer'];
+  children: React.ReactNode;
+}) {
+  if (!actions?.length) return children;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={affordanceFor(actions) ?? undefined}
+      pressScale={0.99}
+      onPress={() => onOffer?.(heading, actions)}
+      className={className}>
+      {children}
+    </Pressable>
+  );
+}
+
 function StateDot({ state }: { state: 'on' | 'off' }) {
   return (
     <View
@@ -127,48 +150,39 @@ function StateDot({ state }: { state: 'on' | 'off' }) {
 }
 
 function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) {
-  const colors = useThemeColors();
-
-  const tint = (tone: WidgetTone | undefined) => (tone === 'danger' ? colors.danger : colors.brand);
-
   switch (widget.kind) {
-    case 'stat': {
-      const body = (
-        <View className="gap-0.5">
-          {widget.label ? <Text variant="caption">{widget.label}</Text> : null}
-          <Text variant="amount" className={TEXT_TONE[widget.tone ?? 'neutral']}>
-            {widget.value}
-          </Text>
-          {widget.caption ? <Text variant="caption">{widget.caption}</Text> : null}
-        </View>
-      );
-
-      if (!widget.actions?.length) return body;
+    case 'stat':
       return (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityHint={affordanceFor(widget.actions) ?? undefined}
-          pressScale={0.99}
-          onPress={() =>
-            onOffer?.(
-              widget.label
-                ? { title: widget.label, subtitle: widget.value }
-                : { title: widget.value },
-              widget.actions ?? []
-            )
+        <Offerable
+          actions={widget.actions}
+          heading={
+            widget.label ? { title: widget.label, subtitle: widget.value } : { title: widget.value }
           }
-          className="flex-row items-center justify-between gap-2">
-          <View className="flex-1">{body}</View>
-          <Affordance actions={widget.actions} tint={tint} />
-        </Pressable>
+          onOffer={onOffer}>
+          <View className="flex-row items-center justify-between gap-2">
+            <View className="flex-1 gap-0.5">
+              {widget.label ? <Text variant="caption">{widget.label}</Text> : null}
+              <Text variant="amount" className={TEXT_TONE[widget.tone ?? 'neutral']}>
+                {widget.value}
+              </Text>
+              {widget.caption ? <Text variant="caption">{widget.caption}</Text> : null}
+            </View>
+            <Affordance actions={widget.actions} />
+          </View>
+        </Offerable>
       );
-    }
 
     case 'rows':
       return (
         <View className="gap-1.5">
-          {widget.rows.map((row, i) => {
-            const content = (
+          {widget.rows.map((row, i) => (
+            <Offerable
+              key={`${row.label}-${i}`}
+              actions={row.actions}
+              heading={{ title: row.label, subtitle: row.value || undefined }}
+              label={`${row.label}, ${row.value}`}
+              className="-mx-1 rounded-field px-1 py-0.5 active:bg-surface-sunken"
+              onOffer={onOffer}>
               <View className={cn('flex-row gap-3', row.state ? 'items-center' : 'items-baseline')}>
                 {row.state ? <StateDot state={row.state} /> : null}
                 <Text
@@ -188,39 +202,25 @@ function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) 
                   </Text>
                 ) : null}
                 <View className="pl-2">
-                  <Affordance actions={row.actions} tint={tint} />
+                  <Affordance actions={row.actions} />
                 </View>
               </View>
-            );
-
-            if (!row.actions?.length) return <View key={`${row.label}-${i}`}>{content}</View>;
-
-            return (
-              <Pressable
-                key={`${row.label}-${i}`}
-                accessibilityRole="button"
-                accessibilityLabel={`${row.label}, ${row.value}`}
-                accessibilityHint={affordanceFor(row.actions) ?? undefined}
-                pressScale={0.99}
-                onPress={() =>
-                  onOffer?.(
-                    { title: row.label, subtitle: row.value || undefined },
-                    row.actions ?? []
-                  )
-                }
-                className="-mx-1 rounded-field px-1 py-0.5 active:bg-surface-sunken">
-                {content}
-              </Pressable>
-            );
-          })}
+            </Offerable>
+          ))}
         </View>
       );
 
     case 'list':
       return (
         <View className="gap-1">
-          {widget.items.map((item, i) => {
-            const body = (
+          {widget.items.map((item, i) => (
+            <Offerable
+              key={`${item.title}-${i}`}
+              actions={item.actions}
+              heading={{ title: item.title, subtitle: item.subtitle }}
+              label={item.subtitle ? `${item.title}, ${item.subtitle}` : item.title}
+              className="-mx-1.5 rounded-field px-1.5 active:bg-surface-sunken"
+              onOffer={onOffer}>
               <View className="flex-row items-center gap-2.5 py-2">
                 {item.state ? <StateDot state={item.state} /> : null}
                 {item.icon ? <Icon name={item.icon} size={17} tone="muted" /> : null}
@@ -243,28 +243,11 @@ function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) 
                   <Badge label={item.status} tone={item.tone === 'brand' ? 'brand' : 'neutral'} />
                 ) : null}
                 <View className="pl-2">
-                  <Affordance actions={item.actions} tint={tint} />
+                  <Affordance actions={item.actions} />
                 </View>
               </View>
-            );
-
-            if (!item.actions?.length) return <View key={`${item.title}-${i}`}>{body}</View>;
-
-            return (
-              <Pressable
-                key={`${item.title}-${i}`}
-                accessibilityRole="button"
-                accessibilityLabel={item.subtitle ? `${item.title}, ${item.subtitle}` : item.title}
-                accessibilityHint={affordanceFor(item.actions) ?? undefined}
-                pressScale={0.99}
-                onPress={() =>
-                  onOffer?.({ title: item.title, subtitle: item.subtitle }, item.actions ?? [])
-                }
-                className="-mx-1.5 rounded-field px-1.5 active:bg-surface-sunken">
-                {body}
-              </Pressable>
-            );
-          })}
+            </Offerable>
+          ))}
         </View>
       );
 
