@@ -1,12 +1,11 @@
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 
-import { Icon, Pressable, Screen, Text, useThemeColors } from '@/design';
+import { Icon, Pressable, Screen, Text } from '@/design';
 import { ContactList, type ContactSort } from '@/features/contacts/contact-list';
 
 export default function ContactsScreen() {
   const router = useRouter();
-  const colors = useThemeColors();
 
   const [query, setQuery] = useState('');
   const [sortBy, setSortBy] = useState<ContactSort>('name');
@@ -30,7 +29,7 @@ export default function ContactsScreen() {
               accessibilityRole="button"
               accessibilityLabel="New conversation"
               onPress={() => router.push('/new-chat')}>
-              <Icon name="add" size={24} color={colors.brand} />
+              <Icon name="add" size={24} tone="brand" />
             </Pressable>
           ),
         }}

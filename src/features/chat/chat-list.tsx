@@ -271,7 +271,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
         <ConnectingState />
       ) : conversations.length === 0 ? (
         <EmptyState
-          icon={<Icon name="chatbubbles-outline" size={44} color={colors['content-subtle']} />}
+          icon={<Icon name="chatbubbles-outline" size={44} tone="subtle" />}
           title="No conversations yet"
           description="Start one with an Ethereum address on XMTP, or a public key on Nostr or Waku."
           actionLabel="New conversation"
@@ -291,7 +291,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
             contentInsetAdjustmentBehavior="automatic"
             ListEmptyComponent={
               <EmptyState
-                icon={<Icon name="search-outline" size={40} color={colors['content-subtle']} />}
+                icon={<Icon name="search-outline" size={40} tone="subtle" />}
                 title={
                   trimmed
                     ? 'No matching chats'
@@ -319,7 +319,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
                     accessibilityRole="button"
                     onPress={() => router.push('/requests')}
                     className="mx-gutter mb-2 min-h-tap flex-row items-center gap-3 rounded-card border border-line bg-surface px-3 py-3">
-                    <Icon name="mail-unread-outline" size={20} color={colors.brand} />
+                    <Icon name="mail-unread-outline" size={20} tone="brand" />
                     <View className="min-w-0 flex-1">
                       <Text className="font-semibold">Message requests</Text>
                       <Text variant="caption">From people you haven’t replied to</Text>

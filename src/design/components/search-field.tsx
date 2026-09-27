@@ -20,7 +20,7 @@ export function SearchField({ className, onClear, value, ...input }: SearchField
         'h-9 flex-row items-center gap-2 rounded-pill bg-surface-sunken px-3',
         className
       )}>
-      <Icon name="search-outline" size={16} color={colors['content-subtle']} />
+      <Icon name="search-outline" size={16} tone="subtle" />
       <TextInput
         placeholderTextColor={colors['content-subtle']}
         autoCapitalize="none"

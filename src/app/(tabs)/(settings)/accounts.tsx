@@ -16,7 +16,6 @@ import {
   SwipeableRow,
   Text,
   toast,
-  useThemeColors,
 } from '@/design';
 import { eraseAccount } from '@/core/app/erase-account';
 import { errorMessage } from '@/core/errors';
@@ -28,7 +27,6 @@ import { ConnectHardware } from '@/features/identity/connect-hardware';
 
 export default function AccountsScreen() {
   const router = useRouter();
-  const colors = useThemeColors();
 
   const accounts = useIdentityStore((s) => s.accounts);
   const activeAccountId = useIdentityStore((s) => s.activeAccountId);
@@ -81,7 +79,7 @@ export default function AccountsScreen() {
                 // Only state on the right: tapping switches, holding manages, swiping erases.
                 trailing={
                   account.id === activeAccountId ? (
-                    <Icon name="checkmark-circle" size={20} color={colors.brand} />
+                    <Icon name="checkmark-circle" size={20} tone="brand" />
                   ) : undefined
                 }
                 onLongPress={() => setManaging(account.id)}

@@ -13,7 +13,6 @@ import {
   Text,
   copyText,
   type IconName,
-  useThemeColors,
 } from '@/design';
 import { shortAddress } from '@/core/identity/keyring';
 import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
@@ -219,14 +218,13 @@ export function ConversationProfile() {
 }
 
 function Action({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
-  const colors = useThemeColors();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
       className="min-w-[84px] items-center gap-1 rounded-card bg-surface-sunken px-3 py-2.5">
-      <Icon name={icon} size={20} color={colors.brand} />
+      <Icon name={icon} size={20} tone="brand" />
       <Text variant="micro" className="font-medium text-content">
         {label}
       </Text>

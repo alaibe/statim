@@ -10,7 +10,6 @@ import {
   Pressable,
   SearchField,
   Text,
-  useThemeColors,
 } from '@/design';
 import { ChatList } from '@/features/chat/chat-list';
 import { ContactList, type ContactSort } from '@/features/contacts/contact-list';
@@ -51,7 +50,6 @@ export function DesktopSidebar() {
   const router = useRouter();
   const segments = useSegments() as string[];
   const params = useGlobalSearchParams<{ id?: string }>();
-  const colors = useThemeColors();
 
   const [query, setQuery] = useState('');
   const [sortBy, setSortBy] = useState<ContactSort>('name');
@@ -163,11 +161,7 @@ export function DesktopSidebar() {
               accessibilityLabel={entry.label}
               onPress={() => openTab(entry.href)}
               className="flex-1 items-center gap-0.5 py-2">
-              <Icon
-                name={entry.icon}
-                size={22}
-                color={active ? colors.brand : colors['content-muted']}
-              />
+              <Icon name={entry.icon} size={22} tone={active ? 'brand' : 'muted'} />
               <Text
                 variant="caption"
                 className={active ? 'font-semibold text-brand' : 'text-content-muted'}>

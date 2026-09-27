@@ -54,7 +54,7 @@ export function ConversationHeader({
             style={StyleSheet.absoluteFill}
           />
           <View className="absolute inset-0 bg-canvas/55" />
-          <Icon name="chevron-back" size={22} color={colors.brand} />
+          <Icon name="chevron-back" size={22} tone="brand" />
         </Pressable>
       )}
 
@@ -98,7 +98,7 @@ export function ConversationHeader({
           accessibilityLabel="Search in chat"
           onPress={() => router.push(`/search?chatId=${encodeURIComponent(id)}`)}
           className="h-10 w-10 items-center justify-center">
-          <Icon name="search-outline" size={20} color={colors.brand} />
+          <Icon name="search-outline" size={20} tone="brand" />
         </Pressable>
       ) : null}
 

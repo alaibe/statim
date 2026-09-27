@@ -4,14 +4,12 @@ import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { Card, copyText, Enter, Icon, Pressable, Screen, Text, useThemeColors } from '@/design';
+import { Card, copyText, Enter, Icon, Pressable, Screen, Text } from '@/design';
 import { useIdentityStore } from '@/core/identity/identity-store';
 import { shortAddress } from '@/core/identity/keyring';
 import { RecoveryPhrase } from '@/features/identity/recovery-phrase';
 
 export default function IdentityScreen() {
-  const colors = useThemeColors();
-
   const keyring = useIdentityStore((s) => s.keyring);
 
   const [revealed, setRevealed] = useState(false);
@@ -34,7 +32,7 @@ export default function IdentityScreen() {
               pressScale={0.99}
               className="flex-row items-center justify-between">
               <Text variant="mono">{keyring ? shortAddress(keyring.address, 12, 10) : '—'}</Text>
-              <Icon name="copy-outline" size={16} color={colors['content-muted']} />
+              <Icon name="copy-outline" size={16} tone="muted" />
             </Pressable>
           </Card>
 
@@ -55,7 +53,7 @@ export default function IdentityScreen() {
                 accessibilityRole="button"
                 onPress={() => setRevealed(true)}
                 className="items-center justify-center gap-1.5 rounded-field bg-surface-sunken py-10">
-                <Icon name="eye-outline" size={20} color={colors['content-muted']} />
+                <Icon name="eye-outline" size={20} tone="muted" />
                 <Text variant="title">Tap to reveal</Text>
               </Pressable>
             )}

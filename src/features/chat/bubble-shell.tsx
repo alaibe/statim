@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Pressable as RNPressable, View } from 'react-native';
 
-import { cn, Icon, Text, useThemeColors } from '@/design';
+import { cn, Icon, Text } from '@/design';
 import { MessageActions, type MessageAction, type MessageAnchor } from './message-actions';
 
 export interface ReplyPreview {
@@ -41,7 +41,6 @@ export function BubbleShell({
   thread?: ThreadChip;
   children: React.ReactNode;
 }) {
-  const colors = useThemeColors();
   const [picking, setPicking] = useState(false);
   const [anchor, setAnchor] = useState<MessageAnchor | null>(null);
   const [menu, setMenu] = useState<MessageAction[]>([]);
@@ -132,7 +131,7 @@ export function BubbleShell({
 
         {privateToMe ? (
           <View className="mt-1 flex-row items-center gap-1">
-            <Icon name="eye-off-outline" size={11} color={colors['content-subtle']} />
+            <Icon name="eye-off-outline" size={11} tone="subtle" />
             <Text variant="micro">Only you can see this</Text>
           </View>
         ) : null}
@@ -163,11 +162,11 @@ export function BubbleShell({
             accessibilityLabel={`Open thread, ${repliesLabel(thread.replies)}`}
             onPress={thread.onOpen}
             className="mt-1 flex-row items-center gap-1 rounded-pill bg-surface-sunken px-2.5 py-1">
-            <Icon name="chatbubbles-outline" size={13} color={colors.brand} />
+            <Icon name="chatbubbles-outline" size={13} tone="brand" />
             <Text variant="caption" className="font-semibold text-brand">
               {repliesLabel(thread.replies)}
             </Text>
-            <Icon name="chevron-forward" size={12} color={colors.brand} />
+            <Icon name="chevron-forward" size={12} tone="brand" />
           </RNPressable>
         ) : null}
       </View>

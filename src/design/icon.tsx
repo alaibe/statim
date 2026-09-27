@@ -1,5 +1,8 @@
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 
+import { useThemeColors } from './hooks/use-theme-colors';
+import type { ResolvedColors } from './tokens';
+
 type Glyph = { ios: SFSymbol; android: AndroidSymbol; web: AndroidSymbol };
 
 function glyph(ios: SFSymbol, android: AndroidSymbol): Glyph {
@@ -121,12 +124,33 @@ const ICONS = {
 
 export type IconName = keyof typeof ICONS;
 
+const TONE = {
+  content: 'content',
+  muted: 'content-muted',
+  subtle: 'content-subtle',
+  brand: 'brand',
+  'brand-on': 'brand-on',
+  success: 'success',
+  warning: 'warning',
+  danger: 'danger',
+} as const satisfies Record<string, keyof ResolvedColors>;
+
+export type IconTone = keyof typeof TONE;
+
 export interface IconProps {
   name: IconName;
   size?: number;
+  tone?: IconTone;
   color?: string;
 }
 
-export function Icon({ name, size = 20, color }: IconProps) {
-  return <SymbolView name={ICONS[name]} size={size} tintColor={color} />;
+export function Icon({ name, size = 20, tone, color }: IconProps) {
+  const colors = useThemeColors();
+  return (
+    <SymbolView
+      name={ICONS[name]}
+      size={size}
+      tintColor={color ?? (tone ? colors[TONE[tone]] : undefined)}
+    />
+  );
 }

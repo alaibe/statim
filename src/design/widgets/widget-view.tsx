@@ -227,9 +227,7 @@ function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) 
             const body = (
               <View className="flex-row items-center gap-2.5 py-2">
                 {item.state ? <StateDot state={item.state} /> : null}
-                {item.icon ? (
-                  <Icon name={item.icon} size={17} color={colors['content-muted']} />
-                ) : null}
+                {item.icon ? <Icon name={item.icon} size={17} tone="muted" /> : null}
                 <View className="min-w-0 grow shrink gap-0.5">
                   <Text
                     numberOfLines={1}
@@ -285,9 +283,7 @@ function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) 
             <Text variant="mono" numberOfLines={1} className="flex-1">
               {widget.value}
             </Text>
-            {widget.copyable ? (
-              <Icon name="copy-outline" size={13} color={colors['content-subtle']} />
-            ) : null}
+            {widget.copyable ? <Icon name="copy-outline" size={13} tone="subtle" /> : null}
           </View>
         </View>
       );
@@ -373,7 +369,7 @@ function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) 
           accessibilityLabel={widget.label}
           onPress={() => onOpenUrl?.(widget.url)}
           className="flex-row items-center gap-1.5">
-          <Icon name={widget.icon ?? 'open-outline'} size={14} color={colors.brand} />
+          <Icon name={widget.icon ?? 'open-outline'} size={14} tone="brand" />
           <Text className="min-w-0 flex-1 text-footnote font-medium text-brand">
             {widget.label}
           </Text>

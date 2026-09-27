@@ -2,17 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 
-import {
-  Badge,
-  Button,
-  Card,
-  Icon,
-  ListItem,
-  Pressable,
-  Screen,
-  Text,
-  useThemeColors,
-} from '@/design';
+import { Badge, Button, Card, Icon, ListItem, Pressable, Screen, Text } from '@/design';
 import { errorMessage } from '@/core/errors';
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { ChatSession } from '@/core/messaging/protocol';
@@ -32,7 +22,6 @@ type Phase = 'loading' | 'unavailable' | 'flows' | 'step' | 'done';
 
 export default function BridgeLoginScreen() {
   const { bridge: localpart } = useLocalSearchParams<{ bridge: string }>();
-  const colors = useThemeColors();
   const goBack = useBack('/settings/protocol/matrix');
   const bridge = knownBridge(localpart ?? '');
   const session = useChatStore((s) => s.sessions.matrix) as
@@ -138,7 +127,7 @@ export default function BridgeLoginScreen() {
           accessibilityLabel="Close"
           onPress={goBack}
           className="h-9 w-9 items-center justify-center rounded-pill bg-surface-sunken">
-          <Icon name="close" size={20} color={colors['content-muted']} />
+          <Icon name="close" size={20} tone="muted" />
         </Pressable>
         <Text className="font-semibold">Connect {bridge.network}</Text>
         <View className="h-9 w-9" />

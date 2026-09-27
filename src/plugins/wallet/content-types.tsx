@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { Badge, Button, cn, Enter, Eyebrow, Icon, Sheet, Text, useThemeColors } from '@/design';
+import { Badge, Button, cn, Enter, Eyebrow, Icon, Sheet, Text } from '@/design';
 import { shortAddress } from '@/core/identity/keyring';
 import type { MessageRendererProps, PluginContentType } from '@/core/plugins/types';
 
@@ -52,7 +52,6 @@ function PaymentRequestCard({
   context,
   message,
 }: MessageRendererProps<PaymentRequest>) {
-  const colors = useThemeColors();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [paid, setPaid] = useState(false);
@@ -111,7 +110,7 @@ function PaymentRequestCard({
     <>
       <CardShell fromMe={fromMe}>
         <View className="flex-row items-center gap-2">
-          <Icon name="arrow-down-circle" size={18} color={colors.brand} />
+          <Icon name="arrow-down-circle" size={18} tone="brand" />
           <Eyebrow tone="brand">Payment request</Eyebrow>
         </View>
 
@@ -166,7 +165,6 @@ function PaymentRequestCard({
 }
 
 function SplitRequestCard({ data, fromMe, context, message }: MessageRendererProps<SplitRequest>) {
-  const colors = useThemeColors();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paid, setPaid] = useState(false);
@@ -196,7 +194,7 @@ function SplitRequestCard({ data, fromMe, context, message }: MessageRendererPro
   return (
     <CardShell fromMe={fromMe}>
       <View className="flex-row items-center gap-1.5">
-        <Icon name="pie-chart-outline" size={15} color={colors.brand} />
+        <Icon name="pie-chart-outline" size={15} tone="brand" />
         <Eyebrow>{data.note ? `Split · ${data.note}` : 'Split'}</Eyebrow>
       </View>
 
@@ -235,14 +233,13 @@ function SplitRequestCard({ data, fromMe, context, message }: MessageRendererPro
 }
 
 function PaymentReceiptCard({ data, fromMe }: MessageRendererProps<PaymentReceipt>) {
-  const colors = useThemeColors();
   const legacy = data.chainId === undefined ? undefined : chainById(data.chainId);
   const explorer = legacy?.blockExplorers?.default.url;
 
   return (
     <CardShell fromMe={fromMe}>
       <View className="flex-row items-center gap-2">
-        <Icon name="checkmark-circle" size={18} color={colors.success} />
+        <Icon name="checkmark-circle" size={18} tone="success" />
         <Eyebrow tone="success">Payment sent</Eyebrow>
       </View>
 

@@ -11,7 +11,6 @@ import {
   Pressable,
   Text,
 } from '../components';
-import { useThemeColors } from '../hooks/use-theme-colors';
 import { Icon } from '../icon';
 import { cn } from '../lib/cn';
 import {
@@ -35,7 +34,6 @@ function SelectField({
   display: Record<string, string>;
   onPick: (value: string) => void;
 }) {
-  const colors = useThemeColors();
   const [picking, setPicking] = useState(false);
 
   const label = fillText(field.label, display);
@@ -57,7 +55,7 @@ function SelectField({
           )}>
           {chosen?.label ?? field.placeholder ?? 'Choose'}
         </Text>
-        <Icon name="chevron-down" size={16} color={colors['content-subtle']} />
+        <Icon name="chevron-down" size={16} tone="subtle" />
       </Pressable>
 
       <ActionSheet

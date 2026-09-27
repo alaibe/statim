@@ -13,7 +13,6 @@ import {
   Screen,
   springLayout,
   Text,
-  useThemeColors,
 } from '@/design';
 import { useBack } from '@/features/navigation/use-back';
 import { toneFor } from '@/features/protocols/presentation';
@@ -22,7 +21,6 @@ import { supports } from '@/core/messaging/capability';
 import { useNewChat } from './use-new-chat';
 
 export function NewChatScreen() {
-  const colors = useThemeColors();
   const goBack = useBack('/chats');
   const {
     sessions,
@@ -56,7 +54,7 @@ export function NewChatScreen() {
           accessibilityLabel="Close"
           onPress={goBack}
           className="h-9 w-9 items-center justify-center rounded-pill bg-surface-sunken">
-          <Icon name="close" size={20} color={colors['content-muted']} />
+          <Icon name="close" size={20} tone="muted" />
         </Pressable>
         <Text className="font-semibold">{isGroup ? 'New group' : 'New message'}</Text>
         <View className="h-9 w-9" />
@@ -147,7 +145,7 @@ export function NewChatScreen() {
                     <Icon
                       name={selectedIds.has(entry.id) ? 'checkmark-circle' : 'add-circle-outline'}
                       size={20}
-                      color={selectedIds.has(entry.id) ? colors.brand : colors['content-subtle']}
+                      tone={selectedIds.has(entry.id) ? 'brand' : 'subtle'}
                     />
                   </Pressable>
                 )

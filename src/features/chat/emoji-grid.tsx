@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import emojiData from 'rn-emoji-keyboard/src/assets/emojis.json';
 
-import { Icon, SearchField, Text, useThemeColors, type IconName } from '@/design';
+import { Icon, SearchField, Text, type IconName } from '@/design';
 import { useChatStore } from '@/core/messaging/chat-store';
 
 interface EmojiEntry {
@@ -94,7 +94,6 @@ export interface EmojiGridProps {
 }
 
 export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
-  const colors = useThemeColors();
   const storage = useChatStore((s) => s.accountStorage);
   const list = useRef<FlatList<Row>>(null);
 
@@ -270,11 +269,7 @@ export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
                   ? 'h-8 flex-1 items-center justify-center rounded-md bg-brand-soft'
                   : 'h-8 flex-1 items-center justify-center rounded-md hover:bg-surface-sunken'
               }>
-              <Icon
-                name={category.icon}
-                size={20}
-                color={selected ? colors.brand : colors['content-muted']}
-              />
+              <Icon name={category.icon} size={20} tone={selected ? 'brand' : 'muted'} />
             </Pressable>
           );
         })}

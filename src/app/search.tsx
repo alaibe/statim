@@ -2,16 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { FlatList, View } from 'react-native';
 
-import {
-  EmptyState,
-  Icon,
-  ListItem,
-  Pressable,
-  Screen,
-  SearchField,
-  Text,
-  useThemeColors,
-} from '@/design';
+import { EmptyState, Icon, ListItem, Pressable, Screen, SearchField, Text } from '@/design';
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { ChatMessage } from '@/core/messaging/types';
 import { contentPreview, formatTimestamp } from '@/core/messaging/preview';
@@ -22,7 +13,6 @@ import { errorMessage } from '@/core/errors';
 export default function SearchScreen() {
   const router = useRouter();
   const { chatId } = useLocalSearchParams<{ chatId?: string }>();
-  const colors = useThemeColors();
   const searchMessages = useChatStore((s) => s.searchMessages);
   const conversations = useChatStore((s) => s.conversations);
   const jumpTo = useJumpStore((s) => s.jumpTo);
@@ -57,7 +47,7 @@ export default function SearchScreen() {
     <Screen className="px-0" edges={['top']}>
       <View className="flex-row items-center justify-between px-gutter pb-2 pt-4">
         <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={router.back}>
-          <Icon name="close" size={24} color={colors['content-muted']} />
+          <Icon name="close" size={24} tone="muted" />
         </Pressable>
         <Text className="text-body font-semibold">
           {chatId ? `Search ${titles.get(chatId) ?? 'chat'}` : 'Search messages'}
@@ -88,7 +78,7 @@ export default function SearchScreen() {
         ListEmptyComponent={
           trimmed && !searching && !error ? (
             <EmptyState
-              icon={<Icon name="search-outline" size={40} color={colors['content-subtle']} />}
+              icon={<Icon name="search-outline" size={40} tone="subtle" />}
               title="No messages found"
             />
           ) : null

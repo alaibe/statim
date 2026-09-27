@@ -14,7 +14,6 @@ import {
   Section,
   Text,
   toast,
-  useThemeColors,
 } from '@/design';
 import { useIdentityStore } from '@/core/identity/identity-store';
 import {
@@ -37,7 +36,6 @@ function inviteText(address: string): string {
 
 export default function InviteScreen() {
   const router = useRouter();
-  const colors = useThemeColors();
   const keyring = useIdentityStore((s) => s.keyring);
 
   const [access, setAccess] = useState<ContactAccess>('unknown');
@@ -119,7 +117,7 @@ export default function InviteScreen() {
           accessibilityRole="button"
           accessibilityLabel="Close"
           onPress={() => router.back()}>
-          <Icon name="close" size={24} color={colors['content-muted']} />
+          <Icon name="close" size={24} tone="muted" />
         </Pressable>
         <Text className="text-body font-semibold">Invite friends</Text>
         <Pressable
@@ -147,7 +145,7 @@ export default function InviteScreen() {
           <ListItem
             testID="share-app"
             title={<Text className="font-semibold text-brand">Share Status Original</Text>}
-            leading={<Icon name="heart-outline" size={22} color={colors.brand} />}
+            leading={<Icon name="heart-outline" size={22} tone="brand" />}
             onPress={async () => {
               if (keyring) report(await shareText(inviteText(keyring.address)).catch(() => null));
             }}
@@ -197,7 +195,7 @@ export default function InviteScreen() {
                     <Icon
                       name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
                       size={22}
-                      color={isSelected ? colors.brand : colors['content-subtle']}
+                      tone={isSelected ? 'brand' : 'subtle'}
                     />
                   }
                   onPress={() => toggle(contact.id)}

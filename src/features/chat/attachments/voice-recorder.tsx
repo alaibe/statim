@@ -8,7 +8,7 @@ import {
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { Icon, Pressable, Text, useThemeColors } from '@/design';
+import { Icon, Pressable, Text } from '@/design';
 import { formatDuration } from '@/core/messaging/preview';
 import type { MessageContent } from '@/core/messaging/types';
 
@@ -18,7 +18,6 @@ export interface VoiceRecorderProps {
 }
 
 export function VoiceRecorder({ onRecorded, onError }: VoiceRecorderProps) {
-  const colors = useThemeColors();
   const recorder = useAudioRecorder({
     ...RecordingPresets.LOW_QUALITY,
     // The desktop's recorder writes whatever the browser prefers; a phone can
@@ -75,7 +74,7 @@ export function VoiceRecorder({ onRecorded, onError }: VoiceRecorderProps) {
         disabled={starting}
         onPress={start}
         className="h-11 w-11 items-center justify-center rounded-pill border border-line bg-surface-raised">
-        <Icon name="mic-outline" size={20} color={colors['content-muted']} />
+        <Icon name="mic-outline" size={20} tone="muted" />
       </Pressable>
     );
   }
@@ -87,7 +86,7 @@ export function VoiceRecorder({ onRecorded, onError }: VoiceRecorderProps) {
         accessibilityLabel="Discard recording"
         onPress={() => finish(false)}
         className="h-11 w-11 items-center justify-center rounded-pill border border-line bg-surface-raised">
-        <Icon name="trash-outline" size={18} color={colors.danger} />
+        <Icon name="trash-outline" size={18} tone="danger" />
       </Pressable>
 
       <View className="flex-row items-center gap-1.5 rounded-pill bg-danger/15 px-3 py-2">
@@ -102,7 +101,7 @@ export function VoiceRecorder({ onRecorded, onError }: VoiceRecorderProps) {
         accessibilityLabel="Send voice message"
         onPress={() => finish(true)}
         className="h-11 w-11 items-center justify-center rounded-pill bg-brand">
-        <Icon name="arrow-up" size={20} color={colors['brand-on']} />
+        <Icon name="arrow-up" size={20} tone="brand-on" />
       </Pressable>
     </View>
   );

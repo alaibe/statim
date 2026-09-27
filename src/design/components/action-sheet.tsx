@@ -86,9 +86,7 @@ export function ActionSheet({ actions, searchFor, ...sheet }: ActionSheetProps) 
                   action.icon ? <Icon name={action.icon} size={20} color={color} /> : undefined
                 }
                 trailing={
-                  action.selected ? (
-                    <Icon name="checkmark" size={18} color={colors.brand} />
-                  ) : undefined
+                  action.selected ? <Icon name="checkmark" size={18} tone="brand" /> : undefined
                 }
                 onPress={() => closeSheetThen(sheet, action.onPress)}
               />

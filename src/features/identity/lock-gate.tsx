@@ -84,7 +84,7 @@ export function LockGate() {
           <Icon
             name={failed ? 'lock-closed-outline' : 'finger-print-outline'}
             size={34}
-            color={failed ? colors.danger : colors['content-muted']}
+            tone={failed ? 'danger' : 'muted'}
           />
         </View>
 

@@ -2,13 +2,12 @@ import { useRouter } from 'expo-router';
 import { Share, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
-import { Button, Card, copyText, Icon, Pressable, Screen, Text, useThemeColors } from '@/design';
+import { Button, Card, copyText, Icon, Pressable, Screen, Text } from '@/design';
 import { useIdentityStore } from '@/core/identity/identity-store';
 import { shortAddress } from '@/core/identity/keyring';
 
 export default function QrScreen() {
   const router = useRouter();
-  const colors = useThemeColors();
   const keyring = useIdentityStore((s) => s.keyring);
   const accounts = useIdentityStore((s) => s.accounts);
   const activeAccountId = useIdentityStore((s) => s.activeAccountId);
@@ -30,7 +29,7 @@ export default function QrScreen() {
           accessibilityRole="button"
           accessibilityLabel="Close"
           onPress={() => router.back()}>
-          <Icon name="close" size={26} color={colors['content-muted']} />
+          <Icon name="close" size={26} tone="muted" />
         </Pressable>
       </View>
 

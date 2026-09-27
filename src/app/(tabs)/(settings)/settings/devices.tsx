@@ -13,7 +13,6 @@ import {
   Section,
   Text,
   toast,
-  useThemeColors,
 } from '@/design';
 import { errorMessage } from '@/core/errors';
 import { useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
@@ -26,7 +25,6 @@ interface Installation {
 }
 
 export default function DevicesScreen() {
-  const colors = useThemeColors();
   const session = useChatStore(xmtpSessionFor);
 
   const [installations, setInstallations] = useState<Installation[] | null>(null);
@@ -91,7 +89,7 @@ export default function DevicesScreen() {
                   title="Signed in here"
                   subtitle={describe(here)}
                   numberOfLinesSubtitle={2}
-                  leading={<Icon name="phone-portrait-outline" size={20} color={colors.brand} />}
+                  leading={<Icon name="phone-portrait-outline" size={20} tone="brand" />}
                   trailing={<Badge label="Current" tone="success" />}
                 />
               ) : (
@@ -118,14 +116,8 @@ export default function DevicesScreen() {
                     title={`Device ${installation.id.slice(0, 8)}`}
                     subtitle={describe(installation)}
                     numberOfLinesSubtitle={2}
-                    leading={
-                      <Icon
-                        name="phone-portrait-outline"
-                        size={20}
-                        color={colors['content-muted']}
-                      />
-                    }
-                    trailing={<Icon name="close-circle-outline" size={20} color={colors.danger} />}
+                    leading={<Icon name="phone-portrait-outline" size={20} tone="muted" />}
+                    trailing={<Icon name="close-circle-outline" size={20} tone="danger" />}
                     onPress={() => setConfirming(installation)}
                   />
                 ))

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ScrollView, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 
-import { Icon, ListItem, Pressable, Text, type IconName, useThemeColors } from '@/design';
+import { Icon, ListItem, Pressable, Text, type IconName } from '@/design';
 import { isLocalConversation } from '@/core/messaging/bots';
 import { useChatStore } from '@/core/messaging/chat-store';
 import {
@@ -89,7 +89,6 @@ export function SharedMedia({ conversationId }: { conversationId: string }) {
 }
 
 function MediaRow({ entry, category }: { entry: MediaEntry; category: MediaCategory }) {
-  const colors = useThemeColors();
   const icon: IconName =
     category === 'voice'
       ? 'mic-outline'
@@ -101,7 +100,7 @@ function MediaRow({ entry, category }: { entry: MediaEntry; category: MediaCateg
     <ListItem
       title={entry.label ?? entry.uri}
       subtitle={formatDayLabel(entry.sentAt)}
-      leading={<Icon name={icon} size={20} color={colors['content-muted']} />}
+      leading={<Icon name={icon} size={20} tone="muted" />}
       onPress={() => {
         openInBrowser(entry.uri).catch(() => {});
       }}

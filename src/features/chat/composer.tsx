@@ -225,7 +225,7 @@ export function Composer({
                 accessibilityLabel={action.label}
                 onPress={() => dispatch(action.command, 'action')}
                 className="flex-row items-center gap-1.5 rounded-pill border border-line bg-surface-raised px-3 py-1.5">
-                <Icon name={action.icon} size={14} color={colors.brand} />
+                <Icon name={action.icon} size={14} tone="brand" />
                 <Text variant="caption" className="font-medium text-content">
                   {action.label}
                 </Text>
@@ -258,7 +258,7 @@ export function Composer({
             accessibilityLabel={editing ? 'Cancel edit' : 'Cancel reply'}
             onPress={onCancelBanner}
             className="h-tap w-tap items-center justify-center">
-            <Icon name="close" size={18} color={colors['content-subtle']} />
+            <Icon name="close" size={18} tone="subtle" />
           </Pressable>
         </Animated.View>
       ) : null}
@@ -271,7 +271,7 @@ export function Composer({
             accessibilityLabel="Attach"
             onPress={() => setAttaching(true)}
             className="h-11 w-11 items-center justify-center rounded-pill border border-line bg-surface-raised">
-            <Icon name="attach-outline" size={20} color={colors['content-muted']} />
+            <Icon name="attach-outline" size={20} tone="muted" />
           </Pressable>
         ) : null}
 
@@ -302,7 +302,7 @@ export function Composer({
               accessibilityLabel="Emoji"
               onPress={() => openMedia('emoji')}
               className="h-11 w-9 items-center justify-center">
-              <Icon name="happy-outline" size={21} color={colors['content-muted']} />
+              <Icon name="happy-outline" size={21} tone="muted" />
             </Pressable>
           </View>
         </View>
@@ -328,7 +328,7 @@ export function Composer({
             <Icon
               name={busy ? 'ellipsis-horizontal' : 'arrow-up'}
               size={20}
-              color={canSend ? colors['brand-on'] : colors['content-subtle']}
+              tone={canSend ? 'brand-on' : 'subtle'}
             />
           </Pressable>
         )}

@@ -1,6 +1,6 @@
 import { ScrollView, View } from 'react-native';
 
-import { Button, Icon, Pressable, Sheet, Text, useThemeColors } from '@/design';
+import { Button, Icon, Pressable, Sheet, Text } from '@/design';
 import { contentPreview, formatTimestamp } from '@/core/messaging/preview';
 import type { ChatMessage } from '@/core/messaging/types';
 
@@ -19,7 +19,6 @@ export function PinnedMessages({
   onUnpin(message: ChatMessage): void;
   top: number;
 }) {
-  const colors = useThemeColors();
   const newest = messages[0];
   if (!newest) return null;
 
@@ -31,7 +30,7 @@ export function PinnedMessages({
         onPress={onOpen}
         style={{ top }}
         className="absolute left-3 right-3 z-[9] flex-row items-center gap-2 rounded-card border border-line bg-surface-raised px-3 py-2 shadow-sm">
-        <Icon name="pin-outline" size={17} color={colors.brand} />
+        <Icon name="pin-outline" size={17} tone="brand" />
         <View className="min-w-0 flex-1">
           <Text variant="micro" className="font-semibold text-brand">
             {messages.length === 1 ? 'Pinned message' : `${messages.length} pinned messages`}
@@ -40,7 +39,7 @@ export function PinnedMessages({
             {contentPreview(newest.content)}
           </Text>
         </View>
-        <Icon name="chevron-forward" size={16} color={colors['content-subtle']} />
+        <Icon name="chevron-forward" size={16} tone="subtle" />
       </Pressable>
       <Sheet visible={visible} onClose={onClose} title="Pinned messages">
         <ScrollView className="max-h-[480px]">

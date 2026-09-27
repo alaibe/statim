@@ -89,7 +89,7 @@ export function ConversationRow({
             {muted ? (
               <>
                 {' '}
-                <Icon name="volume-mute-outline" size={13} color={colors['content-subtle']} />
+                <Icon name="volume-mute-outline" size={13} tone="subtle" />
               </>
             ) : null}
           </>
@@ -143,7 +143,7 @@ export function ConversationRow({
           unread ? (
             <CountBadge count={unreadBadge(conversation, since, loaded)} muted={muted} />
           ) : pinned ? (
-            <Icon name="pin" size={14} color={colors['content-subtle']} />
+            <Icon name="pin" size={14} tone="subtle" />
           ) : undefined
         }
       />
@@ -158,7 +158,6 @@ function directoryLabel(directory: Directory): string {
 }
 
 function DirectoryIcon({ directory, size }: { directory: Directory; size: number }) {
-  const colors = useThemeColors();
   if (directory !== 'archive') {
     return <NetworkMark network={directoryLabel(directory)} size={size} />;
   }
@@ -166,7 +165,7 @@ function DirectoryIcon({ directory, size }: { directory: Directory; size: number
     <View
       style={{ width: size, height: size }}
       className="items-center justify-center rounded-pill bg-surface-sunken">
-      <Icon name="archive-outline" size={size * 0.5} color={colors['content-muted']} />
+      <Icon name="archive-outline" size={size * 0.5} tone="muted" />
     </View>
   );
 }
@@ -214,14 +213,13 @@ export function DirectoryHeader({
   count: number;
   onBack: () => void;
 }) {
-  const colors = useThemeColors();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Back to all chats from ${directoryLabel(directory)}`}
       onPress={onBack}
       className="flex-row items-center gap-2 border-b border-line px-3 py-2">
-      <Icon name="chevron-back" size={20} color={colors.brand} />
+      <Icon name="chevron-back" size={20} tone="brand" />
       <DirectoryIcon directory={directory} size={22} />
       <Text className="flex-1 font-semibold" numberOfLines={1}>
         {directoryLabel(directory)}

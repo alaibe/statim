@@ -10,7 +10,6 @@ import {
   Screen,
   Section,
   Text,
-  useThemeColors,
 } from '@/design';
 import { useAppearanceStore, type ThemeChoice } from '@/core/app/appearance';
 
@@ -30,8 +29,6 @@ const WALLPAPERS: { id: ChatPatternName; label: string }[] = [
 ];
 
 export default function AppearanceScreen() {
-  const colors = useThemeColors();
-
   const theme = useAppearanceStore((s) => s.theme);
   const setTheme = useAppearanceStore((s) => s.setTheme);
   const wallpaper = useAppearanceStore((s) => s.wallpaper);
@@ -50,9 +47,7 @@ export default function AppearanceScreen() {
               subtitle={entry.hint || undefined}
               onPress={() => setTheme(entry.id)}
               trailing={
-                entry.id === theme ? (
-                  <Icon name="checkmark" size={20} color={colors.brand} />
-                ) : undefined
+                entry.id === theme ? <Icon name="checkmark" size={20} tone="brand" /> : undefined
               }
             />
           ))}
@@ -81,9 +76,7 @@ export default function AppearanceScreen() {
                     <Text variant="caption" className={active ? 'font-semibold' : undefined}>
                       {entry.label}
                     </Text>
-                    {active ? (
-                      <Icon name="checkmark-circle" size={14} color={colors.brand} />
-                    ) : null}
+                    {active ? <Icon name="checkmark-circle" size={14} tone="brand" /> : null}
                   </View>
                 </Pressable>
               );

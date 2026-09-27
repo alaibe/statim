@@ -134,7 +134,7 @@ export function MessageActions({
               <Icon
                 name={action.icon}
                 size={20}
-                color={action.tone === 'danger' ? colors.danger : colors.content}
+                tone={action.tone === 'danger' ? 'danger' : 'content'}
               />
               <Text className={cn('font-medium', action.tone === 'danger' && 'text-danger')}>
                 {action.label}

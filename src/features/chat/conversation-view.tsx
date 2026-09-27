@@ -13,7 +13,6 @@ import {
   toast,
   useEscapeKey,
   useLayoutInsets,
-  useThemeColors,
 } from '@/design';
 import { isLocalConversation } from '@/core/messaging/bots';
 import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
@@ -80,7 +79,6 @@ export function ConversationView({ id, thread, onOpenThread, onBack }: Conversat
   // On desktop the frame draws the wallpaper and the sidebar does the navigating.
   const desktop = process.env.EXPO_OS === 'web';
   useEscapeKey(Boolean(thread), onBack);
-  const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const frame = useLayoutInsets();
 
@@ -248,7 +246,7 @@ export function ConversationView({ id, thread, onOpenThread, onBack }: Conversat
                   <Icon
                     name={isBot ? 'sparkles-outline' : 'lock-closed-outline'}
                     size={40}
-                    color={colors['content-subtle']}
+                    tone="subtle"
                   />
                 }
                 title={fetchingHistory ? 'Fetching history…' : 'No messages yet'}
@@ -328,7 +326,7 @@ export function ConversationView({ id, thread, onOpenThread, onBack }: Conversat
               <Icon
                 name={muted ? 'volume-high-outline' : 'volume-mute-outline'}
                 size={18}
-                color={colors.brand}
+                tone="brand"
               />
               <Text className="font-semibold text-brand">{muted ? 'Unmute' : 'Mute'}</Text>
             </Pressable>

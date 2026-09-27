@@ -11,7 +11,6 @@ import {
   Text,
   useEscapeKey,
   useLayoutInsets,
-  useThemeColors,
 } from '@/design';
 import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
 import { orderConversations } from '@/core/messaging/chat-prefs';
@@ -82,7 +81,6 @@ export function QuickSwitcher() {
 
 function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
   const router = useRouter();
-  const colors = useThemeColors();
   const insets = useLayoutInsets();
   const [query, setQuery] = useState('');
   const [index, setIndex] = useState(0);
@@ -243,7 +241,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
                           <Icon
                             name={entry.icon ?? 'sparkles-outline'}
                             size={18}
-                            color={active ? colors['brand-on'] : colors['content-muted']}
+                            tone={active ? 'brand-on' : 'muted'}
                           />
                         </View>
                       )}

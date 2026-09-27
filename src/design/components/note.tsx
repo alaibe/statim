@@ -2,7 +2,6 @@ import { View } from 'react-native';
 
 import { cn } from '../lib/cn';
 import { Icon, type IconName } from '../icon';
-import { useThemeColors } from '../hooks/use-theme-colors';
 import { Text } from './text';
 
 export interface NoteProps {
@@ -13,8 +12,6 @@ export interface NoteProps {
 }
 
 export function Note({ title, icon, children, className }: NoteProps) {
-  const colors = useThemeColors();
-
   return (
     <View
       style={{ borderCurve: 'continuous' }}
@@ -22,7 +19,7 @@ export function Note({ title, icon, children, className }: NoteProps) {
       {title ? (
         <View className="gap-2">
           <View className="flex-row items-center gap-2">
-            {icon ? <Icon name={icon} size={16} color={colors.brand} /> : null}
+            {icon ? <Icon name={icon} size={16} tone="brand" /> : null}
             <Text variant="caption" className="font-semibold text-brand">
               {title}
             </Text>
@@ -32,7 +29,7 @@ export function Note({ title, icon, children, className }: NoteProps) {
       ) : icon ? (
         <View className="flex-row items-start gap-2.5">
           <View className="pt-0.5">
-            <Icon name={icon} size={16} color={colors.brand} />
+            <Icon name={icon} size={16} tone="brand" />
           </View>
           <View className="min-w-0 flex-1 gap-2">{children}</View>
         </View>

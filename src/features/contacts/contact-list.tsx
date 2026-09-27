@@ -3,17 +3,7 @@ import { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
-import {
-  ActionSheet,
-  Avatar,
-  Button,
-  Card,
-  Icon,
-  ListItem,
-  Section,
-  Text,
-  useThemeColors,
-} from '@/design';
+import { ActionSheet, Avatar, Button, Card, Icon, ListItem, Section, Text } from '@/design';
 import { selfIdFor, useChatStore, type ChatState } from '@/core/messaging/chat-store';
 import { useDisplayNames } from '@/features/chat/use-display-names';
 import {
@@ -68,7 +58,6 @@ export function ContactList({
   selectedConversationId,
 }: ContactListProps) {
   const router = useRouter();
-  const colors = useThemeColors();
 
   const keys = useChatStore(useShallow((s) => peerKeysOf(s, sortBy === 'name')));
 
@@ -118,7 +107,7 @@ export function ContactList({
           <ListItem
             testID="invite-friends"
             title={<Text className="font-semibold text-brand">Invite friends</Text>}
-            leading={<Icon name="person-add-outline" size={22} color={colors.brand} />}
+            leading={<Icon name="person-add-outline" size={22} tone="brand" />}
             onPress={() => router.push('/invite')}
           />
         </Section>

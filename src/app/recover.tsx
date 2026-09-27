@@ -2,14 +2,13 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { Button, Card, Icon, Screen, Text, useThemeColors } from '@/design';
+import { Button, Card, Icon, Screen, Text } from '@/design';
 import { eraseAllAccounts } from '@/core/app/erase-account';
 import { useIdentityStore } from '@/core/identity/identity-store';
 import { shortAddress } from '@/core/identity/keyring';
 
 export default function RecoverScreen() {
   const router = useRouter();
-  const colors = useThemeColors();
 
   const accounts = useIdentityStore((s) => s.accounts);
   const [erasing, setErasing] = useState(false);
@@ -18,7 +17,7 @@ export default function RecoverScreen() {
     <Screen className="justify-center gap-6 px-gutter">
       <View className="items-center gap-3">
         <View className="h-20 w-20 items-center justify-center rounded-full bg-surface-sunken">
-          <Icon name="key-outline" size={34} color={colors.danger} />
+          <Icon name="key-outline" size={34} tone="danger" />
         </View>
         <Text variant="headline" className="text-center">
           Your keys need re-importing
