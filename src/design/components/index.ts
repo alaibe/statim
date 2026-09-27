@@ -9,6 +9,7 @@ export { BackHeader } from './back-header';
 export { Badge } from './badge';
 export { NetworkMark } from './network-mark';
 export { Button } from './button';
+export { Checkmark } from './checkmark';
 export { Chevron } from './chevron';
 export { Chip } from './chip';
 export { ConfirmSheet, type ConfirmSheetProps } from './confirm-sheet';

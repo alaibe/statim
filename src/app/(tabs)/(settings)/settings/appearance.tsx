@@ -3,6 +3,7 @@ import { ScrollView, View } from 'react-native';
 
 import {
   ChatBackground,
+  Checkmark,
   type ChatPatternName,
   Icon,
   ListItem,
@@ -46,9 +47,7 @@ export default function AppearanceScreen() {
               title={entry.label}
               subtitle={entry.hint || undefined}
               onPress={() => setTheme(entry.id)}
-              trailing={
-                entry.id === theme ? <Icon name="checkmark" size={20} tone="brand" /> : undefined
-              }
+              trailing={<Checkmark selected={entry.id === theme} />}
             />
           ))}
         </Section>

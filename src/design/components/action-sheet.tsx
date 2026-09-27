@@ -4,6 +4,7 @@ import { ScrollView, View } from 'react-native';
 import { useThemeColors } from '../hooks/use-theme-colors';
 import { cn } from '../lib/cn';
 import { Icon, type IconName } from '../icon';
+import { Checkmark } from './checkmark';
 import { ListItem } from './list-item';
 import { Section } from './section';
 import { SearchField } from './search-field';
@@ -84,9 +85,7 @@ export function ActionSheet({ actions, searchFor, ...sheet }: ActionSheetProps) 
                 leading={
                   action.icon ? <Icon name={action.icon} size={20} color={color} /> : undefined
                 }
-                trailing={
-                  action.selected ? <Icon name="checkmark" size={18} tone="brand" /> : undefined
-                }
+                trailing={<Checkmark selected={action.selected} />}
                 onPress={() => closeSheetThen(sheet, action.onPress)}
               />
             );

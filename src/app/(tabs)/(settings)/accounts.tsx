@@ -6,9 +6,9 @@ import {
   ActionSheet,
   Avatar,
   Button,
+  Checkmark,
   ConfirmSheet,
   Field,
-  Icon,
   ListItem,
   Screen,
   Section,
@@ -77,11 +77,7 @@ export default function AccountsScreen() {
                 numberOfLinesSubtitle={2}
                 leading={<Avatar seed={account.address} size="md" />}
                 // Only state on the right: tapping switches, holding manages, swiping erases.
-                trailing={
-                  account.id === activeAccountId ? (
-                    <Icon name="checkmark-circle" size={20} tone="brand" />
-                  ) : undefined
-                }
+                trailing={<Checkmark selected={account.id === activeAccountId} />}
                 onLongPress={() => setManaging(account.id)}
                 onContextMenu={() => setManaging(account.id)}
                 onPress={async () => {

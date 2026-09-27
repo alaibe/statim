@@ -5,6 +5,7 @@ import { ScrollView, View } from 'react-native';
 import {
   Avatar,
   Button,
+  Checkmark,
   Field,
   Icon,
   ListItem,
@@ -189,13 +190,7 @@ export default function InviteScreen() {
                   leading={
                     <Avatar seed={`${contact.given ?? ''}${contact.family ?? ''}`} size="md" />
                   }
-                  trailing={
-                    <Icon
-                      name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
-                      size={22}
-                      tone={isSelected ? 'brand' : 'subtle'}
-                    />
-                  }
+                  trailing={<Checkmark selected={isSelected} multiple />}
                   onPress={() => toggle(contact.id)}
                 />
               );
