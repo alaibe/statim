@@ -9,7 +9,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { Button, Enter, Glow, Screen, stagger, Text, useThemeColors } from '@/design';
+import { Button, Enter, Glow, Note, Screen, stagger, Text, useThemeColors } from '@/design';
 import { hardwareVendors } from '@/core/identity/hardware';
 import { isSecureStorageAvailable } from '@/storage/vault';
 import { ConnectHardware } from '@/features/identity/connect-hardware';
@@ -79,12 +79,12 @@ export default function Welcome() {
 
       <Animated.View entering={Enter.content(stagger(3, 70))} className="gap-3 pb-8">
         {!isSecureStorageAvailable ? (
-          <View className="rounded-card border border-warning/40 bg-warning/10 p-3">
+          <Note tone="warning">
             <Text variant="caption" className="text-warning">
               On web, keys are stored in localStorage and are not protected against other scripts.
               Use a device build for a real account.
             </Text>
-          </View>
+          </Note>
         ) : null}
 
         <Button

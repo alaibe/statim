@@ -2,7 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 
-import { Badge, Button, Card, ListItem, ModalHeader, Screen, Text } from '@/design';
+import { Badge, Button, Card, ListItem, ModalHeader, Note, Screen, Text } from '@/design';
 import { errorMessage } from '@/core/errors';
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { ChatSession } from '@/core/messaging/protocol';
@@ -228,12 +228,9 @@ export default function BridgeLoginScreen() {
           ) : null}
 
           {error ? (
-            <Card className="gap-1">
-              <Text variant="footnote" className="font-semibold text-danger">
-                That did not work
-              </Text>
+            <Note tone="danger" title="That did not work">
               <Text variant="caption">{error}</Text>
-            </Card>
+            </Note>
           ) : null}
         </ScrollView>
       </KeyboardAvoidingView>

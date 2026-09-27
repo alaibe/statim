@@ -2,18 +2,7 @@ import { Stack } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 
-import {
-  Badge,
-  Card,
-  ConfirmSheet,
-  Icon,
-  ListItem,
-  Note,
-  Screen,
-  Section,
-  Text,
-  toast,
-} from '@/design';
+import { Badge, ConfirmSheet, Icon, ListItem, Note, Screen, Section, Text, toast } from '@/design';
 import { errorMessage } from '@/core/errors';
 import { useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
 import { formatDayLabel } from '@/core/messaging/preview';
@@ -127,11 +116,11 @@ export default function DevicesScreen() {
         )}
 
         {error ? (
-          <Card className="mx-gutter mb-4">
-            <Text variant="footnote" className="text-danger">
+          <Note tone="danger" className="mx-gutter mb-4">
+            <Text variant="caption" className="text-danger">
               {error}
             </Text>
-          </Card>
+          </Note>
         ) : null}
 
         <Note className="mx-gutter" title="What a device is" icon="phone-portrait-outline">

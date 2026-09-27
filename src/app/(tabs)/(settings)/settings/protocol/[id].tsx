@@ -2,7 +2,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 
-import { Badge, Button, Card, Field, Screen, Text, toast } from '@/design';
+import { Badge, Button, Card, Field, Note, Screen, Text, toast } from '@/design';
 import { useIdentityStore } from '@/core/identity/identity-store';
 import { useChatStore } from '@/core/messaging/chat-store';
 import {
@@ -104,12 +104,9 @@ export default function ProtocolConfigScreen() {
             </Card>
 
             {connection?.error ? (
-              <Card className="gap-1">
-                <Text variant="footnote" className="font-semibold text-danger">
-                  Last connection failed
-                </Text>
+              <Note tone="danger" title="Last connection failed">
                 <Text variant="caption">{connection.error}</Text>
-              </Card>
+              </Note>
             ) : null}
 
             {connection?.login ? (

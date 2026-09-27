@@ -313,11 +313,7 @@ function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) 
                 <Icon
                   name={widget.icon}
                   size={15}
-                  color={
-                    widget.tone === 'neutral' || !widget.tone
-                      ? colors['content-muted']
-                      : colors.brand
-                  }
+                  tone={widget.tone === 'neutral' || !widget.tone ? 'muted' : 'brand'}
                 />
               ) : null}
               <Eyebrow>{widget.title}</Eyebrow>

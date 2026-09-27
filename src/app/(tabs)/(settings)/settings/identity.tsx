@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { Card, copyText, Enter, Icon, Pressable, Screen, Text } from '@/design';
+import { Card, copyText, Enter, Icon, Note, Pressable, Screen, Text } from '@/design';
 import { useIdentityStore } from '@/core/identity/identity-store';
 import { shortAddress } from '@/core/identity/keyring';
 import { RecoveryPhrase } from '@/features/identity/recovery-phrase';
@@ -36,12 +36,12 @@ export default function IdentityScreen() {
             </Pressable>
           </Card>
 
-          <View className="rounded-card border border-danger/40 bg-danger/10 p-3">
+          <Note tone="danger">
             <Text variant="caption" className="text-danger">
               Anyone with these words controls your messages and any funds at this address. Never
               type them into a website or share them with support.
             </Text>
-          </View>
+          </Note>
 
           <Card className="gap-3">
             {revealed ? (
