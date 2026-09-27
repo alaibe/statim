@@ -1,24 +1,17 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 
-import { Badge, Button, Card, ListItem, ModalHeader, Note, Screen, Text } from '@/design';
-import { errorMessage } from '@/core/errors';
+import { Button, Card, ModalHeader, Note, Screen, Text } from '@/design';
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { ChatSession } from '@/core/messaging/protocol';
 import { connectByChat } from '@/features/bridge-login/connect-by-chat';
-import { InputStep, WaitStep } from '@/features/bridge-login/steps';
+import { FlowPicker, InputStep, WaitStep } from '@/features/bridge-login/steps';
+import { useBridgeLogin } from '@/features/bridge-login/use-bridge-login';
 import { WebLogin } from '@/features/bridge-login/web-login';
 import { useBack } from '@/features/navigation/use-back';
 import { bridgeBotId, knownBridge, provisioningName } from '@/protocols/matrix/bridges';
-import type {
-  LoginFlow,
-  LoginStep,
-  MatrixCapabilities,
-  Whoami,
-} from '@/protocols/matrix/provisioning';
-
-type Phase = 'loading' | 'unavailable' | 'flows' | 'step' | 'done';
+import type { MatrixCapabilities } from '@/protocols/matrix/provisioning';
 
 export default function BridgeLoginScreen() {
   const { bridge: localpart } = useLocalSearchParams<{ bridge: string }>();
@@ -32,81 +25,7 @@ export default function BridgeLoginScreen() {
     [bridge, session]
   );
 
-  const [phase, setPhase] = useState<Phase>('loading');
-  const [whoami, setWhoami] = useState<Whoami | null>(null);
-  const [step, setStep] = useState<LoginStep | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const live = useRef<LoginStep | null>(null);
-
-  useEffect(() => {
-    if (!provisioning) return;
-    let cancelled = false;
-    provisioning
-      .whoami()
-      .then((result) => {
-        if (cancelled) return;
-        setWhoami(result);
-        setPhase('flows');
-      })
-      .catch(() => {
-        if (!cancelled) setPhase('unavailable');
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [provisioning]);
-
-  useEffect(
-    () => () => {
-      if (live.current && provisioning) provisioning.cancel(live.current).catch(() => {});
-    },
-    [provisioning]
-  );
-
-  async function advance(next: Promise<LoginStep>) {
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await next;
-      if (result.type === 'complete') {
-        live.current = null;
-        setStep(result);
-        setPhase('done');
-      } else {
-        live.current = result;
-        setStep(result);
-        setPhase('step');
-      }
-    } catch (e) {
-      setError(errorMessage(e, 'The bridge did not accept that'));
-    }
-    setBusy(false);
-  }
-
-  useEffect(() => {
-    if (!provisioning || step?.type !== 'display_and_wait') return;
-    let cancelled = false;
-    provisioning
-      .wait(step)
-      .then((next) => {
-        if (!cancelled) advance(Promise.resolve(next));
-      })
-      .catch((e) => {
-        if (!cancelled) setError(errorMessage(e, 'The sign-in stopped'));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [provisioning, step]);
-
-  function restart() {
-    if (live.current && provisioning) provisioning.cancel(live.current).catch(() => {});
-    live.current = null;
-    setStep(null);
-    setError(null);
-    setPhase('flows');
-  }
+  const login = useBridgeLogin(provisioning);
 
   if (!bridge) {
     return (
@@ -116,8 +35,7 @@ export default function BridgeLoginScreen() {
     );
   }
 
-  const shown: Phase = provisioning ? phase : 'unavailable';
-  const flows = sortFlows(whoami?.login_flows ?? [], bridge.preferredFlow);
+  const { phase, step } = login;
 
   return (
     <Screen className="px-gutter" edges={['top', 'bottom']}>
@@ -127,9 +45,9 @@ export default function BridgeLoginScreen() {
         behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
         className="flex-1">
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4 pb-6">
-          {shown === 'loading' ? <Text variant="caption">Asking the bridge…</Text> : null}
+          {phase === 'loading' ? <Text variant="caption">Asking the bridge…</Text> : null}
 
-          {shown === 'unavailable' ? (
+          {phase === 'unavailable' ? (
             <Card className="gap-3">
               <Text variant="footnote">
                 This homeserver does not let the app sign in to {bridge.network} directly. You can
@@ -147,39 +65,16 @@ export default function BridgeLoginScreen() {
             </Card>
           ) : null}
 
-          {shown === 'flows' ? (
-            <>
-              {whoami && whoami.logins.length > 0 ? (
-                <Card className="gap-1">
-                  <Text variant="footnote" className="font-semibold">
-                    Signed in as {whoami.logins.map((login) => login.name || login.id).join(', ')}
-                  </Text>
-                  <Text variant="caption">Sign in again to add another account.</Text>
-                </Card>
-              ) : null}
-              <Text variant="footnote">How do you want to sign in to {bridge.network}?</Text>
-              <View className="gap-2">
-                {flows.map((flow) => (
-                  <Card key={flow.id} className="p-0">
-                    <ListItem
-                      testID={`bridge-flow-${flow.id}`}
-                      title={flow.name}
-                      subtitle={flow.description}
-                      numberOfLinesSubtitle={2}
-                      meta={
-                        flow.id === bridge.preferredFlow ? (
-                          <Badge label="Recommended" tone="brand" />
-                        ) : undefined
-                      }
-                      onPress={() => provisioning && advance(provisioning.start(flow.id))}
-                    />
-                  </Card>
-                ))}
-              </View>
-            </>
+          {phase === 'flows' ? (
+            <FlowPicker
+              whoami={login.whoami}
+              network={bridge.network}
+              preferred={bridge.preferredFlow}
+              onPick={login.start}
+            />
           ) : null}
 
-          {shown === 'step' && step ? (
+          {phase === 'step' && step ? (
             <View className="gap-4">
               {step.instructions && step.type !== 'cookies' ? (
                 <Text variant="footnote">{step.instructions}</Text>
@@ -188,8 +83,8 @@ export default function BridgeLoginScreen() {
                 <InputStep
                   key={`${step.login_id}/${step.step_id}`}
                   step={step}
-                  busy={busy}
-                  onSubmit={(values) => provisioning && advance(provisioning.submit(step, values))}
+                  busy={login.busy}
+                  onSubmit={(values) => login.submit(step, values)}
                 />
               ) : step.type === 'display_and_wait' ? (
                 <WaitStep step={step} />
@@ -198,8 +93,8 @@ export default function BridgeLoginScreen() {
                   key={`${step.login_id}/${step.step_id}`}
                   params={step.cookies}
                   network={bridge.network}
-                  onValues={(values) => provisioning && advance(provisioning.submit(step, values))}
-                  onCancel={restart}
+                  onValues={(values) => login.submit(step, values)}
+                  onCancel={login.restart}
                 />
               ) : (
                 <Card className="gap-3">
@@ -207,16 +102,16 @@ export default function BridgeLoginScreen() {
                     This way of signing in needs something the app cannot do yet. Pick another one,
                     or connect in a chat with the bridge’s bot.
                   </Text>
-                  <Button label="Choose another way" tone="neutral" onPress={restart} />
+                  <Button label="Choose another way" tone="neutral" onPress={login.restart} />
                 </Card>
               )}
               {step.type !== 'cookies' ? (
-                <Button label="Start over" tone="ghost" size="sm" onPress={restart} />
+                <Button label="Start over" tone="ghost" size="sm" onPress={login.restart} />
               ) : null}
             </View>
           ) : null}
 
-          {shown === 'done' ? (
+          {phase === 'done' ? (
             <Card className="gap-3">
               <Text className="font-semibold">{bridge.network} is connected</Text>
               <Text variant="footnote">
@@ -227,17 +122,13 @@ export default function BridgeLoginScreen() {
             </Card>
           ) : null}
 
-          {error ? (
+          {login.error ? (
             <Note tone="danger" title="That did not work">
-              <Text variant="caption">{error}</Text>
+              <Text variant="caption">{login.error}</Text>
             </Note>
           ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
   );
-}
-
-function sortFlows(flows: LoginFlow[], preferred: string | undefined): LoginFlow[] {
-  return [...flows].sort((a, b) => Number(b.id === preferred) - Number(a.id === preferred));
 }

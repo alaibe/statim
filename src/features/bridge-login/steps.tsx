@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
-import { Button, Chip, Field, Text, useThemeColors } from '@/design';
-import type { InputField, LoginStep } from '@/protocols/matrix/provisioning';
+import { Badge, Button, Card, Chip, Field, ListItem, Text, useThemeColors } from '@/design';
+import type { InputField, LoginFlow, LoginStep, Whoami } from '@/protocols/matrix/provisioning';
 
 export function InputStep({
   step,
@@ -124,3 +124,48 @@ const AUTOCOMPLETE: Partial<
   username: 'username',
   '2fa_code': 'one-time-code',
 };
+
+/** The bridge's ways to sign in, its recommended one first, under any accounts already signed in. */
+export function FlowPicker({
+  whoami,
+  network,
+  preferred,
+  onPick,
+}: {
+  whoami: Whoami | null;
+  network: string;
+  preferred: string | undefined;
+  onPick: (flowId: string) => void;
+}) {
+  const flows = [...(whoami?.login_flows ?? [])].sort(
+    (a: LoginFlow, b: LoginFlow) => Number(b.id === preferred) - Number(a.id === preferred)
+  );
+
+  return (
+    <>
+      {whoami && whoami.logins.length > 0 ? (
+        <Card className="gap-1">
+          <Text variant="footnote" className="font-semibold">
+            Signed in as {whoami.logins.map((login) => login.name || login.id).join(', ')}
+          </Text>
+          <Text variant="caption">Sign in again to add another account.</Text>
+        </Card>
+      ) : null}
+      <Text variant="footnote">How do you want to sign in to {network}?</Text>
+      <View className="gap-2">
+        {flows.map((flow) => (
+          <Card key={flow.id} className="p-0">
+            <ListItem
+              testID={`bridge-flow-${flow.id}`}
+              title={flow.name}
+              subtitle={flow.description}
+              numberOfLinesSubtitle={2}
+              meta={flow.id === preferred ? <Badge label="Recommended" tone="brand" /> : undefined}
+              onPress={() => onPick(flow.id)}
+            />
+          </Card>
+        ))}
+      </View>
+    </>
+  );
+}
