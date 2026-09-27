@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
-import { ScrollView, Switch } from 'react-native';
+import { ScrollView } from 'react-native';
 
-import { Icon, ListItem, Screen, Section, Text } from '@/design';
+import { Icon, ListItem, Screen, Section, Text, Toggle } from '@/design';
 import { useAppearanceStore } from '@/core/app/appearance';
 
 export default function PrivacyScreen() {
@@ -23,14 +23,26 @@ export default function PrivacyScreen() {
             subtitle="Tells the other person when you have opened their message. Off by default, and it works both ways: with it off, you do not see theirs either."
             numberOfLinesSubtitle={4}
             leading={<Icon name="checkmark-done-outline" size={20} tone="muted" />}
-            trailing={<Switch value={readReceipts} onValueChange={setReadReceipts} />}
+            trailing={
+              <Toggle
+                label="Send read receipts"
+                value={readReceipts}
+                onValueChange={setReadReceipts}
+              />
+            }
           />
           <ListItem
             title="Send typing indicators"
             subtitle="Shows people on Telegram and Matrix that you are typing. Off by default: it sends a signal every time you touch the keyboard."
             numberOfLinesSubtitle={4}
             leading={<Icon name="ellipsis-horizontal" size={20} tone="muted" />}
-            trailing={<Switch value={typingIndicators} onValueChange={setTypingIndicators} />}
+            trailing={
+              <Toggle
+                label="Send typing indicators"
+                value={typingIndicators}
+                onValueChange={setTypingIndicators}
+              />
+            }
           />
         </Section>
 
@@ -45,7 +57,13 @@ export default function PrivacyScreen() {
             subtitle="Fetches a title, description and picture for links, straight from the linked site. With no server in between, the site sees this device's address as soon as a link arrives, not only when you tap it. Turn this off to keep that to yourself."
             numberOfLinesSubtitle={6}
             leading={<Icon name="link-outline" size={20} tone="muted" />}
-            trailing={<Switch value={linkPreviews} onValueChange={setLinkPreviews} />}
+            trailing={
+              <Toggle
+                label="Show link previews"
+                value={linkPreviews}
+                onValueChange={setLinkPreviews}
+              />
+            }
           />
         </Section>
 

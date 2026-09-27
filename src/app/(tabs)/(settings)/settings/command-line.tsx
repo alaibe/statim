@@ -1,8 +1,8 @@
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, Switch, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
-import { Button, Card, ListItem, Screen, Section, Text } from '@/design';
+import { Button, Card, ListItem, Screen, Section, Text, Toggle } from '@/design';
 import { copyText } from '@/design/copy-text';
 import { isCliAllowed, setCliAllowed } from '@/features/cli/access';
 import { cliInstall, type CliInstall } from '@/features/cli/install';
@@ -60,7 +60,9 @@ export default function CommandLineScreen() {
             title="Allow the command line"
             subtitle="While this is on, any program running as you on this computer can read and send your messages through it, without asking. Off by default."
             numberOfLinesSubtitle={4}
-            trailing={<Switch value={allowed} onValueChange={toggle} />}
+            trailing={
+              <Toggle label="Allow the command line" value={allowed} onValueChange={toggle} />
+            }
           />
         </Section>
 

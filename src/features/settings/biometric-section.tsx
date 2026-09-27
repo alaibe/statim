@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Switch } from 'react-native';
 
-import { ConfirmSheet, ListItem, RowIcon, Section, toast } from '@/design';
+import { ConfirmSheet, ListItem, RowIcon, Section, toast, Toggle } from '@/design';
 import { useIdentityStore } from '@/core/identity/identity-store';
 import {
   disableKeyProtection,
@@ -83,7 +82,8 @@ export function BiometricSection() {
           numberOfLinesSubtitle={2}
           leading={<RowIcon name="finger-print-outline" tone="green" />}
           trailing={
-            <Switch
+            <Toggle
+              label={`Require ${label}`}
               value={enabled}
               disabled={!enrolled || busy}
               onValueChange={async (next) => {
@@ -108,7 +108,8 @@ export function BiometricSection() {
             numberOfLinesSubtitle={2}
             leading={<RowIcon name="lock-closed-outline" tone="red" />}
             trailing={
-              <Switch
+              <Toggle
+                label="Also protect keys"
                 value={protectedKeys}
                 disabled={busy}
                 onValueChange={(next) => {

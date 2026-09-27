@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 
 import { useState } from 'react';
-import { Platform, ScrollView, Switch, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import {
   Badge,
@@ -15,8 +15,8 @@ import {
   Sheet,
   Text,
   toast,
+  Toggle,
   type RowIconTone,
-  useThemeColors,
 } from '@/design';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { botChatLoss, botChatLossCopy, type BotChatLoss } from '@/core/plugins/bot-chats';
@@ -26,7 +26,6 @@ import { errorMessage } from '@/core/errors';
 
 export default function PluginsScreen() {
   const { registry, enabledIds, setEnabled } = usePluginHost();
-  const colors = useThemeColors();
 
   const [detail, setDetail] = useState<Plugin | null>(null);
 
@@ -91,14 +90,11 @@ export default function PluginsScreen() {
                   <RowIcon name={plugin.manifest.icon} tone={TONE[plugin.manifest.id] ?? 'grey'} />
                 }
                 trailing={
-                  <View {...keepClickOffRow}>
-                    <Switch
-                      value={enabled}
-                      onValueChange={(next) => onToggle(plugin, next)}
-                      trackColor={{ true: colors.brand, false: colors.line }}
-                      accessibilityLabel={`${enabled ? 'Disable' : 'Enable'} ${plugin.manifest.name}`}
-                    />
-                  </View>
+                  <Toggle
+                    label={plugin.manifest.name}
+                    value={enabled}
+                    onValueChange={(next) => onToggle(plugin, next)}
+                  />
                 }
                 onPress={() => setDetail(plugin)}
               />
@@ -173,10 +169,6 @@ export default function PluginsScreen() {
     </Screen>
   );
 }
-
-// react-native-web delivers the switch's click to the row's onPress as well.
-const keepClickOffRow =
-  Platform.OS === 'web' ? { onClick: (e: { stopPropagation(): void }) => e.stopPropagation() } : {};
 
 const TONE: Record<string, RowIconTone> = {
   assistant: 'purple',

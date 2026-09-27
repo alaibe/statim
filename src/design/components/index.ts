@@ -30,3 +30,4 @@ export { Section } from './section';
 export { Sheet } from './sheet';
 export { SwipeableRow, type SwipeAction } from './swipeable-row';
 export { Text } from './text';
+export { Toggle } from './toggle';
