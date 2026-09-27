@@ -1,13 +1,8 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { ScrollView, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import {
-  commandNamePrefix,
-  completeCommandName,
-  isTypingCommandName,
-  parseCommand,
-} from '@/core/commands/parser';
+import { completeCommandName } from '@/core/commands/parser';
 import {
   ActionSheet,
   Enter,
@@ -26,7 +21,6 @@ import { useChatStore } from '@/core/messaging/chat-store';
 import { draftKey } from '@/core/messaging/drafts';
 import type { ConversationId, MessageContent, MessageId } from '@/core/messaging/types';
 import { usePluginHost } from '@/core/plugins/host';
-import { worksOn } from '@/core/plugins/registry';
 import { errorMessage } from '@/core/errors';
 
 import { MediaPanel, type MediaAnchor } from './media-panel';
@@ -39,6 +33,9 @@ import {
   takePhoto,
 } from './attachments/pick';
 import { VoiceRecorder } from './attachments/voice-recorder';
+import { ModeBanner } from './mode-banner';
+import { QuickActions } from './quick-actions';
+import { useCommandSuggestions } from './use-command-suggestions';
 import { ComposerInput, type ComposerInputHandle } from './composer-input';
 import type { ComposerBanner } from './composer-mode';
 import { SuggestionPopover } from './suggestion-popover';
@@ -77,7 +74,7 @@ export function Composer({
   const colors = useThemeColors();
   const inputRef = useRef<ComposerInputHandle>(null);
   const { registry } = usePluginHost();
-  const { session, supports, sendsVideo } = useSupports(conversationId);
+  const { supports, sendsVideo } = useSupports(conversationId);
 
   const value = useChatStore((s) => s.drafts[draftKey(conversationId, thread)] ?? '');
   const setDraftFor = useChatStore((s) => s.setDraft);
@@ -103,16 +100,6 @@ export function Composer({
     value,
     !editing && kind === 'group' && supports('mentionCandidates')
   );
-  const offeredActions = useSyncExternalStore(
-    registry.subscribe,
-    () => registry.composerActionsFor(conversationId, scope),
-    () => registry.composerActionsFor(conversationId, scope)
-  );
-  const commandsHere = registry.commandsFor(conversationId, scope);
-  const quickActions = offeredActions.filter(({ action }) => {
-    const entry = commandsHere.get(parseCommand(action.command)?.name ?? '');
-    return !entry || worksOn(entry.command, session);
-  });
 
   const [attaching, setAttaching] = useState(false);
   const [media, setMedia] = useState<{ tab: MediaTab; anchor: MediaAnchor | null } | null>(null);
@@ -140,19 +127,7 @@ export function Composer({
     }
   };
 
-  const commandNames = commands.flatMap(({ command }) => [
-    command.name,
-    ...(command.aliases ?? []),
-  ]);
-  const prefix = isTypingCommandName(value) ? commandNamePrefix(value) : null;
-  const suggestions =
-    prefix === null
-      ? []
-      : commands.filter(
-          ({ command }) =>
-            command.name.startsWith(prefix) ||
-            command.aliases?.some((alias) => alias.startsWith(prefix))
-        );
+  const { suggestions, commandNames } = useCommandSuggestions(value, commands);
 
   const fill = (text: string) => {
     setValue(text);
@@ -209,58 +184,13 @@ export function Composer({
         </Animated.View>
       ) : null}
 
-      {quickActions.length > 0 ? (
-        <Animated.View entering={Enter.fade()} exiting={Exit.fade()}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            contentContainerClassName="gap-2 px-gutter pb-2">
-            {quickActions.map(({ action }) => (
-              <Pressable
-                key={action.id}
-                testID={`quick-${action.id}`}
-                accessibilityRole="button"
-                accessibilityLabel={action.label}
-                onPress={() => dispatch(action.command, 'action')}
-                className="flex-row items-center gap-1.5 rounded-pill border border-line bg-surface-raised px-3 py-1.5">
-                <Icon name={action.icon} size={14} tone="brand" />
-                <Text variant="caption" className="font-medium text-content">
-                  {action.label}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </Animated.View>
-      ) : null}
+      <QuickActions
+        conversationId={conversationId}
+        scope={scope}
+        onRun={(command) => dispatch(command, 'action')}
+      />
 
-      {banner ? (
-        <Animated.View
-          entering={Enter.fade()}
-          exiting={Exit.fade()}
-          className="flex-row items-center gap-2 border-t border-line bg-surface-sunken px-gutter py-2">
-          <View className="h-8 w-0.5 rounded-full bg-brand" />
-          <View className="min-w-0 flex-1">
-            <Text
-              variant={banner.detail ? 'micro' : 'caption'}
-              className="font-semibold text-brand">
-              {banner.label}
-            </Text>
-            {banner.detail ? (
-              <Text variant="caption" numberOfLines={1}>
-                {banner.detail}
-              </Text>
-            ) : null}
-          </View>
-          <IconButton
-            icon="close"
-            label={editing ? 'Cancel edit' : 'Cancel reply'}
-            tone="subtle"
-            size={18}
-            onPress={onCancelBanner}
-          />
-        </Animated.View>
-      ) : null}
+      {banner ? <ModeBanner banner={banner} editing={editing} onCancel={onCancelBanner} /> : null}
 
       <Animated.View layout={springLayout()} className="flex-row items-end gap-2 px-3 pb-2 pt-1">
         {canAttach ? (
