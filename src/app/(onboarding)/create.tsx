@@ -4,22 +4,10 @@ import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import {
-  Avatar,
-  Button,
-  Card,
-  Enter,
-  Field,
-  IconButton,
-  Pressable,
-  Screen,
-  stagger,
-  Text,
-  toast,
-} from '@/design';
+import { Avatar, Button, Enter, Field, IconButton, Screen, stagger, Text, toast } from '@/design';
 import { useIdentityStore } from '@/core/identity/identity-store';
 import { createMnemonic, keyringFromMnemonic, shortAddress } from '@/core/identity/keyring';
-import { RecoveryPhrase } from '@/features/identity/recovery-phrase';
+import { RevealablePhrase } from '@/features/identity/recovery-phrase';
 import { errorMessage } from '@/core/errors';
 import { useBack } from '@/features/navigation/use-back';
 
@@ -87,34 +75,17 @@ export default function CreateIdentity() {
         </Animated.View>
 
         <Animated.View entering={Enter.content(stagger(2, 70))}>
-          <Card className="gap-3">
-            {revealed ? (
-              <Animated.View entering={Enter.fade()}>
-                <RecoveryPhrase phrase={phrase} />
-              </Animated.View>
-            ) : (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Reveal recovery phrase"
-                onPress={() => setRevealed(true)}
-                className="items-center justify-center gap-1 rounded-field bg-surface-sunken py-10">
-                <Text variant="title">Tap to reveal</Text>
-                <Text variant="caption">Make sure nobody is looking over your shoulder</Text>
-              </Pressable>
-            )}
-
-            {revealed ? (
-              <Button
-                label="Copy phrase"
-                tone="neutral"
-                size="sm"
-                onPress={async () => {
-                  await Clipboard.setStringAsync(phrase);
-                  toast.info('Copied. Paste it somewhere safe, then clear your clipboard.');
-                }}
-              />
-            ) : null}
-          </Card>
+          <RevealablePhrase phrase={phrase} revealed={revealed} onReveal={() => setRevealed(true)}>
+            <Button
+              label="Copy phrase"
+              tone="neutral"
+              size="sm"
+              onPress={async () => {
+                await Clipboard.setStringAsync(phrase);
+                toast.info('Copied. Paste it somewhere safe, then clear your clipboard.');
+              }}
+            />
+          </RevealablePhrase>
         </Animated.View>
       </ScrollView>
 

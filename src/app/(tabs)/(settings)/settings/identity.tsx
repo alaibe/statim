@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { View } from 'react-native';
-import Animated from 'react-native-reanimated';
 
-import { Card, copyText, Enter, Icon, Note, Pressable, Text } from '@/design';
+import { Card, copyText, Icon, Note, Pressable, Text } from '@/design';
 import { useIdentityStore } from '@/core/identity/identity-store';
 import { shortAddress } from '@/core/identity/keyring';
-import { RecoveryPhrase } from '@/features/identity/recovery-phrase';
+import { RevealablePhrase } from '@/features/identity/recovery-phrase';
 import { SettingsScreen } from '@/features/settings/settings-screen';
 
 export default function IdentityScreen() {
@@ -39,21 +38,11 @@ export default function IdentityScreen() {
           </Text>
         </Note>
 
-        <Card className="gap-3">
-          {revealed ? (
-            <Animated.View entering={Enter.fade()}>
-              <RecoveryPhrase phrase={keyring?.mnemonic ?? ''} />
-            </Animated.View>
-          ) : (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setRevealed(true)}
-              className="items-center justify-center gap-1.5 rounded-field bg-surface-sunken py-10">
-              <Icon name="eye-outline" size={20} tone="muted" />
-              <Text variant="title">Tap to reveal</Text>
-            </Pressable>
-          )}
-        </Card>
+        <RevealablePhrase
+          phrase={keyring?.mnemonic ?? ''}
+          revealed={revealed}
+          onReveal={() => setRevealed(true)}
+        />
 
         <Text variant="caption">
           To remove this account from the device, use Erase this account in Settings.

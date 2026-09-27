@@ -1,5 +1,7 @@
 import { View } from 'react-native';
-import { cn, Text } from '@/design';
+import Animated from 'react-native-reanimated';
+
+import { Card, cn, Enter, Icon, Pressable, Text } from '@/design';
 
 export interface RecoveryPhraseProps {
   phrase: string;
@@ -22,5 +24,39 @@ export function RecoveryPhrase({ phrase, className }: RecoveryPhraseProps) {
         </View>
       ))}
     </View>
+  );
+}
+
+/** The phrase behind a tap, with `children` shown under it once it is revealed. */
+export function RevealablePhrase({
+  phrase,
+  revealed,
+  onReveal,
+  children,
+}: {
+  phrase: string;
+  revealed: boolean;
+  onReveal: () => void;
+  children?: React.ReactNode;
+}) {
+  return (
+    <Card className="gap-3">
+      {revealed ? (
+        <Animated.View entering={Enter.fade()}>
+          <RecoveryPhrase phrase={phrase} />
+        </Animated.View>
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Reveal recovery phrase"
+          onPress={onReveal}
+          className="items-center justify-center gap-1 rounded-field bg-surface-sunken py-10">
+          <Icon name="eye-outline" size={20} tone="muted" />
+          <Text variant="title">Tap to reveal</Text>
+          <Text variant="caption">Make sure nobody is looking over your shoulder</Text>
+        </Pressable>
+      )}
+      {revealed ? children : null}
+    </Card>
   );
 }
