@@ -1,8 +1,6 @@
-import { Stack } from 'expo-router';
-import { ScrollView } from 'react-native';
-
-import { Icon, ListItem, Screen, Section, Text, Toggle } from '@/design';
+import { Icon, ListItem, Section, Text, Toggle } from '@/design';
 import { useAppearanceStore } from '@/core/app/appearance';
+import { SettingsScreen } from '@/features/settings/settings-screen';
 
 export default function PrivacyScreen() {
   const readReceipts = useAppearanceStore((s) => s.readReceipts);
@@ -13,75 +11,71 @@ export default function PrivacyScreen() {
   const setLinkPreviews = useAppearanceStore((s) => s.setLinkPreviews);
 
   return (
-    <Screen className="bg-surface px-0" edges={[]}>
-      <Stack.Screen options={{ title: 'Privacy' }} />
+    <SettingsScreen title="Privacy">
+      <Section title="Receipts" surface="card" className="mb-4">
+        <ListItem
+          title="Send read receipts"
+          subtitle="Tells the other person when you have opened their message. Off by default, and it works both ways: with it off, you do not see theirs either."
+          numberOfLinesSubtitle={4}
+          leading={<Icon name="checkmark-done-outline" size={20} tone="muted" />}
+          trailing={
+            <Toggle
+              label="Send read receipts"
+              value={readReceipts}
+              onValueChange={setReadReceipts}
+            />
+          }
+        />
+        <ListItem
+          title="Send typing indicators"
+          subtitle="Shows people on Telegram and Matrix that you are typing. Off by default: it sends a signal every time you touch the keyboard."
+          numberOfLinesSubtitle={4}
+          leading={<Icon name="ellipsis-horizontal" size={20} tone="muted" />}
+          trailing={
+            <Toggle
+              label="Send typing indicators"
+              value={typingIndicators}
+              onValueChange={setTypingIndicators}
+            />
+          }
+        />
+      </Section>
 
-      <ScrollView contentContainerStyle={{ paddingTop: 16, paddingBottom: 48 }}>
-        <Section title="Receipts" surface="card" className="mb-4">
-          <ListItem
-            title="Send read receipts"
-            subtitle="Tells the other person when you have opened their message. Off by default, and it works both ways: with it off, you do not see theirs either."
-            numberOfLinesSubtitle={4}
-            leading={<Icon name="checkmark-done-outline" size={20} tone="muted" />}
-            trailing={
-              <Toggle
-                label="Send read receipts"
-                value={readReceipts}
-                onValueChange={setReadReceipts}
-              />
-            }
-          />
-          <ListItem
-            title="Send typing indicators"
-            subtitle="Shows people on Telegram and Matrix that you are typing. Off by default: it sends a signal every time you touch the keyboard."
-            numberOfLinesSubtitle={4}
-            leading={<Icon name="ellipsis-horizontal" size={20} tone="muted" />}
-            trailing={
-              <Toggle
-                label="Send typing indicators"
-                value={typingIndicators}
-                onValueChange={setTypingIndicators}
-              />
-            }
-          />
-        </Section>
+      <Text variant="footnote" className="px-gutter pb-6">
+        Unread state is otherwise kept on this device only. Nothing tells anyone which conversations
+        you have open, which you have pinned, or which you have muted.
+      </Text>
 
-        <Text variant="footnote" className="px-gutter pb-6">
-          Unread state is otherwise kept on this device only. Nothing tells anyone which
-          conversations you have open, which you have pinned, or which you have muted.
-        </Text>
+      <Section title="Links" surface="card" className="mb-4">
+        <ListItem
+          title="Show link previews"
+          subtitle="Fetches a title, description and picture for links, straight from the linked site. With no server in between, the site sees this device's address as soon as a link arrives, not only when you tap it. Turn this off to keep that to yourself."
+          numberOfLinesSubtitle={6}
+          leading={<Icon name="link-outline" size={20} tone="muted" />}
+          trailing={
+            <Toggle
+              label="Show link previews"
+              value={linkPreviews}
+              onValueChange={setLinkPreviews}
+            />
+          }
+        />
+      </Section>
 
-        <Section title="Links" surface="card" className="mb-4">
-          <ListItem
-            title="Show link previews"
-            subtitle="Fetches a title, description and picture for links, straight from the linked site. With no server in between, the site sees this device's address as soon as a link arrives, not only when you tap it. Turn this off to keep that to yourself."
-            numberOfLinesSubtitle={6}
-            leading={<Icon name="link-outline" size={20} tone="muted" />}
-            trailing={
-              <Toggle
-                label="Show link previews"
-                value={linkPreviews}
-                onValueChange={setLinkPreviews}
-              />
-            }
-          />
-        </Section>
-
-        <Section title="Not collected" surface="card" className="mb-4">
-          <ListItem
-            title="No last seen of our own"
-            subtitle="XMTP, Nostr and Waku carry no presence. Telegram shows when you were last online, as the Telegram apps do, and Matrix does when your homeserver shares presence; this app adds nothing on top."
-            numberOfLinesSubtitle={4}
-            leading={<Icon name="eye-off-outline" size={20} tone="muted" />}
-          />
-          <ListItem
-            title="No contact upload"
-            subtitle="Your address book is read on this device to suggest invites and is never sent anywhere."
-            numberOfLinesSubtitle={3}
-            leading={<Icon name="people-outline" size={20} tone="muted" />}
-          />
-        </Section>
-      </ScrollView>
-    </Screen>
+      <Section title="Not collected" surface="card" className="mb-4">
+        <ListItem
+          title="No last seen of our own"
+          subtitle="XMTP, Nostr and Waku carry no presence. Telegram shows when you were last online, as the Telegram apps do, and Matrix does when your homeserver shares presence; this app adds nothing on top."
+          numberOfLinesSubtitle={4}
+          leading={<Icon name="eye-off-outline" size={20} tone="muted" />}
+        />
+        <ListItem
+          title="No contact upload"
+          subtitle="Your address book is read on this device to suggest invites and is never sent anywhere."
+          numberOfLinesSubtitle={3}
+          leading={<Icon name="people-outline" size={20} tone="muted" />}
+        />
+      </Section>
+    </SettingsScreen>
   );
 }

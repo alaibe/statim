@@ -1,6 +1,6 @@
-import { Stack, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 
 import {
   ActionSheet,
@@ -10,11 +10,9 @@ import {
   ConfirmSheet,
   Field,
   ListItem,
-  Screen,
   Section,
   Sheet,
   SwipeableRow,
-  Text,
   toast,
 } from '@/design';
 import { eraseAccount } from '@/core/app/erase-account';
@@ -25,6 +23,7 @@ import { describeKind } from '@/core/identity/account-kind';
 import { hardwareVendors } from '@/core/identity/hardware';
 import { ConnectHardware } from '@/features/identity/connect-hardware';
 import { useAction } from '@/features/chat/use-action';
+import { SettingsScreen } from '@/features/settings/settings-screen';
 
 export default function AccountsScreen() {
   const router = useRouter();
@@ -44,83 +43,76 @@ export default function AccountsScreen() {
   const target = accounts.find((a) => a.id === (managing ?? renaming ?? confirmWipe));
 
   return (
-    <Screen className="bg-surface px-0" edges={[]}>
-      <Stack.Screen options={{ title: 'Accounts' }} />
-
-      <ScrollView contentContainerStyle={{ paddingBottom: 48 }}>
-        <Text variant="footnote" className="px-gutter pb-4">
-          Each account has its own keys, its own message database and its own plugin settings.
-          Nothing is shared between them. Tap one to switch to it, hold to rename or erase it.
-        </Text>
-
-        <Section surface="card" className="mb-6">
-          {accounts.map((account) => (
-            <SwipeableRow
+    <SettingsScreen
+      title="Accounts"
+      intro="Each account has its own keys, its own message database and its own plugin settings. Nothing is shared between them. Tap one to switch to it, hold to rename or erase it.">
+      <Section surface="card" className="mb-6">
+        {accounts.map((account) => (
+          <SwipeableRow
+            key={account.id}
+            right={[
+              {
+                id: 'erase',
+                label: 'Erase',
+                icon: 'trash-outline',
+                destructive: true,
+                onPress: () => setConfirmWipe(account.id),
+              },
+            ]}>
+            <ListItem
               key={account.id}
-              right={[
-                {
-                  id: 'erase',
-                  label: 'Erase',
-                  icon: 'trash-outline',
-                  destructive: true,
-                  onPress: () => setConfirmWipe(account.id),
-                },
-              ]}>
-              <ListItem
-                key={account.id}
-                testID={`account-${account.id}`}
-                title={account.label}
-                subtitle={
-                  account.kind === 'hardware'
-                    ? `${shortAddress(account.address, 8, 6)} · ${describeKind('hardware')}`
-                    : shortAddress(account.address, 10, 8)
+              testID={`account-${account.id}`}
+              title={account.label}
+              subtitle={
+                account.kind === 'hardware'
+                  ? `${shortAddress(account.address, 8, 6)} · ${describeKind('hardware')}`
+                  : shortAddress(account.address, 10, 8)
+              }
+              numberOfLinesSubtitle={2}
+              leading={<Avatar seed={account.address} size="md" />}
+              // Only state on the right: tapping switches, holding manages, swiping erases.
+              trailing={<Checkmark selected={account.id === activeAccountId} />}
+              onLongPress={() => setManaging(account.id)}
+              onContextMenu={() => setManaging(account.id)}
+              onPress={async () => {
+                if (account.id === activeAccountId) {
+                  setManaging(account.id);
+                  return;
                 }
-                numberOfLinesSubtitle={2}
-                leading={<Avatar seed={account.address} size="md" />}
-                // Only state on the right: tapping switches, holding manages, swiping erases.
-                trailing={<Checkmark selected={account.id === activeAccountId} />}
-                onLongPress={() => setManaging(account.id)}
-                onContextMenu={() => setManaging(account.id)}
-                onPress={async () => {
-                  if (account.id === activeAccountId) {
-                    setManaging(account.id);
-                    return;
-                  }
-                  try {
-                    await selectAccount(account.id);
-                    router.replace('/chats');
-                  } catch (error) {
-                    toast.error(errorMessage(error, 'Could not open that account'));
-                  }
-                }}
-              />
-            </SwipeableRow>
-          ))}
-        </Section>
+                try {
+                  await selectAccount(account.id);
+                  router.replace('/chats');
+                } catch (error) {
+                  toast.error(errorMessage(error, 'Could not open that account'));
+                }
+              }}
+            />
+          </SwipeableRow>
+        ))}
+      </Section>
 
-        <View className="gap-2 px-gutter">
+      <View className="gap-2 px-gutter">
+        <Button
+          label="Create a new account"
+          fullWidth
+          onPress={() => router.push('/(onboarding)/create')}
+        />
+        <Button
+          label="Import a recovery phrase"
+          tone="neutral"
+          fullWidth
+          onPress={() => router.push('/(onboarding)/import')}
+        />
+        {hardwareVendors().length > 0 ? (
           <Button
-            label="Create a new account"
-            fullWidth
-            onPress={() => router.push('/(onboarding)/create')}
-          />
-          <Button
-            label="Import a recovery phrase"
+            testID="connect-hardware"
+            label="Connect a hardware wallet"
             tone="neutral"
             fullWidth
-            onPress={() => router.push('/(onboarding)/import')}
+            onPress={() => setConnecting(true)}
           />
-          {hardwareVendors().length > 0 ? (
-            <Button
-              testID="connect-hardware"
-              label="Connect a hardware wallet"
-              tone="neutral"
-              fullWidth
-              onPress={() => setConnecting(true)}
-            />
-          ) : null}
-        </View>
-      </ScrollView>
+        ) : null}
+      </View>
 
       <ConnectHardware visible={connecting} onClose={() => setConnecting(false)} />
 
@@ -190,6 +182,6 @@ export default function AccountsScreen() {
           },
         }}
       />
-    </Screen>
+    </SettingsScreen>
   );
 }

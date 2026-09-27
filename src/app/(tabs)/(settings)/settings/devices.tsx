@@ -1,22 +1,11 @@
-import { Stack } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView } from 'react-native';
 
-import {
-  Badge,
-  ConfirmSheet,
-  Icon,
-  ListItem,
-  Loading,
-  Note,
-  Screen,
-  Section,
-  Text,
-} from '@/design';
+import { Badge, ConfirmSheet, Icon, ListItem, Loading, Note, Section, Text } from '@/design';
 import { errorMessage } from '@/core/errors';
 import { useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
 import { formatDayLabel } from '@/core/messaging/preview';
 import { useAction } from '@/features/chat/use-action';
+import { SettingsScreen } from '@/features/settings/settings-screen';
 
 interface Installation {
   id: string;
@@ -66,66 +55,62 @@ export default function DevicesScreen() {
   const here = (installations ?? []).find((i) => i.current);
 
   return (
-    <Screen className="bg-surface px-0" edges={[]}>
-      <Stack.Screen options={{ title: 'Devices' }} />
+    <SettingsScreen title="Devices">
+      {installations === null ? (
+        <Loading />
+      ) : (
+        <>
+          <Section
+            title="This device"
+            surface="card"
+            empty="This transport does not report devices, so there is nothing to show here."
+            className="mb-6">
+            {here ? (
+              <ListItem
+                title="Signed in here"
+                subtitle={describe(here)}
+                numberOfLinesSubtitle={2}
+                leading={<Icon name="phone-portrait-outline" size={20} tone="brand" />}
+                trailing={<Badge label="Current" tone="success" />}
+              />
+            ) : null}
+          </Section>
 
-      <ScrollView contentContainerStyle={{ paddingTop: 16, paddingBottom: 48 }}>
-        {installations === null ? (
-          <Loading />
-        ) : (
-          <>
-            <Section
-              title="This device"
-              surface="card"
-              empty="This transport does not report devices, so there is nothing to show here."
-              className="mb-6">
-              {here ? (
-                <ListItem
-                  title="Signed in here"
-                  subtitle={describe(here)}
-                  numberOfLinesSubtitle={2}
-                  leading={<Icon name="phone-portrait-outline" size={20} tone="brand" />}
-                  trailing={<Badge label="Current" tone="success" />}
-                />
-              ) : null}
-            </Section>
+          <Section
+            title={others.length > 0 ? `Other devices · ${others.length}` : 'Other devices'}
+            surface="card"
+            empty="This account is only signed in here."
+            className="mb-4">
+            {others.map((installation) => (
+              <ListItem
+                key={installation.id}
+                title={`Device ${installation.id.slice(0, 8)}`}
+                subtitle={describe(installation)}
+                numberOfLinesSubtitle={2}
+                leading={<Icon name="phone-portrait-outline" size={20} tone="muted" />}
+                trailing={<Icon name="close-circle-outline" size={20} tone="danger" />}
+                onPress={() => setConfirming(installation)}
+              />
+            ))}
+          </Section>
+        </>
+      )}
 
-            <Section
-              title={others.length > 0 ? `Other devices · ${others.length}` : 'Other devices'}
-              surface="card"
-              empty="This account is only signed in here."
-              className="mb-4">
-              {others.map((installation) => (
-                <ListItem
-                  key={installation.id}
-                  title={`Device ${installation.id.slice(0, 8)}`}
-                  subtitle={describe(installation)}
-                  numberOfLinesSubtitle={2}
-                  leading={<Icon name="phone-portrait-outline" size={20} tone="muted" />}
-                  trailing={<Icon name="close-circle-outline" size={20} tone="danger" />}
-                  onPress={() => setConfirming(installation)}
-                />
-              ))}
-            </Section>
-          </>
-        )}
-
-        {error ? (
-          <Note tone="danger" className="mx-gutter mb-4">
-            <Text variant="caption" className="text-danger">
-              {error}
-            </Text>
-          </Note>
-        ) : null}
-
-        <Note className="mx-gutter" title="What a device is" icon="phone-portrait-outline">
-          <Text variant="footnote">
-            Each device holds its own keys and its own copy of your messages. Nothing sits on a
-            server for a new device to download. That is why a fresh install starts empty, and why
-            revoking a device here cuts it off for good rather than signing it out.
+      {error ? (
+        <Note tone="danger" className="mx-gutter mb-4">
+          <Text variant="caption" className="text-danger">
+            {error}
           </Text>
         </Note>
-      </ScrollView>
+      ) : null}
+
+      <Note className="mx-gutter" title="What a device is" icon="phone-portrait-outline">
+        <Text variant="footnote">
+          Each device holds its own keys and its own copy of your messages. Nothing sits on a server
+          for a new device to download. That is why a fresh install starts empty, and why revoking a
+          device here cuts it off for good rather than signing it out.
+        </Text>
+      </Note>
 
       <ConfirmSheet
         visible={confirming !== null}
@@ -146,7 +131,7 @@ export default function DevicesScreen() {
           },
         }}
       />
-    </Screen>
+    </SettingsScreen>
   );
 }
 

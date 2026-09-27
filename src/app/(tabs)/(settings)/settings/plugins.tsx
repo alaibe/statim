@@ -1,7 +1,5 @@
-import { Stack } from 'expo-router';
-
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 
 import {
   Badge,
@@ -9,7 +7,6 @@ import {
   ConfirmSheet,
   ListItem,
   RowIcon,
-  Screen,
   Section,
   Sheet,
   Text,
@@ -22,6 +19,7 @@ import { botChatLoss, botChatLossCopy, type BotChatLoss } from '@/core/plugins/b
 import { usePluginHost } from '@/core/plugins/host';
 import { PERMISSION_LABELS, type Plugin } from '@/core/plugins/types';
 import { errorMessage } from '@/core/errors';
+import { SettingsScreen } from '@/features/settings/settings-screen';
 
 export default function PluginsScreen() {
   const { registry, enabledIds, setEnabled } = usePluginHost();
@@ -64,43 +62,34 @@ export default function PluginsScreen() {
   const detailHasChat = detail ? registry.botsOf(detail.manifest.id).length > 0 : false;
 
   return (
-    <Screen className="px-0" edges={[]}>
-      <Stack.Screen options={{ title: 'Plugins' }} />
-
-      <ScrollView contentContainerStyle={{ paddingTop: 16, paddingBottom: 120 }}>
-        <View className="gap-1 px-gutter pb-4">
-          <Text variant="bodyMuted">
-            Plugins add commands, message types and screens. They ship inside the app, so enabling
-            one grants it the access its row lists.
-          </Text>
-        </View>
-
-        <Section surface="card" className="mb-6">
-          {registry.list().map((plugin) => {
-            const enabled = toggling[plugin.manifest.id] ?? enabledIds.includes(plugin.manifest.id);
-            return (
-              <ListItem
-                key={plugin.manifest.id}
-                testID={`plugin-${plugin.manifest.id}`}
-                title={plugin.manifest.name}
-                subtitle={plugin.manifest.description}
-                numberOfLinesSubtitle={2}
-                leading={
-                  <RowIcon name={plugin.manifest.icon} tone={TONE[plugin.manifest.id] ?? 'grey'} />
-                }
-                trailing={
-                  <Toggle
-                    label={plugin.manifest.name}
-                    value={enabled}
-                    onValueChange={(next) => onToggle(plugin, next)}
-                  />
-                }
-                onPress={() => setDetail(plugin)}
-              />
-            );
-          })}
-        </Section>
-      </ScrollView>
+    <SettingsScreen
+      title="Plugins"
+      intro="Plugins add commands, message types and screens. They ship inside the app, so enabling one grants it the access its row lists.">
+      <Section surface="card" className="mb-6">
+        {registry.list().map((plugin) => {
+          const enabled = toggling[plugin.manifest.id] ?? enabledIds.includes(plugin.manifest.id);
+          return (
+            <ListItem
+              key={plugin.manifest.id}
+              testID={`plugin-${plugin.manifest.id}`}
+              title={plugin.manifest.name}
+              subtitle={plugin.manifest.description}
+              numberOfLinesSubtitle={2}
+              leading={
+                <RowIcon name={plugin.manifest.icon} tone={TONE[plugin.manifest.id] ?? 'grey'} />
+              }
+              trailing={
+                <Toggle
+                  label={plugin.manifest.name}
+                  value={enabled}
+                  onValueChange={(next) => onToggle(plugin, next)}
+                />
+              }
+              onPress={() => setDetail(plugin)}
+            />
+          );
+        })}
+      </Section>
 
       <Sheet
         visible={detail !== null}
@@ -160,7 +149,7 @@ export default function PluginsScreen() {
           },
         }}
       />
-    </Screen>
+    </SettingsScreen>
   );
 }
 

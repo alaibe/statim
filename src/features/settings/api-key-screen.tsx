@@ -1,12 +1,13 @@
-import { Stack } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 
-import { Button, Field, Note, Screen, Section, Text, toast } from '@/design';
+import { Button, Field, Note, Section, Text, toast } from '@/design';
 import { useIdentityStore } from '@/core/identity/identity-store';
 import { errorMessage } from '@/core/errors';
 import { openExternal } from '@/lib/open-url';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
+
+import { SettingsScreen } from './settings-screen';
 
 export interface ApiKeyScreenProps {
   title: string;
@@ -59,68 +60,62 @@ export function ApiKeyScreen({
   }
 
   return (
-    <Screen className="bg-surface px-0" edges={[]}>
-      <Stack.Screen options={{ title }} />
-
-      <ScrollView
-        contentContainerStyle={{ paddingTop: 16, paddingBottom: 48 }}
-        keyboardShouldPersistTaps="handled">
-        {saved === undefined ? null : (
-          <Section title={sectionTitle} surface="card" className="mb-6">
-            <View className="gap-3 px-gutter py-4">
-              <Field
-                testID={testIdPrefix}
-                value={key}
-                onChangeText={(text) => setDraft({ accountId, text })}
-                placeholder={placeholder}
-                autoCorrect={false}
-                autoCapitalize="none"
-                hint={saved ? 'A key is saved for this account.' : 'No key yet.'}
-              />
-              <View className="flex-row gap-2">
+    <SettingsScreen title={title}>
+      {saved === undefined ? null : (
+        <Section title={sectionTitle} surface="card" className="mb-6">
+          <View className="gap-3 px-gutter py-4">
+            <Field
+              testID={testIdPrefix}
+              value={key}
+              onChangeText={(text) => setDraft({ accountId, text })}
+              placeholder={placeholder}
+              autoCorrect={false}
+              autoCapitalize="none"
+              hint={saved ? 'A key is saved for this account.' : 'No key yet.'}
+            />
+            <View className="flex-row gap-2">
+              <View className="flex-1">
+                <Button
+                  testID={`${testIdPrefix}-save`}
+                  label="Save"
+                  fullWidth
+                  loading={busy}
+                  disabled={busy || key.trim() === (saved ?? '')}
+                  onPress={() => submit(key)}
+                />
+              </View>
+              {saved ? (
                 <View className="flex-1">
                   <Button
-                    testID={`${testIdPrefix}-save`}
-                    label="Save"
+                    testID={`${testIdPrefix}-clear`}
+                    label="Remove"
+                    tone="neutral"
                     fullWidth
-                    loading={busy}
-                    disabled={busy || key.trim() === (saved ?? '')}
-                    onPress={() => submit(key)}
+                    disabled={busy}
+                    onPress={() => {
+                      setDraft({ accountId, text: '' });
+                      submit('');
+                    }}
                   />
                 </View>
-                {saved ? (
-                  <View className="flex-1">
-                    <Button
-                      testID={`${testIdPrefix}-clear`}
-                      label="Remove"
-                      tone="neutral"
-                      fullWidth
-                      disabled={busy}
-                      onPress={() => {
-                        setDraft({ accountId, text: '' });
-                        submit('');
-                      }}
-                    />
-                  </View>
-                ) : null}
-              </View>
+              ) : null}
             </View>
-          </Section>
-        )}
+          </View>
+        </Section>
+      )}
 
-        <Note className="mx-gutter" icon="information-circle-outline">
-          {notes.map((note) => (
-            <Text key={note} variant="footnote">
-              {note}
-            </Text>
-          ))}
-          <Button
-            label={link.label}
-            tone="neutral"
-            onPress={() => openExternal(link.url).catch(() => {})}
-          />
-        </Note>
-      </ScrollView>
-    </Screen>
+      <Note className="mx-gutter" icon="information-circle-outline">
+        {notes.map((note) => (
+          <Text key={note} variant="footnote">
+            {note}
+          </Text>
+        ))}
+        <Button
+          label={link.label}
+          tone="neutral"
+          onPress={() => openExternal(link.url).catch(() => {})}
+        />
+      </Note>
+    </SettingsScreen>
   );
 }

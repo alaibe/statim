@@ -1,13 +1,12 @@
-import { Stack } from 'expo-router';
-
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { Card, copyText, Enter, Icon, Note, Pressable, Screen, Text } from '@/design';
+import { Card, copyText, Enter, Icon, Note, Pressable, Text } from '@/design';
 import { useIdentityStore } from '@/core/identity/identity-store';
 import { shortAddress } from '@/core/identity/keyring';
 import { RecoveryPhrase } from '@/features/identity/recovery-phrase';
+import { SettingsScreen } from '@/features/settings/settings-screen';
 
 export default function IdentityScreen() {
   const keyring = useIdentityStore((s) => s.keyring);
@@ -15,55 +14,51 @@ export default function IdentityScreen() {
   const [revealed, setRevealed] = useState(false);
 
   return (
-    <Screen className="px-0" edges={[]}>
-      <Stack.Screen options={{ title: 'Recovery phrase' }} />
+    <SettingsScreen title="Recovery phrase">
+      <View className="gap-4 px-gutter">
+        <Card className="gap-2">
+          <Text variant="caption">Address</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Copy address"
+            onPress={async () => {
+              if (!keyring) return;
+              await copyText(keyring.address, 'Address copied');
+            }}
+            pressScale={0.99}
+            className="flex-row items-center justify-between">
+            <Text variant="mono">{keyring ? shortAddress(keyring.address, 12, 10) : '—'}</Text>
+            <Icon name="copy-outline" size={16} tone="muted" />
+          </Pressable>
+        </Card>
 
-      <ScrollView contentContainerStyle={{ paddingTop: 16, paddingBottom: 140 }}>
-        <View className="gap-4 px-gutter">
-          <Card className="gap-2">
-            <Text variant="caption">Address</Text>
+        <Note tone="danger">
+          <Text variant="caption" className="text-danger">
+            Anyone with these words controls your messages and any funds at this address. Never type
+            them into a website or share them with support.
+          </Text>
+        </Note>
+
+        <Card className="gap-3">
+          {revealed ? (
+            <Animated.View entering={Enter.fade()}>
+              <RecoveryPhrase phrase={keyring?.mnemonic ?? ''} />
+            </Animated.View>
+          ) : (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Copy address"
-              onPress={async () => {
-                if (!keyring) return;
-                await copyText(keyring.address, 'Address copied');
-              }}
-              pressScale={0.99}
-              className="flex-row items-center justify-between">
-              <Text variant="mono">{keyring ? shortAddress(keyring.address, 12, 10) : '—'}</Text>
-              <Icon name="copy-outline" size={16} tone="muted" />
+              onPress={() => setRevealed(true)}
+              className="items-center justify-center gap-1.5 rounded-field bg-surface-sunken py-10">
+              <Icon name="eye-outline" size={20} tone="muted" />
+              <Text variant="title">Tap to reveal</Text>
             </Pressable>
-          </Card>
+          )}
+        </Card>
 
-          <Note tone="danger">
-            <Text variant="caption" className="text-danger">
-              Anyone with these words controls your messages and any funds at this address. Never
-              type them into a website or share them with support.
-            </Text>
-          </Note>
-
-          <Card className="gap-3">
-            {revealed ? (
-              <Animated.View entering={Enter.fade()}>
-                <RecoveryPhrase phrase={keyring?.mnemonic ?? ''} />
-              </Animated.View>
-            ) : (
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setRevealed(true)}
-                className="items-center justify-center gap-1.5 rounded-field bg-surface-sunken py-10">
-                <Icon name="eye-outline" size={20} tone="muted" />
-                <Text variant="title">Tap to reveal</Text>
-              </Pressable>
-            )}
-          </Card>
-
-          <Text variant="caption">
-            To remove this account from the device, use Erase this account in Settings.
-          </Text>
-        </View>
-      </ScrollView>
-    </Screen>
+        <Text variant="caption">
+          To remove this account from the device, use Erase this account in Settings.
+        </Text>
+      </View>
+    </SettingsScreen>
   );
 }

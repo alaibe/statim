@@ -1,5 +1,4 @@
-import { Stack } from 'expo-router';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 
 import {
   ChatBackground,
@@ -8,11 +7,11 @@ import {
   Icon,
   ListItem,
   Pressable,
-  Screen,
   Section,
   Text,
 } from '@/design';
 import { useAppearanceStore, type ThemeChoice } from '@/core/app/appearance';
+import { SettingsScreen } from '@/features/settings/settings-screen';
 
 const THEMES: { id: ThemeChoice; label: string; hint: string }[] = [
   {
@@ -36,53 +35,49 @@ export default function AppearanceScreen() {
   const setWallpaper = useAppearanceStore((s) => s.setWallpaper);
 
   return (
-    <Screen className="bg-surface px-0" edges={[]}>
-      <Stack.Screen options={{ title: 'Appearance' }} />
+    <SettingsScreen title="Appearance">
+      <Section title="Theme" surface="card" className="mb-6">
+        {THEMES.map((entry) => (
+          <ListItem
+            key={entry.id}
+            title={entry.label}
+            subtitle={entry.hint || undefined}
+            onPress={() => setTheme(entry.id)}
+            trailing={<Checkmark selected={entry.id === theme} />}
+          />
+        ))}
+      </Section>
 
-      <ScrollView contentContainerStyle={{ paddingTop: 16, paddingBottom: 48 }}>
-        <Section title="Theme" surface="card" className="mb-6">
-          {THEMES.map((entry) => (
-            <ListItem
-              key={entry.id}
-              title={entry.label}
-              subtitle={entry.hint || undefined}
-              onPress={() => setTheme(entry.id)}
-              trailing={<Checkmark selected={entry.id === theme} />}
-            />
-          ))}
-        </Section>
-
-        <Section title="Chat wallpaper" className="mb-6">
-          <View className="flex-row gap-3 px-gutter">
-            {WALLPAPERS.map((entry) => {
-              const active = entry.id === wallpaper;
-              return (
-                <Pressable
-                  key={entry.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={entry.label}
-                  onPress={() => setWallpaper(entry.id)}
-                  className="flex-1 gap-1.5">
-                  <View
-                    className={
-                      active
-                        ? 'h-28 overflow-hidden rounded-card border-2 border-brand'
-                        : 'h-28 overflow-hidden rounded-card border border-line'
-                    }>
-                    <ChatBackground pattern={entry.id} />
-                  </View>
-                  <View className="flex-row items-center gap-1.5">
-                    <Text variant="caption" className={active ? 'font-semibold' : undefined}>
-                      {entry.label}
-                    </Text>
-                    {active ? <Icon name="checkmark-circle" size={14} tone="brand" /> : null}
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
-        </Section>
-      </ScrollView>
-    </Screen>
+      <Section title="Chat wallpaper" className="mb-6">
+        <View className="flex-row gap-3 px-gutter">
+          {WALLPAPERS.map((entry) => {
+            const active = entry.id === wallpaper;
+            return (
+              <Pressable
+                key={entry.id}
+                accessibilityRole="button"
+                accessibilityLabel={entry.label}
+                onPress={() => setWallpaper(entry.id)}
+                className="flex-1 gap-1.5">
+                <View
+                  className={
+                    active
+                      ? 'h-28 overflow-hidden rounded-card border-2 border-brand'
+                      : 'h-28 overflow-hidden rounded-card border border-line'
+                  }>
+                  <ChatBackground pattern={entry.id} />
+                </View>
+                <View className="flex-row items-center gap-1.5">
+                  <Text variant="caption" className={active ? 'font-semibold' : undefined}>
+                    {entry.label}
+                  </Text>
+                  {active ? <Icon name="checkmark-circle" size={14} tone="brand" /> : null}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Section>
+    </SettingsScreen>
   );
 }
