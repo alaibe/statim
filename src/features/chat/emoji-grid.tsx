@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   Pressable,
@@ -8,84 +8,22 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
-import emojiData from 'rn-emoji-keyboard/src/assets/emojis.json';
 
 import { Icon, SearchField, Text, type IconName } from '@/design';
-import { useChatStore } from '@/core/messaging/chat-store';
 
-interface EmojiEntry {
-  emoji: string;
-  name: string;
-  keywords?: string[];
-}
-
-interface Category {
-  id: string;
-  title: string;
-  icon: IconName;
-  emojis: string[];
-}
-
-type Row =
-  | { kind: 'header'; title: string; category: string }
-  | { kind: 'emoji'; emojis: string[] };
-
-const CATEGORY_META: Record<string, { title: string; icon: IconName }> = {
-  smileys_emotion: { title: 'Smileys & Emotion', icon: 'happy-outline' },
-  people_body: { title: 'People & Body', icon: 'hand-left-outline' },
-  animals_nature: { title: 'Animals & Nature', icon: 'leaf-outline' },
-  food_drink: { title: 'Food & Drink', icon: 'pizza-outline' },
-  travel_places: { title: 'Travel & Places', icon: 'airplane-outline' },
-  activities: { title: 'Activities', icon: 'football-outline' },
-  objects: { title: 'Objects', icon: 'bulb-outline' },
-  symbols: { title: 'Symbols', icon: 'shapes-outline' },
-  flags: { title: 'Flags', icon: 'flag-outline' },
-};
-
-const RECENT = 'recent';
-const RECENT_KEY = 'chat.recentEmoji';
-const RECENT_LIMIT = 32;
-
-const GROUPS = (emojiData as { title: string; data: EmojiEntry[] }[]).filter(
-  (group) => group.title in CATEGORY_META
-);
-
-const CATEGORIES: Category[] = GROUPS.map((group) => ({
-  id: group.title,
-  ...CATEGORY_META[group.title],
-  emojis: group.data.map((entry) => entry.emoji),
-}));
-
-const SEARCHABLE: { emoji: string; text: string }[] = GROUPS.flatMap((group) =>
-  group.data.map((entry) => ({
-    emoji: entry.emoji,
-    text: [entry.name, ...(entry.keywords ?? [])].join(' ').replace(/_/g, ' '),
-  }))
-);
+import {
+  CATEGORIES,
+  CELL,
+  type EmojiRow,
+  emojiRows,
+  HEADER,
+  RECENT,
+  searchEmoji,
+} from './emoji-data';
+import { useRecentEmoji } from './use-recent-emoji';
 
 const PAD = 8;
-const CELL = 40;
-const HEADER = 30;
 const EMOJI_SIZE = 26;
-
-function chunk(emojis: string[], columns: number): string[][] {
-  const rows: string[][] = [];
-  for (let i = 0; i < emojis.length; i += columns) rows.push(emojis.slice(i, i + columns));
-  return rows;
-}
-
-export function searchEmoji(query: string, limit = 120): string[] {
-  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
-  if (terms.length === 0) return [];
-  const found: string[] = [];
-  for (const entry of SEARCHABLE) {
-    if (terms.every((term) => entry.text.includes(term))) {
-      found.push(entry.emoji);
-      if (found.length >= limit) break;
-    }
-  }
-  return found;
-}
 
 export interface EmojiGridProps {
   width: number;
@@ -94,68 +32,28 @@ export interface EmojiGridProps {
 }
 
 export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
-  const storage = useChatStore((s) => s.accountStorage);
-  const list = useRef<FlatList<Row>>(null);
+  const list = useRef<FlatList<EmojiRow>>(null);
 
   const [query, setQuery] = useState('');
-  const [recent, setRecent] = useState<string[]>([]);
+  const [recent, remember] = useRecentEmoji();
   const [active, setActive] = useState<string>(CATEGORIES[0].id);
-
-  useEffect(() => {
-    if (!storage) return;
-    let cancelled = false;
-    storage
-      .get<string[]>(RECENT_KEY)
-      .then((saved) => {
-        if (!cancelled && Array.isArray(saved)) setRecent(saved);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [storage]);
 
   const columns = Math.max(4, Math.floor((width - PAD * 2) / CELL));
   const cell = (width - PAD * 2) / columns;
 
   const trimmed = query.trim();
 
-  const { rows, offsets, sections } = useMemo(() => {
-    const built: Row[] = [];
-    const starts: { category: string; offset: number }[] = [];
-    if (trimmed) {
-      for (const group of chunk(searchEmoji(trimmed), columns))
-        built.push({ kind: 'emoji', emojis: group });
-    } else {
-      const groups: { id: string; title: string; emojis: string[] }[] = [];
-      if (recent.length > 0) groups.push({ id: RECENT, title: 'Recently used', emojis: recent });
-      for (const category of CATEGORIES) groups.push(category);
-      for (const group of groups) {
-        built.push({ kind: 'header', title: group.title, category: group.id });
-        for (const line of chunk(group.emojis, columns))
-          built.push({ kind: 'emoji', emojis: line });
-      }
-    }
-    const positions: number[] = [];
-    let y = 0;
-    for (const row of built) {
-      positions.push(y);
-      if (row.kind === 'header') starts.push({ category: row.category, offset: y });
-      y += row.kind === 'header' ? HEADER : CELL;
-    }
-    return { rows: built, offsets: positions, sections: starts };
-  }, [trimmed, recent, columns]);
+  const { rows, offsets, sections } = useMemo(
+    () => emojiRows(trimmed, recent, columns),
+    [trimmed, recent, columns]
+  );
 
   const pick = useCallback(
     (emoji: string) => {
       onEmoji(emoji);
-      setRecent((current) => {
-        const next = [emoji, ...current.filter((e) => e !== emoji)].slice(0, RECENT_LIMIT);
-        storage?.set(RECENT_KEY, next).catch(() => {});
-        return next;
-      });
+      remember(emoji);
     },
-    [onEmoji, storage]
+    [onEmoji, remember]
   );
 
   const onScroll = useCallback(
@@ -178,7 +76,7 @@ export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
     list.current?.scrollToOffset({ offset: section.offset, animated: true });
   };
 
-  const renderItem = ({ item }: ListRenderItemInfo<Row>) => {
+  const renderItem = ({ item }: ListRenderItemInfo<EmojiRow>) => {
     if (item.kind === 'header') {
       return (
         <View style={{ height: HEADER, paddingHorizontal: PAD + 4 }} className="justify-end pb-1">

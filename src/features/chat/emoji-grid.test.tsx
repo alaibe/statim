@@ -2,7 +2,8 @@ import { act, createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { create, type ReactTestRenderer } from 'react-test-renderer';
 
-import { EmojiGrid, searchEmoji } from './emoji-grid';
+import { searchEmoji } from './emoji-data';
+import { EmojiGrid } from './emoji-grid';
 
 jest.mock('@/design', () => ({
   Text: 'Text',
