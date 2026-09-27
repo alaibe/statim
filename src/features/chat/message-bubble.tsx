@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { View } from 'react-native';
 
-import { cn, Icon, Text, useThemeColors } from '@/design';
+import { cn, Text, useThemeColors } from '@/design';
 import { usePluginHost } from '@/core/plugins/host';
 import { sessionFor, useChatStore } from '@/core/messaging/chat-store';
 import type { ChatMessage, MessageId, WidgetContent } from '@/core/messaging/types';
@@ -25,6 +25,7 @@ import { VideoBubble } from './attachments/video-bubble';
 import { PollBubble } from './poll-bubble';
 import { awaitsFile, formatTimestamp } from '@/core/messaging/preview';
 import { openInBrowser } from '@/lib/open-url';
+import { DeliveryIcon } from './delivery-icon';
 
 export type { ReplyPreview } from './bubble-shell';
 
@@ -269,11 +270,6 @@ function TextBody({
 /** `overlay` sits the time on a photo that has no bubble around it. */
 function Footer({ message, overlay = false }: { message: ChatMessage; overlay?: boolean }) {
   const colors = useThemeColors();
-  const tint = overlay
-    ? '#fff'
-    : message.fromMe
-      ? colors['bubble-out-on']
-      : colors['content-subtle'];
 
   return (
     <View
@@ -289,16 +285,10 @@ function Footer({ message, overlay = false }: { message: ChatMessage; overlay?: 
         {`${message.edited ? 'edited ' : ''}${formatTimestamp(message.sentAt)}`}
       </Text>
       {message.fromMe ? (
-        <Icon
-          name={
-            message.status === 'failed'
-              ? 'alert-circle'
-              : message.status === 'sending'
-                ? 'time-outline'
-                : 'checkmark-done'
-          }
+        <DeliveryIcon
+          message={message}
           size={13}
-          color={message.status === 'failed' ? colors.danger : message.readAt ? colors.brand : tint}
+          color={overlay ? '#fff' : colors['bubble-out-on']}
         />
       ) : null}
     </View>

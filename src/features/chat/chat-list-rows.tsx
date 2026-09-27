@@ -18,11 +18,11 @@ import {
   Pressable,
   SwipeableRow,
   Text,
-  useThemeColors,
 } from '@/design';
 import { openChat } from '@/features/navigation/open';
 import { protocolLabel } from '@/features/protocols/presentation';
 import { ConversationAvatar } from './conversation-avatar';
+import { DeliveryIcon } from './delivery-icon';
 
 export function ConversationRow({
   conversation,
@@ -45,7 +45,6 @@ export function ConversationRow({
   onMenu: (conversation: Conversation, anchor: MenuAnchor | null) => void;
   onToggle: (id: ConversationId, key: keyof ChatPrefs) => void;
 }) {
-  const colors = useThemeColors();
   const title = conversationTitle(conversation, selfId, nameFor);
   const last = conversation.lastMessage;
   const preview = messagePreview(last);
@@ -114,25 +113,7 @@ export function ConversationRow({
         meta={
           last ? (
             <View className="flex-row items-center gap-1">
-              {last.fromMe ? (
-                <Icon
-                  name={
-                    last.status === 'failed'
-                      ? 'alert-circle'
-                      : last.status === 'sending'
-                        ? 'time-outline'
-                        : 'checkmark-done'
-                  }
-                  size={14}
-                  color={
-                    last.status === 'failed'
-                      ? colors.danger
-                      : last.readAt
-                        ? colors.brand
-                        : colors['content-subtle']
-                  }
-                />
-              ) : null}
+              {last.fromMe ? <DeliveryIcon message={last} size={14} /> : null}
               <Text variant="caption" className={unread && !muted ? 'text-brand' : undefined}>
                 {formatTimestamp(last.sentAt)}
               </Text>
