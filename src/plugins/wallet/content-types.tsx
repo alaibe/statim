@@ -4,7 +4,8 @@ import Animated from 'react-native-reanimated';
 
 import { Badge, Button, cn, Enter, ErrorText, Eyebrow, Icon, Sheet, Text } from '@/design';
 import { shortAddress } from '@/core/identity/keyring';
-import type { MessageRendererProps, PluginContentType } from '@/core/plugins/types';
+import type { ConversationId } from '@/core/messaging/types';
+import type { MessageRendererProps, PluginContentType, PluginContext } from '@/core/plugins/types';
 
 import { chainById } from '@/lib/evm/chains';
 import {
@@ -46,62 +47,80 @@ function chainLabel(data: { chain?: string; chainId?: number }): string {
   return data.chain ?? 'an unknown chain';
 }
 
+interface PaymentTarget {
+  chain?: string;
+  chainId?: number;
+  symbol: string;
+  to: string;
+}
+
+/** Quoting and sending a transfer to `data.to`, with the busy, paid and error state a card shows. */
+function usePayment(data: PaymentTarget, context: PluginContext, conversationId: ConversationId) {
+  const chain = strategyFor(data);
+  const [busy, setBusy] = useState(false);
+  const [paid, setPaid] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const usable = () => {
+    setError(null);
+    if (chain?.transfer) return chain;
+    setError(networkOffMessage(chainLabel(data)));
+    return null;
+  };
+
+  return {
+    busy,
+    paid,
+    error,
+    async quote(amount: string) {
+      const ready = usable();
+      if (!ready) return null;
+      setBusy(true);
+      try {
+        const quoted = await ready.transfer!.quote(context, { amount, to: data.to });
+        if (!('error' in quoted)) return quoted.rows;
+        setError(`${quoted.error} Nothing was sent.`);
+      } catch (e) {
+        setError(walletErrorMessage(e, ready, 'review'));
+      } finally {
+        setBusy(false);
+      }
+      return null;
+    },
+    async send(amount: string): Promise<boolean> {
+      const ready = usable();
+      if (!ready) return false;
+      setBusy(true);
+      const sent = await commitTransfer(
+        ready,
+        context,
+        { amount, to: data.to },
+        { conversationId, symbol: data.symbol, onSent: () => setPaid(true) }
+      ).finally(() => setBusy(false));
+      if (!sent.ok) setError(sent.message);
+      return sent.ok;
+    },
+  };
+}
+
 function PaymentRequestCard({
   data,
   fromMe,
   context,
   message,
 }: MessageRendererProps<PaymentRequest>) {
+  const payment = usePayment(data, context, message.conversationId);
   const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [paid, setPaid] = useState(false);
   const [rows, setRows] = useState<{ label: string; value: string }[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const chain = strategyFor(data);
 
   async function review() {
-    setError(null);
     setRows(null);
     setOpen(true);
-    if (!chain?.transfer) {
-      setError(networkOffMessage(chainLabel(data)));
-      return;
-    }
-    setBusy(true);
-    try {
-      const quoted = await chain.transfer.quote(context, { amount: data.amount, to: data.to });
-      if ('error' in quoted) setError(`${quoted.error} Nothing was sent.`);
-      else setRows(quoted.rows);
-    } catch (e) {
-      setError(walletErrorMessage(e, chain, 'review'));
-    }
-    setBusy(false);
+    setRows(await payment.quote(data.amount));
   }
 
   async function pay() {
-    setError(null);
-    if (!chain?.transfer) {
-      setError(networkOffMessage(chainLabel(data)));
-      return;
-    }
-    setBusy(true);
-    const sent = await commitTransfer(
-      chain,
-      context,
-      { amount: data.amount, to: data.to },
-      {
-        conversationId: message.conversationId,
-        symbol: data.symbol,
-        onSent: () => setPaid(true),
-      }
-    ).finally(() => setBusy(false));
-    if (!sent.ok) {
-      setRows(null);
-      setError(sent.message);
-      return;
-    }
-
+    if (!(await payment.send(data.amount))) return setRows(null);
     context.ui.notify('Payment sent', 'success');
     setOpen(false);
   }
@@ -127,7 +146,7 @@ function PaymentRequestCard({
 
         {fromMe ? (
           <Badge label="Waiting for payment" tone="warning" />
-        ) : paid ? (
+        ) : payment.paid ? (
           <Badge label="Payment sent" tone="success" />
         ) : (
           <Button label={`Pay ${data.amount} ${data.symbol}`} size="sm" onPress={review} />
@@ -143,17 +162,17 @@ function PaymentRequestCard({
               null}
           </View>
 
-          {error ? (
+          {payment.error ? (
             <Animated.View entering={Enter.fade()}>
-              <ErrorText>{error}</ErrorText>
+              <ErrorText>{payment.error}</ErrorText>
             </Animated.View>
           ) : null}
 
           <Button
             label="Confirm and send"
             fullWidth
-            loading={busy}
-            disabled={rows === null || error !== null}
+            loading={payment.busy}
+            disabled={rows === null || payment.error !== null}
             onPress={pay}
           />
         </View>
@@ -163,31 +182,7 @@ function PaymentRequestCard({
 }
 
 function SplitRequestCard({ data, fromMe, context, message }: MessageRendererProps<SplitRequest>) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [paid, setPaid] = useState(false);
-
-  const chain = strategyFor(data);
-
-  async function payShare() {
-    setError(null);
-    if (!chain?.transfer) {
-      setError(networkOffMessage(chainLabel(data)));
-      return;
-    }
-    setBusy(true);
-    const sent = await commitTransfer(
-      chain,
-      context,
-      { amount: data.share, to: data.to },
-      {
-        conversationId: message.conversationId,
-        symbol: data.symbol,
-        onSent: () => setPaid(true),
-      }
-    ).finally(() => setBusy(false));
-    if (!sent.ok) setError(sent.message);
-  }
+  const payment = usePayment(data, context, message.conversationId);
 
   return (
     <CardShell fromMe={fromMe}>
@@ -203,23 +198,23 @@ function SplitRequestCard({ data, fromMe, context, message }: MessageRendererPro
         your share of {data.total} {data.symbol}, {data.people} ways
       </Text>
 
-      <Row label="Network" value={chain?.name ?? `Chain ${data.chainId}`} />
+      <Row label="Network" value={chainLabel(data)} />
       <Row label="Goes to" value={shortAddress(data.to)} />
 
-      <ErrorText>{error}</ErrorText>
+      <ErrorText>{payment.error}</ErrorText>
 
       {fromMe ? (
         <Text variant="caption">Waiting for the others to settle.</Text>
-      ) : paid ? (
+      ) : payment.paid ? (
         <Text variant="caption" className="text-success">
           Your share is paid.
         </Text>
       ) : (
         <Button
-          label={busy ? 'Sending…' : `Pay ${data.share} ${data.symbol}`}
-          disabled={busy}
+          label={payment.busy ? 'Sending…' : `Pay ${data.share} ${data.symbol}`}
+          disabled={payment.busy}
           fullWidth
-          onPress={payShare}
+          onPress={() => payment.send(data.share)}
         />
       )}
     </CardShell>
