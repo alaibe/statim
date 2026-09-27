@@ -13,6 +13,7 @@ import {
   PinPad,
   Screen,
   Text,
+  useInertOutside,
   useThemeColors,
 } from '@/design';
 import { reportError } from '@/core/app/report-error';
@@ -35,6 +36,17 @@ const readProtection = () =>
   });
 
 export function LockGate() {
+  const shield = useRef<View>(null);
+  useInertOutside(shield);
+
+  return (
+    <View ref={shield} className="absolute inset-0 bg-canvas">
+      <LockScreen />
+    </View>
+  );
+}
+
+function LockScreen() {
   const setup = useLockStore((s) => s.setup);
   const evaluate = useLockStore((s) => s.evaluate);
   const [keysSealed] = useState(() => useAccountStore.getState().status !== 'ready');
@@ -126,15 +138,16 @@ function BiometricUnlock({ label, toPin }: { label: string; toPin: (() => void) 
     }
   }, [unlock, toPin]);
 
+  const attemptOnce = useEffectEvent(() => void attempt());
   useEffect(() => {
     let cancelled = false;
     queueMicrotask(() => {
-      if (!cancelled) void attempt();
+      if (!cancelled) attemptOnce();
     });
     return () => {
       cancelled = true;
     };
-  }, [attempt]);
+  }, []);
 
   useOnReturnFromBackground(() => {
     if (!useLockStore.getState().prompting) void attempt();
@@ -307,62 +320,60 @@ function ForgotPin({ onCancel }: { onCancel: () => void }) {
   const armed = typed.trim().toLowerCase() === ERASE_WORD;
 
   return (
-    <View className="absolute inset-0 bg-canvas">
-      <Screen>
-        <KeyboardAvoidingView
-          behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
-          className="flex-1">
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            contentContainerClassName="grow justify-center gap-5 px-gutter py-8">
-            <View className="items-center gap-3">
-              <IconBadge icon="trash-outline" tone="danger" />
-              <Text variant="headline" className="text-center">
-                Erase everything?
-              </Text>
-            </View>
-
-            <Text variant="bodyMuted">
-              A forgotten PIN cannot be reset. To use Status Original again, erase everything it
-              keeps on this device: every account’s keys, chats and settings.
+    <Screen>
+      <KeyboardAvoidingView
+        behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
+        className="flex-1">
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerClassName="grow justify-center gap-5 px-gutter py-8">
+          <View className="items-center gap-3">
+            <IconBadge icon="trash-outline" tone="danger" />
+            <Text variant="headline" className="text-center">
+              Erase everything?
             </Text>
-            <Text variant="bodyMuted">
-              Then restore each account from its recovery phrase. Notes and anything else kept only
-              on this device are gone for good.
-            </Text>
+          </View>
 
-            <Field
-              label={`Type “${ERASE_WORD}” to confirm`}
-              value={typed}
-              onChangeText={setTyped}
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="off"
-              testID="forgot-pin-confirm"
+          <Text variant="bodyMuted">
+            A forgotten PIN cannot be reset. To use Status Original again, erase everything it keeps
+            on this device: every account’s keys, chats and settings.
+          </Text>
+          <Text variant="bodyMuted">
+            Then restore each account from its recovery phrase. Notes and anything else kept only on
+            this device are gone for good.
+          </Text>
+
+          <Field
+            label={`Type “${ERASE_WORD}” to confirm`}
+            value={typed}
+            onChangeText={setTyped}
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="off"
+            testID="forgot-pin-confirm"
+          />
+
+          <View className="gap-2">
+            <Button
+              testID="forgot-pin-erase"
+              label="Erase everything"
+              tone="danger"
+              fullWidth
+              disabled={!armed}
+              loading={erase.busy}
+              onPress={() => erase.run()}
             />
-
-            <View className="gap-2">
-              <Button
-                testID="forgot-pin-erase"
-                label="Erase everything"
-                tone="danger"
-                fullWidth
-                disabled={!armed}
-                loading={erase.busy}
-                onPress={() => erase.run()}
-              />
-              <Button
-                label="Cancel"
-                tone="neutral"
-                fullWidth
-                disabled={erase.busy}
-                onPress={onCancel}
-              />
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </Screen>
-    </View>
+            <Button
+              label="Cancel"
+              tone="neutral"
+              fullWidth
+              disabled={erase.busy}
+              onPress={onCancel}
+            />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Screen>
   );
 }
 
@@ -380,22 +391,20 @@ function LockFrame({
   children?: React.ReactNode;
 }) {
   return (
-    <View className="absolute inset-0 bg-canvas">
-      <Screen className="items-center justify-center gap-6">
-        <IconBadge icon={icon} tone={tone} />
+    <Screen className="items-center justify-center gap-6">
+      <IconBadge icon={icon} tone={tone} />
 
-        <View className="items-center gap-1.5 px-gutter">
-          <Text variant="title">{title}</Text>
-          {message ? (
-            <Text variant="footnote" className="text-center">
-              {message}
-            </Text>
-          ) : null}
-        </View>
+      <View className="items-center gap-1.5 px-gutter">
+        <Text variant="title">{title}</Text>
+        {message ? (
+          <Text variant="footnote" className="text-center">
+            {message}
+          </Text>
+        ) : null}
+      </View>
 
-        {children}
-      </Screen>
-    </View>
+      {children}
+    </Screen>
   );
 }
 

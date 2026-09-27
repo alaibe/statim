@@ -21,6 +21,7 @@ jest.mock('@/design', () => ({
   Screen: 'Screen',
   Text: 'Text',
   cn: (...names: unknown[]) => names.filter(Boolean).join(' '),
+  useInertOutside: () => {},
   useThemeColors: () => ({}),
 }));
 jest.mock('@/core/app/report-error', () => ({ reportError: jest.fn() }));

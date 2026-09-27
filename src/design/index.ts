@@ -9,4 +9,5 @@ export { contextMenu, type MenuAnchor } from './lib/context-menu';
 export { DRAG_REGION } from './lib/drag-region';
 export { PASS_THROUGH } from './lib/pass-through';
 export { useEscapeKey } from './lib/escape-key';
+export { useInertOutside } from './lib/inert-outside';
 export { LayoutInsetsContext, useLayoutInsets } from './lib/layout-insets';

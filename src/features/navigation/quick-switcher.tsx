@@ -12,6 +12,7 @@ import {
   useEscapeKey,
   useLayoutInsets,
 } from '@/design';
+import { useLockStore } from '@/core/account/lock-store';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { orderChats } from '@/core/messaging/chat-prefs';
 import { isUnreadHere, networkOf, splitRequests } from '@/core/messaging/folders';
@@ -44,6 +45,7 @@ export function QuickSwitcher() {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      if (useLockStore.getState().status !== 'open') return;
       const command = event.metaKey || event.ctrlKey;
       if (command && event.key.toLowerCase() === 'k') {
         event.preventDefault();

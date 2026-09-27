@@ -22,6 +22,7 @@ import { useAccountStore } from '@/core/account/account-store';
 import { useLockStore } from '@/core/account/lock-store';
 import { PIN_LENGTH } from '@/core/account/pin';
 import { useWaitLeft, waitMessage } from '@/features/account/pin-wait';
+import { leaveSettingsPage } from '@/features/navigation/open';
 import { SettingsScreen } from '@/features/settings/settings-screen';
 
 import {
@@ -62,7 +63,6 @@ export function PinRoute({ requested }: { requested: 'change' | 'off' }) {
 }
 
 function PinScreen({ kind }: { kind: SettingsPinFlow }) {
-  const router = useRouter();
   const focused = useIsFocused();
   const verifyPin = useLockStore((s) => s.verifyPin);
   const setPin = useLockStore((s) => s.setPin);
@@ -84,7 +84,7 @@ function PinScreen({ kind }: { kind: SettingsPinFlow }) {
           break;
       }
       toast.success(DONE[kind]);
-      router.back();
+      leaveSettingsPage();
       return { type: 'finished' };
     } catch (error) {
       reportError(error);

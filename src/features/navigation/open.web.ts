@@ -20,3 +20,8 @@ export function openTab(href: Href): void {
   fresh();
   router.navigate(href);
 }
+
+/** The pane goes back to Settings, whatever opened the page. */
+export function leaveSettingsPage(): void {
+  openTab('/settings');
+}

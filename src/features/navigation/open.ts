@@ -18,3 +18,9 @@ export function openChatFromProfile(id: string): void {
 export function openTab(href: Href): void {
   router.navigate(href);
 }
+
+/** Once a settings page has done its job. */
+export function leaveSettingsPage(): void {
+  if (router.canGoBack()) router.back();
+  else router.navigate('/settings');
+}
