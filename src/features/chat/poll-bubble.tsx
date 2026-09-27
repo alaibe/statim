@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
-import { cn, Text, toast } from '@/design';
+import { Button, cn, Text, toast } from '@/design';
 import { errorMessage } from '@/core/errors';
 import type { MessageContent } from '@/core/messaging/types';
 
@@ -80,12 +80,7 @@ export function PollBubble({
       selected &&
       selected.length > 0 &&
       (selected.length !== chosen.length || selected.some((id) => !chosen.includes(id))) ? (
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => void submit(selected)}
-          className="items-center rounded-lg bg-brand px-3 py-2">
-          <Text className="font-semibold text-white">Vote</Text>
-        </Pressable>
+        <Button label="Vote" size="sm" onPress={() => void submit(selected)} />
       ) : null}
       <Text variant="micro" className={fromMe ? 'text-bubble-out-on/70' : undefined}>
         {poll.totalVoters} {poll.totalVoters === 1 ? 'vote' : 'votes'}

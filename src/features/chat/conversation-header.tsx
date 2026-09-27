@@ -93,13 +93,13 @@ export function ConversationHeader({
           <View className="h-10 w-10" />
         )
       ) : conversation ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Search in chat"
+        <IconButton
+          icon="search-outline"
+          label="Search in chat"
+          tone="brand"
+          size={20}
           onPress={() => router.push(`/search?chatId=${encodeURIComponent(id)}`)}
-          className="h-10 w-10 items-center justify-center">
-          <Icon name="search-outline" size={20} tone="brand" />
-        </Pressable>
+        />
       ) : null}
 
       {thread ? null : conversation ? (

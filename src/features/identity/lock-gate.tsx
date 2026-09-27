@@ -89,7 +89,7 @@ export function LockGate() {
         </View>
 
         <View className="items-center gap-1.5 px-gutter">
-          <Text className="text-title font-semibold">Status Original</Text>
+          <Text variant="title">Status Original</Text>
           <Text variant="footnote" className="text-center">
             {failed ? `${label} was not recognised.` : `Unlocking with ${label}…`}
           </Text>
