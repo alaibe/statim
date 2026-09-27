@@ -6,7 +6,6 @@ import { RefreshControl, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import {
-  ActionSheet,
   CountBadge,
   EmptyState,
   Enter,
@@ -18,29 +17,17 @@ import {
   useThemeColors,
 } from '@/design';
 import { useChatStore } from '@/core/messaging/chat-store';
-import type { Conversation, ConversationId } from '@/core/messaging/types';
+import type { Conversation } from '@/core/messaging/types';
 import { messagePreview } from '@/core/messaging/preview';
-import { orderConversations, type ChatPrefs, type ChatPrefsMap } from '@/core/messaging/chat-prefs';
-import {
-  type ChatFilter,
-  chatRow,
-  type Directory,
-  type InboxRow,
-  inboxRows,
-  inDirectory,
-  isUnreadHere,
-  matchesFilter,
-  networkOf,
-} from '@/core/messaging/folders';
-import { hasUnreadMentions, isUnread } from '@/core/messaging/unread';
-import { ConversationAvatar } from '@/features/chat/conversation-avatar';
+import { type ChatPrefs } from '@/core/messaging/chat-prefs';
+import { type Directory, type InboxRow, isUnreadHere, networkOf } from '@/core/messaging/folders';
+import { isUnread } from '@/core/messaging/unread';
 import { useConversationTitles } from '@/features/chat/use-display-names';
-import { protocolSubtitle } from '@/features/protocols/presentation';
 import { HistoryStatus } from '@/features/chat/history-status';
 import { FilterTabs } from '@/features/chat/folder-tabs';
 import { useFolderStore } from '@/features/chat/folder-store';
 import { useUnreadCounts } from '@/features/chat/use-unread-counts';
-import { protocolById } from '@/protocols';
+import { ChatMenu, type ChatMenuTarget } from './chat-menu';
 import {
   ConnectingState,
   ConversationRow,
@@ -48,63 +35,9 @@ import {
   DirectoryRow,
   Separator,
 } from './chat-list-rows';
+import { inbox, isFolded } from './inbox';
 
 const NO_IDS: ReadonlySet<string> = new Set();
-
-const isFolded = (network: string) => protocolById(network)?.external ?? true;
-
-function inbox({
-  conversations,
-  chatPrefs,
-  readAt,
-  directory,
-  filter,
-  query,
-  held,
-  titleOf,
-}: {
-  conversations: Conversation[];
-  chatPrefs: ChatPrefsMap;
-  readAt: Record<ConversationId, number>;
-  directory: Directory | null;
-  filter: ChatFilter;
-  query: string;
-  held: ReadonlySet<string>;
-  titleOf: (c: Conversation) => string;
-}) {
-  const allowed = conversations.filter((c) => c.consent === 'allowed');
-  const requests = conversations.filter((c) => c.consent === 'unknown');
-  const context = { prefs: chatPrefs, readAt };
-  const ordered = orderConversations(allowed, chatPrefs, { includeArchived: true });
-  const scope = directory
-    ? ordered.filter((c) => inDirectory(c, directory, context))
-    : ordered.filter((c) => !chatPrefs[c.id]?.archived);
-  const unread = scope.filter((c) => isUnreadHere(c, context));
-
-  const q = query.trim().toLowerCase();
-  const include = (c: Conversation) =>
-    (!q ||
-      titleOf(c).toLowerCase().includes(q) ||
-      messagePreview(c.lastMessage).toLowerCase().includes(q)) &&
-    (matchesFilter(c, filter, context) || (filter === 'unread' && held.has(c.id)));
-  const nativeNetworks = new Set(
-    scope.map(networkOf).filter((n): n is string => n !== undefined && !isFolded(n))
-  );
-
-  return {
-    allowed,
-    requests,
-    scope,
-    rows:
-      directory || q
-        ? scope.filter(include).map(chatRow)
-        : inboxRows(ordered, include, isFolded, context),
-    unseen: filter === 'unread' ? unread.filter((c) => !held.has(c.id)).map((c) => c.id) : [],
-    unreadHere: unread.length,
-    mentionsHere: scope.filter((c) => hasUnreadMentions(c, readAt)).length,
-    showNetwork: !directory && nativeNetworks.size > 1,
-  };
-}
 
 export interface ChatListProps {
   query: string;
@@ -139,17 +72,12 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   const { nameFor, selfIdOf, titleOf } = useConversationTitles(conversations);
   const chatPrefs = useChatStore((s) => s.chatPrefs);
   const setChatPref = useChatStore((s) => s.setChatPref);
-  const markUnread = useChatStore((s) => s.markUnread);
   const toggle = (id: string, key: keyof ChatPrefs) =>
     setChatPref(id, { [key]: !useChatStore.getState().chatPrefs[id]?.[key] });
 
-  const [menu, setMenu] = useState<{
-    conversation: Conversation;
-    anchor: MenuAnchor | null;
-  } | null>(null);
+  const [menu, setMenu] = useState<ChatMenuTarget | null>(null);
   const showMenu = (conversation: Conversation, anchor: MenuAnchor | null) =>
     setMenu({ conversation, anchor });
-  const managing = menu?.conversation ?? null;
   const directory = useFolderStore((s) => s.directory);
   const setDirectory = useFolderStore((s) => s.setDirectory);
   const filter = useFolderStore((s) => s.filter);
@@ -214,11 +142,6 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   useEffect(() => {
     openSelectedDirectory();
   }, [selectedId]);
-
-  const managed = managing ? chatPrefs[managing.id] : undefined;
-  const choose = (key: keyof ChatPrefs) => {
-    if (managing) toggle(managing.id, key);
-  };
 
   const folderContext = { prefs: chatPrefs, readAt };
   const renderItem = ({ item: row }: ListRenderItemInfo<InboxRow>) =>
@@ -324,41 +247,12 @@ export function ChatList({ query, selectedId }: ChatListProps) {
         </Animated.View>
       )}
 
-      <ActionSheet
-        visible={menu !== null}
-        anchor={menu?.anchor}
+      <ChatMenu
+        target={menu}
         onClose={() => setMenu(null)}
-        title={managing ? titleOf(managing) : undefined}
-        subtitle={managing ? protocolSubtitle(managing.protocol) : undefined}
-        leading={
-          managing ? (
-            <ConversationAvatar conversation={managing} selfId={selfIdOf(managing)} size="md" />
-          ) : undefined
-        }
-        actions={[
-          {
-            label: managed?.pinned ? 'Unpin' : 'Pin to top',
-            icon: 'pin-outline',
-            onPress: () => choose('pinned'),
-          },
-          {
-            label: managed?.muted ? 'Unmute' : 'Mute',
-            icon: managed?.muted ? 'volume-high-outline' : 'volume-mute-outline',
-            onPress: () => choose('muted'),
-          },
-          {
-            label: managed?.archived ? 'Move out of archive' : 'Archive',
-            icon: 'archive-outline',
-            onPress: () => choose('archived'),
-          },
-          {
-            label: 'Mark as unread',
-            icon: 'mail-unread-outline',
-            onPress: () => {
-              if (managing) void markUnread(managing.id);
-            },
-          },
-        ]}
+        titleOf={titleOf}
+        selfIdOf={selfIdOf}
+        onToggle={toggle}
       />
     </>
   );
