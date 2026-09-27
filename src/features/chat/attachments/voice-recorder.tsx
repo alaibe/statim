@@ -8,7 +8,7 @@ import {
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { Icon, Pressable, Text } from '@/design';
+import { IconButton, Text } from '@/design';
 import { formatDuration } from '@/core/messaging/preview';
 import type { MessageContent } from '@/core/messaging/types';
 
@@ -68,26 +68,27 @@ export function VoiceRecorder({ onRecorded, onError }: VoiceRecorderProps) {
 
   if (!state.isRecording) {
     return (
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Record a voice message"
+      <IconButton
+        icon="mic-outline"
+        label="Record a voice message"
+        surface="outline"
+        size={20}
         disabled={starting}
         onPress={start}
-        className="h-11 w-11 items-center justify-center rounded-pill border border-line bg-surface-raised">
-        <Icon name="mic-outline" size={20} tone="muted" />
-      </Pressable>
+      />
     );
   }
 
   return (
     <View className="flex-row items-center gap-2">
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Discard recording"
+      <IconButton
+        icon="trash-outline"
+        label="Discard recording"
+        surface="outline"
+        tone="danger"
+        size={18}
         onPress={() => finish(false)}
-        className="h-11 w-11 items-center justify-center rounded-pill border border-line bg-surface-raised">
-        <Icon name="trash-outline" size={18} tone="danger" />
-      </Pressable>
+      />
 
       <View className="flex-row items-center gap-1.5 rounded-pill bg-danger/15 px-3 py-2">
         <View className="h-2 w-2 rounded-full bg-danger" />
@@ -96,13 +97,13 @@ export function VoiceRecorder({ onRecorded, onError }: VoiceRecorderProps) {
         </Text>
       </View>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Send voice message"
+      <IconButton
+        icon="arrow-up"
+        label="Send voice message"
+        surface="brand"
+        size={20}
         onPress={() => finish(true)}
-        className="h-11 w-11 items-center justify-center rounded-pill bg-brand">
-        <Icon name="arrow-up" size={20} tone="brand-on" />
-      </Pressable>
+      />
     </View>
   );
 }

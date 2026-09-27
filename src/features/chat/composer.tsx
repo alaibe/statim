@@ -10,10 +10,10 @@ import {
 } from '@/core/commands/parser';
 import {
   ActionSheet,
-  cn,
   Enter,
   Exit,
   Icon,
+  IconButton,
   Pressable,
   springLayout,
   Text,
@@ -253,26 +253,26 @@ export function Composer({
               </Text>
             ) : null}
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={editing ? 'Cancel edit' : 'Cancel reply'}
+          <IconButton
+            icon="close"
+            label={editing ? 'Cancel edit' : 'Cancel reply'}
+            tone="subtle"
+            size={18}
             onPress={onCancelBanner}
-            className="h-tap w-tap items-center justify-center">
-            <Icon name="close" size={18} tone="subtle" />
-          </Pressable>
+          />
         </Animated.View>
       ) : null}
 
       <Animated.View layout={springLayout()} className="flex-row items-end gap-2 px-3 pb-2 pt-1">
         {canAttach ? (
-          <Pressable
+          <IconButton
             testID="composer-attach"
-            accessibilityRole="button"
-            accessibilityLabel="Attach"
+            icon="attach-outline"
+            label="Attach"
+            surface="outline"
+            size={20}
             onPress={() => setAttaching(true)}
-            className="h-11 w-11 items-center justify-center rounded-pill border border-line bg-surface-raised">
-            <Icon name="attach-outline" size={20} tone="muted" />
-          </Pressable>
+          />
         ) : null}
 
         <View className="min-h-[44px] flex-1 flex-row items-end rounded-pill border border-line bg-surface-raised pl-4 pr-1">
@@ -315,22 +315,16 @@ export function Composer({
             onError={setError}
           />
         ) : (
-          <Pressable
+          <IconButton
             testID="composer-send"
-            accessibilityRole="button"
-            accessibilityLabel="Send"
+            icon={busy ? 'ellipsis-horizontal' : 'arrow-up'}
+            label="Send"
+            surface={canSend ? 'brand' : 'outline'}
+            tone={canSend ? 'brand-on' : 'subtle'}
+            size={20}
             disabled={!canSend}
             onPress={submit}
-            className={cn(
-              'h-11 w-11 items-center justify-center rounded-pill',
-              canSend ? 'bg-brand' : 'border border-line bg-surface-raised'
-            )}>
-            <Icon
-              name={busy ? 'ellipsis-horizontal' : 'arrow-up'}
-              size={20}
-              tone={canSend ? 'brand-on' : 'subtle'}
-            />
-          </Pressable>
+          />
         )}
       </Animated.View>
 
