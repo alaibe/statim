@@ -16,6 +16,7 @@ import { eraseAccount } from '@/core/app/erase-account';
 import { useAccountStore } from '@/core/account/account-store';
 import { shortAddress } from '@/core/account/keyring';
 import { describeKind } from '@/core/account/account-kind';
+import type { AccountRecord } from '@/core/account/accounts';
 import { hardwareVendors } from '@/core/account/hardware';
 import { ConnectHardware } from '@/features/account/connect-hardware';
 import { useAction } from '@/features/use-action';
@@ -29,9 +30,9 @@ export default function AccountsScreen() {
   const activeAccountId = useAccountStore((s) => s.activeAccountId);
   const selectAccount = useAccountStore((s) => s.selectAccount);
 
-  const [managing, setManaging] = useState<string | null>(null);
-  const [renaming, setRenaming] = useState<string | null>(null);
-  const [confirmWipe, setConfirmWipe] = useState<string | null>(null);
+  const [managing, setManaging] = useState<AccountRecord | null>(null);
+  const [renaming, setRenaming] = useState<AccountRecord | null>(null);
+  const [confirmWipe, setConfirmWipe] = useState<AccountRecord | null>(null);
   const erase = useAction(eraseAccount, { failure: 'Could not erase that account' });
   const open = useAction(
     async (id: string) => {
@@ -41,8 +42,6 @@ export default function AccountsScreen() {
     { failure: 'Could not open that account' }
   );
   const [connecting, setConnecting] = useState(false);
-
-  const target = accounts.find((a) => a.id === (managing ?? renaming ?? confirmWipe));
 
   return (
     <SettingsScreen
@@ -58,7 +57,7 @@ export default function AccountsScreen() {
                 label: 'Erase',
                 icon: 'trash-outline',
                 destructive: true,
-                onPress: () => setConfirmWipe(account.id),
+                onPress: () => setConfirmWipe(account),
               },
             ]}>
             <ListItem
@@ -74,10 +73,10 @@ export default function AccountsScreen() {
               leading={<Avatar seed={account.address} size="md" />}
               // Only state on the right: tapping switches, holding manages, swiping erases.
               trailing={<Checkmark selected={account.id === activeAccountId} />}
-              onLongPress={() => setManaging(account.id)}
-              onContextMenu={() => setManaging(account.id)}
+              onLongPress={() => setManaging(account)}
+              onContextMenu={() => setManaging(account)}
               onPress={async () => {
-                if (account.id === activeAccountId) setManaging(account.id);
+                if (account.id === activeAccountId) setManaging(account);
                 else await open.run(account.id);
               }}
             />
@@ -110,48 +109,50 @@ export default function AccountsScreen() {
 
       <ConnectHardware visible={connecting} onClose={() => setConnecting(false)} />
 
-      <ActionSheet
-        visible={managing !== null}
-        onClose={() => setManaging(null)}
-        title={target?.label}
-        actions={[
-          {
-            label: 'Rename',
-            icon: 'create-outline',
-            onPress: () => setRenaming(managing),
-          },
-          {
-            label: 'Erase this account',
-            icon: 'trash-outline',
+      {managing ? (
+        <ActionSheet
+          visible
+          onClose={() => setManaging(null)}
+          title={managing.label}
+          actions={[
+            {
+              label: 'Rename',
+              icon: 'create-outline',
+              onPress: () => setRenaming(managing),
+            },
+            {
+              label: 'Erase this account',
+              icon: 'trash-outline',
+              tone: 'danger',
+              onPress: () => setConfirmWipe(managing),
+            },
+          ]}
+        />
+      ) : null}
+
+      {renaming ? (
+        <RenameAccountSheet account={renaming} onClose={() => setRenaming(null)} />
+      ) : null}
+
+      {confirmWipe ? (
+        <ConfirmSheet
+          visible
+          onClose={() => setConfirmWipe(null)}
+          title="Erase this account?"
+          body={`This deletes ${confirmWipe.label}'s keys, messages and plugin data from this device. Nobody else holds them, so without its recovery phrase written down the account cannot be recovered. Your other accounts are untouched.`}
+          confirm={{
+            label: 'Erase account',
+            busyLabel: 'Erasing…',
             tone: 'danger',
-            onPress: () => setConfirmWipe(managing),
-          },
-        ]}
-      />
-
-      <RenameAccountSheet
-        account={accounts.find((a) => a.id === renaming) ?? null}
-        onClose={() => setRenaming(null)}
-      />
-
-      <ConfirmSheet
-        visible={confirmWipe !== null}
-        onClose={() => setConfirmWipe(null)}
-        title="Erase this account?"
-        body={`This deletes ${target?.label}'s keys, messages and plugin data from this device. Nobody else holds them, so without its recovery phrase written down the account cannot be recovered. Your other accounts are untouched.`}
-        confirm={{
-          label: 'Erase account',
-          busyLabel: 'Erasing…',
-          tone: 'danger',
-          onPress: async () => {
-            if (!confirmWipe) return;
-            const next = accounts.length === 1 ? '/(onboarding)/welcome' : '/chats';
-            if (!(await erase.run(confirmWipe))) return;
-            setConfirmWipe(null);
-            router.replace(next);
-          },
-        }}
-      />
+            onPress: async () => {
+              const next = accounts.length === 1 ? '/(onboarding)/welcome' : '/chats';
+              if (!(await erase.run(confirmWipe.id))) return;
+              setConfirmWipe(null);
+              router.replace(next);
+            },
+          }}
+        />
+      ) : null}
     </SettingsScreen>
   );
 }

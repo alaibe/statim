@@ -39,6 +39,12 @@ export interface AccountState {
   removeErasedAccount(id: string): Promise<void>;
 }
 
+export function activeAccount(
+  state: Pick<AccountState, 'accounts' | 'activeAccountId'>
+): AccountRecord | undefined {
+  return state.accounts.find((a) => a.id === state.activeAccountId);
+}
+
 let restoring = false;
 
 export const useAccountStore = create<AccountState>((set, get) => ({

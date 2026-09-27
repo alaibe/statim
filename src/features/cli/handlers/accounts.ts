@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 
 import { eraseAccount } from '@/core/app/erase-account';
-import { useAccountStore } from '@/core/account/account-store';
+import { activeAccount, useAccountStore } from '@/core/account/account-store';
 import { createMnemonic } from '@/core/account/keyring';
 import { useChatStore } from '@/core/messaging/chat-store';
 
@@ -14,11 +14,6 @@ import {
 } from '../context';
 import { CliError } from '../errors';
 import { readText } from './input';
-
-function activeAccount() {
-  const { accounts, activeAccountId } = useAccountStore.getState();
-  return accounts.find((a) => a.id === activeAccountId);
-}
 
 export const accountHandlers = {
   async accounts() {
@@ -57,7 +52,7 @@ export const accountHandlers = {
   async 'accounts create'({ flags }) {
     await whenUnlocked();
     await useAccountStore.getState().adoptAccount(createMnemonic(), label(flags.label));
-    const account = activeAccount()!;
+    const account = activeAccount(useAccountStore.getState())!;
     return {
       data: { id: account.id, label: account.label, address: account.address },
       text: [
@@ -72,7 +67,7 @@ export const accountHandlers = {
     const phrase = await readText(io, 'Recovery phrase: ', true);
     if (!phrase.trim()) throw new CliError('No recovery phrase given.', 'usage');
     await useAccountStore.getState().adoptAccount(phrase, label(flags.label));
-    const account = activeAccount()!;
+    const account = activeAccount(useAccountStore.getState())!;
     return {
       data: { id: account.id, label: account.label, address: account.address },
       text: `Imported ${account.label} (${account.address}).`,
@@ -93,7 +88,7 @@ export const accountHandlers = {
 
   async whoami() {
     await whenAccountReady();
-    const account = activeAccount()!;
+    const account = activeAccount(useAccountStore.getState())!;
     const protocols = Object.entries(useChatStore.getState().sessions).map(([id, session]) => ({
       protocol: id,
       id: session.self.participantId,

@@ -17,28 +17,23 @@ export function PluginIcon({ plugin }: { plugin: Plugin }) {
   return <RowIcon name={plugin.manifest.icon} tone={TONE[plugin.manifest.id] ?? 'grey'} />;
 }
 
-export function PluginDetailSheet({
-  plugin,
-  onClose,
-}: {
-  plugin: Plugin | null;
-  onClose: () => void;
-}) {
+export function PluginDetailSheet({ plugin, onClose }: { plugin: Plugin; onClose: () => void }) {
   const { registry } = usePluginHost();
-  const hasChat = plugin ? registry.botsOf(plugin.manifest.id).length > 0 : false;
+  const { manifest } = plugin;
+  const hasChat = registry.botsOf(manifest.id).length > 0;
 
   return (
     <Sheet
-      visible={plugin !== null}
+      visible
       onClose={onClose}
-      title={plugin?.manifest.name}
-      subtitle={plugin ? `v${plugin.manifest.version}` : undefined}
-      leading={plugin ? <PluginIcon plugin={plugin} /> : undefined}>
+      title={manifest.name}
+      subtitle={`v${manifest.version}`}
+      leading={<PluginIcon plugin={plugin} />}>
       <View className="gap-3">
-        <Text variant="footnote">{plugin?.manifest.description}</Text>
+        <Text variant="footnote">{manifest.description}</Text>
 
         <Section title="What it can reach" surface="card" inset={false}>
-          {plugin?.manifest.permissions.map((permission, i) => (
+          {manifest.permissions.map((permission, i) => (
             <Text
               key={permission}
               variant="footnote"
@@ -48,9 +43,9 @@ export function PluginDetailSheet({
           ))}
         </Section>
 
-        {plugin?.manifest.requiresSessionRestart || hasChat ? (
+        {manifest.requiresSessionRestart || hasChat ? (
           <View className="flex-row flex-wrap gap-1.5">
-            {plugin?.manifest.requiresSessionRestart ? (
+            {manifest.requiresSessionRestart ? (
               <Badge label="Reconnects chat" tone="warning" />
             ) : null}
             {hasChat ? <Badge label="Has its own chat" tone="brand" /> : null}

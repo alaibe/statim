@@ -29,20 +29,21 @@ export function requestApproval(request: string, abandoned: Promise<void>): Prom
 }
 
 export function CliApprovals() {
-  const current = useApprovals((s) => s.queue[0]);
+  const current = useApprovals((s) => s.queue.at(0));
+  if (!current) return null;
   return (
     <ConfirmSheet
-      visible={Boolean(current)}
-      onClose={() => current && settle(current.id, false)}
+      visible
+      onClose={() => settle(current.id, false)}
       title="The command line is asking"
       body={[
-        ...(current?.request.split('\n') ?? []),
+        ...current.request.split('\n'),
         'Approve only what you, or an assistant you are running, just asked for.',
       ]}
       confirm={{
         label: 'Approve',
         testID: 'cli-approve',
-        onPress: () => current && settle(current.id, true),
+        onPress: () => settle(current.id, true),
       }}
       cancelLabel="Decline"
     />

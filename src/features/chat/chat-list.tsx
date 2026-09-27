@@ -247,7 +247,14 @@ export function ChatList({ query, selectedId }: ChatListProps) {
         </Animated.View>
       )}
 
-      <ChatMenu target={menu} onClose={() => setMenu(null)} titleOf={titleOf} selfIdOf={selfIdOf} />
+      {menu ? (
+        <ChatMenu
+          target={menu}
+          onClose={() => setMenu(null)}
+          titleOf={titleOf}
+          selfIdOf={selfIdOf}
+        />
+      ) : null}
     </>
   );
 }

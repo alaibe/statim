@@ -52,18 +52,20 @@ export function WidgetView(props: WidgetViewProps) {
         }}
       />
 
-      <ActionSheet
-        visible={offer !== null}
-        onClose={() => setOffer(null)}
-        title={offer?.title}
-        subtitle={offer?.subtitle}
-        actions={(offer?.actions ?? []).map((action) => ({
-          label: action.label,
-          icon: action.icon,
-          tone: action.tone,
-          onPress: () => props.onCommand?.(action.command),
-        }))}
-      />
+      {offer ? (
+        <ActionSheet
+          visible
+          onClose={() => setOffer(null)}
+          title={offer.title}
+          subtitle={offer.subtitle}
+          actions={offer.actions.map((action) => ({
+            label: action.label,
+            icon: action.icon,
+            tone: action.tone,
+            onPress: () => props.onCommand?.(action.command),
+          }))}
+        />
+      ) : null}
     </>
   );
 }

@@ -12,6 +12,16 @@ export default function RecoveryPhraseScreen() {
 
   const [revealed, setRevealed] = useState(false);
 
+  if (!keyring) {
+    return (
+      <SettingsScreen title="Recovery phrase">
+        <Text variant="footnote" className="px-gutter">
+          No account is open.
+        </Text>
+      </SettingsScreen>
+    );
+  }
+
   return (
     <SettingsScreen title="Recovery phrase">
       <View className="gap-4 px-gutter">
@@ -20,12 +30,10 @@ export default function RecoveryPhraseScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Copy address"
-            onPress={() => {
-              if (keyring) void copyText(keyring.address, 'Address copied');
-            }}
+            onPress={() => void copyText(keyring.address, 'Address copied')}
             pressScale={0.99}
             className="flex-row items-center justify-between">
-            <Text variant="mono">{keyring ? shortAddress(keyring.address, 12, 10) : '—'}</Text>
+            <Text variant="mono">{shortAddress(keyring.address, 12, 10)}</Text>
             <Icon name="copy-outline" size={16} tone="muted" />
           </Pressable>
         </Card>
@@ -36,7 +44,7 @@ export default function RecoveryPhraseScreen() {
         </Note>
 
         <RevealablePhrase
-          phrase={keyring?.mnemonic ?? ''}
+          phrase={keyring.mnemonic ?? ''}
           revealed={revealed}
           onReveal={() => setRevealed(true)}
         />

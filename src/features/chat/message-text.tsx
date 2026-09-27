@@ -56,12 +56,14 @@ export function MessageText({
         </View>
       )}
 
-      <ActionSheet
-        visible={held !== null}
-        onClose={() => setHeld(null)}
-        title={held?.text}
-        actions={held ? linkActions(held, canSend ? onCommand : undefined) : []}
-      />
+      {held ? (
+        <ActionSheet
+          visible
+          onClose={() => setHeld(null)}
+          title={held.text}
+          actions={linkActions(held, canSend ? onCommand : undefined)}
+        />
+      ) : null}
     </>
   );
 }

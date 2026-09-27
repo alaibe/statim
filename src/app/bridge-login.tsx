@@ -10,22 +10,18 @@ import { FlowPicker, InputStep, WaitStep } from '@/features/bridge-login/steps';
 import { useBridgeLogin } from '@/features/bridge-login/use-bridge-login';
 import { WebLogin } from '@/features/bridge-login/web-login';
 import { useBack } from '@/features/navigation/use-back';
-import { bridgeBotId, knownBridge, provisioningName } from '@/protocols/matrix/bridges';
+import {
+  bridgeBotId,
+  type KnownBridge,
+  knownBridge,
+  provisioningName,
+} from '@/protocols/matrix/bridges';
 import type { MatrixCapabilities } from '@/protocols/matrix/provisioning';
 
 export default function BridgeLoginScreen() {
   const { bridge: localpart } = useLocalSearchParams<{ bridge: string }>();
   const goBack = useBack('/settings/protocol/matrix');
   const bridge = knownBridge(localpart ?? '');
-  const session = useChatStore((s) => s.sessions.matrix) as
-    | (ChatSession & Partial<MatrixCapabilities>)
-    | undefined;
-  const provisioning = useMemo(
-    () => (bridge ? (session?.bridgeProvisioning?.(provisioningName(bridge)) ?? null) : null),
-    [bridge, session]
-  );
-
-  const login = useBridgeLogin(provisioning);
 
   if (!bridge) {
     return (
@@ -34,7 +30,19 @@ export default function BridgeLoginScreen() {
       </Screen>
     );
   }
+  return <BridgeLogin bridge={bridge} goBack={goBack} />;
+}
 
+function BridgeLogin({ bridge, goBack }: { bridge: KnownBridge; goBack: () => void }) {
+  const session = useChatStore((s) => s.sessions.matrix) as
+    | (ChatSession & Partial<MatrixCapabilities>)
+    | undefined;
+  const provisioning = useMemo(
+    () => session?.bridgeProvisioning?.(provisioningName(bridge)) ?? null,
+    [bridge, session]
+  );
+
+  const login = useBridgeLogin(provisioning);
   const { phase, step } = login;
 
   return (

@@ -218,7 +218,6 @@ export function MemberModeration({
     { failure: 'Could not do that' }
   );
   const removals: Removal[] = supports('banMember') ? ['remove', 'ban'] : ['remove'];
-  const shown = confirming ? REMOVAL[confirming] : null;
 
   return (
     <Section surface="card" className="mb-5">
@@ -244,23 +243,25 @@ export function MemberModeration({
           onPress={() => setConfirming(removal)}
         />
       ))}
-      <ConfirmSheet
-        visible={shown !== null}
-        onClose={() => setConfirming(null)}
-        title={`${shown?.confirm ?? ''} ${memberName} from ${groupTitle}?`}
-        body={shown?.body ?? ''}
-        confirm={{
-          testID: 'confirm-remove-member',
-          label: shown?.title ?? '',
-          tone: 'danger',
-          onPress: async () => {
-            if (!confirming || !(await remove.run(confirming))) return;
-            toast.success(REMOVAL[confirming].done);
-            setConfirming(null);
-            onRemoved();
-          },
-        }}
-      />
+      {confirming ? (
+        <ConfirmSheet
+          visible
+          onClose={() => setConfirming(null)}
+          title={`${REMOVAL[confirming].confirm} ${memberName} from ${groupTitle}?`}
+          body={REMOVAL[confirming].body}
+          confirm={{
+            testID: 'confirm-remove-member',
+            label: REMOVAL[confirming].title,
+            tone: 'danger',
+            onPress: async () => {
+              if (!(await remove.run(confirming))) return;
+              toast.success(REMOVAL[confirming].done);
+              setConfirming(null);
+              onRemoved();
+            },
+          }}
+        />
+      ) : null}
     </Section>
   );
 }

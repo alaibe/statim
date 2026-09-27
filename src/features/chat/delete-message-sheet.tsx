@@ -28,7 +28,7 @@ export function DeleteMessageSheet({
   onClose,
 }: {
   chatId: ChatId;
-  target: DeleteTarget | null;
+  target: DeleteTarget;
   onClose: () => void;
 }) {
   const deleteMessage = useChatStore((s) => s.deleteMessage);
@@ -36,11 +36,11 @@ export function DeleteMessageSheet({
     ({ message, forEveryone }: DeleteTarget) => deleteMessage(chatId, message.id, forEveryone),
     { failure: 'Could not delete message' }
   );
-  const copy = COPY[target?.forEveryone ? 'everyone' : 'me'];
+  const copy = COPY[target.forEveryone ? 'everyone' : 'me'];
 
   return (
     <ConfirmSheet
-      visible={target !== null}
+      visible
       onClose={onClose}
       title={copy.title}
       body={copy.body}
@@ -48,7 +48,7 @@ export function DeleteMessageSheet({
         label: copy.label,
         tone: 'danger',
         onPress: async () => {
-          if (target && (await remove.run(target))) onClose();
+          if (await remove.run(target)) onClose();
         },
       }}
     />

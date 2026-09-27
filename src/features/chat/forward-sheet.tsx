@@ -15,7 +15,7 @@ export function ForwardSheet({
   nameFor,
   onClose,
 }: {
-  message: ChatMessage | null;
+  message: ChatMessage;
   from: ChatId;
   nameFor: (id: ParticipantId) => string;
   onClose: () => void;
@@ -25,11 +25,7 @@ export function ForwardSheet({
   const sendMessage = useChatStore((s) => s.sendMessage);
 
   return (
-    <Sheet
-      visible={message !== null}
-      onClose={onClose}
-      title="Forward to"
-      subtitle={message ? contentPreview(message.content) : undefined}>
+    <Sheet visible onClose={onClose} title="Forward to" subtitle={contentPreview(message.content)}>
       <View
         style={{ borderCurve: 'continuous' }}
         className="max-h-[420px] overflow-hidden rounded-card bg-surface-raised">
@@ -45,7 +41,6 @@ export function ForwardSheet({
                 leading={<ChatAvatar chat={item} selfId={selfId} size="sm" />}
                 onPress={() => {
                   onClose();
-                  if (!message) return;
                   sendMessage(item.id, message.content)
                     .then(() => toast.success('Forwarded'))
                     .catch((e) => toast.error(errorMessage(e, 'Could not forward')));

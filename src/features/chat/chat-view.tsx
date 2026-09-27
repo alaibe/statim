@@ -239,13 +239,17 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
         </View>
       </KeyboardAvoidingView>
 
-      <ForwardSheet
-        message={forwarding}
-        from={id}
-        nameFor={nameFor}
-        onClose={() => setForwarding(null)}
-      />
-      <DeleteMessageSheet chatId={id} target={deleting} onClose={() => setDeleting(null)} />
+      {forwarding ? (
+        <ForwardSheet
+          message={forwarding}
+          from={id}
+          nameFor={nameFor}
+          onClose={() => setForwarding(null)}
+        />
+      ) : null}
+      {deleting ? (
+        <DeleteMessageSheet chatId={id} target={deleting} onClose={() => setDeleting(null)} />
+      ) : null}
     </View>
   );
 }

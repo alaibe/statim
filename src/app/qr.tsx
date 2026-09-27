@@ -3,18 +3,15 @@ import { Share, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import { Button, Card, copyText, IconButton, Screen, Text } from '@/design';
-import { useAccountStore } from '@/core/account/account-store';
+import { activeAccount, useAccountStore } from '@/core/account/account-store';
 import { shortAddress } from '@/core/account/keyring';
 
 export default function QrScreen() {
   const router = useRouter();
   const keyring = useAccountStore((s) => s.keyring);
-  const accounts = useAccountStore((s) => s.accounts);
-  const activeAccountId = useAccountStore((s) => s.activeAccountId);
+  const account = useAccountStore(activeAccount);
 
-  const label = accounts.find((a) => a.id === activeAccountId)?.label ?? 'Your account';
-
-  if (!keyring) {
+  if (!keyring || !account) {
     return (
       <Screen className="items-center justify-center">
         <Text variant="footnote">No account is open.</Text>
@@ -40,7 +37,7 @@ export default function QrScreen() {
             <QRCode value={keyring.address} size={220} backgroundColor="#ffffff" color="#000000" />
           </View>
           <View className="items-center gap-1">
-            <Text className="font-semibold">{label}</Text>
+            <Text className="font-semibold">{account.label}</Text>
             <Text variant="mono" selectable>
               {shortAddress(keyring.address, 12, 10)}
             </Text>

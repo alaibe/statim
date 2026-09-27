@@ -3,7 +3,7 @@ import { View } from 'react-native';
 
 import { Avatar, Badge, IconButton, Text } from '@/design';
 import { reportError } from '@/core/app/report-error';
-import { useAccountStore } from '@/core/account/account-store';
+import { activeAccount, useAccountStore } from '@/core/account/account-store';
 import { shortAddress } from '@/core/account/keyring';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { cachedEnsName, lookupName } from '@/lib/evm/ens';
@@ -23,11 +23,10 @@ export function useEnsName(revision: unknown): string | null {
 export function SettingsAccount({ ensName }: { ensName: string | null }) {
   const router = useRouter();
   const keyring = useAccountStore((s) => s.keyring);
-  const accounts = useAccountStore((s) => s.accounts);
-  const activeAccountId = useAccountStore((s) => s.activeAccountId);
+  const account = useAccountStore(activeAccount);
   const chatStatus = useChatStore((s) => s.status);
 
-  const account = accounts.find((a) => a.id === activeAccountId);
+  if (!account) return null;
 
   return (
     <View className="items-center gap-2 px-gutter pb-6 pt-2">
@@ -59,7 +58,7 @@ export function SettingsAccount({ ensName }: { ensName: string | null }) {
 
       <View className="items-center gap-0.5">
         <Text variant="title" className="font-semibold">
-          {ensName ?? account?.label ?? 'Your account'}
+          {ensName ?? account.label}
         </Text>
         <Text variant="mono" selectable>
           {keyring ? shortAddress(keyring.address, 10, 8) : '—'}

@@ -1,4 +1,4 @@
-import { useAccountStore } from '@/core/account/account-store';
+import { activeAccount, useAccountStore } from '@/core/account/account-store';
 import { useLockStore } from '@/core/account/lock-store';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { openChat } from '@/features/navigation/open';
@@ -10,7 +10,7 @@ export const appHandlers = {
     await whenSettled();
     const lock = useLockStore.getState().status;
     const accountState = useAccountStore.getState();
-    const account = accountState.accounts.find((a) => a.id === accountState.activeAccountId);
+    const account = activeAccount(accountState);
     const protocols = Object.fromEntries(
       Object.entries(useChatStore.getState().protocols).map(([id, p]) => [
         id,

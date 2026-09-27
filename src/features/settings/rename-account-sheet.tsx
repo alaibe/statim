@@ -10,30 +10,25 @@ export function RenameAccountSheet({
   account,
   onClose,
 }: {
-  account: AccountRecord | null;
+  account: AccountRecord;
   onClose: () => void;
 }) {
   const renameAccount = useAccountStore((s) => s.renameAccount);
-  const [draft, setDraft] = useState<string | null>(null);
-  const label = draft ?? account?.label ?? '';
-  const close = () => {
-    setDraft(null);
-    onClose();
-  };
+  const [label, setLabel] = useState(account.label);
   const save = useAction(
     async () => {
-      if (account) await renameAccount(account.id, label);
-      close();
+      await renameAccount(account.id, label);
+      onClose();
     },
     { failure: 'Could not rename the account' }
   );
 
   return (
-    <Sheet visible={account !== null} onClose={close} title="Rename account">
+    <Sheet visible onClose={onClose} title="Rename account">
       <View className="gap-3">
         <Field
           value={label}
-          onChangeText={setDraft}
+          onChangeText={setLabel}
           autoFocus
           placeholder="Personal"
           maxLength={40}

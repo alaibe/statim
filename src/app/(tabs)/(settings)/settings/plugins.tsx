@@ -43,10 +43,6 @@ export default function PluginsScreen() {
     setPendingDisable({ plugin, loss });
   };
 
-  const copy = pendingDisable
-    ? botChatLossCopy(pendingDisable.plugin.manifest.name, pendingDisable.loss)
-    : null;
-
   return (
     <SettingsScreen
       title="Plugins"
@@ -75,24 +71,42 @@ export default function PluginsScreen() {
         })}
       </Section>
 
-      <PluginDetailSheet plugin={detail} onClose={() => setDetail(null)} />
+      {detail ? <PluginDetailSheet plugin={detail} onClose={() => setDetail(null)} /> : null}
 
-      <ConfirmSheet
-        visible={pendingDisable !== null}
-        onClose={() => setPendingDisable(null)}
-        title={copy?.title}
-        body={copy?.body}
-        cancelLabel="Keep it on"
-        confirm={{
-          label: copy?.confirmLabel ?? 'Turn off',
-          tone: 'danger',
-          onPress: () => {
-            if (!pendingDisable) return;
+      {pendingDisable ? (
+        <ConfirmDisable
+          {...pendingDisable}
+          onClose={() => setPendingDisable(null)}
+          onConfirm={() => {
             setPendingDisable(null);
             void apply(pendingDisable.plugin, false);
-          },
-        }}
-      />
+          }}
+        />
+      ) : null}
     </SettingsScreen>
+  );
+}
+
+function ConfirmDisable({
+  plugin,
+  loss,
+  onClose,
+  onConfirm,
+}: {
+  plugin: Plugin;
+  loss: BotChatLoss;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const copy = botChatLossCopy(plugin.manifest.name, loss);
+  return (
+    <ConfirmSheet
+      visible
+      onClose={onClose}
+      title={copy.title}
+      body={copy.body}
+      cancelLabel="Keep it on"
+      confirm={{ label: copy.confirmLabel, tone: 'danger', onPress: onConfirm }}
+    />
   );
 }

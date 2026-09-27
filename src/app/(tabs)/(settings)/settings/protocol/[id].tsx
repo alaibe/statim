@@ -8,6 +8,7 @@ import { protocolById } from '@/protocols';
 import { LoginStep, SignedIn } from '@/features/protocols/login';
 import { MatrixBridges } from '@/features/protocols/matrix-bridges';
 import type { ChatSession } from '@/core/messaging/protocol';
+import type { ProtocolDescriptor } from '@/core/messaging/registry';
 import type { MatrixCapabilities } from '@/protocols/matrix/provisioning';
 import { describeProtocol, toneFor } from '@/features/protocols/presentation';
 import { openExternal } from '@/lib/open-url';
@@ -16,11 +17,7 @@ import { ProtocolConfigForm } from '@/features/protocols/protocol-config-form';
 
 export default function ProtocolConfigScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-
   const descriptor = protocolById(id);
-  const accountId = useAccountStore((s) => s.activeAccountId);
-  const connection = useChatStore((s) => connectionFor(s.protocols, id));
-  const session = useChatStore((s) => (id ? s.sessions[id] : undefined));
 
   if (!descriptor) {
     return (
@@ -29,6 +26,13 @@ export default function ProtocolConfigScreen() {
       </SettingsScreen>
     );
   }
+  return <ProtocolSettings descriptor={descriptor} />;
+}
+
+function ProtocolSettings({ descriptor }: { descriptor: ProtocolDescriptor }) {
+  const accountId = useAccountStore((s) => s.activeAccountId);
+  const connection = useChatStore((s) => connectionFor(s.protocols, descriptor.id));
+  const session = useChatStore((s): ChatSession | undefined => s.sessions[descriptor.id]);
 
   return (
     <SettingsScreen title={descriptor.label} intro={descriptor.description}>
@@ -67,12 +71,15 @@ export default function ProtocolConfigScreen() {
             session={session}
             label={descriptor.label}
           />
-        ) : session?.subscribeLogin && session.self.address ? (
-          <SignedIn session={session} label={descriptor.label} />
-        ) : null}
-
-        {id === 'matrix' && session?.self.address && !connection.login ? (
-          <MatrixBridges session={session as ChatSession & Partial<MatrixCapabilities>} />
+        ) : session?.self.address ? (
+          <>
+            {session.subscribeLogin ? (
+              <SignedIn session={session} label={descriptor.label} />
+            ) : null}
+            {descriptor.id === 'matrix' ? (
+              <MatrixBridges session={session as ChatSession & Partial<MatrixCapabilities>} />
+            ) : null}
+          </>
         ) : null}
 
         {accountId ? <ProtocolConfigForm accountId={accountId} descriptor={descriptor} /> : null}
