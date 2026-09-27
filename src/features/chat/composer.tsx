@@ -11,6 +11,7 @@ import {
 import {
   ActionSheet,
   Enter,
+  ErrorText,
   Exit,
   Icon,
   IconButton,
@@ -204,9 +205,7 @@ export function Composer({
 
       {error ? (
         <Animated.View entering={Enter.fade()} exiting={Exit.fade()} className="mx-gutter mb-1.5">
-          <Text variant="caption" className="text-danger">
-            {error}
-          </Text>
+          <ErrorText>{error}</ErrorText>
         </Animated.View>
       ) : null}
 

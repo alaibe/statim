@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { Badge, Button, cn, Enter, Eyebrow, Icon, Sheet, Text } from '@/design';
+import { Badge, Button, cn, Enter, ErrorText, Eyebrow, Icon, Sheet, Text } from '@/design';
 import { shortAddress } from '@/core/identity/keyring';
 import type { MessageRendererProps, PluginContentType } from '@/core/plugins/types';
 
@@ -145,9 +145,7 @@ function PaymentRequestCard({
 
           {error ? (
             <Animated.View entering={Enter.fade()}>
-              <Text variant="caption" className="text-danger">
-                {error}
-              </Text>
+              <ErrorText>{error}</ErrorText>
             </Animated.View>
           ) : null}
 
@@ -208,11 +206,7 @@ function SplitRequestCard({ data, fromMe, context, message }: MessageRendererPro
       <Row label="Network" value={chain?.name ?? `Chain ${data.chainId}`} />
       <Row label="Goes to" value={shortAddress(data.to)} />
 
-      {error ? (
-        <Text variant="caption" className="text-danger">
-          {error}
-        </Text>
-      ) : null}
+      <ErrorText>{error}</ErrorText>
 
       {fromMe ? (
         <Text variant="caption">Waiting for the others to settle.</Text>

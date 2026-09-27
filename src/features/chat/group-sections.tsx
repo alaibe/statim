@@ -6,6 +6,7 @@ import {
   Card,
   ConfirmSheet,
   copyText,
+  ErrorText,
   type IconName,
   ListItem,
   Pressable,
@@ -45,11 +46,7 @@ export function GroupAbout({ info, error }: { info?: GroupInfo; error?: string }
         </View>
       ) : null}
       {info?.link ? <LinkRow label="Link" link={info.link} /> : null}
-      {error ? (
-        <Text variant="caption" className="text-danger">
-          {error}
-        </Text>
-      ) : null}
+      <ErrorText>{error}</ErrorText>
     </Card>
   );
 }

@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 
-import { Pressable, SearchField, Text } from '@/design';
+import { ErrorText, Pressable, SearchField, Text } from '@/design';
 import { useIdentityStore } from '@/core/identity/identity-store';
 import type { MessageContent } from '@/core/messaging/types';
 import { errorMessage } from '@/core/errors';
@@ -169,11 +169,7 @@ function GifGrid({
         onChangeText={setQuery}
       />
 
-      {error ? (
-        <Text variant="caption" className="px-4 pb-2 text-danger">
-          {error}
-        </Text>
-      ) : null}
+      <ErrorText className="px-4 pb-2">{error}</ErrorText>
 
       {busy && results.length === 0 ? (
         <View className="flex-1 items-center justify-center py-8">

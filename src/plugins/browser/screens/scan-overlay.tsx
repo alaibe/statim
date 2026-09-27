@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { AppState, Linking, Modal, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { Button, ModalHeader, Screen, Text } from '@/design';
+import { Button, ErrorText, ModalHeader, Screen, Text } from '@/design';
 import type { PluginContext } from '@/core/plugins/types';
 import { errorMessage } from '@/core/errors';
 
@@ -112,9 +112,7 @@ function Scanner({ context, onClose }: { context: PluginContext; onClose(): void
 
       <View className="gap-2 px-gutter pt-3">
         {error ? (
-          <Text variant="caption" className="text-danger">
-            {error}
-          </Text>
+          <ErrorText>{error}</ErrorText>
         ) : (
           <Text variant="caption">
             Choose WalletConnect on the site, then scan the code it shows.

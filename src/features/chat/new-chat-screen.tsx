@@ -5,6 +5,7 @@ import {
   Avatar,
   Badge,
   Button,
+  ErrorText,
   Eyebrow,
   Field,
   Icon,
@@ -169,11 +170,7 @@ export function NewChatScreen() {
             />
           </View>
 
-          {error ? (
-            <Text variant="caption" className="text-danger">
-              {error}
-            </Text>
-          ) : null}
+          <ErrorText>{error}</ErrorText>
 
           {recipients.length > 0 ? (
             <Animated.View layout={springLayout()} className="gap-2">

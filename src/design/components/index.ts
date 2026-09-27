@@ -17,6 +17,7 @@ export { RowIcon, type RowIconTone } from './row-icon';
 export { ChatBackground, type ChatBackgroundProps } from './chat-background';
 export type { ChatPatternName } from './chat-pattern-tile';
 export { EmptyState } from './empty-state';
+export { ErrorText } from './error-text';
 export { Eyebrow } from './eyebrow';
 export { Field, FieldShell, FIELD_BOX } from './field';
 export { IconButton } from './icon-button';

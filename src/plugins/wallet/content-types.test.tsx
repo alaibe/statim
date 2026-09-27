@@ -14,6 +14,7 @@ jest.mock('@/design', () => ({
   Badge: 'Badge',
   Text: 'Text',
   Eyebrow: 'Text',
+  ErrorText: 'Text',
   Icon: 'Icon',
   Sheet: ({
     visible,

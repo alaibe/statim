@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { Avatar, Button, Card, Eyebrow, Field, Text } from '@/design';
+import { Avatar, Button, Card, ErrorText, Eyebrow, Field, Text } from '@/design';
 import { errorMessage } from '@/core/errors';
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { ProtocolId } from '@/core/messaging/namespace';
@@ -124,11 +124,7 @@ export function JoinPublicChat({
       {requestSent ? (
         <Text variant="caption">Join request sent. An administrator needs to approve it.</Text>
       ) : null}
-      {error ? (
-        <Text variant="caption" className="text-danger">
-          {error}
-        </Text>
-      ) : null}
+      <ErrorText>{error}</ErrorText>
     </View>
   );
 }

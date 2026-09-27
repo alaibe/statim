@@ -2,6 +2,7 @@ import { TextInput, type TextInputProps, View } from 'react-native';
 
 import { useThemeColors } from '../hooks/use-theme-colors';
 import { cn } from '../lib/cn';
+import { ErrorText } from './error-text';
 import { Text } from './text';
 
 export interface FieldProps extends TextInputProps {
@@ -30,13 +31,7 @@ export function FieldShell({
     <View className={cn('gap-1.5', containerClassName)}>
       {label ? <Text variant="footnote">{label}</Text> : null}
       {children}
-      {error ? (
-        <Text variant="caption" className="text-danger">
-          {error}
-        </Text>
-      ) : hint ? (
-        <Text variant="caption">{hint}</Text>
-      ) : null}
+      {error ? <ErrorText>{error}</ErrorText> : hint ? <Text variant="caption">{hint}</Text> : null}
     </View>
   );
 }

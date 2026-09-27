@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
-import { Button, ListItem, Note, RowIcon, Sheet, Text, toast } from '@/design';
+import { Button, ErrorText, ListItem, Note, RowIcon, Sheet, Text, toast } from '@/design';
 import { errorMessage } from '@/core/errors';
 import {
   DEFAULT_EVM_PATH,
@@ -135,11 +135,7 @@ export function ConnectHardware({ visible, onClose }: { visible: boolean; onClos
           </>
         )}
 
-        {error ? (
-          <Text variant="footnote" className="text-danger">
-            {error}
-          </Text>
-        ) : null}
+        <ErrorText className="text-footnote">{error}</ErrorText>
 
         {busy ? <Text variant="caption">Confirm on the device…</Text> : null}
 

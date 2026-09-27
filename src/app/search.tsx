@@ -2,7 +2,16 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { FlatList, View } from 'react-native';
 
-import { EmptyState, Icon, ListItem, ModalHeader, Screen, SearchField, Text } from '@/design';
+import {
+  EmptyState,
+  ErrorText,
+  Icon,
+  ListItem,
+  ModalHeader,
+  Screen,
+  SearchField,
+  Text,
+} from '@/design';
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { ChatMessage } from '@/core/messaging/types';
 import { contentPreview, formatTimestamp } from '@/core/messaging/preview';
@@ -65,7 +74,7 @@ export default function SearchScreen() {
           }}
         />
       </View>
-      {error ? <Text className="px-gutter text-danger">{error}</Text> : null}
+      <ErrorText className="px-gutter">{error}</ErrorText>
       {searching ? <Text className="px-gutter py-2">Searching…</Text> : null}
       <FlatList
         data={results}
