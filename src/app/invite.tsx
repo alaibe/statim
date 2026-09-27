@@ -8,6 +8,7 @@ import {
   Field,
   Icon,
   ListItem,
+  ModalHeader,
   Note,
   Pressable,
   Screen,
@@ -112,24 +113,22 @@ export default function InviteScreen() {
 
   return (
     <Screen className="px-0" edges={['top']}>
-      <View className="flex-row items-center justify-between px-gutter pb-4 pt-4">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-          onPress={() => router.back()}>
-          <Icon name="close" size={24} tone="muted" />
-        </Pressable>
-        <Text className="text-body font-semibold">Invite friends</Text>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() =>
-            setSelected(allVisibleSelected ? new Set() : new Set(visible.map((c) => c.id)))
-          }>
-          <Text className="font-medium text-brand">
-            {allVisibleSelected ? 'Clear' : 'Select all'}
-          </Text>
-        </Pressable>
-      </View>
+      <ModalHeader
+        title="Invite friends"
+        onClose={() => router.back()}
+        className="px-gutter"
+        action={
+          <Pressable
+            accessibilityRole="button"
+            onPress={() =>
+              setSelected(allVisibleSelected ? new Set() : new Set(visible.map((c) => c.id)))
+            }>
+            <Text className="font-medium text-brand">
+              {allVisibleSelected ? 'Clear' : 'Select all'}
+            </Text>
+          </Pressable>
+        }
+      />
 
       <View className="px-gutter pb-4">
         <Field

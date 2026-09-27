@@ -2,7 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 
-import { Badge, Button, Card, Icon, ListItem, Pressable, Screen, Text } from '@/design';
+import { Badge, Button, Card, ListItem, ModalHeader, Screen, Text } from '@/design';
 import { errorMessage } from '@/core/errors';
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { ChatSession } from '@/core/messaging/protocol';
@@ -121,17 +121,7 @@ export default function BridgeLoginScreen() {
 
   return (
     <Screen className="px-gutter" edges={['top', 'bottom']}>
-      <View className="flex-row items-center justify-between pb-4 pt-4">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-          onPress={goBack}
-          className="h-9 w-9 items-center justify-center rounded-pill bg-surface-sunken">
-          <Icon name="close" size={20} tone="muted" />
-        </Pressable>
-        <Text className="font-semibold">Connect {bridge.network}</Text>
-        <View className="h-9 w-9" />
-      </View>
+      <ModalHeader title={`Connect ${bridge.network}`} onClose={goBack} />
 
       <KeyboardAvoidingView
         behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}

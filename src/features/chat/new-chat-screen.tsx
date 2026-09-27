@@ -9,6 +9,7 @@ import {
   Field,
   Icon,
   IconButton,
+  ModalHeader,
   Pressable,
   Screen,
   springLayout,
@@ -48,17 +49,7 @@ export function NewChatScreen() {
 
   return (
     <Screen className="px-gutter" edges={['top', 'bottom']}>
-      <View className="flex-row items-center justify-between pb-4 pt-4">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-          onPress={goBack}
-          className="h-9 w-9 items-center justify-center rounded-pill bg-surface-sunken">
-          <Icon name="close" size={20} tone="muted" />
-        </Pressable>
-        <Text className="font-semibold">{isGroup ? 'New group' : 'New message'}</Text>
-        <View className="h-9 w-9" />
-      </View>
+      <ModalHeader title={isGroup ? 'New group' : 'New message'} onClose={goBack} />
 
       <KeyboardAvoidingView
         behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}

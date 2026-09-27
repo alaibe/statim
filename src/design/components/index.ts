@@ -22,6 +22,7 @@ export { Field, FieldShell, FIELD_BOX } from './field';
 export { IconButton } from './icon-button';
 export { Glow } from './glow';
 export { ListItem } from './list-item';
+export { ModalHeader } from './modal-header';
 export { Pressable } from './pressable';
 export { Screen } from './screen';
 export { SearchField, type SearchFieldProps } from './search-field';

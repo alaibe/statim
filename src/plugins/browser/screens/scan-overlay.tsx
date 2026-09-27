@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { AppState, Linking, Modal, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { Button, IconButton, Screen, Text } from '@/design';
+import { Button, ModalHeader, Screen, Text } from '@/design';
 import type { PluginContext } from '@/core/plugins/types';
 import { errorMessage } from '@/core/errors';
 
@@ -79,11 +79,12 @@ function Scanner({ context, onClose }: { context: PluginContext; onClose(): void
 
   return (
     <Screen className="px-0" edges={['top', 'bottom']}>
-      <View className="flex-row items-center justify-between px-gutter pb-2">
-        <IconButton icon="close" label="Stop scanning" onPress={onClose} />
-        <Text className="font-semibold">Scan to connect</Text>
-        <View className="size-tap" />
-      </View>
+      <ModalHeader
+        title="Scan to connect"
+        closeLabel="Stop scanning"
+        onClose={onClose}
+        className="px-gutter"
+      />
 
       {permission?.granted ? (
         <View className="flex-1 overflow-hidden">

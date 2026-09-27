@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { FlatList, View } from 'react-native';
 
-import { EmptyState, Icon, ListItem, Pressable, Screen, SearchField, Text } from '@/design';
+import { EmptyState, Icon, ListItem, ModalHeader, Screen, SearchField, Text } from '@/design';
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { ChatMessage } from '@/core/messaging/types';
 import { contentPreview, formatTimestamp } from '@/core/messaging/preview';
@@ -45,15 +45,11 @@ export default function SearchScreen() {
 
   return (
     <Screen className="px-0" edges={['top']}>
-      <View className="flex-row items-center justify-between px-gutter pb-2 pt-4">
-        <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={router.back}>
-          <Icon name="close" size={24} tone="muted" />
-        </Pressable>
-        <Text className="text-body font-semibold">
-          {chatId ? `Search ${titles.get(chatId) ?? 'chat'}` : 'Search messages'}
-        </Text>
-        <View className="w-6" />
-      </View>
+      <ModalHeader
+        title={chatId ? `Search ${titles.get(chatId) ?? 'chat'}` : 'Search messages'}
+        onClose={router.back}
+        className="px-gutter"
+      />
       <View className="px-gutter pb-3">
         <SearchField
           autoFocus
