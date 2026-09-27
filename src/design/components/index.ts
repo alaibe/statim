@@ -28,6 +28,7 @@ export { Glow } from './glow';
 export { ListItem } from './list-item';
 export { Loading } from './loading';
 export { ModalHeader } from './modal-header';
+export { PinDots, PinPad, type PinPadProps } from './pin-pad';
 export { Pressable } from './pressable';
 export { Screen } from './screen';
 export { SearchField, type SearchFieldProps } from './search-field';

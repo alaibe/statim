@@ -14,8 +14,8 @@ import { connectableProtocols } from '@/protocols';
 import { xmtpEnvironment } from '@/protocols/xmtp/shared';
 import { eraseAccount } from '@/core/app/erase-account';
 import { usePluginHost } from '@/core/plugins/host';
-import { BiometricSection } from '@/features/settings/biometric-section';
 import { openTab } from '@/features/navigation/open';
+import { SecuritySection } from '@/features/settings/security-section';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 import { useAction } from '@/features/use-action';
 
@@ -23,6 +23,8 @@ import { useAction } from '@/features/use-action';
 export const SETTINGS_PAGES = [
   'accounts',
   'recovery-phrase',
+  'pin',
+  'pin-off',
   'appearance',
   'privacy',
   'trades',
@@ -116,7 +118,11 @@ export function SettingsSections({
         />
       </Section>
 
-      <BiometricSection />
+      <SecuritySection
+        compact={compact}
+        pinSelected={selected === 'pin'}
+        pinOffSelected={selected === 'pin-off'}
+      />
 
       <Section title="Preferences" surface="card" className="mb-6">
         <ListItem
