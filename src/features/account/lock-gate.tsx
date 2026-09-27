@@ -41,7 +41,7 @@ export function LockGate() {
     if (protectedKeys === null) return setChecks((n) => n + 1);
     setFailed(false);
     try {
-      const passed = protectedKeys ? await retryUnlock() : await unlock();
+      const passed = protectedKeys ? await retryUnlock() : (await unlock()) === 'passed';
       if (!passed) setFailed(true);
     } catch (error) {
       reportError(error);

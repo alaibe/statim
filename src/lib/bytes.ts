@@ -21,6 +21,13 @@ export function fromHex(hex: string): Uint8Array {
   return out;
 }
 
+export function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+
 export function stripHex(hex: string): string {
   return hex.startsWith('0x') ? hex.slice(2) : hex;
 }

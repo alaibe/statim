@@ -10,6 +10,8 @@ export const VaultKey = {
   biometricLock: 'security.biometricLock',
   commandLine: 'security.commandLine',
   keyProtection: 'security.keyProtection',
+  pin: 'security.pin',
+  pinAttempts: 'security.pinAttempts',
 } as const;
 
 export type VaultKeyName = (typeof VaultKey)[keyof typeof VaultKey] | AccountScopedKey;

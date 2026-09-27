@@ -6,7 +6,7 @@ import { sha256 } from '@noble/hashes/sha2';
 import { concatBytes, utf8ToBytes } from '@noble/hashes/utils';
 
 import { randomBytes } from './random';
-import { base64ToBytes, bytesToBase64 } from './bytes';
+import { base64ToBytes, bytesToBase64, timingSafeEqual } from './bytes';
 
 const VERSION = 2;
 const SALT = utf8ToBytes('nip44-v2');
@@ -118,13 +118,6 @@ export function encrypt(plaintext: string, secretKey: Uint8Array, publicKeyHex: 
 
 export function decrypt(payload: string, secretKey: Uint8Array, publicKeyHex: string): string {
   return decryptWithKey(payload, conversationKey(secretKey, publicKeyHex));
-}
-
-function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
-  return diff === 0;
 }
 
 export { base64ToBytes, bytesToBase64 };

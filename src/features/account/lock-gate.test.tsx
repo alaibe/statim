@@ -18,7 +18,7 @@ jest.mock('@/core/account/key-protection', () => ({ isKeyProtectionEnabled: jest
 jest.mock('@/core/account/lock', () => ({
   ...jest.requireActual('@/core/account/lock'),
   biometricCapability: async () => ({ available: true, enrolled: true, label: 'Face ID' }),
-  authenticate: async () => true,
+  authenticate: async () => 'passed',
 }));
 
 const settle = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));

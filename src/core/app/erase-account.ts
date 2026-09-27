@@ -1,4 +1,5 @@
 import { useAccountStore } from '../account/account-store';
+import { useLockStore } from '../account/lock-store';
 import { vaultWipe } from '@/storage/vault';
 import { accountRuntime } from '@/runtime';
 
@@ -22,4 +23,5 @@ export async function eraseAllAccounts(): Promise<void> {
 
   for (const id of ordered) await eraseAccount(id);
   await vaultWipe();
+  await useLockStore.getState().evaluate();
 }

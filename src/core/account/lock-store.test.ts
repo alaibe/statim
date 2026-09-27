@@ -4,6 +4,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as lock from './lock';
 import { isLockEnabled, setLockEnabled } from './lock';
 import { RELOCK_AFTER_MS, useLockStore } from './lock-store';
+import { savePin } from './pin';
 import { VaultKey } from '@/storage/vault';
 import { reportError } from '../app/report-error';
 
@@ -17,7 +18,12 @@ beforeEach(() => {
   (SecureStore as unknown as { __reset(): void }).__reset();
   authenticateAsync.mockReset();
   authenticateAsync.mockResolvedValue({ success: true } as never);
-  useLockStore.setState({ status: 'checking', prompting: false, backgroundedAt: null });
+  useLockStore.setState({
+    status: 'checking',
+    setup: null,
+    prompting: false,
+    backgroundedAt: null,
+  });
 });
 
 describe('arming the lock', () => {
@@ -56,6 +62,100 @@ describe('evaluate', () => {
     await useLockStore.getState().evaluate();
     expect(useLockStore.getState().status).toBe('locked');
   });
+
+  it('locks with a PIN and no biometric lock', async () => {
+    await savePin('123456');
+    await useLockStore.getState().evaluate();
+
+    expect(useLockStore.getState()).toMatchObject({
+      status: 'locked',
+      setup: { biometric: false, pin: true },
+    });
+    expect(await isLockEnabled()).toBe(true);
+  });
+});
+
+describe('the unlock prompt', () => {
+  it('lets the phone passcode through when there is no app PIN', async () => {
+    await SecureStore.setItemAsync(VaultKey.biometricLock, '1');
+    await useLockStore.getState().evaluate();
+    await useLockStore.getState().unlock();
+
+    expect(authenticateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ fallbackLabel: 'Use passcode' })
+    );
+    expect(authenticateAsync.mock.calls[0][0]?.disableDeviceFallback).toBeUndefined();
+  });
+
+  it('turns the phone passcode off once an app PIN is set', async () => {
+    await SecureStore.setItemAsync(VaultKey.biometricLock, '1');
+    await savePin('123456');
+    await useLockStore.getState().evaluate();
+    await useLockStore.getState().unlock();
+
+    expect(authenticateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ disableDeviceFallback: true, fallbackLabel: 'Use PIN' })
+    );
+  });
+
+  it('hands over to the PIN when biometrics fail and a PIN is set', async () => {
+    authenticateAsync.mockResolvedValue({ success: false, error: 'user_fallback' } as never);
+    await SecureStore.setItemAsync(VaultKey.biometricLock, '1');
+    await savePin('123456');
+    await useLockStore.getState().evaluate();
+
+    expect(await useLockStore.getState().unlock()).toBe('use-pin');
+    expect(useLockStore.getState().status).toBe('locked');
+
+    expect(await useLockStore.getState().verifyPin('123456')).toEqual({ result: 'correct' });
+    expect(useLockStore.getState().status).toBe('open');
+  });
+});
+
+describe('the PIN', () => {
+  beforeEach(async () => {
+    await savePin('123456');
+    await useLockStore.getState().evaluate();
+  });
+
+  it('opens the app when it is right', async () => {
+    expect(await useLockStore.getState().verifyPin('123456')).toEqual({ result: 'correct' });
+    expect(useLockStore.getState().status).toBe('open');
+    expect(authenticateAsync).not.toHaveBeenCalled();
+  });
+
+  it('keeps the app locked when it is wrong', async () => {
+    expect(await useLockStore.getState().verifyPin('654321')).toMatchObject({ result: 'wrong' });
+    expect(useLockStore.getState().status).toBe('locked');
+  });
+
+  it('keeps the app locked by the PIN when the biometric lock is turned off', async () => {
+    await useLockStore.getState().setBiometricLock(true, 'Face ID');
+    await useLockStore.getState().setBiometricLock(false, 'Face ID');
+
+    expect(useLockStore.getState().setup).toEqual({ biometric: false, pin: true });
+    await useLockStore.getState().evaluate();
+    expect(useLockStore.getState().status).toBe('locked');
+  });
+
+  it('stops locking the app once removed', async () => {
+    await useLockStore.getState().verifyPin('123456');
+    await useLockStore.getState().removePin();
+
+    expect(useLockStore.getState().setup).toEqual({ biometric: false, pin: false });
+    await useLockStore.getState().evaluate();
+    expect(useLockStore.getState().status).toBe('open');
+  });
+
+  it('re-locks after a long spell away', async () => {
+    await useLockStore.getState().verifyPin('123456');
+
+    useLockStore.getState().noteBackgrounded();
+    useLockStore.setState({ backgroundedAt: Date.now() - RELOCK_AFTER_MS - 1 });
+    await useLockStore.getState().noteForegrounded();
+
+    expect(useLockStore.getState().status).toBe('locked');
+  });
 });
 
 describe('unlock', () => {
@@ -63,7 +163,7 @@ describe('unlock', () => {
     await SecureStore.setItemAsync(VaultKey.biometricLock, '1');
     await useLockStore.getState().evaluate();
 
-    expect(await useLockStore.getState().unlock()).toBe(true);
+    expect(await useLockStore.getState().unlock()).toBe('passed');
     expect(useLockStore.getState().status).toBe('open');
   });
 
@@ -72,7 +172,7 @@ describe('unlock', () => {
     await SecureStore.setItemAsync(VaultKey.biometricLock, '1');
     await useLockStore.getState().evaluate();
 
-    expect(await useLockStore.getState().unlock()).toBe(false);
+    expect(await useLockStore.getState().unlock()).toBe('failed');
     expect(useLockStore.getState().status).toBe('locked');
   });
 
@@ -81,7 +181,7 @@ describe('unlock', () => {
     // biometrics being broken.
     useLockStore.setState({ status: 'locked', prompting: true });
 
-    expect(await useLockStore.getState().unlock()).toBe(false);
+    expect(await useLockStore.getState().unlock()).toBe('failed');
     expect(authenticateAsync).not.toHaveBeenCalled();
   });
 });
@@ -121,12 +221,12 @@ describe('backgrounding', () => {
 
 describe('when the lock setting cannot be read', () => {
   const unreadable = () =>
-    jest.spyOn(lock, 'isLockEnabled').mockRejectedValueOnce(new Error('keychain'));
+    jest.spyOn(lock, 'readLockSetup').mockRejectedValueOnce(new Error('keychain'));
 
   it('locks at launch', async () => {
     unreadable();
     await useLockStore.getState().evaluate();
-    expect(useLockStore.getState().status).toBe('locked');
+    expect(useLockStore.getState()).toMatchObject({ status: 'locked', setup: null });
     expect(reportError).toHaveBeenCalled();
   });
 

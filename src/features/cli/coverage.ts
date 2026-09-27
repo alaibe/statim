@@ -1,6 +1,7 @@
 import type { AccountRuntime } from '@/core/app/account-runtime';
 import type { AppearanceState } from '@/core/app/appearance';
 import type { AccountState } from '@/core/account/account-store';
+import type { LockState } from '@/core/account/lock-store';
 import type { ChatState } from '@/core/messaging/chat-store';
 import type { XmtpCapabilities } from '@/core/messaging/protocol';
 import type { PluginHostValue } from '@/core/plugins/host';
@@ -79,6 +80,21 @@ export const ACCOUNT_STORE: Record<Actions<AccountState>, Covered> = {
   selectAccount: 'accounts use',
   renameAccount: 'accounts rename',
   removeErasedAccount: 'accounts erase',
+};
+
+const APP_ONLY_LOCK =
+  'app: the lock is set up only in the app, so nothing on the command line can change or remove it';
+
+export const LOCK_STORE: Record<Actions<LockState>, Covered> = {
+  evaluate: 'internal',
+  noteJustAuthenticated: 'internal',
+  unlock: 'app: the lock screen asks for Face ID or the PIN on the device',
+  verifyPin: 'app: the PIN is typed into the app, never passed over the command line',
+  setPin: APP_ONLY_LOCK,
+  removePin: APP_ONLY_LOCK,
+  setBiometricLock: APP_ONLY_LOCK,
+  noteBackgrounded: 'internal',
+  noteForegrounded: 'internal',
 };
 
 export const APPEARANCE_STORE: Record<Actions<AppearanceState>, Covered> = {

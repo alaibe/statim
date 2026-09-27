@@ -2,6 +2,8 @@ import * as LocalAuthentication from 'expo-local-authentication';
 
 import { VaultKey, vaultDelete, vaultGet, vaultSet } from '@/storage/vault';
 
+import { hasPin } from './pin';
+
 export interface BiometricCapability {
   available: boolean;
   enrolled: boolean;
@@ -35,19 +37,80 @@ function describe(types: LocalAuthentication.AuthenticationType[]): string {
   return 'Biometrics';
 }
 
-export async function authenticate(reason: string): Promise<boolean> {
-  if (process.env.EXPO_OS === 'web') return true;
+export interface LockSetup {
+  biometric: boolean;
+  pin: boolean;
+}
 
-  const result = await LocalAuthentication.authenticateAsync({
-    promptMessage: reason,
-    cancelLabel: 'Cancel',
-    fallbackLabel: 'Use passcode',
-  });
-  return result.success;
+export type UnlockMethod = 'biometric' | 'pin';
+
+export async function readLockSetup(): Promise<LockSetup> {
+  const [biometric, pin] = await Promise.all([vaultGet(VaultKey.biometricLock), hasPin()]);
+  return { biometric: biometric === '1', pin };
+}
+
+/** With both set, biometrics go first and the PIN is what a failed prompt falls back to. */
+export function unlockMethod(setup: LockSetup): UnlockMethod | null {
+  if (setup.biometric) return 'biometric';
+  return setup.pin ? 'pin' : null;
 }
 
 export async function isLockEnabled(): Promise<boolean> {
-  return (await vaultGet(VaultKey.biometricLock)) === '1';
+  return unlockMethod(await readLockSetup()) !== null;
+}
+
+/** What the system prompt offers when biometrics fail: the phone's passcode, or the app PIN. */
+export type PromptFallback = 'passcode' | 'pin';
+
+export type PromptOutcome = 'passed' | 'use-pin' | 'failed';
+
+/**
+ * With an app PIN, the phone's passcode must not open the app, so the prompt
+ * turns the device fallback off. Android shows no fallback button of its own;
+ * its one button becomes the way to the PIN.
+ */
+export function promptOptions(
+  reason: string,
+  fallback: PromptFallback,
+  os = process.env.EXPO_OS
+): LocalAuthentication.LocalAuthenticationOptions {
+  if (fallback === 'passcode') {
+    return { promptMessage: reason, cancelLabel: 'Cancel', fallbackLabel: 'Use passcode' };
+  }
+  return {
+    promptMessage: reason,
+    disableDeviceFallback: true,
+    fallbackLabel: 'Use PIN',
+    cancelLabel: os === 'android' ? 'Use PIN' : 'Cancel',
+  };
+}
+
+const PIN_INSTEAD: readonly LocalAuthentication.LocalAuthenticationError[] = [
+  'user_fallback',
+  'lockout',
+  'not_enrolled',
+  'not_available',
+  'passcode_not_set',
+];
+
+export function promptOutcome(
+  result: LocalAuthentication.LocalAuthenticationResult,
+  fallback: PromptFallback,
+  os = process.env.EXPO_OS
+): PromptOutcome {
+  if (result.success) return 'passed';
+  if (fallback === 'passcode') return 'failed';
+  if (PIN_INSTEAD.includes(result.error)) return 'use-pin';
+  if (os === 'android' && result.error === 'user_cancel') return 'use-pin';
+  return 'failed';
+}
+
+export async function authenticate(reason: string): Promise<PromptOutcome> {
+  if (process.env.EXPO_OS === 'web') return 'passed';
+
+  const fallback: PromptFallback = (await hasPin()) ? 'pin' : 'passcode';
+  const result = await LocalAuthentication.authenticateAsync(promptOptions(reason, fallback));
+  return promptOutcome(result, fallback);
 }
 
 export async function setLockEnabled(enabled: boolean, label = 'Biometrics'): Promise<boolean> {
@@ -56,8 +119,8 @@ export async function setLockEnabled(enabled: boolean, label = 'Biometrics'): Pr
     return true;
   }
 
-  const passed = await authenticate(`Confirm ${label} to protect this app`);
-  if (!passed) return false;
+  const outcome = await authenticate(`Confirm ${label} to protect this app`);
+  if (outcome !== 'passed') return false;
 
   await vaultSet(VaultKey.biometricLock, '1');
   return true;

@@ -8,11 +8,12 @@ import {
   enableKeyProtection,
   isKeyProtectionEnabled,
 } from '@/core/account/key-protection';
-import { biometricCapability, isLockEnabled, setLockEnabled } from '@/core/account/lock';
+import { biometricCapability, readLockSetup } from '@/core/account/lock';
 import { useLockStore } from '@/core/account/lock-store';
 
 export function BiometricSection() {
   const noteJustAuthenticated = useLockStore((s) => s.noteJustAuthenticated);
+  const setBiometricLock = useLockStore((s) => s.setBiometricLock);
   const accounts = useAccountStore((st) => st.accounts);
 
   const [label, setLabel] = useState('Biometrics');
@@ -29,7 +30,7 @@ export function BiometricSection() {
       setLabel(capability.label);
       setAvailable(capability.available);
       setEnrolled(capability.enrolled);
-      setEnabled(await isLockEnabled());
+      setEnabled((await readLockSetup()).biometric);
       setProtectedKeys(await isKeyProtectionEnabled());
     })().catch(reportError);
   }, []);
@@ -53,7 +54,7 @@ export function BiometricSection() {
       }
       setProtectedKeys(false);
     }
-    return setLockEnabled(next, label);
+    return setBiometricLock(next, label);
   }
 
   async function applyProtection(next: boolean) {
