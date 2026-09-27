@@ -21,28 +21,29 @@ import {
   resolveValues,
   visibleOptions,
   type Widget,
-  type WidgetField,
+  type WidgetOption,
 } from './schema';
 
 function SelectField({
-  field,
-  answers,
-  display,
+  label,
+  hint,
+  placeholder,
+  options,
+  value,
   onPick,
 }: {
-  field: WidgetField;
-  answers: Record<string, string>;
-  display: Record<string, string>;
+  label: string;
+  hint?: string;
+  placeholder?: string;
+  options: WidgetOption[];
+  value: string | undefined;
   onPick: (value: string) => void;
 }) {
   const [picking, setPicking] = useState(false);
-
-  const label = fillText(field.label, display);
-  const options = visibleOptions(field, answers);
-  const chosen = options.find((option) => option.value === answers[field.id]);
+  const chosen = options.find((option) => option.value === value);
 
   return (
-    <FieldShell label={label} hint={field.hint ? fillText(field.hint, display) : undefined}>
+    <FieldShell label={label} hint={hint}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${label}, ${chosen?.label ?? 'none chosen'}`}
@@ -54,7 +55,7 @@ function SelectField({
             'min-w-0 flex-1 text-body',
             chosen ? 'text-content' : 'text-content-subtle'
           )}>
-          {chosen?.label ?? field.placeholder ?? 'Choose'}
+          {chosen?.label ?? placeholder ?? 'Choose'}
         </Text>
         <Icon name="chevron-down" size={16} tone="subtle" />
       </Pressable>
@@ -68,7 +69,7 @@ function SelectField({
           picking
             ? options.map((option) => ({
                 label: option.label,
-                selected: option.value === answers[field.id],
+                selected: option.value === value,
                 onPress: () => onPick(option.value),
               }))
             : []
@@ -92,48 +93,60 @@ export function FormWidget({
   const answers = resolveValues(widget.fields, values);
   const display = displayValues(widget.fields, answers);
   const missing = widget.fields.some((f) => !f.optional && !answers[f.id]?.trim());
+  const fill = (text: string | undefined) => (text ? fillText(text, display) : undefined);
+  const answer = (id: string, value: string) => setValues({ ...answers, [id]: value });
 
   return (
     <View className="gap-3" style={{ minWidth: 260 }}>
-      {widget.fields.map((field) =>
-        field.options && (field.select || visibleOptions(field, answers).length >= MANY_OPTIONS) ? (
-          <SelectField
-            key={field.id}
-            field={field}
-            answers={answers}
-            display={display}
-            onPick={(value) => setValues({ ...answers, [field.id]: value })}
-          />
-        ) : field.options ? (
+      {widget.fields.map((field) => {
+        const label = fillText(field.label, display);
+        if (!field.options) {
+          return (
+            <Field
+              key={field.id}
+              label={label}
+              hint={fill(field.hint)}
+              placeholder={fill(field.placeholder)}
+              defaultValue={field.value ?? ''}
+              onChangeText={(text) => answer(field.id, text)}
+              autoCorrect={false}
+              autoCapitalize="none"
+              keyboardType={field.keyboard === 'decimal' ? 'decimal-pad' : 'default'}
+            />
+          );
+        }
+        const options = visibleOptions(field, answers);
+        if (field.select || options.length >= MANY_OPTIONS) {
+          return (
+            <SelectField
+              key={field.id}
+              label={label}
+              hint={fill(field.hint)}
+              placeholder={field.placeholder}
+              options={options}
+              value={answers[field.id]}
+              onPick={(value) => answer(field.id, value)}
+            />
+          );
+        }
+        return (
           <View key={field.id} className="gap-1.5">
-            <Text variant="caption">{fillText(field.label, display)}</Text>
+            <Text variant="caption">{label}</Text>
             <View className="flex-row flex-wrap gap-1.5">
-              {visibleOptions(field, answers).map((option) => (
+              {options.map((option) => (
                 <Chip
                   key={option.value}
                   label={option.label}
                   size="sm"
                   selected={answers[field.id] === option.value}
-                  onPress={() => setValues({ ...answers, [field.id]: option.value })}
+                  onPress={() => answer(field.id, option.value)}
                 />
               ))}
             </View>
-            {field.hint ? <Text variant="micro">{fillText(field.hint, display)}</Text> : null}
+            {field.hint ? <Text variant="micro">{fill(field.hint)}</Text> : null}
           </View>
-        ) : (
-          <Field
-            key={field.id}
-            label={fillText(field.label, display)}
-            hint={field.hint ? fillText(field.hint, display) : undefined}
-            placeholder={field.placeholder ? fillText(field.placeholder, display) : undefined}
-            defaultValue={field.value ?? ''}
-            onChangeText={(text) => setValues({ ...answers, [field.id]: text })}
-            autoCorrect={false}
-            autoCapitalize="none"
-            keyboardType={field.keyboard === 'decimal' ? 'decimal-pad' : 'default'}
-          />
-        )
-      )}
+        );
+      })}
       <Button
         label={widget.submit.label}
         size="sm"

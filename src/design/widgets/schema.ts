@@ -132,11 +132,12 @@ export function fillCommand(command: string, values: Record<string, string>): st
   });
 }
 
+function optionShown(option: WidgetOption, values: Record<string, string>): boolean {
+  return !option.when || Object.entries(option.when).every(([id, value]) => values[id] === value);
+}
+
 export function visibleOptions(field: WidgetField, values: Record<string, string>): WidgetOption[] {
-  return (field.options ?? []).filter(
-    (option) =>
-      !option.when || Object.entries(option.when).every(([id, value]) => values[id] === value)
-  );
+  return (field.options ?? []).filter((option) => optionShown(option, values));
 }
 
 export function displayValues(
@@ -146,9 +147,7 @@ export function displayValues(
   return Object.fromEntries(
     fields.map((field) => {
       const chosen = field.options?.find(
-        (option) =>
-          option.value === values[field.id] &&
-          (!option.when || Object.entries(option.when).every(([id, value]) => values[id] === value))
+        (option) => option.value === values[field.id] && optionShown(option, values)
       );
       return [field.id, chosen?.label ?? values[field.id] ?? ''];
     })
