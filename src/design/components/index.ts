@@ -10,6 +10,7 @@ export { Badge } from './badge';
 export { NetworkMark } from './network-mark';
 export { Button } from './button';
 export { Chevron } from './chevron';
+export { Chip } from './chip';
 export { ConfirmSheet, type ConfirmSheetProps } from './confirm-sheet';
 export { Card } from './card';
 export { Note } from './note';

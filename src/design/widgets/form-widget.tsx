@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import {
   ActionSheet,
   Button,
+  Chip,
   Field,
   FieldShell,
   FIELD_BOX,
@@ -107,28 +108,15 @@ export function FormWidget({
           <View key={field.id} className="gap-1.5">
             <Text variant="caption">{fillText(field.label, display)}</Text>
             <View className="flex-row flex-wrap gap-1.5">
-              {visibleOptions(field, answers).map((option) => {
-                const picked = answers[field.id] === option.value;
-                return (
-                  <Pressable
-                    key={option.value}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: picked }}
-                    accessibilityLabel={option.label}
-                    onPress={() => setValues({ ...answers, [field.id]: option.value })}
-                    style={{ borderCurve: 'continuous' }}
-                    className={cn(
-                      'rounded-pill border px-3 py-1.5',
-                      picked ? 'border-brand bg-brand' : 'border-line bg-surface'
-                    )}>
-                    <Text
-                      variant="caption"
-                      className={picked ? 'font-semibold text-brand-on' : 'text-content'}>
-                      {option.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+              {visibleOptions(field, answers).map((option) => (
+                <Chip
+                  key={option.value}
+                  label={option.label}
+                  size="sm"
+                  selected={answers[field.id] === option.value}
+                  onPress={() => setValues({ ...answers, [field.id]: option.value })}
+                />
+              ))}
             </View>
             {field.hint ? <Text variant="micro">{fillText(field.hint, display)}</Text> : null}
           </View>

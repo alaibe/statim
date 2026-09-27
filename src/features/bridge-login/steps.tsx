@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
-import { Button, Field, Pressable, Text, useThemeColors, cn } from '@/design';
+import { Button, Chip, Field, Text, useThemeColors } from '@/design';
 import type { InputField, LoginStep } from '@/protocols/matrix/provisioning';
 
 export function InputStep({
@@ -33,16 +33,12 @@ export function InputStep({
             </Text>
             <View className="flex-row flex-wrap gap-2">
               {(field.options ?? []).map((option) => (
-                <Pressable
+                <Chip
                   key={option}
-                  accessibilityRole="button"
+                  label={option}
+                  selected={values[field.id] === option}
                   onPress={() => setValues((current) => ({ ...current, [field.id]: option }))}
-                  className={cn(
-                    'rounded-pill border px-3 py-1.5',
-                    values[field.id] === option ? 'border-brand bg-brand-soft' : 'border-line'
-                  )}>
-                  <Text variant="footnote">{option}</Text>
-                </Pressable>
+                />
               ))}
             </View>
           </View>

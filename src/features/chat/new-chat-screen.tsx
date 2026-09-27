@@ -5,6 +5,7 @@ import {
   Avatar,
   Badge,
   Button,
+  Chip,
   ErrorText,
   Eyebrow,
   Field,
@@ -61,24 +62,13 @@ export function NewChatScreen() {
               <Eyebrow>Protocol</Eyebrow>
               <View className="flex-row flex-wrap gap-2">
                 {available.map((option) => (
-                  <Pressable
+                  <Chip
                     key={option.id}
                     testID={`new-chat-protocol-${option.id}`}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: option.id === active }}
+                    label={option.label}
+                    selected={option.id === active}
                     onPress={() => chooseProtocol(option.id)}
-                    className={
-                      option.id === active
-                        ? 'rounded-pill border border-brand bg-brand-soft px-3 py-2'
-                        : 'rounded-pill border border-line bg-surface px-3 py-2'
-                    }>
-                    <Text
-                      className={
-                        option.id === active ? 'text-footnote text-brand' : 'text-footnote'
-                      }>
-                      {option.label}
-                    </Text>
-                  </Pressable>
+                  />
                 ))}
               </View>
               {descriptor ? (
