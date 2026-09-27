@@ -5,6 +5,7 @@ import { useThemeColors } from '../hooks/use-theme-colors';
 import { cn } from '../lib/cn';
 import { Icon, type IconName } from '../icon';
 import { ListItem } from './list-item';
+import { Section } from './section';
 import { SearchField } from './search-field';
 import { closeSheetThen, Sheet, type SheetProps } from './sheet';
 import { Text } from './text';
@@ -58,9 +59,7 @@ export function ActionSheet({ actions, searchFor, ...sheet }: ActionSheetProps) 
         />
       ) : null}
       <Scroller searchable={searchable}>
-        <View
-          style={{ borderCurve: 'continuous' }}
-          className="overflow-hidden rounded-card bg-surface-raised">
+        <Section surface="card" inset={false}>
           {shown.length === 0 ? (
             <View className="px-4 py-6">
               <Text variant="caption" className="text-center">
@@ -92,7 +91,7 @@ export function ActionSheet({ actions, searchFor, ...sheet }: ActionSheetProps) 
               />
             );
           })}
-        </View>
+        </Section>
       </Scroller>
     </Sheet>
   );

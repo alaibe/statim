@@ -112,27 +112,25 @@ export function ContactList({
           />
         </Section>
 
-        <Section title="On Status Original" surface="list" className="mt-6">
-          {visible.length === 0 ? (
-            <View className="px-gutter py-6">
-              <Text variant="footnote">
-                {query
-                  ? 'Nobody matches that search.'
-                  : 'Nobody yet. Start a conversation with an address or an ENS name and they will appear here.'}
-              </Text>
-            </View>
-          ) : (
-            visible.map((peer) => (
-              <ListItem
-                key={`${peer.protocol}-${peer.id}`}
-                title={nameFor(peer.id)}
-                subtitle={peer.protocol?.toUpperCase()}
-                leading={<Avatar seed={nameFor(peer.id)} size="md" />}
-                selected={peer.conversationId === selectedConversationId}
-                onPress={() => openChat(peer.conversationId)}
-              />
-            ))
-          )}
+        <Section
+          title="On Status Original"
+          surface="list"
+          empty={
+            query
+              ? 'Nobody matches that search.'
+              : 'Nobody yet. Start a conversation with an address or an ENS name and they will appear here.'
+          }
+          className="mt-6">
+          {visible.map((peer) => (
+            <ListItem
+              key={`${peer.protocol}-${peer.id}`}
+              title={nameFor(peer.id)}
+              subtitle={peer.protocol?.toUpperCase()}
+              leading={<Avatar seed={nameFor(peer.id)} size="md" />}
+              selected={peer.conversationId === selectedConversationId}
+              onPress={() => openChat(peer.conversationId)}
+            />
+          ))}
         </Section>
       </ScrollView>
       <ActionSheet

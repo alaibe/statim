@@ -7,7 +7,6 @@ import {
   Badge,
   cn,
   ConfirmSheet,
-  Eyebrow,
   ListItem,
   RowIcon,
   Screen,
@@ -116,21 +115,16 @@ export default function PluginsScreen() {
         <View className="gap-3">
           <Text variant="footnote">{detail?.manifest.description}</Text>
 
-          <View className="gap-1.5">
-            <Eyebrow>What it can reach</Eyebrow>
-            <View
-              style={{ borderCurve: 'continuous' }}
-              className="overflow-hidden rounded-card bg-surface-raised">
-              {detail?.manifest.permissions.map((permission, i) => (
-                <Text
-                  key={permission}
-                  variant="footnote"
-                  className={cn('px-4 py-2.5', i > 0 && 'border-t border-line')}>
-                  {PERMISSION_LABELS[permission]}
-                </Text>
-              ))}
-            </View>
-          </View>
+          <Section title="What it can reach" surface="card" inset={false}>
+            {detail?.manifest.permissions.map((permission, i) => (
+              <Text
+                key={permission}
+                variant="footnote"
+                className={cn('px-4 py-2.5', i > 0 && 'border-t border-line')}>
+                {PERMISSION_LABELS[permission]}
+              </Text>
+            ))}
+          </Section>
 
           {detail?.manifest.requiresSessionRestart || detailHasChat ? (
             <View className="flex-row flex-wrap gap-1.5">
