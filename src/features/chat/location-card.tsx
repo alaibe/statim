@@ -2,7 +2,7 @@ import { View } from 'react-native';
 
 import { cn, Icon, Pressable, Text, useThemeColors } from '@/design';
 import { coordinatesLabel, type Location } from '@/core/messaging/locations';
-import { openInMaps } from './message-text';
+import { openInMaps } from './link-actions';
 
 export function LocationCard({ location, fromMe }: { location: Location; fromMe: boolean }) {
   const colors = useThemeColors();

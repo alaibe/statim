@@ -2,15 +2,13 @@ import { router } from 'expo-router';
 import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import { View } from 'react-native';
 
-import { ActionSheet, cn, copyText, type SheetAction, Text, toast } from '@/design';
-import { errorMessage } from '@/core/errors';
-import { EXPLORERS, type LinkSegment, segmentText } from '@/core/messaging/links';
+import { ActionSheet, cn, Text } from '@/design';
+import { type LinkSegment, segmentText } from '@/core/messaging/links';
 import { type Block, listMarker, parseMarkdown, type Span } from '@/core/messaging/markdown';
-import { conversationScope } from '@/core/messaging/conversation-scope';
-import { mapsLinks, parseLocation } from '@/core/messaging/locations';
 import type { ParticipantId } from '@/core/messaging/types';
-import { usePluginHost } from '@/core/plugins/host';
-import { openExternal, openInBrowser } from '@/lib/open-url';
+
+import { linkActions, openLink } from './link-actions';
+import { useOffersSend } from './use-offers-send';
 
 interface Look {
   fromMe: boolean;
@@ -33,13 +31,9 @@ export function MessageText({
   conversationId?: string;
   onCommand?: (command: string) => void;
 }) {
-  const { registry } = usePluginHost();
   const [held, setHeld] = useState<LinkSegment | null>(null);
   const blocks = useMemo(() => parseMarkdown(text), [text]);
-  const canSend =
-    onCommand !== undefined &&
-    conversationId !== undefined &&
-    registry.commandsFor(conversationId, conversationScope(conversationId)).has('send');
+  const canSend = useOffersSend(conversationId, onCommand);
   const look: Look = {
     fromMe,
     className,
@@ -243,68 +237,4 @@ function LinkText({
       {link.text}
     </Text>
   );
-}
-
-export function openLink(link: LinkSegment) {
-  const open =
-    link.kind === 'phone' || link.kind === 'email'
-      ? openExternal(link.href)
-      : isPlace(link)
-        ? openInMaps(link.href)
-        : openInBrowser(link.href);
-  open.catch((error) => toast.error(errorMessage(error, 'Could not open that')));
-}
-
-const isPlace = (link: LinkSegment) =>
-  link.kind === 'location' || (link.kind === 'url' && parseLocation(link.href) !== null);
-
-/** Hands a place to the device's maps app rather than a web page. */
-export function openInMaps(url: string): Promise<unknown> {
-  const location = parseLocation(url);
-  if (!location) return openExternal(url);
-  const links = mapsLinks(location);
-  return openExternal(process.env.EXPO_OS === 'android' ? links.geo : links.apple);
-}
-
-function linkActions(link: LinkSegment, onCommand?: (command: string) => void): SheetAction[] {
-  const copy = (label: string): SheetAction => ({
-    label,
-    icon: 'copy-outline',
-    onPress: () => void copyText(link.kind === 'url' ? link.href : link.text),
-  });
-  const open = (label: string, icon: SheetAction['icon']): SheetAction => ({
-    label,
-    icon,
-    onPress: () => openLink(link),
-  });
-  const send: SheetAction[] = onCommand
-    ? [
-        {
-          label: 'Send funds',
-          icon: 'arrow-up-circle-outline',
-          onPress: () => onCommand(`/send ${link.text}`),
-        },
-      ]
-    : [];
-
-  switch (link.kind) {
-    case 'url':
-      return isPlace(link)
-        ? [open('Open in Maps', 'location-outline'), copy('Copy link')]
-        : [open('Open link', 'open-outline'), copy('Copy link')];
-    case 'phone':
-      return [open('Call', 'call-outline'), copy('Copy number')];
-    case 'email':
-      return [open('Write an email', 'mail-outline'), copy('Copy address')];
-    case 'location':
-      return [open('Open in Maps', 'location-outline'), copy('Copy')];
-    case 'address':
-      return [
-        open(`View on ${EXPLORERS[link.family].name}`, 'open-outline'),
-        copy('Copy address'),
-        ...send,
-      ];
-    case 'ens':
-      return [open('View on ENS', 'open-outline'), copy('Copy name'), ...send];
-  }
 }

@@ -24,8 +24,8 @@ import { VoiceBubble } from './attachments/voice-bubble';
 import { VideoBubble } from './attachments/video-bubble';
 import { PollBubble } from './poll-bubble';
 import { awaitsFile, formatTimestamp } from '@/core/messaging/preview';
-import { openInBrowser } from '@/lib/open-url';
 import { DeliveryIcon } from './delivery-icon';
+import { openUrlQuietly } from './link-actions';
 
 export type { ReplyPreview } from './bubble-shell';
 
@@ -80,7 +80,7 @@ export function MessageBubble({
       children = content.live ? (
         <LiveWidget content={content} onCommand={onCommand} />
       ) : (
-        <WidgetView widget={content.widget} onCommand={onCommand} onOpenUrl={openUrl} />
+        <WidgetView widget={content.widget} onCommand={onCommand} onOpenUrl={openUrlQuietly} />
       );
       break;
 
@@ -295,10 +295,6 @@ function Footer({ message, overlay = false }: { message: ChatMessage; overlay?: 
   );
 }
 
-const openUrl = (url: string) => {
-  openInBrowser(url).catch(() => {});
-};
-
 function LiveWidget({
   content,
   onCommand,
@@ -306,7 +302,9 @@ function LiveWidget({
   content: WidgetContent;
   onCommand?: (command: string) => void;
 }) {
-  return <WidgetView widget={useLiveWidget(content)} onCommand={onCommand} onOpenUrl={openUrl} />;
+  return (
+    <WidgetView widget={useLiveWidget(content)} onCommand={onCommand} onOpenUrl={openUrlQuietly} />
+  );
 }
 
 const requestedMedia = new Set<MessageId>();
