@@ -3,8 +3,9 @@ import { ScrollView, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 
 import { Icon, ListItem, Pressable, Text, type IconName } from '@/design';
-import { isLocalConversation } from '@/core/messaging/bots';
+import { isLocalChat } from '@/core/messaging/bots';
 import { useChatStore } from '@/core/messaging/chat-store';
+import type { ChatId } from '@/core/messaging/types';
 import {
   countsFor,
   entriesOf,
@@ -22,12 +23,12 @@ const TABS: { id: MediaCategory; label: string }[] = [
   { id: 'gifs', label: 'GIFs' },
 ];
 
-export function SharedMedia({ conversationId }: { conversationId: string }) {
+export function SharedMedia({ chatId }: { chatId: ChatId }) {
   const [tab, setTab] = useState<MediaCategory>('media');
   const { width } = useWindowDimensions();
   const mediaIndex = useChatStore((s) => s.mediaIndex);
-  const counts = countsFor(mediaIndex, conversationId);
-  const entries = entriesOf(mediaIndex, conversationId, tab);
+  const counts = countsFor(mediaIndex, chatId);
+  const entries = entriesOf(mediaIndex, chatId, tab);
   const cell = Math.floor((Math.min(width, 720) - 4 * 2) / 3) - 2;
 
   return (
@@ -64,9 +65,9 @@ export function SharedMedia({ conversationId }: { conversationId: string }) {
 
       {entries.length === 0 ? (
         <Text variant="footnote" className="px-gutter py-6">
-          {isLocalConversation(conversationId)
-            ? 'Bot conversations do not share files.'
-            : `Nothing shared in this conversation yet.`}
+          {isLocalChat(chatId)
+            ? 'Bot chats do not share files.'
+            : `Nothing shared in this chat yet.`}
         </Text>
       ) : tab === 'media' || tab === 'gifs' ? (
         <View className="flex-row flex-wrap gap-0.5 px-1">

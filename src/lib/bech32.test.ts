@@ -72,7 +72,7 @@ describe('parsePublicKey', () => {
     expect(parsePublicKey('0x1111111111111111111111111111111111111111')).toBeNull();
   });
 
-  it('rejects an nsec, so a pasted secret key is never used as a recipient', () => {
+  it('rejects an nsec, so a pasted secret key is never used as an address', () => {
     // Worth its own case: someone pasting their own nsec into a "who do you
     // want to message" field would otherwise silently address a key derived
     // from their secret.

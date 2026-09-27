@@ -1,8 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppearanceStore } from '../app/appearance';
-import { useChatStore } from './chat-store';
+import { STATUS_LOCAL_ID } from './bots';
+import { mergeChats, useChatStore } from './chat-store';
+import { draftKey } from './drafts';
 import { InMemoryChatSession } from './in-memory-session';
 import { InMemoryMessageStore } from './message-store';
+import { protocolChatId } from './namespace';
+import { testChat } from './testing/chats';
+import { asChatId } from './testing/ids';
+import type { ChatMessage, Chat, ProtocolChat } from './types';
 import { MARKED_UNREAD } from './unread';
 import { accountRuntime } from '@/runtime';
 import {
@@ -14,8 +20,8 @@ import {
   resetChatStore,
 } from './testing/store';
 
-jest.mock('../identity/keyring', () => ({
-  ...jest.requireActual('../identity/keyring'),
+jest.mock('../account/keyring', () => ({
+  ...jest.requireActual('../account/keyring'),
   loadOrCreateDbEncryptionKey: async () => new Uint8Array(32),
 }));
 
@@ -27,9 +33,9 @@ beforeEach(async () => {
 });
 
 describe('connecting', () => {
-  it('lists conversations and reports ready', async () => {
+  it('lists chats and reports ready', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'c1', title: 'Alice' });
+    session.seedChat({ id: 'c1', title: 'Alice' });
 
     await connect(session);
 
@@ -37,7 +43,7 @@ describe('connecting', () => {
     expect(
       useChatStore
         .getState()
-        .conversations.filter((c) => c.protocol !== 'local')
+        .chats.filter((c) => c.protocol !== 'local')
         .map((c) => c.id)
     ).toEqual([ns('c1')]);
   });
@@ -55,13 +61,13 @@ describe('connecting', () => {
 });
 
 describe('message search', () => {
-  it('opens stored network hits through their namespaced conversation', async () => {
+  it('opens stored protocol hits through their namespaced chat', async () => {
     const store = new InMemoryMessageStore();
     projectTestAccount('test-account', store);
     await store.insertMessage(
       {
         id: 'm1',
-        conversationId: 'c1',
+        chatId: protocolChatId('c1'),
         senderId: 'them',
         sentAt: 1,
         content: { kind: 'text', text: 'needle' },
@@ -69,16 +75,14 @@ describe('message search', () => {
         status: 'sent',
       },
       {
-        id: 'c1',
+        id: protocolChatId('c1'),
         protocolId: 'xmtp',
         participants: ['me', 'them'],
         createdAt: 1,
         hidden: false,
       }
     );
-    expect((await useChatStore.getState().searchMessages('needle'))[0].conversationId).toBe(
-      ns('c1')
-    );
+    expect((await useChatStore.getState().searchMessages('needle'))[0].chatId).toBe(ns('c1'));
     expect((await useChatStore.getState().searchMessages('needle', ns('c1')))[0].id).toBe('m1');
   });
 
@@ -87,7 +91,7 @@ describe('message search', () => {
     projectTestAccount('test-account', store);
     await store.insertMessage({
       id: 'note',
-      conversationId: ns('c1'),
+      chatId: ns('c1'),
       senderId: 'me',
       sentAt: 1,
       content: { kind: 'text', text: 'needle to self' },
@@ -99,13 +103,13 @@ describe('message search', () => {
     expect(found.map((message) => message.id)).toEqual(['note']);
   });
 
-  it('combines network history with messages already loaded in a chat', async () => {
+  it('combines protocol history with messages already loaded in a chat', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'c1' });
+    session.seedChat({ id: 'c1' });
     const search = jest.fn(async () => [
       {
         id: 'older',
-        conversationId: 'c1',
+        chatId: 'c1',
         senderId: 'them',
         sentAt: 1,
         content: { kind: 'text' as const, text: 'needle before load' },
@@ -125,14 +129,14 @@ describe('message search', () => {
     const found = await useChatStore.getState().searchMessages('needle', ns('c1'));
     expect(search).toHaveBeenCalledWith('needle', 'c1');
     expect(found.map((message) => message.id)).toEqual(['loaded', 'older']);
-    expect(found.every((message) => message.conversationId === ns('c1'))).toBe(true);
+    expect(found.every((message) => message.chatId === ns('c1'))).toBe(true);
   });
 });
 
 describe('sending', () => {
   it('edits and removes a delivered message without moving an older edit to the top', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'c1' });
+    session.seedChat({ id: 'c1' });
     const edit = jest.fn(async (_id: string, messageId: string, text: string) => {
       session.deliver('c1', {
         id: messageId,
@@ -159,21 +163,21 @@ describe('sending', () => {
       kind: 'text',
       text: 'changed',
     });
-    expect(
-      useChatStore.getState().conversations.find((c) => c.id === ns('c1'))?.lastMessage?.id
-    ).toBe('newer');
+    expect(useChatStore.getState().chats.find((c) => c.id === ns('c1'))?.lastMessage?.id).toBe(
+      'newer'
+    );
 
     await useChatStore.getState().deleteMessage(ns('c1'), 'newer', true);
     expect(remove).toHaveBeenCalledWith('c1', 'newer');
     expect(useChatStore.getState().messages[ns('c1')].map((m) => m.id)).toEqual(['older']);
-    expect(
-      useChatStore.getState().conversations.find((c) => c.id === ns('c1'))?.lastMessage?.id
-    ).toBe('older');
+    expect(useChatStore.getState().chats.find((c) => c.id === ns('c1'))?.lastMessage?.id).toBe(
+      'older'
+    );
   });
 
   it('does not queue a message when posting is disabled', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'c1', canSend: false });
+    session.seedChat({ id: 'c1', canSend: false });
     await connect(session);
     await expect(
       useChatStore.getState().sendMessage(ns('c1'), { kind: 'text', text: 'hi' })
@@ -181,9 +185,21 @@ describe('sending', () => {
     expect(session.sent).toHaveLength(0);
   });
 
+  it('does not post in a channel unless the protocol says you may', async () => {
+    const session = new InMemoryChatSession();
+    session.seedChat({ id: 'news', kind: 'channel' });
+    session.seedChat({ id: 'own', kind: 'channel', canSend: true });
+    await connect(session);
+    await expect(
+      useChatStore.getState().sendMessage(ns('news'), { kind: 'text', text: 'hi' })
+    ).rejects.toThrow('cannot send');
+    await useChatStore.getState().sendMessage(ns('own'), { kind: 'text', text: 'hi' });
+    expect(session.sent).toHaveLength(1);
+  });
+
   it('shows the message optimistically, then marks it sent', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'c1' });
+    session.seedChat({ id: 'c1' });
     await connect(session);
     await useChatStore.getState().loadMessages(ns('c1'));
 
@@ -192,7 +208,7 @@ describe('sending', () => {
     const messages = useChatStore.getState().messages[ns('c1')];
     expect(messages).toHaveLength(1);
     expect(messages[0]).toMatchObject({ fromMe: true, status: 'sent' });
-    expect(session.sent).toEqual([{ conversationId: 'c1', content: { kind: 'text', text: 'hi' } }]);
+    expect(session.sent).toEqual([{ chatId: 'c1', content: { kind: 'text', text: 'hi' } }]);
   });
 
   /**
@@ -203,7 +219,7 @@ describe('sending', () => {
    */
   it('marks a failed send rather than throwing', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'c1' });
+    session.seedChat({ id: 'c1' });
     await connect(session);
     await useChatStore.getState().loadMessages(ns('c1'));
 
@@ -221,7 +237,7 @@ describe('sending', () => {
 
   it('sends a failed message again, in place', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'c1' });
+    session.seedChat({ id: 'c1' });
     await connect(session);
     await useChatStore.getState().loadMessages(ns('c1'));
 
@@ -239,14 +255,12 @@ describe('sending', () => {
     expect(after).toHaveLength(1);
     expect(after[0].id).toBe(failed.id);
     expect(after[0].status).toBe('sent');
-    expect(session.sent).toEqual([
-      { conversationId: 'c1', content: { kind: 'text', text: 'nope' } },
-    ]);
+    expect(session.sent).toEqual([{ chatId: 'c1', content: { kind: 'text', text: 'nope' } }]);
   });
 
   it('leaves a delivered message alone when asked to retry it', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'c1' });
+    session.seedChat({ id: 'c1' });
     await connect(session);
     await useChatStore.getState().loadMessages(ns('c1'));
     await useChatStore.getState().sendMessage(ns('c1'), { kind: 'text', text: 'hi' });
@@ -261,7 +275,7 @@ describe('sending', () => {
 
   it('reconciles one echoed send without removing another concurrent send', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'c1' });
+    session.seedChat({ id: 'c1' });
     await connect(session);
     await useChatStore.getState().loadMessages(ns('c1'));
 
@@ -299,7 +313,7 @@ describe('sending', () => {
     'reconciles a media send whose echo carries its own file, echoed %s the send resolves',
     async (when) => {
       const session = new InMemoryChatSession();
-      session.seedConversation({ id: 'c1' });
+      session.seedChat({ id: 'c1' });
       await connect(session);
       await useChatStore.getState().loadMessages(ns('c1'));
       const echo = () =>
@@ -307,7 +321,7 @@ describe('sending', () => {
           id: 'echo-img',
           senderId: session.self.participantId,
           fromMe: true,
-          content: { kind: 'image', uri: 'file:///network/copy.jpg' },
+          content: { kind: 'image', uri: 'file:///protocol/copy.jpg' },
         });
       jest.spyOn(session, 'send').mockImplementation(async () => {
         if (when === 'before') echo();
@@ -325,7 +339,7 @@ describe('sending', () => {
 
   it('sends into a thread and reconciles the echo there', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'c1' });
+    session.seedChat({ id: 'c1' });
     await connect(session);
     await useChatStore.getState().loadMessages(ns('c1'));
     const send = jest.spyOn(session, 'send').mockReturnValue(new Promise(() => {}));
@@ -347,7 +361,7 @@ describe('sending', () => {
 
   it('reconciles only one pending row when concurrent sends have identical content', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'c1' });
+    session.seedChat({ id: 'c1' });
     await connect(session);
     await useChatStore.getState().loadMessages(ns('c1'));
     jest.spyOn(session, 'send').mockReturnValue(new Promise(() => {}));
@@ -368,9 +382,9 @@ describe('sending', () => {
 });
 
 describe('receiving', () => {
-  it('ingests a streamed message and updates the conversation preview', async () => {
+  it('ingests a streamed message and updates the chat preview', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'c1' });
+    session.seedChat({ id: 'c1' });
     await connect(session);
     await useChatStore.getState().loadMessages(ns('c1'));
 
@@ -378,27 +392,25 @@ describe('receiving', () => {
 
     const state = useChatStore.getState();
     expect(state.messages[ns('c1')].at(-1)?.content).toEqual({ kind: 'text', text: 'incoming' });
-    expect(state.conversations.find((c) => c.id === ns('c1'))?.lastMessage?.content).toEqual({
+    expect(state.chats.find((c) => c.id === ns('c1'))?.lastMessage?.content).toEqual({
       kind: 'text',
       text: 'incoming',
     });
   });
 
-  it('does not materialise history for a conversation the user never opened', async () => {
+  it('does not materialise history for a chat the user never opened', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'c1' });
+    session.seedChat({ id: 'c1' });
     await connect(session);
 
     session.deliver('c1');
 
     // Preview updates; the transcript stays unloaded until it is opened.
     expect(useChatStore.getState().messages[ns('c1')]).toBeUndefined();
-    expect(
-      useChatStore.getState().conversations.find((c) => c.id === ns('c1'))?.lastMessage
-    ).toBeDefined();
+    expect(useChatStore.getState().chats.find((c) => c.id === ns('c1'))?.lastMessage).toBeDefined();
   });
 
-  it('adds a conversation announced mid-session', async () => {
+  it('adds a chat announced mid-session', async () => {
     const session = new InMemoryChatSession();
     await connect(session);
 
@@ -408,11 +420,11 @@ describe('receiving', () => {
       title: 'Bob',
       memberIds: [],
       createdAt: 5_000,
-      consent: 'unknown',
+      consent: 'request',
     });
     await flushWrites();
 
-    expect(useChatStore.getState().conversations.map((c) => c.id)).toContain(ns('c2'));
+    expect(useChatStore.getState().chats.map((c) => c.id)).toContain(ns('c2'));
   });
 
   it('takes a burst of announced chats in one update', async () => {
@@ -428,24 +440,24 @@ describe('receiving', () => {
         title: id,
         memberIds: [],
         createdAt: 5_000,
-        consent: 'unknown',
+        consent: 'request',
       });
     }
     await flushWrites();
     unsubscribe();
 
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(useChatStore.getState().conversations.map((c) => c.id)).toEqual(
+    expect(useChatStore.getState().chats.map((c) => c.id)).toEqual(
       expect.arrayContaining([ns('c2'), ns('c3'), ns('c4')])
     );
   });
 
-  it('changes nothing when a network announces a chat exactly as it was', async () => {
+  it('changes nothing when a protocol announces a chat exactly as it was', async () => {
     const session = new InMemoryChatSession();
-    const chat = session.seedConversation({ id: 'c1' });
-    session.seedConversation({ id: 'c2', createdAt: 2_000 });
+    const chat = session.seedChat({ id: 'c1' });
+    session.seedChat({ id: 'c2', createdAt: 2_000 });
     await connect(session);
-    const before = useChatStore.getState().conversations;
+    const before = useChatStore.getState().chats;
     const listener = jest.fn();
     const unsubscribe = useChatStore.subscribe(listener);
 
@@ -454,42 +466,40 @@ describe('receiving', () => {
     unsubscribe();
 
     expect(listener).not.toHaveBeenCalled();
-    expect(useChatStore.getState().conversations).toBe(before);
+    expect(useChatStore.getState().chats).toBe(before);
   });
 
   it('updates a chat in place when only its presence changes', async () => {
     const session = new InMemoryChatSession();
-    const chat = session.seedConversation({ id: 'c1' });
-    session.seedConversation({ id: 'c2', createdAt: 2_000 });
+    const chat = session.seedChat({ id: 'c1' });
+    session.seedChat({ id: 'c2', createdAt: 2_000 });
     await connect(session);
-    const before = useChatStore.getState().conversations;
+    const before = useChatStore.getState().chats;
 
     session.announce({ ...chat, online: true });
     await flushWrites();
 
-    const after = useChatStore.getState().conversations;
+    const after = useChatStore.getState().chats;
     expect(after.map((c) => c.id)).toEqual(before.map((c) => c.id));
     expect(after.find((c) => c.id === ns('c1'))?.online).toBe(true);
     expect(after.find((c) => c.id === ns('c2'))).toBe(before.find((c) => c.id === ns('c2')));
   });
 
-  it('orders conversations by most recent activity', async () => {
+  it('orders chats by most recent activity', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'old', createdAt: 1_000 });
-    session.seedConversation({ id: 'new', createdAt: 2_000 });
+    session.seedChat({ id: 'old', createdAt: 1_000 });
+    session.seedChat({ id: 'new', createdAt: 2_000 });
     await connect(session);
 
     session.deliver('old', { sentAt: 9_000 });
 
-    expect(useChatStore.getState().conversations.find((c) => c.protocol !== 'local')?.id).toBe(
-      ns('old')
-    );
+    expect(useChatStore.getState().chats.find((c) => c.protocol !== 'local')?.id).toBe(ns('old'));
   });
 });
 
 describe('opening a chat', () => {
   function seedLong(session: InMemoryChatSession, count: number) {
-    session.seedConversation({ id: 'long' });
+    session.seedChat({ id: 'long' });
     for (let index = 1; index <= count; index++) {
       session.deliver('long', {
         id: `m${String(index).padStart(3, '0')}`,
@@ -520,7 +530,7 @@ describe('opening a chat', () => {
     expect(useChatStore.getState().messageHistory[ns('long')].hasOlder).toBe(false);
   });
 
-  it('loads the whole window again after its network reconnects', async () => {
+  it('loads the whole window again after its protocol reconnects', async () => {
     const session = new InMemoryChatSession();
     seedLong(session, 120);
     await connect(session);
@@ -535,19 +545,19 @@ describe('opening a chat', () => {
     expect(useChatStore.getState().messageHistory[ns('long')].hasOlder).toBe(false);
   });
 
-  it('waits for its network before recording that a chat was opened', async () => {
+  it('waits for its protocol before recording that a chat was opened', async () => {
     projectTestAccount('offline-open');
     await useChatStore.getState().loadMessages(ns('somewhere'));
     expect(useChatStore.getState().messageHistory[ns('somewhere')]).toBeUndefined();
   });
 
-  it('pages the network from its own oldest message, not a private note older than it', async () => {
+  it('pages the protocol from its own oldest message, not a private note older than it', async () => {
     const session = new InMemoryChatSession();
     seedLong(session, 49);
     await connect(session);
     await useChatStore.getState().accountStorage!.messages.insertMessage({
       id: 'note',
-      conversationId: ns('long'),
+      chatId: ns('long'),
       senderId: 'me',
       sentAt: 0,
       content: { kind: 'text', text: 'to self' },
@@ -584,7 +594,7 @@ describe('opening a chat', () => {
 describe('stored history pagination', () => {
   it('loads messages older than the initial hydration window', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'long' });
+    session.seedChat({ id: 'long' });
     for (let index = 1; index <= 600; index++) {
       session.deliver('long', {
         id: `m${String(index).padStart(3, '0')}`,
@@ -603,13 +613,13 @@ describe('stored history pagination', () => {
     expect(useChatStore.getState().messages[ns('long')][0].id).toBe('m001');
   });
 
-  it('pages local conversation history from the account store', async () => {
+  it('pages local chat history from the account store', async () => {
     const store = new InMemoryMessageStore();
     projectTestAccount('test-account', store);
     for (let index = 1; index <= 600; index++) {
       await store.insertMessage({
         id: `local-${String(index).padStart(3, '0')}`,
-        conversationId: 'local-status',
+        chatId: STATUS_LOCAL_ID,
         senderId: 'me',
         sentAt: index,
         content: { kind: 'text', text: String(index) },
@@ -618,11 +628,11 @@ describe('stored history pagination', () => {
       });
     }
 
-    await useChatStore.getState().loadMessages('local-status');
-    expect(useChatStore.getState().messages['local-status']).toHaveLength(500);
-    await useChatStore.getState().loadOlderMessages('local-status');
-    expect(useChatStore.getState().messages['local-status']).toHaveLength(600);
-    expect(useChatStore.getState().messages['local-status'][0].id).toBe('local-001');
+    await useChatStore.getState().loadMessages(STATUS_LOCAL_ID);
+    expect(useChatStore.getState().messages[STATUS_LOCAL_ID]).toHaveLength(500);
+    await useChatStore.getState().loadOlderMessages(STATUS_LOCAL_ID);
+    expect(useChatStore.getState().messages[STATUS_LOCAL_ID]).toHaveLength(600);
+    expect(useChatStore.getState().messages[STATUS_LOCAL_ID][0].id).toBe('local-001');
   });
 
   it('folds a newer reaction when its target arrives from an older page', async () => {
@@ -631,7 +641,7 @@ describe('stored history pagination', () => {
     for (let index = 1; index <= 500; index++) {
       await store.insertMessage({
         id: `m${String(index).padStart(3, '0')}`,
-        conversationId: 'local-status',
+        chatId: STATUS_LOCAL_ID,
         senderId: 'me',
         sentAt: index,
         content: { kind: 'text', text: String(index) },
@@ -641,7 +651,7 @@ describe('stored history pagination', () => {
     }
     await store.insertMessage({
       id: 'reaction-newer',
-      conversationId: 'local-status',
+      chatId: STATUS_LOCAL_ID,
       senderId: 'me',
       sentAt: 501,
       content: { kind: 'reaction', targetId: 'm001', emoji: '👍', action: 'added' },
@@ -649,36 +659,34 @@ describe('stored history pagination', () => {
       status: 'sent',
     });
 
-    await useChatStore.getState().loadMessages('local-status');
+    await useChatStore.getState().loadMessages(STATUS_LOCAL_ID);
     expect(
-      useChatStore.getState().messages['local-status'].some((entry) => entry.id === 'm001')
+      useChatStore.getState().messages[STATUS_LOCAL_ID].some((entry) => entry.id === 'm001')
     ).toBe(false);
-    await useChatStore.getState().loadOlderMessages('local-status');
+    await useChatStore.getState().loadOlderMessages(STATUS_LOCAL_ID);
 
     expect(
-      useChatStore.getState().messages['local-status'].find((entry) => entry.id === 'm001')
+      useChatStore.getState().messages[STATUS_LOCAL_ID].find((entry) => entry.id === 'm001')
         ?.reactions
     ).toEqual({ '👍': ['me'] });
   });
 });
 
 describe('account-bound async projections', () => {
-  it('does not project a deferred conversation refresh after an account switch', async () => {
+  it('does not project a deferred chat refresh after an account switch', async () => {
     const old = new InMemoryChatSession();
-    const deferred = defer<Awaited<ReturnType<InMemoryChatSession['listConversations']>>>();
-    jest.spyOn(old, 'listConversations').mockReturnValue(deferred.promise);
+    const deferred = defer<Awaited<ReturnType<InMemoryChatSession['listChats']>>>();
+    jest.spyOn(old, 'listChats').mockReturnValue(deferred.promise);
     projectTestAccount('old');
     useChatStore.setState({ sessions: { xmtp: old } });
 
-    const refreshing = useChatStore.getState().refreshConversations();
+    const refreshing = useChatStore.getState().refreshChats();
     projectTestAccount('new');
-    useChatStore.setState({ conversations: [testConversation('new-conversation')] });
-    deferred.resolve([testConversation('old-conversation')]);
+    useChatStore.setState({ chats: [testChat({ id: 'new-chat' })] });
+    deferred.resolve([protocolChat('old-chat')]);
     await refreshing;
 
-    expect(useChatStore.getState().conversations.map((entry) => entry.id)).toEqual([
-      'new-conversation',
-    ]);
+    expect(useChatStore.getState().chats.map((entry) => entry.id)).toEqual(['new-chat']);
   });
 
   it.each(['startDm', 'startGroup'] as const)(
@@ -693,16 +701,14 @@ describe('account-bound async projections', () => {
 
       const starting =
         operation === 'startDm'
-          ? useChatStore.getState().startDm('xmtp', 'peer')
-          : useChatStore.getState().startGroup('xmtp', ['peer'], 'Old');
+          ? useChatStore.getState().startDm('xmtp', 'carol')
+          : useChatStore.getState().startGroup('xmtp', ['carol'], 'Old');
       projectTestAccount('new');
-      useChatStore.setState({ conversations: [testConversation('new-conversation')] });
-      deferred.resolve(testConversation('native-old'));
+      useChatStore.setState({ chats: [testChat({ id: 'new-chat' })] });
+      deferred.resolve(protocolChat('native-old'));
       await starting;
 
-      expect(useChatStore.getState().conversations.map((entry) => entry.id)).toEqual([
-        'new-conversation',
-      ]);
+      expect(useChatStore.getState().chats.map((entry) => entry.id)).toEqual(['new-chat']);
     }
   );
 
@@ -710,13 +716,13 @@ describe('account-bound async projections', () => {
     'does not project deferred %s completion after an account switch',
     async (operation) => {
       const old = new InMemoryChatSession();
-      old.seedConversation({ id: 'group', kind: 'group', memberIds: ['me', 'peer'] });
+      old.seedChat({ id: 'group', kind: 'group', memberIds: ['me', 'carol'] });
       const deferred = defer<void>();
       jest.spyOn(old, operation).mockReturnValue(deferred.promise);
       projectTestAccount('old');
       useChatStore.setState({
         sessions: { xmtp: old },
-        conversations: [testConversation(ns('group'))],
+        chats: [testChat({ id: ns('group') })],
       });
 
       const state = useChatStore.getState();
@@ -724,18 +730,16 @@ describe('account-bound async projections', () => {
         operation === 'addMembers'
           ? state.addMembers(ns('group'), ['other'])
           : operation === 'removeMembers'
-            ? state.removeMembers(ns('group'), ['peer'])
+            ? state.removeMembers(ns('group'), ['carol'])
             : operation === 'renameGroup'
               ? state.renameGroup(ns('group'), 'Renamed')
               : state.leaveGroup(ns('group'));
       projectTestAccount('new');
-      useChatStore.setState({ conversations: [testConversation('new-conversation')] });
+      useChatStore.setState({ chats: [testChat({ id: 'new-chat' })] });
       deferred.resolve();
       await mutating;
 
-      expect(useChatStore.getState().conversations.map((entry) => entry.id)).toEqual([
-        'new-conversation',
-      ]);
+      expect(useChatStore.getState().chats.map((entry) => entry.id)).toEqual(['new-chat']);
     }
   );
 });
@@ -752,7 +756,7 @@ describe('local persistence failures', () => {
       projectTestAccount('test-account', new FailingStore());
       const target = {
         id: 'target',
-        conversationId: 'local-status',
+        chatId: STATUS_LOCAL_ID,
         senderId: 'me',
         sentAt: 1,
         content: { kind: 'text' as const, text: 'target' },
@@ -760,32 +764,32 @@ describe('local persistence failures', () => {
         status: 'sent' as const,
       };
       useChatStore.setState({
-        conversations: [testConversation('local-status')],
-        messages: { 'local-status': [target] },
-        rawMessages: { 'local-status': [target] },
+        chats: [testChat({ id: STATUS_LOCAL_ID })],
+        messages: { [STATUS_LOCAL_ID]: [target] },
+        rawMessages: { [STATUS_LOCAL_ID]: [target] },
       });
 
       const action =
         kind === 'message'
           ? useChatStore
               .getState()
-              .postLocalMessage('local-status', { kind: 'text', text: 'new' }, 'me')
+              .postLocalMessage(STATUS_LOCAL_ID, { kind: 'text', text: 'new' }, 'me')
           : kind === 'private message'
             ? useChatStore
                 .getState()
-                .postPrivateMessage('local-status', { kind: 'text', text: 'private' })
-            : useChatStore.getState().react('local-status', 'target', '👍');
+                .postPrivateMessage(STATUS_LOCAL_ID, { kind: 'text', text: 'private' })
+            : useChatStore.getState().react(STATUS_LOCAL_ID, 'target', '👍');
       await expect(action).rejects.toThrow('disk full');
 
-      expect(useChatStore.getState().messages['local-status']).toEqual([target]);
+      expect(useChatStore.getState().messages[STATUS_LOCAL_ID]).toEqual([target]);
     }
   );
 });
 
 describe('private command output', () => {
-  it('restores local-only output beside network history', async () => {
+  it('restores local-only output beside protocol history', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'c1' });
+    session.seedChat({ id: 'c1' });
     const store = new InMemoryMessageStore();
     projectTestAccount('test-account', store);
     await connect(session);
@@ -808,9 +812,9 @@ describe('private command output', () => {
 });
 
 describe('typing', () => {
-  it('tells the network only when typing indicators are switched on', async () => {
+  it('tells the protocol only when typing indicators are switched on', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'c1' });
+    session.seedChat({ id: 'c1' });
     const setTyping = jest.fn(async () => {});
     Object.assign(session, { setTyping });
     await connect(session);
@@ -826,22 +830,22 @@ describe('typing', () => {
 });
 
 describe('drafts', () => {
-  it('shows a draft the network keeps for the chat', async () => {
+  it('shows a draft the protocol keeps for the chat', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'c1' });
+    session.seedChat({ id: 'c1' });
     await connect(session);
-    useChatStore.getState().ingestConversation({
-      ...useChatStore.getState().conversations.find((c) => c.id === ns('c1'))!,
+    useChatStore.getState().ingestChat({
+      ...useChatStore.getState().chats.find((c) => c.id === ns('c1'))!,
       draft: 'from another device',
     });
-    expect(useChatStore.getState().drafts[ns('c1')]).toBe('from another device');
+    expect(useChatStore.getState().drafts[draftKey(ns('c1'))]).toBe('from another device');
   });
 });
 
 describe('marking unread', () => {
-  it('marks the chat on the network, and clears it there once read', async () => {
+  it('marks the chat on the protocol, and clears it there once read', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'c1', markedUnread: true });
+    session.seedChat({ id: 'c1', markedUnread: true });
     const setMarkedUnread = jest.fn(async () => {});
     Object.assign(session, { setMarkedUnread });
     await connect(session);
@@ -855,39 +859,37 @@ describe('marking unread', () => {
 
   it('follows a mark made or cleared on another device', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'c1' });
+    session.seedChat({ id: 'c1' });
     await connect(session);
-    const chat = () => useChatStore.getState().conversations.find((c) => c.id === ns('c1'))!;
+    const chat = () => useChatStore.getState().chats.find((c) => c.id === ns('c1'))!;
     const readAt = () => useChatStore.getState().readAt[ns('c1')];
 
-    useChatStore.getState().ingestConversation({ ...chat(), markedUnread: true });
+    useChatStore.getState().ingestChat({ ...chat(), markedUnread: true });
     expect(readAt()).toBe(MARKED_UNREAD);
-    useChatStore.getState().ingestConversation({ ...chat(), markedUnread: false });
+    useChatStore.getState().ingestChat({ ...chat(), markedUnread: false });
     expect(readAt()).toBeGreaterThan(0);
   });
 });
 
 describe('disconnecting', () => {
-  it('clears network state', async () => {
+  it('clears protocol state', async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'c1' });
+    session.seedChat({ id: 'c1' });
     await connect(session);
 
     await disconnectFake();
 
     expect(session.disconnected).toBe(true);
     expect(useChatStore.getState().status).toBe('idle');
-    expect(
-      useChatStore.getState().conversations.filter((c) => c.protocol !== 'local')
-    ).toHaveLength(0);
+    expect(useChatStore.getState().chats.filter((c) => c.protocol !== 'local')).toHaveLength(0);
   });
 });
 
 describe('consent', () => {
-  /** A stranger's conversation: present, but not yet replied to. */
+  /** A stranger's chat: present, but not yet replied to. */
   const withRequest = async () => {
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'spam', title: 'Stranger', consent: 'unknown' });
+    session.seedChat({ id: 'spam', title: 'Stranger', consent: 'request' });
     await connect(session);
     return session;
   };
@@ -895,55 +897,208 @@ describe('consent', () => {
   it('accepts a request', async () => {
     const session = await withRequest();
 
-    await useChatStore.getState().setConsent(ns('spam'), 'allowed');
+    await useChatStore.getState().setConsent(ns('spam'), 'accepted');
 
-    expect(useChatStore.getState().conversations.find((c) => c.id === ns('spam'))?.consent).toBe(
-      'allowed'
+    expect(useChatStore.getState().chats.find((c) => c.id === ns('spam'))?.consent).toBe(
+      'accepted'
     );
-    expect((await session.listConversations()).find((c) => c.id === 'spam')?.consent).toBe(
-      'allowed'
-    );
+    expect((await session.listChats()).find((c) => c.id === 'spam')?.consent).toBe('accepted');
   });
 
   it('refusing tells the transport, so the decision outlives this device', async () => {
     const session = await withRequest();
 
-    await useChatStore.getState().setConsent(ns('spam'), 'denied');
+    await useChatStore.getState().setConsent(ns('spam'), 'declined');
 
     // The point of routing this through the session rather than a local flag:
-    // a reinstall, and this identity's other phone, both have to see it.
-    expect((await session.listConversations()).find((c) => c.id === 'spam')?.consent).toBe(
-      'denied'
-    );
+    // a reinstall, and this account's other phone, both have to see it.
+    expect((await session.listChats()).find((c) => c.id === 'spam')?.consent).toBe('declined');
   });
 
-  it('puts the conversation back when the transport refuses', async () => {
+  it('puts the chat back when the protocol refuses', async () => {
     const session = await withRequest();
     session.setConsent = async () => {
       throw new Error('offline');
     };
 
-    await expect(useChatStore.getState().setConsent(ns('spam'), 'denied')).rejects.toThrow(
+    await expect(useChatStore.getState().setConsent(ns('spam'), 'declined')).rejects.toThrow(
       'offline'
     );
 
     // The update is optimistic, so a failure has to undo it; otherwise the row
     // stays gone and the stranger silently reappears on the next sync.
-    expect(useChatStore.getState().conversations.find((c) => c.id === ns('spam'))?.consent).toBe(
-      'unknown'
+    expect(useChatStore.getState().chats.find((c) => c.id === ns('spam'))?.consent).toBe('request');
+  });
+
+  it('undoes only its own change when the protocol refuses', async () => {
+    const session = new InMemoryChatSession();
+    session.seedChat({ id: 'spam', title: 'Stranger', consent: 'request' });
+    session.seedChat({ id: 'other', title: 'Known', consent: 'accepted' });
+    await connect(session);
+    const call = defer<void>();
+    session.setConsent = () => call.promise.then(() => Promise.reject(new Error('offline')));
+
+    const declining = useChatStore.getState().setConsent(ns('spam'), 'declined');
+    const other = useChatStore.getState().chats.find((c) => c.id === ns('other'))!;
+    useChatStore.getState().ingestChat({ ...other, title: 'Renamed' });
+    useChatStore.getState().ingestMessage({
+      id: 'late',
+      chatId: ns('spam'),
+      senderId: 'stranger',
+      sentAt: Date.now(),
+      content: { kind: 'text', text: 'still there?' },
+      fromMe: false,
+      status: 'sent',
+    });
+    call.resolve();
+    await expect(declining).rejects.toThrow('offline');
+
+    const chats = useChatStore.getState().chats;
+    const spam = chats.find((c) => c.id === ns('spam'));
+    expect(spam?.consent).toBe('request');
+    expect(spam?.lastMessage?.id).toBe('late');
+    expect(chats.find((c) => c.id === ns('other'))?.title).toBe('Renamed');
+  });
+
+  it('declines only a request', async () => {
+    const session = new InMemoryChatSession();
+    session.seedChat({ id: 'known', title: 'Known', consent: 'accepted' });
+    await connect(session);
+    const setConsent = jest.spyOn(session, 'setConsent');
+
+    await expect(useChatStore.getState().setConsent(ns('known'), 'declined')).rejects.toThrow(
+      'Only a request can be declined.'
+    );
+
+    expect(setConsent).not.toHaveBeenCalled();
+    expect(useChatStore.getState().chats.find((c) => c.id === ns('known'))?.consent).toBe(
+      'accepted'
     );
   });
 
-  it('says so when the transport has no notion of consent', async () => {
+  it('rejects rather than throws when the protocol lacks the capability', async () => {
+    const session = new InMemoryChatSession();
+    session.seedChat({ id: 'team', title: 'Team', kind: 'group', consent: 'accepted' });
+    await connect(session);
+    (session as { getGroupInfo?: unknown }).getGroupInfo = undefined;
+
+    const info = useChatStore.getState().getGroupInfo(ns('team'));
+
+    await expect(info).rejects.toThrow();
+  });
+
+  it('says so when the protocol has no notion of consent', async () => {
     const session = await withRequest();
     // Nostr and Waku have no roster and no stranger, so they omit the method
     // rather than pretending to honour it. Assigned rather than deleted: it
     // lives on the prototype, which `delete` on the instance does not touch.
     (session as { setConsent?: unknown }).setConsent = undefined;
 
-    await expect(useChatStore.getState().setConsent(ns('spam'), 'denied')).rejects.toThrow(
-      /no way to refuse/
+    await expect(useChatStore.getState().setConsent(ns('spam'), 'declined')).rejects.toThrow(
+      /no way to decline/
     );
+  });
+});
+
+it('starts every account from empty lists no one can change in place', () => {
+  const { chats, messages } = useChatStore.getState();
+  // @ts-expect-error
+  expect(() => chats.push(chats[0])).toThrow(TypeError);
+  expect(Object.isFrozen(messages)).toBe(true);
+});
+
+describe('mergeChats', () => {
+  const chat = (id: string, over: Partial<Chat> = {}) =>
+    testChat({ createdAt: 1_000, ...over, id });
+  const noDraft = () => undefined;
+
+  it('hands back the same slices when an update changes nothing', () => {
+    const list = { chats: [chat('a')], drafts: {}, readAt: {} };
+    const next = mergeChats(list, [chat('a')], noDraft, 0);
+    expect(next.chats).toBe(list.chats);
+    expect(next.drafts).toBe(list.drafts);
+    expect(next.readAt).toBe(list.readAt);
+  });
+
+  it('adopts a protocol draft, follows a mark cleared elsewhere and sorts a new chat in', () => {
+    const list = {
+      chats: [chat('a', { markedUnread: true })],
+      drafts: {},
+      readAt: { a: MARKED_UNREAD },
+    };
+    const next = mergeChats(
+      list,
+      [chat('a', { draft: 'later' }), chat('b', { createdAt: 2_000 })],
+      (_id, text) => text,
+      7_000
+    );
+    expect(next.chats.map((c) => c.id)).toEqual(['b', 'a']);
+    expect(next.drafts).toEqual({ a: 'later' });
+    expect(next.readAt).toEqual({ a: 7_000 });
+  });
+});
+
+describe('removing messages', () => {
+  it('keeps the preview when an older message goes, and drops it for a chat never opened', async () => {
+    const session = new InMemoryChatSession();
+    session.seedChat({ id: 'open' });
+    session.seedChat({ id: 'closed' });
+    session.deliver('open', { id: 'first', sentAt: 1_000 });
+    session.deliver('open', { id: 'last', sentAt: 2_000 });
+    session.deliver('closed', { id: 'only', sentAt: 1_000 });
+    await connect(session);
+    await useChatStore.getState().loadMessages(ns('open'));
+    const chat = (id: string) => useChatStore.getState().chats.find((c) => c.id === id);
+
+    useChatStore.getState().removeMessages(ns('open'), ['first']);
+    expect(chat(ns('open'))?.lastMessage?.id).toBe('last');
+
+    useChatStore.getState().removeMessages(ns('closed'), ['only']);
+    expect(chat(ns('closed'))?.lastMessage).toBeUndefined();
+  });
+});
+
+describe('local messages', () => {
+  it('keep the order they were posted in when the clock stands still or goes back', async () => {
+    projectTestAccount('test-account', new InMemoryMessageStore());
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(5_000);
+    const notes = asChatId('local:notes');
+    const post = (text: string) =>
+      useChatStore.getState().postLocalMessage(notes, { kind: 'text', text }, 'me');
+
+    await post('one');
+    await post('two');
+    clock.mockReturnValue(4_000);
+    await post('three');
+    clock.mockRestore();
+
+    expect(useChatStore.getState().messages[notes].map((m) => m.sentAt)).toEqual([
+      5_000, 5_001, 5_002,
+    ]);
+  });
+});
+
+describe('switching accounts', () => {
+  it('forgets which pending send an echo belongs to', () => {
+    const chat = asChatId('chat');
+    const pending = (id: string): ChatMessage => ({
+      id,
+      chatId: chat,
+      senderId: 'me',
+      sentAt: 1_000,
+      content: { kind: 'text', text: 'hi' },
+      fromMe: true,
+      status: 'sending',
+    });
+    projectTestAccount('first');
+    useChatStore.setState({ rawMessages: { [chat]: [pending('pending:a')] } });
+    useChatStore.getState().replacePending(chat, 'pending:a', 'sent', 'echo');
+
+    projectTestAccount('second');
+    useChatStore.setState({ rawMessages: { [chat]: [pending('pending:b')] } });
+    useChatStore.getState().ingestMessage({ ...pending('echo'), status: 'sent' });
+
+    expect(useChatStore.getState().rawMessages[chat].map((m) => m.id)).toEqual(['echo']);
   });
 });
 
@@ -955,13 +1110,6 @@ function defer<T>() {
   return { promise, resolve };
 }
 
-function testConversation(id: string) {
-  return {
-    id,
-    kind: 'dm' as const,
-    title: id,
-    memberIds: [],
-    createdAt: 1,
-    consent: 'allowed' as const,
-  };
+function protocolChat(id: string): ProtocolChat {
+  return { ...testChat({ id }), id: protocolChatId(id), lastMessage: undefined };
 }

@@ -4,23 +4,21 @@ import type { TextInput } from 'react-native';
 import { errorMessage } from '@/core/errors';
 import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
 import type { ProtocolId } from '@/core/messaging/namespace';
-import { peersOf } from '@/features/contacts/peers';
+import { contactsOf } from '@/features/contacts/contacts';
 import { openChatFromSheet } from '@/features/navigation/open';
-import { transportProtocols } from '@/protocols';
+import { connectableProtocols } from '@/protocols';
 import { useDisplayNames } from './use-display-names';
 
-interface Recipient {
+interface Participant {
   input: string;
   participantId: string;
 }
 
 type KnownRow =
   | { kind: 'header'; letter: string }
-  | { kind: 'person'; id: string; name: string; conversationId: string };
+  | { kind: 'person'; id: string; name: string; chatId: string };
 
-function groupByInitial(
-  people: { id: string; name: string; conversationId: string }[]
-): KnownRow[] {
+function groupByInitial(people: { id: string; name: string; chatId: string }[]): KnownRow[] {
   const out: KnownRow[] = [];
   let letter = '';
   for (const person of people) {
@@ -33,26 +31,26 @@ function groupByInitial(
       kind: 'person',
       id: person.id,
       name: person.name,
-      conversationId: person.conversationId,
+      chatId: person.chatId,
     });
   }
   return out;
 }
 
-function defaultGroupName(recipients: Recipient[]): string {
-  const names = recipients.slice(0, 2).map((r) => r.input.split('.')[0].slice(0, 10));
-  const rest = recipients.length - names.length;
+function defaultGroupName(participants: Participant[]): string {
+  const names = participants.slice(0, 2).map((r) => r.input.split('.')[0].slice(0, 10));
+  const rest = participants.length - names.length;
   return rest > 0 ? `${names.join(', ')} +${rest}` : names.join(', ');
 }
 
 export function useNewChat() {
   const sessions = useChatStore((s) => s.sessions);
-  const conversations = useChatStore((s) => s.conversations);
-  const resolvePeer = useChatStore((s) => s.resolvePeer);
+  const chats = useChatStore((s) => s.chats);
+  const resolveParticipant = useChatStore((s) => s.resolveParticipant);
   const startDm = useChatStore((s) => s.startDm);
   const startGroup = useChatStore((s) => s.startGroup);
 
-  const available = transportProtocols().filter((p) => sessions[p.id]);
+  const available = connectableProtocols().filter((p) => sessions[p.id]);
 
   const [protocol, setProtocol] = useState<ProtocolId | null>(null);
   const active = protocol ?? available[0]?.id ?? null;
@@ -60,27 +58,27 @@ export function useNewChat() {
 
   const [draft, setDraft] = useState('');
   const draftRef = useRef<TextInput>(null);
-  const [recipients, setRecipients] = useState<Recipient[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const [title, setTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const isGroup = recipients.length > 1;
-  const groupName = defaultGroupName(recipients);
+  const isGroup = participants.length > 1;
+  const groupName = defaultGroupName(participants);
 
-  const peers = peersOf(conversations, (p) => selfIdFor({ sessions }, p));
-  const { nameFor } = useDisplayNames(peers);
+  const contacts = contactsOf(chats, (p) => selfIdFor({ sessions }, p));
+  const { nameFor } = useDisplayNames(contacts);
   const known = groupByInitial(
-    peers
-      .filter((peer) => peer.protocol === active)
-      .map((peer) => ({ ...peer, name: nameFor(peer.id) }))
+    contacts
+      .filter((contact) => contact.protocol === active)
+      .map((contact) => ({ ...contact, name: nameFor(contact.id) }))
       .sort((a, b) => a.name.localeCompare(b.name))
   );
 
   function chooseProtocol(next: ProtocolId) {
     if (next === active) return;
     setProtocol(next);
-    setRecipients([]);
+    setParticipants([]);
     setError(null);
   }
 
@@ -89,19 +87,19 @@ export function useNewChat() {
     if (error) setError(null);
   }
 
-  async function addRecipient() {
+  async function addParticipant() {
     const input = draft.trim();
     if (!input) return;
 
     if (!descriptor) {
-      setError('Still connecting to the network. Try again in a moment.');
+      setError('Still connecting to that protocol. Try again in a moment.');
       return;
     }
     setBusy(true);
     setError(null);
     let participantId: string | null;
     try {
-      participantId = await resolvePeer(descriptor.id, input);
+      participantId = await resolveParticipant(descriptor.id, input);
     } catch (e) {
       setError(errorMessage(e, 'Could not check that address'));
       setBusy(false);
@@ -110,37 +108,36 @@ export function useNewChat() {
     setBusy(false);
 
     if (!participantId) {
-      setError(descriptor.recipient.unreachable(input));
+      setError(descriptor.address.unreachable(input));
       return;
     }
-    if (recipients.some((r) => r.participantId === participantId)) {
+    if (participants.some((r) => r.participantId === participantId)) {
       setError(`${input} is already on the list.`);
       return;
     }
-    setRecipients((current) => [...current, { input, participantId }]);
+    setParticipants((current) => [...current, { input, participantId }]);
     setDraft('');
     draftRef.current?.clear();
   }
 
-  const selectedIds = new Set(recipients.map((r) => r.participantId));
+  const selectedIds = new Set(participants.map((r) => r.participantId));
 
-  function toggleRecipient(id: string, name: string) {
+  function toggleParticipant(id: string, name: string) {
     setError(null);
-    setRecipients((current) =>
+    setParticipants((current) =>
       current.some((r) => r.participantId === id)
         ? current.filter((r) => r.participantId !== id)
         : [...current, { input: name, participantId: id }]
     );
   }
 
-  function removeRecipient(id: string) {
-    setRecipients((current) => current.filter((r) => r.participantId !== id));
+  function removeParticipant(id: string) {
+    setParticipants((current) => current.filter((r) => r.participantId !== id));
   }
 
-  const only = recipients.length === 1 ? recipients[0] : null;
+  const only = participants.length === 1 ? participants[0] : null;
   const existingDm = only
-    ? (peers.find((p) => p.protocol === active && p.id === only.participantId)?.conversationId ??
-      null)
+    ? (contacts.find((p) => p.protocol === active && p.id === only.participantId)?.chatId ?? null)
     : null;
 
   async function start() {
@@ -149,22 +146,22 @@ export function useNewChat() {
       return;
     }
 
-    if (recipients.length === 0 || !active) return;
+    if (participants.length === 0 || !active) return;
 
     setBusy(true);
     setError(null);
     const starting = isGroup
       ? startGroup(
           active,
-          recipients.map((r) => r.participantId),
+          participants.map((r) => r.participantId),
           title.trim() || groupName
         )
-      : startDm(active, recipients[0].participantId);
+      : startDm(active, participants[0].participantId);
     try {
-      const conversation = await starting;
-      openChatFromSheet(conversation.id);
+      const chat = await starting;
+      openChatFromSheet(chat.id);
     } catch (e) {
-      setError(errorMessage(e, 'Could not start that conversation'));
+      setError(errorMessage(e, 'Could not start that chat'));
     }
     setBusy(false);
   }
@@ -176,7 +173,7 @@ export function useNewChat() {
     descriptor,
     draft,
     draftRef,
-    recipients,
+    participants,
     groupName,
     error,
     busy,
@@ -186,9 +183,9 @@ export function useNewChat() {
     existingDm,
     chooseProtocol,
     changeDraft,
-    addRecipient,
-    toggleRecipient,
-    removeRecipient,
+    addParticipant,
+    toggleParticipant,
+    removeParticipant,
     setTitle,
     start,
   };

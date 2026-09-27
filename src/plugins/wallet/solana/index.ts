@@ -38,7 +38,7 @@ export const solanaStrategy: ChainStrategy = {
   id: 'solana',
   name: 'Solana',
   icon: 'sunny-outline',
-  selfAddress: (context) => solanaAddress(context.identity.deriveEd25519(SOLANA_ACCOUNT_PATH)),
+  selfAddress: (context) => solanaAddress(context.account.deriveEd25519(SOLANA_ACCOUNT_PATH)),
   isAddress: looksLikeSolanaAddress,
   addressHint: 'Solana address',
   unavailable: derivationUnavailable('Solana'),
@@ -48,7 +48,7 @@ export const solanaStrategy: ChainStrategy = {
       headline: `${formatSol(SIGNATURE_FEE)} SOL`,
       label: 'Per signature',
       caption: 'A plain transfer carries one signature',
-      rows: [{ label: 'Network', value: 'Solana' }],
+      rows: [{ label: 'Chain', value: 'Solana' }],
       note:
         'Fixed by the protocol, so it does not move with congestion. ' +
         'A busy validator may still want a priority fee on top, which this app does not add.',
@@ -80,7 +80,7 @@ export const solanaStrategy: ChainStrategy = {
       if (lamports === 0n)
         return { error: 'Enter a SOL amount greater than 0, using up to 9 decimal places.' };
 
-      const from = solanaAddress(context.identity.deriveEd25519(SOLANA_ACCOUNT_PATH));
+      const from = solanaAddress(context.account.deriveEd25519(SOLANA_ACCOUNT_PATH));
       const balance = await getBalance(rpcUrl(), from);
 
       if (balance < lamports + SIGNATURE_FEE) {
@@ -94,7 +94,7 @@ export const solanaStrategy: ChainStrategy = {
       return {
         symbol: 'SOL',
         rows: [
-          { label: 'Network', value: 'Solana' },
+          { label: 'Chain', value: 'Solana' },
           { label: 'Fee', value: `${formatSol(SIGNATURE_FEE)} SOL` },
           { label: 'Balance after', value: `${formatSol(balance - lamports - SIGNATURE_FEE)} SOL` },
         ],
@@ -102,7 +102,7 @@ export const solanaStrategy: ChainStrategy = {
     },
     async commit(context, { amount, to }) {
       if (!looksLikeSolanaAddress(to)) throw new Error(badRecipient(to));
-      const key = context.identity.deriveEd25519(SOLANA_ACCOUNT_PATH);
+      const key = context.account.deriveEd25519(SOLANA_ACCOUNT_PATH);
       const url = rpcUrl();
       const message = buildTransferMessage({
         from: key.publicKey,

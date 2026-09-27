@@ -14,7 +14,7 @@ Both bots answer you and nobody else. Allow an hour. You need:
 - To add the bots by name, a domain and a reverse proxy that serves HTTPS. The
   examples use Caddy and `example.org`.
 
-[Plugins & commands](./plugins#bots) explains what a bot is and what it can do
+[Plugins & slash commands](./plugins#bots) explains what a bot is and what it can do
 in a chat.
 
 ## What they do
@@ -37,13 +37,13 @@ who wrote it, and these two answer only the address you give them as `OWNER`.
 Anyone else gets "This bot is private." once, and after that the bot ignores
 them. It never calls Open-Meteo or your models for them.
 
-The bots make outgoing connections only, to the XMTP network, Open-Meteo and
+The bots make outgoing connections only, to XMTP's nodes, Open-Meteo and
 llama-swap. No port is opened for them. Each one runs as an ordinary user in a
 container with a read-only filesystem, no Linux capabilities and a memory
 limit, and can write only to its own directory.
 
 The machine running the bots decrypts what you send them, as the other end of
-any conversation does. The llama-swap bot sends your messages to your own
+any chat does. The llama-swap bot sends your messages to your own
 models and nowhere else. The weather bot sends Open-Meteo the city names you
 ask about.
 

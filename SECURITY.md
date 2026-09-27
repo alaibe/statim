@@ -16,7 +16,7 @@ seriously and credited in the advisory unless you would rather it were not.
 
 Anything in this repository, and the way it uses its dependencies:
 
-- key generation, storage and use: `src/core/identity`, `src/storage/vault.ts`
+- key generation, storage and use: `src/core/account`, `src/storage/vault.ts`
 - the local databases and the account erase path: `src/storage`
 - protocol adapters and anything that crosses the wire: `src/protocols`
 - the plugin sandbox, its permission model and the command dispatcher:
@@ -42,7 +42,7 @@ finding.
 ## The design, in short
 
 The account is the phrase. Twelve BIP-39 words generated on the device by
-viem. Every identity follows from it: the messaging keys on XMTP, Nostr and
+viem. Every key follows from it: the messaging keys on XMTP, Nostr and
 Waku, and the Ethereum, Bitcoin and Solana addresses. There is no server-side
 account, so there is nothing to reset, nothing to take over, and no recovery if
 the phrase is lost.

@@ -1,6 +1,11 @@
-import type { MessageId, ParticipantId } from '@/core/messaging/types';
+import { protocolChatId } from '@/core/messaging/namespace';
+import type { MessageId, ParticipantId, ProtocolChatId } from '@/core/messaging/types';
 
 import type { TdSender } from './types';
+
+export function chatIdOf(tdChatId: number): ProtocolChatId {
+  return protocolChatId(String(tdChatId));
+}
 
 export function messageIdOf(chatId: number, messageId: number): MessageId {
   return `${chatId}_${messageId}`;

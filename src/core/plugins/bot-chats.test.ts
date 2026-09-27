@@ -1,5 +1,5 @@
-import { botConversationId, type Bot } from '../messaging/bots';
-import type { ChatMessage, ConversationId } from '../messaging/types';
+import { botChatId, type Bot } from '../messaging/bots';
+import type { ChatMessage, ChatId } from '../messaging/types';
 import { botChatLoss, botChatLossCopy } from './bot-chats';
 
 const BOT: Bot = {
@@ -9,12 +9,12 @@ const BOT: Bot = {
   greeting: () => ['Welcome.', 'Set one with /alert.'],
 };
 
-const ID = botConversationId(BOT.id);
+const ID = botChatId(BOT.id);
 
 function message(text: string, fromMe: boolean): ChatMessage {
   return {
     id: `${text}:${fromMe}`,
-    conversationId: ID,
+    chatId: ID,
     senderId: fromMe ? 'me' : BOT.id,
     sentAt: 0,
     content: { kind: 'text', text },
@@ -23,7 +23,7 @@ function message(text: string, fromMe: boolean): ChatMessage {
   };
 }
 
-const transcript = (...messages: ChatMessage[]): Record<ConversationId, ChatMessage[]> => ({
+const transcript = (...messages: ChatMessage[]): Record<ChatId, ChatMessage[]> => ({
   [ID]: messages,
 });
 
@@ -43,7 +43,7 @@ describe('what a plugin toggle costs', () => {
     const loss = botChatLoss([BOT], transcript(message('Welcome.', false), message('hi', true)));
 
     expect(loss).toMatchObject({ botNames: ['Markets'], fromYou: 1, total: 2 });
-    expect(loss?.conversationIds).toEqual([ID]);
+    expect(loss?.chatIds).toEqual([ID]);
   });
 
   it('warns about history the bot itself accumulated', () => {
@@ -65,7 +65,7 @@ describe('what a plugin toggle costs', () => {
     const second: Bot = { ...BOT, id: 'markets-news', name: 'Market news' };
     const loss = botChatLoss([BOT, second], {
       [ID]: [message('hi', true)],
-      [botConversationId(second.id)]: [message('news', false), message('thanks', true)],
+      [botChatId(second.id)]: [message('news', false), message('thanks', true)],
     });
 
     expect(loss).toMatchObject({ botNames: ['Markets', 'Market news'], fromYou: 2, total: 3 });

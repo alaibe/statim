@@ -17,7 +17,7 @@ export function deferredWrite<T>(key: string, delayMs: number) {
   const saveSoon = (storage: AccountStorage, value: T): void => {
     if (pending && pending.storage !== storage) void flush();
     if (pending) clearTimeout(pending.timer);
-    pending = { storage, value, timer: setTimeout(flush, delayMs) };
+    pending = { storage, value, timer: setTimeout(() => void flush(), delayMs) };
   };
 
   return { saveSoon, flush };

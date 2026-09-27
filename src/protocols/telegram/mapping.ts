@@ -1,9 +1,9 @@
 import { labelled, unsupported } from '@/core/messaging/preview';
-import type { ChatMessage, MessageContent, ParticipantId } from '@/core/messaging/types';
+import type { MessageContent, ParticipantId, ProtocolMessage } from '@/core/messaging/types';
 
 import type { TdObject } from './api';
 import { formattedToMarkdown } from './formatting';
-import { messageIdOf, senderIdOf, userIdOf } from './ids';
+import { chatIdOf, messageIdOf, senderIdOf, userIdOf } from './ids';
 import type { TdFile, TdFormattedText, TdMessage } from './types';
 
 export interface MappingContext {
@@ -13,7 +13,7 @@ export interface MappingContext {
   names(userIds: number[]): string;
 }
 
-export function toMessage(raw: TdMessage, context: MappingContext): ChatMessage {
+export function toMessage(raw: TdMessage, context: MappingContext): ProtocolMessage {
   const replyTo =
     raw.reply_to?.['@type'] === 'messageReplyToMessage' &&
     (raw.reply_to as { chat_id: number }).chat_id === raw.chat_id
@@ -22,7 +22,7 @@ export function toMessage(raw: TdMessage, context: MappingContext): ChatMessage 
   const reactions = reactionsOf(raw, context.selfId);
   return {
     id: messageIdOf(raw.chat_id, raw.id),
-    conversationId: String(raw.chat_id),
+    chatId: chatIdOf(raw.chat_id),
     senderId: senderIdOf(raw.sender_id),
     sentAt: raw.date * 1000,
     content: toContent(raw, context),

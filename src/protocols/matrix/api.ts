@@ -212,7 +212,6 @@ export interface MatrixApi {
   setName(roomId: string, name: string): Promise<void>;
   join(roomId: string): Promise<void>;
   leave(roomId: string): Promise<void>;
-  ignore(userId: string, ignored: boolean): Promise<void>;
 
   /** Resolves once the homeserver has the message; it then arrives as an `event` update. */
   send(roomId: string, content: MxOutgoing, replyTo?: string, threadRoot?: string): Promise<void>;

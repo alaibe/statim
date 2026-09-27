@@ -1,6 +1,6 @@
 import { useAppearanceStore, type ThemeChoice } from '@/core/app/appearance';
-import { writeCredential, type CredentialId } from '@/core/identity/credentials';
-import { useIdentityStore } from '@/core/identity/identity-store';
+import { writeCredential, type CredentialId } from '@/core/account/credentials';
+import { useAccountStore } from '@/core/account/account-store';
 import { CHAT_PATTERNS, type ChatPatternName } from '@/design/components/chat-pattern-tile';
 
 import { whenAccountReady, type CliHandler } from '../context';
@@ -70,7 +70,7 @@ export const settingsHandlers = {
     await whenAccountReady();
     const service = oneOf(args.service!, CREDENTIALS, 'service');
     const key = await readText(io, `${service} API key (empty removes it): `, true);
-    await writeCredential(useIdentityStore.getState().activeAccountId!, service, key);
+    await writeCredential(useAccountStore.getState().activeAccountId!, service, key);
     return {
       data: { service, saved: Boolean(key.trim()) },
       text: key.trim() ? `Saved the ${service} key.` : `Removed the ${service} key.`,

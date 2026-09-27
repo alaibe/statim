@@ -3,14 +3,14 @@ import { Share, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import { Button, Card, copyText, IconButton, Screen, Text } from '@/design';
-import { useIdentityStore } from '@/core/identity/identity-store';
-import { shortAddress } from '@/core/identity/keyring';
+import { useAccountStore } from '@/core/account/account-store';
+import { shortAddress } from '@/core/account/keyring';
 
 export default function QrScreen() {
   const router = useRouter();
-  const keyring = useIdentityStore((s) => s.keyring);
-  const accounts = useIdentityStore((s) => s.accounts);
-  const activeAccountId = useIdentityStore((s) => s.activeAccountId);
+  const keyring = useAccountStore((s) => s.keyring);
+  const accounts = useAccountStore((s) => s.accounts);
+  const activeAccountId = useAccountStore((s) => s.activeAccountId);
 
   const label = accounts.find((a) => a.id === activeAccountId)?.label ?? 'Your account';
 
@@ -48,8 +48,8 @@ export default function QrScreen() {
         </Card>
 
         <Text variant="footnote" className="text-center">
-          Anyone who scans this can start a conversation with you. It is your public address, so
-          sharing it reveals nothing that is not already public on-chain.
+          Anyone who scans this can start a chat with you. It is your public address, so sharing it
+          reveals nothing that is not already public on-chain.
         </Text>
       </View>
 
@@ -67,7 +67,7 @@ export default function QrScreen() {
           label="Copy address"
           tone="neutral"
           fullWidth
-          onPress={() => void copyText(keyring.address, 'Address copied')}
+          onPress={() => copyText(keyring.address, 'Address copied')}
         />
       </View>
     </Screen>

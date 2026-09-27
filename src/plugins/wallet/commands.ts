@@ -1,7 +1,7 @@
 import { formatEther, parseEther, type Address } from 'viem';
 
-import { shortAddress } from '@/core/identity/keyring';
-import { isLocalConversation } from '@/core/messaging/bots';
+import { shortAddress } from '@/core/account/keyring';
+import { isLocalChat } from '@/core/messaging/bots';
 import type {
   CommandInvocation,
   CommandResult,
@@ -26,7 +26,7 @@ import {
   type AddressLookup,
   type ChainStrategy,
 } from './chains/strategy';
-import { chainFlag, NO_NETWORK_ON, pickSendable, pickStrategy, withoutChain } from './networks';
+import { chainFlag, NO_CHAIN_ON, pickSendable, pickStrategy, withoutChain } from './chain-list';
 import { walletErrorMessage } from './errors';
 import { commitTransfer } from './transfer';
 
@@ -52,9 +52,9 @@ function tokenMismatch(chain: ChainStrategy, token: string | undefined): string 
 export const withoutConfirm = (rest: string[]) => rest.filter((a) => a !== '--confirm');
 
 /**
- * What a form can offer to send: each network's coin, then the tokens held
+ * What a form can offer to send: each chain's coin, then the tokens held
  * there. Balances are read once, and `options` then follows whichever form
- * field names the network.
+ * field names the chain.
  */
 export async function assetField(chains: ChainStrategy[], context: PluginContext) {
   const assets = await Promise.all(
@@ -65,10 +65,10 @@ export async function assetField(chains: ChainStrategy[], context: PluginContext
     }))
   );
   return {
-    options: (networkField: string): WidgetOption[] =>
+    options: (chainField: string): WidgetOption[] =>
       assets.flatMap(({ chain: c, extra }) => [
-        { label: c.transfer!.symbol, value: 'native', when: { [networkField]: c.id } },
-        ...extra.map((a) => ({ label: a.symbol, value: a.id!, when: { [networkField]: c.id } })),
+        { label: c.transfer!.symbol, value: 'native', when: { [chainField]: c.id } },
+        ...extra.map((a) => ({ label: a.symbol, value: a.id!, when: { [chainField]: c.id } })),
       ]),
     /** The held token `given` names on `chainId`, by id or symbol. */
     held: (chainId: string, given: string | undefined) => {
@@ -197,7 +197,7 @@ async function balanceOverview(
             ...holdingRows(r.chain.id, r.tokens, true),
           ])
         ),
-        W.text('Only the networks you have switched on. /networks changes that.'),
+        W.text('Only the chains you have switched on. /chains changes that.'),
       ],
       { title: 'Balances', icon: 'wallet-outline' }
     ),
@@ -209,12 +209,12 @@ export const walletCommands: SlashCommand[] = [
   {
     name: 'balance',
     aliases: ['bal'],
-    description: 'What you hold, across every network by default',
+    description: 'What you hold, across every chain by default',
     showIn: ['dm', 'group', 'channel'],
     usage: '/balance [address] [--chain bitcoin]',
     async run({ args, context, respond }) {
       const chains = chainStrategies();
-      if (chains.length === 0) return { type: 'error', message: NO_NETWORK_ON };
+      if (chains.length === 0) return { type: 'error', message: NO_CHAIN_ON };
 
       const named = chainFlag(args);
       if (!named) return balanceOverview(chains, context, respond);
@@ -255,7 +255,7 @@ export const walletCommands: SlashCommand[] = [
                 [
                   {
                     id: 'chain',
-                    label: 'Network',
+                    label: 'Chain',
                     value: chain.id,
                     options: chainOptions(chains),
                   },
@@ -283,8 +283,8 @@ export const walletCommands: SlashCommand[] = [
                 { label: 'Review', command: '/send {amount} {to} --chain {chain} --token {token}' }
               ),
               W.text(
-                `Changing the network re-prices the transfer. ${chain.name} sends from your ` +
-                  `${chain.name} address, which is not the same address on every network.`
+                `Changing the chain re-prices the transfer. ${chain.name} sends from your ` +
+                  `${chain.name} address, which is not the same address on every chain.`
               ),
             ],
             { title: `Send on ${chain.name}`, icon: 'arrow-up-circle-outline' }
@@ -354,7 +354,7 @@ export const walletCommands: SlashCommand[] = [
     sendsCustom: true,
     showIn: ['dm', 'group'],
     usage: '/request <amount> [--chain bitcoin] [--token BTC] [note…]',
-    async run({ args, conversationId, context, respond }) {
+    async run({ args, chatId, context, respond }) {
       const picked = await pickSendable(context, args);
       if ('error' in picked) return { type: 'error', message: picked.error };
       const { chain, chains, token, rest } = picked;
@@ -416,10 +416,10 @@ export const walletCommands: SlashCommand[] = [
         return { type: 'error', message: `"${amount}" is not a valid amount.` };
       }
 
-      if (isLocalConversation(conversationId)) {
+      if (isLocalChat(chatId)) {
         return {
           type: 'error',
-          message: 'Payment requests need a real conversation. There is nobody to pay here.',
+          message: 'Payment requests need a real chat. There is nobody to pay here.',
         };
       }
 
@@ -434,7 +434,7 @@ export const walletCommands: SlashCommand[] = [
         note: noteParts.join(' ') || undefined,
       };
 
-      await context.chat.sendCustom(conversationId, CONTENT_TYPE_PAYMENT_REQUEST, payload);
+      await context.chat.sendCustom(chatId, CONTENT_TYPE_PAYMENT_REQUEST, payload);
       return { type: 'handled' };
     },
   },
@@ -445,7 +445,7 @@ export const walletCommands: SlashCommand[] = [
     sendsCustom: true,
     usage: '/split <total> [--chain base] [note…]',
     showIn: ['group'],
-    async run({ args, conversationId, context, respond }) {
+    async run({ args, chatId, context, respond }) {
       const { chain, rest } = chainFromArgs(args);
       const [total, ...noteParts] = rest;
 
@@ -500,7 +500,7 @@ export const walletCommands: SlashCommand[] = [
         return { type: 'error', message: `"${total}" is not a valid amount.` };
       }
 
-      const members = await context.chat.members(conversationId);
+      const members = await context.chat.members(chatId);
       if (members.length < 2) {
         return { type: 'error', message: 'Nobody to split with. /split works in a group.' };
       }
@@ -514,11 +514,11 @@ export const walletCommands: SlashCommand[] = [
         people: members.length,
         symbol: chain.nativeCurrency.symbol,
         chainId: chain.id,
-        to: context.identity.address as Address,
+        to: context.account.address as Address,
         ...(note ? { note } : {}),
       };
 
-      await context.chat.sendCustom(conversationId, CONTENT_TYPE_PAYMENT_SPLIT, payload);
+      await context.chat.sendCustom(chatId, CONTENT_TYPE_PAYMENT_SPLIT, payload);
       return { type: 'handled' };
     },
   },

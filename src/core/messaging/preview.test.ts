@@ -1,10 +1,11 @@
 import type { ChatMessage } from './types';
 
 import { formatTimestamp, messagePreview } from './preview';
+import { asChatId } from './testing/ids';
 
 const base: ChatMessage = {
   id: '1',
-  conversationId: 'c',
+  chatId: asChatId('c'),
   senderId: 's',
   sentAt: 0,
   fromMe: false,
@@ -13,7 +14,7 @@ const base: ChatMessage = {
 };
 
 describe('messagePreview', () => {
-  it('describes an empty conversation', () => {
+  it('describes an empty chat', () => {
     expect(messagePreview(undefined)).toBe('No messages yet');
   });
 

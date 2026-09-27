@@ -1,6 +1,6 @@
 import {
   findProtocol,
-  transportProtocols as connectedTransports,
+  connectableProtocols as connectableOf,
   validateProtocols,
 } from '@/core/messaging/registry';
 import { MATRIX_PROTOCOL } from './matrix/descriptor';
@@ -25,6 +25,6 @@ export function protocolById(id: string) {
   return findProtocol(PROTOCOLS, id);
 }
 
-export function transportProtocols() {
-  return connectedTransports(PROTOCOLS);
+export function connectableProtocols() {
+  return connectableOf(PROTOCOLS);
 }

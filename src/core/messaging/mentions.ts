@@ -4,7 +4,7 @@ const SCHEME = 'mention:';
 
 /**
  * A mention of someone by name rather than by handle, as Markdown the app
- * stores and renders: `[Name](mention:<participant id>)`. Each network turns
+ * stores and renders: `[Name](mention:<participant id>)`. Each protocol turns
  * it into its own form (a Telegram entity, a Matrix pill) and back.
  */
 export function mentionLink(name: string, id: ParticipantId): string {

@@ -1,13 +1,18 @@
-import { isLocalConversation } from '@/core/messaging/bots';
+import { isLocalChat } from '@/core/messaging/bots';
 import { useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
 import { liveViews } from '@/core/plugins/live';
-import type { Plugin, PluginContext, SlashCommand } from '@/core/plugins/types';
+import {
+  contentType,
+  type Plugin,
+  type PluginContext,
+  type SlashCommand,
+} from '@/core/plugins/types';
 import { W } from '@/design/widgets';
 
 import { makeBotsBot } from './bot';
 import { BotWidgetMessage } from './renderer';
 import { resolveBot } from './resolve';
-import { CONTENT_TYPE_UI, readBots, writeBots, type KnownBot, type UiMessage } from './types';
+import { CONTENT_TYPE_UI, isUiMessage, readBots, writeBots, type KnownBot } from './types';
 
 async function botsCard(context: PluginContext) {
   const bots = await readBots(context);
@@ -20,7 +25,7 @@ async function botsCard(context: PluginContext) {
         [
           W.text(
             'A bot is just an address that answers. Add one and it appears in your ' +
-              'chat list like any other conversation.'
+              'chat list like any other chat.'
           ),
           W.actions([{ label: 'Add a bot', command: '/addbot' }]),
           W.text(
@@ -65,7 +70,7 @@ export const botsPlugin: Plugin = {
     description: 'Add bots by address and talk to them. Bots can reply with cards and buttons.',
     version: '1.0.0',
     icon: 'hardware-chip-outline',
-    permissions: ['identity.read', 'chat.read', 'chat.send', 'network', 'storage'],
+    permissions: ['account.read', 'chat.read', 'chat.send', 'network', 'storage'],
     requiresSessionRestart: true,
   },
 
@@ -96,14 +101,14 @@ export const botsPlugin: Plugin = {
           }
 
           const session = xmtpSessionFor(useChatStore.getState());
-          if (!session) return { type: 'error', message: 'Not connected to the network yet.' };
+          if (!session) return { type: 'error', message: 'Not connected to XMTP yet.' };
 
           const resolved = await resolveBot(input);
           if (!resolved) return { type: 'error', message: `Could not find ${input}.` };
           const { address } = resolved;
 
-          const inboxId = await session.resolvePeer(address);
-          if (!inboxId) {
+          const participantId = await session.resolveParticipant(address);
+          if (!participantId) {
             return {
               type: 'error',
               message:
@@ -121,7 +126,7 @@ export const botsPlugin: Plugin = {
             address,
             name: nameParts.join(' ') || resolved.name || input.split(/[.@]/)[0],
             description: resolved.description,
-            inboxId,
+            participantId,
             addedAt: Date.now(),
           };
           await writeBots(context, [...bots, bot]);
@@ -154,7 +159,7 @@ export const botsPlugin: Plugin = {
           return {
             type: 'notice',
             tone: 'success',
-            message: 'Removed. The conversation stays; only the shortcut is gone.',
+            message: 'Removed. The chat stays; only the shortcut is gone.',
           };
         },
       },
@@ -165,11 +170,11 @@ export const botsPlugin: Plugin = {
         aliases: ['start'],
         description: 'Send /start to a bot, the usual way to begin',
         usage: '/startbot <address | name.eth | name@domain>',
-        async run({ args, conversationId }) {
+        async run({ args, chatId }) {
           const [input] = args;
 
-          if (!input && !isLocalConversation(conversationId)) {
-            await context.chat.sendText(conversationId, '/start');
+          if (!input && !isLocalChat(chatId)) {
+            await context.chat.sendText(chatId, '/start');
             return { type: 'handled' };
           }
           if (!input) return { type: 'error', message: 'Which bot? /startbot pricebot.eth' };
@@ -198,7 +203,9 @@ export const botsPlugin: Plugin = {
 
       async names() {
         const bots = await readBots(context);
-        return Object.fromEntries(bots.flatMap((b) => (b.inboxId ? [[b.inboxId, b.name]] : [])));
+        return Object.fromEntries(
+          bots.flatMap((b) => (b.participantId ? [[b.participantId, b.name]] : []))
+        );
       },
 
       composerActions: [
@@ -212,11 +219,12 @@ export const botsPlugin: Plugin = {
       ],
 
       contentTypes: [
-        {
+        contentType({
           typeId: CONTENT_TYPE_UI,
-          fallback: (data: UiMessage) => data?.fallback ?? 'Interactive message',
+          is: isUiMessage,
+          fallback: (data) => data.fallback,
           render: BotWidgetMessage,
-        },
+        }),
       ],
     };
   },

@@ -7,20 +7,21 @@ import type {
   PublicChatPreview,
 } from '@/core/messaging/protocol';
 import type {
-  ChatMessage,
-  Conversation,
-  ConversationId,
+  ProtocolChatId,
   GroupMember,
   MessageContent,
   MessageId,
   ParticipantId,
-  SelfIdentity,
+  SelfParticipant,
   Unsubscribe,
+  ConsentDecision,
+  ProtocolMessage,
+  ProtocolChat,
 } from '@/core/messaging/types';
 import { TdRequestError, type TdApi, type TdObject } from './api';
 import { describeAuthError, describeCodeDelivery } from './auth-copy';
 import { inMainList } from './chats';
-import { chatSenderId, messageIdOf, supergroupChatId, tdMessageId } from './ids';
+import { chatIdOf, chatSenderId, messageIdOf, supergroupChatId, tdMessageId } from './ids';
 import { TdDirectory } from './directory';
 import { draftMessage, draftText } from './drafts';
 import { TelegramGroups } from './groups';
@@ -30,7 +31,8 @@ import { TelegramMessages } from './messages';
 import { CHAT_PATCHES, TypingTracker } from './updates';
 import { Outbox } from './outbox';
 import { type MappingContext, toMessage } from './mapping';
-import { handleOf, nameOf } from './users';
+import { addressOf, nameOf } from './users';
+import { UnsupportedError } from '@/core/errors';
 import { localFileUri } from '@/storage/media';
 import type {
   TdAuthorizationState,
@@ -80,11 +82,11 @@ export class TelegramSession implements ChatSession {
   private login: LoginState | null = null;
   private loginErrorAfterRestart: string | undefined;
   private readonly loginListeners = new Set<(login: LoginState | null) => void>();
-  private readonly messageListeners = new Set<(message: ChatMessage) => void>();
+  private readonly messageListeners = new Set<(message: ProtocolMessage) => void>();
   private readonly deletedListeners = new Set<
-    (id: ConversationId, messageIds: MessageId[]) => void
+    (id: ProtocolChatId, messageIds: MessageId[]) => void
   >();
-  private readonly conversationListeners = new Set<(conversation: Conversation) => void>();
+  private readonly chatListeners = new Set<(chat: ProtocolChat) => void>();
   private readonly outbox = new Outbox();
   private readonly td = new TdDirectory(
     () => this.api,
@@ -93,7 +95,7 @@ export class TelegramSession implements ChatSession {
   private readonly host: TelegramHost = {
     api: () => this.api,
     td: this.td,
-    toConversation: (chat) => this.toConversation(chat),
+    toChat: (chat) => this.toChat(chat),
     selfUserId: () => this.me?.id,
     toMessage: (raw, fetchMedia) => this.toMessage(raw, fetchMedia),
     refetch: (chatId, messageId) => this.refetch(chatId, messageId),
@@ -124,9 +126,9 @@ export class TelegramSession implements ChatSession {
     return session;
   }
 
-  get self(): SelfIdentity {
+  get self(): SelfParticipant {
     return this.me
-      ? { participantId: String(this.me.id), address: handleOf(this.me) }
+      ? { participantId: String(this.me.id), address: addressOf(this.me) }
       : { participantId: '', address: '' };
   }
 
@@ -370,7 +372,7 @@ export class TelegramSession implements ChatSession {
         if (!update.is_permanent || update.from_cache) return;
         const chatId = update.chat_id as number;
         const ids = (update.message_ids as number[]).map((id) => messageIdOf(chatId, id));
-        for (const listener of this.deletedListeners) listener(String(chatId), ids);
+        for (const listener of this.deletedListeners) listener(chatIdOf(chatId), ids);
         return;
       }
       case 'updateFile': {
@@ -387,7 +389,7 @@ export class TelegramSession implements ChatSession {
   }
 
   private announce(chat: TdChat): void {
-    if (this.conversationListeners.size === 0) return;
+    if (this.chatListeners.size === 0) return;
     if (this.changedChats.size === 0) queueMicrotask(() => this.announceChanged());
     this.changedChats.add(chat.id);
   }
@@ -398,8 +400,8 @@ export class TelegramSession implements ChatSession {
     for (const id of ids) {
       const chat = this.td.chats.get(id);
       if (!chat || !this.included(chat) || !inMainList(chat)) continue;
-      const conversation = this.toConversation(chat);
-      for (const listener of this.conversationListeners) listener(conversation);
+      const converted = this.toChat(chat);
+      for (const listener of this.chatListeners) listener(converted);
     }
   }
 
@@ -436,12 +438,12 @@ export class TelegramSession implements ChatSession {
 
   // ---- ChatSession ----
 
-  async whenListed(): Promise<Conversation[]> {
+  async whenListed(): Promise<ProtocolChat[]> {
     await this.signedInAndLoaded;
-    return this.listConversations();
+    return this.listChats();
   }
 
-  async listConversations(): Promise<Conversation[]> {
+  async listChats(): Promise<ProtocolChat[]> {
     if (!this.me) return [];
     await this.ensureChatsLoaded();
     const { chat_ids } = await this.api.send<TdChats>({
@@ -452,13 +454,13 @@ export class TelegramSession implements ChatSession {
     const chats = chat_ids
       .map((id) => this.td.chats.get(id))
       .filter((chat): chat is TdChat => chat !== undefined && this.included(chat));
-    return chats.map((chat) => this.toConversation(chat));
+    return chats.map((chat) => this.toChat(chat));
   }
 
   async getMessages(
-    id: ConversationId,
+    id: ProtocolChatId,
     opts?: { limit?: number; before?: { sentAt: number; id: MessageId } }
-  ): Promise<ChatMessage[]> {
+  ): Promise<ProtocolMessage[]> {
     if (!this.me) return [];
     const chatId = Number(id);
     const limit = opts?.limit ?? 50;
@@ -488,7 +490,7 @@ export class TelegramSession implements ChatSession {
     return collected.map((m) => this.toMessage(m, false)).reverse();
   }
 
-  async fetchMedia(id: ConversationId, messageId: MessageId): Promise<void> {
+  async fetchMedia(id: ProtocolChatId, messageId: MessageId): Promise<void> {
     const raw = await this.api.send<TdMessage>({
       '@type': 'getMessage',
       chat_id: Number(id),
@@ -497,7 +499,7 @@ export class TelegramSession implements ChatSession {
     if (this.toMessage(raw, true).content.kind !== 'unsupported') await this.emitMessage(raw);
   }
 
-  async resolvePeer(addressOrId: string): Promise<ParticipantId | null> {
+  async resolveParticipant(addressOrId: string): Promise<ParticipantId | null> {
     let value = addressOrId.trim();
     const link = value.match(/^(?:https?:\/\/)?t\.me\/([A-Za-z0-9_]+)\/?$/);
     if (link) value = `@${link[1]}`;
@@ -532,7 +534,7 @@ export class TelegramSession implements ChatSession {
     return Object.fromEntries(
       ids.flatMap((id, i) => {
         const user = users[i];
-        return user ? [[id, handleOf(user)]] : [];
+        return user ? [[id, addressOf(user)]] : [];
       })
     );
   }
@@ -555,57 +557,57 @@ export class TelegramSession implements ChatSession {
     );
   }
 
-  async createDm(peer: ParticipantId): Promise<Conversation> {
+  async createDm(participant: ParticipantId): Promise<ProtocolChat> {
     const chat = await this.api.send<TdChat>({
       '@type': 'createPrivateChat',
-      user_id: Number(peer),
+      user_id: Number(participant),
       force: false,
     });
     this.td.chats.set(chat.id, chat);
-    return this.toConversation(chat);
+    return this.toChat(chat);
   }
 
-  createGroup(peers: ParticipantId[], title: string): Promise<Conversation> {
-    return this.groups.createGroup(peers, title);
+  createGroup(participants: ParticipantId[], title: string): Promise<ProtocolChat> {
+    return this.groups.createGroup(participants, title);
   }
 
-  getMembers(id: ConversationId): Promise<GroupMember[]> {
+  getMembers(id: ProtocolChatId): Promise<GroupMember[]> {
     return this.groups.getMembers(id);
   }
 
-  mentionCandidates(id: ConversationId, query: string): Promise<MentionCandidate[]> {
+  mentionCandidates(id: ProtocolChatId, query: string): Promise<MentionCandidate[]> {
     return this.groups.mentionCandidates(id, query);
   }
 
-  getGroupInfo(id: ConversationId): Promise<GroupInfo> {
+  getGroupInfo(id: ProtocolChatId): Promise<GroupInfo> {
     return this.groups.getGroupInfo(id);
   }
 
-  setSlowModeDelay(id: ConversationId, seconds: number): Promise<void> {
+  setSlowModeDelay(id: ProtocolChatId, seconds: number): Promise<void> {
     return this.groups.setSlowModeDelay(id, seconds);
   }
 
-  addMembers(id: ConversationId, peers: ParticipantId[]): Promise<void> {
-    return this.groups.addMembers(id, peers);
+  addMembers(id: ProtocolChatId, participants: ParticipantId[]): Promise<void> {
+    return this.groups.addMembers(id, participants);
   }
 
-  removeMembers(id: ConversationId, peers: ParticipantId[]): Promise<void> {
-    return this.groups.removeMembers(id, peers);
+  removeMembers(id: ProtocolChatId, participants: ParticipantId[]): Promise<void> {
+    return this.groups.removeMembers(id, participants);
   }
 
-  banMember(id: ConversationId, peer: ParticipantId): Promise<void> {
-    return this.groups.banMember(id, peer);
+  banMember(id: ProtocolChatId, participant: ParticipantId): Promise<void> {
+    return this.groups.banMember(id, participant);
   }
 
-  setMemberMuted(id: ConversationId, peer: ParticipantId, muted: boolean): Promise<void> {
-    return this.groups.setMemberMuted(id, peer, muted);
+  setMemberMuted(id: ProtocolChatId, participant: ParticipantId, muted: boolean): Promise<void> {
+    return this.groups.setMemberMuted(id, participant, muted);
   }
 
-  renameGroup(id: ConversationId, title: string): Promise<void> {
+  renameGroup(id: ProtocolChatId, title: string): Promise<void> {
     return this.groups.renameGroup(id, title);
   }
 
-  leaveGroup(id: ConversationId): Promise<void> {
+  leaveGroup(id: ProtocolChatId): Promise<void> {
     return this.groups.leaveGroup(id);
   }
 
@@ -613,76 +615,79 @@ export class TelegramSession implements ChatSession {
     return this.joining.previewPublicChat(usernameOrLink);
   }
 
-  joinPublicChat(id: ConversationId): Promise<Conversation | null> {
-    return this.joining.joinPublicChat(id);
+  joinPublicChat(reference: string): Promise<ProtocolChat | null> {
+    return this.joining.joinPublicChat(reference);
   }
 
-  createInviteLink(id: ConversationId, requiresApproval: boolean): Promise<string> {
+  createInviteLink(id: ProtocolChatId, requiresApproval: boolean): Promise<string> {
     return this.joining.createInviteLink(id, requiresApproval);
   }
 
-  getJoinRequests(id: ConversationId): Promise<JoinRequest[]> {
+  getJoinRequests(id: ProtocolChatId): Promise<JoinRequest[]> {
     return this.joining.getJoinRequests(id);
   }
 
-  processJoinRequest(id: ConversationId, userId: ParticipantId, approve: boolean): Promise<void> {
+  processJoinRequest(id: ProtocolChatId, userId: ParticipantId, approve: boolean): Promise<void> {
     return this.joining.processJoinRequest(id, userId, approve);
   }
 
-  send(id: ConversationId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
+  send(id: ProtocolChatId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
     return this.messages.send(id, content, replyTo);
   }
 
-  editMessage(id: ConversationId, messageId: MessageId, text: string): Promise<void> {
+  editMessage(id: ProtocolChatId, messageId: MessageId, text: string): Promise<void> {
     return this.messages.editMessage(id, messageId, text);
   }
 
-  deleteMessage(id: ConversationId, messageId: MessageId): Promise<void> {
+  deleteMessage(id: ProtocolChatId, messageId: MessageId): Promise<void> {
     return this.messages.deleteMessage(id, messageId);
   }
 
-  deleteMessageForMe(id: ConversationId, messageId: MessageId): Promise<void> {
+  deleteMessageForMe(id: ProtocolChatId, messageId: MessageId): Promise<void> {
     return this.messages.deleteMessageForMe(id, messageId);
   }
 
-  votePoll(id: ConversationId, messageId: MessageId, optionIds: number[]): Promise<void> {
+  votePoll(id: ProtocolChatId, messageId: MessageId, optionIds: number[]): Promise<void> {
     return this.messages.votePoll(id, messageId, optionIds);
   }
 
-  createPoll(id: ConversationId, question: string, options: string[]): Promise<void> {
+  createPoll(id: ProtocolChatId, question: string, options: string[]): Promise<void> {
     return this.messages.createPoll(id, question, options);
   }
 
-  listPinnedMessages(id: ConversationId): Promise<ChatMessage[]> {
+  listPinnedMessages(id: ProtocolChatId): Promise<ProtocolMessage[]> {
     return this.messages.listPinnedMessages(id);
   }
 
-  searchMessages(query: string, id?: ConversationId): Promise<ChatMessage[]> {
+  searchMessages(query: string, id?: ProtocolChatId): Promise<ProtocolMessage[]> {
     return this.messages.searchMessages(query, id);
   }
 
-  setMessagePinned(id: ConversationId, messageId: MessageId, pinned: boolean): Promise<void> {
+  setMessagePinned(id: ProtocolChatId, messageId: MessageId, pinned: boolean): Promise<void> {
     return this.messages.setMessagePinned(id, messageId, pinned);
   }
 
   async streamDeletedMessages(
-    listener: (id: ConversationId, messageIds: MessageId[]) => void
+    listener: (id: ProtocolChatId, messageIds: MessageId[]) => void
   ): Promise<Unsubscribe> {
     this.deletedListeners.add(listener);
     return () => this.deletedListeners.delete(listener);
   }
 
-  async setConsent(id: ConversationId, consent: 'allowed' | 'denied'): Promise<void> {
+  async setConsent(id: ProtocolChatId, consent: ConsentDecision): Promise<void> {
+    if (consent === 'accepted') return;
     const chat = await this.td.requireChat(Number(id));
-    if (chat.type['@type'] !== 'chatTypePrivate') return;
+    if (chat.type['@type'] !== 'chatTypePrivate')
+      throw new UnsupportedError('On Telegram only a DM can be declined.');
     await this.api.send({
-      '@type': 'setMessageSenderBlockList',
-      sender_id: { '@type': 'messageSenderUser', user_id: chat.type.user_id },
-      block_list: consent === 'denied' ? { '@type': 'blockListMain' } : null,
+      '@type': 'deleteChatHistory',
+      chat_id: chat.id,
+      remove_from_chat_list: true,
+      revoke: false,
     });
   }
 
-  async sendReadReceipt(id: ConversationId): Promise<void> {
+  async sendReadReceipt(id: ProtocolChatId): Promise<void> {
     const chat = this.td.chats.get(Number(id));
     if (!chat?.last_message) return;
     await this.api.send({
@@ -693,7 +698,7 @@ export class TelegramSession implements ChatSession {
     });
   }
 
-  async saveDraft(id: ConversationId, text: string): Promise<void> {
+  async saveDraft(id: ProtocolChatId, text: string): Promise<void> {
     await this.api.send({
       '@type': 'setChatDraftMessage',
       chat_id: Number(id),
@@ -702,7 +707,7 @@ export class TelegramSession implements ChatSession {
     });
   }
 
-  async setMarkedUnread(id: ConversationId, unread: boolean): Promise<void> {
+  async setMarkedUnread(id: ProtocolChatId, unread: boolean): Promise<void> {
     await this.api.send({
       '@type': 'toggleChatIsMarkedAsUnread',
       chat_id: Number(id),
@@ -710,7 +715,7 @@ export class TelegramSession implements ChatSession {
     });
   }
 
-  async setTyping(id: ConversationId, typing: boolean): Promise<void> {
+  async setTyping(id: ProtocolChatId, typing: boolean): Promise<void> {
     await this.api.send({
       '@type': 'sendChatAction',
       chat_id: Number(id),
@@ -726,18 +731,18 @@ export class TelegramSession implements ChatSession {
     await this.ensureChatsLoaded();
   }
 
-  async streamMessages(onMessage: (m: ChatMessage) => void): Promise<Unsubscribe> {
+  async streamMessages(onMessage: (m: ProtocolMessage) => void): Promise<Unsubscribe> {
     this.messageListeners.add(onMessage);
     return () => this.messageListeners.delete(onMessage);
   }
 
-  async streamConversations(onConversation: (c: Conversation) => void): Promise<Unsubscribe> {
-    this.conversationListeners.add(onConversation);
+  async streamChats(onChat: (c: ProtocolChat) => void): Promise<Unsubscribe> {
+    this.chatListeners.add(onChat);
     // Chats TDLib pushed before anyone was listening.
     for (const chat of this.td.chats.values()) {
-      if (this.included(chat) && inMainList(chat)) onConversation(this.toConversation(chat));
+      if (this.included(chat) && inMainList(chat)) onChat(this.toChat(chat));
     }
-    return () => this.conversationListeners.delete(onConversation);
+    return () => this.chatListeners.delete(onChat);
   }
 
   async disconnect(): Promise<void> {
@@ -783,7 +788,7 @@ export class TelegramSession implements ChatSession {
     }
   }
 
-  private toConversation(chat: TdChat): Conversation {
+  private toChat(chat: TdChat): ProtocolChat {
     const selfId = this.self.participantId;
     const isDm = chat.type['@type'] === 'chatTypePrivate';
     const isChannel = chat.type['@type'] === 'chatTypeSupergroup' && chat.type.is_channel;
@@ -792,11 +797,11 @@ export class TelegramSession implements ChatSession {
       : isDm
         ? [...new Set([String((chat.type as { user_id: number }).user_id), selfId])]
         : (this.td.knownMembers(chat)?.map((member) => member.id) ?? [selfId]);
-    const peer =
+    const participant =
       chat.type['@type'] === 'chatTypePrivate' ? this.td.users.get(chat.type.user_id) : undefined;
 
     return {
-      id: String(chat.id),
+      id: chatIdOf(chat.id),
       kind: isDm ? 'dm' : isChannel ? 'channel' : 'group',
       title: chat.title,
       avatarUri: this.photoUri(chat),
@@ -813,12 +818,12 @@ export class TelegramSession implements ChatSession {
         : {}),
       canSend: this.td.canSend(chat),
       typing: this.typing.isTyping(chat.id),
-      online: peer?.status?.['@type'] === 'userStatusOnline',
+      online: participant?.status?.['@type'] === 'userStatusOnline',
       lastSeenAt:
-        peer?.status?.['@type'] === 'userStatusOffline' && peer.status.was_online
-          ? peer.status.was_online * 1000
+        participant?.status?.['@type'] === 'userStatusOffline' && participant.status.was_online
+          ? participant.status.was_online * 1000
           : undefined,
-      consent: chat.block_list ? 'denied' : 'allowed',
+      consent: 'accepted',
       selfRole: isDm ? undefined : this.td.roleIn(chat),
       ...this.td.rightsIn(chat),
     };
@@ -832,7 +837,7 @@ export class TelegramSession implements ChatSession {
     };
   }
 
-  private toMessage(raw: TdMessage, fetchMedia: boolean): ChatMessage {
+  private toMessage(raw: TdMessage, fetchMedia: boolean): ProtocolMessage {
     return toMessage(raw, this.mapping(raw, fetchMedia));
   }
 

@@ -74,7 +74,7 @@ export function VoiceRecorder({ onRecorded, onError }: VoiceRecorderProps) {
         surface="outline"
         size={20}
         disabled={starting}
-        onPress={start}
+        onPress={() => void start()}
       />
     );
   }
@@ -87,7 +87,7 @@ export function VoiceRecorder({ onRecorded, onError }: VoiceRecorderProps) {
         surface="outline"
         tone="danger"
         size={18}
-        onPress={() => finish(false)}
+        onPress={() => void finish(false)}
       />
 
       <View className="flex-row items-center gap-1.5 rounded-pill bg-danger/15 px-3 py-2">
@@ -102,7 +102,7 @@ export function VoiceRecorder({ onRecorded, onError }: VoiceRecorderProps) {
         label="Send voice message"
         surface="brand"
         size={20}
-        onPress={() => finish(true)}
+        onPress={() => void finish(true)}
       />
     </View>
   );

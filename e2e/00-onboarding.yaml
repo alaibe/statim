@@ -14,5 +14,5 @@ appId: com.statusoriginal.app
 
 - extendedWaitUntil:
     visible:
-      id: "conversation-local-status"
+      id: "chat-local-status"
     timeout: 60000

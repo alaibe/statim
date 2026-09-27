@@ -1,18 +1,13 @@
-import { useIdentityStore } from '@/core/identity/identity-store';
-import { useLockStore } from '@/core/identity/lock-store';
-import type { AccountRecord } from '@/core/identity/accounts';
-import { isLocalConversation } from '@/core/messaging/bots';
+import { useAccountStore } from '@/core/account/account-store';
+import { useLockStore } from '@/core/account/lock-store';
+import type { AccountRecord } from '@/core/account/accounts';
+import { isLocalChat } from '@/core/messaging/bots';
 import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
 import { contentPreview } from '@/core/messaging/preview';
-import type {
-  ChatMessage,
-  Conversation,
-  ConversationId,
-  ParticipantId,
-} from '@/core/messaging/types';
+import type { ChatMessage, Chat, ChatId, ParticipantId } from '@/core/messaging/types';
 import {
-  conversationPeers,
-  conversationTitle,
+  chatParticipants,
+  chatTitle,
   displayName,
   resolveParticipants,
 } from '@/core/messaging/display-names';
@@ -69,10 +64,10 @@ export function waitFor<S>(
   });
 }
 
-/** Waits out startup: the lock check, then the identity. */
+/** Waits out startup: the lock check, then the account. */
 export async function whenSettled(): Promise<void> {
   await waitFor(useLockStore, (s) => s.status !== 'checking', 10_000);
-  await waitFor(useIdentityStore, (s) => s.status !== 'loading', 30_000);
+  await waitFor(useAccountStore, (s) => s.status !== 'loading', 30_000);
 }
 
 export async function whenUnlocked(): Promise<void> {
@@ -87,24 +82,24 @@ export async function whenUnlocked(): Promise<void> {
 
 export async function whenAccountReady(): Promise<void> {
   await whenUnlocked();
-  const identity = useIdentityStore.getState();
-  if (identity.status === 'absent') {
+  const accountState = useAccountStore.getState();
+  if (accountState.status === 'absent') {
     throw new CliError(
       'There is no account yet. Run status-original accounts create, or accounts import.',
       'unavailable'
     );
   }
-  if (identity.status !== 'ready') {
-    throw new CliError(identity.error ?? 'The account could not be opened.', 'unavailable');
+  if (accountState.status !== 'ready') {
+    throw new CliError(accountState.error ?? 'The account could not be opened.', 'unavailable');
   }
-  const accountId = identity.activeAccountId;
+  const accountId = accountState.activeAccountId;
   await waitFor(useChatStore, (s) => s.accountId === accountId, 30_000);
   if (settledFor === accountId) return;
   await waitFor(useChatStore, (s) => s.status === 'ready' || s.status === 'error', 15_000);
   settledFor = accountId;
 }
 
-/** Each account's networks get one chance to connect and list their chats; a stuck one must not slow every command. */
+/** Each account's protocols get one chance to connect and list their chats; a stuck one must not slow every command. */
 let settledFor: string | null = null;
 
 function describeChoices(items: string[]): string {
@@ -136,13 +131,13 @@ export function pick<T>(
 
 export interface ChatLabel {
   title: string;
-  peer?: ParticipantId;
+  participant?: ParticipantId;
   address?: string;
 }
 
-export type FoundChat = Conversation & { label: string; peer?: ParticipantId; address?: string };
+export type FoundChat = Chat & { label: string; participant?: ParticipantId; address?: string };
 
-const peerCache = new Map<string, { name?: string; address?: string }>();
+const participantCache = new Map<string, { name?: string; address?: string }>();
 
 let namingRegistry: PluginRegistry | undefined;
 
@@ -151,16 +146,17 @@ export function nameWith(registry: PluginRegistry): void {
   namingRegistry = registry;
 }
 
-async function peers(protocol: string, ids: ParticipantId[]) {
+async function participants(protocol: string, ids: ParticipantId[]) {
   const key = (id: ParticipantId) => `${protocol}:${id}`;
-  const missing = [...new Set(ids)].filter((id) => !peerCache.has(key(id)));
+  const missing = [...new Set(ids)].filter((id) => !participantCache.has(key(id)));
   if (missing.length && useChatStore.getState().sessions[protocol]) {
     const { names, addresses } = await resolveParticipants(protocol, missing);
-    for (const id of missing) peerCache.set(key(id), { name: names[id], address: addresses[id] });
+    for (const id of missing)
+      participantCache.set(key(id), { name: names[id], address: addresses[id] });
   }
   const own = (await namingRegistry?.participantNames().catch(() => undefined)) ?? {};
   return (id: ParticipantId) => {
-    const found = peerCache.get(key(id));
+    const found = participantCache.get(key(id));
     return {
       name: displayName(id, own[id] ?? found?.name, found?.address),
       address: found?.address,
@@ -168,13 +164,13 @@ async function peers(protocol: string, ids: ParticipantId[]) {
   };
 }
 
-/** Titles as the app shows them: a direct message is named after the other person. */
-export async function chatLabels(chats: Conversation[]): Promise<Map<ConversationId, ChatLabel>> {
+/** Titles as the app shows them: a DM is named after the other person. */
+export async function chatLabels(chats: readonly Chat[]): Promise<Map<ChatId, ChatLabel>> {
   const { sessions } = useChatStore.getState();
-  const byProtocol = new Map<string, Conversation[]>();
-  const out = new Map<ConversationId, ChatLabel>();
+  const byProtocol = new Map<string, Chat[]>();
+  const out = new Map<ChatId, ChatLabel>();
   for (const chat of chats) {
-    if (chat.kind === 'dm' && !isLocalConversation(chat.id) && chat.protocol) {
+    if (chat.kind === 'dm' && !isLocalChat(chat.id) && chat.protocol) {
       byProtocol.set(chat.protocol, [...(byProtocol.get(chat.protocol) ?? []), chat]);
     } else {
       out.set(chat.id, { title: chat.title });
@@ -183,34 +179,34 @@ export async function chatLabels(chats: Conversation[]): Promise<Map<Conversatio
   await Promise.all(
     [...byProtocol].map(async ([protocol, dms]) => {
       const self = selfIdFor({ sessions }, protocol);
-      const peerOf = (c: Conversation) => conversationPeers(c, self)[0]?.id ?? c.title;
-      const lookup = await peers(protocol, dms.map(peerOf));
+      const participantOf = (c: Chat) => chatParticipants(c, self)[0]?.id ?? c.title;
+      const lookup = await participants(protocol, dms.map(participantOf));
       for (const chat of dms) {
-        const peer = peerOf(chat);
-        const title = conversationTitle(chat, self, (id) => lookup(id).name);
-        out.set(chat.id, { title, peer, address: lookup(peer).address });
+        const participant = participantOf(chat);
+        const title = chatTitle(chat, self, (id) => lookup(id).name);
+        out.set(chat.id, { title, participant, address: lookup(participant).address });
       }
     })
   );
   return out;
 }
 
-async function labelled(chats: Conversation[]): Promise<FoundChat[]> {
+async function labelled(chats: readonly Chat[]): Promise<FoundChat[]> {
   const labels = await chatLabels(chats);
   return chats.map((c) => {
-    const { title, peer, address } = labels.get(c.id) ?? { title: c.title };
-    return { ...c, label: title, peer, address };
+    const { title, participant, address } = labels.get(c.id) ?? { title: c.title };
+    return { ...c, label: title, participant, address };
   });
 }
 
 export async function findChat(ref: string): Promise<FoundChat> {
-  const chats = useChatStore.getState().conversations;
+  const chats = useChatStore.getState().chats;
   const byId = chats.find((c) => c.id === ref);
   if (byId) return (await labelled([byId]))[0];
   return pick(
     await labelled(chats),
     ref,
-    (c) => [c.label, c.title, c.peer, c.address],
+    (c) => [c.label, c.title, c.participant, c.address],
     (c) => `${c.id}  ${c.label}`,
     'chat'
   );
@@ -228,7 +224,7 @@ export async function readyMessage(chatRef: string, messageRef: string) {
 
 export function findAccount(ref: string): AccountRecord {
   return pick(
-    useIdentityStore.getState().accounts,
+    useAccountStore.getState().accounts,
     ref,
     (a) => [a.id, a.label, a.address],
     (a) => `${a.id}  ${a.label}  ${a.address}`,
@@ -236,7 +232,7 @@ export function findAccount(ref: string): AccountRecord {
   );
 }
 
-export async function loadedMessages(chatId: ConversationId): Promise<ChatMessage[]> {
+export async function loadedMessages(chatId: ChatId): Promise<readonly ChatMessage[]> {
   const store = useChatStore.getState();
   if (!store.messages[chatId]?.length) await store.loadMessages(chatId);
   return useChatStore.getState().messages[chatId] ?? [];
@@ -244,7 +240,7 @@ export async function loadedMessages(chatId: ConversationId): Promise<ChatMessag
 
 export const visible = (m: ChatMessage) => m.content.kind !== 'reaction';
 
-export async function findMessage(chatId: ConversationId, ref: string): Promise<ChatMessage> {
+export async function findMessage(chatId: ChatId, ref: string): Promise<ChatMessage> {
   let messages = await loadedMessages(chatId);
   if (ref === 'last') {
     const last = messages.filter(visible).at(-1);
@@ -264,7 +260,7 @@ export async function findMessage(chatId: ConversationId, ref: string): Promise<
   throw new CliError(`No message "${ref}" in ${chatId}.`, 'notFound');
 }
 
-function uniquePrefix(messages: ChatMessage[], ref: string): ChatMessage | undefined {
+function uniquePrefix(messages: readonly ChatMessage[], ref: string): ChatMessage | undefined {
   if (ref.length < 6) return undefined;
   const matches = messages.filter((m) => m.id.startsWith(ref));
   return matches.length === 1 ? matches[0] : undefined;
@@ -275,7 +271,7 @@ export async function displayNames(
   ids: ParticipantId[]
 ): Promise<Record<ParticipantId, string>> {
   if (!protocol || ids.length === 0) return {};
-  const lookup = await peers(protocol, [...new Set(ids)]);
+  const lookup = await participants(protocol, [...new Set(ids)]);
   return Object.fromEntries(ids.map((id) => [id, lookup(id).name]));
 }
 
@@ -287,7 +283,7 @@ export function messageJson(m: ChatMessage, names: Record<ParticipantId, string>
       : undefined;
   return {
     id: m.id,
-    chat: m.conversationId,
+    chat: m.chatId,
     from: m.fromMe ? 'me' : m.senderId,
     fromName: m.fromMe ? 'You' : (names[m.senderId] ?? m.senderId),
     sentAt: new Date(m.sentAt).toISOString(),
@@ -330,5 +326,5 @@ export function messageLine(m: ChatMessage, names: Record<ParticipantId, string>
 }
 
 export async function approveOrThrow(io: CliIo, request: string): Promise<void> {
-  if (!(await io.approve(request))) throw new CliError('Declined in the app.', 'denied');
+  if (!(await io.approve(request))) throw new CliError('Declined in the app.', 'declined');
 }

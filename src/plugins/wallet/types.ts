@@ -1,4 +1,6 @@
-import type { Address } from 'viem';
+import { isAddress, type Address } from 'viem';
+
+import { isNumber, isString, optional, shape } from '@/lib/guards';
 
 export interface PaymentRequest {
   amount: string;
@@ -27,6 +29,34 @@ export interface PaymentReceipt {
   symbol: string;
   to: string;
 }
+
+export const isPaymentRequest = shape<PaymentRequest>({
+  amount: isString,
+  symbol: isString,
+  chain: optional(isString),
+  chainId: optional(isNumber),
+  to: isString,
+  note: optional(isString),
+});
+
+export const isSplitRequest = shape<SplitRequest>({
+  total: isString,
+  share: isString,
+  people: isNumber,
+  symbol: isString,
+  chainId: isNumber,
+  to: (value): value is Address => isString(value) && isAddress(value),
+  note: optional(isString),
+});
+
+export const isPaymentReceipt = shape<PaymentReceipt>({
+  hash: isString,
+  chain: optional(isString),
+  chainId: optional(isNumber),
+  amount: isString,
+  symbol: isString,
+  to: isString,
+});
 
 export const CONTENT_TYPE_PAYMENT_REQUEST = 'eth.payment.request';
 export const CONTENT_TYPE_PAYMENT_RECEIPT = 'eth.payment.receipt';

@@ -19,7 +19,7 @@ const SCHEMA: ProtocolConfigSchema = {
 };
 
 describe('storage', () => {
-  it('round-trips per account, so two identities do not share credentials', async () => {
+  it('round-trips per account, so two accounts do not share credentials', async () => {
     await saveProtocolConfig('acct-a', 'waku', { nodeUrl: 'http://a' });
     await saveProtocolConfig('acct-b', 'waku', { nodeUrl: 'http://b' });
 
@@ -94,7 +94,7 @@ describe('the registry', () => {
 
   it('distinguishes the three group models honestly', () => {
     expect(protocolById('xmtp')!.meta.properties.groupModel).toBe('enforced');
-    expect(protocolById('nostr')!.meta.properties.groupModel).toBe('recipient-set');
+    expect(protocolById('nostr')!.meta.properties.groupModel).toBe('participant-set');
     expect(protocolById('waku')!.meta.properties.groupModel).toBe('topic');
   });
 });

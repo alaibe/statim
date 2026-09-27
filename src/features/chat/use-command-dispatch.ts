@@ -3,26 +3,26 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import { buttonCommand } from '@/core/commands/button';
 import { parseCommand } from '@/core/commands/parser';
 import { toast } from '@/design';
-import { isLocalConversation, toContent } from '@/core/messaging/bots';
-import type { ConversationScope } from '@/core/messaging/conversation-scope';
+import { isLocalChat, toContent } from '@/core/messaging/bots';
+import type { ChatScope } from '@/core/messaging/chat-scope';
 import { useChatStore } from '@/core/messaging/chat-store';
-import type { ConversationId, MessageContent } from '@/core/messaging/types';
+import type { ChatId, MessageContent } from '@/core/messaging/types';
 import { usePluginHost } from '@/core/plugins/host';
 import { worksOn } from '@/core/plugins/registry';
 import { errorMessage } from '@/core/errors';
 
 import { useSupports } from './use-supports';
 
-async function respondIn(conversationId: ConversationId, content: MessageContent | string) {
+async function respondIn(chatId: ChatId, content: MessageContent | string) {
   const body = toContent(content);
   const chat = useChatStore.getState();
-  if (isLocalConversation(conversationId)) await chat.postLocalMessage(conversationId, body, 'bot');
-  else await chat.postPrivateMessage(conversationId, body);
+  if (isLocalChat(chatId)) await chat.postLocalMessage(chatId, body, 'bot');
+  else await chat.postPrivateMessage(chatId, body);
 }
 
 export interface CommandDispatchOptions {
-  conversationId: ConversationId;
-  scope: ConversationScope;
+  chatId: ChatId;
+  scope: ChatScope;
   onSendText(text: string): Promise<string>;
   setDraft(text: string): void;
   onRunningChange(label: string | null): void;
@@ -31,7 +31,7 @@ export interface CommandDispatchOptions {
 }
 
 export function useCommandDispatch({
-  conversationId,
+  chatId,
   scope,
   onSendText,
   setDraft,
@@ -43,32 +43,33 @@ export function useCommandDispatch({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { session } = useSupports(conversationId);
+  const { session } = useSupports(chatId);
   const commands = useSyncExternalStore(
     registry.subscribe,
-    () => registry.commandListFor(conversationId, scope),
-    () => registry.commandListFor(conversationId, scope)
+    () => registry.commandListFor(chatId, scope),
+    () => registry.commandListFor(chatId, scope)
   ).filter(({ command }) => worksOn(command, session));
 
   const dispatch = useCallback(
     async (raw: string, from: 'typed' | 'action' = 'typed') => {
       const text = raw.trim();
       if (!text) return;
-      const respond = (content: MessageContent | string) => respondIn(conversationId, content);
+      const respond = (content: MessageContent | string) => respondIn(chatId, content);
       setError(null);
 
       if (from === 'action') {
         const button = buttonCommand(raw);
         if (button.kind === 'draft') return setDraft(button.text);
-        if (button.kind === 'reply') return void (await onSendText(button.text));
+        if (button.kind === 'reply') {
+          await onSendText(button.text).catch((e) => setError(errorMessage(e, 'Could not send')));
+          return;
+        }
       }
 
       const parsed = commands.length > 0 ? parseCommand(text) : null;
-      const entry = parsed
-        ? registry.commandsFor(conversationId, scope).get(parsed.name)
-        : undefined;
+      const entry = parsed ? registry.commandsFor(chatId, scope).get(parsed.name) : undefined;
       if (parsed && entry && !worksOn(entry.command, session)) {
-        setError(`/${parsed.name} does not work on this network.`);
+        setError(`/${parsed.name} does not work on this protocol.`);
         return;
       }
       if (parsed && !entry) {
@@ -77,7 +78,7 @@ export function useCommandDispatch({
         setError(
           home
             ? `/${parsed.name} belongs to ${home}. Open that chat to use it.`
-            : `Unknown command /${parsed.name}. Type / to see what's available.`
+            : `Unknown slash command /${parsed.name}. Type / to see what's available.`
         );
         return;
       }
@@ -89,7 +90,7 @@ export function useCommandDispatch({
           const result = await entry.command.run({
             rest: parsed.rest,
             args: parsed.args,
-            conversationId,
+            chatId,
             context: entry.context,
             respond,
           });
@@ -101,22 +102,13 @@ export function useCommandDispatch({
         }
       } catch (e) {
         const message = errorMessage(e, 'Could not send');
-        if (entry) await respond(message);
+        if (entry) await respond(message).catch(() => setError(message));
         else setError(message);
       }
       setBusy(false);
       onRunningChange(null);
     },
-    [
-      registry,
-      conversationId,
-      scope,
-      session,
-      commands.length,
-      onSendText,
-      onRunningChange,
-      setDraft,
-    ]
+    [registry, chatId, scope, session, commands.length, onSendText, onRunningChange, setDraft]
   );
 
   const dispatched = useRef<string | null>(null);

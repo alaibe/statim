@@ -12,7 +12,7 @@ export function PinnedMessages({
   onUnpin,
   top,
 }: {
-  messages: ChatMessage[];
+  messages: readonly ChatMessage[];
   visible: boolean;
   onOpen(): void;
   onClose(): void;

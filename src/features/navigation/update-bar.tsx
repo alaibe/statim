@@ -8,7 +8,6 @@ import { Button, Text, toast } from '@/design';
 /** Downloads a newer release in the background and offers to restart into it. */
 export function UpdateBar() {
   const [update, setUpdate] = useState<Update | null>(null);
-  const [installing, setInstalling] = useState(false);
 
   useEffect(() => {
     if (__DEV__) return;
@@ -27,13 +26,11 @@ export function UpdateBar() {
   if (!update) return null;
 
   const restart = async () => {
-    setInstalling(true);
     try {
       await update.install();
       await relaunch();
     } catch (error) {
       console.warn('[updater]', error);
-      setInstalling(false);
       toast.error('The update could not be installed');
     }
   };
@@ -43,7 +40,7 @@ export function UpdateBar() {
       <Text variant="footnote" className="flex-1 text-content">
         Version {update.version} is ready
       </Text>
-      <Button size="sm" label="Restart" loading={installing} onPress={restart} />
+      <Button size="sm" label="Restart" onPress={restart} />
     </View>
   );
 }

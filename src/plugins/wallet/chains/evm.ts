@@ -36,7 +36,7 @@ export interface ChainSpec {
   icon: IconName;
   description: string;
   rollup?: { bridge: string };
-  /** A test network: its coin is free and worth nothing, and a balance card must say so. */
+  /** A test chain: its coin is free and worth nothing, and a balance card must say so. */
   testnet?: boolean;
 }
 
@@ -61,7 +61,7 @@ async function tokenById(
   asset: string | undefined
 ): Promise<TokenBalance | undefined> {
   if (!asset || asset === 'native') return undefined;
-  const address = context.identity.address as `0x${string}`;
+  const address = context.account.address as `0x${string}`;
   const tokens = await tokensFor(chainId, address, context);
   return tokens.find((t) => t.contract.toLowerCase() === asset.toLowerCase());
 }
@@ -74,14 +74,14 @@ export function evmStrategy(spec: ChainSpec): ChainStrategy {
     looksLikeEnsName(to)
       ? `No Ethereum address was found for "${to}" to use on ${chain.name}. Check the ENS name's spelling or paste the recipient's full 0x address.`
       : `"${to}" is not a valid recipient on ${chain.name}. Paste the full 0x address (40 characters after 0x) or enter an ENS name.`;
-  const tokenNotFound = `The selected token could not be found on ${chain.name}. Check the network and token contract, then select the token again.`;
+  const tokenNotFound = `The selected token could not be found on ${chain.name}. Check the chain and token contract, then select the token again.`;
 
   return {
     id: spec.id,
     name: chain.name,
     icon: spec.icon,
     evm: chain,
-    selfAddress: (context) => context.identity.address,
+    selfAddress: (context) => context.account.address,
     isAddress: (value) => /^0x[0-9a-fA-F]{40}$/.test(value),
     addressHint: 'vitalik.eth or 0x…',
     resolve: (input) => (looksLikeEnsName(input) ? resolveName(input) : Promise.resolve(null)),
@@ -98,7 +98,7 @@ export function evmStrategy(spec: ChainSpec): ChainStrategy {
         label: 'Max fee per gas',
         caption: `≈ ${Number(formatEther(transfer)).toFixed(8)} ${native} for a plain transfer`,
         rows: [
-          { label: 'Network', value: chain.name },
+          { label: 'Chain', value: chain.name },
           { label: 'Block', value: block.number?.toString() ?? 'unknown' },
           {
             label: 'Priority fee',
@@ -158,14 +158,14 @@ export function evmStrategy(spec: ChainSpec): ChainStrategy {
           }
           if (units > token.raw) {
             return {
-              error: `Not enough ${token.symbol} on ${chain.name}. You hold ${trimDecimals(token.amount)} ${token.symbol} and want to send ${amount} ${token.symbol}. Lower the amount or add ${token.symbol} on ${chain.name}. Keep some ${native} for the network fee.`,
+              error: `Not enough ${token.symbol} on ${chain.name}. You hold ${trimDecimals(token.amount)} ${token.symbol} and want to send ${amount} ${token.symbol}. Lower the amount or add ${token.symbol} on ${chain.name}. Keep some ${native} for the fee.`,
             };
           }
           if (!recipient) return { error: badRecipient(to) };
           return {
             symbol: token.symbol,
             rows: [
-              { label: 'Network', value: chain.name },
+              { label: 'Chain', value: chain.name },
               { label: 'Token', value: token.name },
               { label: 'Fee paid in', value: native },
               { label: 'To', value: recipient },
@@ -184,7 +184,7 @@ export function evmStrategy(spec: ChainSpec): ChainStrategy {
         if (!recipient) return { error: badRecipient(to) };
 
         const quoted = await estimateTransfer({
-          account: context.identity.account(),
+          account: context.account.signer(),
           chainId: chain.id,
           to: recipient,
           amount,
@@ -202,7 +202,7 @@ export function evmStrategy(spec: ChainSpec): ChainStrategy {
         return {
           symbol: native,
           rows: [
-            { label: 'Network', value: chain.name },
+            { label: 'Chain', value: chain.name },
             {
               label: 'Est. fee',
               value: `${trimDecimals(quoted.formatted.fee)} ${native}`,
@@ -218,8 +218,8 @@ export function evmStrategy(spec: ChainSpec): ChainStrategy {
         if (!recipient) throw new Error(badRecipient(to));
         if (asset && asset !== 'native' && !token) throw new Error(tokenNotFound);
         if (token) {
-          return walletClientFor(context.identity.account(), chain.id).sendTransaction({
-            account: context.identity.account(),
+          return walletClientFor(context.account.signer(), chain.id).sendTransaction({
+            account: context.account.signer(),
             chain: null,
             to: token.contract,
             data: encodeTransfer(recipient, toTokenUnits(amount, token.decimals)),
@@ -228,7 +228,7 @@ export function evmStrategy(spec: ChainSpec): ChainStrategy {
         }
 
         return sendNative({
-          account: context.identity.account(),
+          account: context.account.signer(),
           chainId: chain.id,
           to: recipient,
           amount,
@@ -285,7 +285,7 @@ export const EVM_CHAINS: ChainSpec[] = [
     description: 'A sidechain with its own coin for fees.',
   },
 
-  // Test networks sit in the same list as the rest, off until switched on,
+  // Test chains sit in the same list as the rest, off until switched on,
   // instead of behind a "developer mode": the app has no separate build for
   // trying things out, and a faucet is how most people first send anything.
   {
@@ -293,7 +293,7 @@ export const EVM_CHAINS: ChainSpec[] = [
     name: 'Sepolia',
     chain: sepolia,
     icon: 'diamond-outline',
-    description: 'Ethereum’s test network. Free coins from a faucet.',
+    description: 'Ethereum’s test chain. Free coins from a faucet.',
     testnet: true,
   },
   {

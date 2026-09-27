@@ -1,5 +1,6 @@
 import { View } from 'react-native';
 
+import { type PressHandler, usePress } from '../lib/press';
 import { Button } from './button';
 import { Sheet, type SheetProps } from './sheet';
 import { Text } from './text';
@@ -14,7 +15,7 @@ export interface ConfirmSheetProps extends Omit<SheetProps, 'children'> {
     /** `danger` for anything that destroys something. */
     tone?: 'brand' | 'danger';
     testID?: string;
-    onPress: () => void;
+    onPress: PressHandler;
   };
   cancelLabel?: string;
   /** Disables both buttons and puts the confirm button in its loading state. */
@@ -32,9 +33,11 @@ export function ConfirmSheet({
   body,
   confirm,
   cancelLabel = 'Cancel',
-  busy = false,
+  busy: working = false,
   ...sheet
 }: ConfirmSheetProps) {
+  const { pending, press } = usePress(confirm.onPress);
+  const busy = working || pending;
   const paragraphs = (Array.isArray(body) ? body : [body]).filter(Boolean) as string[];
 
   return (
@@ -56,7 +59,7 @@ export function ConfirmSheet({
           fullWidth
           loading={busy}
           disabled={busy}
-          onPress={confirm.onPress}
+          onPress={press}
         />
         <Button
           label={cancelLabel}

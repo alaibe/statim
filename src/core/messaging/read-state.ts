@@ -1,7 +1,7 @@
 import type { AccountStorage } from '@/storage/account';
-import type { ConversationId } from './types';
+import type { ChatId } from './types';
 
-export type ReadState = Record<ConversationId, number>;
+export type ReadState = Record<ChatId, number>;
 
 const KEY = 'chat.readAt';
 

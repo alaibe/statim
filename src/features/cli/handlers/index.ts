@@ -6,7 +6,7 @@ import { chatHandlers } from './chats';
 import { groupHandlers } from './groups';
 import { liveHandlers } from './live';
 import { messageHandlers } from './messages';
-import { networkHandlers } from './networks';
+import { protocolHandlers } from './protocols';
 import { peopleHandlers } from './people';
 import { pluginHandlers } from './plugins';
 import { settingsHandlers } from './settings';
@@ -15,7 +15,7 @@ import { settingsHandlers } from './settings';
 export const HANDLERS: Record<Exclude<CommandPath, 'quit'>, CliHandler> = {
   ...appHandlers,
   ...accountHandlers,
-  ...networkHandlers,
+  ...protocolHandlers,
   ...chatHandlers,
   ...messageHandlers,
   ...peopleHandlers,

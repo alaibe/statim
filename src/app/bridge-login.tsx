@@ -59,7 +59,7 @@ export default function BridgeLoginScreen() {
                 fullWidth
                 onPress={() => {
                   goBack();
-                  connectByChat(bridge, bridgeBotId(bridge, session?.self.address ?? ''));
+                  void connectByChat(bridge, bridgeBotId(bridge, session?.self.address ?? ''));
                 }}
               />
             </Card>
@@ -115,8 +115,8 @@ export default function BridgeLoginScreen() {
             <Card className="gap-3">
               <Text className="font-semibold">{bridge.network} is connected</Text>
               <Text variant="footnote">
-                Your conversations appear in the chat list as the bridge catches up. Older history
-                can take a few minutes.
+                Your chats appear in the chat list as the bridge catches up. Older history can take
+                a few minutes.
               </Text>
               <Button label="Done" size="md" fullWidth onPress={goBack} />
             </Card>

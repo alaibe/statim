@@ -50,7 +50,7 @@ export default function PluginsScreen() {
   return (
     <SettingsScreen
       title="Plugins"
-      intro="Plugins add commands, message types and screens. They ship inside the app, so enabling one grants it the access its row lists.">
+      intro="Plugins add slash commands, message types and screens. They ship inside the app, so enabling one grants it the access its row lists.">
       <Section surface="card" className="mb-6">
         {registry.list().map((plugin) => {
           const enabled = toggling[plugin.manifest.id] ?? enabledIds.includes(plugin.manifest.id);

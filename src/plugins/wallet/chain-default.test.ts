@@ -3,7 +3,8 @@ import type { Widget } from '@/design/widgets';
 
 import { registerChainStrategy, type ChainStrategy } from './chains/strategy';
 import { walletCommands } from './commands';
-import { defaultChain } from './networks';
+import { defaultChain } from './chain-list';
+import { STATUS_LOCAL_ID } from '@/core/messaging/bots';
 
 jest.mock('./bitcoin/bot', () => ({ checkAddress: jest.fn() }));
 jest.mock('./bitcoin', () => ({ bitcoinStrategy: jest.fn() }));
@@ -30,8 +31,8 @@ const recipient = '0x0000000000000000000000000000000000000001';
 
 function contextFor(defaultId: string): PluginContext {
   const stored: Record<string, unknown> = {
-    networks: chains.map((c) => c.id),
-    'active-network': defaultId,
+    chains: chains.map((c) => c.id),
+    'active-chain': defaultId,
   };
   return {
     storage: { get: async (key: string) => stored[key] ?? null },
@@ -46,7 +47,7 @@ async function openForm(name: string, args: string[], context: PluginContext) {
       args,
       rest: args.join(' '),
       context,
-      conversationId: 'local-status',
+      chatId: STATUS_LOCAL_ID,
       respond: async (content) => {
         if (typeof content !== 'string' && content.kind === 'widget') widget = content.widget;
       },
@@ -61,7 +62,7 @@ async function openForm(name: string, args: string[], context: PluginContext) {
 }
 
 describe('payment default precedence', () => {
-  it('prefers the configured network to Ethereum and registration order', () => {
+  it('prefers the configured chain to Ethereum and registration order', () => {
     expect(defaultChain(chains, undefined, 'base').id).toBe('base');
     expect(defaultChain(chains, recipient, 'base').id).toBe('base');
   });
@@ -74,7 +75,7 @@ describe('payment default precedence', () => {
     expect(defaultChain(chains, recipient, 'bitcoin').id).toBe('ethereum');
   });
 
-  it('uses the existing fallback when the configured network is unavailable', () => {
+  it('uses the existing fallback when the configured chain is unavailable', () => {
     expect(defaultChain(chains, recipient, 'optimism').id).toBe('ethereum');
     expect(defaultChain([bitcoin, solana], undefined, 'base').id).toBe('bitcoin');
     expect(defaultChain(chains).id).toBe('ethereum');
@@ -85,7 +86,7 @@ describe('payment default precedence', () => {
   });
 });
 
-describe('payment forms use network preferences', () => {
+describe('payment forms use chain preferences', () => {
   let dispose: (() => void)[];
 
   beforeEach(() => {
@@ -96,7 +97,7 @@ describe('payment forms use network preferences', () => {
     dispose.forEach((remove) => remove());
   });
 
-  it.each(['send', 'request'])('/%s opens on the configured network', async (name) => {
+  it.each(['send', 'request'])('/%s opens on the configured chain', async (name) => {
     expect((await openForm(name, [], contextFor('base'))).selected).toBe('base');
   });
 

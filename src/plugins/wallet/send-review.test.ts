@@ -9,6 +9,7 @@ import { estimateTransfer } from '@/lib/evm/wallet';
 import { EVM_CHAINS, evmStrategy } from './chains/evm';
 import { registerChainStrategy, type ChainStrategy } from './chains/strategy';
 import { walletCommands } from './commands';
+import { STATUS_LOCAL_ID } from '@/core/messaging/bots';
 
 jest.mock('./bitcoin/bot', () => ({ checkAddress: jest.fn() }));
 jest.mock('./bitcoin', () => ({ bitcoinStrategy: jest.fn() }));
@@ -59,9 +60,9 @@ async function runSend(
     .run({
       args,
       rest: args.join(' '),
-      conversationId: 'local-status',
+      chatId: STATUS_LOCAL_ID,
       context: {
-        identity: { address: sender, account: () => ({ address: sender }) },
+        account: { address: sender, signer: () => ({ address: sender }) },
       } as unknown as PluginContext,
       respond: async (content) => {
         if (options.responseError) throw options.responseError;
@@ -105,9 +106,9 @@ describe('/send errors and confirmation', () => {
       .run({
         args,
         rest: args.join(' '),
-        conversationId: 'local-status',
+        chatId: STATUS_LOCAL_ID,
         context: {
-          identity: { address: sender, account: () => ({ address: sender }) },
+          account: { address: sender, signer: () => ({ address: sender }) },
         } as unknown as PluginContext,
         respond: async (content) => {
           if (typeof content !== 'string' && content.kind === 'widget') widget = content.widget;
@@ -152,7 +153,7 @@ describe('/send errors and confirmation', () => {
   it('opens the form with the recipient filled in when only an address is given', async () => {
     let widget: Widget | undefined;
     const context = {
-      identity: { address: sender, account: () => ({ address: sender }) },
+      account: { address: sender, signer: () => ({ address: sender }) },
       storage: { get: async () => null },
     } as unknown as PluginContext;
     const result = await walletCommands
@@ -160,7 +161,7 @@ describe('/send errors and confirmation', () => {
       .run({
         args: [recipient],
         rest: recipient,
-        conversationId: 'local-status',
+        chatId: STATUS_LOCAL_ID,
         context,
         respond: async (content) => {
           if (typeof content !== 'string' && content.kind === 'widget') widget = content.widget;
@@ -240,7 +241,7 @@ it('rejects a missing selected token instead of sending native currency', async 
   walletClientFor.mockClear();
   const transfer = evmStrategy(EVM_CHAINS.find((spec) => spec.id === 'ethereum')!).transfer!;
   const context = {
-    identity: { address: sender, account: () => ({ address: sender }) },
+    account: { address: sender, signer: () => ({ address: sender }) },
   } as unknown as PluginContext;
 
   await expect(

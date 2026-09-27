@@ -34,7 +34,7 @@ export function BubbleShell({
   showSender: boolean;
   bare?: boolean;
   privateToMe?: boolean;
-  reactions?: Record<string, string[]>;
+  reactions?: Readonly<Record<string, readonly string[]>>;
   onReact?: (emoji: string) => void;
   actions: () => MessageAction[];
   replyPreview?: ReplyPreview;

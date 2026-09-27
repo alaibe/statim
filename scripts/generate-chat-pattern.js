@@ -1,9 +1,9 @@
 /**
- * Draws the repeating motif behind a conversation and emits it as a base64 PNG
+ * Draws the repeating motif behind a chat and emits it as a base64 PNG
  * tile in src/design/components/chat-pattern-tile.ts.
  *
  * Why a generated tile instead of drawing the motif in React: one <View> per
- * dot is roughly 180 nodes behind every conversation, and every extra bit of
+ * dot is roughly 180 nodes behind every chat, and every extra bit of
  * detail multiplies that. A tile is a single <Image>
  * with resizeMode="repeat", so the motif can be as dense as we like for a fixed
  * handful of nodes. The pixels carry only alpha, so the component tints them
@@ -420,7 +420,7 @@ const ts = `/**
  * GENERATED FILE. Do not edit by hand.
  * Source: scripts/generate-chat-pattern.js   Regenerate: npm run pattern:build
  *
- * Alpha-only PNG tiles for the conversation backdrop, inlined as data URIs.
+ * Alpha-only PNG tiles for the chat backdrop, inlined as data URIs.
  * Inlined rather than shipped as image assets so there is one copy of each
  * motif instead of one per screen density, and so the colour stays a runtime
  * decision: the tiles carry no hue at all, only coverage.

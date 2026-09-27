@@ -57,7 +57,7 @@ export default function AppearanceScreen() {
                 key={entry.id}
                 accessibilityRole="button"
                 accessibilityLabel={entry.label}
-                onPress={() => setWallpaper(entry.id)}
+                onPress={() => void setWallpaper(entry.id)}
                 className="flex-1 gap-1.5">
                 <View
                   className={

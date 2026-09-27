@@ -5,7 +5,7 @@ import { scopePrefix } from './scope';
 import { accountMnemonicKey, vaultGet, vaultSet } from './vault';
 
 describe('the erase path', () => {
-  it('keeps identity keys when another medium fails and succeeds on retry', async () => {
+  it('keeps account keys when another medium fails and succeeds on retry', async () => {
     const accountId = 'retry-account';
     const key = scopePrefix(accountId) + 'chat.readAt';
     await AsyncStorage.setItem(key, '{}');

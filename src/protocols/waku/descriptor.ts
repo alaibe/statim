@@ -7,7 +7,7 @@ export const WAKU_PROTOCOL = {
   label: 'Waku',
   external: false,
   description: 'Store-and-forward messaging through an nwaku node you supply.',
-  recipient: {
+  address: {
     label: 'Public key',
     placeholder: 'npub1… or 64-char hex',
     noun: 'a public key',

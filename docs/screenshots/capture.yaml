@@ -52,19 +52,19 @@ appId: com.statusoriginal.app
     timeout: 60000
 - extendedWaitUntil:
     visible:
-      id: "conversation-local-status"
+      id: "chat-local-status"
     timeout: 30000
 - waitForAnimationToEnd
 - takeScreenshot: chats
 
 - tapOn:
-    id: "conversation-local-status"
+    id: "chat-local-status"
 - extendedWaitUntil:
     visible:
       id: "composer-input"
     timeout: 20000
 - waitForAnimationToEnd
-- takeScreenshot: status-room
+- takeScreenshot: status-chat
 - tapOn:
     id: "composer-input"
 - inputText: "Remember to book the train tomorrow"

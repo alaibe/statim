@@ -1,6 +1,6 @@
 import {
   Client,
-  ConsentState,
+  type ConsentState,
   ConversationVersion,
   Dm,
   Group,
@@ -21,18 +21,21 @@ import {
   readInlineAttachment,
   writeInlineAttachment,
 } from '@/core/messaging/attachments';
+import { protocolChatId } from '@/core/messaging/namespace';
 import type { ChatSession, GroupInfo } from '@/core/messaging/protocol';
 import type {
-  ChatMessage,
-  Conversation,
-  ConversationId,
+  Chat,
+  ProtocolChatId,
   GroupMember,
   GroupRole,
   MessageContent,
   MessageId,
   ParticipantId,
-  SelfIdentity,
+  SelfParticipant,
   Unsubscribe,
+  ConsentDecision,
+  ProtocolMessage,
+  ProtocolChat,
 } from '@/core/messaging/types';
 import { isParticipantId } from '@/core/messaging/bots';
 import { PLUGIN_AUTHORITY } from './codec';
@@ -77,11 +80,11 @@ export async function eraseXmtpLocalDatabase(options: XmtpEraseOptions): Promise
 }
 
 export class XmtpSession implements ChatSession {
-  readonly self: SelfIdentity;
+  readonly self: SelfParticipant;
   readonly sendsCustom = true;
 
   private readonly addressCache = new Map<ParticipantId, string>();
-  private readonly deletedListeners = new Set<(id: ConversationId, ids: MessageId[]) => void>();
+  private readonly deletedListeners = new Set<(id: ProtocolChatId, ids: MessageId[]) => void>();
   private closed = false;
 
   private constructor(
@@ -120,11 +123,11 @@ export class XmtpSession implements ChatSession {
     return new XmtpSession(client, byTypeId, opts.account, opts.accountId);
   }
 
-  async whenListed(first: Conversation[]): Promise<Conversation[]> {
+  async whenListed(first: ProtocolChat[]): Promise<ProtocolChat[]> {
     return first;
   }
 
-  async listConversations(): Promise<Conversation[]> {
+  async listChats(): Promise<ProtocolChat[]> {
     const raw = await this.client.conversations.list(
       { lastMessage: true },
       undefined,
@@ -135,10 +138,10 @@ export class XmtpSession implements ChatSession {
       undefined,
       'last_activity'
     );
-    return Promise.all(raw.map((c) => this.toConversation(c)));
+    return Promise.all(raw.map((c) => this.toChat(c)));
   }
 
-  async getMessages(id: ConversationId, opts?: { limit?: number }): Promise<ChatMessage[]> {
+  async getMessages(id: ProtocolChatId, opts?: { limit?: number }): Promise<ProtocolMessage[]> {
     const conversation = await this.client.conversations.findConversation(toXmtpId(id));
     if (!conversation) return [];
 
@@ -146,7 +149,7 @@ export class XmtpSession implements ChatSession {
     return (await Promise.all(messages.map((m) => this.toMessage(m, id)))).reverse();
   }
 
-  async countUnread(id: ConversationId, since: number): Promise<number> {
+  async countUnread(id: ProtocolChatId, since: number): Promise<number> {
     const conversation = await this.client.conversations.findConversation(toXmtpId(id));
     if (!conversation) return 0;
     const messages = await conversation.messages({
@@ -162,7 +165,7 @@ export class XmtpSession implements ChatSession {
     ).length;
   }
 
-  async resolvePeer(addressOrId: string): Promise<ParticipantId | null> {
+  async resolveParticipant(addressOrId: string): Promise<ParticipantId | null> {
     const trimmed = addressOrId.trim();
 
     if (isParticipantId(trimmed)) return trimmed as InboxId;
@@ -203,31 +206,33 @@ export class XmtpSession implements ChatSession {
     return out;
   }
 
-  async createDm(peer: ParticipantId): Promise<Conversation> {
-    const dm = await this.client.conversations.findOrCreateDm(peer as InboxId);
-    return this.toConversation(dm as unknown as XmtpConversation<any>);
+  async createDm(participant: ParticipantId): Promise<ProtocolChat> {
+    const dm = await this.client.conversations.findOrCreateDm(participant as InboxId);
+    return this.toChat(dm as unknown as XmtpConversation<any>);
   }
 
-  async createGroup(peers: ParticipantId[], title: string): Promise<Conversation> {
-    const group = await this.client.conversations.newGroup(peers as InboxId[], { name: title });
-    return this.toConversation(group as unknown as XmtpConversation<any>);
+  async createGroup(participants: ParticipantId[], title: string): Promise<ProtocolChat> {
+    const group = await this.client.conversations.newGroup(participants as InboxId[], {
+      name: title,
+    });
+    return this.toChat(group as unknown as XmtpConversation<any>);
   }
 
-  private async requireGroup(id: ConversationId): Promise<Group<any>> {
+  private async requireGroup(id: ProtocolChatId): Promise<Group<any>> {
     const conversation = await this.client.conversations.findConversation(toXmtpId(id));
-    if (!conversation) throw new Error(`Conversation ${id} not found`);
+    if (!conversation) throw new Error(`Chat ${id} not found`);
     if (conversation.version !== ConversationVersion.GROUP) {
-      throw new Error('That only works in a group conversation.');
+      throw new Error('That only works in a group.');
     }
     return conversation as Group<any>;
   }
 
-  async getMembers(id: ConversationId): Promise<GroupMember[]> {
+  async getMembers(id: ProtocolChatId): Promise<GroupMember[]> {
     const members = await (await this.requireGroup(id)).members();
     return members.map((m) => ({ id: m.inboxId, role: mapRole(m.permissionLevel) }));
   }
 
-  async getGroupInfo(id: ConversationId): Promise<GroupInfo> {
+  async getGroupInfo(id: ProtocolChatId): Promise<GroupInfo> {
     const group = await this.requireGroup(id);
     const [description, avatarUri, members] = await Promise.all([
       group.description(),
@@ -237,25 +242,25 @@ export class XmtpSession implements ChatSession {
     return { description, avatarUri: avatarUri || undefined, memberCount: members.length };
   }
 
-  async addMembers(id: ConversationId, peers: ParticipantId[]): Promise<void> {
-    await (await this.requireGroup(id)).addMembers(peers as InboxId[]);
+  async addMembers(id: ProtocolChatId, participants: ParticipantId[]): Promise<void> {
+    await (await this.requireGroup(id)).addMembers(participants as InboxId[]);
   }
 
-  async removeMembers(id: ConversationId, peers: ParticipantId[]): Promise<void> {
-    await (await this.requireGroup(id)).removeMembers(peers as InboxId[]);
+  async removeMembers(id: ProtocolChatId, participants: ParticipantId[]): Promise<void> {
+    await (await this.requireGroup(id)).removeMembers(participants as InboxId[]);
   }
 
-  async renameGroup(id: ConversationId, title: string): Promise<void> {
+  async renameGroup(id: ProtocolChatId, title: string): Promise<void> {
     await (await this.requireGroup(id)).updateName(title);
   }
 
-  async leaveGroup(id: ConversationId): Promise<void> {
+  async leaveGroup(id: ProtocolChatId): Promise<void> {
     await (await this.requireGroup(id)).leaveGroup();
   }
 
-  async send(id: ConversationId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
+  async send(id: ProtocolChatId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
     const conversation = await this.client.conversations.findConversation(toXmtpId(id));
-    if (!conversation) throw new Error(`Conversation ${id} not found`);
+    if (!conversation) throw new Error(`Chat ${id} not found`);
 
     if (replyTo && content.kind === 'text') {
       return conversation.send({
@@ -305,26 +310,26 @@ export class XmtpSession implements ChatSession {
     throw new Error(`Cannot send content of kind "${content.kind}"`);
   }
 
-  async deleteMessage(id: ConversationId, messageId: MessageId): Promise<void> {
+  async deleteMessage(id: ProtocolChatId, messageId: MessageId): Promise<void> {
     const conversation = await this.client.conversations.findConversation(toXmtpId(id));
-    if (!conversation) throw new Error(`Conversation ${id} not found`);
+    if (!conversation) throw new Error(`Chat ${id} not found`);
     await conversation.deleteMessage(messageId as Parameters<typeof conversation.deleteMessage>[0]);
   }
 
   async streamDeletedMessages(
-    listener: (id: ConversationId, messageIds: MessageId[]) => void
+    listener: (id: ProtocolChatId, messageIds: MessageId[]) => void
   ): Promise<Unsubscribe> {
     this.deletedListeners.add(listener);
     return () => this.deletedListeners.delete(listener);
   }
 
-  async setConsent(id: ConversationId, consent: 'allowed' | 'denied'): Promise<void> {
+  async setConsent(id: ProtocolChatId, consent: ConsentDecision): Promise<void> {
     const conversation = await this.client.conversations.findConversation(toXmtpId(id));
     if (!conversation) return;
-    await conversation.updateConsent(consent);
+    await conversation.updateConsent(consent === 'accepted' ? 'allowed' : 'denied');
   }
 
-  async sendReadReceipt(id: ConversationId): Promise<void> {
+  async sendReadReceipt(id: ProtocolChatId): Promise<void> {
     const conversation = await this.client.conversations.findConversation(toXmtpId(id));
     if (!conversation) return;
     await conversation.send({ readReceipt: {} });
@@ -354,17 +359,21 @@ export class XmtpSession implements ChatSession {
     await this.client.conversations.syncAllConversations(['allowed', 'unknown']);
   }
 
-  async streamMessages(onMessage: (m: ChatMessage) => void): Promise<Unsubscribe> {
+  async streamMessages(onMessage: (m: ProtocolMessage) => void): Promise<Unsubscribe> {
     await this.client.conversations.streamAllMessages(
       async (message) => {
-        if (this.closed) return;
+        if (this.closed || isReadReceipt(message)) return;
+        const id =
+          GROUP_TOPIC.exec(message.topic)?.[1] ??
+          (await this.client.conversations.findConversationByTopic(message.topic))?.id;
+        if (!id || this.closed) return;
+        const chatId = protocolChatId(id);
         const deletedId = message.nativeContent?.deleteMessage?.messageId;
         if (deletedId) {
-          for (const listener of this.deletedListeners) listener(message.topic, [deletedId]);
+          for (const listener of this.deletedListeners) listener(chatId, [deletedId]);
           return;
         }
-        if (isReadReceipt(message)) return;
-        onMessage(await this.toMessage(message, message.topic));
+        onMessage(await this.toMessage(message, chatId));
       },
       'all',
       ['allowed', 'unknown']
@@ -372,10 +381,10 @@ export class XmtpSession implements ChatSession {
     return () => this.client.conversations.cancelStreamAllMessages();
   }
 
-  async streamConversations(onConversation: (c: Conversation) => void): Promise<Unsubscribe> {
+  async streamChats(onChat: (c: ProtocolChat) => void): Promise<Unsubscribe> {
     await this.client.conversations.stream(async (conversation) => {
-      const converted = await this.toConversation(conversation, () => !this.closed);
-      if (!this.closed) onConversation(converted);
+      const converted = await this.toChat(conversation, () => !this.closed);
+      if (!this.closed) onChat(converted);
     });
     return () => this.client.conversations.cancelStream();
   }
@@ -390,10 +399,10 @@ export class XmtpSession implements ChatSession {
     await this.client.deleteLocalDatabase();
   }
 
-  private async toConversation(
+  private async toChat(
     raw: XmtpConversation<any>,
     current: () => boolean = () => true
-  ): Promise<Conversation> {
+  ): Promise<ProtocolChat> {
     const isGroup = raw.version === ConversationVersion.GROUP;
 
     let title: string;
@@ -410,13 +419,13 @@ export class XmtpSession implements ChatSession {
         members.find((m) => m.inboxId === this.self.participantId)?.permissionLevel
       );
     } else {
-      const peer = await (raw as Dm<any>).peerInboxId();
-      title = peer;
-      memberIds = [peer, this.self.participantId];
+      const participant = await (raw as Dm<any>).peerInboxId();
+      title = participant;
+      memberIds = [participant, this.self.participantId];
     }
 
     return {
-      id: raw.id,
+      id: protocolChatId(raw.id),
       kind: isGroup ? 'group' : 'dm',
       title,
       memberIds,
@@ -427,22 +436,22 @@ export class XmtpSession implements ChatSession {
     };
   }
 
-  private async previewOf(raw: XmtpConversation<any>): Promise<ChatMessage | undefined> {
+  private async previewOf(raw: XmtpConversation<any>): Promise<ProtocolMessage | undefined> {
     const last = raw.lastMessage;
     if (!last) return undefined;
     const shown = isReadReceipt(last)
       ? (await raw.messages({ limit: 5 })).find((message) => !isReadReceipt(message))
       : last;
-    return shown ? this.toMessage(shown, raw.id) : undefined;
+    return shown ? this.toMessage(shown, protocolChatId(raw.id)) : undefined;
   }
 
   private async toMessage(
     raw: DecodedMessage<any>,
-    conversationId: ConversationId
-  ): Promise<ChatMessage> {
+    chatId: ProtocolChatId
+  ): Promise<ProtocolMessage> {
     return {
       id: raw.id,
-      conversationId,
+      chatId,
       senderId: raw.senderInboxId,
       sentAt: Math.round(raw.sentNs / 1_000_000),
       fromMe: raw.senderInboxId === this.self.participantId,
@@ -520,7 +529,9 @@ export class XmtpSession implements ChatSession {
   }
 }
 
-function toXmtpId(id: ConversationId): XmtpConversationId {
+const GROUP_TOPIC = /\/xmtp\/mls\/1\/g-(.*?)\/proto/;
+
+function toXmtpId(id: string): XmtpConversationId {
   return id as XmtpConversationId;
 }
 
@@ -539,10 +550,10 @@ function mapRole(level: 'member' | 'admin' | 'super_admin' | undefined): GroupRo
   return 'member';
 }
 
-function mapConsent(state: ConsentState): Conversation['consent'] {
-  if (state === 'allowed') return 'allowed';
-  if (state === 'denied') return 'denied';
-  return 'unknown';
+function mapConsent(state: ConsentState): Chat['consent'] {
+  if (state === 'allowed') return 'accepted';
+  if (state === 'denied') return 'declined';
+  return 'request';
 }
 
 function describeGroupUpdate(update: {

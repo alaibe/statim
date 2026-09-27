@@ -1,20 +1,30 @@
-import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { Avatar, Button, Enter, Field, IconButton, Screen, stagger, Text, toast } from '@/design';
-import { useIdentityStore } from '@/core/identity/identity-store';
-import { createMnemonic, keyringFromMnemonic, shortAddress } from '@/core/identity/keyring';
-import { RevealablePhrase } from '@/features/identity/recovery-phrase';
+import {
+  Avatar,
+  Button,
+  copyText,
+  Enter,
+  Field,
+  IconButton,
+  Screen,
+  stagger,
+  Text,
+  toast,
+} from '@/design';
+import { useAccountStore } from '@/core/account/account-store';
+import { createMnemonic, keyringFromMnemonic, shortAddress } from '@/core/account/keyring';
+import { RevealablePhrase } from '@/features/account/recovery-phrase';
 import { errorMessage } from '@/core/errors';
 import { useBack } from '@/features/navigation/use-back';
 
-export default function CreateIdentity() {
+export default function CreateAccount() {
   const goBack = useBack('/(onboarding)/welcome');
   const router = useRouter();
-  const adoptIdentity = useIdentityStore((s) => s.adoptIdentity);
+  const adoptAccount = useAccountStore((s) => s.adoptAccount);
 
   const [{ phrase, preview }] = useState(() => {
     const phrase = createMnemonic();
@@ -28,7 +38,7 @@ export default function CreateIdentity() {
   async function confirm() {
     setSaving(true);
     try {
-      await adoptIdentity(phrase, label);
+      await adoptAccount(phrase, label);
       router.replace('/chats');
     } catch (error) {
       toast.error(errorMessage(error, 'Could not save your account'));
@@ -80,10 +90,9 @@ export default function CreateIdentity() {
               label="Copy phrase"
               tone="neutral"
               size="sm"
-              onPress={async () => {
-                await Clipboard.setStringAsync(phrase);
-                toast.info('Copied. Paste it somewhere safe, then clear your clipboard.');
-              }}
+              onPress={() =>
+                copyText(phrase, 'Copied. Paste it somewhere safe, then clear your clipboard.')
+              }
             />
           </RevealablePhrase>
         </Animated.View>

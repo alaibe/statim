@@ -1,24 +1,24 @@
 import { schnorr } from '@noble/curves/secp256k1';
 import { bytesToHex } from '@noble/hashes/utils';
 
-import type { DerivedKey } from '@/core/identity/keyring';
+import type { DerivedKey } from '@/core/account/keyring';
 import { encodeNpub } from '@/lib/bech32';
 import { randomBytes } from '@/lib/random';
 
 export const NOSTR_DERIVATION_PATH = "m/44'/1237'/0'/0/0";
 
-export interface NostrIdentity {
+export interface NostrKeys {
   secretKey: Uint8Array;
   publicKey: string;
   npub: string;
 }
 
-export function identityFromDerivedKey(key: DerivedKey): NostrIdentity {
+export function keysFromDerivedKey(key: DerivedKey): NostrKeys {
   const secretKey = key.privateKey.slice(0, 32);
-  return identityFromSecretKey(secretKey);
+  return keysFromSecretKey(secretKey);
 }
 
-export function identityFromSecretKey(secretKey: Uint8Array): NostrIdentity {
+export function keysFromSecretKey(secretKey: Uint8Array): NostrKeys {
   const publicKeyBytes = schnorr.getPublicKey(secretKey);
   return {
     secretKey,
@@ -27,6 +27,6 @@ export function identityFromSecretKey(secretKey: Uint8Array): NostrIdentity {
   };
 }
 
-export function ephemeralIdentity(): NostrIdentity {
-  return identityFromSecretKey(randomBytes(32));
+export function ephemeralKeys(): NostrKeys {
+  return keysFromSecretKey(randomBytes(32));
 }

@@ -72,7 +72,7 @@ export function persistedCache<T>({ name, limit, ttlMs, missTtlMs }: PersistedCa
     },
 
     /** `undefined` when there is no fresh answer. */
-    peek(key: string): T | undefined {
+    peek(key: string): Readonly<T> | undefined {
       const known = entries.get(key);
       return known && fresh(known) ? known.value : undefined;
     },
@@ -83,7 +83,7 @@ export function persistedCache<T>({ name, limit, ttlMs, missTtlMs }: PersistedCa
     },
 
     /** One request per key; its answer is dropped if the key was forgotten or the cache cleared meanwhile. */
-    load(key: string, fetch: () => Promise<T>): Promise<T> {
+    load(key: string, fetch: () => Promise<T>): Promise<Readonly<T>> {
       const known = entries.get(key);
       if (known && fresh(known)) return Promise.resolve(known.value);
 

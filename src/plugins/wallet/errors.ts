@@ -17,7 +17,7 @@ const ACTIONS = {
   review: { verb: 'review this transfer', stage: 'before' },
   send: { verb: 'complete this payment', stage: 'after' },
   balance: { verb: 'load the balance', stage: 'lookup' },
-  fees: { verb: 'load network fees', stage: 'lookup' },
+  fees: { verb: 'load fees', stage: 'lookup' },
   quote: { verb: 'quote this trade', stage: 'before' },
   trade: { verb: 'complete this trade', stage: 'after' },
   status: { verb: 'check this bridge', stage: 'lookup' },
@@ -28,13 +28,13 @@ export function walletErrorMessage(
   chain: ChainStrategy | undefined,
   operation: keyof typeof ACTIONS
 ): string {
-  const network = chain?.name ?? 'the selected network';
+  const chainName = chain?.name ?? 'the selected chain';
   const currency = chain?.transfer?.symbol ?? 'the native currency';
   const { verb: action, stage } = ACTIONS[operation];
   const reviewStatus = stage === 'before' ? ' Nothing was sent.' : '';
   const uncertainStatus =
     stage === 'after'
-      ? ' The payment may have been submitted. Check your transaction history or the network explorer before trying again to avoid sending twice.'
+      ? ' The payment may have been submitted. Check your transaction history or the block explorer before trying again to avoid sending twice.'
       : reviewStatus;
   const causes: {
     message?: unknown;
@@ -79,7 +79,7 @@ export function walletErrorMessage(
       text
     )
   ) {
-    return `A network service is limiting requests, so we could not ${action} on ${network}. Wait for the limit to reset.${uncertainStatus}`;
+    return `A remote server is limiting requests, so we could not ${action} on ${chainName}. Wait for the limit to reset.${uncertainStatus}`;
   }
   if (
     causes.some((entry) => entry instanceof InsufficientFundsError) ||
@@ -88,7 +88,7 @@ export function walletErrorMessage(
         text
       ))
   ) {
-    return `Not enough ${currency} on ${network} for this transfer. Add ${currency} on ${network} and keep enough for network fees. Funds on other networks cannot pay these fees.${reviewStatus}`;
+    return `Not enough ${currency} on ${chainName} for this transfer. Add ${currency} on ${chainName} and keep enough for fees. Funds on other chains cannot pay these fees.${reviewStatus}`;
   }
   if (
     causes.some((entry) => entry.code === 4902) ||
@@ -96,40 +96,40 @@ export function walletErrorMessage(
       text
     )
   ) {
-    return `${network} is not available for this operation in this app. Choose another supported network with /networks.${reviewStatus}`;
+    return `${chainName} is not available for this operation in this app. Choose another supported chain with /chains.${reviewStatus}`;
   }
   if (
     causes.some((entry) => entry instanceof UserRejectedRequestError || entry.code === 4001) ||
     /\buser (?:rejected|denied|cancell?ed)\b|\bauthentication (?:was )?cancell?ed\b/i.test(text)
   ) {
-    return `The ${network} request was cancelled. Review the request details and approve only if you want to continue.${reviewStatus}`;
+    return `The ${chainName} request was cancelled. Review the request details and approve only if you want to continue.${reviewStatus}`;
   }
   if (reverted) {
     if (stage === 'lookup') {
-      return `Could not ${action} on ${network} because the network rejected the lookup. Check the selected network and token, then try the lookup again.`;
+      return `Could not ${action} on ${chainName} because the chain rejected the lookup. Check the selected chain and token, then try the lookup again.`;
     }
     return stage === 'before'
-      ? `This transfer would be rejected on ${network}. Check the recipient, amount and token; the recipient contract may not accept this transfer. Nothing was sent.`
-      : `The transfer was rejected or reverted on ${network}. Check the recipient, amount and token before continuing; a reverted transaction may still cost ${currency} in network fees.`;
+      ? `This transfer would be rejected on ${chainName}. Check the recipient, amount and token; the recipient contract may not accept this transfer. Nothing was sent.`
+      : `The transfer was rejected or reverted on ${chainName}. Check the recipient, amount and token before continuing; a reverted transaction may still cost ${currency} in fees.`;
   }
   if (
     /invalid (?:recipient|address)|(?:recipient|address)[^\n]*(?:is not valid|is invalid)|is not (?:an? )?(?:\w+ )?address/i.test(
       text
     )
   ) {
-    return `The recipient is not a valid address for ${network}. Check and correct the full recipient address, and confirm it belongs to this network.${reviewStatus}`;
+    return `The recipient is not a valid address for ${chainName}. Check and correct the full recipient address, and confirm it belongs to this chain.${reviewStatus}`;
   }
   if (
     causes.some((entry) => entry.status === 401 || entry.status === 403) ||
     /(?:\b(?:HTTP(?: error| status)?|status:?)\s+|\bfailed \(|\breturned )(?:401|403)\b/i.test(text)
   ) {
-    return `The network service denied access while trying to ${action} on ${network}. Check the endpoint URL and access key in ${chain ? `/rpc --chain ${chain.id}` : 'the network settings'}.${uncertainStatus}`;
+    return `The remote server denied access while trying to ${action} on ${chainName}. Check the endpoint URL and access key in ${chain ? `/rpc --chain ${chain.id}` : 'the chain settings'}.${uncertainStatus}`;
   }
   if (
     causes.some((entry) => entry instanceof TimeoutError || entry.code === 'ETIMEDOUT') ||
     /timed?\s*out|timeout/i.test(text)
   ) {
-    return `A network service did not respond in time, so we could not ${action} on ${network}. Check your connection and wait for the service to recover.${uncertainStatus}`;
+    return `A remote server did not respond in time, so we could not ${action} on ${chainName}. Check your connection and wait for the server to recover.${uncertainStatus}`;
   }
   if (
     causes.some(
@@ -144,7 +144,7 @@ export function walletErrorMessage(
       text
     )
   ) {
-    return `Could not ${action} on ${network} because a network service could not be reached. Check your internet connection and wait for the service to recover.${uncertainStatus}`;
+    return `Could not ${action} on ${chainName} because a remote server could not be reached. Check your internet connection and wait for the server to recover.${uncertainStatus}`;
   }
 
   const ordinary = errorMessage(error, '').trim();
@@ -154,9 +154,9 @@ export function walletErrorMessage(
       text
     );
   if (ordinary && !diagnostic) return `${ordinary}${uncertainStatus}`;
-  return `Could not ${action} on ${network} because the network service returned an unexpected error. Check the selected network and wait for the service to recover.${uncertainStatus}`;
+  return `Could not ${action} on ${chainName} because the remote server returned an unexpected error. Check the selected chain and wait for the server to recover.${uncertainStatus}`;
 }
 
 export function sentPaymentErrorMessage(chainName: string, hash: string, noun = 'payment'): string {
-  return `Your ${noun} was sent on ${chainName}, but its confirmation could not be posted in the chat. Do not send it again. Check the network explorer for its status. Transaction hash: ${hash}`;
+  return `Your ${noun} was sent on ${chainName}, but its confirmation could not be posted in the chat. Do not send it again. Check the block explorer for its status. Transaction hash: ${hash}`;
 }

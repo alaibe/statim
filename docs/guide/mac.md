@@ -1,7 +1,7 @@
 # On the Mac
 
-The desktop app is the same app in a window: every screen, every network, every
-plugin. The layout puts a sidebar of chats beside the open conversation,
+The desktop app is the same app in a window: every screen, every protocol, every
+plugin. The layout puts a sidebar of chats beside the open chat,
 the way Telegram for macOS does, and a keyboard and a pointer take over from
 taps.
 

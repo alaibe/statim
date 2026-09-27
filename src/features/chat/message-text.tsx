@@ -5,7 +5,7 @@ import { View } from 'react-native';
 import { ActionSheet, cn, Text } from '@/design';
 import { type LinkSegment, segmentText } from '@/core/messaging/links';
 import { type Block, listMarker, parseMarkdown, type Span } from '@/core/messaging/markdown';
-import type { ParticipantId } from '@/core/messaging/types';
+import type { ParticipantId, ChatId } from '@/core/messaging/types';
 
 import { linkActions, openLink } from './link-actions';
 import { useOffersSend } from './use-offers-send';
@@ -21,26 +21,25 @@ export function MessageText({
   text,
   fromMe,
   className,
-  conversationId,
+  chatId,
   onCommand,
 }: {
   text: string;
   fromMe: boolean;
   className?: string;
   /** With `onCommand`, an address offers to send funds where /send can run. */
-  conversationId?: string;
+  chatId?: ChatId;
   onCommand?: (command: string) => void;
 }) {
   const [held, setHeld] = useState<LinkSegment | null>(null);
   const blocks = useMemo(() => parseMarkdown(text), [text]);
-  const canSend = useOffersSend(conversationId, onCommand);
+  const canSend = useOffersSend(chatId, onCommand);
   const look: Look = {
     fromMe,
     className,
     onHold: setHeld,
-    onMention: conversationId
-      ? (member) =>
-          router.push({ pathname: '/profile/[id]', params: { id: conversationId, member } })
+    onMention: chatId
+      ? (member) => router.push({ pathname: '/profile/[id]', params: { id: chatId, member } })
       : undefined,
   };
   const only = blocks.length === 1 ? blocks[0] : undefined;
@@ -67,7 +66,7 @@ export function MessageText({
   );
 }
 
-function Blocks({ blocks, look }: { blocks: Block[]; look: Look }) {
+function Blocks({ blocks, look }: { blocks: readonly Block[]; look: Look }) {
   const { fromMe, className } = look;
   return blocks.map((block, i) => {
     const gap = block.spaced ? 'mt-1.5' : undefined;
@@ -129,7 +128,7 @@ function Blocks({ blocks, look }: { blocks: Block[]; look: Look }) {
   });
 }
 
-function Spans({ spans, look }: { spans: Span[]; look: Look }) {
+function Spans({ spans, look }: { spans: readonly Span[]; look: Look }) {
   return spans.map((span, i) => {
     const style = cn(
       span.style.bold && 'font-bold',

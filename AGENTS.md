@@ -50,4 +50,102 @@ Biome formats TypeScript and JSON, rustfmt formats `src-tauri`. Neither lints;
   `patches/README.md` with its symptom, cause and removal condition. Add one
   only with that entry.
 
+## Words
+
+Use these words in code, UI text, the CLI and the guide. Code in `src/protocols/<name>/` that mirrors that protocol's own API keeps the protocol's words (a Matrix room, an XMTP inbox).
+
+### Messaging
+
+**Protocol**: A messaging system the app speaks itself: XMTP, Matrix, Telegram, Nostr or Waku.
+_Avoid_: network, transport, service
+
+**Transport**: The part of a protocol that only moves messages, where the app keeps the chats and their history itself, as for Nostr and Waku.
+
+**Network**: The service a chat lives on. It is the chat's protocol, or for a bridged chat, the service at the far end of the bridge, such as Slack or WhatsApp.
+_Avoid_: platform, service
+
+**Bridge**: A bot on a Matrix homeserver that carries chats between Matrix and another network.
+
+**Chat**: A place where participants exchange messages: a DM, a group or a channel.
+_Avoid_: conversation, room, dialog
+
+**DM**: A chat between you and one other participant.
+_Avoid_: direct chat, private chat, 1:1
+
+**Group**: A chat with several members where every member can post, unless an admin restricts it.
+_Avoid_: room, supergroup
+
+**Channel**: A chat where only some members post and everyone else reads.
+_Avoid_: broadcast
+
+**Message**: One item posted in a chat: text, media, a poll, a widget.
+_Avoid_: event, post
+
+**Reply**: A message that answers an earlier message and quotes it.
+
+**Thread**: The messages posted under one message, shown apart from the rest of the chat.
+_Avoid_: topic, sub-chat
+
+**Request**: A chat someone started with you that you have not accepted yet. You accept it or decline it.
+_Avoid_: invite, message request, pending chat
+
+**Decline**: Refuse a request. The chat leaves your list; the sender is not blocked.
+_Avoid_: deny, ignore, reject, block
+
+**Join request**: Someone asking to join a group or channel you manage.
+
+**Invite link**: A link that lets whoever opens it join a group or channel.
+
+### People
+
+**User**: The person holding the device.
+
+**Account**: A set of keys you hold in this app, with its own chats, settings and protocol logins. You can have several.
+_Avoid_: identity, profile, user
+
+**Participant**: Someone who can take part in chats on one protocol, known by that protocol's id. One person on two protocols is two participants.
+_Avoid_: peer, user, inbox, recipient
+
+**Address**: What someone gives you so you can reach them on a protocol: an Ethereum address, an ENS name, a Matrix ID, a Telegram username. The protocol resolves it to a participant.
+_Avoid_: handle
+
+**Member**: A participant in a group or channel, with a role.
+
+**Role**: What a member may do in a group or channel: owner, admin or member.
+
+**Contact**: Someone listed in Contacts: a participant you have a DM with, or a person from your phone's address book.
+_Avoid_: peer, friend
+
+**Bot**: A participant run by a program instead of a person.
+
+### Chat list
+
+**Chat list**: Every chat of the active account, across all its protocols, in one list.
+_Avoid_: inbox
+
+**Filter**: One of the tabs above the chat list that narrows it: All, Unread, Mentions, DMs, Groups.
+_Avoid_: tab, folder
+
+**Folder**: A row in the chat list that holds a set of chats: the archive, or every chat on one network.
+_Avoid_: directory
+
+**Archive**: The folder for chats you have moved out of the main list.
+
+### Extending the app
+
+**Plugin**: A package that adds slash commands, message types, bots or screens to the app.
+_Avoid_: extension, mini-app
+
+**Slash command**: A `/name` typed in a chat's composer.
+_Avoid_: command (on its own), action
+
+**CLI command**: A `status-original <name>` run in a terminal against the running desktop app.
+
+**Widget**: A message whose layout and buttons are described by data and drawn by the app.
+
+### Wallet
+
+**Chain**: A blockchain the wallet works with, such as Ethereum or Base.
+_Avoid_: network
+
 `CONTRIBUTING.md` covers setup and the contribution workflow.

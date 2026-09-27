@@ -3,7 +3,7 @@ import { useKeyedLoad } from '@/lib/use-keyed-load';
 
 const KEY = 'chat.recentEmoji';
 const LIMIT = 32;
-const NONE: string[] = [];
+const NONE: readonly string[] = Object.freeze([]);
 
 export function useRecentEmoji() {
   const accountId = useChatStore((s) => s.accountId);

@@ -3,11 +3,11 @@ import { View } from 'react-native';
 
 import { ListItem, Sheet, toast } from '@/design';
 import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
-import { conversationTitle } from '@/core/messaging/display-names';
+import { chatTitle } from '@/core/messaging/display-names';
 import { contentPreview } from '@/core/messaging/preview';
-import type { ChatMessage, ConversationId, ParticipantId } from '@/core/messaging/types';
+import type { ChatMessage, ChatId, ParticipantId } from '@/core/messaging/types';
 import { errorMessage } from '@/core/errors';
-import { ConversationAvatar } from './conversation-avatar';
+import { ChatAvatar } from './chat-avatar';
 
 export function ForwardSheet({
   message,
@@ -16,11 +16,11 @@ export function ForwardSheet({
   onClose,
 }: {
   message: ChatMessage | null;
-  from: ConversationId;
+  from: ChatId;
   nameFor: (id: ParticipantId) => string;
   onClose: () => void;
 }) {
-  const conversations = useChatStore((s) => s.conversations);
+  const chats = useChatStore((s) => s.chats);
   const sessions = useChatStore((s) => s.sessions);
   const sendMessage = useChatStore((s) => s.sendMessage);
 
@@ -34,15 +34,15 @@ export function ForwardSheet({
         style={{ borderCurve: 'continuous' }}
         className="max-h-[420px] overflow-hidden rounded-card bg-surface-raised">
         <FlashList
-          data={conversations.filter((c) => c.id !== from)}
+          data={chats.filter((c) => c.id !== from)}
           keyExtractor={(c) => c.id}
           renderItem={({ item }) => {
             const selfId = selfIdFor({ sessions }, item.protocol);
             return (
               <ListItem
                 testID={`forward-to-${item.id}`}
-                title={conversationTitle(item, selfId, nameFor)}
-                leading={<ConversationAvatar conversation={item} selfId={selfId} size="sm" />}
+                title={chatTitle(item, selfId, nameFor)}
+                leading={<ChatAvatar chat={item} selfId={selfId} size="sm" />}
                 onPress={() => {
                   onClose();
                   if (!message) return;

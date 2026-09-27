@@ -4,7 +4,7 @@ import { bytesToHex } from '@noble/hashes/utils';
 import { NATIVE_ID } from '@/core/messaging/namespace';
 import {
   contentTopicFor,
-  conversationIdForTopic,
+  chatIdForTopic,
   decodeEnvelope,
   encodeEnvelope,
   openEnvelope,
@@ -100,10 +100,10 @@ describe('topics and ids', () => {
     expect(topic.startsWith('/status-original/1/')).toBe(true);
   });
 
-  it('hashes the topic into a conversation id that can be a URL segment', () => {
-    // Topics contain slashes; conversation ids become `/chat/<id>`.
+  it('hashes the topic into a chat id that can be a URL segment', () => {
+    // Topics contain slashes; chat ids become `/chat/<id>`.
     const topic = contentTopicFor([alicePub, bobPub]);
     expect(topic).toContain('/');
-    expect(NATIVE_ID.test(conversationIdForTopic(topic))).toBe(true);
+    expect(NATIVE_ID.test(chatIdForTopic(topic))).toBe(true);
   });
 });

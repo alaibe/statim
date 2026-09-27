@@ -47,7 +47,7 @@ const GRADIENT_PROP = (
 
 export interface ChatBackgroundProps {
   pattern?: ChatPatternName;
-  /** `vivid` for a whole window, `subtle` behind one conversation on a phone. */
+  /** `vivid` for a whole window, `subtle` behind one chat on a phone. */
   intensity?: 'subtle' | 'vivid';
 }
 

@@ -36,7 +36,7 @@ export default function Introduction() {
             Create your account
           </Button>
           <Button href="/guide/networks" variant="outline">
-            Connect a network
+            Connect a protocol
           </Button>
         </div>
         <Heading level={2} id="what-it-costs-you" anchor={false}>

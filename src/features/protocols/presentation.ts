@@ -16,7 +16,7 @@ export function protocolSubtitle(protocol: string | undefined): string {
   if (!protocol || protocol === LOCAL_PROTOCOL) return 'On this device only';
 
   const descriptor = protocolById(protocol);
-  if (!descriptor) return 'Unknown transport';
+  if (!descriptor) return 'Unknown protocol';
 
   const { properties } = descriptor.meta;
   if (!properties.endToEndEncrypted) return `${descriptor.label} · not end-to-end encrypted`;
@@ -40,7 +40,7 @@ export function describeProtocol(meta: ChatProtocolMeta): string {
 
 const GROUP_MODEL: Record<ChatProtocolMeta['properties']['groupModel'], string> = {
   enforced: 'enforced membership',
-  'recipient-set': 'membership is just who you address',
+  'participant-set': 'membership is just who you address',
   topic: 'anyone with the topic can join',
 };
 

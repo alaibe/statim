@@ -1,17 +1,17 @@
 import type { Address } from 'viem';
 
-import { shortAddress } from '@/core/identity/keyring';
+import { shortAddress } from '@/core/account/keyring';
 import type { WidgetContent } from '@/core/messaging/types';
 import type { PluginContext } from '@/core/plugins/types';
 import { W } from '@/design/widgets';
 import { looksLikeEnsName, lookupName, resolveName } from '@/lib/evm/ens';
 
 import { chainStrategies, type ChainStrategy } from './chains/strategy';
-import { activeNetwork, defaultChain } from './networks';
+import { activeChain, defaultChain } from './chain-list';
 
 /**
  * Who an address or ENS name in a message belongs to, and what it holds.
- * `offerSend` is off in rooms where /send cannot run.
+ * `offerSend` is off in chats where /send cannot run.
  */
 export async function addressCard(
   context: PluginContext,
@@ -30,8 +30,8 @@ export async function addressCard(
   }
 
   const matches = chains.filter((chain) => chain.isAddress(address));
-  if (matches.length === 0) throw new Error(`${address} belongs to a network that is off.`);
-  const chain = defaultChain(matches, address, (await activeNetwork(context))?.id);
+  if (matches.length === 0) throw new Error(`${address} belongs to a chain that is off.`);
+  const chain = defaultChain(matches, address, (await activeChain(context))?.id);
 
   if (!name && address.startsWith('0x')) {
     name = await lookupName(address as Address).catch(() => null);

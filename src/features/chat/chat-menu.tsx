@@ -1,13 +1,13 @@
 import { ActionSheet, type MenuAnchor } from '@/design';
 import type { ChatPrefs } from '@/core/messaging/chat-prefs';
 import { useChatStore } from '@/core/messaging/chat-store';
-import type { Conversation } from '@/core/messaging/types';
+import type { Chat } from '@/core/messaging/types';
 import { protocolSubtitle } from '@/features/protocols/presentation';
 
-import { ConversationAvatar } from './conversation-avatar';
+import { ChatAvatar } from './chat-avatar';
 
 export interface ChatMenuTarget {
-  conversation: Conversation;
+  chat: Chat;
   anchor: MenuAnchor | null;
 }
 
@@ -19,15 +19,15 @@ export function ChatMenu({
 }: {
   target: ChatMenuTarget | null;
   onClose: () => void;
-  titleOf: (c: Conversation) => string;
-  selfIdOf: (c: Conversation) => string;
+  titleOf: (c: Chat) => string;
+  selfIdOf: (c: Chat) => string;
 }) {
-  const conversation = target?.conversation;
-  const prefs = useChatStore((s) => (conversation ? s.chatPrefs[conversation.id] : undefined));
+  const chat = target?.chat;
+  const prefs = useChatStore((s) => (chat ? s.chatPrefs[chat.id] : undefined));
   const setChatPref = useChatStore((s) => s.setChatPref);
   const markUnread = useChatStore((s) => s.markUnread);
   const choose = (key: keyof ChatPrefs) => {
-    if (conversation) void setChatPref(conversation.id, { [key]: !prefs?.[key] });
+    if (chat) void setChatPref(chat.id, { [key]: !prefs?.[key] });
   };
 
   return (
@@ -35,17 +35,9 @@ export function ChatMenu({
       visible={target !== null}
       anchor={target?.anchor}
       onClose={onClose}
-      title={conversation ? titleOf(conversation) : undefined}
-      subtitle={conversation ? protocolSubtitle(conversation.protocol) : undefined}
-      leading={
-        conversation ? (
-          <ConversationAvatar
-            conversation={conversation}
-            selfId={selfIdOf(conversation)}
-            size="md"
-          />
-        ) : undefined
-      }
+      title={chat ? titleOf(chat) : undefined}
+      subtitle={chat ? protocolSubtitle(chat.protocol) : undefined}
+      leading={chat ? <ChatAvatar chat={chat} selfId={selfIdOf(chat)} size="md" /> : undefined}
       actions={[
         {
           label: prefs?.pinned ? 'Unpin' : 'Pin to top',
@@ -66,7 +58,7 @@ export function ChatMenu({
           label: 'Mark as unread',
           icon: 'mail-unread-outline',
           onPress: () => {
-            if (conversation) void markUnread(conversation.id);
+            if (chat) void markUnread(chat.id);
           },
         },
       ]}

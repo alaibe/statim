@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 
 import { eraseAccount } from '@/core/app/erase-account';
-import { useIdentityStore } from '@/core/identity/identity-store';
-import { createMnemonic } from '@/core/identity/keyring';
+import { useAccountStore } from '@/core/account/account-store';
+import { createMnemonic } from '@/core/account/keyring';
 import { useChatStore } from '@/core/messaging/chat-store';
 
 import {
@@ -16,14 +16,14 @@ import { CliError } from '../errors';
 import { readText } from './input';
 
 function activeAccount() {
-  const { accounts, activeAccountId } = useIdentityStore.getState();
+  const { accounts, activeAccountId } = useAccountStore.getState();
   return accounts.find((a) => a.id === activeAccountId);
 }
 
 export const accountHandlers = {
   async accounts() {
     await whenUnlocked();
-    const { accounts, activeAccountId } = useIdentityStore.getState();
+    const { accounts, activeAccountId } = useAccountStore.getState();
     const data = accounts.map((a) => ({
       id: a.id,
       label: a.label,
@@ -42,7 +42,7 @@ export const accountHandlers = {
   async 'accounts use'({ args }) {
     await whenUnlocked();
     const account = findAccount(args.account!);
-    await useIdentityStore.getState().selectAccount(account.id);
+    await useAccountStore.getState().selectAccount(account.id);
     await whenAccountReady();
     return { data: { id: account.id }, text: `Now using ${account.label}.` };
   },
@@ -50,19 +50,19 @@ export const accountHandlers = {
   async 'accounts rename'({ args }) {
     await whenUnlocked();
     const account = findAccount(args.account!);
-    await useIdentityStore.getState().renameAccount(account.id, args.label!);
+    await useAccountStore.getState().renameAccount(account.id, args.label!);
     return { data: { id: account.id, label: args.label }, text: `Renamed to ${args.label}.` };
   },
 
   async 'accounts create'({ flags }) {
     await whenUnlocked();
-    await useIdentityStore.getState().adoptIdentity(createMnemonic(), label(flags.label));
+    await useAccountStore.getState().adoptAccount(createMnemonic(), label(flags.label));
     const account = activeAccount()!;
     return {
       data: { id: account.id, label: account.label, address: account.address },
       text: [
         `Created ${account.label} (${account.address}).`,
-        'Write down its recovery phrase in the app: Settings › Identity. The command line never shows it.',
+        'Write down its recovery phrase in the app: Settings › Recovery phrase. The command line never shows it.',
       ],
     };
   },
@@ -71,7 +71,7 @@ export const accountHandlers = {
     await whenUnlocked();
     const phrase = await readText(io, 'Recovery phrase: ', true);
     if (!phrase.trim()) throw new CliError('No recovery phrase given.', 'usage');
-    await useIdentityStore.getState().adoptIdentity(phrase, label(flags.label));
+    await useAccountStore.getState().adoptAccount(phrase, label(flags.label));
     const account = activeAccount()!;
     return {
       data: { id: account.id, label: account.label, address: account.address },
@@ -87,27 +87,25 @@ export const accountHandlers = {
       `Erase ${account.label} (${account.address}) from this device?\nWithout its recovery phrase it cannot be restored.`
     );
     await eraseAccount(account.id);
-    router.replace(
-      useIdentityStore.getState().accounts.length ? '/chats' : '/(onboarding)/welcome'
-    );
+    router.replace(useAccountStore.getState().accounts.length ? '/chats' : '/(onboarding)/welcome');
     return { data: { id: account.id, erased: true }, text: `Erased ${account.label}.` };
   },
 
   async whoami() {
     await whenAccountReady();
     const account = activeAccount()!;
-    const networks = Object.entries(useChatStore.getState().sessions).map(([id, session]) => ({
-      network: id,
+    const protocols = Object.entries(useChatStore.getState().sessions).map(([id, session]) => ({
+      protocol: id,
       id: session.self.participantId,
       address: session.self.address,
     }));
     return {
-      data: { id: account.id, label: account.label, address: account.address, networks },
+      data: { id: account.id, label: account.label, address: account.address, protocols },
       text: [
         `${account.label}  ${account.address}`,
-        ...networks.map(
+        ...protocols.map(
           (n) =>
-            `  ${n.network}: ${n.id}${n.address && n.address !== n.id ? ` (${n.address})` : ''}`
+            `  ${n.protocol}: ${n.id}${n.address && n.address !== n.id ? ` (${n.address})` : ''}`
         ),
       ],
     };

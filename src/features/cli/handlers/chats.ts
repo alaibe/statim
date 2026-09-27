@@ -1,8 +1,10 @@
-import { orderConversations, type ChatPrefs } from '@/core/messaging/chat-prefs';
-import { useChatStore } from '@/core/messaging/chat-store';
-import { matchesFilter, networkOf, type ChatFilter } from '@/core/messaging/folders';
+import { orderChats, type ChatPrefs } from '@/core/messaging/chat-prefs';
+import { sessionFor, useChatStore } from '@/core/messaging/chat-store';
+import { draftKey } from '@/core/messaging/drafts';
+import { matchesFilter, networkOf, splitRequests, type ChatFilter } from '@/core/messaging/folders';
+import { chatPermissions } from '@/core/messaging/permissions';
 import { messagePreview } from '@/core/messaging/preview';
-import type { Conversation } from '@/core/messaging/types';
+import type { Chat } from '@/core/messaging/types';
 import { MARKED_UNREAD, unreadBadge } from '@/core/messaging/unread';
 
 import {
@@ -22,13 +24,19 @@ import {
 import { CliError } from '../errors';
 import type { ParsedArgs } from '../args';
 
-function chatJson(c: Conversation, label: ChatLabel = { title: c.title }) {
-  const { chatPrefs, readAt, drafts } = useChatStore.getState();
+function draftOf(chat: Chat): string | undefined {
+  return useChatStore.getState().drafts[draftKey(chat.id)] ?? chat.draft;
+}
+
+function chatJson(c: Chat, label: ChatLabel = { title: c.title }) {
+  const state = useChatStore.getState();
+  const { chatPrefs, readAt } = state;
   const prefs = chatPrefs[c.id] ?? {};
+  const draft = draftOf(c);
   return {
     id: c.id,
     title: label.title,
-    ...(label.peer ? { peer: label.peer, address: label.address } : {}),
+    ...(label.participant ? { participant: label.participant, address: label.address } : {}),
     kind: c.kind,
     network: networkOf(c) ?? 'local',
     unread: unreadBadge(c, readAt[c.id] ?? 0),
@@ -36,13 +44,13 @@ function chatJson(c: Conversation, label: ChatLabel = { title: c.title }) {
     mentions: c.mentionCount ?? 0,
     lastMessage: c.lastMessage ? messagePreview(c.lastMessage) : undefined,
     lastAt: c.lastMessage ? new Date(c.lastMessage.sentAt).toISOString() : undefined,
-    request: c.consent === 'unknown',
-    blocked: c.consent === 'denied',
+    request: c.consent === 'request',
+    declined: c.consent === 'declined',
     pinned: Boolean(prefs.pinned),
     muted: Boolean(prefs.muted),
     archived: Boolean(prefs.archived),
-    canSend: c.canSend !== false,
-    ...(drafts[c.id] || c.draft ? { draft: drafts[c.id] ?? c.draft } : {}),
+    canSend: chatPermissions(c, sessionFor(state, c.id)).send,
+    ...(draft ? { draft } : {}),
   };
 }
 
@@ -102,23 +110,22 @@ const FILTERS: ChatFilter[] = ['unread', 'mentions'];
 export const chatHandlers = {
   async chats({ flags }) {
     await whenAccountReady();
-    const { conversations, chatPrefs, readAt } = useChatStore.getState();
+    const { chats, chatPrefs, readAt } = useChatStore.getState();
     const context = { prefs: chatPrefs, readAt };
     const limit = flags.limit === undefined ? Infinity : Number(flags.limit);
-    const picked = conversations.filter((c) => {
-      if (Boolean(flags.requests) !== (c.consent === 'unknown')) return false;
-      if (!flags.requests && c.consent === 'denied') return false;
+    const { accepted, requests } = splitRequests(chats);
+    const picked = (flags.requests ? requests : accepted).filter((c) => {
       if (Boolean(flags.archived) !== Boolean(chatPrefs[c.id]?.archived)) return false;
-      if (flags.dms && !matchesFilter(c, 'direct', context)) return false;
+      if (flags.dms && !matchesFilter(c, 'dms', context)) return false;
       if (flags.groups && !matchesFilter(c, 'groups', context)) return false;
-      if (typeof flags.network === 'string' && networkOf(c) !== flags.network.toLowerCase())
+      if (
+        typeof flags.network === 'string' &&
+        networkOf(c)?.toLowerCase() !== flags.network.toLowerCase()
+      )
         return false;
       return FILTERS.every((f) => !flags[f] || matchesFilter(c, f, context));
     });
-    const ordered = orderConversations(picked, chatPrefs, { includeArchived: true }).slice(
-      0,
-      limit
-    );
+    const ordered = orderChats(picked, chatPrefs, { includeArchived: true }).slice(0, limit);
     const labels = await chatLabels(ordered);
     const data = ordered.map((c) => chatJson(c, labels.get(c.id)));
     return { data, text: data.length ? data.map(chatLine) : 'No chats.' };
@@ -129,7 +136,11 @@ export const chatHandlers = {
     const store = useChatStore.getState();
     const info = chat.kind === 'dm' ? {} : await store.getGroupInfo(chat.id).catch(() => ({}));
     const data = {
-      ...chatJson(chat, { title: chat.label, peer: chat.peer, address: chat.address }),
+      ...chatJson(chat, {
+        title: chat.label,
+        participant: chat.participant,
+        address: chat.address,
+      }),
       members: chat.memberCount ?? chat.memberIds.length,
       role: chat.selfRole,
       online: chat.online,
@@ -151,17 +162,15 @@ export const chatHandlers = {
     await whenAccountReady();
     const inChat = typeof flags.in === 'string' ? await findChat(flags.in) : undefined;
     const found = await useChatStore.getState().searchMessages(args.query!, inChat?.id);
-    const inResults = new Set(found.map((m) => m.conversationId));
+    const inResults = new Set(found.map((m) => m.chatId));
     const labels = await chatLabels(
-      useChatStore.getState().conversations.filter((c) => inResults.has(c.id))
+      useChatStore.getState().chats.filter((c) => inResults.has(c.id))
     );
     const titles = new Map([...labels].map(([id, l]) => [id, l.title]));
     return {
-      data: found.map((m) => ({ ...messageJson(m), chatTitle: titles.get(m.conversationId) })),
+      data: found.map((m) => ({ ...messageJson(m), chatTitle: titles.get(m.chatId) })),
       text: found.length
-        ? found.map(
-            (m) => `${titles.get(m.conversationId) ?? m.conversationId} › ${messageLine(m)}`
-          )
+        ? found.map((m) => `${titles.get(m.chatId) ?? m.chatId} › ${messageLine(m)}`)
         : 'Nothing found.',
     };
   },
@@ -180,17 +189,17 @@ export const chatHandlers = {
 
   async accept({ args }) {
     const chat = await readyChat(args.chat!);
-    await useChatStore.getState().setConsent(chat.id, 'allowed');
+    await useChatStore.getState().setConsent(chat.id, 'accepted');
     return {
-      data: { id: chat.id, consent: 'allowed' },
+      data: { id: chat.id, consent: 'accepted' },
       text: `Moved ${chat.label} to your chats.`,
     };
   },
 
-  async block({ args }) {
+  async decline({ args }) {
     const chat = await readyChat(args.chat!);
-    await useChatStore.getState().setConsent(chat.id, 'denied');
-    return { data: { id: chat.id, consent: 'denied' }, text: `Blocked ${chat.label}.` };
+    await useChatStore.getState().setConsent(chat.id, 'declined');
+    return { data: { id: chat.id, consent: 'declined' }, text: `Declined ${chat.label}.` };
   },
 
   pin: setPref({ pinned: true }, 'Pinned'),
@@ -203,7 +212,7 @@ export const chatHandlers = {
   async draft({ args }) {
     const chat = await readyChat(args.chat!);
     if (args.text === undefined) {
-      const text = useChatStore.getState().drafts[chat.id] ?? chat.draft ?? '';
+      const text = draftOf(chat) ?? '';
       return { data: { id: chat.id, draft: text }, text: text || '(no draft)' };
     }
     const text = args.text;

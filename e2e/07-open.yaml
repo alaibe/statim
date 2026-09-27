@@ -4,7 +4,7 @@ appId: com.statusoriginal.app
 - launchApp
 - extendedWaitUntil:
     visible:
-      id: "conversation-local-status"
+      id: "chat-local-status"
     timeout: 15000
 - waitForAnimationToEnd:
     timeout: 5000

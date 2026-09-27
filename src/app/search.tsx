@@ -4,18 +4,20 @@ import { FlatList, View } from 'react-native';
 
 import { EmptyState, ErrorText, ListItem, ModalHeader, Screen, SearchField, Text } from '@/design';
 import { useChatStore } from '@/core/messaging/chat-store';
+import { parseChatId } from '@/core/messaging/namespace';
 import type { ChatMessage } from '@/core/messaging/types';
 import { contentPreview, formatTimestamp } from '@/core/messaging/preview';
 import { useJumpStore } from '@/features/chat/jump-store';
 import { openChatFromSheet } from '@/features/navigation/open';
 import { errorMessage } from '@/core/errors';
-import { useConversationTitles } from '@/features/chat/use-display-names';
+import { useChatTitles } from '@/features/chat/use-display-names';
 
 export default function SearchScreen() {
   const router = useRouter();
-  const { chatId } = useLocalSearchParams<{ chatId?: string }>();
+  const params = useLocalSearchParams<{ chatId?: string }>();
+  const chatId = parseChatId(params.chatId ?? '') ?? undefined;
   const searchMessages = useChatStore((s) => s.searchMessages);
-  const conversations = useChatStore((s) => s.conversations);
+  const chats = useChatStore((s) => s.chats);
   const jumpTo = useJumpStore((s) => s.jumpTo);
   const [query, setQuery] = useState('');
   const [found, setFound] = useState<{ query: string; messages: ChatMessage[] } | null>(null);
@@ -40,8 +42,8 @@ export default function SearchScreen() {
     };
   }, [chatId, trimmed, searchMessages]);
 
-  const { titleOf } = useConversationTitles(conversations);
-  const titles = new Map(conversations.map((c) => [c.id, titleOf(c)]));
+  const { titleOf } = useChatTitles(chats);
+  const titles = new Map(chats.map((c) => [c.id, titleOf(c)]));
   const results = trimmed && found?.query === trimmed ? found.messages : [];
   const searching = Boolean(trimmed) && found?.query !== trimmed && !error;
 
@@ -71,7 +73,7 @@ export default function SearchScreen() {
       {searching ? <Text className="px-gutter py-2">Searching…</Text> : null}
       <FlatList
         data={results}
-        keyExtractor={(message) => `${message.conversationId}:${message.id}`}
+        keyExtractor={(message) => `${message.chatId}:${message.id}`}
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
           trimmed && !searching && !error ? (
@@ -80,13 +82,13 @@ export default function SearchScreen() {
         }
         renderItem={({ item }) => (
           <ListItem
-            title={titles.get(item.conversationId) ?? 'Chat'}
+            title={titles.get(item.chatId) ?? 'Chat'}
             meta={formatTimestamp(item.sentAt)}
             subtitle={contentPreview(item.content)}
             numberOfLinesSubtitle={3}
             onPress={() => {
               jumpTo(item);
-              openChatFromSheet(item.conversationId);
+              openChatFromSheet(item.chatId);
             }}
           />
         )}

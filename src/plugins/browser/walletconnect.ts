@@ -6,6 +6,7 @@ import type { PluginContext } from '@/core/plugins/types';
 import { SUPPORTED_CHAINS, toCaip2 } from '@/lib/evm/chains';
 
 import { APP_METADATA, walletConnectProjectId } from './config';
+import { handleSessionRequest } from './rpc';
 import { errorMessage } from '@/core/errors';
 
 export const SUPPORTED_METHODS = [
@@ -39,17 +40,19 @@ interface WalletConnectState {
   initializing: boolean;
   error: string | null;
   queue: PendingItem[];
+  /** The answer to the head of the queue that is in flight. */
+  answering: 'approve' | 'reject' | null;
   /** True while the QR scanner is on screen. The camera runs only then. */
   scanning: boolean;
 
   setScanning(scanning: boolean): void;
-  init(context: PluginContext): Promise<void>;
+  init(): Promise<void>;
   pair(uri: string): Promise<void>;
   /** Ends one pairing. The site has to pair again to ask for anything. */
   disconnectSession(topic: string): Promise<void>;
   approveHead(context: PluginContext): Promise<void>;
   rejectHead(): Promise<void>;
-  shutdown(): Promise<void>;
+  shutdown(): void;
 }
 
 let onProposal: ((p: WalletKitTypes.SessionProposal) => void) | null = null;
@@ -93,18 +96,38 @@ async function isPairingUri(uri: string) {
   }
 }
 
+async function answerHead(
+  kind: NonNullable<WalletConnectState['answering']>,
+  answer: (kit: Kit, head: PendingItem) => Promise<void>
+) {
+  const { kit, queue, answering } = useWalletConnectStore.getState();
+  const head = queue[0];
+  if (!kit || !head || answering) return;
+  useWalletConnectStore.setState({ answering: kind });
+
+  try {
+    await answer(kit, head);
+  } finally {
+    useWalletConnectStore.setState((s) => ({
+      queue: s.queue.filter((item) => item !== head),
+      answering: null,
+    }));
+  }
+}
+
 export const useWalletConnectStore = create<WalletConnectState>((set, get) => ({
   kit: null,
   initializing: false,
   error: null,
   queue: [],
+  answering: null,
   scanning: false,
 
   setScanning(scanning) {
     set({ scanning });
   },
 
-  async init(context) {
+  async init() {
     if (get().kit || get().initializing) return;
 
     const projectId = walletConnectProjectId();
@@ -189,70 +212,61 @@ export const useWalletConnectStore = create<WalletConnectState>((set, get) => ({
     await kit.disconnectSession({ topic, reason: getSdkError('USER_DISCONNECTED') });
   },
 
-  async approveHead(context) {
-    const kit = get().kit;
-    const head = get().queue[0];
-    if (!kit || !head) return;
+  approveHead(context) {
+    return answerHead('approve', async (kit, head) => {
+      try {
+        if (head.kind === 'proposal') {
+          const address = context.account.address;
+          const chains = SUPPORTED_CHAINS.map((c) => toCaip2(c.id));
 
-    try {
-      if (head.kind === 'proposal') {
-        const address = context.identity.address;
-        const chains = SUPPORTED_CHAINS.map((c) => toCaip2(c.id));
-
-        const { buildApprovedNamespaces } = await utils();
-        const namespaces = buildApprovedNamespaces({
-          proposal: head.proposal.params,
-          supportedNamespaces: {
-            eip155: {
-              chains,
-              methods: [...SUPPORTED_METHODS],
-              events: [...SUPPORTED_EVENTS],
-              accounts: chains.map((chain) => `${chain}:${address}`),
+          const { buildApprovedNamespaces } = await utils();
+          const namespaces = buildApprovedNamespaces({
+            proposal: head.proposal.params,
+            supportedNamespaces: {
+              eip155: {
+                chains,
+                methods: [...SUPPORTED_METHODS],
+                events: [...SUPPORTED_EVENTS],
+                accounts: chains.map((chain) => `${chain}:${address}`),
+              },
             },
-          },
-        });
+          });
 
-        const session = await kit.approveSession({ id: head.id, namespaces });
-        context.ui.notify('Connected', 'success');
-        await returnAfterPairing(session.peer.metadata, context);
-      } else {
-        const { handleSessionRequest } = await import('./rpc');
-        const result = await handleSessionRequest(head, context);
-        await kit.respondSessionRequest({
-          topic: head.topic,
-          response: { id: head.id, jsonrpc: '2.0', result },
-        });
-        const session = kit.getActiveSessions()[head.topic];
-        if (session) await returnAfterRequest(session.peer.metadata, context);
-        else context.ui.notify('Approved', 'success');
-      }
-    } catch (error) {
-      const message = errorMessage(error, 'Request failed');
-      context.ui.notify(message, 'error');
-
-      if (head.kind === 'request') {
-        await kit
-          .respondSessionRequest({
+          const session = await kit.approveSession({ id: head.id, namespaces });
+          context.ui.notify('Connected', 'success');
+          await returnAfterPairing(session.peer.metadata, context);
+        } else {
+          const result = await handleSessionRequest(head, context);
+          await kit.respondSessionRequest({
             topic: head.topic,
-            response: {
-              id: head.id,
-              jsonrpc: '2.0',
-              error: { code: 5000, message },
-            },
-          })
-          .catch(() => {});
+            response: { id: head.id, jsonrpc: '2.0', result },
+          });
+          const session = kit.getActiveSessions()[head.topic];
+          if (session) await returnAfterRequest(session.peer.metadata, context);
+          else context.ui.notify('Approved', 'success');
+        }
+      } catch (error) {
+        const message = errorMessage(error, 'Request failed');
+        context.ui.notify(message, 'error');
+
+        if (head.kind === 'request') {
+          await kit
+            .respondSessionRequest({
+              topic: head.topic,
+              response: {
+                id: head.id,
+                jsonrpc: '2.0',
+                error: { code: 5000, message },
+              },
+            })
+            .catch(() => {});
+        }
       }
-    } finally {
-      set((s) => ({ queue: s.queue.slice(1) }));
-    }
+    });
   },
 
-  async rejectHead() {
-    const kit = get().kit;
-    const head = get().queue[0];
-    if (!kit || !head) return;
-
-    try {
+  rejectHead() {
+    return answerHead('reject', async (kit, head) => {
       const { getSdkError } = await utils();
       if (head.kind === 'proposal') {
         await kit.rejectSession({ id: head.id, reason: getSdkError('USER_REJECTED') });
@@ -266,12 +280,10 @@ export const useWalletConnectStore = create<WalletConnectState>((set, get) => ({
           },
         });
       }
-    } finally {
-      set((s) => ({ queue: s.queue.slice(1) }));
-    }
+    });
   },
 
-  async shutdown() {
+  shutdown() {
     const kit = get().kit;
     if (kit) {
       if (onProposal) kit.off('session_proposal', onProposal);

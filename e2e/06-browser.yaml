@@ -1,6 +1,6 @@
 appId: com.statusoriginal.app
 ---
-- runFlow: lib/open-status-room.yaml
+- runFlow: lib/open-status-chat.yaml
 - runFlow:
     file: lib/send-command.yaml
     env:
@@ -8,7 +8,7 @@ appId: com.statusoriginal.app
 - tapOn: "Back"
 - extendedWaitUntil:
     visible:
-      id: "conversation-local-browser"
+      id: "chat-local-browser"
     timeout: 15000
 - openLink: "statusoriginal://chat/local-browser"
 - assertNotVisible:

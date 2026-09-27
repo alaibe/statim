@@ -1,7 +1,7 @@
 import { InMemoryMessageStore } from './message-store';
 import {
   flushWrites,
-  STORE_TEST_PEER as THEM,
+  STORE_TEST_PARTICIPANT as THEM,
   STORE_TEST_SELF as ME,
   storeBackedSession as sessionOn,
 } from './testing/store';
@@ -32,7 +32,7 @@ describe('the catch-up cursor', () => {
     expect(second.transport.openCursors).toEqual([9_000]);
   });
 
-  it('reports the newest across every conversation for a global subscription', async () => {
+  it('reports the newest across every chat for a global subscription', async () => {
     const store = new InMemoryMessageStore();
 
     const first = await sessionOn(store);
@@ -73,14 +73,14 @@ describe('the catch-up cursor', () => {
     expect(third.transport.openCursors).toEqual([20_000]);
   });
 
-  it('does not open a conversation that was left', async () => {
+  it('does not open a chat that was left', async () => {
     const store = new InMemoryMessageStore();
 
     const first = await sessionOn(store);
-    const conversation = await first.session.createDm(THEM);
+    const chat = await first.session.createDm(THEM);
     await first.transport.receive('m1', 1_000);
     await flushWrites();
-    await first.session.leaveGroup(conversation.id);
+    await first.session.leaveGroup(chat.id);
 
     const second = await sessionOn(store);
     expect(second.transport.openCursors).toEqual([]);

@@ -18,7 +18,7 @@ export const TELEGRAM_PROTOCOL = {
   },
   description:
     'Your Telegram account: private chats, groups and channels, signed in with your phone number.',
-  recipient: {
+  address: {
     label: 'Username or phone number',
     placeholder: '@username or +44…',
     noun: 'a username',

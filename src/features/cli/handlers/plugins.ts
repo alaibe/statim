@@ -1,9 +1,9 @@
-import { botConversationId, toContent } from '@/core/messaging/bots';
+import { botChatId, toContent } from '@/core/messaging/bots';
 import { buttonCommand } from '@/core/commands/button';
 import { parseCommand } from '@/core/commands/parser';
 import { sessionFor, useChatStore } from '@/core/messaging/chat-store';
-import { conversationScope } from '@/core/messaging/conversation-scope';
-import type { MessageContent } from '@/core/messaging/types';
+import { chatScope } from '@/core/messaging/chat-scope';
+import type { ChatId, MessageContent } from '@/core/messaging/types';
 import { CORE_ID, worksOn } from '@/core/plugins/registry';
 import { PERMISSION_LABELS } from '@/core/plugins/types';
 
@@ -73,7 +73,7 @@ export const pluginHandlers = {
           const chat = await findChat(args.chat!);
           const session = sessionFor(useChatStore.getState(), chat.id);
           return registry
-            .commandListFor(chat.id, conversationScope(chat.id, chat.kind))
+            .commandListFor(chat.id, chatScope(chat.id, chat.kind))
             .filter(({ command }) => worksOn(command, session));
         })()
       : [
@@ -109,14 +109,14 @@ export const pluginHandlers = {
     const parsed = parseCommand(text);
     if (!parsed) throw new CliError('Give a slash command, e.g. /balance.', 'usage');
 
-    let chatId: string;
+    let chatId: ChatId | undefined;
     let entry;
     if (chatRef) {
       const chat = await findChat(chatRef);
       chatId = chat.id;
-      entry = registry.commandsFor(chat.id, conversationScope(chat.id, chat.kind)).get(parsed.name);
+      entry = registry.commandsFor(chat.id, chatScope(chat.id, chat.kind)).get(parsed.name);
       if (entry && !worksOn(entry.command, sessionFor(useChatStore.getState(), chat.id))) {
-        throw new CliError(`/${parsed.name} does not work on this network.`, 'unsupported');
+        throw new CliError(`/${parsed.name} does not work on this protocol.`, 'unsupported');
       }
     } else {
       entry = registry.commands().get(parsed.name);
@@ -126,24 +126,23 @@ export const pluginHandlers = {
           `/${parsed.name} needs a chat: status-original run <chat> ${text}`,
           'usage'
         );
-      chatId = bot ? botConversationId(bot.id) : '';
+      chatId = bot && botChatId(bot.id);
     }
-    if (!entry) {
+    if (!entry || !chatId) {
       throw new CliError(
         `Unknown command /${parsed.name}. Run status-original commands.`,
         'notFound'
       );
     }
 
-    const title =
-      useChatStore.getState().conversations.find((c) => c.id === chatId)?.title ?? chatId;
+    const title = useChatStore.getState().chats.find((c) => c.id === chatId)?.title ?? chatId;
     if (parsed.args.includes('--confirm')) await approveOrThrow(io, `Run ${text}\nin ${title}`);
 
     const replies: MessageContent[] = [];
     const result = await entry.command.run({
       rest: parsed.rest,
       args: parsed.args,
-      conversationId: chatId,
+      chatId,
       context: entry.context,
       respond: async (content) => {
         replies.push(toContent(content));

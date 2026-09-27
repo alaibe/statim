@@ -1,21 +1,21 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { saveAccounts } from '../identity/accounts';
+import { saveAccounts } from '../account/accounts';
 import { useChatStore } from '../messaging/chat-store';
 import { InMemoryChatSession } from '../messaging/in-memory-session';
 import { connectFake } from '../messaging/testing/store';
-import { useIdentityStore } from '../identity/identity-store';
+import { useAccountStore } from '../account/account-store';
 import { eraseAccount } from './erase-account';
 import { accountRuntime } from '@/runtime';
 
-jest.mock('../identity/keyring', () => ({
-  ...jest.requireActual('../identity/keyring'),
+jest.mock('../account/keyring', () => ({
+  ...jest.requireActual('../account/keyring'),
   loadOrCreateDbEncryptionKey: async () => new Uint8Array(32),
 }));
 
 beforeEach(async () => {
   await accountRuntime.synchronize(null);
   await AsyncStorage.clear();
-  useIdentityStore.setState({
+  useAccountStore.setState({
     status: 'absent',
     accounts: [],
     activeAccountId: null,
@@ -29,7 +29,7 @@ beforeEach(async () => {
     protocols: {},
     accountId: null,
     messageStore: null,
-    conversations: [],
+    chats: [],
     messages: {},
     messageHistory: {},
     syncing: false,
@@ -42,8 +42,8 @@ beforeEach(async () => {
 
 async function connected() {
   const session = new InMemoryChatSession();
-  session.seedConversation({ id: 'c1' });
-  useIdentityStore.setState({
+  session.seedChat({ id: 'c1' });
+  useAccountStore.setState({
     status: 'ready',
     accounts: [
       {
@@ -61,7 +61,7 @@ async function connected() {
 }
 
 describe('signOut', () => {
-  it('erases the transport’s local database', async () => {
+  it('erases the protocol’s local database', async () => {
     const session = await connected();
     await eraseAccount();
 
@@ -91,19 +91,19 @@ describe('signOut', () => {
     expect(await AsyncStorage.getItem('some-library:cache')).toBe('keep me');
   });
 
-  it('resets in-memory state and the identity', async () => {
+  it('resets in-memory state and the account', async () => {
     await connected();
     await eraseAccount();
 
-    expect(useChatStore.getState().conversations).toEqual([]);
+    expect(useChatStore.getState().chats).toEqual([]);
     expect(useChatStore.getState().sessions).toEqual({});
-    expect(useIdentityStore.getState().status).toBe('absent');
-    expect(useIdentityStore.getState().keyring).toBeNull();
+    expect(useAccountStore.getState().status).toBe('absent');
+    expect(useAccountStore.getState().keyring).toBeNull();
   });
 
   it('erases an inactive account without disconnecting the active session', async () => {
     const session = await connected();
-    const active = useIdentityStore.getState().accounts[0];
+    const active = useAccountStore.getState().accounts[0];
     const inactive = {
       ...active,
       id: 'inactive-account',
@@ -111,18 +111,18 @@ describe('signOut', () => {
       address: '0x0000000000000000000000000000000000000002' as const,
     };
     await saveAccounts([active, inactive]);
-    useIdentityStore.setState({ accounts: [active, inactive] });
+    useAccountStore.setState({ accounts: [active, inactive] });
 
     await eraseAccount(inactive.id);
 
     expect(session.disconnected).toBe(false);
     expect(useChatStore.getState().sessions.xmtp).toBe(session);
-    expect(useIdentityStore.getState().accounts).toEqual([active]);
+    expect(useAccountStore.getState().accounts).toEqual([active]);
   });
 
   it('keeps the account and allows retry when erasing a database fails', async () => {
     const session = await connected();
-    useIdentityStore.setState({
+    useAccountStore.setState({
       status: 'ready',
       accounts: [
         {
@@ -140,12 +140,12 @@ describe('signOut', () => {
 
     await expect(eraseAccount()).rejects.toThrow('locked');
     expect(useChatStore.getState().status).toBe('erasing');
-    expect(useIdentityStore.getState().activeAccountId).toBe('test-account');
+    expect(useAccountStore.getState().activeAccountId).toBe('test-account');
     expect(disconnect).toHaveBeenCalledTimes(1);
 
     await expect(eraseAccount()).resolves.toBeUndefined();
     expect(disconnect).toHaveBeenCalledTimes(1);
-    expect(useIdentityStore.getState().keyring).toBeNull();
+    expect(useAccountStore.getState().keyring).toBeNull();
   });
 });
 describe('while an account is being erased', () => {

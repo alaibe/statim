@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react';
 import { ScrollView } from 'react-native';
 
 import { Screen } from '@/design';
-import { SettingsProfile, useEnsName } from '@/features/settings/settings-profile';
+import { SettingsAccount, useEnsName } from '@/features/settings/settings-account';
 import { SettingsSections, useSettingsKeys } from '@/features/settings/settings-sections';
 
 export default function SettingsScreen() {
@@ -22,7 +22,7 @@ export default function SettingsScreen() {
       <Stack.Screen options={{ title: 'Settings', headerTransparent: false }} />
 
       <ScrollView contentInsetAdjustmentBehavior="automatic">
-        <SettingsProfile ensName={ensName} />
+        <SettingsAccount ensName={ensName} />
         <SettingsSections keys={keys} />
       </ScrollView>
     </Screen>

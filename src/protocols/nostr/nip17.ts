@@ -7,7 +7,7 @@
  *
  * What it does NOT give you, and the UI must not imply: a roster, membership
  * enforcement, or deniable delivery: relays still see one wrap per
- * recipient, so a conversation's size leaks.
+ * recipient, so a chat's size leaks.
  */
 import { sha256 } from '@noble/hashes/sha2';
 import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils';
@@ -22,7 +22,7 @@ import {
   type Rumor,
   type Tag,
 } from './events';
-import { ephemeralIdentity, type NostrIdentity } from './keys';
+import { ephemeralKeys, type NostrKeys } from './keys';
 import { decrypt, encrypt } from '@/lib/nip44';
 import { randomInt } from '@/lib/random';
 
@@ -44,7 +44,7 @@ export interface DirectMessage {
   createdAt?: number;
 }
 
-export function buildRumor(sender: NostrIdentity, message: DirectMessage): Rumor {
+export function buildRumor(sender: NostrKeys, message: DirectMessage): Rumor {
   const tags: Tag[] = message.recipients.map((pubkey) => ['p', pubkey]);
   if (message.subject) tags.push(['subject', message.subject]);
   if (message.tags) tags.push(...message.tags);
@@ -58,11 +58,7 @@ export function buildRumor(sender: NostrIdentity, message: DirectMessage): Rumor
   });
 }
 
-export function sealRumor(
-  rumor: Rumor,
-  sender: NostrIdentity,
-  recipientPubkey: string
-): NostrEvent {
+export function sealRumor(rumor: Rumor, sender: NostrKeys, recipientPubkey: string): NostrEvent {
   return signEvent(
     {
       pubkey: sender.publicKey,
@@ -76,7 +72,7 @@ export function sealRumor(
 }
 
 export function giftWrap(seal: NostrEvent, recipientPubkey: string): NostrEvent {
-  const ephemeral = ephemeralIdentity();
+  const ephemeral = ephemeralKeys();
   return signEvent(
     {
       pubkey: ephemeral.publicKey,
@@ -90,7 +86,7 @@ export function giftWrap(seal: NostrEvent, recipientPubkey: string): NostrEvent 
 }
 
 export function wrapForRecipients(
-  sender: NostrIdentity,
+  sender: NostrKeys,
   message: DirectMessage
 ): { rumor: Rumor; wraps: NostrEvent[] } {
   const rumor = buildRumor(sender, message);
@@ -102,7 +98,7 @@ export function wrapForRecipients(
   };
 }
 
-export function unwrapGiftWrap(wrap: NostrEvent, recipient: NostrIdentity): Rumor | null {
+export function unwrapGiftWrap(wrap: NostrEvent, recipient: NostrKeys): Rumor | null {
   try {
     if (wrap.kind !== KIND_GIFT_WRAP) return null;
     if (!verifyEvent(wrap)) return null;
@@ -129,7 +125,7 @@ export function unwrapGiftWrap(wrap: NostrEvent, recipient: NostrIdentity): Rumo
   }
 }
 
-export function conversationIdFor(participants: string[]): string {
+export function chatIdFor(participants: string[]): string {
   const sorted = [...new Set(participants)].sort();
   return bytesToHex(sha256(utf8ToBytes(sorted.join(','))));
 }

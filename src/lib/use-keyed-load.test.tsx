@@ -3,7 +3,6 @@ import { create, type ReactTestRenderer } from 'react-test-renderer';
 
 import { useKeyedLoad } from './use-keyed-load';
 
-const actEnvironment = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
 let tree: ReactTestRenderer;
 let seen: ReturnType<typeof useKeyedLoad<string>>;
 
@@ -24,10 +23,6 @@ const render = (props: Omit<Parameters<typeof Probe>[0], 'onResult'>) =>
     else tree = create(element);
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
-
-beforeAll(() => {
-  actEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
-});
 
 describe('useKeyedLoad', () => {
   it('loads per key, drops a stale answer, and reloads for a new version', async () => {

@@ -106,7 +106,7 @@
     "web": "expo start --web",
     "desktop": "./scripts/fetch-tdlib.sh && tauri dev",
     "desktop:build": "./scripts/fetch-tdlib.sh && tauri build",
-    "lint": "expo lint",
+    "lint": "expo lint --no-cache",
     "theme:build": "node ./scripts/generate-theme-css.js",
     "tokens:build": "node ./scripts/fetch-token-list.js",
     "tokens:build:solana": "node ./scripts/fetch-solana-tokens.js",

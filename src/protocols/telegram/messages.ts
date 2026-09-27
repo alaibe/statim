@@ -1,8 +1,8 @@
 import type {
-  ChatMessage,
-  ConversationId,
+  ProtocolChatId,
   MessageContent,
   MessageId,
+  ProtocolMessage,
 } from '@/core/messaging/types';
 
 import type { TdObject } from './api';
@@ -25,7 +25,7 @@ export class TelegramMessages {
     private readonly outbox: Outbox
   ) {}
 
-  async send(id: ConversationId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
+  async send(id: ProtocolChatId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
     const chatId = Number(id);
 
     if (content.kind === 'reaction') {
@@ -66,7 +66,7 @@ export class TelegramMessages {
     return messageIdOf(chatId, final.id);
   }
 
-  async editMessage(id: ConversationId, messageId: MessageId, text: string): Promise<void> {
+  async editMessage(id: ProtocolChatId, messageId: MessageId, text: string): Promise<void> {
     const properties = await this.properties(Number(id), tdMessageId(messageId));
     if (!properties.can_be_edited) throw new Error('Telegram does not allow editing this message.');
     const message = await this.host.api().send<TdMessage>({
@@ -79,18 +79,18 @@ export class TelegramMessages {
     await this.host.emitMessage(message);
   }
 
-  async deleteMessage(id: ConversationId, messageId: MessageId): Promise<void> {
+  async deleteMessage(id: ProtocolChatId, messageId: MessageId): Promise<void> {
     const properties = await this.properties(Number(id), tdMessageId(messageId));
     if (!properties.can_be_deleted_for_all_users)
       throw new Error('Telegram does not allow deleting this message for everyone.');
     await this.deleteMessages(id, messageId, true);
   }
 
-  deleteMessageForMe(id: ConversationId, messageId: MessageId): Promise<void> {
+  deleteMessageForMe(id: ProtocolChatId, messageId: MessageId): Promise<void> {
     return this.deleteMessages(id, messageId, false);
   }
 
-  private async deleteMessages(id: ConversationId, messageId: MessageId, revoke: boolean) {
+  private async deleteMessages(id: ProtocolChatId, messageId: MessageId, revoke: boolean) {
     await this.host.api().send({
       '@type': 'deleteMessages',
       chat_id: Number(id),
@@ -99,7 +99,7 @@ export class TelegramMessages {
     });
   }
 
-  async votePoll(id: ConversationId, messageId: MessageId, optionIds: number[]): Promise<void> {
+  async votePoll(id: ProtocolChatId, messageId: MessageId, optionIds: number[]): Promise<void> {
     const chatId = Number(id);
     const tdId = tdMessageId(messageId);
     await this.host.api().send({
@@ -111,7 +111,7 @@ export class TelegramMessages {
     await this.host.refetch(chatId, tdId);
   }
 
-  async createPoll(id: ConversationId, question: string, options: string[]): Promise<void> {
+  async createPoll(id: ProtocolChatId, question: string, options: string[]): Promise<void> {
     const chatId = Number(id);
     const sent = await this.host.api().send<TdMessage>({
       '@type': 'sendMessage',
@@ -130,7 +130,7 @@ export class TelegramMessages {
     await this.outbox.await(sent);
   }
 
-  async listPinnedMessages(id: ConversationId): Promise<ChatMessage[]> {
+  async listPinnedMessages(id: ProtocolChatId): Promise<ProtocolMessage[]> {
     const chatId = Number(id);
     const found = new Map<number, TdMessage>();
     let from = 0;
@@ -157,7 +157,7 @@ export class TelegramMessages {
     return [...found.values()].map((message) => this.host.toMessage(message, false));
   }
 
-  async searchMessages(query: string, id?: ConversationId): Promise<ChatMessage[]> {
+  async searchMessages(query: string, id?: ProtocolChatId): Promise<ProtocolMessage[]> {
     const page = id
       ? await this.host.api().send<{ '@type': string; messages: TdMessage[] }>({
           '@type': 'searchChatMessages',
@@ -184,7 +184,7 @@ export class TelegramMessages {
     return page.messages.map((message) => this.host.toMessage(message, false));
   }
 
-  async setMessagePinned(id: ConversationId, messageId: MessageId, pinned: boolean): Promise<void> {
+  async setMessagePinned(id: ProtocolChatId, messageId: MessageId, pinned: boolean): Promise<void> {
     const chatId = Number(id);
     const tdId = tdMessageId(messageId);
     const properties = await this.properties(chatId, tdId);

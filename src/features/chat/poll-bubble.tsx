@@ -4,7 +4,7 @@ import { Pressable, View } from 'react-native';
 import { Button, cn, Text } from '@/design';
 import type { MessageContent } from '@/core/messaging/types';
 
-import { useAction } from '@/core/app/use-action';
+import { useAction } from '@/features/use-action';
 
 type Poll = Extract<MessageContent, { kind: 'poll' }>;
 

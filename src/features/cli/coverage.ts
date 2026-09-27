@@ -1,6 +1,6 @@
 import type { AccountRuntime } from '@/core/app/account-runtime';
 import type { AppearanceState } from '@/core/app/appearance';
-import type { IdentityState } from '@/core/identity/identity-store';
+import type { AccountState } from '@/core/account/account-store';
 import type { ChatState } from '@/core/messaging/chat-store';
 import type { XmtpCapabilities } from '@/core/messaging/protocol';
 import type { PluginHostValue } from '@/core/plugins/host';
@@ -23,12 +23,12 @@ export const CHAT_STORE: Record<Actions<ChatState>, Covered> = {
   registerBots: 'internal',
   postLocalMessage: 'internal',
   postPrivateMessage: 'internal',
-  refreshConversations: 'networks sync',
+  refreshChats: 'protocols sync',
   loadMessages: 'read',
   loadOlderMessages: 'read',
   searchMessages: 'search',
   sendMessage: 'send',
-  resolvePeer: 'resolve',
+  resolveParticipant: 'resolve',
   startDm: 'new',
   startGroup: 'group create',
   previewPublicChat: 'join',
@@ -36,8 +36,8 @@ export const CHAT_STORE: Record<Actions<ChatState>, Covered> = {
   createInviteLink: 'group invite-link',
   getJoinRequests: 'group requests',
   processJoinRequest: 'group approve',
-  sync: 'networks sync',
-  syncProtocol: 'networks sync',
+  sync: 'protocols sync',
+  syncProtocol: 'protocols sync',
   getMembers: 'group members',
   mentionCandidates: 'internal',
   getGroupInfo: 'chat',
@@ -58,8 +58,8 @@ export const CHAT_STORE: Record<Actions<ChatState>, Covered> = {
   setChatPref: 'pin',
   setDraft: 'draft',
   ingestMessage: 'internal',
-  ingestConversation: 'internal',
-  ingestConversations: 'internal',
+  ingestChat: 'internal',
+  ingestChats: 'internal',
   replacePending: 'internal',
   retryMessage: 'retry',
   editMessage: 'edit',
@@ -71,10 +71,10 @@ export const CHAT_STORE: Record<Actions<ChatState>, Covered> = {
   removeMessages: 'internal',
 };
 
-export const IDENTITY_STORE: Record<Actions<IdentityState>, Covered> = {
+export const ACCOUNT_STORE: Record<Actions<AccountState>, Covered> = {
   restore: 'internal',
   retryUnlock: 'app: the lock screen asks the system to unlock the keys',
-  adoptIdentity: 'accounts import',
+  adoptAccount: 'accounts import',
   addHardwareAccount: 'app: pairing needs the hardware wallet and its screen',
   selectAccount: 'accounts use',
   renameAccount: 'accounts rename',
@@ -96,7 +96,7 @@ export const ACCOUNT_RUNTIME: Record<Actions<AccountRuntime>, Covered> = {
   restart: 'internal',
   disconnect: 'internal',
   setPluginEnabled: 'plugins enable',
-  updateProtocolConfig: 'networks config',
+  updateProtocolConfig: 'protocols config',
   erase: 'accounts erase',
   runningBotIds: 'internal',
   wasProactive: 'internal',

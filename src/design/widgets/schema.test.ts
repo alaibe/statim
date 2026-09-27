@@ -2,6 +2,7 @@ import {
   displayValues,
   fillCommand,
   fillText,
+  isWidget,
   resolveValues,
   summariseWidget,
   visibleOptions,
@@ -66,7 +67,7 @@ describe('follow-up actions', () => {
     ]);
 
     // Round-tripping through JSON is what lets a widget be persisted in a
-    // transcript and later sent to a peer. A callback could not survive this.
+    // transcript and later sent to another participant. A callback could not survive this.
     expect(JSON.parse(JSON.stringify(widget))).toEqual(widget);
   });
 
@@ -92,7 +93,7 @@ describe('list', () => {
   });
 
   it('summarises without subtitles', () => {
-    // A peer who cannot render the widget needs the names; the subtitle only
+    // A participant whose app cannot render the widget needs the names; the subtitle only
     // explains them.
     expect(summariseWidget(W.list([{ title: '/balance' }]))).toBe('/balance');
   });
@@ -190,7 +191,7 @@ describe('dependent fields', () => {
     expect(fillText('{chain} address', display)).toBe('Bitcoin address');
   });
 
-  it('labels a shared native token value using the selected network', () => {
+  it('labels a shared native token value using the selected chain', () => {
     const nativeFields = [
       fields[0],
       {
@@ -305,5 +306,56 @@ describe('what a row says a tap will do', () => {
       kind: 'text',
       label: 'Options',
     });
+  });
+});
+
+describe('isWidget', () => {
+  const wire = (value: unknown): unknown => JSON.parse(JSON.stringify(value));
+
+  it('accepts every kind as it arrives over the wire', () => {
+    const widgets = [
+      W.stat('1', { label: 'Supply', tone: 'brand', actions: [{ label: 'Go', command: '/go' }] }),
+      W.rows([{ label: 'a', value: 'b', state: 'on' }]),
+      W.list([{ title: 'Item', subtitle: 'sub', icon: 'wallet-outline' }]),
+      W.text('t'),
+      W.code('0xabc'),
+      W.card([W.text('inside')], { title: 'Card' }),
+      W.badges([{ label: 'live', tone: 'success' }]),
+      W.actions([{ label: 'Go', command: '/balance' }]),
+      W.link('Open', 'https://example.com'),
+      W.form(
+        [
+          {
+            id: 'amount',
+            label: 'Amount',
+            keyboard: 'decimal',
+            options: [{ label: '1', value: '1' }],
+          },
+        ],
+        { label: 'Send', command: '/send {amount}' }
+      ),
+    ];
+    for (const widget of widgets) expect(isWidget(wire(widget))).toBe(true);
+  });
+
+  it.each([
+    ['null', null],
+    ['an array', [W.text('t')]],
+    ['a kind this build does not know', { kind: 'chart', points: [] }],
+    ['rows that are not a list', { kind: 'rows', rows: 5 }],
+    ['text that is an object', { kind: 'text', text: { bold: 'x' } }],
+    ['an action with no command', W.actions([{ label: 'Go' } as never])],
+    ['a tone no button has', W.actions([{ label: 'Go', command: '/go', tone: 'info' as never }])],
+    ['a card with a broken child', W.card([{ kind: 'rows' } as never])],
+  ])('refuses %s', (_, value) => {
+    expect(isWidget(wire(value))).toBe(false);
+  });
+
+  it('lets a card carry a kind from a newer build, which renders as nothing', () => {
+    expect(isWidget(wire(W.card([W.text('known'), { kind: 'chart' } as never])))).toBe(true);
+  });
+
+  it('accepts an icon this build does not have', () => {
+    expect(isWidget(wire(W.link('Open', 'https://example.com', 'rocket' as never)))).toBe(true);
   });
 });

@@ -5,30 +5,35 @@ import { replaceShortcodes, SHORTCODE } from './shortcodes';
 import type { ParticipantId } from './types';
 
 export interface SpanStyle {
-  bold?: boolean;
-  italic?: boolean;
-  strike?: boolean;
-  code?: boolean;
+  readonly bold?: boolean;
+  readonly italic?: boolean;
+  readonly strike?: boolean;
+  readonly code?: boolean;
 }
 
 export interface Span {
-  text: string;
-  style: SpanStyle;
+  readonly text: string;
+  readonly style: SpanStyle;
   /** Only for links written as `[label](url)`; bare URLs stay text and are found later. */
-  href?: string;
-  mention?: ParticipantId;
+  readonly href?: string;
+  readonly mention?: ParticipantId;
 }
 
 export type Block = (
-  | { kind: 'paragraph'; spans: Span[] }
-  | { kind: 'heading'; spans: Span[] }
-  | { kind: 'code'; text: string; lang?: string }
-  | { kind: 'quote'; blocks: Block[] }
-  | { kind: 'list'; ordered: boolean; start: number; items: Block[][] }
-  | { kind: 'rule' }
+  | { readonly kind: 'paragraph'; readonly spans: readonly Span[] }
+  | { readonly kind: 'heading'; readonly spans: readonly Span[] }
+  | { readonly kind: 'code'; readonly text: string; readonly lang?: string }
+  | { readonly kind: 'quote'; readonly blocks: readonly Block[] }
+  | {
+      readonly kind: 'list';
+      readonly ordered: boolean;
+      readonly start: number;
+      readonly items: readonly (readonly Block[])[];
+    }
+  | { readonly kind: 'rule' }
 ) & {
   /** A blank line separated it from the block before. */
-  spaced?: boolean;
+  readonly spaced?: boolean;
 };
 
 // Chat text is not a document: indentation and underlined lines are not code
@@ -53,11 +58,10 @@ export function hasMarkup(text: string): boolean {
 
 const hasShortcode = (text: string) => text.includes(':') && new RegExp(SHORTCODE).test(text);
 
-const parsed = new Map<string, Block[]>();
+const parsed = new Map<string, readonly Block[]>();
 const PARSED_LIMIT = 500;
 
-/** The blocks are shared between callers and must not be changed. */
-export function parseMarkdown(text: string): Block[] {
+export function parseMarkdown(text: string): readonly Block[] {
   if (!hasMarkup(text)) {
     return [{ kind: 'paragraph', spans: [{ text: replaceShortcodes(text), style: {} }] }];
   }
@@ -83,14 +87,14 @@ function blocks(tokens: Token[]): Block[] {
     const last = out.at(-1);
     // Bridges send one quote per paragraph; a reader sees a single quote.
     if (block.kind === 'quote' && last?.kind === 'quote') {
-      if (block.blocks[0]) block.blocks[0].spaced = spaced;
-      last.blocks.push(...block.blocks);
+      const [first, ...rest] = block.blocks;
+      const joined = first ? [{ ...first, spaced }, ...rest] : [];
+      out[out.length - 1] = { ...last, blocks: [...last.blocks, ...joined] };
       spaced = false;
       continue;
     }
-    if (spaced) block.spaced = true;
+    out.push(spaced ? { ...block, spaced } : block);
     spaced = false;
-    out.push(block);
   }
   return out;
 }
@@ -132,7 +136,7 @@ function inline(tokens: Token[], style: SpanStyle = {}, href?: string): Span[] {
     if (!text) return;
     const last = spans.at(-1);
     if (last && !last.mention && last.href === spanHref && sameStyle(last.style, spanStyle))
-      last.text += text;
+      spans[spans.length - 1] = { ...last, text: last.text + text };
     else spans.push({ text, style: spanStyle, href: spanHref });
   };
 
@@ -201,7 +205,7 @@ export function plainText(text: string): string {
   return blocksText(parseMarkdown(text));
 }
 
-function blocksText(list: Block[]): string {
+function blocksText(list: readonly Block[]): string {
   return list
     .map((block, i) => (i > 0 ? (block.spaced ? '\n\n' : '\n') : '') + blockText(block))
     .join('');
@@ -223,7 +227,7 @@ function blockText(block: Block): string {
   }
 }
 
-function* spansOf(list: Block[]): Generator<Span> {
+function* spansOf(list: readonly Block[]): Generator<Span> {
   for (const block of list) {
     if (block.kind === 'paragraph' || block.kind === 'heading') yield* block.spans;
     else if (block.kind === 'quote') yield* spansOf(block.blocks);

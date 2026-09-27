@@ -11,7 +11,7 @@ window.
 
 <p align="center">
   <img src="distribution/ios/screenshots/6.9/01-welcome.png" width="196" alt="Welcome screen: create an account, restore a phrase or connect a hardware wallet">
-  <img src="distribution/ios/screenshots/6.9/03-conversation.png" width="196" alt="The Status room, with command chips above the composer">
+  <img src="distribution/ios/screenshots/6.9/03-conversation.png" width="196" alt="The Status chat, with slash command chips above the composer">
   <img src="distribution/ios/screenshots/6.9/05-message-actions.png" width="196" alt="Long-pressing a message: reactions, reply, copy and forward">
   <img src="distribution/ios/screenshots/6.9/06-plugins.png" width="196" alt="Plugins screen: assistant, names, bots, wallet, browser and markets">
 </p>
@@ -20,18 +20,18 @@ window.
 [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) ·
 [Privacy](PRIVACY.md) · [Disclaimer](DISCLAIMER.md)
 
-## Five networks, one inbox
+## Five protocols, one chat list
 
-Every conversation says which network it is on and what that network actually
+Every chat says which protocol it is on and what that protocol actually
 protects, because the honest answers differ:
 
-| Network | Confidentiality | Reach someone by | Runs on |
+| Protocol | Confidentiality | Reach someone by | Runs on |
 | --- | --- | --- | --- |
 | **XMTP** | MLS, forward secret | Ethereum address or ENS name | Your recovery phrase |
 | **Nostr** | NIP-17 sealed DMs; relays never learn the sender | `npub…` public key | Your recovery phrase |
 | **Waku** | Encrypted payloads through an nwaku node you name | Public key | Your recovery phrase |
 | **Telegram** | None. Telegram holds and can read it | `@username`, `t.me` link, phone number | Your Telegram account, over TDLib |
-| **Matrix** | Olm/Megolm in rooms with encryption on | `@user:server` | Your Matrix account, over matrix-rust-sdk |
+| **Matrix** | Olm/Megolm in chats with encryption on | `@user:server` | Your Matrix account, over matrix-rust-sdk |
 
 Telegram and Matrix are real client implementations, not bridges we operate:
 sign in with your own credentials and those chats land in the same list. A
@@ -41,7 +41,7 @@ any of them in this app.
 
 ## What else is in it
 
-- Message requests, folders, search, replies, reactions, forwarding, pin,
+- Requests, folders, search, replies, reactions, forwarding, pin,
   archive and mute. Photos, files, GIFs and voice notes. Groups where the
   protocol has them.
 - Links unfurl into cards fetched by your device, not a server. Phone numbers,
@@ -54,10 +54,10 @@ any of them in this app.
   alerts, bots and name lookups are plugins that ship switched off, each
   declaring its permissions before you enable it.
 
-Everything a plugin does is a slash command. `/` in any conversation opens a
-picker scoped to that room; the chips above the composer run the same commands.
-`/networks` switches chains on and off, `/send` and `/request` move money inside
-the conversation where it came up, `/trade` (also `/swap`, `/bridge`) quotes
+Everything a plugin does is a slash command. `/` in any chat opens a
+picker scoped to that chat; the chips above the composer run the same slash commands.
+`/chains` switches chains on and off, `/send` and `/request` move money inside
+the chat where it came up, `/trade` (also `/swap`, `/bridge`) quotes
 through LI.FI, `/scan` reads a WalletConnect code. Anything that signs shows a
 review step first.
 

@@ -17,6 +17,7 @@ import {
 import { EVM_CHAINS, evmStrategy } from './chains/evm';
 import { registerChainStrategy } from './chains/strategy';
 import { tradeCommand } from './trade';
+import { STATUS_LOCAL_ID } from '@/core/messaging/bots';
 
 jest.mock('./bitcoin/bot', () => ({ checkAddress: jest.fn() }));
 jest.mock('./bitcoin', () => ({ bitcoinStrategy: jest.fn() }));
@@ -100,7 +101,7 @@ const reads = {
 const sendTransaction = jest.fn();
 
 const context = {
-  identity: { address: me, account: () => ({ address: me }) },
+  account: { address: me, signer: () => ({ address: me }) },
   storage: { get: async () => null },
 } as unknown as PluginContext;
 
@@ -109,7 +110,7 @@ async function run(args: string[]) {
   const result = await tradeCommand.run({
     args,
     rest: args.join(' '),
-    conversationId: 'local-status',
+    chatId: STATUS_LOCAL_ID,
     context,
     respond: async (content) => {
       if (typeof content !== 'string' && content.kind === 'widget') widgets.push(content.widget);
@@ -174,7 +175,7 @@ afterEach(() => {
 });
 
 describe('/trade', () => {
-  it('opens a from/to form on the default network, with LI.FI credited', async () => {
+  it('opens a from/to form on the default chain, with LI.FI credited', async () => {
     const { result, form, links } = await run([]);
 
     expect(result).toEqual({ type: 'handled' });
@@ -238,9 +239,9 @@ describe('/trade', () => {
     expect(field(form, 'to')?.value).toBe('arbitrum');
   });
 
-  it('refuses a network that is not EVM, and one that is off', async () => {
+  it('refuses a chain that is not EVM, and one that is off', async () => {
     expect((await run(['--from', 'bitcoin'])).message).toMatch(
-      /EVM networks, and Bitcoin is not one/
+      /EVM chains, and Bitcoin is not one/
     );
     expect((await run(['--to', 'polygon'])).message).toMatch(/not switched on/);
   });
@@ -278,7 +279,7 @@ describe('/trade', () => {
       { label: 'You send', value: '0.001 ETH on Base' },
       { label: 'Route', value: 'Layerswap' },
       { label: 'Takes about', value: '10 s' },
-      { label: 'Network fee', value: '0.000003 ETH (≈ $0.01)' },
+      { label: 'Gas fee', value: '0.000003 ETH (≈ $0.01)' },
       { label: 'Route fees', value: '0.000003 ETH (≈ $0.01)' },
       { label: 'Value', value: '$2.73 → $2.71' },
     ]);
@@ -424,7 +425,7 @@ describe('/trade', () => {
     expect(codes).toEqual([APPROVAL, HASH]);
   });
 
-  it('says the approval is out while it waits, so the room is not just a spinner', async () => {
+  it('says the approval is out while it waits, so the chat is not just a spinner', async () => {
     quote.mockImplementation(usdcToEth);
     reads.readContract.mockImplementation(async ({ functionName }: { functionName: string }) =>
       functionName === 'balanceOf' ? 12_000_000n : 0n
@@ -552,7 +553,7 @@ describe('/trade', () => {
     const result = await tradeCommand.run({
       args,
       rest: args.join(' '),
-      conversationId: 'local-status',
+      chatId: STATUS_LOCAL_ID,
       context,
       respond: async () => {
         throw new Error('Network request failed');

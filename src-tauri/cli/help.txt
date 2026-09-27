@@ -3,7 +3,7 @@ Usage: status-original <command> [arguments] [--json]
 Controls the Status Original app on this computer, and starts it in the background when it is not running.
 
 App
-  status             Show whether the app is unlocked, the active account and each network
+  status             Show whether the app is unlocked, the active account and each protocol
   open               Bring the app window forward, optionally on a chat
   quit               Quit the app
 
@@ -14,14 +14,14 @@ Accounts
   accounts create    Create a new account; back up its recovery phrase in the app
   accounts import    Import an account from a recovery phrase read from stdin or a hidden prompt
   accounts erase     Erase an account and everything stored for it on this device
-  whoami             Show the active account and your id on each network
+  whoami             Show the active account and your id on each protocol
 
-Networks
-  networks           List networks with their connection state
-  networks config    Show or change a network’s settings; secret fields are prompted for
-  networks login     Sign in to a network that asks for a phone number, code or password. At a terminal it prompts; otherwise give one answer at a time and it prints the next step
-  networks logout    Sign out of a network
-  networks sync      Fetch what is new from every network, or one
+Protocols
+  protocols          List protocols with their connection state
+  protocols config   Show or change a protocol’s settings; secret fields are prompted for
+  protocols login    Sign in to a protocol that asks for a phone number, code or password. At a terminal it prompts; otherwise give one answer at a time and it prints the next step
+  protocols logout   Sign out of a protocol
+  protocols sync     Fetch what is new from every protocol, or one
   devices            List the XMTP installations of this account
   devices revoke     Revoke XMTP installations other than this one
 
@@ -32,8 +32,8 @@ Chats
   search             Search messages across chats, or in one
   mark-read          Mark a chat as read
   mark-unread        Mark a chat as unread
-  accept             Accept a message request
-  block              Decline a message request, or block a chat
+  accept             Accept a request
+  decline            Decline a request: the chat leaves your list and the sender is not blocked
   pin                Pin a chat to the top of the list
   unpin              Unpin a chat
   mute               Mute a chat
@@ -57,9 +57,9 @@ Messages
   download           Save a message’s photo, file, voice note or video
 
 People
-  new                Start a direct message; the peer can be an address, ENS name, username or link
-  resolve            Find the id a network uses for an address, name or link
-  contacts           List the people you have direct messages with
+  new                Start a DM with an address: an Ethereum address, ENS name, username or link
+  resolve            Find the id a protocol uses for an address, name or link
+  contacts           List your contacts, the participants you have DMs with
 
 Groups
   group create       Create a group

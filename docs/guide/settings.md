@@ -55,11 +55,11 @@ never sent anywhere.
 The full account of what leaves your device, and to whom, is on the
 [Privacy](../privacy) page.
 
-## Extensions and network
+## Plugins and protocols
 
-- **Plugins** is covered under [Plugins & commands](./plugins).
-- **Protocols** connects and configures each network; see
-  [Networks](./networks).
-- **XMTP network** picks production or the developer network.
+- **Plugins** is covered under [Plugins & slash commands](./plugins).
+- **Protocols** connects and configures each protocol; see
+  [Protocols](./networks).
+- **XMTP environment** picks production or the developer environment.
 - **Inbox id** is your XMTP inbox identifier, useful for support and for other
   apps.

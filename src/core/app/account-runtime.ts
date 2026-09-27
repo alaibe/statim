@@ -1,6 +1,6 @@
-import type { AccountRecord } from '../identity/accounts';
+import type { AccountRecord } from '../account/accounts';
 import { reportError } from './report-error';
-import type { Keyring } from '../identity/keyring';
+import type { Keyring } from '../account/keyring';
 import { useAppearanceStore } from './appearance';
 import { clearLinkPreviewCache, hydrateLinkPreviewCache } from '../messaging/link-preview-cache';
 import { clearEnsCache, hydrateEnsCache } from '@/lib/evm/ens-cache';
@@ -8,10 +8,10 @@ import { loadProtocolConfig, saveProtocolConfig, type ProtocolConfig } from '../
 import {
   clearChatProjection,
   projectAccount,
-  showCachedConversations,
+  showCachedChats,
   useChatStore,
 } from '../messaging/chat-store';
-import { ConversationCache } from '../messaging/conversation-cache';
+import { ChatCache } from '../messaging/chat-cache';
 import { SAVED_MESSAGES } from '../messaging/bots';
 import type { ProtocolId } from '../messaging/namespace';
 import type { ChatSession, XmtpCapabilities } from '../messaging/protocol';
@@ -63,7 +63,7 @@ export class AccountRuntime {
   private current: RuntimeAccount | null = null;
   private currentGeneration = 0;
   private storage: AccountStorage | null = null;
-  private cache: ConversationCache | null = null;
+  private cache: ChatCache | null = null;
   private stopCaching: (() => void) | null = null;
   private leases = new Set<OwnedPluginLease>();
   private protocols: ProtocolRuntime;
@@ -223,7 +223,7 @@ export class AccountRuntime {
     const storage = input.storage ?? createAccountStorage(input.accountId);
     this.storage = storage;
     projectAccount(storage);
-    const cache = new ConversationCache(storage.messages);
+    const cache = new ChatCache(storage.messages);
 
     const [readAt, chatPrefs, drafts, mediaIndex, prefs, , , , cached] = await Promise.all([
       readReadState(storage),
@@ -238,12 +238,11 @@ export class AccountRuntime {
     ]);
     if (!this.isCurrent(generation)) return;
     useChatStore.setState({ readAt, chatPrefs, drafts, mediaIndex });
-    showCachedConversations(cached);
+    showCachedChats(cached);
     this.cache = cache;
     this.stopCaching = useChatStore.subscribe((state, previous) => {
-      if (state.accountId !== input.accountId || state.conversations === previous.conversations)
-        return;
-      cache.saveSoon(state.conversations);
+      if (state.accountId !== input.accountId || state.chats === previous.chats) return;
+      cache.saveSoon(state.chats);
     });
 
     const enabled = resolveEnabledIds({
@@ -360,7 +359,7 @@ export class AccountRuntime {
       sessions: {},
       protocols: {},
       syncing: false,
-      conversations: [],
+      chats: [],
       messages: {},
       rawMessages: {},
       messageHistory: {},

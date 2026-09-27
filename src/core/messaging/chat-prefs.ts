@@ -1,5 +1,5 @@
 import type { AccountStorage } from '@/storage/account';
-import type { Conversation, ConversationId } from './types';
+import type { Chat, ChatId } from './types';
 
 export interface ChatPrefs {
   pinned?: boolean;
@@ -7,7 +7,7 @@ export interface ChatPrefs {
   archived?: boolean;
 }
 
-export type ChatPrefsMap = Record<ConversationId, ChatPrefs>;
+export type ChatPrefsMap = Record<ChatId, ChatPrefs>;
 
 const KEY = 'chat.prefs';
 
@@ -19,13 +19,13 @@ export async function saveChatPrefs(storage: AccountStorage, prefs: ChatPrefsMap
   try {
     await storage.set(KEY, prefs);
   } catch (error) {
-    console.warn('[chat] could not persist conversation preferences', error);
+    console.warn('[chat] could not persist chat preferences', error);
   }
 }
 
 export function withPref(
   prefs: ChatPrefsMap,
-  id: ConversationId,
+  id: ChatId,
   change: Partial<ChatPrefs>
 ): ChatPrefsMap {
   const next = { ...(prefs[id] ?? {}), ...change };
@@ -41,14 +41,14 @@ export function withPref(
   return out;
 }
 
-export function orderConversations(
-  conversations: Conversation[],
+export function orderChats(
+  chats: Chat[],
   prefs: ChatPrefsMap,
   { includeArchived = false } = {}
-): Conversation[] {
-  const recency = (c: Conversation) => c.lastMessage?.sentAt ?? c.createdAt;
+): Chat[] {
+  const recency = (c: Chat) => c.lastMessage?.sentAt ?? c.createdAt;
 
-  return conversations
+  return chats
     .filter((c) => includeArchived || !prefs[c.id]?.archived)
     .sort((a, b) => {
       const pinnedA = prefs[a.id]?.pinned ? 1 : 0;

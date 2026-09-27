@@ -6,9 +6,9 @@ No, as long as you have the twelve words. Install the app on another device,
 tap **I already have a recovery phrase**, and your account, addresses and wallet
 are back.
 
-Chat history is a separate matter: XMTP restores from the network, Telegram and
+Chat history is a separate matter: XMTP restores from its nodes, Telegram and
 Matrix from their servers, Nostr only what your relays still hold, Waku
-nothing. See [Networks](./guide/networks).
+nothing. See [Protocols](./guide/networks).
 
 ## I lost the twelve words.
 
@@ -28,7 +28,7 @@ request until you do.
 ## Can I swap tokens, or move them to another chain?
 
 Yes, once the wallet plugin is on. `/trade 25 usdc eth` quotes a swap, and
-`--from base --to arbitrum` bridges between EVM networks. The quote comes from
+`--from base --to arbitrum` bridges between EVM chains. The quote comes from
 LI.FI, which works without an account; the transaction itself is signed on your
 device. [Wallet](./guide/wallet#swap-and-bridge) has the details.
 
@@ -51,7 +51,7 @@ now, does not work yet. One with password sign-in does.
 
 ## A Matrix message says it is waiting for the keys.
 
-It was sent to the room before this device joined, or before this device
+It was sent to the chat before this device joined, or before this device
 existed, so its encryption key was never shared with you. That is how Matrix
 end-to-end encryption works rather than a fault. New messages arrive readable.
 
@@ -72,9 +72,9 @@ account or turns on a plugin still waits for you to approve it in the app. See
 
 ## Who can see my messages?
 
-It depends on the network, and the app says so on every conversation. Briefly:
-on XMTP, Nostr and Waku, only the people in the chat; on Matrix, the room's
-members, in rooms with encryption on; on Telegram, Telegram. The
+It depends on the protocol, and the app says so on every chat. Briefly:
+on XMTP, Nostr and Waku, only the people in the chat; on Matrix, the chat's
+members, in chats with encryption on; on Telegram, Telegram. The
 [Privacy](./privacy) page lists everything that leaves your device.
 
 ## Does the app collect anything?
@@ -90,7 +90,7 @@ linked site. None of that reaches the developer.
 ## Is there a fee on sends or swaps?
 
 No. The app holds no funds, runs no exchange and takes no cut. You pay the
-network's fee and whatever the route charges, both shown on the review card
+chain's fee and whatever the route charges, both shown on the review card
 before you confirm.
 
 ## How does the app update itself?

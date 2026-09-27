@@ -53,7 +53,7 @@ const SEARCHABLE: { emoji: string; text: string }[] = GROUPS.flatMap((group) =>
 export const CELL = 40;
 export const HEADER = 30;
 
-function chunk(emojis: string[], columns: number): string[][] {
+function chunk(emojis: readonly string[], columns: number): string[][] {
   const rows: string[][] = [];
   for (let i = 0; i < emojis.length; i += columns) rows.push(emojis.slice(i, i + columns));
   return rows;
@@ -73,13 +73,13 @@ export function searchEmoji(query: string, limit = 120): string[] {
 }
 
 /** The grid's rows at `columns` wide: search results, or recents then every category with headers. */
-export function emojiRows(query: string, recent: string[], columns: number) {
+export function emojiRows(query: string, recent: readonly string[], columns: number) {
   const rows: EmojiRow[] = [];
   if (query) {
     for (const group of chunk(searchEmoji(query), columns))
       rows.push({ kind: 'emoji', emojis: group });
   } else {
-    const groups: { id: string; title: string; emojis: string[] }[] = [];
+    const groups: { id: string; title: string; emojis: readonly string[] }[] = [];
     if (recent.length > 0) groups.push({ id: RECENT, title: 'Recently used', emojis: recent });
     for (const category of CATEGORIES) groups.push(category);
     for (const group of groups) {

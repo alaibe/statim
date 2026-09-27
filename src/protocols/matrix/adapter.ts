@@ -7,15 +7,16 @@ import type {
   PublicChatPreview,
 } from '@/core/messaging/protocol';
 import type {
-  ChatMessage,
-  Conversation,
-  ConversationId,
+  ProtocolChatId,
   GroupMember,
   MessageContent,
   MessageId,
   ParticipantId,
-  SelfIdentity,
+  SelfParticipant,
   Unsubscribe,
+  ConsentDecision,
+  ProtocolMessage,
+  ProtocolChat,
 } from '@/core/messaging/types';
 import { localFileUri } from '@/storage/media';
 
@@ -34,7 +35,7 @@ import { bridgedNetwork } from './bridges';
 import { toContent } from './content';
 import { outgoing, textOutgoing } from './outgoing';
 import {
-  conversationIdOf,
+  chatIdOf,
   localpart,
   parseRoomReference,
   parseUserId,
@@ -62,7 +63,7 @@ export interface MatrixConnectOptions {
 /**
  * A Matrix client over matrix-rust-sdk, which owns history, keys and media
  * in its own store. Joined rooms and invitations are surfaced; spaces are
- * not conversations.
+ * not chats.
  */
 export class MatrixSession implements ChatSession, MatrixCapabilities {
   readonly sendsVideo = true;
@@ -72,8 +73,8 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   private userId: string | null = null;
   private login: LoginState | null = null;
   private readonly loginListeners = new Set<(login: LoginState | null) => void>();
-  private readonly messageListeners = new Set<(message: ChatMessage) => void>();
-  private readonly conversationListeners = new Set<(conversation: Conversation) => void>();
+  private readonly messageListeners = new Set<(message: ProtocolMessage) => void>();
+  private readonly chatListeners = new Set<(chat: ProtocolChat) => void>();
   private readonly rooms = new Map<string, MxRoom>();
   private readonly typing = new Map<string, boolean>();
   private readonly pollAnswers = new Map<string, string[]>();
@@ -99,7 +100,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     return session;
   }
 
-  get self(): SelfIdentity {
+  get self(): SelfParticipant {
     return this.userId
       ? { participantId: this.userId, address: this.userId }
       : { participantId: '', address: '' };
@@ -229,7 +230,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
 
   private announceDmsWith(userId: string): void {
     for (const room of this.rooms.values())
-      if (room.isDm && included(room) && this.peerOf(room) === userId) this.announce(room);
+      if (room.isDm && included(room) && this.participantOf(room) === userId) this.announce(room);
   }
 
   private homeserver(): Homeserver | null {
@@ -244,9 +245,9 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   }
 
   private announce(room: MxRoom): void {
-    if (this.conversationListeners.size === 0) return;
-    const conversation = this.toConversation(room);
-    for (const listener of this.conversationListeners) listener(conversation);
+    if (this.chatListeners.size === 0) return;
+    const chat = this.toChat(room);
+    for (const listener of this.chatListeners) listener(chat);
   }
 
   private async emitMessage(raw: MxEvent): Promise<void> {
@@ -259,15 +260,15 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
 
   // ---- ChatSession ----
 
-  async listConversations(): Promise<Conversation[]> {
+  async listChats(): Promise<ProtocolChat[]> {
     if (!this.userId) return [];
-    return [...this.rooms.values()].filter(included).map((room) => this.toConversation(room));
+    return [...this.rooms.values()].filter(included).map((room) => this.toChat(room));
   }
 
   async getMessages(
-    id: ConversationId,
+    id: ProtocolChatId,
     opts?: { limit?: number; before?: { sentAt: number; id: MessageId } }
-  ): Promise<ChatMessage[]> {
+  ): Promise<ProtocolMessage[]> {
     if (!this.userId) return [];
     const roomId = roomIdOf(id);
     const events = await this.api.messages(roomId, {
@@ -279,14 +280,14 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     return events.map((event) => this.toMessage(event, false));
   }
 
-  async fetchMedia(_id: ConversationId, messageId: MessageId): Promise<void> {
+  async fetchMedia(_id: ProtocolChatId, messageId: MessageId): Promise<void> {
     const unfetched = this.unfetched.get(messageId);
     if (!unfetched) return;
     this.unfetched.delete(messageId);
     this.download(unfetched.raw, unfetched.media);
   }
 
-  async resolvePeer(addressOrId: string): Promise<ParticipantId | null> {
+  async resolveParticipant(addressOrId: string): Promise<ParticipantId | null> {
     const userId = parseUserId(addressOrId);
     if (!userId || userId === this.userId) return null;
     const profile = await this.api.profile(userId).catch(() => null);
@@ -315,15 +316,16 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     return out;
   }
 
-  async createDm(peer: ParticipantId): Promise<Conversation> {
+  async createDm(participant: ParticipantId): Promise<ProtocolChat> {
     const existing = [...this.rooms.values()].find(
-      (room) => room.isDm && room.membership === 'joined' && this.peerOf(room) === peer
+      (room) =>
+        room.isDm && room.membership === 'joined' && this.participantOf(room) === participant
     );
-    return this.toConversation(existing ?? (await this.requireRoom(await this.api.createDm(peer))));
+    return this.toChat(existing ?? (await this.requireRoom(await this.api.createDm(participant))));
   }
 
-  async createGroup(peers: ParticipantId[], title: string): Promise<Conversation> {
-    return this.toConversation(await this.requireRoom(await this.api.createRoom(peers, title)));
+  async createGroup(participants: ParticipantId[], title: string): Promise<ProtocolChat> {
+    return this.toChat(await this.requireRoom(await this.api.createRoom(participants, title)));
   }
 
   async previewPublicChat(input: string): Promise<PublicChatPreview> {
@@ -334,7 +336,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     return {
       id: input.trim(),
       title: room.name,
-      kind: joinedRoom ? (joinedRoom.broadcast ? 'channel' : 'group') : 'room',
+      kind: joinedRoom?.broadcast ? 'channel' : 'group',
       joined: room.joined,
       requiresApproval: room.canRequestJoin && !room.joined,
       description: room.topic,
@@ -343,27 +345,27 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
       link: permalink(reference.idOrAlias),
       joinUnavailableReason:
         !room.canJoin && !room.canRequestJoin && !room.joined
-          ? 'This room requires an invitation.'
+          ? 'This chat requires an invitation.'
           : undefined,
     };
   }
 
-  async joinPublicChat(id: ConversationId): Promise<Conversation | null> {
-    const reference = parseRoomReference(id);
-    if (!reference) throw new Error('That Matrix room link is invalid.');
+  async joinPublicChat(input: string): Promise<ProtocolChat | null> {
+    const reference = parseRoomReference(input);
+    if (!reference) throw new Error('That Matrix link is invalid.');
     const room = await this.api.previewPublicRoom(reference.idOrAlias, reference.via);
     if (!room.joined && room.canRequestJoin) {
       await this.api.knockPublicRoom(reference.idOrAlias, reference.via);
       return null;
     }
-    if (!room.joined && !room.canJoin) throw new Error('This room requires an invitation.');
+    if (!room.joined && !room.canJoin) throw new Error('This chat requires an invitation.');
     const roomId = room.joined
       ? room.id
       : await this.api.joinPublicRoom(reference.idOrAlias, reference.via);
-    return this.toConversation(await this.requireRoom(roomId));
+    return this.toChat(await this.requireRoom(roomId));
   }
 
-  async getMembers(id: ConversationId): Promise<GroupMember[]> {
+  async getMembers(id: ProtocolChatId): Promise<GroupMember[]> {
     const roomId = roomIdOf(id);
     const sendLevel = this.rooms.get(roomId)?.sendLevel;
     const members = await this.membersOf(roomId);
@@ -378,22 +380,26 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     }));
   }
 
-  async banMember(id: ConversationId, peer: ParticipantId): Promise<void> {
-    await this.api.ban(roomIdOf(id), peer);
+  async banMember(id: ProtocolChatId, participant: ParticipantId): Promise<void> {
+    await this.api.ban(roomIdOf(id), participant);
     this.forgetMembers(roomIdOf(id));
   }
 
-  async setMemberMuted(id: ConversationId, peer: ParticipantId, muted: boolean): Promise<void> {
+  async setMemberMuted(
+    id: ProtocolChatId,
+    participant: ParticipantId,
+    muted: boolean
+  ): Promise<void> {
     const room = await this.requireRoom(roomIdOf(id));
     await this.api.setPowerLevel(
       room.id,
-      peer,
+      participant,
       muted ? (room.sendLevel ?? 0) - 1 : (room.defaultLevel ?? 0)
     );
     this.forgetMembers(room.id);
   }
 
-  async getGroupInfo(id: ConversationId): Promise<GroupInfo> {
+  async getGroupInfo(id: ProtocolChatId): Promise<GroupInfo> {
     const room = await this.requireRoom(roomIdOf(id));
     return {
       description: room.topic,
@@ -426,13 +432,13 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
       .catch(() => undefined);
   }
 
-  async mentionCandidates(id: ConversationId, query: string): Promise<MentionCandidate[]> {
+  async mentionCandidates(id: ProtocolChatId, query: string): Promise<MentionCandidate[]> {
     const needle = query.toLowerCase();
     const members = await this.membersOf(roomIdOf(id));
     return (
       members
         .filter((member) => member.userId !== this.userId)
-        // No handle: a bridged user's Matrix id means nothing on Slack or Discord, a pill does.
+        // No address: a bridged user's Matrix id means nothing on Slack or Discord, a pill does.
         .map((member) => ({
           id: member.userId,
           name: member.displayName || localpart(member.userId),
@@ -445,29 +451,29 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     );
   }
 
-  async addMembers(id: ConversationId, peers: ParticipantId[]): Promise<void> {
+  async addMembers(id: ProtocolChatId, participants: ParticipantId[]): Promise<void> {
     const roomId = roomIdOf(id);
-    await Promise.all(peers.map((peer) => this.api.invite(roomId, peer)));
+    await Promise.all(participants.map((participant) => this.api.invite(roomId, participant)));
     this.forgetMembers(roomId);
   }
 
-  async removeMembers(id: ConversationId, peers: ParticipantId[]): Promise<void> {
+  async removeMembers(id: ProtocolChatId, participants: ParticipantId[]): Promise<void> {
     const roomId = roomIdOf(id);
-    await Promise.all(peers.map((peer) => this.api.kick(roomId, peer)));
+    await Promise.all(participants.map((participant) => this.api.kick(roomId, participant)));
     this.forgetMembers(roomId);
   }
 
-  async renameGroup(id: ConversationId, title: string): Promise<void> {
+  async renameGroup(id: ProtocolChatId, title: string): Promise<void> {
     await this.api.setName(roomIdOf(id), title);
   }
 
-  async leaveGroup(id: ConversationId): Promise<void> {
+  async leaveGroup(id: ProtocolChatId): Promise<void> {
     await this.api.leave(roomIdOf(id));
   }
 
   /** The real id arrives with the echo; until then the store keeps its own pending entry. */
   async send(
-    id: ConversationId,
+    id: ProtocolChatId,
     content: MessageContent,
     replyTo?: MessageId,
     threadRoot?: MessageId
@@ -481,63 +487,59 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     return `local:${Date.now()}`;
   }
 
-  async deleteMessage(id: ConversationId, messageId: MessageId): Promise<void> {
+  async deleteMessage(id: ProtocolChatId, messageId: MessageId): Promise<void> {
     await this.api.redact(roomIdOf(id), messageId);
   }
 
-  async listPinnedMessages(id: ConversationId): Promise<ChatMessage[]> {
+  async listPinnedMessages(id: ProtocolChatId): Promise<ProtocolMessage[]> {
     const events = await this.api.pinnedMessages(roomIdOf(id));
     return events.map((event) => ({ ...this.toMessage(event, true), isPinned: true }));
   }
 
-  async setMessagePinned(id: ConversationId, messageId: MessageId, pinned: boolean): Promise<void> {
+  async setMessagePinned(id: ProtocolChatId, messageId: MessageId, pinned: boolean): Promise<void> {
     await this.api.setPinned(roomIdOf(id), messageId, pinned);
   }
 
-  async editMessage(id: ConversationId, messageId: MessageId, text: string): Promise<void> {
+  async editMessage(id: ProtocolChatId, messageId: MessageId, text: string): Promise<void> {
     await this.api.edit(roomIdOf(id), messageId, textOutgoing(text));
   }
 
-  /** An invitation is a request; a denied DM ignores the sender and leaves. */
-  async setConsent(id: ConversationId, consent: 'allowed' | 'denied'): Promise<void> {
+  /** An invitation is a request; declining one, or a DM, leaves the room. */
+  async setConsent(id: ProtocolChatId, consent: ConsentDecision): Promise<void> {
     const roomId = roomIdOf(id);
     const room = this.rooms.get(roomId) ?? (await this.api.room(roomId));
     if (!room) return;
     if (room.membership === 'invited') {
-      if (consent === 'allowed') await this.api.join(roomId);
+      if (consent === 'accepted') await this.api.join(roomId);
       else await this.api.leave(roomId);
       return;
     }
-    if (consent === 'denied' && room.isDm) {
-      const peer = this.peerOf(room);
-      if (peer) await this.api.ignore(peer, true);
-      await this.api.leave(roomId);
-    }
+    if (consent === 'declined' && room.isDm) await this.api.leave(roomId);
   }
 
-  async sendReadReceipt(id: ConversationId): Promise<void> {
+  async sendReadReceipt(id: ProtocolChatId): Promise<void> {
     await this.api.markRead(roomIdOf(id));
   }
 
-  async getJoinRequests(id: ConversationId): Promise<JoinRequest[]> {
+  async getJoinRequests(id: ProtocolChatId): Promise<JoinRequest[]> {
     return knocks(this.requireHomeserver(), roomIdOf(id));
   }
 
   async processJoinRequest(
-    id: ConversationId,
-    userId: ParticipantId,
+    id: ProtocolChatId,
+    participantId: ParticipantId,
     approve: boolean
   ): Promise<void> {
-    if (approve) await this.api.invite(roomIdOf(id), userId);
-    else await this.api.kick(roomIdOf(id), userId);
+    if (approve) await this.api.invite(roomIdOf(id), participantId);
+    else await this.api.kick(roomIdOf(id), participantId);
   }
 
-  async createInviteLink(id: ConversationId, requiresApproval: boolean): Promise<string> {
+  async createInviteLink(id: ProtocolChatId, requiresApproval: boolean): Promise<string> {
     const room = await this.requireRoom(roomIdOf(id));
     return inviteLink(this.requireHomeserver(), room, this.self.participantId, requiresApproval);
   }
 
-  async searchMessages(query: string, id?: ConversationId): Promise<ChatMessage[]> {
+  async searchMessages(query: string, id?: ProtocolChatId): Promise<ProtocolMessage[]> {
     const homeserver = this.homeserver();
     if (!homeserver || !this.userId) return [];
     const events = await searchHomeserver(homeserver, query, this.userId, id && roomIdOf(id));
@@ -549,25 +551,25 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
       .map((event) => this.toMessage(event, false));
   }
 
-  async setMarkedUnread(id: ConversationId, unread: boolean): Promise<void> {
+  async setMarkedUnread(id: ProtocolChatId, unread: boolean): Promise<void> {
     await this.api.setMarkedUnread(roomIdOf(id), unread);
   }
 
-  watchPresence(id: ConversationId): Unsubscribe {
+  watchPresence(id: ProtocolChatId): Unsubscribe {
     const room = this.rooms.get(roomIdOf(id));
-    const peer = room?.isDm ? this.peerOf(room) : null;
-    return peer ? this.presence.watch(peer) : () => {};
+    const participant = room?.isDm ? this.participantOf(room) : null;
+    return participant ? this.presence.watch(participant) : () => {};
   }
 
-  async setTyping(id: ConversationId, typing: boolean): Promise<void> {
+  async setTyping(id: ProtocolChatId, typing: boolean): Promise<void> {
     await this.api.setTyping(roomIdOf(id), typing);
   }
 
-  async createPoll(id: ConversationId, question: string, options: string[]): Promise<void> {
+  async createPoll(id: ProtocolChatId, question: string, options: string[]): Promise<void> {
     await this.api.createPoll(roomIdOf(id), question, options);
   }
 
-  async votePoll(id: ConversationId, messageId: MessageId, optionIds: number[]): Promise<void> {
+  async votePoll(id: ProtocolChatId, messageId: MessageId, optionIds: number[]): Promise<void> {
     const answers = this.pollAnswers.get(messageId);
     if (!answers) throw new Error('Load this poll before voting.');
     const selected = optionIds.map((index) => answers[index]);
@@ -578,17 +580,17 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   /** The SDK syncs continuously; there is nothing to pull. */
   async sync(): Promise<void> {}
 
-  async streamMessages(onMessage: (m: ChatMessage) => void): Promise<Unsubscribe> {
+  async streamMessages(onMessage: (m: ProtocolMessage) => void): Promise<Unsubscribe> {
     this.messageListeners.add(onMessage);
     return () => this.messageListeners.delete(onMessage);
   }
 
-  async streamConversations(onConversation: (c: Conversation) => void): Promise<Unsubscribe> {
-    this.conversationListeners.add(onConversation);
+  async streamChats(onChat: (c: ProtocolChat) => void): Promise<Unsubscribe> {
+    this.chatListeners.add(onChat);
     for (const room of this.rooms.values()) {
-      if (included(room)) onConversation(this.toConversation(room));
+      if (included(room)) onChat(this.toChat(room));
     }
-    return () => this.conversationListeners.delete(onConversation);
+    return () => this.chatListeners.delete(onChat);
   }
 
   async disconnect(): Promise<void> {
@@ -607,12 +609,12 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
 
   private async requireRoom(roomId: string): Promise<MxRoom> {
     const room = this.rooms.get(roomId) ?? (await this.api.room(roomId));
-    if (!room) throw new Error('The room did not appear.');
+    if (!room) throw new Error('The chat did not appear.');
     this.rooms.set(room.id, room);
     return room;
   }
 
-  /** Fetched once per room; a DM's peer is known without it. */
+  /** Fetched once per room; a DM's other participant is known without it. */
   private membersOf(roomId: string): Promise<MxMember[]> {
     const known = this.members.get(roomId);
     if (known) return Promise.resolve(known);
@@ -640,7 +642,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     this.pendingMembers.delete(roomId);
   }
 
-  private peerOf(room: MxRoom): string | null {
+  private participantOf(room: MxRoom): string | null {
     const selfId = this.self.participantId;
     return (
       room.peer ??
@@ -650,29 +652,29 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     );
   }
 
-  private toConversation(room: MxRoom): Conversation {
+  private toChat(room: MxRoom): ProtocolChat {
     const selfId = this.self.participantId;
-    const peer = this.peerOf(room);
-    const presence = room.isDm && peer ? this.presence.get(peer) : undefined;
+    const participant = this.participantOf(room);
+    const presence = room.isDm && participant ? this.presence.get(participant) : undefined;
     const known = this.members.get(room.id);
     const memberIds = room.isDm
-      ? [...new Set([peer ?? room.id, selfId])]
+      ? [...new Set([participant ?? room.id, selfId])]
       : [...new Set([...(known?.map((member) => member.userId) ?? room.heroes), selfId])];
 
     const network =
       this.networks.get(room.id) ??
-      bridgedNetwork([peer, room.latest?.sender, room.inviter, ...room.heroes]);
+      bridgedNetwork([participant, room.latest?.sender, room.inviter, ...room.heroes]);
     if (network) this.networks.set(room.id, network);
 
     return {
-      id: conversationIdOf(room.id),
+      id: chatIdOf(room.id),
       kind: room.isDm ? 'dm' : room.broadcast ? 'channel' : 'group',
       canSend: room.canSend,
       typing: this.typing.get(room.id) ?? false,
       ...(presence?.online ? { online: true } : {}),
       ...(presence?.lastSeenAt ? { lastSeenAt: presence.lastSeenAt } : {}),
       network,
-      title: room.name || (room.isDm ? (peer ?? room.id) : 'Untitled room'),
+      title: room.name || (room.isDm ? (participant ?? room.id) : 'Untitled chat'),
       avatarUri: this.avatarOf(room),
       memberIds,
       createdAt: room.latest?.timestamp ?? 0,
@@ -684,17 +686,17 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
       ...(room.markedUnread ? { markedUnread: true } : {}),
       canPin: room.canPin,
       canDeleteOthers: room.canDeleteOthers,
-      consent: room.membership === 'invited' ? 'unknown' : 'allowed',
+      consent: room.membership === 'invited' ? 'request' : 'accepted',
       selfRole: room.isDm ? undefined : room.selfRole,
     };
   }
 
-  private toMessage(raw: MxEvent, fetchMedia: boolean): ChatMessage {
+  private toMessage(raw: MxEvent, fetchMedia: boolean): ProtocolMessage {
     if (raw.senderName) this.names.set(raw.sender, raw.senderName);
     const reactions = raw.reactions?.filter((r) => r.senders.length > 0) ?? [];
     return {
       id: raw.id,
-      conversationId: conversationIdOf(raw.roomId),
+      chatId: chatIdOf(raw.roomId),
       senderId: raw.sender,
       sentAt: raw.timestamp,
       content: toContent(raw, {
@@ -734,11 +736,11 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     this.awaitedMedia.set(media.source, raw);
     this.api
       .media(media)
-      .then((downloaded) => {
+      .then(async (downloaded) => {
         this.mediaPaths.set(media.source, downloaded);
         const event = this.awaitedMedia.get(media.source);
         this.awaitedMedia.delete(media.source);
-        if (event) return this.emitMessage(event);
+        if (event) await this.emitMessage(event);
       })
       .catch(() => this.awaitedMedia.delete(media.source));
   }
@@ -752,7 +754,7 @@ function included(room: MxRoom): boolean {
   return room.membership === 'joined' || room.membership === 'invited';
 }
 
-/** The list needs a `ChatMessage`; the preview has no id, so it gets one nothing else will match. */
+/** The preview has no id, so it gets one nothing else will match. */
 function previewEvent(room: MxRoom): MxEvent {
   const latest = room.latest as MxPreview;
   return {

@@ -1,5 +1,8 @@
 import * as Notifications from 'expo-notifications';
 
+import { parseChatId } from './messaging/namespace';
+import type { ChatId } from './messaging/types';
+
 let configured = false;
 
 export function configureNotifications(): void {
@@ -17,7 +20,7 @@ export function configureNotifications(): void {
 }
 
 export interface MessageNotification {
-  conversationId: string;
+  chatId: ChatId;
   title: string;
   body: string;
 }
@@ -28,7 +31,7 @@ export async function notifyMessage(notification: MessageNotification): Promise<
       content: {
         title: notification.title,
         body: notification.body,
-        data: { conversationId: notification.conversationId },
+        data: { chatId: notification.chatId },
       },
       trigger: null,
     });
@@ -47,10 +50,11 @@ export async function setBadgeCount(count: number): Promise<void> {
   } catch {}
 }
 
-export function onNotificationTapped(handler: (conversationId: string) => void): () => void {
+export function onNotificationTapped(handler: (chatId: ChatId) => void): () => void {
   const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-    const id = response.notification.request.content.data?.conversationId;
-    if (typeof id === 'string') handler(id);
+    const raw = response.notification.request.content.data?.chatId;
+    const id = typeof raw === 'string' ? parseChatId(raw) : null;
+    if (id) handler(id);
   });
   return () => subscription.remove();
 }

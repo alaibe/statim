@@ -76,7 +76,7 @@ export function WebLogin({ params, network, onValues, onCancel }: WebLoginProps)
       }
     }
 
-    run();
+    void run();
     return () => {
       stopped = true;
       invoke('web_login_close').catch(() => {});

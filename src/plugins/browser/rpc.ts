@@ -10,7 +10,7 @@ export async function handleSessionRequest(
   item: Extract<PendingItem, { kind: 'request' }>,
   context: PluginContext
 ): Promise<unknown> {
-  const account = context.identity.account();
+  const account = context.account.signer();
 
   switch (item.method) {
     case 'eth_accounts':
@@ -96,7 +96,7 @@ export function describeRequest(item: Extract<PendingItem, { kind: 'request' }>)
 function resolveChainId(caip2: string): number {
   const chainId = fromCaip2(caip2);
   if (chainId === null) {
-    throw new Error(`Unsupported network "${caip2}" for this transaction.`);
+    throw new Error(`Unsupported chain "${caip2}" for this transaction.`);
   }
   return chainId;
 }

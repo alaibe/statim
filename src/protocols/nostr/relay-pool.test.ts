@@ -1,9 +1,9 @@
 import { signEvent, type NostrEvent } from './events';
-import { identityFromSecretKey } from './keys';
+import { keysFromSecretKey } from './keys';
 import { normalizeRelayUrl, RelayPool } from './relay-pool';
 import { fakeRelayFactory } from './testing/fake-relay';
 
-const alice = identityFromSecretKey(new Uint8Array(32).fill(1));
+const alice = keysFromSecretKey(new Uint8Array(32).fill(1));
 
 function anEvent(content = 'hi'): NostrEvent {
   return signEvent(

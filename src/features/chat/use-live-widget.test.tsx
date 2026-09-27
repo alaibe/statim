@@ -44,7 +44,7 @@ afterEach(async () => {
 describe('useLiveWidget', () => {
   it('rebuilds a card from its view, and again when its plugin changes', async () => {
     let state = 'now';
-    const view = jest.fn(async (args: string[] = []) => card(`${state} for ${args[0]}`));
+    const view = jest.fn(async (args: readonly string[] = []) => card(`${state} for ${args[0]}`));
     mockViews.set('p/list', view);
 
     await mount(snapshot);

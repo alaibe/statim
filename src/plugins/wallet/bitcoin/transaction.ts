@@ -4,7 +4,7 @@ import { sha256 } from '@noble/hashes/sha2.js';
 
 import { concat, fromHex, u32le, u64le } from '@/lib/bytes';
 
-import { hash160, NETWORK_PREFIX, type BitcoinNetwork } from './address';
+import { hash160, CHAIN_PREFIX, type BitcoinChain } from './address';
 
 export function hash256(bytes: Uint8Array): Uint8Array {
   return sha256(sha256(bytes));
@@ -24,10 +24,10 @@ export function varint(value: number): Uint8Array {
   return out;
 }
 
-export function scriptPubKey(address: string, network: BitcoinNetwork = 'mainnet'): Uint8Array {
+export function scriptPubKey(address: string, chain: BitcoinChain = 'mainnet'): Uint8Array {
   const decoded = bech32.decode(address as `${string}1${string}`);
-  if (decoded.prefix !== NETWORK_PREFIX[network]) {
-    throw new Error(`"${address}" is not a ${network} address.`);
+  if (decoded.prefix !== CHAIN_PREFIX[chain]) {
+    throw new Error(`"${address}" is not a ${chain} address.`);
   }
   const [version, ...data] = decoded.words;
   if (version !== 0) {

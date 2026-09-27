@@ -1,19 +1,19 @@
 # Messages
 
 <div class="phones">
-  <figure><img src="/screenshots/status-room.png" alt="A conversation with command chips above the composer"><figcaption>The composer, with the chips a room offers</figcaption></figure>
+  <figure><img src="/screenshots/status-chat.png" alt="A chat with slash command chips above the composer"><figcaption>The composer, with the chips a chat offers</figcaption></figure>
   <figure><img src="/screenshots/message-actions.png" alt="Long-pressing a message: reactions, reply, copy, forward"><figcaption>Long-press a message for its actions</figcaption></figure>
 </div>
 
 ## Sending
 
-Type and tap send. A `/` at the start of the message opens the command picker;
-the chips above the composer run the same commands without typing.
+Type and tap send. A `/` at the start of the message opens the slash command
+picker; the chips above the composer run the same slash commands without typing.
 
 The paperclip offers your **photo library**, **take a photo**, a **file**, and
 **GIF** search. The microphone records a voice note. Photos are compressed
 before they go. On the Mac you can also paste or drop files into the message
-box: photos go as photos, videos as videos where the network takes them, and
+box: photos go as photos, videos as videos where the protocol takes them, and
 anything else as a file.
 
 What you type but do not send stays with the chat as a draft. On Telegram the
@@ -30,13 +30,13 @@ Nothing is ever sent twice.
 ## Replies, reactions, forwarding
 
 Long-press a message, or right-click on the Mac. The menu only lists what the
-network can do and what you are allowed to do in that chat:
+protocol can do and what you are allowed to do in that chat:
 
 - **React** with 👍 ❤️ 😂 😮 😢 🙏 or any other emoji. Reactions show under the
   message with who sent them.
 - **Reply** quotes the message above yours; tapping the quote jumps back to it.
 - **Copy** the text.
-- **Forward** to another conversation, on any network.
+- **Forward** to another chat, on any protocol.
 - **Edit** your own text. An edited message says "edited" next to its time.
 - **Pin message** puts it in the bar at the top of the chat. It only shows
   where you may pin.
@@ -77,7 +77,7 @@ When someone is typing, the chat's title bar says so, on Telegram and Matrix.
 Yours is sent only if you turn on **Send typing indicators** under Settings →
 Privacy.
 
-A private chat shows **online** or **last seen** under the name. Telegram
+A DM shows **online** or **last seen** under the name. Telegram
 reports it as the Telegram apps do. Matrix does when your homeserver shares
 presence, and many homeservers do not. XMTP, Nostr and Waku have no presence.
 
@@ -88,5 +88,5 @@ alert, a bot's reply with buttons. Every card carries its own plain-text
 fallback, so someone whose app does not have that plugin still reads what it
 said.
 
-A card's buttons only ever run a command, through the same path as typing it. A
+A card's buttons only ever run a slash command, through the same path as typing it. A
 button labelled "send" still opens the normal confirmation.

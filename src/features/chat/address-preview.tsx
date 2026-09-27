@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
+import type { ChatId } from '@/core/messaging/types';
 import { usePluginHost } from '@/core/plugins/host';
 import type { Widget } from '@/design/widgets';
 import { WidgetView } from '@/design/widgets/widget-view';
@@ -11,16 +12,16 @@ import { useOffersSend } from './use-offers-send';
 /** The wallet's card for an address or name; nothing when the wallet is off. */
 export function AddressPreview({
   value,
-  conversationId,
+  chatId,
   onCommand,
 }: {
   value: string;
-  conversationId: string;
+  chatId: ChatId;
   onCommand?: (command: string) => void;
 }) {
   const { registry, enabledIds } = usePluginHost();
   const [built, setBuilt] = useState<{ value: string; widget: Widget } | null>(null);
-  const canSend = useOffersSend(conversationId, onCommand);
+  const canSend = useOffersSend(chatId, onCommand);
 
   useEffect(() => {
     const view = registry.view('wallet', 'address');

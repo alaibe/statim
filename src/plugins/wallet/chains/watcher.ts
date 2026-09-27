@@ -1,6 +1,6 @@
 import { formatEther, type Address, type Chain } from 'viem';
 
-import { shortAddress } from '@/core/identity/keyring';
+import { shortAddress } from '@/core/account/keyring';
 import type { MessageContent } from '@/core/messaging/types';
 import type { PluginContext } from '@/core/plugins/types';
 import { chainSlug, publicClientFor } from '@/lib/evm/chains';
@@ -55,7 +55,7 @@ function watchTargetsOf(
   const targets: Target[] = [];
 
   try {
-    targets.push({ address: context.identity.address, label: 'You' });
+    targets.push({ address: context.account.address, label: 'You' });
   } catch {}
 
   const seen = new Set(targets.map((t) => t.address.toLowerCase()));

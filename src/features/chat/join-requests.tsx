@@ -4,25 +4,21 @@ import { Avatar, IconButton, ListItem, Section, Text } from '@/design';
 import { errorMessage } from '@/core/errors';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { formatDayLabel } from '@/core/messaging/preview';
-import type { ParticipantId } from '@/core/messaging/types';
+import type { ParticipantId, ChatId } from '@/core/messaging/types';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 
-import { useAction } from '@/core/app/use-action';
+import { useAction } from '@/features/use-action';
 
-export function JoinRequests({
-  conversationId,
-  pending,
-}: {
-  conversationId: string;
-  pending?: number;
-}) {
+export function JoinRequests({ chatId, pending }: { chatId: ChatId; pending?: number }) {
   const getJoinRequests = useChatStore((s) => s.getJoinRequests);
   const processJoinRequest = useChatStore((s) => s.processJoinRequest);
-  const requests = useKeyedLoad(conversationId, getJoinRequests, pending);
+  const requests = useKeyedLoad(chatId, getJoinRequests, pending);
   const answer = useAction(
-    async (userId: ParticipantId, approve: boolean) => {
-      await processJoinRequest(conversationId, userId, approve);
-      requests.update((pending) => pending.filter((request) => request.userId !== userId));
+    async (participantId: ParticipantId, approve: boolean) => {
+      await processJoinRequest(chatId, participantId, approve);
+      requests.update((pending) =>
+        pending.filter((request) => request.participantId !== participantId)
+      );
     },
     { success: 'Done', failure: 'Could not handle join request' }
   );
@@ -44,11 +40,11 @@ export function JoinRequests({
       ) : (
         requests.value?.map((request) => (
           <ListItem
-            key={request.userId}
+            key={request.participantId}
             title={request.name}
             subtitle={request.bio || formatDayLabel(request.requestedAt)}
             numberOfLinesSubtitle={2}
-            leading={<Avatar seed={request.userId} size="sm" />}
+            leading={<Avatar seed={request.participantId} size="sm" />}
             trailing={
               <View className="flex-row">
                 <IconButton
@@ -56,13 +52,13 @@ export function JoinRequests({
                   label={`Approve ${request.name}`}
                   tone="brand"
                   disabled={answer.busy}
-                  onPress={() => void answer.run(request.userId, true)}
+                  onPress={() => void answer.run(request.participantId, true)}
                 />
                 <IconButton
                   icon="close"
                   label={`Decline ${request.name}`}
                   disabled={answer.busy}
-                  onPress={() => void answer.run(request.userId, false)}
+                  onPress={() => void answer.run(request.participantId, false)}
                 />
               </View>
             }

@@ -22,7 +22,7 @@ it('turns a pasted image into the existing attachment shape and enforces the siz
   expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:dropped');
 });
 
-it('sends any other dropped file as a file, and a video as a video where the network can', async () => {
+it('sends any other dropped file as a file, and a video as a video where the protocol can', async () => {
   const pdf = new File(['%PDF'], 'notes.pdf', { type: 'application/pdf' });
   await expect(contentFromBrowserFile(pdf, false)).resolves.toEqual({
     kind: 'file',

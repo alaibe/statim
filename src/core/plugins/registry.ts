@@ -1,16 +1,16 @@
 /**
- * Two independent gates decide what a conversation offers: `showIn` asks what
- * *kind* of place this is, ownership asks *whose room* it is. Both must pass.
+ * Two independent gates decide what a chat offers: `showIn` asks what
+ * *kind* of place this is, ownership asks *whose chat* it is. Both must pass.
  *
- * Gating happens before de-duplication, which is what lets every network
- * define its own `/balance`: in any one conversation at most one survives.
+ * Gating happens before de-duplication, which is what lets every protocol
+ * define its own `/balance`: in any one chat at most one survives.
  */
 import { reportError } from '../app/report-error';
-import { botConversationId, type Bot } from '../messaging/bots';
-import { inScope, type ConversationScope } from '../messaging/conversation-scope';
+import { botChatId, type Bot } from '../messaging/bots';
+import { inScope, type ChatScope } from '../messaging/chat-scope';
 import { supports } from '../messaging/capability';
 import type { ChatSession } from '../messaging/protocol';
-import type { ConversationId, ParticipantId } from '../messaging/types';
+import type { ChatId, ParticipantId } from '../messaging/types';
 import type {
   ActivePlugin,
   ComposerAction,
@@ -74,7 +74,7 @@ export class PluginRegistry {
     contentTypes?: Map<string, { spec: PluginContentType; context: PluginContext }>;
     specs?: PluginContentType[];
     composerActions?: { action: ComposerAction; context: PluginContext; pluginId: PluginId }[];
-    channelOwners?: Map<ConversationId, PluginId>;
+    channelOwners?: Map<ChatId, PluginId>;
     overlays?: { overlay: PluginOverlay; pluginId: PluginId }[];
     bots?: Bot[];
     lists?: Map<string, unknown>;
@@ -191,39 +191,36 @@ export class PluginRegistry {
     return this.cache.commands;
   }
 
-  channelOwner(conversationId: ConversationId): PluginId | undefined {
+  channelOwner(chatId: ChatId): PluginId | undefined {
     if (!this.cache.channelOwners) {
-      const owners = new Map<ConversationId, PluginId>();
+      const owners = new Map<ChatId, PluginId>();
       for (const [pluginId, entry] of this.active) {
         for (const bot of entry.contribution.bots ?? []) {
-          owners.set(botConversationId(bot.id), pluginId);
+          owners.set(botChatId(bot.id), pluginId);
         }
       }
       this.cache.channelOwners = owners;
     }
-    return this.cache.channelOwners.get(conversationId);
+    return this.cache.channelOwners.get(chatId);
   }
 
-  private inScope(conversationId: ConversationId, pluginId: PluginId, global?: boolean): boolean {
-    const owner = this.channelOwner(conversationId);
+  private inScope(chatId: ChatId, pluginId: PluginId, global?: boolean): boolean {
+    const owner = this.channelOwner(chatId);
     return owner === undefined || owner === pluginId || global === true;
   }
 
-  commandsFor(
-    conversationId: ConversationId,
-    scope?: ConversationScope
-  ): Map<string, CommandEntry> {
-    return indexCommands(this.entries(conversationId, scope));
+  commandsFor(chatId: ChatId, scope?: ChatScope): Map<string, CommandEntry> {
+    return indexCommands(this.entries(chatId, scope));
   }
 
   commandListFor(
-    conversationId: ConversationId,
-    scope?: ConversationScope
+    chatId: ChatId,
+    scope?: ChatScope
   ): { command: SlashCommand; pluginId: PluginId }[] {
-    return this.memo(`commands:${conversationId}:${scope}`, () => {
+    return this.memo(`commands:${chatId}:${scope}`, () => {
       const seen = new Set<string>();
       const out: { command: SlashCommand; pluginId: PluginId }[] = [];
-      for (const { command, pluginId } of this.entries(conversationId, scope)) {
+      for (const { command, pluginId } of this.entries(chatId, scope)) {
         // Hidden only from the list. `commandsFor` still dispatches it, which is
         // the point: a bot's buttons must keep working.
         if (command.hidden || seen.has(command.name)) continue;
@@ -234,28 +231,25 @@ export class PluginRegistry {
     });
   }
 
-  /** Core first, then plugins. No scope skips the `showIn` gate; no conversation skips ownership. */
-  private *entries(
-    conversationId?: ConversationId,
-    scope?: ConversationScope
-  ): Generator<CommandEntry> {
+  /** Core first, then plugins. No scope skips the `showIn` gate; no chat skips ownership. */
+  private *entries(chatId?: ChatId, scope?: ChatScope): Generator<CommandEntry> {
     for (const command of this.core.commands ?? []) {
       if (scope !== undefined && !inScope(command.showIn, scope)) continue;
       yield { command, context: CORE_CONTEXT, pluginId: CORE_ID };
     }
     for (const [pluginId, entry] of this.active) {
       for (const command of entry.contribution.commands ?? []) {
-        if (!this.offers(conversationId, pluginId, command.global, command.showIn, scope)) continue;
+        if (!this.offers(chatId, pluginId, command.global, command.showIn, scope)) continue;
         yield { command, context: entry.context, pluginId };
       }
     }
   }
 
   composerActionsFor(
-    conversationId: ConversationId,
-    scope?: ConversationScope
+    chatId: ChatId,
+    scope?: ChatScope
   ): { action: ComposerAction; context: PluginContext; pluginId: PluginId }[] {
-    return this.memo(`actions:${conversationId}:${scope}`, () => {
+    return this.memo(`actions:${chatId}:${scope}`, () => {
       const core = (this.core.composerActions ?? [])
         .filter((action) => scope === undefined || inScope(action.showIn, scope))
         .map((action) => ({ action, context: CORE_CONTEXT, pluginId: CORE_ID }));
@@ -263,24 +257,24 @@ export class PluginRegistry {
       return [
         ...core,
         ...this.composerActions().filter((e) =>
-          this.offers(conversationId, e.pluginId, e.action.global, e.action.showIn, scope)
+          this.offers(chatId, e.pluginId, e.action.global, e.action.showIn, scope)
         ),
       ];
     });
   }
 
   private offers(
-    conversationId: ConversationId | undefined,
+    chatId: ChatId | undefined,
     pluginId: PluginId,
     global: boolean | undefined,
-    showIn: readonly ConversationScope[] | undefined,
-    scope: ConversationScope | undefined
+    showIn: readonly ChatScope[] | undefined,
+    scope: ChatScope | undefined
   ): boolean {
     if (scope !== undefined && !inScope(showIn, scope)) return false;
-    return conversationId === undefined || this.inScope(conversationId, pluginId, global);
+    return chatId === undefined || this.inScope(chatId, pluginId, global);
   }
 
-  contentTypes(): Map<string, { spec: PluginContentType; context: PluginContext }> {
+  private contentTypes(): Map<string, { spec: PluginContentType; context: PluginContext }> {
     if (this.cache.contentTypes) return this.cache.contentTypes;
     const out = new Map<string, { spec: PluginContentType; context: PluginContext }>();
     for (const entry of this.active.values()) {
@@ -292,7 +286,14 @@ export class PluginRegistry {
     return out;
   }
 
-  /** Plain data, not transport codecs: turning these into codecs is each adapter's job. */
+  customRenderer(typeId: string, data: unknown) {
+    const entry = this.contentTypes().get(typeId);
+    return entry?.spec.is(data)
+      ? { render: entry.spec.render, context: entry.context, data }
+      : null;
+  }
+
+  /** Plain data, not protocol codecs: turning these into codecs is each adapter's job. */
   contentTypeSpecs(): PluginContentType[] {
     if (this.cache.specs) return this.cache.specs;
     this.cache.specs = [...this.contentTypes().values()].map(({ spec }) => spec);

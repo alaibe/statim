@@ -1,7 +1,7 @@
 # Runs commands from a quick action and from the composer.
 appId: com.statusoriginal.app
 ---
-- runFlow: lib/open-status-room.yaml
+- runFlow: lib/open-status-chat.yaml
 
 - tapOn:
     id: "quick-plugins"
@@ -22,5 +22,5 @@ appId: com.statusoriginal.app
     env:
       TEXT: "/nonsense"
 - extendedWaitUntil:
-    visible: "Unknown command.*"
+    visible: "Unknown slash command.*"
     timeout: 10000

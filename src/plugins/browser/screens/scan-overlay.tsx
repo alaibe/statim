@@ -67,7 +67,7 @@ function Scanner({ context, onClose }: { context: PluginContext; onClose(): void
     setPairing(true);
     try {
       const store = useWalletConnectStore.getState();
-      if (!store.kit) await store.init(context);
+      if (!store.kit) await store.init();
       await store.pair(data);
       context.ui.notify('Pairing… approve the request when it appears.');
       onClose();
@@ -92,7 +92,7 @@ function Scanner({ context, onClose }: { context: PluginContext; onClose(): void
             style={{ flex: 1 }}
             facing="back"
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            onBarcodeScanned={pairing ? undefined : onScanned}
+            onBarcodeScanned={pairing ? undefined : (scan) => void onScanned(scan)}
             onMountError={({ message }) => setError(message)}
           />
         </View>

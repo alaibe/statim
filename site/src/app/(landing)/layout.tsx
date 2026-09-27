@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   ...siteMetadata,
   title: 'Status Original: a messenger with no company in the middle',
   description:
-    'Your account is twelve words on your device. Encrypted chats over XMTP, Nostr and Waku, your Telegram and Matrix in the same inbox, a wallet in the conversation, and a command line your AI assistant can use.',
+    'Your account is twelve words on your device. Encrypted chats over XMTP, Nostr and Waku, your Telegram and Matrix in the same chat list, a wallet in the chat, and a command line your AI assistant can use.',
 };
 
 export default function LandingLayout({ children }: { children: React.ReactNode }) {

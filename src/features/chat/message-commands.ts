@@ -1,10 +1,11 @@
 import { copyText } from '@/design';
 import { plainText } from '@/core/messaging/markdown';
+import type { ChatPermissions } from '@/core/messaging/permissions';
 import type { ChatMessage } from '@/core/messaging/types';
 
 import type { MessageAction } from './message-actions';
 
-export interface ConversationActions {
+export interface ChatActions {
   reply(message: ChatMessage): void;
   openThread(message: ChatMessage): void;
   forward(message: ChatMessage): void;
@@ -14,19 +15,15 @@ export interface ConversationActions {
   togglePin(message: ChatMessage): void;
 }
 
-export interface ActionSupport {
-  edit: boolean;
-  delete: boolean;
-  deleteForMe: boolean;
-  deleteOthers: boolean;
-  pin: boolean;
+export interface ActionSupport
+  extends Pick<ChatPermissions, 'edit' | 'delete' | 'deleteForMe' | 'deleteOthers' | 'pin'> {
   /** False inside a thread, where replies already stay in it. */
   thread: boolean;
 }
 
 export function messageActions(
   message: ChatMessage,
-  actions: ConversationActions,
+  actions: ChatActions,
   can: ActionSupport
 ): MessageAction[] {
   const sent = message.status === 'sent';
@@ -88,9 +85,8 @@ export function messageActions(
         tone: 'danger',
         onPress: () => actions.remove(message, false),
       },
-    can.delete &&
-      sent &&
-      (message.fromMe || can.deleteOthers) && {
+    sent &&
+      (message.fromMe ? can.delete : can.deleteOthers) && {
         id: 'delete',
         label: 'Delete for everyone',
         icon: 'trash-outline',

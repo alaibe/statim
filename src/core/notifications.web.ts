@@ -5,6 +5,7 @@ import {
   sendNotification,
 } from '@tauri-apps/plugin-notification';
 
+import type { ChatId } from './messaging/types';
 import type { MessageNotification } from './notifications';
 
 export type { MessageNotification } from './notifications';
@@ -38,6 +39,6 @@ export async function setBadgeCount(count: number): Promise<void> {
 
 // The desktop plugin only posts: it has no tap event, so a click brings the
 // window forward and no further.
-export function onNotificationTapped(_handler: (conversationId: string) => void): () => void {
+export function onNotificationTapped(_handler: (chatId: ChatId) => void): () => void {
   return () => {};
 }

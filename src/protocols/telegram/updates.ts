@@ -35,9 +35,6 @@ export const CHAT_PATCHES: Record<string, (chat: TdChat, update: TdObject) => vo
   updateChatPermissions: (chat, update) => {
     chat.permissions = update.permissions as TdChat['permissions'];
   },
-  updateChatBlockList: (chat, update) => {
-    chat.block_list = update.block_list as TdObject | null;
-  },
 };
 
 const TYPING_TIMEOUT_MS = 6_000;

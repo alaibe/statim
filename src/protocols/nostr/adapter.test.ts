@@ -1,13 +1,14 @@
-import type { DerivedKey } from '@/core/identity/keyring';
+import type { DerivedKey } from '@/core/account/keyring';
 import { InMemoryMessageStore } from '@/core/messaging/message-store';
-import type { ChatMessage, Conversation } from '@/core/messaging/types';
+import { protocolChatId } from '@/core/messaging/namespace';
+import type { ProtocolChatId, ProtocolMessage, ProtocolChat } from '@/core/messaging/types';
 import { NostrSession } from './adapter';
 import { encodeNpub } from '@/lib/bech32';
 import { verifyEvent, type NostrEvent } from './events';
 import type { HistoryState } from '@/core/messaging/history';
-import { identityFromSecretKey, NOSTR_DERIVATION_PATH } from './keys';
+import { keysFromSecretKey, NOSTR_DERIVATION_PATH } from './keys';
 import * as nip17 from './nip17';
-import { conversationIdFor, wrapForRecipients } from './nip17';
+import { chatIdFor, wrapForRecipients } from './nip17';
 import { createAccountStorage } from '@/storage/account';
 import { fakeRelayFactory, type FakeRelay } from './testing/fake-relay';
 
@@ -19,9 +20,9 @@ import { fakeRelayFactory, type FakeRelay } from './testing/fake-relay';
  */
 
 const ALICE_SECRET = new Uint8Array(32).fill(1);
-const alice = identityFromSecretKey(ALICE_SECRET);
-const bob = identityFromSecretKey(new Uint8Array(32).fill(2));
-const carol = identityFromSecretKey(new Uint8Array(32).fill(3));
+const alice = keysFromSecretKey(ALICE_SECRET);
+const bob = keysFromSecretKey(new Uint8Array(32).fill(2));
+const carol = keysFromSecretKey(new Uint8Array(32).fill(3));
 
 /** Stands in for keyring.derive, which is all the adapter is given. */
 function deriveFor(secret: Uint8Array) {
@@ -59,12 +60,12 @@ function deliverFrom(
 
 const settleDeliveries = () => new Promise<void>((resolve) => setImmediate(resolve));
 
-describe('identity', () => {
+describe('the self participant', () => {
   it('derives at the NIP-06 path and exposes the npub as the address', async () => {
     const { session } = await connect();
 
     expect(session.self.participantId).toBe(alice.publicKey);
-    // There is no Ethereum address on this transport; the npub is the
+    // There is no Ethereum address on this protocol; the npub is the
     // human-facing identifier, so the UI has something to render.
     expect(session.self.address).toBe(encodeNpub(Uint8Array.from(hexBytes(alice.publicKey))));
     expect(session.self.address.startsWith('npub1')).toBe(true);
@@ -184,13 +185,13 @@ describe('subscribing', () => {
 });
 
 describe('receiving', () => {
-  it('unwraps an incoming DM into a conversation and a message', async () => {
+  it('unwraps an incoming DM into a chat and a message', async () => {
     const { session, factory } = await connect();
 
-    const messages: ChatMessage[] = [];
-    const conversations: Conversation[] = [];
+    const messages: ProtocolMessage[] = [];
+    const chats: ProtocolChat[] = [];
     await session.streamMessages((m) => messages.push(m));
-    await session.streamConversations((c) => conversations.push(c));
+    await session.streamChats((c) => chats.push(c));
 
     deliverFrom(factory.relays[0], bob, [alice.publicKey], 'hello alice');
     await settleDeliveries();
@@ -200,9 +201,9 @@ describe('receiving', () => {
     expect(messages[0].senderId).toBe(bob.publicKey);
     expect(messages[0].fromMe).toBe(false);
 
-    expect(conversations).toHaveLength(1);
-    expect(conversations[0].kind).toBe('dm');
-    expect(conversations[0].memberIds.sort()).toEqual([alice.publicKey, bob.publicKey].sort());
+    expect(chats).toHaveLength(1);
+    expect(chats[0].kind).toBe('dm');
+    expect([...chats[0].memberIds].sort()).toEqual([alice.publicKey, bob.publicKey].sort());
   });
 
   it('files a multi-recipient message as a group under its participant set', async () => {
@@ -210,23 +211,21 @@ describe('receiving', () => {
     deliverFrom(factory.relays[0], bob, [alice.publicKey, carol.publicKey], 'hi both', 'Weekend');
     await settleDeliveries();
 
-    const [conversation] = await session.listConversations();
-    expect(conversation.kind).toBe('group');
-    // NIP-17 has no thread id; a conversation *is* its participant set.
-    expect(conversation.id).toBe(
-      conversationIdFor([alice.publicKey, bob.publicKey, carol.publicKey])
-    );
-    expect(conversation.title).toBe('Weekend');
+    const [chat] = await session.listChats();
+    expect(chat.kind).toBe('group');
+    // NIP-17 has no thread id; a chat *is* its participant set.
+    expect(chat.id).toBe(chatIdFor([alice.publicKey, bob.publicKey, carol.publicKey]));
+    expect(chat.title).toBe('Weekend');
   });
 
-  it('produces an id that is a legal conversation id', async () => {
+  it('produces an id that is a legal chat id', async () => {
     const { session, factory } = await connect();
     deliverFrom(factory.relays[0], bob, [alice.publicKey], 'hi');
     await settleDeliveries();
 
-    const [conversation] = await session.listConversations();
+    const [chat] = await session.listChats();
     // The store will prefix this and the router will make it a path segment.
-    expect(conversation.id).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(chat.id).toMatch(/^[A-Za-z0-9_-]+$/);
   });
 
   it('ignores a wrap it cannot open, rather than failing the batch', async () => {
@@ -237,9 +236,9 @@ describe('receiving', () => {
     deliverFrom(factory.relays[0], bob, [alice.publicKey], 'for me');
     await settleDeliveries();
 
-    const conversations = await session.listConversations();
-    expect(conversations).toHaveLength(1);
-    expect((await session.getMessages(conversations[0].id))[0].content).toEqual({
+    const chats = await session.listChats();
+    expect(chats).toHaveLength(1);
+    expect((await session.getMessages(chats[0].id))[0].content).toEqual({
       kind: 'text',
       text: 'for me',
     });
@@ -257,8 +256,8 @@ describe('receiving', () => {
     factory.relays[1].broadcast(forAlice);
     await settleDeliveries();
 
-    const [conversation] = await session.listConversations();
-    expect(await session.getMessages(conversation.id)).toHaveLength(1);
+    const [chat] = await session.listChats();
+    expect(await session.getMessages(chat.id)).toHaveLength(1);
   });
 
   it('orders by the rumor timestamp, not the jittered wrap timestamp', async () => {
@@ -280,8 +279,8 @@ describe('receiving', () => {
     factory.relays[0].broadcast(older.wraps.find((w) => w.tags[0][1] === alice.publicKey)!);
     await settleDeliveries();
 
-    const [conversation] = await session.listConversations();
-    const messages = await session.getMessages(conversation.id);
+    const [chat] = await session.listChats();
+    const messages = await session.getMessages(chat.id);
     expect(messages.map((m) => textOf(m))).toEqual(['first', 'second']);
   });
 });
@@ -289,12 +288,12 @@ describe('receiving', () => {
 describe('sending', () => {
   it('publishes one wrap per participant and records the message locally', async () => {
     const { session, factory } = await connect();
-    const conversation = await session.createDm(bob.publicKey);
+    const chat = await session.createDm(bob.publicKey);
 
-    const messages: ChatMessage[] = [];
+    const messages: ProtocolMessage[] = [];
     await session.streamMessages((m) => messages.push(m));
 
-    await session.send(conversation.id, { kind: 'text', text: 'hi bob' });
+    await session.send(chat.id, { kind: 'text', text: 'hi bob' });
 
     // Alice and Bob: without the self-addressed copy she cannot read her own
     // outbox on another device.
@@ -316,9 +315,9 @@ describe('sending', () => {
       store: new InMemoryMessageStore(),
     });
     // Never opened: nothing is connected.
-    const conversation = await session.createDm(bob.publicKey);
+    const chat = await session.createDm(bob.publicKey);
 
-    await expect(session.send(conversation.id, { kind: 'text', text: 'lost' })).rejects.toThrow(
+    await expect(session.send(chat.id, { kind: 'text', text: 'lost' })).rejects.toThrow(
       /No relay accepted/
     );
   });
@@ -327,9 +326,9 @@ describe('sending', () => {
     const { session, factory } = await connect();
     const relay = factory.relays[0];
     relay.autoAcceptPublications = false;
-    const conversation = await session.createDm(bob.publicKey);
+    const chat = await session.createDm(bob.publicKey);
 
-    const first = session.send(conversation.id, { kind: 'text', text: 'once' });
+    const first = session.send(chat.id, { kind: 'text', text: 'once' });
     await settleDeliveries();
     const accepted = relay.published[0];
     relay.acknowledge(accepted.id, true);
@@ -338,7 +337,7 @@ describe('sending', () => {
     relay.acknowledge(rejected.id, false, 'offline');
     await expect(first).rejects.toThrow('offline');
 
-    const retry = session.send(conversation.id, { kind: 'text', text: 'once' });
+    const retry = session.send(chat.id, { kind: 'text', text: 'once' });
     await settleDeliveries();
     expect(relay.published.map((event) => event.id)).toEqual([
       accepted.id,
@@ -348,7 +347,7 @@ describe('sending', () => {
     relay.acknowledge(rejected.id, true);
     await retry;
 
-    expect(await session.getMessages(conversation.id)).toHaveLength(1);
+    expect(await session.getMessages(chat.id)).toHaveLength(1);
   });
 
   it('retries failed local persistence without publishing a second logical message', async () => {
@@ -361,35 +360,33 @@ describe('sending', () => {
       }
     }
     const { session, factory } = await connect(['wss://a.example'], new FlakyStore());
-    const conversation = await session.createDm(bob.publicKey);
+    const chat = await session.createDm(bob.publicKey);
 
-    await expect(
-      session.send(conversation.id, { kind: 'text', text: 'persist me' })
-    ).rejects.toThrow('disk full');
+    await expect(session.send(chat.id, { kind: 'text', text: 'persist me' })).rejects.toThrow(
+      'disk full'
+    );
     const publishedIds = factory.relays[0].published.map((event) => event.id);
 
-    await expect(
-      session.send(conversation.id, { kind: 'text', text: 'persist me' })
-    ).resolves.toBeTruthy();
+    await expect(session.send(chat.id, { kind: 'text', text: 'persist me' })).resolves.toBeTruthy();
     expect(factory.relays[0].published.map((event) => event.id)).toEqual(publishedIds);
-    expect(await session.getMessages(conversation.id)).toHaveLength(1);
+    expect(await session.getMessages(chat.id)).toHaveLength(1);
   });
 
   it('refuses content types it cannot carry, rather than sending a stub', async () => {
     const { session } = await connect();
-    const conversation = await session.createDm(bob.publicKey);
+    const chat = await session.createDm(bob.publicKey);
 
     await expect(
-      session.send(conversation.id, { kind: 'custom', typeId: 'eth.tx', data: {} })
+      session.send(chat.id, { kind: 'custom', typeId: 'eth.tx', data: {} })
     ).rejects.toThrow(/can only send text/);
   });
 
   it('rejects reply metadata instead of silently sending a plain message', async () => {
     const { session, factory } = await connect();
-    const conversation = await session.createDm(bob.publicKey);
+    const chat = await session.createDm(bob.publicKey);
 
     await expect(
-      session.send(conversation.id, { kind: 'text', text: 'reply' }, 'earlier-id')
+      session.send(chat.id, { kind: 'text', text: 'reply' }, 'earlier-id')
     ).rejects.toThrow(/does not support reply metadata/);
     expect(factory.relays[0].published).toHaveLength(0);
   });
@@ -397,8 +394,8 @@ describe('sending', () => {
   it('round-trips to the recipient', async () => {
     // The real proof: what Alice publishes, Bob can open.
     const { session, factory } = await connect();
-    const conversation = await session.createDm(bob.publicKey);
-    await session.send(conversation.id, { kind: 'text', text: 'end to end' });
+    const chat = await session.createDm(bob.publicKey);
+    await session.send(chat.id, { kind: 'text', text: 'end to end' });
 
     const bobFactory = fakeRelayFactory();
     const bobSession = await NostrSession.connect({
@@ -414,7 +411,7 @@ describe('sending', () => {
     }
     await settleDeliveries();
 
-    const [received] = await bobSession.listConversations();
+    const [received] = await bobSession.listChats();
     expect(textOf((await bobSession.getMessages(received.id))[0])).toBe('end to end');
   });
 });
@@ -432,10 +429,8 @@ describe('catch-up cursor', () => {
     factory.relays[0].broadcast(giftWrap);
     await settleDeliveries();
 
-    const [conversation] = await session.listConversations();
-    expect((await session.getMessages(conversation.id))[0].sentAt).toBe(
-      wrapped.rumor.created_at * 1000
-    );
+    const [chat] = await session.listChats();
+    expect((await session.getMessages(chat.id))[0].sentAt).toBe(wrapped.rumor.created_at * 1000);
     await expect(store.newestTransportTimestamp('nostr', Date.now())).resolves.toBe(
       giftWrap.created_at * 1000
     );
@@ -445,19 +440,19 @@ describe('catch-up cursor', () => {
     const now = Date.now();
     const old = now - 10 * 24 * 60 * 60 * 1_000;
     const participants = [alice.publicKey, bob.publicKey].sort();
-    const conversationId = conversationIdFor(participants);
+    const chatId = protocolChatId(chatIdFor(participants));
     const store = new InMemoryMessageStore();
-    await store.upsertConversation({
-      id: conversationId,
+    await store.upsertChat({
+      id: chatId,
       protocolId: 'nostr',
       participants,
       createdAt: old,
       hidden: false,
     });
     await store.insertMessage(
-      storedMessage(conversationId, 'old', old),
+      storedMessage(chatId, 'old', old),
       {
-        id: conversationId,
+        id: chatId,
         protocolId: 'nostr',
         participants,
         createdAt: old,
@@ -465,9 +460,7 @@ describe('catch-up cursor', () => {
       },
       old
     );
-    await store.insertMessage(
-      storedMessage(conversationId, 'poison', now + 365 * 24 * 60 * 60 * 1_000)
-    );
+    await store.insertMessage(storedMessage(chatId, 'poison', now + 365 * 24 * 60 * 60 * 1_000));
 
     const factory = fakeRelayFactory();
     const session = await NostrSession.connect({
@@ -498,7 +491,7 @@ describe('groups, honestly', () => {
     expect(group.selfRole).toBeUndefined();
   });
 
-  it('refuses addMembers instead of silently forking the conversation', async () => {
+  it('refuses addMembers instead of silently forking the chat', async () => {
     const { session } = await connect();
     const group = await session.createGroup([bob.publicKey], 'Duo');
 
@@ -523,11 +516,11 @@ describe('groups, honestly', () => {
     const group = await session.createGroup([bob.publicKey], 'Duo');
 
     await session.leaveGroup(group.id);
-    expect(await session.listConversations()).toHaveLength(0);
+    expect(await session.listChats()).toHaveLength(0);
 
     deliverFrom(factory.relays[0], bob, [alice.publicKey], 'still here');
     await settleDeliveries();
-    expect(await session.listConversations()).toHaveLength(1);
+    expect(await session.listChats()).toHaveLength(1);
   });
 
   it('renames locally; the name travels on the next message', async () => {
@@ -540,18 +533,20 @@ describe('groups, honestly', () => {
     // The rename travels as a `subject` tag on the next message; there is no
     // rename event in NIP-17.
     expect(factory.relays[0].published[0].kind).toBe(1059);
-    const [conversation] = await session.listConversations();
-    expect(conversation.title).toBe('New');
+    const [chat] = await session.listChats();
+    expect(chat.title).toBe('New');
   });
 });
 
-describe('resolving peers', () => {
+describe('resolving participants', () => {
   it('accepts an npub or hex, and rejects an Ethereum address', async () => {
     const { session } = await connect();
 
-    expect(await session.resolvePeer(bob.npub)).toBe(bob.publicKey);
-    expect(await session.resolvePeer(bob.publicKey)).toBe(bob.publicKey);
-    expect(await session.resolvePeer('0x1111111111111111111111111111111111111111')).toBeNull();
+    expect(await session.resolveParticipant(bob.npub)).toBe(bob.publicKey);
+    expect(await session.resolveParticipant(bob.publicKey)).toBe(bob.publicKey);
+    expect(
+      await session.resolveParticipant('0x1111111111111111111111111111111111111111')
+    ).toBeNull();
   });
 
   it('labels participants with their npub, the only honest name available', async () => {
@@ -570,7 +565,7 @@ describe('teardown', () => {
   });
 });
 
-function textOf(message: ChatMessage): string {
+function textOf(message: ProtocolMessage): string {
   return message.content.kind === 'text' ? message.content.text : '';
 }
 
@@ -580,10 +575,10 @@ function hexBytes(hex: string): number[] {
   return out;
 }
 
-function storedMessage(conversationId: string, id: string, sentAt: number): ChatMessage {
+function storedMessage(chatId: ProtocolChatId, id: string, sentAt: number): ProtocolMessage {
   return {
     id,
-    conversationId,
+    chatId,
     senderId: bob.publicKey,
     sentAt,
     fromMe: false,

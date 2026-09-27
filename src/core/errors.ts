@@ -9,7 +9,7 @@ export class HttpError extends Error {
 }
 
 export class UnsupportedError extends Error {
-  constructor(message = 'This network does not support that.') {
+  constructor(message = 'This protocol does not support that.') {
     super(message);
     this.name = 'UnsupportedError';
   }

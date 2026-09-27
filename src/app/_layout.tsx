@@ -1,4 +1,4 @@
-import { EmptyState, ToastHost, useThemeColors } from '@/design';
+import { EmptyState, toast, ToastHost, useThemeColors } from '@/design';
 import '@/global.css';
 
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
@@ -19,12 +19,13 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { useAppearanceStore } from '@/core/app/appearance';
 import { useAppBoot, useAppLock, useDeepLinkRouter } from '@/core/app/boot';
 import { useMessageNotifications } from '@/core/app/use-notifications';
-import { PluginProvider, usePluginHost } from '@/core/plugins/host';
+import { type HostUi, PluginProvider, usePluginHost } from '@/core/plugins/host';
 import { CliApprovals } from '@/features/cli/approvals';
 import { useCliServer } from '@/features/cli/server';
-import { LockGate } from '@/features/identity/lock-gate';
+import { LockGate } from '@/features/account/lock-gate';
 import { AppFrame } from '@/features/navigation/app-frame';
 import { Dialog } from '@/features/navigation/dialog';
+import { openChat } from '@/features/navigation/open';
 import { DIALOG_ROUTES } from '@/features/navigation/routes';
 import { stackScreenOptions } from '@/features/navigation/stack-options';
 import { ALL_PLUGINS, DEFAULT_ENABLED_PLUGINS } from '@/plugins';
@@ -34,6 +35,11 @@ Observe.configure({
     'expo-router': { filteredParams: ['id'] },
   },
 });
+
+const HOST_UI: HostUi = {
+  notify: (message, tone = 'info') => toast[tone](message),
+  openChat,
+};
 
 /**
  * On desktop every screen sits on the frame's wallpaper, so the navigator must
@@ -58,7 +64,10 @@ function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider value={navigationTheme(scheme === 'dark' ? DarkTheme : DefaultTheme)}>
-          <PluginProvider plugins={ALL_PLUGINS} defaultEnabled={DEFAULT_ENABLED_PLUGINS}>
+          <PluginProvider
+            plugins={ALL_PLUGINS}
+            defaultEnabled={DEFAULT_ENABLED_PLUGINS}
+            ui={HOST_UI}>
             <AppShell />
           </PluginProvider>
         </ThemeProvider>
@@ -116,7 +125,7 @@ const SHEET_OPTIONS = {
 function AppShell() {
   useAppBoot();
   useDeepLinkRouter();
-  useMessageNotifications();
+  useMessageNotifications(openChat);
   useCliServer();
 
   const lockStatus = useAppLock();

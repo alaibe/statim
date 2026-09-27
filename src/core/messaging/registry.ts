@@ -1,6 +1,6 @@
 import type { LocalAccount } from 'viem';
 
-import type { DerivedKey } from '../identity/keyring';
+import type { DerivedKey } from '../account/keyring';
 import {
   missingFields,
   withDefaults,
@@ -32,8 +32,8 @@ export interface ProtocolEraseParams {
   config: ProtocolConfig;
 }
 
-/** How the new-chat screen asks for, and fails to find, someone on this network. */
-export interface RecipientCopy {
+/** How the new-chat screen asks for, and fails to find, someone on this protocol. */
+export interface AddressCopy {
   label: string;
   placeholder: string;
   /** With its article, for prose: "Paste an address below". */
@@ -48,9 +48,9 @@ export interface ProtocolDescriptor {
   meta: ChatProtocolMeta;
   description: string;
   docsUrl?: string;
-  /** An account on someone else's network, signed into, rather than one made from your keys. */
+  /** An account on someone else's server, signed into, rather than one made from your keys. */
   external: boolean;
-  recipient: RecipientCopy;
+  address: AddressCopy;
   publicChats?: PublicChatsCopy;
   configSchema: ProtocolConfigSchema;
   /** Reads plugin content types when it connects, so a plugin change reconnects it. */
@@ -79,7 +79,9 @@ export function findProtocol(
   return protocols.find((protocol) => protocol.id === id);
 }
 
-export function transportProtocols(protocols: readonly ProtocolDescriptor[]): ProtocolDescriptor[] {
+export function connectableProtocols(
+  protocols: readonly ProtocolDescriptor[]
+): ProtocolDescriptor[] {
   return protocols.filter((protocol) => protocol.connect);
 }
 

@@ -1,0 +1,11 @@
+# Launches, lets the chat list settle, and opens the local Status chat through its app link.
+appId: com.statusoriginal.app
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "chat-local-status"
+    timeout: 15000
+- waitForAnimationToEnd:
+    timeout: 5000
+- openLink: "statusoriginal://chat/local-status"

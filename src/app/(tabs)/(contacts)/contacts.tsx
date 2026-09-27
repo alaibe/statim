@@ -27,7 +27,7 @@ export default function ContactsScreen() {
           headerRight: () => (
             <IconButton
               icon="add"
-              label="New conversation"
+              label="New chat"
               tone="brand"
               size={24}
               onPress={() => router.push('/new-chat')}

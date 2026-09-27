@@ -4,7 +4,7 @@ import type { ChatMessage, ParticipantId } from './types';
 
 const folded = new WeakMap<ChatMessage, ChatMessage>();
 
-export function foldReactions(messages: ChatMessage[]): ChatMessage[] {
+export function foldReactions(messages: readonly ChatMessage[]): ChatMessage[] {
   const byTarget = new Map<string, Map<string, Set<ParticipantId>>>();
 
   for (const message of messages) {

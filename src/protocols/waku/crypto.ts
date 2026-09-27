@@ -94,7 +94,7 @@ export function contentTopicFor(participants: string[]): string {
   return `/status-original/1/c-${digest.slice(0, 32)}/proto`;
 }
 
-export function conversationIdForTopic(contentTopic: string): string {
+export function chatIdForTopic(contentTopic: string): string {
   return bytesToHex(sha256(utf8ToBytes(contentTopic)));
 }
 

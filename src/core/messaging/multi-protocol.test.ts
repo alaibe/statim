@@ -1,19 +1,20 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { botConversationId, type Bot } from './bots';
+import { botChatId, type Bot } from './bots';
 import { useChatStore, xmtpSessionFor } from './chat-store';
 import { InMemoryChatSession } from './in-memory-session';
 import { connectFake, disconnectFake, ns, resetChatStore } from './testing/store';
+import { asChatId } from './testing/ids';
 
-jest.mock('../identity/keyring', () => ({
-  ...jest.requireActual('../identity/keyring'),
+jest.mock('../account/keyring', () => ({
+  ...jest.requireActual('../account/keyring'),
   loadOrCreateDbEncryptionKey: async () => new Uint8Array(32),
 }));
 
 const XMTP_SELF = 'a'.repeat(64);
 const NOSTR_SELF = 'b'.repeat(64);
 
-function twoTransports() {
+function twoProtocols() {
   const xmtp = new InMemoryChatSession({ participantId: XMTP_SELF });
   const nostr = new InMemoryChatSession({ participantId: NOSTR_SELF });
   return {
@@ -33,66 +34,65 @@ beforeEach(async () => {
 });
 
 describe('the merged list', () => {
-  it('shows conversations from every connected transport, attributed', async () => {
-    const { xmtp, nostr, connect } = twoTransports();
-    xmtp.seedConversation({ id: 'c1', title: 'Alice', createdAt: 1_000 });
-    nostr.seedConversation({ id: 'c1', title: 'Bob', createdAt: 2_000 });
+  it('shows chats from every connected protocol, attributed', async () => {
+    const { xmtp, nostr, connect } = twoProtocols();
+    xmtp.seedChat({ id: 'c1', title: 'Alice', createdAt: 1_000 });
+    nostr.seedChat({ id: 'c1', title: 'Bob', createdAt: 2_000 });
 
     await connect();
 
-    const conversations = useChatStore.getState().conversations;
+    const chats = useChatStore.getState().chats;
     expect(
-      conversations
+      chats
         .filter((c) => c.protocol !== 'local')
         .map((c) => c.id)
         .sort()
     ).toEqual([ns('c1'), ns('c1', 'nostr')].sort());
-    expect(conversations.find((c) => c.protocol === 'nostr')?.title).toBe('Bob');
-    expect(conversations.find((c) => c.protocol === 'xmtp')?.title).toBe('Alice');
+    expect(chats.find((c) => c.protocol === 'nostr')?.title).toBe('Bob');
+    expect(chats.find((c) => c.protocol === 'xmtp')?.title).toBe('Alice');
   });
 
   it('interleaves by recency, not by protocol', async () => {
-    const { xmtp, nostr, connect } = twoTransports();
-    xmtp.seedConversation({ id: 'older', createdAt: 1_000 });
-    nostr.seedConversation({ id: 'newer', createdAt: 5_000 });
+    const { xmtp, nostr, connect } = twoProtocols();
+    xmtp.seedChat({ id: 'older', createdAt: 1_000 });
+    nostr.seedChat({ id: 'newer', createdAt: 5_000 });
     await connect();
 
     expect(
       useChatStore
         .getState()
-        .conversations.filter((c) => c.protocol !== 'local')
+        .chats.filter((c) => c.protocol !== 'local')
         .map((c) => c.id)
     ).toEqual([ns('newer', 'nostr'), ns('older')]);
   });
 
-  it('keeps local bot conversations alongside both', async () => {
+  it('keeps local bot chats alongside both', async () => {
     const bot: Bot = {
       id: 'status',
       name: 'Status',
       tagline: 'on-device',
       greeting: () => ['hi'],
     };
-    const { xmtp, connect } = twoTransports();
-    xmtp.seedConversation({ id: 'c1' });
+    const { xmtp, connect } = twoProtocols();
+    xmtp.seedChat({ id: 'c1' });
 
     await connect();
     await useChatStore.getState().registerBots([bot]);
 
-    const ids = useChatStore.getState().conversations.map((c) => c.id);
-    expect(ids).toContain(botConversationId('status'));
+    const ids = useChatStore.getState().chats.map((c) => c.id);
+    expect(ids).toContain(botChatId('status'));
     expect(ids).toContain(ns('c1'));
-    expect(
-      useChatStore.getState().conversations.find((c) => c.id === botConversationId('status'))
-        ?.protocol
-    ).toBe('local');
+    expect(useChatStore.getState().chats.find((c) => c.id === botChatId('status'))?.protocol).toBe(
+      'local'
+    );
   });
 });
 
 describe('routing by id', () => {
-  it('sends down the transport the conversation belongs to', async () => {
-    const { xmtp, nostr, connect } = twoTransports();
-    xmtp.seedConversation({ id: 'x1' });
-    nostr.seedConversation({ id: 'n1' });
+  it('sends down the protocol the chat belongs to', async () => {
+    const { xmtp, nostr, connect } = twoProtocols();
+    xmtp.seedChat({ id: 'x1' });
+    nostr.seedChat({ id: 'n1' });
     await connect();
 
     await useChatStore.getState().sendMessage(ns('x1'), { kind: 'text', text: 'to xmtp' });
@@ -100,16 +100,12 @@ describe('routing by id', () => {
       .getState()
       .sendMessage(ns('n1', 'nostr'), { kind: 'text', text: 'to nostr' });
 
-    expect(xmtp.sent).toEqual([
-      { conversationId: 'x1', content: { kind: 'text', text: 'to xmtp' } },
-    ]);
-    expect(nostr.sent).toEqual([
-      { conversationId: 'n1', content: { kind: 'text', text: 'to nostr' } },
-    ]);
+    expect(xmtp.sent).toEqual([{ chatId: 'x1', content: { kind: 'text', text: 'to xmtp' } }]);
+    expect(nostr.sent).toEqual([{ chatId: 'n1', content: { kind: 'text', text: 'to nostr' } }]);
   });
 
   it('routes membership calls the same way', async () => {
-    const { nostr, connect } = twoTransports();
+    const { nostr, connect } = twoProtocols();
     await connect();
 
     const group = await useChatStore.getState().startGroup('nostr', ['c'.repeat(64)], 'Trio');
@@ -120,28 +116,28 @@ describe('routing by id', () => {
   });
 
   it('names the protocol when it is not connected, rather than "not connected"', async () => {
-    const { connect } = twoTransports();
+    const { connect } = twoProtocols();
     await connect();
 
-    await expect(useChatStore.getState().getMembers('waku-abc')).rejects.toThrow(
+    await expect(useChatStore.getState().getMembers(asChatId('waku-abc'))).rejects.toThrow(
       /waku is not connected/
     );
   });
 
-  it('refuses an id from before namespacing rather than guessing a transport', async () => {
-    const { connect } = twoTransports();
+  it('refuses an id from before namespacing rather than guessing a protocol', async () => {
+    const { connect } = twoProtocols();
     await connect();
 
-    await expect(useChatStore.getState().getMembers('a'.repeat(64))).rejects.toThrow(
+    await expect(useChatStore.getState().getMembers(asChatId('a'.repeat(64)))).rejects.toThrow(
       /Not connected/
     );
   });
 });
 
 describe('independent failure', () => {
-  it('keeps working when one transport cannot connect', async () => {
+  it('keeps working when one protocol cannot connect', async () => {
     const xmtp = new InMemoryChatSession({ participantId: XMTP_SELF });
-    xmtp.seedConversation({ id: 'c1' });
+    xmtp.seedChat({ id: 'c1' });
 
     await connectFake(xmtp, {
       protocols: ['xmtp', 'nostr'],
@@ -160,12 +156,10 @@ describe('independent failure', () => {
     });
     expect(state.protocols.nostr.status).toBe('error');
     expect(state.protocols.nostr.error).toBe('every relay refused');
-    expect(state.conversations.filter((c) => c.protocol !== 'local').map((c) => c.id)).toEqual([
-      ns('c1'),
-    ]);
+    expect(state.chats.filter((c) => c.protocol !== 'local').map((c) => c.id)).toEqual([ns('c1')]);
   });
 
-  it('reports error only when every transport failed', async () => {
+  it('reports error only when every protocol failed', async () => {
     await connectFake(new InMemoryChatSession(), {
       protocols: ['xmtp', 'nostr'],
       sessionFor: () => {
@@ -177,20 +171,20 @@ describe('independent failure', () => {
     expect(useChatStore.getState().error).toBe('nothing works');
   });
 
-  it('does not let one transport failing to list blank the others', async () => {
-    const { xmtp, nostr, connect } = twoTransports();
-    xmtp.seedConversation({ id: 'c1' });
-    nostr.seedConversation({ id: 'c2' });
+  it('does not let one protocol failing to list blank the others', async () => {
+    const { xmtp, nostr, connect } = twoProtocols();
+    xmtp.seedChat({ id: 'c1' });
+    nostr.seedChat({ id: 'c2' });
     await connect();
 
-    jest.spyOn(nostr, 'listConversations').mockRejectedValueOnce(new Error('relay timeout'));
-    await useChatStore.getState().refreshConversations();
+    jest.spyOn(nostr, 'listChats').mockRejectedValueOnce(new Error('relay timeout'));
+    await useChatStore.getState().refreshChats();
 
-    expect(useChatStore.getState().conversations.map((c) => c.id)).toContain(ns('c1'));
+    expect(useChatStore.getState().chats.map((c) => c.id)).toContain(ns('c1'));
   });
 
-  it('does not let one transport failing to sync break pull-to-refresh', async () => {
-    const { xmtp, nostr, connect } = twoTransports();
+  it('does not let one protocol failing to sync break pull-to-refresh', async () => {
+    const { xmtp, nostr, connect } = twoProtocols();
     await connect();
     jest.spyOn(nostr, 'sync').mockRejectedValue(new Error('relay timeout'));
 
@@ -201,13 +195,13 @@ describe('independent failure', () => {
   });
 
   it('shows cached chats during catch-up and lets each protocol finish independently', async () => {
-    const { xmtp, nostr, connect } = twoTransports();
+    const { xmtp, nostr, connect } = twoProtocols();
     let finish!: () => void;
     const pending = new Promise<void>((resolve) => {
       finish = resolve;
     });
     jest.spyOn(nostr, 'sync').mockReturnValue(pending);
-    nostr.seedConversation({ id: 'cached' });
+    nostr.seedChat({ id: 'cached' });
     const connecting = connect();
     for (
       let i = 0;
@@ -217,9 +211,7 @@ describe('independent failure', () => {
       await Promise.resolve();
     }
 
-    expect(useChatStore.getState().conversations.some((c) => c.id === ns('cached', 'nostr'))).toBe(
-      true
-    );
+    expect(useChatStore.getState().chats.some((c) => c.id === ns('cached', 'nostr'))).toBe(true);
     expect(useChatStore.getState().protocols.nostr.history?.status).toBe('fetching');
     expect(useChatStore.getState().protocols.xmtp.history?.status).toBe('idle');
     expect(xmtp.syncCount).toBe(1);
@@ -229,7 +221,7 @@ describe('independent failure', () => {
   });
 
   it('does not restore a completed sync status after disconnect', async () => {
-    const { nostr, connect } = twoTransports();
+    const { nostr, connect } = twoProtocols();
     await connect();
     let finish!: () => void;
     jest.spyOn(nostr, 'sync').mockReturnValue(
@@ -247,10 +239,10 @@ describe('independent failure', () => {
 });
 
 describe('streams', () => {
-  it('namespaces messages arriving from each transport', async () => {
-    const { xmtp, nostr, connect } = twoTransports();
-    xmtp.seedConversation({ id: 'c1' });
-    nostr.seedConversation({ id: 'c1' });
+  it('namespaces messages arriving from each protocol', async () => {
+    const { xmtp, nostr, connect } = twoProtocols();
+    xmtp.seedChat({ id: 'c1' });
+    nostr.seedChat({ id: 'c1' });
     await connect();
 
     await useChatStore.getState().loadMessages(ns('c1'));
@@ -269,8 +261,8 @@ describe('streams', () => {
 });
 
 describe('teardown', () => {
-  it('disconnects every transport', async () => {
-    const { xmtp, nostr, connect } = twoTransports();
+  it('disconnects every protocol', async () => {
+    const { xmtp, nostr, connect } = twoProtocols();
     await connect();
 
     await disconnectFake();
@@ -282,9 +274,9 @@ describe('teardown', () => {
   });
 });
 
-describe('identity', () => {
+describe('the self participant', () => {
   it('selects the XMTP session for XMTP capabilities', async () => {
-    const { xmtp, connect } = twoTransports();
+    const { xmtp, connect } = twoProtocols();
     await connect();
     expect(xmtpSessionFor(useChatStore.getState())).toBe(xmtp);
     expect(xmtpSessionFor(useChatStore.getState())?.self.participantId).toBe(XMTP_SELF);

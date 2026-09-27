@@ -19,7 +19,7 @@ interface SeenStats {
 export async function checkAddress(context: PluginContext, say: Say): Promise<void> {
   let address: string;
   try {
-    address = p2wpkhAddress(context.identity.derive(BIP84_ACCOUNT_PATH).publicKey);
+    address = p2wpkhAddress(context.account.derive(BIP84_ACCOUNT_PATH).publicKey);
   } catch {
     return;
   }

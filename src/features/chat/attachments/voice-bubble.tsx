@@ -2,6 +2,7 @@ import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { View } from 'react-native';
 
 import { Icon, Pressable, Text, useThemeColors } from '@/design';
+import { reportError } from '@/core/app/report-error';
 import { formatDuration } from '@/core/messaging/preview';
 import { waveformBars } from './format';
 
@@ -34,7 +35,7 @@ export function VoiceBubble({ uri, durationMs, fromMe, seed }: VoiceBubbleProps)
             player.pause();
             return;
           }
-          if (status.didJustFinish || played >= 0.999) player.seekTo(0);
+          if (status.didJustFinish || played >= 0.999) player.seekTo(0).catch(reportError);
           player.play();
         }}>
         <View className="h-10 w-10 items-center justify-center rounded-full bg-surface-sunken">

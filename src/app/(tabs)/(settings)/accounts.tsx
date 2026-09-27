@@ -11,30 +11,35 @@ import {
   ListItem,
   Section,
   SwipeableRow,
-  toast,
 } from '@/design';
 import { eraseAccount } from '@/core/app/erase-account';
-import { errorMessage } from '@/core/errors';
-import { useIdentityStore } from '@/core/identity/identity-store';
-import { shortAddress } from '@/core/identity/keyring';
-import { describeKind } from '@/core/identity/account-kind';
-import { hardwareVendors } from '@/core/identity/hardware';
-import { ConnectHardware } from '@/features/identity/connect-hardware';
-import { useAction } from '@/core/app/use-action';
+import { useAccountStore } from '@/core/account/account-store';
+import { shortAddress } from '@/core/account/keyring';
+import { describeKind } from '@/core/account/account-kind';
+import { hardwareVendors } from '@/core/account/hardware';
+import { ConnectHardware } from '@/features/account/connect-hardware';
+import { useAction } from '@/features/use-action';
 import { RenameAccountSheet } from '@/features/settings/rename-account-sheet';
 import { SettingsScreen } from '@/features/settings/settings-screen';
 
 export default function AccountsScreen() {
   const router = useRouter();
 
-  const accounts = useIdentityStore((s) => s.accounts);
-  const activeAccountId = useIdentityStore((s) => s.activeAccountId);
-  const selectAccount = useIdentityStore((s) => s.selectAccount);
+  const accounts = useAccountStore((s) => s.accounts);
+  const activeAccountId = useAccountStore((s) => s.activeAccountId);
+  const selectAccount = useAccountStore((s) => s.selectAccount);
 
   const [managing, setManaging] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [confirmWipe, setConfirmWipe] = useState<string | null>(null);
   const erase = useAction(eraseAccount, { failure: 'Could not erase that account' });
+  const open = useAction(
+    async (id: string) => {
+      await selectAccount(id);
+      router.replace('/chats');
+    },
+    { failure: 'Could not open that account' }
+  );
   const [connecting, setConnecting] = useState(false);
 
   const target = accounts.find((a) => a.id === (managing ?? renaming ?? confirmWipe));
@@ -72,16 +77,8 @@ export default function AccountsScreen() {
               onLongPress={() => setManaging(account.id)}
               onContextMenu={() => setManaging(account.id)}
               onPress={async () => {
-                if (account.id === activeAccountId) {
-                  setManaging(account.id);
-                  return;
-                }
-                try {
-                  await selectAccount(account.id);
-                  router.replace('/chats');
-                } catch (error) {
-                  toast.error(errorMessage(error, 'Could not open that account'));
-                }
+                if (account.id === activeAccountId) setManaging(account.id);
+                else await open.run(account.id);
               }}
             />
           </SwipeableRow>
@@ -142,7 +139,6 @@ export default function AccountsScreen() {
         onClose={() => setConfirmWipe(null)}
         title="Erase this account?"
         body={`This deletes ${target?.label}'s keys, messages and plugin data from this device. Nobody else holds them, so without its recovery phrase written down the account cannot be recovered. Your other accounts are untouched.`}
-        busy={erase.busy}
         confirm={{
           label: 'Erase account',
           busyLabel: 'Erasing…',

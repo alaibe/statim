@@ -1,7 +1,7 @@
-# Enables a plugin, uses its room, and disables it again.
+# Enables a plugin, uses its chat, and disables it again.
 appId: com.statusoriginal.app
 ---
-- runFlow: lib/open-status-room.yaml
+- runFlow: lib/open-status-chat.yaml
 
 - runFlow:
     file: lib/send-command.yaml
@@ -11,11 +11,11 @@ appId: com.statusoriginal.app
 - tapOn: "Back"
 - extendedWaitUntil:
     visible:
-      id: "conversation-local-markets"
+      id: "chat-local-markets"
     timeout: 15000
 
 - tapOn:
-    id: "conversation-local-markets"
+    id: "chat-local-markets"
 - runFlow:
     file: lib/send-command.yaml
     env:
@@ -32,4 +32,4 @@ appId: com.statusoriginal.app
       TEXT: "/disable markets"
 - tapOn: "Back"
 - assertNotVisible:
-    id: "conversation-local-markets"
+    id: "chat-local-markets"

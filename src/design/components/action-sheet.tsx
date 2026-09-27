@@ -4,6 +4,8 @@ import { ScrollView, View } from 'react-native';
 import { useThemeColors } from '../hooks/use-theme-colors';
 import { cn } from '../lib/cn';
 import { Icon, type IconName } from '../icon';
+import { type PressHandler, runPress } from '../lib/press';
+import type { WidgetTone } from '../widgets/schema';
 import { Checkmark } from './checkmark';
 import { ListItem } from './list-item';
 import { Section } from './section';
@@ -13,11 +15,11 @@ import { Text } from './text';
 
 export interface SheetAction {
   label: string;
-  tone?: 'neutral' | 'brand' | 'success' | 'warning' | 'danger';
+  tone?: WidgetTone;
   icon?: IconName;
   /** Shows a checkmark, for sheets that pick one of several. */
   selected?: boolean;
-  onPress: () => void;
+  onPress: PressHandler;
   testID?: string;
 }
 
@@ -86,7 +88,7 @@ export function ActionSheet({ actions, searchFor, ...sheet }: ActionSheetProps) 
                   action.icon ? <Icon name={action.icon} size={20} color={color} /> : undefined
                 }
                 trailing={<Checkmark selected={action.selected} />}
-                onPress={() => closeSheetThen(sheet, action.onPress)}
+                onPress={() => closeSheetThen(sheet, () => void runPress(action.onPress))}
               />
             );
           })}

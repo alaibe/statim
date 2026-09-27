@@ -1,4 +1,4 @@
-import { deriveEd25519 } from '@/core/identity/slip10';
+import { deriveEd25519 } from '@/core/account/slip10';
 import { mnemonicToSeedSync } from '@scure/bip39';
 
 import { formatSol, looksLikeSolanaAddress, solanaAddress, SOLANA_ACCOUNT_PATH } from './address';

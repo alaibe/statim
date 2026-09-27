@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
 import { ErrorText, Loading, Pressable, SearchField, Text } from '@/design';
-import { useIdentityStore } from '@/core/identity/identity-store';
+import { useAccountStore } from '@/core/account/account-store';
 import type { MessageContent } from '@/core/messaging/types';
 import { errorMessage } from '@/core/errors';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
@@ -96,7 +96,7 @@ function GifGrid({
   onGif(content: MessageContent): void;
   autoFocusSearch?: boolean;
 }) {
-  const accountId = useIdentityStore((s) => s.activeAccountId);
+  const accountId = useAccountStore((s) => s.activeAccountId);
 
   const gifKey = useKeyedLoad(accountId, loadGifKey);
   const key = gifKey.loading ? undefined : (gifKey.value ?? null);
@@ -109,20 +109,18 @@ function GifGrid({
     if (!key) return;
     let cancelled = false;
     const trimmed = query.trim();
-    const timer = setTimeout(
-      async () => {
-        setBusy(true);
-        setError(null);
-        try {
-          const found = trimmed ? await searchGifs(key, trimmed) : await featuredGifs(key);
-          if (!cancelled) setResults(found);
-        } catch (e) {
-          if (!cancelled) setError(errorMessage(e, 'Could not load GIFs'));
-        }
-        if (!cancelled) setBusy(false);
-      },
-      trimmed ? SEARCH_DEBOUNCE_MS : 0
-    );
+    const load = async () => {
+      setBusy(true);
+      setError(null);
+      try {
+        const found = trimmed ? await searchGifs(key, trimmed) : await featuredGifs(key);
+        if (!cancelled) setResults(found);
+      } catch (e) {
+        if (!cancelled) setError(errorMessage(e, 'Could not load GIFs'));
+      }
+      if (!cancelled) setBusy(false);
+    };
+    const timer = setTimeout(() => void load(), trimmed ? SEARCH_DEBOUNCE_MS : 0);
     return () => {
       cancelled = true;
       clearTimeout(timer);
@@ -145,6 +143,15 @@ function GifGrid({
   }
 
   const tile = Math.floor((width - 24 - GIF_GAP * (GIF_COLUMNS - 1)) / GIF_COLUMNS);
+
+  const send = async (gif: Gif) => {
+    if (!accountId) return;
+    try {
+      onGif(await gifToContent(accountId, gif));
+    } catch (e) {
+      setError(errorMessage(e, 'Could not send that GIF'));
+    }
+  };
 
   return (
     <View className="flex-1">
@@ -170,14 +177,7 @@ function GifGrid({
               key={gif.id}
               accessibilityRole="button"
               accessibilityLabel={gif.description}
-              onPress={async () => {
-                if (!accountId) return;
-                try {
-                  onGif(await gifToContent(accountId, gif));
-                } catch (e) {
-                  setError(errorMessage(e, 'Could not send that GIF'));
-                }
-              }}>
+              onPress={() => void send(gif)}>
               <Image
                 source={{ uri: gif.previewUrl }}
                 style={{ width: tile, height: tile, borderRadius: 8 }}

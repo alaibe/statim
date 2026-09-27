@@ -79,7 +79,7 @@ async function createSchema(db: AccountDatabase): Promise<void> {
   await db.execAsync(`
     PRAGMA journal_mode = WAL;
 
-    CREATE TABLE IF NOT EXISTS conversations (
+    CREATE TABLE IF NOT EXISTS chats (
       id           TEXT PRIMARY KEY NOT NULL,
       protocol_id  TEXT NOT NULL,
       participants TEXT NOT NULL,
@@ -89,33 +89,33 @@ async function createSchema(db: AccountDatabase): Promise<void> {
       routing_key  TEXT
     );
 
-    CREATE INDEX IF NOT EXISTS conversations_by_protocol
-      ON conversations (protocol_id);
+    CREATE INDEX IF NOT EXISTS chats_by_protocol
+      ON chats (protocol_id);
 
     CREATE TABLE IF NOT EXISTS messages (
       id              TEXT NOT NULL,
-      conversation_id TEXT NOT NULL,
+      chat_id         TEXT NOT NULL,
       sender_id       TEXT NOT NULL,
       sent_at         INTEGER NOT NULL,
       from_me         INTEGER NOT NULL DEFAULT 0,
       status          TEXT NOT NULL DEFAULT 'sent',
       content         TEXT NOT NULL,
       reply_to        TEXT,
-      PRIMARY KEY (conversation_id, id)
+      PRIMARY KEY (chat_id, id)
     );
 
-    -- Every read is "the newest N in this conversation, oldest first".
-    CREATE INDEX IF NOT EXISTS messages_by_conversation
-      ON messages (conversation_id, sent_at);
+    -- Every read is "the newest N in this chat, oldest first".
+    CREATE INDEX IF NOT EXISTS messages_by_chat
+      ON messages (chat_id, sent_at);
 
     CREATE TABLE IF NOT EXISTS transport_cursors (
       protocol_id     TEXT NOT NULL,
-      conversation_id TEXT NOT NULL,
+      chat_id         TEXT NOT NULL,
       timestamp       INTEGER NOT NULL,
-      PRIMARY KEY (protocol_id, conversation_id)
+      PRIMARY KEY (protocol_id, chat_id)
     );
 
-    CREATE TABLE IF NOT EXISTS conversation_cache (
+    CREATE TABLE IF NOT EXISTS chat_cache (
       id   TEXT PRIMARY KEY NOT NULL,
       data TEXT NOT NULL
     );

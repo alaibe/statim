@@ -1,67 +1,85 @@
 /**
- * Conversation ids carry their own routing, `<protocol>-<native id>`. This is
- * what lets one inbox hold three transports without anything downstream
+ * Chat ids carry their own routing, `<protocol>-<native id>`. This is
+ * what lets one chat list hold every protocol without anything downstream
  * filtering by protocol.
  */
-import { LOCAL_PREFIX } from './bots';
-import type { ChatMessage, Conversation, ConversationId } from './types';
+import type {
+  ChatMessage,
+  Chat,
+  ChatId,
+  ProtocolChatId,
+  ProtocolMessage,
+  ProtocolChat,
+} from './types';
 
 export type ProtocolId = string;
 
 export const PROTOCOL_ID = /^[a-z][a-z0-9]*$/;
 export const NATIVE_ID = /^[A-Za-z0-9_-]+$/;
 
-export const LOCAL_PROTOCOL: ProtocolId = LOCAL_PREFIX.slice(0, -1);
+export const LOCAL_PROTOCOL: ProtocolId = 'local';
 
-export function namespacedId(protocol: ProtocolId, nativeId: string): ConversationId {
+export function protocolChatId(raw: string): ProtocolChatId {
+  return raw as ProtocolChatId;
+}
+
+export function namespacedId(protocol: ProtocolId, nativeId: ProtocolChatId): ChatId {
   if (!PROTOCOL_ID.test(protocol)) {
     throw new Error(`Protocol id "${protocol}" must be lowercase alphanumeric with no hyphen`);
   }
   if (!NATIVE_ID.test(nativeId)) {
     throw new Error(
-      `Conversation id "${nativeId}" is not URL-safe. ` +
+      `Chat id "${nativeId}" is not URL-safe. ` +
         'Adapters must hash or encode ids outside [A-Za-z0-9_-] before returning them.'
     );
   }
-  return `${protocol}-${nativeId}`;
+  return `${protocol}-${nativeId}` as ChatId;
 }
 
 export interface SplitId {
   protocol: ProtocolId;
-  nativeId: string;
+  nativeId: ProtocolChatId;
 }
 
-export function splitConversationId(id: ConversationId): SplitId | null {
-  const at = id.indexOf('-');
+export function parseChatId(raw: string): ChatId | null {
+  return split(raw) ? (raw as ChatId) : null;
+}
+
+export function parseChatRoute(raw: string): (SplitId & { id: ChatId }) | null {
+  const route = split(raw);
+  return route && { ...route, id: raw as ChatId };
+}
+
+export function splitChatId(id: ChatId): SplitId | null {
+  return split(id);
+}
+
+function split(raw: string): SplitId | null {
+  const at = raw.indexOf('-');
   if (at <= 0) return null;
 
-  const protocol = id.slice(0, at);
-  const nativeId = id.slice(at + 1);
+  const protocol = raw.slice(0, at);
+  const nativeId = raw.slice(at + 1);
   if (!PROTOCOL_ID.test(protocol) || nativeId.length === 0) return null;
-  return { protocol, nativeId };
+  return { protocol, nativeId: protocolChatId(nativeId) };
 }
 
-export function protocolOf(id: ConversationId): ProtocolId | null {
-  return splitConversationId(id)?.protocol ?? null;
+export function protocolOf(id: ChatId): ProtocolId | null {
+  return splitChatId(id)?.protocol ?? null;
 }
 
-export function namespaceMessage(protocol: ProtocolId, message: ChatMessage): ChatMessage {
+export function namespaceMessage(protocol: ProtocolId, message: ProtocolMessage): ChatMessage {
   return {
     ...message,
-    conversationId: namespacedId(protocol, message.conversationId),
+    chatId: namespacedId(protocol, message.chatId),
   };
 }
 
-export function namespaceConversation(
-  protocol: ProtocolId,
-  conversation: Conversation
-): Conversation {
+export function namespaceChat(protocol: ProtocolId, chat: ProtocolChat): Chat {
   return {
-    ...conversation,
-    id: namespacedId(protocol, conversation.id),
+    ...chat,
+    id: namespacedId(protocol, chat.id),
     protocol,
-    lastMessage: conversation.lastMessage
-      ? namespaceMessage(protocol, conversation.lastMessage)
-      : undefined,
+    lastMessage: chat.lastMessage ? namespaceMessage(protocol, chat.lastMessage) : undefined,
   };
 }

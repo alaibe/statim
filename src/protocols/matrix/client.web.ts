@@ -103,10 +103,6 @@ class TauriMatrixClient implements MatrixApi {
     return invoke('mx_leave', { roomId });
   }
 
-  ignore(userId: string, ignored: boolean): Promise<void> {
-    return invoke('mx_ignore', { userId, ignored });
-  }
-
   send(roomId: string, content: MxOutgoing, replyTo?: string, threadRoot?: string): Promise<void> {
     return invoke('mx_send', { roomId, content, replyTo, threadRoot });
   }

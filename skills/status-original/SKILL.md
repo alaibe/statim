@@ -1,6 +1,6 @@
 ---
 name: status-original
-description: Read, search and send messages across XMTP, Telegram, Matrix and the other networks of the Status Original desktop app, manage chats and groups, and run its wallet and plugin commands, with the `status-original` command. Use when the user asks to check, summarise, answer or send messages, find something in their chats, manage a group or a network sign-in, or act on their Status Original account from the terminal.
+description: Read, search and send messages across XMTP, Telegram, Matrix and the other protocols of the Status Original desktop app, manage chats and groups, and run its wallet and plugin commands, with the `status-original` command. Use when the user asks to check, summarise, answer or send messages, find something in their chats, manage a group or a protocol sign-in, or act on their Status Original account from the terminal.
 ---
 
 # Status Original command line
@@ -16,9 +16,9 @@ description: Read, search and send messages across XMTP, Telegram, Matrix and th
 - Pipe long text or file contents through stdin rather than the command line: `status-original send <chat> - < note.md`, `--file - --name photo.jpg < photo.jpg`.
 - Some commands wait for the person at the app to approve them (marked below). Exit 5 means they declined: tell the user, do not retry.
 - Money: wallet commands such as `run <chat> /send 0.01 ETH` first print a review with the exact `--confirm` command. Show the review to the user; running the `--confirm` command asks for approval in the app before anything is signed.
-- Exit 4 means the command line is turned off, the app is locked, it has no account, or the network is not connected. Tell the user. The command line is off until they turn it on in the app under Settings › Command line; never try to change that yourself.
-- Networks that sign in by phone number and code: run `networks login <network> --json` to see the step, ask the user for the answer, then pass it as `networks login <network> <answer> --json`, one step at a time.
-- Right after the app starts or the account changes, a network can still be catching up. If a chat or message you expect is missing, run `networks sync --json` and look again.
+- Exit 4 means the command line is turned off, the app is locked, it has no account, or a protocol is not connected. Tell the user. The command line is off until they turn it on in the app under Settings › Command line; never try to change that yourself.
+- Protocols that sign in by phone number and code: run `protocols login <protocol> --json` to see the step, ask the user for the answer, then pass it as `protocols login <protocol> <answer> --json`, one step at a time.
+- Right after the app starts or the account changes, a protocol can still be catching up. If a chat or message you expect is missing, run `protocols sync --json` and look again.
 - `watch --json` prints one JSON object per new message until it is stopped. Run it with a timeout or in the background.
 - Plugins add their own slash commands. `commands --json` lists them with their usage; `run` runs one.
 - The recovery phrase is never available here. Do not look for it.
@@ -28,12 +28,12 @@ description: Read, search and send messages across XMTP, Telegram, Matrix and th
 | Code | Meaning |
 | --- | --- |
 | 0 | Done |
-| 1 | The network or the app refused, or something failed; the message says why |
+| 1 | The protocol or the app refused, or something failed; the message says why |
 | 2 | Wrong arguments; run the command with --help |
-| 3 | No chat, message, account or network matches, or more than one does |
-| 4 | The command line is turned off in the app, the app is locked, it has no account, or the network is not connected |
+| 3 | No chat, message, account or protocol matches, or more than one does |
+| 4 | The command line is turned off in the app, the app is locked, it has no account, or the protocol is not connected |
 | 5 | You declined the request in the app |
-| 6 | That network cannot do this |
+| 6 | That protocol cannot do this |
 
 ## Recipes
 
@@ -65,7 +65,7 @@ status-original search invoice --json
 
 `status-original status`
 
-Show whether the app is unlocked, the active account and each network.
+Show whether the app is unlocked, the active account and each protocol.
 
 #### open
 
@@ -140,60 +140,60 @@ Waits for the person at the app to approve it.
 
 `status-original whoami`
 
-Show the active account and your id on each network.
+Show the active account and your id on each protocol.
 
-### Networks
+### Protocols
 
-#### networks
+#### protocols
 
-`status-original networks`
+`status-original protocols`
 
-List networks with their connection state.
+List protocols with their connection state.
 
-#### networks config
+#### protocols config
 
-`status-original networks config <network> [key=value...]`
+`status-original protocols config <protocol> [key=value...]`
 
-Show or change a network’s settings; secret fields are prompted for.
+Show or change a protocol’s settings; secret fields are prompted for.
 
-- `network`: Network id
+- `protocol`: Protocol id
 - `key=value`: Settings to change
 
 ```sh
-status-original networks config matrix homeserver=https://matrix.org username=alice
+status-original protocols config matrix homeserver=https://matrix.org username=alice
 ```
 
-#### networks login
+#### protocols login
 
-`status-original networks login <network> [answer]`
+`status-original protocols login <protocol> [answer]`
 
-Sign in to a network that asks for a phone number, code or password. At a terminal it prompts; otherwise give one answer at a time and it prints the next step.
+Sign in to a protocol that asks for a phone number, code or password. At a terminal it prompts; otherwise give one answer at a time and it prints the next step.
 
-- `network`: Network id
+- `protocol`: Protocol id
 - `answer`: Answer to the step it is waiting on
 
 ```sh
-status-original networks login telegram
-status-original networks login telegram +447700900123 --json
+status-original protocols login telegram
+status-original protocols login telegram +447700900123 --json
 ```
 
-#### networks logout
+#### protocols logout
 
-`status-original networks logout <network>`
+`status-original protocols logout <protocol>`
 
-Sign out of a network.
+Sign out of a protocol.
 
 Waits for the person at the app to approve it.
 
-- `network`: Network id
+- `protocol`: Protocol id
 
-#### networks sync
+#### protocols sync
 
-`status-original networks sync [network]`
+`status-original protocols sync [protocol]`
 
-Fetch what is new from every network, or one.
+Fetch what is new from every protocol, or one.
 
-- `network`: Network id
+- `protocol`: Protocol id
 
 #### devices
 
@@ -215,17 +215,17 @@ Waits for the person at the app to approve it.
 
 #### chats
 
-`status-original chats [--unread] [--mentions] [--dms] [--groups] [--archived] [--requests] [--network <id>] [--limit <n>]`
+`status-original chats [--unread] [--mentions] [--dms] [--groups] [--archived] [--requests] [--network <name>] [--limit <n>]`
 
 List chats, newest first.
 
 - `--unread`: Only unread chats
 - `--mentions`: Only chats with unread mentions
-- `--dms`: Only direct messages
+- `--dms`: Only DMs
 - `--groups`: Only groups and channels
 - `--archived`: Only archived chats
-- `--requests`: Only message requests
-- `--network <id>`: Network to use (see `networks`)
+- `--requests`: Only requests
+- `--network <name>`: Only chats on this network, such as telegram or Slack
 - `--limit <n>`: How many to show
 
 #### chat
@@ -276,15 +276,15 @@ Mark a chat as unread.
 
 `status-original accept <chat>`
 
-Accept a message request.
+Accept a request.
 
 - `chat`: Chat id, or a unique part of its title
 
-#### block
+#### decline
 
-`status-original block <chat>`
+`status-original decline <chat>`
 
-Decline a message request, or block a chat.
+Decline a request: the chat leaves your list and the sender is not blocked.
 
 - `chat`: Chat id, or a unique part of its title
 
@@ -478,46 +478,46 @@ Save a message’s photo, file, voice note or video.
 
 #### new
 
-`status-original new <peer> [--network <id>]`
+`status-original new <address> [--protocol <id>]`
 
-Start a direct message; the peer can be an address, ENS name, username or link.
+Start a DM with an address: an Ethereum address, ENS name, username or link.
 
-- `peer`: Who to message
-- `--network <id>`: Network to use (see `networks`)
+- `address`: Who to message
+- `--protocol <id>`: Protocol to use (see `protocols`)
 
 ```sh
 status-original new vitalik.eth
-status-original new @durov --network telegram
+status-original new @durov --protocol telegram
 ```
 
 #### resolve
 
-`status-original resolve <peer> [--network <id>]`
+`status-original resolve <address> [--protocol <id>]`
 
-Find the id a network uses for an address, name or link.
+Find the id a protocol uses for an address, name or link.
 
-- `peer`: Address, ENS name, username or link
-- `--network <id>`: Network to use (see `networks`)
+- `address`: Ethereum address, ENS name, username or link
+- `--protocol <id>`: Protocol to use (see `protocols`)
 
 #### contacts
 
-`status-original contacts [--network <id>]`
+`status-original contacts [--protocol <id>]`
 
-List the people you have direct messages with.
+List your contacts, the participants you have DMs with.
 
-- `--network <id>`: Network to use (see `networks`)
+- `--protocol <id>`: Protocol to use (see `protocols`)
 
 ### Groups
 
 #### group create
 
-`status-original group create <title> <peer...> [--network <id>]`
+`status-original group create <title> <address...> [--protocol <id>]`
 
 Create a group.
 
 - `title`: Group name
-- `peer`: Members to add
-- `--network <id>`: Network to use (see `networks`)
+- `address`: Members to add
+- `--protocol <id>`: Protocol to use (see `protocols`)
 
 #### group members
 
@@ -529,12 +529,12 @@ List a group’s members and their roles.
 
 #### group add
 
-`status-original group add <chat> <peer...>`
+`status-original group add <chat> <address...>`
 
 Add members.
 
 - `chat`: Chat id, or a unique part of its title
-- `peer`: Members to add
+- `address`: Members to add
 
 #### group remove
 
@@ -617,30 +617,30 @@ List pending join requests.
 
 #### group approve
 
-`status-original group approve <chat> <user>`
+`status-original group approve <chat> <participant>`
 
 Approve a join request.
 
 - `chat`: Chat id, or a unique part of its title
-- `user`: Requester id
+- `participant`: Id of whoever asked to join
 
 #### group decline
 
-`status-original group decline <chat> <user>`
+`status-original group decline <chat> <participant>`
 
 Decline a join request.
 
 - `chat`: Chat id, or a unique part of its title
-- `user`: Requester id
+- `participant`: Id of whoever asked to join
 
 #### join
 
-`status-original join <link> [--network <id>] [--preview]`
+`status-original join <link> [--protocol <id>] [--preview]`
 
 Preview and join a public group or channel by username or link.
 
 - `link`: Username or link
-- `--network <id>`: Network to use (see `networks`)
+- `--protocol <id>`: Protocol to use (see `protocols`)
 - `--preview`: Only show what you would join
 
 ### Settings

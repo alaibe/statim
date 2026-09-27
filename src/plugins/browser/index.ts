@@ -19,7 +19,7 @@ export const browserPlugin: Plugin = {
       'Open bookmarked sites in your system browser and connect them to your wallet over WalletConnect.',
     version: '1.0.0',
     icon: 'compass-outline',
-    permissions: ['identity.read', 'identity.sign', 'browser.open', 'network', 'storage'],
+    permissions: ['account.read', 'account.sign', 'browser.open', 'network', 'storage'],
   },
 
   setup(context) {
@@ -321,9 +321,9 @@ export const browserPlugin: Plugin = {
       uriHandlers: [
         {
           schemes: ['wc'],
-          async handle(url, ctx) {
+          async handle(url) {
             const store = useWalletConnectStore.getState();
-            if (!store.kit) await store.init(ctx);
+            if (!store.kit) await store.init();
 
             try {
               await useWalletConnectStore.getState().pair(url);
@@ -337,7 +337,7 @@ export const browserPlugin: Plugin = {
       ],
 
       async start() {
-        await useWalletConnectStore.getState().init(context);
+        await useWalletConnectStore.getState().init();
         return () => {
           useWalletConnectStore.getState().shutdown();
         };

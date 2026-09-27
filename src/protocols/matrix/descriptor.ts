@@ -23,25 +23,25 @@ export const MATRIX_PROTOCOL = {
   label: 'Matrix',
   external: true,
   publicChats: {
-    title: 'Join a Matrix room',
+    title: 'Join a Matrix chat',
     hint: 'Enter a room alias, ID, or matrix.to link to preview it.',
     placeholder: '#room:server or matrix.to link',
   },
   description:
-    'Your Matrix account: encrypted rooms and DMs on any homeserver, plus whatever your ' +
+    'Your Matrix account: encrypted groups and DMs on any homeserver, plus whatever your ' +
     'homeserver bridges in (WhatsApp, Signal, Slack, iMessage…).',
-  recipient: {
+  address: {
     label: 'Matrix ID',
     placeholder: '@alice:example.org',
     noun: 'a Matrix ID',
-    hint: 'Add a Matrix ID like @alice:example.org, or a matrix.to link to a user.',
+    hint: 'Add a Matrix ID like @alice:example.org, or a matrix.to link to a person.',
     unreachable: (input) =>
       `${input} did not match anyone on Matrix. ` +
       'Check the ID; some homeservers hide profiles from other servers.',
   },
   meta: {
     trustModel:
-      'Rooms that turn encryption on are end-to-end encrypted with Olm/Megolm; your homeserver ' +
+      'Chats that turn encryption on are end-to-end encrypted with Olm/Megolm; your homeserver ' +
       'still sees who talks to whom and when. Bridged networks are decrypted by the bridge.',
     properties: {
       endToEndEncrypted: true,

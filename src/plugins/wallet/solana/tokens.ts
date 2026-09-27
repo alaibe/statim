@@ -1,6 +1,6 @@
 import { formatUnits } from 'viem';
 
-import { shortAddress } from '@/core/identity/keyring';
+import { shortAddress } from '@/core/account/keyring';
 import { jsonRpc } from '@/lib/json-rpc';
 
 /** The original token program, and the 2022 one that newer mints use. */

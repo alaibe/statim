@@ -46,7 +46,7 @@ true;`,
   useEffect(() => {
     let stopped = false;
     WebCookies.clear(domains).catch(() => {});
-    const timer = setInterval(async () => {
+    const poll = async () => {
       const cookies = await WebCookies.get(domains).catch(() => []);
       if (stopped) return;
       const snapshot: WebSnapshot = {
@@ -59,9 +59,10 @@ true;`,
       if (values) {
         stopped = true;
         clearInterval(timer);
-        done(values);
+        void done(values);
       }
-    }, 1000);
+    };
+    const timer = setInterval(() => void poll(), 1000);
     return () => {
       stopped = true;
       clearInterval(timer);
@@ -80,7 +81,7 @@ true;`,
         visible={open}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => finish(null)}>
+        onRequestClose={() => void finish(null)}>
         <SafeAreaView className="flex-1 bg-canvas" edges={['top', 'bottom']}>
           <View className="flex-row items-center justify-between px-gutter py-2">
             <Text className="font-semibold">Sign in to {network}</Text>

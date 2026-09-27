@@ -43,7 +43,7 @@ export function MessageList({
       const index = messages.findIndex((message) => message.id === id);
       if (index < 0) return;
       following.current = false;
-      list.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+      void list.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
     },
   }));
 

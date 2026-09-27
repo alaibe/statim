@@ -1,17 +1,22 @@
 import { HYDRATE_LIMIT } from '@/core/messaging/message-store';
+import { parseChatId } from '@/core/messaging/namespace';
 import { matchesSearch, SEARCH_LIMIT } from '@/core/messaging/search';
-import type {
-  MessageStore,
-  StoredConversation,
-  StoredSearchHit,
+import {
+  searchHit,
+  storedChatId,
+  type MessageStore,
+  type StoredChat,
+  type StoredSearchHit,
 } from '@/core/messaging/message-store';
 import type {
+  AnyChatId,
   ChatMessage,
-  Conversation,
-  ConversationId,
+  Chat,
+  ChatId,
   MessageContent,
   MessageId,
 } from '@/core/messaging/types';
+import { isRecord, isString } from '@/lib/guards';
 import {
   accountDatabaseGeneration,
   openAccountDatabase,
@@ -20,7 +25,7 @@ import {
 
 type Database = Awaited<ReturnType<typeof openAccountDatabase>>;
 
-interface ConversationRow {
+interface ChatRow {
   id: string;
   protocol_id: string;
   participants: string;
@@ -32,7 +37,7 @@ interface ConversationRow {
 
 interface MessageRow {
   id: string;
-  conversation_id: string;
+  chat_id: string;
   sender_id: string;
   sent_at: number;
   from_me: number;
@@ -48,106 +53,105 @@ export class SqliteMessageStore implements MessageStore {
     this.generation = accountDatabaseGeneration(accountId);
   }
 
-  async loadConversations(protocolId: string): Promise<StoredConversation[]> {
+  async loadChats<Id extends AnyChatId>(protocolId: string): Promise<StoredChat<Id>[]> {
     const rows = await this.operation((db) =>
-      db.getAllAsync<ConversationRow>(
-        'SELECT * FROM conversations WHERE protocol_id = ?',
-        protocolId
-      )
+      db.getAllAsync<ChatRow>('SELECT * FROM chats WHERE protocol_id = ?', protocolId)
     );
-    return rows.map(toConversation);
+    return rows.map((row) => toChat<Id>(row));
   }
 
-  async loadMessages(
-    conversationId: ConversationId,
+  async loadMessages<Id extends AnyChatId>(
+    chatId: Id,
     limit = HYDRATE_LIMIT,
     before?: { sentAt: number; id: MessageId }
-  ) {
+  ): Promise<ChatMessage<Id>[]> {
     const rows = await this.operation((db) =>
       before
         ? db.getAllAsync<MessageRow>(
             `SELECT * FROM messages
-           WHERE conversation_id = ? AND (sent_at < ? OR (sent_at = ? AND id < ?))
+           WHERE chat_id = ? AND (sent_at < ? OR (sent_at = ? AND id < ?))
            ORDER BY sent_at DESC, id DESC LIMIT ?`,
-            conversationId,
+            chatId,
             before.sentAt,
             before.sentAt,
             before.id,
             limit
           )
         : db.getAllAsync<MessageRow>(
-            'SELECT * FROM messages WHERE conversation_id = ? ORDER BY sent_at DESC, id DESC LIMIT ?',
-            conversationId,
+            'SELECT * FROM messages WHERE chat_id = ? ORDER BY sent_at DESC, id DESC LIMIT ?',
+            chatId,
             limit
           )
     );
 
-    return rows.map(toMessage).reverse();
+    return rows.map((row) => toMessage(row, chatId)).reverse();
   }
 
   async searchMessages(
     query: string,
-    conversationId?: ConversationId,
+    chatId?: AnyChatId,
     protocolId?: string
   ): Promise<StoredSearchHit[]> {
     const rows = await this.operation((db) =>
       db.getAllAsync<MessageRow & { protocol_id: string | null }>(
         `SELECT m.*, c.protocol_id FROM messages m
-         LEFT JOIN conversations c ON c.id = m.conversation_id
+         LEFT JOIN chats c ON c.id = m.chat_id
          WHERE instr(lower(m.content), lower(?)) > 0
-           AND (? IS NULL OR m.conversation_id = ?)
+           AND (? IS NULL OR m.chat_id = ?)
            AND (? IS NULL OR c.protocol_id = ?)
          ORDER BY m.sent_at DESC`,
         query,
-        conversationId ?? null,
-        conversationId ?? null,
+        chatId ?? null,
+        chatId ?? null,
         protocolId ?? null,
         protocolId ?? null
       )
     );
     const needle = query.toLowerCase();
     return rows
-      .map((row) => ({ message: toMessage(row), protocolId: row.protocol_id ?? undefined }))
+      .map((row) =>
+        searchHit(row.chat_id, row.protocol_id ?? undefined, (id) => toMessage(row, id))
+      )
       .filter(({ message }) => matchesSearch(message, needle))
       .slice(0, SEARCH_LIMIT);
   }
 
-  async countUnreadMessages(conversationId: ConversationId, since: number): Promise<number> {
+  async countUnreadMessages(chatId: AnyChatId, since: number): Promise<number> {
     const row = await this.operation((db) =>
       db.getFirstAsync<{ count: number }>(
         `SELECT COUNT(*) AS count FROM messages
-         WHERE conversation_id = ? AND sent_at > ? AND from_me = 0
+         WHERE chat_id = ? AND sent_at > ? AND from_me = 0
            AND json_extract(content, '$.kind') NOT IN ('system', 'reaction')`,
-        conversationId,
+        chatId,
         since
       )
     );
     return row?.count ?? 0;
   }
 
-  async upsertConversation(conversation: StoredConversation): Promise<void> {
+  async upsertChat(chat: StoredChat): Promise<void> {
     await this.write(async (db) => {
-      await upsertConversation(db, conversation);
+      await upsertChat(db, chat);
     });
   }
 
-  async insertMessage(
-    message: ChatMessage,
-    conversation?: StoredConversation,
+  async insertMessage<Id extends AnyChatId>(
+    message: ChatMessage<Id>,
+    chat?: StoredChat<Id>,
     transportTimestamp?: number
   ): Promise<boolean> {
-    if (!conversation) return this.write((db) => insertMessage(db, message));
+    if (!chat) return this.write((db) => insertMessage(db, message));
     return this.transaction(async (db) => {
-      await upsertConversation(db, conversation);
+      await upsertChat(db, chat);
       const inserted = await insertMessage(db, message);
       if (transportTimestamp !== undefined) {
         await db.runAsync(
-          `INSERT INTO transport_cursors (protocol_id, conversation_id, timestamp)
+          `INSERT INTO transport_cursors (protocol_id, chat_id, timestamp)
              VALUES (?, ?, ?)
-             ON CONFLICT(protocol_id, conversation_id) DO UPDATE SET
+             ON CONFLICT(protocol_id, chat_id) DO UPDATE SET
                timestamp = MAX(timestamp, excluded.timestamp)`,
-          conversation.protocolId,
-          conversation.id,
+          chat.protocolId,
+          chat.id,
           transportTimestamp
         );
       }
@@ -155,37 +159,44 @@ export class SqliteMessageStore implements MessageStore {
     });
   }
 
-  async latestMessages(protocolId: string): Promise<Map<ConversationId, ChatMessage>> {
+  async latestMessages<Id extends AnyChatId>(
+    protocolId: string
+  ): Promise<Map<Id, ChatMessage<Id>>> {
     const rows = await this.operation((db) =>
       db.getAllAsync<MessageRow>(
-        `SELECT m.* FROM conversations c
+        `SELECT m.* FROM chats c
        JOIN messages m ON m.rowid = (
          SELECT rowid FROM messages
-         WHERE conversation_id = c.id
+         WHERE chat_id = c.id
          ORDER BY sent_at DESC, id DESC LIMIT 1
        )
        WHERE c.protocol_id = ?`,
         protocolId
       )
     );
-    return new Map(rows.map((row) => [row.conversation_id, toMessage(row)]));
+    return new Map(
+      rows.map((row) => {
+        const chatId = storedChatId<Id>(row.chat_id, protocolId);
+        return [chatId, toMessage(row, chatId)] as const;
+      })
+    );
   }
 
   async newestTransportTimestamp(
     protocolId: string,
     notAfter: number,
-    conversationId?: ConversationId
+    chatId?: AnyChatId
   ): Promise<number | undefined> {
     const upperBound = Number.isFinite(notAfter) ? notAfter : Number.MAX_SAFE_INTEGER;
     const row = await this.operation((db) =>
       db.getFirstAsync<{ timestamp: number }>(
         `SELECT timestamp FROM transport_cursors
-       WHERE protocol_id = ? AND timestamp <= ? AND (? IS NULL OR conversation_id = ?)
+       WHERE protocol_id = ? AND timestamp <= ? AND (? IS NULL OR chat_id = ?)
        ORDER BY timestamp DESC LIMIT 1`,
         protocolId,
         upperBound,
-        conversationId ?? null,
-        conversationId ?? null
+        chatId ?? null,
+        chatId ?? null
       )
     );
     return row?.timestamp;
@@ -194,42 +205,42 @@ export class SqliteMessageStore implements MessageStore {
   async clear(protocolId: string): Promise<void> {
     await this.transaction(async (db) => {
       await db.runAsync(
-        `DELETE FROM messages WHERE conversation_id IN
-           (SELECT id FROM conversations WHERE protocol_id = ?)`,
+        `DELETE FROM messages WHERE chat_id IN
+           (SELECT id FROM chats WHERE protocol_id = ?)`,
         protocolId
       );
       await db.runAsync('DELETE FROM transport_cursors WHERE protocol_id = ?', protocolId);
-      await db.runAsync('DELETE FROM conversations WHERE protocol_id = ?', protocolId);
+      await db.runAsync('DELETE FROM chats WHERE protocol_id = ?', protocolId);
     });
   }
 
-  async cachedConversations(): Promise<Conversation[]> {
+  async cachedChats(): Promise<Chat[]> {
     const rows = await this.operation((db) =>
-      db.getAllAsync<{ data: string }>('SELECT data FROM conversation_cache')
+      db.getAllAsync<{ data: string }>('SELECT data FROM chat_cache')
     );
     return rows.flatMap((row) => {
       try {
-        const conversation = JSON.parse(row.data) as Conversation;
-        return typeof conversation?.id === 'string' ? [conversation] : [];
+        const chat: unknown = JSON.parse(row.data);
+        return isCachedChat(chat) ? [chat] : [];
       } catch {
         return [];
       }
     });
   }
 
-  async cacheConversations(keep: Conversation[], drop: ConversationId[]): Promise<void> {
+  async cacheChats(keep: Chat[], drop: ChatId[]): Promise<void> {
     await this.transaction(async (db) => {
       for (const rows of chunks(keep, CACHE_ROWS_PER_STATEMENT)) {
         await db.runAsync(
-          `INSERT INTO conversation_cache (id, data)
+          `INSERT INTO chat_cache (id, data)
              VALUES ${rows.map(() => '(?, ?)').join(', ')}
              ON CONFLICT(id) DO UPDATE SET data = excluded.data`,
-          ...rows.flatMap((conversation) => [conversation.id, JSON.stringify(conversation)])
+          ...rows.flatMap((chat) => [chat.id, JSON.stringify(chat)])
         );
       }
       for (const ids of chunks(drop, CACHE_ROWS_PER_STATEMENT)) {
         await db.runAsync(
-          `DELETE FROM conversation_cache WHERE id IN (${ids.map(() => '?').join(', ')})`,
+          `DELETE FROM chat_cache WHERE id IN (${ids.map(() => '?').join(', ')})`,
           ...ids
         );
       }
@@ -255,9 +266,9 @@ export class SqliteMessageStore implements MessageStore {
   }
 }
 
-async function upsertConversation(db: Database, conversation: StoredConversation): Promise<void> {
+async function upsertChat(db: Database, chat: StoredChat): Promise<void> {
   await db.runAsync(
-    `INSERT INTO conversations
+    `INSERT INTO chats
          (id, protocol_id, participants, title, created_at, hidden, routing_key)
        VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
@@ -266,24 +277,24 @@ async function upsertConversation(db: Database, conversation: StoredConversation
          created_at   = excluded.created_at,
          hidden       = excluded.hidden,
          routing_key  = excluded.routing_key`,
-    conversation.id,
-    conversation.protocolId,
-    JSON.stringify(conversation.participants),
-    conversation.title ?? null,
-    conversation.createdAt,
-    conversation.hidden ? 1 : 0,
-    conversation.routingKey ?? null
+    chat.id,
+    chat.protocolId,
+    JSON.stringify(chat.participants),
+    chat.title ?? null,
+    chat.createdAt,
+    chat.hidden ? 1 : 0,
+    chat.routingKey ?? null
   );
 }
 
-async function insertMessage(db: Database, message: ChatMessage): Promise<boolean> {
+async function insertMessage(db: Database, message: ChatMessage<AnyChatId>): Promise<boolean> {
   const result = await db.runAsync(
     `INSERT INTO messages
-         (id, conversation_id, sender_id, sent_at, from_me, status, content, reply_to)
+         (id, chat_id, sender_id, sent_at, from_me, status, content, reply_to)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(conversation_id, id) DO NOTHING`,
+       ON CONFLICT(chat_id, id) DO NOTHING`,
     message.id,
-    message.conversationId,
+    message.chatId,
     message.senderId,
     message.sentAt,
     message.fromMe ? 1 : 0,
@@ -294,9 +305,9 @@ async function insertMessage(db: Database, message: ChatMessage): Promise<boolea
   return result.changes === 1;
 }
 
-function toConversation(row: ConversationRow): StoredConversation {
+function toChat<Id extends AnyChatId>(row: ChatRow): StoredChat<Id> {
   return {
-    id: row.id,
+    id: storedChatId<Id>(row.id, row.protocol_id),
     protocolId: row.protocol_id,
     participants: parseArray(row.participants),
     title: row.title ?? undefined,
@@ -306,10 +317,14 @@ function toConversation(row: ConversationRow): StoredConversation {
   };
 }
 
-function toMessage(row: MessageRow): ChatMessage {
+function isCachedChat(value: unknown): value is Chat {
+  return isRecord(value) && isString(value.id) && parseChatId(value.id) !== null;
+}
+
+function toMessage<Id extends AnyChatId>(row: MessageRow, chatId: Id): ChatMessage<Id> {
   return {
     id: row.id,
-    conversationId: row.conversation_id,
+    chatId,
     senderId: row.sender_id,
     sentAt: row.sent_at,
     content: parseContent(row.content),

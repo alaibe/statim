@@ -9,8 +9,8 @@ export const NOSTR_PROTOCOL = {
   docsUrl: guideUrl('networks', 'nostr'),
   label: 'Nostr',
   external: false,
-  description: 'Sealed direct messages relayed by servers that never learn who sent them.',
-  recipient: {
+  description: 'Sealed DMs relayed by servers that never learn who sent them.',
+  address: {
     label: 'Public key',
     placeholder: 'npub1… or 64-char hex',
     noun: 'a public key',
@@ -28,7 +28,7 @@ export const NOSTR_PROTOCOL = {
       forwardSecrecy: false,
       metadataPrivacy: 'medium',
       maxGroupSize: 50,
-      groupModel: 'recipient-set',
+      groupModel: 'participant-set',
       durableHistory: false,
     },
   },

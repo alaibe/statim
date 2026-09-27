@@ -1,7 +1,7 @@
 import { base58 } from '@scure/base';
 import { formatUnits } from 'viem';
 
-import type { Ed25519Key } from '@/core/identity/slip10';
+import type { Ed25519Key } from '@/core/account/slip10';
 
 export const SOLANA_ACCOUNT_PATH = "m/44'/501'/0'/0'";
 

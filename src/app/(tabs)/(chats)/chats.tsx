@@ -28,7 +28,7 @@ export default function ChatsScreen() {
                 onPress={() => router.push('/new-chat?mode=group')}
               />
               <IconButton
-                testID="header-new-conversation"
+                testID="header-new-chat"
                 icon="create-outline"
                 label="New message"
                 tone="brand"

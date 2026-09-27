@@ -1,8 +1,8 @@
 import type { LoginState } from '@/core/messaging/protocol';
-import type { ChatMessage, Conversation } from '@/core/messaging/types';
+import type { ProtocolMessage, ProtocolChat } from '@/core/messaging/types';
 import type { MxSession } from './api';
 import { MatrixSession } from './adapter';
-import { conversationIdOf, parseRoomReference, parseUserId, roomIdOf } from './ids';
+import { chatIdOf, parseRoomReference, parseUserId, roomIdOf } from './ids';
 import {
   BOB,
   CAROL,
@@ -50,8 +50,8 @@ const GROUP = room('!group:example.org', {
   heroes: [BOB, CAROL],
   selfRole: 'admin',
 });
-const DM_ID = conversationIdOf(DM.id);
-const GROUP_ID = conversationIdOf(GROUP.id);
+const DM_ID = chatIdOf(DM.id);
+const GROUP_ID = chatIdOf(GROUP.id);
 
 describe('MatrixSession sign-in', () => {
   it('starts the SDK with the caller’s directory, passphrase and saved session', async () => {
@@ -115,7 +115,7 @@ describe('MatrixSession sign-in', () => {
   });
 });
 
-describe('MatrixSession conversations', () => {
+describe('MatrixSession chats', () => {
   it('lists joined rooms and invitations, not rooms that were left', async () => {
     const { chat, api } = await connect(SESSION, (api) => {
       api.roomsById.set(DM.id, DM);
@@ -126,35 +126,36 @@ describe('MatrixSession conversations', () => {
         room('!invite:example.org', { membership: 'invited', name: 'Later', inviter: BOB })
       );
     });
-    const conversations = await chat.listConversations();
-    expect(conversations.map((c) => roomIdOf(c.id)).sort()).toEqual(
+    const chats = await chat.listChats();
+    expect(chats.map((c) => roomIdOf(c.id)).sort()).toEqual(
       [DM.id, GROUP.id, '!invite:example.org'].sort()
     );
 
-    const dm = conversations.find((c) => c.id === DM_ID)!;
+    const dm = chats.find((c) => c.id === DM_ID)!;
     expect(dm).toMatchObject({
       kind: 'dm',
       title: 'Bob Builder',
       memberIds: [BOB, ME],
-      consent: 'allowed',
+      consent: 'accepted',
     });
     expect(dm.selfRole).toBeUndefined();
 
-    const group = conversations.find((c) => c.id === GROUP_ID)!;
+    const group = chats.find((c) => c.id === GROUP_ID)!;
     expect(group).toMatchObject({
       kind: 'group',
       title: 'Builders',
       selfRole: 'admin',
       unreadCount: 4,
       mentionCount: 2,
-      consent: 'allowed',
+      consent: 'accepted',
     });
     expect(group.memberIds).toEqual([BOB, CAROL, ME]);
 
-    expect(
-      conversations.find((c) => c.id === conversationIdOf('!invite:example.org'))
-    ).toMatchObject({ consent: 'unknown', title: 'Later' });
-    const invitedDm = conversationIdOf('!dm-invite:example.org');
+    expect(chats.find((c) => c.id === chatIdOf('!invite:example.org'))).toMatchObject({
+      consent: 'request',
+      title: 'Later',
+    });
+    const invitedDm = chatIdOf('!dm-invite:example.org');
     api.emit({
       type: 'room',
       room: room('!dm-invite:example.org', {
@@ -164,7 +165,7 @@ describe('MatrixSession conversations', () => {
         name: 'Bob',
       }),
     });
-    expect((await chat.listConversations()).find((c) => c.id === invitedDm)).toMatchObject({
+    expect((await chat.listChats()).find((c) => c.id === invitedDm)).toMatchObject({
       memberIds: [BOB, ME],
       title: 'Bob',
     });
@@ -179,9 +180,9 @@ describe('MatrixSession conversations', () => {
       content: { kind: 'text' as const, body: 'hello' },
     };
     const { chat, api } = await connect();
-    const conversations: Conversation[] = [];
-    const messages: ChatMessage[] = [];
-    await chat.streamConversations((c) => conversations.push(c));
+    const chats: ProtocolChat[] = [];
+    const messages: ProtocolMessage[] = [];
+    await chat.streamChats((c) => chats.push(c));
     await chat.streamMessages((m) => messages.push(m));
 
     api.emit({ type: 'room', room: { ...DM, latest } });
@@ -190,15 +191,15 @@ describe('MatrixSession conversations', () => {
     api.emit({ type: 'event', event: textEvent('$2', '!gone:example.org', BOB, 'bye') });
     await flush();
 
-    expect(conversations).toHaveLength(1);
-    expect(conversations[0].lastMessage).toMatchObject({
+    expect(chats).toHaveLength(1);
+    expect(chats[0].lastMessage).toMatchObject({
       id: expect.stringMatching(/^preview:/),
       content: { kind: 'text', text: 'hello' },
     });
     expect(messages).toHaveLength(1);
     expect(messages[0]).toMatchObject({
       id: '$1',
-      conversationId: DM_ID,
+      chatId: DM_ID,
       senderId: BOB,
       fromMe: false,
     });
@@ -208,14 +209,14 @@ describe('MatrixSession conversations', () => {
     const { chat, api } = await connect(SESSION, (api) => {
       api.roomsById.set(GROUP.id, GROUP);
     });
-    const conversations: Conversation[] = [];
-    await chat.streamConversations((conversation) => conversations.push(conversation));
+    const chats: ProtocolChat[] = [];
+    await chat.streamChats((c) => chats.push(c));
     api.emit({ type: 'typing', roomId: GROUP.id, userIds: [BOB] });
-    expect(conversations.at(-1)).toMatchObject({ id: GROUP_ID, typing: true });
+    expect(chats.at(-1)).toMatchObject({ id: GROUP_ID, typing: true });
     api.emit({ type: 'typing', roomId: GROUP.id, userIds: [] });
-    expect(conversations.at(-1)).toMatchObject({ id: GROUP_ID, typing: false });
+    expect(chats.at(-1)).toMatchObject({ id: GROUP_ID, typing: false });
     api.emit({ type: 'typing', roomId: GROUP.id, userIds: [ME] });
-    expect(conversations.at(-1)).toMatchObject({ id: GROUP_ID, typing: false });
+    expect(chats.at(-1)).toMatchObject({ id: GROUP_ID, typing: false });
     await chat.setTyping(GROUP_ID, true);
     await chat.setTyping(GROUP_ID, false);
     expect(api.named('setTyping')).toEqual([
@@ -256,7 +257,7 @@ describe('MatrixSession conversations', () => {
     }));
     global.fetch = fetchMock as unknown as typeof fetch;
     const { chat } = await connect(SESSION, (api) => api.roomsById.set(GROUP.id, GROUP));
-    await chat.listConversations();
+    await chat.listChats();
 
     const found = await chat.searchMessages('lunch', GROUP_ID);
     expect(found.map((message) => [message.id, message.content])).toEqual([
@@ -285,7 +286,7 @@ describe('MatrixSession conversations', () => {
     })) as unknown as typeof fetch;
     const { chat, api } = await connect(SESSION, (api) => api.roomsById.set(GROUP.id, GROUP));
     expect(await chat.getJoinRequests(GROUP_ID)).toEqual([
-      { userId: CAROL, name: 'Carol', bio: 'Friend of Bob', requestedAt: 42 },
+      { participantId: CAROL, name: 'Carol', bio: 'Friend of Bob', requestedAt: 42 },
     ]);
     await chat.processJoinRequest(GROUP_ID, CAROL, true);
     await chat.processJoinRequest(GROUP_ID, BOB, false);
@@ -316,7 +317,7 @@ describe('MatrixSession conversations', () => {
     const { chat } = await connect(SESSION, (api) =>
       api.roomsById.set(GROUP.id, { ...GROUP, canPin: false, canDeleteOthers: true })
     );
-    expect((await chat.listConversations())[0]).toMatchObject({
+    expect((await chat.listChats())[0]).toMatchObject({
       canPin: false,
       canDeleteOthers: true,
     });
@@ -326,13 +327,13 @@ describe('MatrixSession conversations', () => {
     const { chat, api } = await connect(SESSION, (api) =>
       api.roomsById.set(GROUP.id, { ...GROUP, avatarUrl: 'mxc://example.org/pic' })
     );
-    const conversations: Conversation[] = [];
-    await chat.streamConversations((conversation) => conversations.push(conversation));
-    expect((await chat.listConversations())[0].avatarUri).toBeUndefined();
+    const chats: ProtocolChat[] = [];
+    await chat.streamChats((c) => chats.push(c));
+    expect((await chat.listChats())[0].avatarUri).toBeUndefined();
     await flush();
     expect(api.named('media')).toHaveLength(1);
-    expect(conversations.at(-1)?.avatarUri).toBe('file:///matrix/media/avatar');
-    await chat.listConversations();
+    expect(chats.at(-1)?.avatarUri).toBe('file:///matrix/media/avatar');
+    await chat.listChats();
     expect(api.named('media')).toHaveLength(1);
   });
 
@@ -340,7 +341,7 @@ describe('MatrixSession conversations', () => {
     const { chat, api } = await connect(SESSION, (api) =>
       api.roomsById.set(GROUP.id, { ...GROUP, markedUnread: true })
     );
-    expect((await chat.listConversations())[0]).toMatchObject({ markedUnread: true });
+    expect((await chat.listChats())[0]).toMatchObject({ markedUnread: true });
     await chat.setMarkedUnread(GROUP_ID, false);
     expect(api.named('setMarkedUnread')).toEqual([[GROUP.id, false]]);
   });
@@ -356,9 +357,9 @@ describe('MatrixSession conversations', () => {
     }));
     global.fetch = fetchMock as unknown as typeof fetch;
     const { chat } = await connect(SESSION, (api) => api.roomsById.set(DM.id, DM));
-    await chat.listConversations();
-    const conversations: Conversation[] = [];
-    await chat.streamConversations((conversation) => conversations.push(conversation));
+    await chat.listChats();
+    const chats: ProtocolChat[] = [];
+    await chat.streamChats((c) => chats.push(c));
 
     const stop = chat.watchPresence(DM_ID);
     await flush();
@@ -366,7 +367,7 @@ describe('MatrixSession conversations', () => {
       `https://example.org/_matrix/client/v3/presence/${encodeURIComponent(BOB)}/status`,
       expect.objectContaining({ method: 'GET' })
     );
-    expect(conversations.at(-1)).toMatchObject({ id: DM_ID, lastSeenAt: 900_000 });
+    expect(chats.at(-1)).toMatchObject({ id: DM_ID, lastSeenAt: 900_000 });
 
     stop();
     jest.advanceTimersByTime(120_000);
@@ -376,7 +377,7 @@ describe('MatrixSession conversations', () => {
 
   it('creates and votes in native Matrix polls with their actual answer IDs', async () => {
     const { chat, api } = await connect(SESSION, (api) => api.roomsById.set(GROUP.id, GROUP));
-    const messages: ChatMessage[] = [];
+    const messages: ProtocolMessage[] = [];
     await chat.streamMessages((message) => messages.push(message));
     api.emit({
       type: 'event',
@@ -409,7 +410,7 @@ describe('MatrixSession conversations', () => {
     expect(api.named('createPoll')).toEqual([[GROUP.id, 'Dinner?', ['Pasta', 'Rice']]]);
   });
 
-  it('names DM peers from the room and members from the roster', async () => {
+  it('names DM participants from the room and members from the roster', async () => {
     const { chat } = await connect(SESSION, (api) => {
       api.roomsById.set(DM.id, DM);
       api.roomMembers.set(GROUP.id, [
@@ -443,13 +444,13 @@ describe('MatrixSession conversations', () => {
         { userId: '@dan:example.org', role: 'member' },
       ]);
     });
-    const conversations: Conversation[] = [];
-    await chat.streamConversations((c) => conversations.push(c));
+    const chats: ProtocolChat[] = [];
+    await chat.streamChats((c) => chats.push(c));
     await chat.getMessages(GROUP_ID);
     await chat.getMessages(GROUP_ID);
     await flush();
     expect(api.named('members')).toEqual([[GROUP.id]]);
-    expect(conversations.at(-1)?.memberIds).toEqual([ME, BOB, CAROL, '@dan:example.org']);
+    expect(chats.at(-1)?.memberIds).toEqual([ME, BOB, CAROL, '@dan:example.org']);
   });
 
   it('sees who has joined a DM once the room changes', async () => {
@@ -472,13 +473,13 @@ describe('MatrixSession conversations', () => {
     const { chat, api } = await connect(SESSION, (api) => {
       api.profiles.set(BOB, { userId: BOB, displayName: 'Bob' });
     });
-    expect(await chat.resolvePeer(' @bob:example.org ')).toBe(BOB);
-    expect(await chat.resolvePeer('https://matrix.to/#/@bob:example.org')).toBe(BOB);
-    expect(await chat.resolvePeer('matrix:u/bob:example.org')).toBe(BOB);
-    expect(await chat.resolvePeer('bob:example.org')).toBe(BOB);
-    expect(await chat.resolvePeer('@nobody:example.org')).toBeNull();
-    expect(await chat.resolvePeer(ME)).toBeNull();
-    expect(await chat.resolvePeer('bob')).toBeNull();
+    expect(await chat.resolveParticipant(' @bob:example.org ')).toBe(BOB);
+    expect(await chat.resolveParticipant('https://matrix.to/#/@bob:example.org')).toBe(BOB);
+    expect(await chat.resolveParticipant('matrix:u/bob:example.org')).toBe(BOB);
+    expect(await chat.resolveParticipant('bob:example.org')).toBe(BOB);
+    expect(await chat.resolveParticipant('@nobody:example.org')).toBeNull();
+    expect(await chat.resolveParticipant(ME)).toBeNull();
+    expect(await chat.resolveParticipant('bob')).toBeNull();
     expect(api.named('profile')).toHaveLength(5);
   });
 
@@ -491,21 +492,21 @@ describe('MatrixSession conversations', () => {
 
     const created = await chat.createDm(CAROL);
     expect(created).toMatchObject({
-      id: conversationIdOf(`!dm-${CAROL}`),
+      id: chatIdOf(`!dm-${CAROL}`),
       kind: 'dm',
       memberIds: [CAROL, ME],
     });
 
     const group = await chat.createGroup([BOB, CAROL], 'Crew');
     expect(group).toMatchObject({
-      id: conversationIdOf('!room-Crew'),
+      id: chatIdOf('!room-Crew'),
       kind: 'group',
       title: 'Crew',
     });
     expect(api.named('createRoom')).toEqual([[[BOB, CAROL], 'Crew']]);
   });
 
-  it('accepts or declines invitations through consent, and blocks a DM peer', async () => {
+  it('accepts or declines invitations through consent, and leaves a declined DM', async () => {
     const invite = room('!invite:example.org', {
       membership: 'invited',
       isDm: true,
@@ -517,17 +518,16 @@ describe('MatrixSession conversations', () => {
       api.roomsById.set(GROUP.id, GROUP);
     });
 
-    const inviteId = conversationIdOf(invite.id);
-    await chat.setConsent(inviteId, 'allowed');
+    const inviteId = chatIdOf(invite.id);
+    await chat.setConsent(inviteId, 'accepted');
     expect(api.named('join')).toEqual([[invite.id]]);
-    await chat.setConsent(inviteId, 'denied');
+    await chat.setConsent(inviteId, 'declined');
     expect(api.named('leave')).toEqual([[invite.id]]);
 
-    await chat.setConsent(DM_ID, 'denied');
-    expect(api.named('ignore')).toEqual([[BOB, true]]);
+    await chat.setConsent(DM_ID, 'declined');
     expect(api.named('leave')).toEqual([[invite.id], [DM.id]]);
 
-    await chat.setConsent(GROUP_ID, 'denied');
+    await chat.setConsent(GROUP_ID, 'declined');
     expect(api.named('leave')).toHaveLength(2);
   });
 
@@ -556,7 +556,7 @@ describe('MatrixSession conversations', () => {
         { userId: CAROL, role: 'member', powerLevel: -1 },
       ]);
     });
-    await chat.listConversations();
+    await chat.listChats();
     expect(await chat.getMembers(GROUP_ID)).toEqual([
       { id: BOB, role: 'member' },
       { id: CAROL, role: 'member', muted: true },
@@ -633,7 +633,7 @@ describe('MatrixSession conversations', () => {
 
   it('says when a message was edited', async () => {
     const { chat, api } = await connect(SESSION, (api) => api.roomsById.set(GROUP.id, GROUP));
-    const messages: ChatMessage[] = [];
+    const messages: ProtocolMessage[] = [];
     await chat.streamMessages((message) => messages.push(message));
     api.emit({
       type: 'event',
@@ -668,7 +668,7 @@ describe('MatrixSession conversations', () => {
     const { chat } = await connect(SESSION, (api) => {
       api.roomsById.set(GROUP.id, { ...GROUP, broadcast: true, canSend: false });
     });
-    expect(await chat.listConversations()).toMatchObject([
+    expect(await chat.listChats()).toMatchObject([
       { id: GROUP_ID, kind: 'channel', canSend: false },
     ]);
   });
@@ -691,13 +691,13 @@ describe('MatrixSession conversations', () => {
     expect(await chat.previewPublicChat(link)).toMatchObject({
       id: link,
       title: 'Public room',
-      kind: 'room',
+      kind: 'group',
       description: 'Welcome',
       memberCount: 42,
       joined: false,
     });
     const joined = await chat.joinPublicChat(link);
-    expect(joined).toMatchObject({ id: conversationIdOf(publicRoom.id), title: 'Public room' });
+    expect(joined).toMatchObject({ id: chatIdOf(publicRoom.id), title: 'Public room' });
     expect(api.named('joinPublicRoom')).toEqual([[publicRoom.id, ['example.org']]]);
     api.roomsById.set(publicRoom.id, { ...publicRoom, membership: 'joined', broadcast: true });
     expect(await chat.previewPublicChat(link)).toMatchObject({ kind: 'channel', joined: true });
@@ -739,7 +739,7 @@ describe('MatrixSession conversations', () => {
       canRequestJoin: false,
     });
     expect(await chat.previewPublicChat(target.id)).toMatchObject({
-      joinUnavailableReason: 'This room requires an invitation.',
+      joinUnavailableReason: 'This chat requires an invitation.',
     });
   });
 });
@@ -875,7 +875,7 @@ describe('MatrixSession messages', () => {
       api.roomsById.set(DM.id, DM);
       api.timelines.set(DM.id, [imageEvent('$1', DM.id, BOB, 'cat.png')]);
     });
-    const streamed: ChatMessage[] = [];
+    const streamed: ProtocolMessage[] = [];
     await chat.streamMessages((m) => streamed.push(m));
 
     const [first] = await chat.getMessages(DM_ID);
@@ -980,10 +980,10 @@ describe('MatrixSession messages', () => {
 });
 
 describe('ids', () => {
-  it('round-trips room ids through URL-safe conversation ids', () => {
+  it('round-trips room ids through URL-safe chat ids', () => {
     for (const id of ['!MompgmDILaFjHCeSqy:localhost', '!a:b', '!x_y-z:example.org:8448']) {
-      expect(conversationIdOf(id)).toMatch(/^[A-Za-z0-9_-]+$/);
-      expect(roomIdOf(conversationIdOf(id))).toBe(id);
+      expect(chatIdOf(id)).toMatch(/^[A-Za-z0-9_-]+$/);
+      expect(roomIdOf(chatIdOf(id))).toBe(id);
     }
   });
 });

@@ -16,7 +16,7 @@ export async function knocks(homeserver: Homeserver, roomId: string): Promise<Jo
     `/rooms/${encodeURIComponent(roomId)}/members?membership=knock`
   );
   return chunk.map((event) => ({
-    userId: event.state_key,
+    participantId: event.state_key,
     name: event.content.displayname || event.state_key,
     ...(event.content.reason ? { bio: event.content.reason } : {}),
     requestedAt: event.origin_server_ts,
@@ -41,7 +41,7 @@ export async function inviteLink(
     await homeserver.request('PUT', path, { join_rule: 'knock' });
   if (!requiresApproval && join_rule !== 'public')
     throw new Error(
-      'Only invited people can join this room. Create a link that needs approval instead.'
+      'Only invited people can join this chat. Create a link that needs approval instead.'
     );
   return permalink(room.canonicalAlias ?? room.id, serverName(selfId));
 }

@@ -2,6 +2,7 @@ import { act, createElement } from 'react';
 import { create, type ReactTestRenderer } from 'react-test-renderer';
 
 import { JoinRequests } from './join-requests';
+import { asChatId } from '@/core/messaging/testing/ids';
 
 jest.mock('@/design', () => ({
   Avatar: 'Avatar',
@@ -14,8 +15,8 @@ jest.mock('@/design', () => ({
 
 const mockStore = {
   getJoinRequests: jest.fn(async () => [
-    { userId: 'carol', name: 'Carol', bio: 'Friend of Bob', requestedAt: 1 },
-    { userId: 'dan', name: 'Dan', requestedAt: 2 },
+    { participantId: 'carol', name: 'Carol', bio: 'Friend of Bob', requestedAt: 1 },
+    { participantId: 'dan', name: 'Dan', requestedAt: 2 },
   ]),
   processJoinRequest: jest.fn(async () => {}),
 };
@@ -23,19 +24,15 @@ jest.mock('@/core/messaging/chat-store', () => ({
   useChatStore: (select: (state: typeof mockStore) => unknown) => select(mockStore),
 }));
 
-const actEnvironment = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
 let tree: ReactTestRenderer;
 
-beforeAll(() => {
-  actEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
-});
 afterEach(async () => {
   await act(() => tree?.unmount());
 });
 
 it('lists requests and drops each one once answered', async () => {
   await act(async () => {
-    tree = create(createElement(JoinRequests, { conversationId: 'matrix-room' }));
+    tree = create(createElement(JoinRequests, { chatId: asChatId('matrix-room') }));
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
   const names = () => tree.root.findAllByType('ListItem' as never).map((n) => n.props.title);

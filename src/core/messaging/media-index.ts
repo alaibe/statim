@@ -1,6 +1,6 @@
 import type { AccountStorage } from '@/storage/account';
 import { deferredWrite } from '@/storage/deferred-write';
-import type { ChatMessage, ConversationId, MessageId } from './types';
+import type { ChatMessage, ChatId, MessageId } from './types';
 
 export type MediaCategory = 'media' | 'files' | 'voice' | 'links' | 'gifs';
 
@@ -13,7 +13,7 @@ export interface MediaEntry {
   mimeType?: string;
 }
 
-export type MediaIndex = Record<ConversationId, MediaEntry[]>;
+export type MediaIndex = Record<ChatId, MediaEntry[]>;
 
 const KEY = 'chat.mediaIndex';
 
@@ -74,10 +74,10 @@ export function entriesFor(message: ChatMessage): MediaEntry[] {
 
 export function indexMessages(
   index: MediaIndex,
-  conversationId: ConversationId,
+  chatId: ChatId,
   messages: ChatMessage[]
 ): MediaIndex {
-  const existing = index[conversationId] ?? [];
+  const existing = index[chatId] ?? [];
   const seen = new Set(existing.map((e) => `${e.messageId}:${e.uri}`));
 
   const added: MediaEntry[] = [];
@@ -93,22 +93,19 @@ export function indexMessages(
   if (added.length === 0) return index;
   return {
     ...index,
-    [conversationId]: [...existing, ...added].sort((a, b) => b.sentAt - a.sentAt),
+    [chatId]: [...existing, ...added].sort((a, b) => b.sentAt - a.sentAt),
   };
 }
 
 export function entriesOf(
   index: MediaIndex,
-  conversationId: ConversationId,
+  chatId: ChatId,
   category: MediaCategory
 ): MediaEntry[] {
-  return (index[conversationId] ?? []).filter((e) => e.category === category);
+  return (index[chatId] ?? []).filter((e) => e.category === category);
 }
 
-export function countsFor(
-  index: MediaIndex,
-  conversationId: ConversationId
-): Record<MediaCategory, number> {
+export function countsFor(index: MediaIndex, chatId: ChatId): Record<MediaCategory, number> {
   const counts: Record<MediaCategory, number> = {
     media: 0,
     files: 0,
@@ -116,7 +113,7 @@ export function countsFor(
     links: 0,
     gifs: 0,
   };
-  for (const entry of index[conversationId] ?? []) counts[entry.category] += 1;
+  for (const entry of index[chatId] ?? []) counts[entry.category] += 1;
   return counts;
 }
 

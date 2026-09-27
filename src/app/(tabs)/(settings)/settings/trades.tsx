@@ -1,4 +1,4 @@
-import { loadTradeKey, saveTradeKey } from '@/core/identity/trade-key';
+import { loadTradeKey, saveTradeKey } from '@/core/account/trade-key';
 import { ApiKeyScreen } from '@/features/settings/api-key-screen';
 
 export default function TradeSettingsScreen() {
@@ -18,7 +18,7 @@ export default function TradeSettingsScreen() {
           'accounts.',
         'Quotes go straight from this device to LI.FI, so the address, tokens and amounts you ' +
           'trade are visible to them. Nothing passes through this app. The trade itself is ' +
-          'signed here and sent to the network like any other transaction.',
+          'signed here and sent to the chain like any other transaction.',
         'To get one, sign up at portal.li.fi, create an integrator and copy its API key.',
       ]}
       link={{ label: 'Get a LI.FI key', url: 'https://portal.li.fi/' }}

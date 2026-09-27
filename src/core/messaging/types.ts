@@ -1,137 +1,168 @@
 import type { Widget } from '@/design/widgets';
 
-export type ConversationId = string;
+declare const chatIdBrand: unique symbol;
+export type ChatId = string & { readonly [chatIdBrand]: true };
+declare const protocolChatIdBrand: unique symbol;
+export type ProtocolChatId = string & { readonly [protocolChatIdBrand]: true };
+export type AnyChatId = ChatId | ProtocolChatId;
 export type MessageId = string;
 export type ParticipantId = string;
 
 export interface LiveView {
-  pluginId: string;
-  view: string;
-  args?: string[];
+  readonly pluginId: string;
+  readonly view: string;
+  readonly args?: readonly string[];
 }
 
-export type WidgetContent = { kind: 'widget'; widget: Widget; fallback: string; live?: LiveView };
+export type WidgetContent = {
+  readonly kind: 'widget';
+  readonly widget: Widget;
+  readonly fallback: string;
+  readonly live?: LiveView;
+};
 
 export type MessageContent =
-  | { kind: 'text'; text: string }
+  | { readonly kind: 'text'; readonly text: string }
   | WidgetContent
-  | { kind: 'custom'; typeId: string; data: unknown; fallback?: string }
   | {
-      kind: 'image';
-      uri: string;
-      width?: number;
-      height?: number;
-      size?: number;
-      caption?: string;
-      name?: string;
-      mimeType?: string;
+      readonly kind: 'custom';
+      readonly typeId: string;
+      readonly data: unknown;
+      readonly fallback?: string;
     }
   | {
-      kind: 'file';
-      uri: string;
-      name: string;
-      mimeType?: string;
-      size?: number;
+      readonly kind: 'image';
+      readonly uri: string;
+      readonly width?: number;
+      readonly height?: number;
+      readonly size?: number;
+      readonly caption?: string;
+      readonly name?: string;
+      readonly mimeType?: string;
     }
   | {
-      kind: 'voice';
-      uri: string;
-      durationMs: number;
-      size?: number;
-      name?: string;
-      mimeType?: string;
+      readonly kind: 'file';
+      readonly uri: string;
+      readonly name: string;
+      readonly mimeType?: string;
+      readonly size?: number;
     }
   | {
-      kind: 'video';
-      uri: string;
-      width?: number;
-      height?: number;
-      durationMs?: number;
-      caption?: string;
-      name?: string;
-      mimeType?: string;
-      size?: number;
+      readonly kind: 'voice';
+      readonly uri: string;
+      readonly durationMs: number;
+      readonly size?: number;
+      readonly name?: string;
+      readonly mimeType?: string;
+    }
+  | {
+      readonly kind: 'video';
+      readonly uri: string;
+      readonly width?: number;
+      readonly height?: number;
+      readonly durationMs?: number;
+      readonly caption?: string;
+      readonly name?: string;
+      readonly mimeType?: string;
+      readonly size?: number;
       /** Silent and looping, the way a messenger plays a GIF. */
-      gif?: boolean;
+      readonly gif?: boolean;
     }
   | {
-      kind: 'poll';
-      question: string;
-      options: { text: string; percentage: number; chosen: boolean }[];
-      totalVoters: number;
-      multiple: boolean;
-      closed: boolean;
+      readonly kind: 'poll';
+      readonly question: string;
+      readonly options: readonly {
+        readonly text: string;
+        readonly percentage: number;
+        readonly chosen: boolean;
+      }[];
+      readonly totalVoters: number;
+      readonly multiple: boolean;
+      readonly closed: boolean;
     }
-  | { kind: 'reaction'; targetId: MessageId; emoji: string; action: 'added' | 'removed' }
-  | { kind: 'system'; text: string }
-  | { kind: 'unsupported'; typeId: string; fallback: string };
+  | {
+      readonly kind: 'reaction';
+      readonly targetId: MessageId;
+      readonly emoji: string;
+      readonly action: 'added' | 'removed';
+    }
+  | { readonly kind: 'system'; readonly text: string }
+  | { readonly kind: 'unsupported'; readonly typeId: string; readonly fallback: string };
 
 export type DeliveryStatus = 'sending' | 'sent' | 'failed';
 
-export interface ChatMessage {
-  id: MessageId;
-  conversationId: ConversationId;
-  senderId: ParticipantId;
-  sentAt: number;
-  content: MessageContent;
-  fromMe: boolean;
-  status: DeliveryStatus;
-  replyTo?: MessageId;
+export interface ChatMessage<Id extends AnyChatId = ChatId> {
+  readonly id: MessageId;
+  readonly chatId: Id;
+  readonly senderId: ParticipantId;
+  readonly sentAt: number;
+  readonly content: MessageContent;
+  readonly fromMe: boolean;
+  readonly status: DeliveryStatus;
+  readonly replyTo?: MessageId;
   /** Set on a reply inside a thread: the message that started it. */
-  threadRoot?: MessageId;
-  reactions?: Record<string, ParticipantId[]>;
-  readAt?: number;
-  forwarded?: boolean;
-  isPinned?: boolean;
-  privateToMe?: boolean;
+  readonly threadRoot?: MessageId;
+  readonly reactions?: Readonly<Record<string, readonly ParticipantId[]>>;
+  readonly readAt?: number;
+  readonly forwarded?: boolean;
+  readonly isPinned?: boolean;
+  readonly privateToMe?: boolean;
   /** A chat list's summary of its latest message, under an id no message has. */
-  preview?: boolean;
-  edited?: boolean;
+  readonly preview?: boolean;
+  readonly edited?: boolean;
 }
 
-export type ConversationKind = 'dm' | 'group' | 'channel';
+export type ProtocolMessage = ChatMessage<ProtocolChatId>;
+
+export type ChatKind = 'dm' | 'group' | 'channel';
+
+export type Consent = 'accepted' | 'declined' | 'request';
+
+export type ConsentDecision = Exclude<Consent, 'request'>;
 
 export type GroupRole = 'member' | 'admin' | 'owner';
 
 export interface GroupMember {
-  id: ParticipantId;
-  role: GroupRole;
-  muted?: boolean;
+  readonly id: ParticipantId;
+  readonly role: GroupRole;
+  readonly muted?: boolean;
 }
 
-export interface Conversation {
-  id: ConversationId;
-  kind: ConversationKind;
-  title: string;
-  avatarUri?: string;
-  memberIds: ParticipantId[];
-  /** How many members the network reports, where memberIds may not list them all. */
-  memberCount?: number;
-  createdAt: number;
-  lastMessage?: ChatMessage;
-  unreadCount?: number;
-  mentionCount?: number;
-  markedUnread?: boolean;
-  /** The draft the network keeps for this chat; empty when there is none. Unset where drafts stay on the device. */
-  draft?: string;
-  pendingJoinRequests?: number;
-  canSend?: boolean;
-  typing?: boolean;
-  online?: boolean;
-  lastSeenAt?: number;
-  consent: 'allowed' | 'denied' | 'unknown';
-  protocol?: string;
+export interface Chat<Id extends AnyChatId = ChatId> {
+  readonly id: Id;
+  readonly kind: ChatKind;
+  readonly title: string;
+  readonly avatarUri?: string;
+  readonly memberIds: readonly ParticipantId[];
+  /** How many members the protocol reports, where memberIds may not list them all. */
+  readonly memberCount?: number;
+  readonly createdAt: number;
+  readonly lastMessage?: ChatMessage<Id>;
+  readonly unreadCount?: number;
+  readonly mentionCount?: number;
+  readonly markedUnread?: boolean;
+  /** The draft the protocol keeps for this chat; empty when there is none. Unset where drafts stay on the device. */
+  readonly draft?: string;
+  readonly pendingJoinRequests?: number;
+  readonly canSend?: boolean;
+  readonly typing?: boolean;
+  readonly online?: boolean;
+  readonly lastSeenAt?: number;
+  readonly consent: Consent;
+  readonly protocol?: string;
   /** Where the chat really lives when a bridge carries it: "Slack", "Discord". */
-  network?: string;
-  selfRole?: GroupRole;
-  /** Unset where the network does not say; pinning is then offered and deleting others' messages is not. */
-  canPin?: boolean;
-  canDeleteOthers?: boolean;
+  readonly network?: string;
+  readonly selfRole?: GroupRole;
+  /** Unset where the protocol does not say; pinning is then offered and deleting others' messages is not. */
+  readonly canPin?: boolean;
+  readonly canDeleteOthers?: boolean;
 }
 
-export interface SelfIdentity {
-  participantId: ParticipantId;
-  address: string;
+export type ProtocolChat = Chat<ProtocolChatId>;
+
+export interface SelfParticipant {
+  readonly participantId: ParticipantId;
+  readonly address: string;
 }
 
 export type Unsubscribe = () => void;

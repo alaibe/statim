@@ -17,11 +17,11 @@ import {
 } from '@/design';
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { GroupInfo } from '@/core/messaging/protocol';
-import type { ConversationId, ParticipantId } from '@/core/messaging/types';
+import type { ChatId, ParticipantId } from '@/core/messaging/types';
 
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 
-import { useAction } from '@/core/app/use-action';
+import { useAction } from '@/features/use-action';
 import { useSupports } from './use-supports';
 
 const SLOW_MODE: { seconds: number; label: string }[] = [
@@ -67,11 +67,11 @@ function LinkRow({ label, link }: { label: string; link: string }) {
 }
 
 export function InviteLinks({
-  conversationId,
+  chatId,
   visible,
   onClose,
 }: {
-  conversationId: ConversationId;
+  chatId: ChatId;
   visible: boolean;
   onClose: () => void;
 }) {
@@ -79,7 +79,7 @@ export function InviteLinks({
   const [created, setCreated] = useState<{ link: string; approval: boolean } | null>(null);
   const create = useAction(
     async (approval: boolean) => {
-      const link = await createInviteLink(conversationId, approval);
+      const link = await createInviteLink(chatId, approval);
       setCreated({ link, approval });
       await copyText(link, approval ? 'Approval link copied' : 'Invite link copied');
     },
@@ -104,12 +104,12 @@ export function InviteLinks({
           {
             label: 'Create invite link',
             icon: 'link-outline',
-            onPress: () => void create.run(false),
+            onPress: () => create.run(false),
           },
           {
             label: 'Create link that needs approval',
             icon: 'person-add-outline',
-            onPress: () => void create.run(true),
+            onPress: () => create.run(true),
           },
         ]}
       />
@@ -118,11 +118,11 @@ export function InviteLinks({
 }
 
 export function SlowModeSection({
-  conversationId,
+  chatId,
   delay,
   onChanged,
 }: {
-  conversationId: ConversationId;
+  chatId: ChatId;
   delay?: number;
   onChanged: (seconds: number) => void;
 }) {
@@ -130,7 +130,7 @@ export function SlowModeSection({
   const [open, setOpen] = useState(false);
   const change = useAction(
     async (seconds: number) => {
-      await setSlowModeDelay(conversationId, seconds);
+      await setSlowModeDelay(chatId, seconds);
       onChanged(seconds);
     },
     { success: 'Slow mode updated', failure: 'Could not update slow mode' }
@@ -151,7 +151,7 @@ export function SlowModeSection({
         actions={SLOW_MODE.map((option) => ({
           label: option.label,
           selected: option.seconds === delay,
-          onPress: () => void change.run(option.seconds),
+          onPress: () => change.run(option.seconds),
         }))}
       />
     </Section>
@@ -183,40 +183,38 @@ const REMOVAL: Record<
 };
 
 export function MemberModeration({
-  conversationId,
+  chatId,
   member,
   memberName,
   groupTitle,
   onRemoved,
 }: {
-  conversationId: ConversationId;
+  chatId: ChatId;
   member: ParticipantId;
   memberName: string;
   groupTitle: string;
   onRemoved: () => void;
 }) {
-  const { supports } = useSupports(conversationId);
+  const { supports } = useSupports(chatId);
   const getMembers = useChatStore((s) => s.getMembers);
   const removeMembers = useChatStore((s) => s.removeMembers);
   const banMember = useChatStore((s) => s.banMember);
   const setMemberMuted = useChatStore((s) => s.setMemberMuted);
   const canMute = supports('setMemberMuted');
-  const members = useKeyedLoad(canMute ? conversationId : null, getMembers);
+  const members = useKeyedLoad(canMute ? chatId : null, getMembers);
   const muted = members.value?.find((m) => m.id === member)?.muted ?? false;
   const [confirming, setConfirming] = useState<Removal | null>(null);
 
   const mute = useAction(
     async () => {
-      await setMemberMuted(conversationId, member, !muted);
+      await setMemberMuted(chatId, member, !muted);
       members.update((list) => list.map((m) => (m.id === member ? { ...m, muted: !muted } : m)));
     },
     { success: muted ? 'They can send again' : 'Muted', failure: 'Could not change that' }
   );
   const remove = useAction(
     (removal: Removal) =>
-      removal === 'ban'
-        ? banMember(conversationId, member)
-        : removeMembers(conversationId, [member]),
+      removal === 'ban' ? banMember(chatId, member) : removeMembers(chatId, [member]),
     { failure: 'Could not do that' }
   );
   const removals: Removal[] = supports('banMember') ? ['remove', 'ban'] : ['remove'];
@@ -232,7 +230,7 @@ export function MemberModeration({
             muted ? 'They are muted: they read but cannot send.' : 'They stay, but cannot send.'
           }
           leading={<RowIcon name={muted ? 'mic-outline' : 'mic-off-outline'} />}
-          onPress={members.loading ? undefined : () => void mute.run()}
+          onPress={members.loading ? undefined : () => mute.run()}
         />
       ) : null}
       {removals.map((removal) => (
@@ -251,7 +249,6 @@ export function MemberModeration({
         onClose={() => setConfirming(null)}
         title={`${shown?.confirm ?? ''} ${memberName} from ${groupTitle}?`}
         body={shown?.body ?? ''}
-        busy={remove.busy}
         confirm={{
           testID: 'confirm-remove-member',
           label: shown?.title ?? '',

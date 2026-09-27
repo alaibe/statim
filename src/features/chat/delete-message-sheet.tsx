@@ -1,8 +1,8 @@
 import { ConfirmSheet } from '@/design';
 import { useChatStore } from '@/core/messaging/chat-store';
-import type { ChatMessage, ConversationId } from '@/core/messaging/types';
+import type { ChatMessage, ChatId } from '@/core/messaging/types';
 
-import { useAction } from '@/core/app/use-action';
+import { useAction } from '@/features/use-action';
 
 export interface DeleteTarget {
   message: ChatMessage;
@@ -23,18 +23,17 @@ const COPY = {
 };
 
 export function DeleteMessageSheet({
-  conversationId,
+  chatId,
   target,
   onClose,
 }: {
-  conversationId: ConversationId;
+  chatId: ChatId;
   target: DeleteTarget | null;
   onClose: () => void;
 }) {
   const deleteMessage = useChatStore((s) => s.deleteMessage);
   const remove = useAction(
-    ({ message, forEveryone }: DeleteTarget) =>
-      deleteMessage(conversationId, message.id, forEveryone),
+    ({ message, forEveryone }: DeleteTarget) => deleteMessage(chatId, message.id, forEveryone),
     { failure: 'Could not delete message' }
   );
   const copy = COPY[target?.forEveryone ? 'everyone' : 'me'];
@@ -45,7 +44,6 @@ export function DeleteMessageSheet({
       onClose={onClose}
       title={copy.title}
       body={copy.body}
-      busy={remove.busy}
       confirm={{
         label: copy.label,
         tone: 'danger',

@@ -4,7 +4,7 @@ import { colorsFor } from '../tokens';
  * `className` resolves colours through NativeWind's CSS variables; the hook
  * resolves the same colours in JavaScript for the props that cannot take a
  * class (an icon's `color`, a `Switch`'s `trackColor`). When they disagree,
- * the result is white cards on a black conversation.
+ * the result is white cards on a black chat.
  *
  * The hook itself needs a renderer, so what is pinned here is that the two
  * schemes are different palettes, which makes reading the wrong one visible

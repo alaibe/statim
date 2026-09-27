@@ -11,12 +11,16 @@ import {
   loadMediaIndex,
   saveMediaIndexSoon,
 } from './media-index';
+import { asChatId } from './testing/ids';
 import type { ChatMessage, MessageContent } from './types';
+
+const C1 = asChatId('c1');
+const C2 = asChatId('c2');
 
 function message(id: string, content: MessageContent, sentAt = 1): ChatMessage {
   return {
     id,
-    conversationId: 'c1',
+    chatId: C1,
     senderId: 'a',
     sentAt,
     content,
@@ -83,57 +87,57 @@ describe('entriesFor', () => {
 });
 
 describe('indexMessages', () => {
-  it('adds entries under their conversation', () => {
-    const index = indexMessages({}, 'c1', [message('m1', { kind: 'image', uri: 'file://a.jpg' })]);
-    expect(entriesOf(index, 'c1', 'media')).toHaveLength(1);
+  it('adds entries under their chat', () => {
+    const index = indexMessages({}, C1, [message('m1', { kind: 'image', uri: 'file://a.jpg' })]);
+    expect(entriesOf(index, C1, 'media')).toHaveLength(1);
   });
 
   it('is idempotent, because a sync redelivers messages', () => {
     const one = message('m1', { kind: 'image', uri: 'file://a.jpg' });
-    let index = indexMessages({}, 'c1', [one]);
-    index = indexMessages(index, 'c1', [one]);
+    let index = indexMessages({}, C1, [one]);
+    index = indexMessages(index, C1, [one]);
 
-    expect(entriesOf(index, 'c1', 'media')).toHaveLength(1);
+    expect(entriesOf(index, C1, 'media')).toHaveLength(1);
   });
 
   it('returns the same object when nothing was added', () => {
     // Cheap identity check keeps React from re-rendering the profile screen.
-    const index = indexMessages({}, 'c1', [message('m1', { kind: 'text', text: 'hi' })]);
+    const index = indexMessages({}, C1, [message('m1', { kind: 'text', text: 'hi' })]);
     expect(index).toEqual({});
   });
 
   it('orders newest first', () => {
-    const index = indexMessages({}, 'c1', [
+    const index = indexMessages({}, C1, [
       message('m1', { kind: 'image', uri: 'a' }, 1),
       message('m2', { kind: 'image', uri: 'b' }, 9),
     ]);
-    expect(entriesOf(index, 'c1', 'media').map((e) => e.messageId)).toEqual(['m2', 'm1']);
+    expect(entriesOf(index, C1, 'media').map((e) => e.messageId)).toEqual(['m2', 'm1']);
   });
 
-  it('keeps conversations apart', () => {
-    let index = indexMessages({}, 'c1', [message('m1', { kind: 'image', uri: 'a' })]);
-    index = indexMessages(index, 'c2', [message('m2', { kind: 'image', uri: 'b' })]);
+  it('keeps chats apart', () => {
+    let index = indexMessages({}, C1, [message('m1', { kind: 'image', uri: 'a' })]);
+    index = indexMessages(index, C2, [message('m2', { kind: 'image', uri: 'b' })]);
 
-    expect(entriesOf(index, 'c1', 'media')).toHaveLength(1);
-    expect(entriesOf(index, 'c2', 'media')).toHaveLength(1);
+    expect(entriesOf(index, C1, 'media')).toHaveLength(1);
+    expect(entriesOf(index, C2, 'media')).toHaveLength(1);
   });
 
   it('records every link in one message', () => {
-    const index = indexMessages({}, 'c1', [
+    const index = indexMessages({}, C1, [
       message('m1', { kind: 'text', text: 'https://a.com and https://b.com' }),
     ]);
-    expect(entriesOf(index, 'c1', 'links')).toHaveLength(2);
+    expect(entriesOf(index, C1, 'links')).toHaveLength(2);
   });
 });
 
 describe('countsFor', () => {
   it('counts each category', () => {
-    let index = indexMessages({}, 'c1', [
+    let index = indexMessages({}, C1, [
       message('m1', { kind: 'image', uri: 'a' }),
       message('m2', { kind: 'file', uri: 'f', name: 'a.pdf' }),
       message('m3', { kind: 'text', text: 'https://a.com' }),
     ]);
-    expect(countsFor(index, 'c1')).toEqual({ media: 1, files: 1, voice: 0, links: 1, gifs: 0 });
+    expect(countsFor(index, C1)).toEqual({ media: 1, files: 1, voice: 0, links: 1, gifs: 0 });
   });
 });
 
@@ -141,9 +145,9 @@ describe('persistence', () => {
   it('round-trips and is scoped per account', async () => {
     const a = createAccountStorage('acct-a');
     const b = createAccountStorage('acct-b');
-    saveMediaIndexSoon(a, { c1: [{ messageId: 'm1', category: 'media', sentAt: 1, uri: 'a' }] });
+    saveMediaIndexSoon(a, { [C1]: [{ messageId: 'm1', category: 'media', sentAt: 1, uri: 'a' }] });
     await flushMediaIndex();
-    expect((await loadMediaIndex(a)).c1).toHaveLength(1);
+    expect((await loadMediaIndex(a))[C1]).toHaveLength(1);
 
     expect(await loadMediaIndex(b)).toEqual({});
   });

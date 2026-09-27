@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
 
 import { ConfirmSheet, ListItem, RowIcon, Section, toast, Toggle } from '@/design';
-import { useIdentityStore } from '@/core/identity/identity-store';
+import { reportError } from '@/core/app/report-error';
+import { useAccountStore } from '@/core/account/account-store';
 import {
   disableKeyProtection,
   enableKeyProtection,
   isKeyProtectionEnabled,
-} from '@/core/identity/key-protection';
-import { biometricCapability, isLockEnabled, setLockEnabled } from '@/core/identity/lock';
-import { useLockStore } from '@/core/identity/lock-store';
+} from '@/core/account/key-protection';
+import { biometricCapability, isLockEnabled, setLockEnabled } from '@/core/account/lock';
+import { useLockStore } from '@/core/account/lock-store';
 
 export function BiometricSection() {
   const noteJustAuthenticated = useLockStore((s) => s.noteJustAuthenticated);
-  const accounts = useIdentityStore((st) => st.accounts);
+  const accounts = useAccountStore((st) => st.accounts);
 
   const [label, setLabel] = useState('Biometrics');
   const [enrolled, setEnrolled] = useState(false);
@@ -30,7 +31,7 @@ export function BiometricSection() {
       setEnrolled(capability.enrolled);
       setEnabled(await isLockEnabled());
       setProtectedKeys(await isKeyProtectionEnabled());
-    })();
+    })().catch(reportError);
   }, []);
 
   if (!available) return null;
@@ -114,7 +115,7 @@ export function BiometricSection() {
                 disabled={busy}
                 onValueChange={(next) => {
                   if (next) setConfirming(true);
-                  else applyProtection(false);
+                  else void applyProtection(false);
                 }}
               />
             }
@@ -133,9 +134,9 @@ export function BiometricSection() {
         busy={busy}
         confirm={{
           label: 'My phrase is written down. Turn it on',
-          onPress: async () => {
+          onPress: () => {
             setConfirming(false);
-            await applyProtection(true);
+            void applyProtection(true);
           },
         }}
       />

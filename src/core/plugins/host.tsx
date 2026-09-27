@@ -2,19 +2,24 @@ import { router } from 'expo-router';
 import { createContext, use, useState } from 'react';
 import { openExternal } from '@/lib/open-url';
 
-import { capabilitiesOf } from '../identity/account-kind';
-import type { Keyring } from '../identity/keyring';
+import { capabilitiesOf } from '../account/account-kind';
+import type { Keyring } from '../account/keyring';
 import { groupCommands, groupComposerActions } from '../commands/group';
 import { pollCommand } from '../commands/poll';
 import { sessionFor, useChatStore, xmtpSessionFor } from '../messaging/chat-store';
-import { conversationScope } from '../messaging/conversation-scope';
+import { chatScope } from '../messaging/chat-scope';
 import { notifyLiveViews } from './live';
 import { PluginRegistry, worksOn } from './registry';
-import type { Plugin, PluginContext, PluginId, PluginLease, PluginPermission } from './types';
-import { toast } from '@/design';
+import type {
+  Plugin,
+  PluginContext,
+  PluginId,
+  PluginLease,
+  PluginPermission,
+  PluginUiApi,
+} from './types';
 import { accountRuntime } from '@/runtime';
 import type { AccountStorage } from '@/storage/account';
-import { openChat } from '@/features/navigation/open';
 
 const PLUGIN_PROTOCOL = 'xmtp';
 
@@ -46,14 +51,18 @@ export function usePluginHost(): PluginHostValue {
   return value;
 }
 
+export type HostUi = Pick<PluginUiApi, 'notify' | 'openChat'>;
+
 export interface PluginProviderProps {
   plugins: Plugin[];
   defaultEnabled?: PluginId[];
+  ui: HostUi;
   children: React.ReactNode;
 }
 
 function makePluginContext(
   registry: PluginRegistry,
+  ui: HostUi,
   plugin: Plugin,
   accountId: string,
   keyring: Keyring,
@@ -96,7 +105,7 @@ function makePluginContext(
       },
     },
 
-    identity: {
+    account: {
       get accountId() {
         active();
         return accountId;
@@ -114,51 +123,51 @@ function makePluginContext(
       },
       async signMessage(message: string) {
         active();
-        require('identity.sign');
+        require('account.sign');
         return guard(() => keyring.account.signMessage({ message }));
       },
-      account() {
+      signer() {
         active();
-        require('identity.sign');
+        require('account.sign');
         return keyring.account;
       },
       derive(path: string) {
         active();
-        require('identity.sign');
+        require('account.sign');
         return keyring.derive(path);
       },
       deriveEd25519(path: string) {
         active();
-        require('identity.sign');
+        require('account.sign');
         return keyring.deriveEd25519(path);
       },
     },
 
     chat: {
-      async startDm(addressOrInboxId) {
+      async startDm(addressOrId) {
         require('chat.send');
-        const chat = accountChat();
-        const session = xmtpSessionFor(chat);
-        if (!session) throw new Error('Not connected to the network yet.');
+        const store = accountChat();
+        const session = xmtpSessionFor(store);
+        if (!session) throw new Error('Not connected to XMTP yet.');
 
-        const participantId = await session.resolvePeer(addressOrInboxId);
+        const participantId = await session.resolveParticipant(addressOrId);
         active();
         if (!participantId) return null;
 
-        const conversation = await chat.startDm(PLUGIN_PROTOCOL, participantId);
+        const chat = await store.startDm(PLUGIN_PROTOCOL, participantId);
         active();
-        return conversation.id;
+        return chat.id;
       },
-      async startGroup(addressesOrInboxIds, title) {
+      async startGroup(addressesOrIds, title) {
         require('chat.send');
-        const chat = accountChat();
-        const session = xmtpSessionFor(chat);
-        if (!session) throw new Error('Not connected to the network yet.');
+        const store = accountChat();
+        const session = xmtpSessionFor(store);
+        if (!session) throw new Error('Not connected to XMTP yet.');
 
         const resolved = await Promise.all(
-          addressesOrInboxIds.map(async (value) => ({
+          addressesOrIds.map(async (value) => ({
             value,
-            participantId: await session.resolvePeer(value),
+            participantId: await session.resolveParticipant(value),
           }))
         );
         active();
@@ -172,22 +181,22 @@ function makePluginContext(
           throw new Error('None of those addresses can receive messages yet.');
         }
 
-        const conversation = await chat.startGroup(PLUGIN_PROTOCOL, reachable, title);
+        const chat = await store.startGroup(PLUGIN_PROTOCOL, reachable, title);
         active();
-        return { conversationId: conversation.id, unreachable };
+        return { chatId: chat.id, unreachable };
       },
-      async send(conversationId, content) {
+      async send(chatId, content) {
         require('chat.send');
-        await guard(() => accountChat().sendMessage(conversationId, content));
+        await guard(() => accountChat().sendMessage(chatId, content));
       },
-      async sendText(conversationId, text) {
+      async sendText(chatId, text) {
         require('chat.send');
-        await guard(() => accountChat().sendMessage(conversationId, { kind: 'text', text }));
+        await guard(() => accountChat().sendMessage(chatId, { kind: 'text', text }));
       },
-      async members(conversationId) {
+      async members(chatId) {
         require('chat.read');
         try {
-          const roster = await accountChat().getMembers(conversationId);
+          const roster = await accountChat().getMembers(chatId);
           active();
           return roster.map((member) => member.id);
         } catch {
@@ -196,11 +205,9 @@ function makePluginContext(
         }
       },
 
-      async sendCustom(conversationId, typeId, data) {
+      async sendCustom(chatId, typeId, data) {
         require('chat.send');
-        await guard(() =>
-          accountChat().sendMessage(conversationId, { kind: 'custom', typeId, data })
-        );
+        await guard(() => accountChat().sendMessage(chatId, { kind: 'custom', typeId, data }));
       },
     },
 
@@ -222,16 +229,14 @@ function makePluginContext(
         await accountRuntime.setPluginEnabled(id, enabled);
         active();
       },
-      commands(conversationId) {
+      commands(chatId) {
         active();
         require('plugins.manage');
-        const kind = useChatStore
-          .getState()
-          .conversations.find((c) => c.id === conversationId)?.kind;
-        const scope = conversationScope(conversationId, kind);
-        const session = sessionFor(useChatStore.getState(), conversationId);
+        const kind = useChatStore.getState().chats.find((c) => c.id === chatId)?.kind;
+        const scope = chatScope(chatId, kind);
+        const session = sessionFor(useChatStore.getState(), chatId);
         return registry
-          .commandListFor(conversationId, scope)
+          .commandListFor(chatId, scope)
           .filter(({ command }) => worksOn(command, session))
           .map(({ command, pluginId }) => ({
             name: command.name,
@@ -240,29 +245,27 @@ function makePluginContext(
             pluginId,
           }));
       },
-      channelOwner(conversationId) {
+      channelOwner(chatId) {
         active();
         require('plugins.manage');
-        return registry.channelOwner(conversationId);
+        return registry.channelOwner(chatId);
       },
     },
 
     ui: {
-      notify(message, tone = 'info') {
+      notify(message, tone) {
         active();
-        toast[tone](message);
+        ui.notify(message, tone);
       },
-      openConversation(conversationId) {
+      openChat(chatId) {
         active();
-        openChat(conversationId);
+        ui.openChat(chatId);
       },
-      openProfile(conversationId, participantId) {
+      openProfile(chatId, participantId) {
         active();
         router.push({
           pathname: '/profile/[id]',
-          params: participantId
-            ? { id: conversationId, member: participantId }
-            : { id: conversationId },
+          params: participantId ? { id: chatId, member: participantId } : { id: chatId },
         });
       },
       async openExternalUrl(url: string) {
@@ -273,7 +276,7 @@ function makePluginContext(
   };
 }
 
-export function PluginProvider({ plugins, defaultEnabled, children }: PluginProviderProps) {
+export function PluginProvider({ plugins, defaultEnabled, ui, children }: PluginProviderProps) {
   const [registry] = useState(
     () =>
       new PluginRegistry(plugins, {
@@ -294,7 +297,7 @@ export function PluginProvider({ plugins, defaultEnabled, children }: PluginProv
     enabledIds,
     defaultEnabled: defaultEnabled ?? registry.list().map((plugin) => plugin.manifest.id),
     makeContext: (plugin, accountId, keyring, storage, lease) =>
-      makePluginContext(registry, plugin, accountId, keyring, storage, lease),
+      makePluginContext(registry, ui, plugin, accountId, keyring, storage, lease),
     onPluginsChanged: setEnabledIds,
     setEnabled,
     handleUri,

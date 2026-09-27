@@ -41,8 +41,8 @@ export function JoinPublicChat({
     setBusy(true);
     setError(null);
     try {
-      const conversation = await joinPublicChat(protocol, preview.id);
-      if (conversation) openChatFromSheet(conversation.id);
+      const chat = await joinPublicChat(protocol, preview.id);
+      if (chat) openChatFromSheet(chat.id);
       else {
         setRequestSent(true);
         setPreview(null);
@@ -73,7 +73,7 @@ export function JoinPublicChat({
             setError(null);
             setRequestSent(false);
           }}
-          onSubmitEditing={lookup}
+          onSubmitEditing={() => void lookup()}
         />
         <Button
           label="Preview"
@@ -92,11 +92,7 @@ export function JoinPublicChat({
                 {preview.title}
               </Text>
               <Text variant="caption">
-                {preview.kind === 'channel'
-                  ? 'Channel'
-                  : preview.kind === 'room'
-                    ? 'Room'
-                    : 'Group'}
+                {preview.kind === 'channel' ? 'Channel' : 'Group'}
                 {preview.memberCount
                   ? ` · ${preview.memberCount} ${preview.kind === 'channel' ? 'subscribers' : 'members'}`
                   : ''}

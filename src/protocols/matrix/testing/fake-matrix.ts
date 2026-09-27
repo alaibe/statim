@@ -143,10 +143,6 @@ export class FakeMatrix implements MatrixApi {
     this.record('leave', roomId);
   }
 
-  async ignore(userId: string, ignored: boolean): Promise<void> {
-    this.record('ignore', userId, ignored);
-  }
-
   async send(
     roomId: string,
     content: MxOutgoing,

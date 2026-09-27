@@ -114,11 +114,11 @@ describe('addressCard', () => {
     expect(item?.actions).toEqual([]);
   });
 
-  it('rejects names that resolve to nothing and addresses of networks that are off', async () => {
+  it('rejects names that resolve to nothing and addresses of chains that are off', async () => {
     jest.mocked(resolveName).mockResolvedValue(null);
     await expect(addressCard(context, 'nobody.eth')).rejects.toThrow('No address is set');
     await expect(
       addressCard(context, 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq')
-    ).rejects.toThrow('network that is off');
+    ).rejects.toThrow('chain that is off');
   });
 });

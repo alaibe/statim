@@ -1,16 +1,22 @@
-import type { DerivedKey } from '@/core/identity/keyring';
+import type { DerivedKey } from '@/core/account/keyring';
 import { PartialHistoryError } from '@/core/messaging/history';
-import type { MessageStore, StoredConversation } from '@/core/messaging/message-store';
+import type { MessageStore, TransportChat } from '@/core/messaging/message-store';
+import { protocolChatId } from '@/core/messaging/namespace';
 import type { ChatSession } from '@/core/messaging/protocol';
 import { StoreBackedSession } from '@/core/messaging/store-backed-session';
 import type { ChatTransport, SendResult, TransportSink } from '@/core/messaging/transport';
-import type { MessageContent, ParticipantId, SelfIdentity } from '@/core/messaging/types';
+import type {
+  MessageContent,
+  ParticipantId,
+  SelfParticipant,
+  ProtocolChatId,
+} from '@/core/messaging/types';
 import type { AccountStorage } from '@/storage/account';
 import { npubFor, parsePublicKey } from '@/lib/bech32';
 import { firstTagValue, nowSeconds, signEvent, type NostrEvent, type Rumor } from './events';
-import { identityFromDerivedKey, NOSTR_DERIVATION_PATH, type NostrIdentity } from './keys';
+import { keysFromDerivedKey, NOSTR_DERIVATION_PATH, type NostrKeys } from './keys';
 import {
-  conversationIdFor,
+  chatIdFor,
   KIND_GIFT_WRAP,
   participantsOf,
   unwrapGiftWrap,
@@ -79,7 +85,7 @@ class HandledWraps {
 
 class NostrTransport implements ChatTransport {
   readonly protocolId = NOSTR_PROTOCOL_ID;
-  readonly self: SelfIdentity;
+  readonly self: SelfParticipant;
 
   readonly rosterIsFixed = {
     onAdd:
@@ -109,11 +115,11 @@ class NostrTransport implements ChatTransport {
   >();
 
   constructor(
-    readonly identity: NostrIdentity,
+    readonly keys: NostrKeys,
     readonly pool: RelayPool,
     private readonly handled?: HandledWraps
   ) {
-    this.self = { participantId: identity.publicKey, address: identity.npub };
+    this.self = { participantId: keys.publicKey, address: keys.npub };
   }
 
   attach(sink: TransportSink): void {
@@ -121,22 +127,22 @@ class NostrTransport implements ChatTransport {
   }
 
   /**
-   * One subscription for every conversation.
+   * One subscription for every chat.
    *
-   * Nostr has no per-conversation channel to join: a gift wrap is addressed to
+   * Nostr has no per-chat channel to join: a gift wrap is addressed to
    * a pubkey, so the inbox filter is the whole of it. That is why
-   * `openConversation` is not implemented here.
+   * `openChat` is not implemented here.
    */
   listen(newestSeenAt?: number): void {
     this.historyCursor = newestSeenAt;
     this.eosed.clear();
     this.unsubscribe?.();
     this.unsubscribe = this.pool.subscribe({
-      id: `inbox-${this.identity.publicKey.slice(0, 8)}`,
+      id: `inbox-${this.keys.publicKey.slice(0, 8)}`,
       filters: [
         {
           kinds: [KIND_GIFT_WRAP],
-          '#p': [this.identity.publicKey],
+          '#p': [this.keys.publicKey],
           since: sinceFor(newestSeenAt),
         },
       ],
@@ -149,7 +155,7 @@ class NostrTransport implements ChatTransport {
   }
 
   private async ingest(event: NostrEvent): Promise<void> {
-    const rumor = unwrapGiftWrap(event, this.identity);
+    const rumor = unwrapGiftWrap(event, this.keys);
     if (!rumor) {
       this.handled?.add(event);
       return;
@@ -188,53 +194,53 @@ class NostrTransport implements ChatTransport {
       senderId: rumor.pubkey,
       sentAt: rumor.created_at * 1000,
       content: { kind: 'text', text: rumor.content } as MessageContent,
-      fromMe: rumor.pubkey === this.identity.publicKey,
+      fromMe: rumor.pubkey === this.keys.publicKey,
     };
   }
 
-  conversationIdFor(participants: ParticipantId[]): string {
-    return conversationIdFor(participants);
+  chatIdFor(participants: ParticipantId[]): ProtocolChatId {
+    return protocolChatId(chatIdFor(participants));
   }
 
-  async send(conversation: StoredConversation, content: MessageContent): Promise<SendResult> {
+  async send(chat: TransportChat, content: MessageContent): Promise<SendResult> {
     if (content.kind !== 'text') {
       throw new Error(`Nostr can only send text, not "${content.kind}"`);
     }
 
-    const recipients = conversation.participants.filter((p) => p !== this.identity.publicKey);
+    const recipients = chat.participants.filter((p) => p !== this.keys.publicKey);
 
-    let pending = this.pendingSends.get(conversation.id);
+    let pending = this.pendingSends.get(chat.id);
     if (pending && pending.content !== content.text) {
       throw new Error(
         'Finish retrying the partially published Nostr message before sending another'
       );
     }
     if (!pending) {
-      const wrapped = wrapForRecipients(this.identity, {
+      const wrapped = wrapForRecipients(this.keys, {
         recipients,
         content: content.text,
-        subject: conversation.title,
+        subject: chat.title,
       });
       pending = { content: content.text, rumor: wrapped.rumor, remaining: wrapped.wraps };
-      this.pendingSends.set(conversation.id, pending);
+      this.pendingSends.set(chat.id, pending);
     }
 
     while (pending.remaining.length > 0) {
       await this.pool.publish(pending.remaining[0]);
       pending.remaining.shift();
     }
-    // Handed back rather than read off the network: a gift wrap is sealed to
+    // Handed back rather than read off the relays: a gift wrap is sealed to
     // its recipient, so we cannot open our own copy.
     return { id: pending.rumor.id, localMessage: this.toIncoming(pending.rumor) };
   }
 
-  confirmSend(conversationId: string, messageId: string): void {
-    if (this.pendingSends.get(conversationId)?.rumor.id === messageId) {
-      this.pendingSends.delete(conversationId);
+  confirmSend(chatId: ProtocolChatId, messageId: string): void {
+    if (this.pendingSends.get(chatId)?.rumor.id === messageId) {
+      this.pendingSends.delete(chatId);
     }
   }
 
-  async resolvePeer(addressOrId: string): Promise<ParticipantId | null> {
+  async resolveParticipant(addressOrId: string): Promise<ParticipantId | null> {
     return parsePublicKey(addressOrId);
   }
 
@@ -311,10 +317,10 @@ export class NostrSession extends StoreBackedSession implements ChatSession {
   }
 
   static async connect(options: NostrConnectOptions): Promise<NostrSession> {
-    const identity = identityFromDerivedKey(options.derive(NOSTR_DERIVATION_PATH));
+    const keys = keysFromDerivedKey(options.derive(NOSTR_DERIVATION_PATH));
     const handled = options.storage ? await HandledWraps.load(options.storage) : undefined;
     const transport = new NostrTransport(
-      identity,
+      keys,
       new RelayPool({
         urls: options.relays,
         handled: handled?.ids(),
@@ -322,7 +328,7 @@ export class NostrSession extends StoreBackedSession implements ChatSession {
         authenticate: (url, challenge) =>
           signEvent(
             {
-              pubkey: identity.publicKey,
+              pubkey: keys.publicKey,
               created_at: nowSeconds(),
               kind: 22242,
               tags: [
@@ -331,7 +337,7 @@ export class NostrSession extends StoreBackedSession implements ChatSession {
               ],
               content: '',
             },
-            identity.secretKey
+            keys.secretKey
           ),
       }),
       handled
@@ -348,7 +354,7 @@ export class NostrSession extends StoreBackedSession implements ChatSession {
   }
 
   get npub(): string {
-    return this.nostr.identity.npub;
+    return this.nostr.keys.npub;
   }
 }
 

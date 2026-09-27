@@ -1,8 +1,8 @@
-import { botConversationId, type Bot } from '../messaging/bots';
-import type { ChatMessage, ConversationId } from '../messaging/types';
+import { botChatId, type Bot } from '../messaging/bots';
+import type { ChatMessage, ChatId } from '../messaging/types';
 
 export interface BotChatLoss {
-  conversationIds: ConversationId[];
+  chatIds: ChatId[];
   botNames: string[];
   fromYou: number;
   total: number;
@@ -10,12 +10,12 @@ export interface BotChatLoss {
 
 export function botChatLoss(
   bots: Bot[],
-  messages: Record<ConversationId, ChatMessage[]>
+  messages: Record<ChatId, readonly ChatMessage[]>
 ): BotChatLoss | null {
-  const loss: BotChatLoss = { conversationIds: [], botNames: [], fromYou: 0, total: 0 };
+  const loss: BotChatLoss = { chatIds: [], botNames: [], fromYou: 0, total: 0 };
 
   for (const bot of bots) {
-    const id = botConversationId(bot.id);
+    const id = botChatId(bot.id);
     const transcript = messages[id] ?? [];
     if (transcript.length === 0) continue;
 
@@ -23,13 +23,13 @@ export function botChatLoss(
     const untouched = fromYou === 0 && transcript.length <= bot.greeting().length;
     if (untouched) continue;
 
-    loss.conversationIds.push(id);
+    loss.chatIds.push(id);
     loss.botNames.push(bot.name);
     loss.fromYou += fromYou;
     loss.total += transcript.length;
   }
 
-  return loss.conversationIds.length > 0 ? loss : null;
+  return loss.chatIds.length > 0 ? loss : null;
 }
 
 export interface BotChatLossCopy {
@@ -40,7 +40,7 @@ export interface BotChatLossCopy {
 
 export function botChatLossCopy(pluginName: string, loss: BotChatLoss): BotChatLossCopy {
   const chats = loss.botNames.join(' and ');
-  const plural = loss.conversationIds.length === 1 ? 'chat' : 'chats';
+  const plural = loss.chatIds.length === 1 ? 'chat' : 'chats';
   const written =
     loss.fromYou > 0 ? `, ${loss.fromYou} of which ${loss.fromYou === 1 ? 'is' : 'are'} yours` : '';
 

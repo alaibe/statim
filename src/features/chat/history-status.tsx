@@ -4,7 +4,7 @@ import { useChatStore } from '@/core/messaging/chat-store';
 import { Pressable, Text, useThemeColors } from '@/design';
 import { protocolLabel } from '@/features/protocols/presentation';
 
-/** Shared by the inbox and the oldest end of a conversation's transcript. */
+/** Shared by the chat list and the oldest end of a chat's transcript. */
 export function HistoryStatus({
   protocol,
   compact = false,

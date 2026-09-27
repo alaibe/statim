@@ -10,9 +10,9 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Button, Enter, Glow, Note, Screen, stagger, Text, useThemeColors } from '@/design';
-import { hardwareVendors } from '@/core/identity/hardware';
+import { hardwareVendors } from '@/core/account/hardware';
 import { isSecureStorageAvailable } from '@/storage/vault';
-import { ConnectHardware } from '@/features/identity/connect-hardware';
+import { ConnectHardware } from '@/features/account/connect-hardware';
 
 function AuroraBackdrop() {
   const colors = useThemeColors();

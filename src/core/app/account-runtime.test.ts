@@ -4,12 +4,15 @@ import { AccountRuntime, type RuntimeAccount } from './account-runtime';
 import { useChatStore } from '../messaging/chat-store';
 import { InMemoryChatSession } from '../messaging/in-memory-session';
 import { InMemoryMessageStore } from '../messaging/message-store';
+import { protocolChatId } from '../messaging/namespace';
 import { TEST_KEYRING } from '../messaging/testing/store';
-import type { ChatMessage } from '../messaging/types';
+import type { ProtocolMessage } from '../messaging/types';
 import { PluginRegistry } from '../plugins/registry';
 import type { Plugin, PluginContext, PluginLease } from '../plugins/types';
 import { createAccountStorage } from '@/storage/account';
 import { PROTOCOLS } from '@/protocols';
+import { botChatId } from '@/core/messaging/bots';
+import { asChatId } from '@/core/messaging/testing/ids';
 
 function input(
   accountId: string,
@@ -37,7 +40,7 @@ beforeEach(async () => {
     accountId: null,
     accountStorage: null,
     messageStore: null,
-    conversations: [],
+    chats: [],
     messages: {},
     bots: {},
     readAt: {},
@@ -45,10 +48,10 @@ beforeEach(async () => {
 });
 
 describe('AccountRuntime', () => {
-  it('routes network deletions to the loaded chat', async () => {
+  it('routes protocol deletions to the loaded chat', async () => {
     const runtime = new AccountRuntime(PROTOCOLS);
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'chat' });
+    session.seedChat({ id: 'chat' });
     let deleted!: (id: string, ids: string[]) => void;
     Object.assign(session, {
       streamDeletedMessages: async (listener: typeof deleted) => {
@@ -57,24 +60,23 @@ describe('AccountRuntime', () => {
       },
     });
     await runtime.synchronize(input('deletion-test', new PluginRegistry(), async () => session));
-    await useChatStore.getState().loadMessages('xmtp-chat');
+    await useChatStore.getState().loadMessages(asChatId('xmtp-chat'));
     session.deliver('chat', { id: 'message', content: { kind: 'text', text: 'bye' } });
     deleted('chat', ['message']);
-    expect(useChatStore.getState().messages['xmtp-chat']).toEqual([]);
+    expect(useChatStore.getState().messages[asChatId('xmtp-chat')]).toEqual([]);
     await runtime.synchronize(null);
   });
 
   it('keeps Saved Messages available without a plugin', async () => {
     const runtime = new AccountRuntime(PROTOCOLS);
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'chat', createdAt: 1 });
+    session.seedChat({ id: 'chat', createdAt: 1 });
     await runtime.synchronize(input('saved-account', new PluginRegistry(), async () => session));
-    expect(useChatStore.getState().conversations.map((c) => c.id)).toEqual([
-      'xmtp-chat',
-      'local-saved',
-    ]);
-    await useChatStore.getState().sendMessage('local-saved', { kind: 'text', text: 'remember' });
-    expect(useChatStore.getState().messages['local-saved']).toEqual([
+    expect(useChatStore.getState().chats.map((c) => c.id)).toEqual(['xmtp-chat', 'local-saved']);
+    await useChatStore
+      .getState()
+      .sendMessage(botChatId('saved'), { kind: 'text', text: 'remember' });
+    expect(useChatStore.getState().messages[botChatId('saved')]).toEqual([
       expect.objectContaining({ content: { kind: 'text', text: 'remember' } }),
     ]);
     await runtime.synchronize(null);
@@ -159,8 +161,8 @@ describe('AccountRuntime', () => {
   it('rejects callbacks retained by an outgoing account stream', async () => {
     const runtime = new AccountRuntime(PROTOCOLS);
     const session = new InMemoryChatSession();
-    session.seedConversation({ id: 'old' });
-    let staleMessage!: (message: ChatMessage) => void;
+    session.seedChat({ id: 'old' });
+    let staleMessage!: (message: ProtocolMessage) => void;
     jest.spyOn(session, 'streamMessages').mockImplementation(async (listener) => {
       staleMessage = listener;
       return () => {};
@@ -170,7 +172,7 @@ describe('AccountRuntime', () => {
     await runtime.synchronize(input('account-b'));
     staleMessage({
       id: 'late',
-      conversationId: 'old',
+      chatId: protocolChatId('old'),
       senderId: 'them',
       sentAt: 1,
       content: { kind: 'text', text: 'old account' },
@@ -179,7 +181,7 @@ describe('AccountRuntime', () => {
     });
 
     expect(useChatStore.getState().accountId).toBe('account-b');
-    expect(useChatStore.getState().messages['xmtp-old']).toBeUndefined();
+    expect(useChatStore.getState().messages[asChatId('xmtp-old')]).toBeUndefined();
     await runtime.synchronize(null);
   });
 
@@ -279,7 +281,7 @@ describe('AccountRuntime', () => {
     await runtime.synchronize(null);
   });
 
-  it('reconnects only the networks that read plugin content types', async () => {
+  it('reconnects only the protocols that read plugin content types', async () => {
     const runtime = new AccountRuntime(PROTOCOLS);
     const first = new InMemoryChatSession();
     const second = new InMemoryChatSession();
@@ -314,7 +316,7 @@ describe('AccountRuntime', () => {
     await runtime.synchronize(null);
   });
 
-  it('connects networks that need no plugin while plugins are still starting', async () => {
+  it('connects protocols that need no plugin while plugins are still starting', async () => {
     const runtime = new AccountRuntime(PROTOCOLS);
     const xmtp = new InMemoryChatSession();
     const nostr = new InMemoryChatSession();
@@ -350,7 +352,7 @@ describe('AccountRuntime', () => {
     await runtime.synchronize(null);
   });
 
-  it('saves network settings without waiting to reconnect, and reconnects only that network', async () => {
+  it('saves protocol settings without waiting to reconnect, and reconnects only that protocol', async () => {
     const runtime = new AccountRuntime(PROTOCOLS);
     const xmtp = new InMemoryChatSession();
     const nostr = new InMemoryChatSession();

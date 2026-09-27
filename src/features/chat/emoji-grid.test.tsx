@@ -22,8 +22,6 @@ jest.mock('@/core/messaging/chat-store', () => ({
     select({ accountStorage: mockStorage }),
 }));
 
-const actEnvironment = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
-const previousActEnvironment = actEnvironment.IS_REACT_ACT_ENVIRONMENT;
 let tree: ReactTestRenderer;
 const onEmoji = jest.fn();
 
@@ -52,12 +50,6 @@ const pressables = (role: string) => {
 const tabs = () => pressables('tab');
 const buttons = () => pressables('button');
 
-beforeAll(() => {
-  actEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
-});
-afterAll(() => {
-  actEnvironment.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment;
-});
 afterEach(async () => {
   await act(() => tree?.unmount());
   saved.clear();

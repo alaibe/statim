@@ -7,14 +7,14 @@ import { walletCommands } from './commands';
 import { walletContentTypes } from './content-types';
 import {
   disposeStrategies,
-  enabledNetworks,
-  networkById,
-  networksCard,
-  networksCommand,
+  enabledChains,
+  walletChainById,
+  chainsCard,
+  chainsCommand,
   pickEvm,
   syncStrategies,
-} from './networks';
-import { chainRoomCommands, endpointCard } from './room-commands';
+} from './chain-list';
+import { channelCommands, endpointCard } from './channel-commands';
 import { tokensCommand } from './tokens';
 import { tradeCommand } from './trade';
 import { watchCommands, watchedCard } from './chains/watch-commands';
@@ -24,12 +24,12 @@ export const walletPlugin: Plugin = {
   manifest: {
     id: 'wallet',
     name: 'Wallet',
-    description: 'Balances, sends, trades and payment requests, on the networks you switch on.',
+    description: 'Balances, sends, trades and payment requests, on the chains you switch on.',
     version: '2.0.0',
     icon: 'wallet-outline',
     permissions: [
-      'identity.read',
-      'identity.sign',
+      'account.read',
+      'account.sign',
       'chat.read',
       'chat.send',
       'browser.open',
@@ -42,15 +42,15 @@ export const walletPlugin: Plugin = {
   setup(context: PluginContext) {
     const views = liveViews(context, {
       address: ([value, mode]) => addressCard(context, value, { offerSend: mode !== 'no-send' }),
-      networks: () => networksCard(context),
+      chains: () => chainsCard(context),
       endpoint: ([id]) => {
-        const network = networkById(id);
-        if (!network) throw new Error(`No network called "${id}".`);
-        return endpointCard(context, network);
+        const chain = walletChainById(id);
+        if (!chain) throw new Error(`No chain called "${id}".`);
+        return endpointCard(context, chain);
       },
       watched: ([id]) => {
-        const chain = networkById(id)?.evm;
-        if (!chain) throw new Error(`No EVM network called "${id}".`);
+        const chain = walletChainById(id)?.evm;
+        if (!chain) throw new Error(`No EVM chain called "${id}".`);
         return watchedCard(context, chain, id);
       },
     });
@@ -64,9 +64,9 @@ export const walletPlugin: Plugin = {
         ...walletCommands,
         tradeCommand,
         tokensCommand,
-        ...chainRoomCommands(context, views),
+        ...channelCommands(context, views),
         ...watchCommands((args) => pickEvm(context, args), views),
-        networksCommand(context, views),
+        chainsCommand(context, views),
       ],
 
       composerActions: [
@@ -92,7 +92,7 @@ export const walletPlugin: Plugin = {
           showIn: ['channel'],
         },
         {
-          id: 'room-send',
+          id: 'channel-send',
           label: 'Send',
           icon: 'arrow-up-circle-outline',
           command: '/send',
@@ -106,10 +106,10 @@ export const walletPlugin: Plugin = {
           showIn: ['channel'],
         },
         {
-          id: 'networks',
-          label: 'Networks',
+          id: 'chains',
+          label: 'Chains',
           icon: 'git-network-outline',
-          command: '/networks',
+          command: '/chains',
           showIn: ['channel'],
         },
       ],
@@ -123,4 +123,4 @@ export const walletPlugin: Plugin = {
   },
 };
 
-export { enabledNetworks };
+export { enabledChains };

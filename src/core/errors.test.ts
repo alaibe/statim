@@ -4,7 +4,7 @@ import { errorMessage } from './errors';
  * What a thrown error looks like by the time a person reads it.
  *
  * The motivating case was on screen: viem's failed balance lookup arrived in
- * the middle of a conversation as eight lines of red (the URL, the JSON-RPC
+ * the middle of a chat as eight lines of red (the URL, the JSON-RPC
  * body, the underlying fetch exception, the library version), none of which
  * anyone can act on.
  */
@@ -27,7 +27,7 @@ describe('errorMessage', () => {
     expect(message).toBe(
       'Could not reach the network. Check your connection, or point this chain at your own endpoint with /rpc.'
     );
-    // The diagnostics belong in a bug report, not in the conversation.
+    // The diagnostics belong in a bug report, not in the chat.
     expect(message).not.toContain('viem');
     expect(message).not.toContain('eth_getBalance');
     expect(message.split('\n')).toHaveLength(1);

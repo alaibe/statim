@@ -2,7 +2,7 @@ import { useGlobalSearchParams, useRouter, useSegments } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
 
-import { ConversationAvatar } from '@/features/chat/conversation-avatar';
+import { ChatAvatar } from '@/features/chat/chat-avatar';
 import {
   Eyebrow,
   Icon,
@@ -13,11 +13,11 @@ import {
   useLayoutInsets,
 } from '@/design';
 import { useChatStore } from '@/core/messaging/chat-store';
-import { orderConversations } from '@/core/messaging/chat-prefs';
-import { isUnreadHere, networkOf } from '@/core/messaging/folders';
+import { orderChats } from '@/core/messaging/chat-prefs';
+import { isUnreadHere, networkOf, splitRequests } from '@/core/messaging/folders';
 import { protocolLabel } from '@/features/protocols/presentation';
-import type { Conversation } from '@/core/messaging/types';
-import { useConversationTitles } from '@/features/chat/use-display-names';
+import type { Chat } from '@/core/messaging/types';
+import { useChatTitles } from '@/features/chat/use-display-names';
 import { openChat, openTab } from '@/features/navigation/open';
 
 interface Entry {
@@ -25,7 +25,7 @@ interface Entry {
   title: string;
   subtitle?: string;
   icon?: IconName;
-  conversation?: Conversation;
+  chat?: Chat;
   selfId?: string;
   run: () => void;
 }
@@ -33,7 +33,7 @@ interface Entry {
 const RECENT = 6;
 
 /**
- * ⌘K on desktop: a search over conversations and a few commands, driven from
+ * ⌘K on desktop: a search over chats and a few commands, driven from
  * the keyboard. Enter opens the highlighted row; Esc puts it away. Only the
  * shortcuts live here, so nothing is computed while the palette is closed.
  */
@@ -85,28 +85,28 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
   const [index, setIndex] = useState(0);
   useEscapeKey(true, onClose);
 
-  const conversations = useChatStore((s) => s.conversations);
+  const chats = useChatStore((s) => s.chats);
   const chatPrefs = useChatStore((s) => s.chatPrefs);
   const readAt = useChatStore((s) => s.readAt);
-  const { selfIdOf, titleOf } = useConversationTitles(conversations);
+  const { selfIdOf, titleOf } = useChatTitles(chats);
 
   const entries = useMemo<{ heading: string; items: Entry[] }[]>(() => {
-    const allowed = conversations.filter((c) => c.consent === 'allowed');
+    const accepted = splitRequests(chats).accepted;
     const context = { prefs: chatPrefs, readAt };
-    const ordered = orderConversations(allowed, chatPrefs);
+    const ordered = orderChats(accepted, chatPrefs);
     const unread = ordered.filter((c) => isUnreadHere(c, context));
-    const entry = (conversation: Conversation): Entry => {
-      const network = networkOf(conversation);
+    const entry = (chat: Chat): Entry => {
+      const network = networkOf(chat);
       return {
-        id: conversation.id,
-        title: titleOf(conversation),
+        id: chat.id,
+        title: titleOf(chat),
         subtitle: network ? protocolLabel(network) : undefined,
-        conversation,
-        selfId: selfIdOf(conversation),
-        run: () => openChat(conversation.id),
+        chat,
+        selfId: selfIdOf(chat),
+        run: () => openChat(chat.id),
       };
     };
-    const chats = [...unread, ...ordered.filter((c) => !unread.includes(c))].map(entry);
+    const chatEntries = [...unread, ...ordered.filter((c) => !unread.includes(c))].map(entry);
     const commands: Entry[] = [
       {
         id: 'new',
@@ -141,17 +141,17 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
     const q = query.trim().toLowerCase();
     if (!q) {
       return [
-        { heading: 'Unread', items: chats.slice(0, unread.length) },
-        { heading: 'Recent', items: chats.slice(unread.length, unread.length + RECENT) },
+        { heading: 'Unread', items: chatEntries.slice(0, unread.length) },
+        { heading: 'Recent', items: chatEntries.slice(unread.length, unread.length + RECENT) },
         { heading: 'Commands', items: commands },
       ].filter((section) => section.items.length > 0);
     }
     const matches = (entry: Entry) => entry.title.toLowerCase().includes(q);
     return [
-      { heading: 'Chats', items: chats.filter(matches) },
+      { heading: 'Chats', items: chatEntries.filter(matches) },
       { heading: 'Commands', items: commands.filter(matches) },
     ].filter((section) => section.items.length > 0);
-  }, [conversations, chatPrefs, readAt, selfIdOf, titleOf, query, router]);
+  }, [chats, chatPrefs, readAt, selfIdOf, titleOf, query, router]);
 
   const flat = entries.flatMap((section) => section.items);
   const highlighted = Math.min(index, Math.max(flat.length - 1, 0));
@@ -222,12 +222,8 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
                           ? 'flex-row items-center gap-3 bg-brand px-5 py-2.5'
                           : 'flex-row items-center gap-3 px-5 py-2.5'
                       }>
-                      {entry.conversation && entry.selfId !== undefined ? (
-                        <ConversationAvatar
-                          conversation={entry.conversation}
-                          selfId={entry.selfId}
-                          size="sm"
-                        />
+                      {entry.chat && entry.selfId !== undefined ? (
+                        <ChatAvatar chat={entry.chat} selfId={entry.selfId} size="sm" />
                       ) : (
                         <View
                           className={

@@ -1,13 +1,9 @@
-import { botIdFromConversation, isLocalConversation, type Bot } from '@/core/messaging/bots';
+import { botIdFromChat, isLocalChat, type Bot } from '@/core/messaging/bots';
 import { useChatStore } from '@/core/messaging/chat-store';
-import type { ConversationId } from '@/core/messaging/types';
+import type { ChatId } from '@/core/messaging/types';
 
-export function useBotAvatar(conversationId: ConversationId): Pick<Bot, 'avatar' | 'emoji'> {
+export function useBotAvatar(chatId: ChatId): Pick<Bot, 'avatar' | 'emoji'> {
   return (
-    useChatStore((s) =>
-      isLocalConversation(conversationId)
-        ? s.bots[botIdFromConversation(conversationId)]
-        : undefined
-    ) ?? {}
+    useChatStore((s) => (isLocalChat(chatId) ? s.bots[botIdFromChat(chatId)] : undefined)) ?? {}
   );
 }

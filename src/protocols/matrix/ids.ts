@@ -1,4 +1,5 @@
-import type { ConversationId } from '@/core/messaging/types';
+import { protocolChatId } from '@/core/messaging/namespace';
+import type { ProtocolChatId } from '@/core/messaging/types';
 
 export const USER_ID = /^@[^:\s]+:[^\s]+$/;
 
@@ -44,12 +45,14 @@ export function localpart(userId: string): string {
   return match ? match[1] : userId;
 }
 
-/** Room ids carry `!` and `:`, which conversation ids may not; base64url keeps them reversible. */
-export function conversationIdOf(roomId: string): ConversationId {
-  return globalThis.btoa(roomId).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+/** Room ids carry `!` and `:`, which chat ids may not; base64url keeps them reversible. */
+export function chatIdOf(roomId: string): ProtocolChatId {
+  return protocolChatId(
+    globalThis.btoa(roomId).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  );
 }
 
-export function roomIdOf(id: ConversationId): string {
+export function roomIdOf(id: ProtocolChatId): string {
   const padded = id.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (id.length % 4)) % 4);
   return globalThis.atob(padded);
 }

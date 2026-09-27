@@ -21,7 +21,7 @@ export default function ProtocolsScreen() {
   return (
     <SettingsScreen
       title="Protocols"
-      intro="Every configured protocol connects at once and shares one inbox. Each conversation stays on the protocol it started on, and they do not offer the same guarantees.">
+      intro="Every configured protocol connects at once and shares one chat list. Each chat stays on the protocol it started on, and they do not offer the same guarantees.">
       <Section surface="card" className="mb-6">
         {PROTOCOLS.map((descriptor) => {
           const status = describeStatus(descriptor, connections[descriptor.id]);

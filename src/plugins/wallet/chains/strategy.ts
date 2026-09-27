@@ -155,7 +155,7 @@ export function derivationUnavailable(
   chainName: string
 ): NonNullable<ChainStrategy['unavailable']> {
   return (context) =>
-    context.identity.capabilities.otherChains
+    context.account.capabilities.otherChains
       ? null
       : {
           type: 'error',

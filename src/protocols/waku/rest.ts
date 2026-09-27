@@ -67,7 +67,7 @@ export class WakuRestClient {
 
     // No `pubsubTopic`. Relay goes through `/auto/`, where the node derives the
     // shard from the content topic; pinning the store query to one shard means
-    // live messages arrive and the same conversation reloads empty.
+    // live messages arrive and the same chat reloads empty.
     const params = new URLSearchParams({
       contentTopics: contentTopics.join(','),
       pageSize: String(opts.pageSize ?? 100),

@@ -9,7 +9,7 @@ const ACCOUNT_DATA = [
   'chat.prefs',
   'chat.mediaIndex',
   'plugins.prefs',
-  'plugin:wallet:networks',
+  'plugin:wallet:chains',
 ];
 
 const DEVICE_SETTINGS: string[] = [];

@@ -2,6 +2,7 @@ import { View } from 'react-native';
 
 import { cn } from '../lib/cn';
 import { contextMenu, type MenuAnchor } from '../lib/context-menu';
+import { type PressHandler, usePress } from '../lib/press';
 import { Pressable } from './pressable';
 import { Text } from './text';
 
@@ -13,7 +14,7 @@ export interface ListItemProps {
   meta?: React.ReactNode;
   leading?: React.ReactNode;
   trailing?: React.ReactNode;
-  onPress?: () => void;
+  onPress?: PressHandler;
   onLongPress?: () => void;
   /** A right-click on desktop; the long-press's counterpart. */
   onContextMenu?: (anchor: MenuAnchor) => void;
@@ -43,6 +44,8 @@ export function ListItem({
   numberOfLinesSubtitle = 1,
   accessibilityLabel,
 }: ListItemProps) {
+  const { pending, press } = usePress(onPress);
+
   const body = (
     <View className={cn('min-h-tap flex-row items-center gap-3 px-gutter py-2.5', className)}>
       {leading}
@@ -98,7 +101,8 @@ export function ListItem({
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={label}
-      onPress={onPress}
+      accessibilityState={{ busy: pending }}
+      onPress={press}
       onLongPress={onLongPress}
       {...(onContextMenu ? contextMenu(onContextMenu) : undefined)}
       pressScale={0.99}

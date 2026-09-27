@@ -1,12 +1,12 @@
 import { isAddress, type Address } from 'viem';
 
-import { shortAddress } from '@/core/identity/keyring';
+import { shortAddress } from '@/core/account/keyring';
 import type { SlashCommand } from '@/core/plugins/types';
 import { W } from '@/design/widgets';
 import { listedTokens, tokenList } from '@/lib/evm/token-list';
 
 import { addCustomToken, readCustomTokens, removeCustomToken } from './chains/token-storage';
-import { pickEvm } from './networks';
+import { pickEvm } from './chain-list';
 
 export const tokensCommand: SlashCommand = {
   name: 'tokens',
@@ -18,7 +18,7 @@ export const tokensCommand: SlashCommand = {
     const picked = await pickEvm(context, args);
     if ('error' in picked) return { type: 'error', message: picked.error };
 
-    const { chain, networkId, rest } = picked;
+    const { chain, chainKey, rest } = picked;
     const [verb, given] = rest;
 
     if (verb && verb !== 'add' && verb !== 'remove') {
@@ -60,7 +60,7 @@ export const tokensCommand: SlashCommand = {
           }
         : {
             type: 'error',
-            message: `${shortAddress(contract)} does not answer as a token on ${chain.name}. Check the contract and the network.`,
+            message: `${shortAddress(contract)} does not answer as a token on ${chain.name}. Check the contract and the chain.`,
           };
     }
 
@@ -87,7 +87,7 @@ export const tokensCommand: SlashCommand = {
                       {
                         label: 'Remove',
                         tone: 'danger' as const,
-                        command: `/tokens remove ${token.address} --chain ${networkId}`,
+                        command: `/tokens remove ${token.address} --chain ${chainKey}`,
                       },
                     ],
                   }))

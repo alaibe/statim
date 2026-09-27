@@ -1,24 +1,42 @@
-import { Button } from './button';
+import { act, createElement } from 'react';
+import { create, type ReactTestRenderer } from 'react-test-renderer';
+
+import { reportError } from '@/core/app/report-error';
+import { Button, type ButtonProps } from './button';
+
+jest.mock('react-native-reanimated', () => jest.requireActual('react-native-reanimated/mock'));
+jest.mock('@/core/app/report-error', () => ({ reportError: jest.fn() }));
 
 /**
  * `Button` takes `onPress`, `disabled` and `haptic` out of its props and
  * spreads what is left onto the Pressable, so anything it destructures and
  * forgets to hand over is dropped silently: the button renders, springs on
  * touch and does nothing.
- *
- * It is a plain function with no hooks, so calling it and reading the element
- * it returns is enough. That avoids a renderer, which React 19 has taken away
- * anyway.
  */
-const render = (props: Parameters<typeof Button>[0]) =>
-  Button(props) as unknown as { props: Record<string, unknown> };
+let tree: ReactTestRenderer;
+
+function render(props: ButtonProps) {
+  act(() => {
+    tree = create(createElement(Button, props));
+  });
+  return pressable();
+}
+
+const pressable = () => tree.root.findAll((node) => node.props.accessibilityRole === 'button')[0];
+
+afterEach(() => {
+  act(() => tree.unmount());
+  jest.mocked(reportError).mockClear();
+});
 
 describe('Button', () => {
   it('passes onPress through to the pressable', () => {
     const onPress = jest.fn();
     const element = render({ label: 'Save', onPress });
 
-    (element.props.onPress as (e: unknown) => void)({});
+    act(() => {
+      element.props.onPress({});
+    });
 
     expect(onPress).toHaveBeenCalledTimes(1);
   });
@@ -53,5 +71,39 @@ describe('Button', () => {
     // making it reachable.
     expect(render({ label: 'x', size: 'sm' }).props.hitSlop).toBeDefined();
     expect(render({ label: 'x', size: 'md' }).props.hitSlop).toBeUndefined();
+  });
+
+  it('loads until the promise it was handed settles, taking one press meanwhile', async () => {
+    let finish = () => {};
+    const onPress = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        })
+    );
+    const press = render({ label: 'Save', onPress }).props.onPress;
+
+    act(() => {
+      press({});
+      press({});
+    });
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(pressable().props.accessibilityState).toEqual({ disabled: true, busy: true });
+    expect(pressable().props.onPress).toBeUndefined();
+
+    await act(async () => finish());
+
+    expect(pressable().props.accessibilityState).toEqual({ disabled: false, busy: false });
+  });
+
+  it('reports a handler that rejects, and can be pressed again', async () => {
+    const error = new Error('offline');
+    const element = render({ label: 'Save', onPress: () => Promise.reject(error) });
+
+    await act(async () => element.props.onPress({}));
+
+    expect(reportError).toHaveBeenCalledWith(error);
+    expect(pressable().props.disabled).toBe(false);
   });
 });

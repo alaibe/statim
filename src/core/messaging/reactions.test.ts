@@ -1,9 +1,10 @@
 import { foldReactions, hasReacted } from './reactions';
 import type { ChatMessage } from './types';
+import { asChatId } from './testing/ids';
 
 function message(over: Partial<ChatMessage> & { id: string }): ChatMessage {
   return {
-    conversationId: 'c1',
+    chatId: asChatId('c1'),
     senderId: 'alice',
     sentAt: 1,
     content: { kind: 'text', text: 'hi' },
@@ -32,7 +33,7 @@ describe('foldReactions', () => {
   });
 
   it('handles a reaction that arrives before its target', () => {
-    // A sync returns messages in whatever order the network had them, so this
+    // A sync returns messages in whatever order the protocol had them, so this
     // is normal rather than exceptional.
     const out = foldReactions([reaction('r1', 'm1', '👍', 'added'), message({ id: 'm1' })]);
 

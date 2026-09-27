@@ -1,4 +1,4 @@
-import { isLocalConversation } from '@/core/messaging/bots';
+import { isLocalChat } from '@/core/messaging/bots';
 import type { Plugin } from '@/core/plugins/types';
 import { W, type Widget } from '@/design/widgets';
 import {
@@ -16,7 +16,7 @@ export const profilePlugin: Plugin = {
     description: 'Share your address in a chat, and look up what an ENS name points at.',
     version: '1.0.0',
     icon: 'person-circle-outline',
-    permissions: ['identity.read', 'chat.read', 'chat.send', 'network'],
+    permissions: ['account.read', 'chat.read', 'chat.send', 'network'],
   },
 
   setup() {
@@ -28,10 +28,10 @@ export const profilePlugin: Plugin = {
           description: 'Show or share your address',
           showIn: ['dm', 'group'],
           usage: '/address',
-          async run({ conversationId, context, respond }) {
-            const address = context.identity.address;
+          async run({ chatId, context, respond }) {
+            const address = context.account.address;
 
-            if (isLocalConversation(conversationId)) {
+            if (isLocalChat(chatId)) {
               const name = await lookupName(address).catch(() => null);
               await respond({
                 kind: 'widget',
@@ -42,13 +42,13 @@ export const profilePlugin: Plugin = {
                     W.code(address, { label: 'Your address' }),
                     W.text('Anyone can message this address, or send to it.'),
                   ],
-                  { title: 'Identity', icon: 'finger-print-outline' }
+                  { title: 'Address', icon: 'finger-print-outline' }
                 ),
               });
               return { type: 'handled' };
             }
 
-            await context.chat.sendText(conversationId, `My address: ${address}`);
+            await context.chat.sendText(chatId, `My address: ${address}`);
             return { type: 'handled' };
           },
         },

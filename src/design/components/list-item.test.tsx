@@ -1,15 +1,29 @@
-import { ListItem } from './list-item';
+import { act, createElement } from 'react';
+import { create, type ReactTestRenderer } from 'react-test-renderer';
+
+import { ListItem, type ListItemProps } from './list-item';
+
+jest.mock('react-native-reanimated', () => jest.requireActual('react-native-reanimated/mock'));
 
 /**
  * React Native makes a `Pressable` a single accessibility element, which stops
  * iOS exposing the `Text` inside it, so a row announces nothing to VoiceOver
  * unless its label is rebuilt from the parts.
- *
- * Plain function, no hooks: calling it and reading the element back is enough,
- * which is how `button.test.tsx` does it and avoids needing a renderer.
  */
-const render = (props: Parameters<typeof ListItem>[0]) =>
-  ListItem(props) as unknown as { props: Record<string, unknown> };
+let tree: ReactTestRenderer;
+
+function render(props: ListItemProps) {
+  act(() => {
+    tree = create(createElement(ListItem, props));
+  });
+  return row();
+}
+
+const row = () => tree.root.findAll((node) => node.props.accessibilityRole === 'button')[0];
+
+afterEach(() => {
+  act(() => tree.unmount());
+});
 
 describe('a tappable row', () => {
   it('announces its title and subtitle', () => {
@@ -38,5 +52,30 @@ describe('a tappable row', () => {
   it('says nothing rather than guessing when the title is a node', () => {
     const element = render({ title: null, subtitle: 'Two people', onPress() {} });
     expect(element.props.accessibilityLabel).toBeUndefined();
+  });
+
+  it('is busy, and takes no second tap, until the promise it was handed settles', async () => {
+    let finish = () => {};
+    const onPress = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        })
+    );
+    render({ title: 'Switch account', onPress });
+
+    act(() => {
+      row().props.onPress();
+    });
+    act(() => {
+      row().props.onPress();
+    });
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(row().props.accessibilityState).toEqual({ busy: true });
+
+    await act(async () => finish());
+
+    expect(row().props.accessibilityState).toEqual({ busy: false });
   });
 });

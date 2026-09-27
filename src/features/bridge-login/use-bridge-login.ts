@@ -56,7 +56,7 @@ export function useBridgeLogin(provisioning: BridgeProvisioning | null) {
     provisioning
       .wait(step)
       .then((next) => {
-        if (!cancelled) advance(Promise.resolve(next));
+        if (!cancelled) void advance(Promise.resolve(next));
       })
       .catch((e) => {
         if (!cancelled) setError(errorMessage(e, 'The sign-in stopped'));

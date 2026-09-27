@@ -2,9 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useChatStore } from './chat-store';
 import { InMemoryChatSession } from './in-memory-session';
 import { connectFake, native, ns, resetChatStore } from './testing/store';
+import { asChatId } from './testing/ids';
 
-jest.mock('../identity/keyring', () => ({
-  ...jest.requireActual('../identity/keyring'),
+jest.mock('../account/keyring', () => ({
+  ...jest.requireActual('../account/keyring'),
   loadOrCreateDbEncryptionKey: async () => new Uint8Array(32),
 }));
 
@@ -32,13 +33,13 @@ describe('creating a group', () => {
     expect(group.selfRole).toBe('owner');
   });
 
-  it('appears in the conversation list immediately', async () => {
+  it('appears in the chat list immediately', async () => {
     const session = new InMemoryChatSession({ participantId: SELF });
     await connect(session);
 
     await useChatStore.getState().startGroup('xmtp', [ALICE], 'Duo');
 
-    expect(useChatStore.getState().conversations.map((c) => c.title)).toContain('Duo');
+    expect(useChatStore.getState().chats.map((c) => c.title)).toContain('Duo');
   });
 });
 
@@ -78,12 +79,12 @@ describe('membership', () => {
 
     await useChatStore.getState().renameGroup(group.id, 'New');
 
-    expect(useChatStore.getState().conversations.find((c) => c.id === group.id)?.title).toBe('New');
+    expect(useChatStore.getState().chats.find((c) => c.id === group.id)?.title).toBe('New');
   });
 });
 
 describe('leaving', () => {
-  it('drops the conversation and its transcript locally', async () => {
+  it('drops the chat and its transcript locally', async () => {
     const session = new InMemoryChatSession({ participantId: SELF });
     await connect(session);
     const group = await useChatStore.getState().startGroup('xmtp', [ALICE], 'Team');
@@ -92,7 +93,7 @@ describe('leaving', () => {
     await useChatStore.getState().leaveGroup(group.id);
 
     expect(session.left).toEqual([native(group.id)]);
-    expect(useChatStore.getState().conversations.find((c) => c.id === group.id)).toBeUndefined();
+    expect(useChatStore.getState().chats.find((c) => c.id === group.id)).toBeUndefined();
     expect(useChatStore.getState().messages[group.id]).toBeUndefined();
   });
 });
@@ -100,7 +101,7 @@ describe('leaving', () => {
 describe('group operations refuse non-groups', () => {
   it('rejects membership calls on a DM', async () => {
     const session = new InMemoryChatSession({ participantId: SELF });
-    session.seedConversation({ id: 'dm-1', kind: 'dm' });
+    session.seedChat({ id: 'dm-1', kind: 'dm' });
     await connect(session);
 
     await expect(useChatStore.getState().getMembers(ns('dm-1'))).rejects.toThrow(
@@ -112,12 +113,14 @@ describe('group operations refuse non-groups', () => {
   });
 
   it('refuses everything before the session exists', async () => {
-    await expect(useChatStore.getState().getMembers('anything')).rejects.toThrow(/Not connected/);
+    await expect(useChatStore.getState().getMembers(asChatId('anything'))).rejects.toThrow(
+      /Not connected/
+    );
   });
 });
 
 describe('group messages', () => {
-  it('carries sender identity so the UI can attribute them', async () => {
+  it('carries the sender so the UI can attribute them', async () => {
     const session = new InMemoryChatSession({ participantId: SELF });
     await connect(session);
     const group = await useChatStore.getState().startGroup('xmtp', [ALICE, BOB], 'Team');

@@ -9,8 +9,8 @@ import { basePath } from '@/lib/site';
 
 const screens = [
   ['chats', 'The chat list'],
-  ['status-room', 'The Status room'],
-  ['wallet', 'The Wallet room'],
+  ['status-chat', 'The Status chat'],
+  ['wallet', 'The Wallet chat'],
   ['protocols', 'Settings → Protocols'],
   ['message-actions', 'Reactions, reply, copy, forward'],
   ['plugins', 'Settings → Plugins'],

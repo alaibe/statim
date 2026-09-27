@@ -2,6 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { ActivityIndicator } from 'react-native';
 
 import { cn } from '../lib/cn';
+import { type PressHandler, usePress } from '../lib/press';
 import { Pressable, type PressScaleProps } from './pressable';
 import { Text } from './text';
 
@@ -21,13 +22,14 @@ const SIZE = {
 
 const SM_HIT_SLOP = { top: 4, bottom: 4, left: 4, right: 4 } as const;
 
-export interface ButtonProps extends Omit<PressScaleProps, 'children'> {
+export interface ButtonProps extends Omit<PressScaleProps, 'children' | 'onPress'> {
   label: string;
   tone?: keyof typeof TONE;
   size?: keyof typeof SIZE;
   loading?: boolean;
   haptic?: boolean;
   fullWidth?: boolean;
+  onPress?: PressHandler;
 }
 
 export function Button({
@@ -42,20 +44,22 @@ export function Button({
   className,
   ...props
 }: ButtonProps) {
-  const isDisabled = disabled || loading;
+  const { pending, press } = usePress(onPress);
+  const busy = loading || pending;
+  const isDisabled = disabled || busy;
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      accessibilityState={{ disabled: isDisabled, busy }}
       onPress={
         isDisabled
           ? undefined
-          : (event) => {
+          : () => {
               if (haptic && process.env.EXPO_OS === 'ios') {
                 Haptics.selectionAsync().catch(() => {});
               }
-              onPress?.(event);
+              press?.();
             }
       }
       disabled={isDisabled}
@@ -70,7 +74,7 @@ export function Button({
         className
       )}
       {...props}>
-      {loading ? (
+      {busy ? (
         <ActivityIndicator size="small" />
       ) : (
         <Text className={cn(TONE[tone].label, SIZE[size].label)}>{label}</Text>

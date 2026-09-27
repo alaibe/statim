@@ -1,9 +1,9 @@
 import type { GroupInfo, MentionCandidate } from '@/core/messaging/protocol';
 import type {
-  Conversation,
-  ConversationId,
+  ProtocolChatId,
   GroupMember,
   ParticipantId,
+  ProtocolChat,
 } from '@/core/messaging/types';
 import { localFileUri } from '@/storage/media';
 
@@ -43,22 +43,22 @@ const NO_PERMISSIONS = {
 export class TelegramGroups {
   constructor(private readonly host: TelegramHost) {}
 
-  async createGroup(peers: ParticipantId[], title: string): Promise<Conversation> {
+  async createGroup(participants: ParticipantId[], title: string): Promise<ProtocolChat> {
     const created = await this.host.api().send<TdObject>({
       '@type': 'createNewBasicGroupChat',
-      user_ids: peers.map(Number),
+      user_ids: participants.map(Number),
       title,
     });
     const chatId =
       created['@type'] === 'chat' ? (created as TdChat).id : (created.chat_id as number);
-    return this.host.toConversation(await this.host.td.requireChat(chatId));
+    return this.host.toChat(await this.host.td.requireChat(chatId));
   }
 
-  async getMembers(id: ConversationId): Promise<GroupMember[]> {
+  async getMembers(id: ProtocolChatId): Promise<GroupMember[]> {
     return this.host.td.membersOf(await this.host.td.requireChat(Number(id)));
   }
 
-  async mentionCandidates(id: ConversationId, query: string): Promise<MentionCandidate[]> {
+  async mentionCandidates(id: ProtocolChatId, query: string): Promise<MentionCandidate[]> {
     const found = await this.host.api().send<TdChatMembers>({
       '@type': 'searchChatMembers',
       chat_id: Number(id),
@@ -77,14 +77,14 @@ export class TelegramGroups {
         return {
           id: String(user.id),
           name: nameOf(user),
-          ...(username ? { handle: `@${username}` } : {}),
+          ...(username ? { address: `@${username}` } : {}),
         };
       })
     );
     return users.filter((user): user is MentionCandidate => user !== null);
   }
 
-  async getGroupInfo(id: ConversationId): Promise<GroupInfo> {
+  async getGroupInfo(id: ProtocolChatId): Promise<GroupInfo> {
     const chat = await this.host.td.requireChat(Number(id));
     const type = chat.type;
     let description = '';
@@ -167,7 +167,7 @@ export class TelegramGroups {
     };
   }
 
-  async setSlowModeDelay(id: ConversationId, seconds: number): Promise<void> {
+  async setSlowModeDelay(id: ProtocolChatId, seconds: number): Promise<void> {
     if (![0, 5, 10, 30, 60, 300, 900, 3600].includes(seconds))
       throw new Error('Unsupported slow mode delay.');
     await this.host.api().send({
@@ -177,43 +177,47 @@ export class TelegramGroups {
     });
   }
 
-  async addMembers(id: ConversationId, peers: ParticipantId[]): Promise<void> {
+  async addMembers(id: ProtocolChatId, participants: ParticipantId[]): Promise<void> {
     await this.host.api().send({
       '@type': 'addChatMembers',
       chat_id: Number(id),
-      user_ids: peers.map(Number),
+      user_ids: participants.map(Number),
     });
     this.host.td.members.delete(Number(id));
   }
 
-  async removeMembers(id: ConversationId, peers: ParticipantId[]): Promise<void> {
-    for (const peer of peers) {
+  async removeMembers(id: ProtocolChatId, participants: ParticipantId[]): Promise<void> {
+    for (const participant of participants) {
       await this.host.api().send({
         '@type': 'setChatMemberStatus',
         chat_id: Number(id),
-        member_id: userSender(peer),
+        member_id: userSender(participant),
         status: { '@type': 'chatMemberStatusLeft' },
       });
     }
     this.host.td.members.delete(Number(id));
   }
 
-  async banMember(id: ConversationId, peer: ParticipantId): Promise<void> {
+  async banMember(id: ProtocolChatId, participant: ParticipantId): Promise<void> {
     await this.host.api().send({
       '@type': 'banChatMember',
       chat_id: Number(id),
-      member_id: userSender(peer),
+      member_id: userSender(participant),
       banned_until_date: 0,
       revoke_messages: false,
     });
     this.host.td.members.delete(Number(id));
   }
 
-  async setMemberMuted(id: ConversationId, peer: ParticipantId, muted: boolean): Promise<void> {
+  async setMemberMuted(
+    id: ProtocolChatId,
+    participant: ParticipantId,
+    muted: boolean
+  ): Promise<void> {
     await this.host.api().send({
       '@type': 'setChatMemberStatus',
       chat_id: Number(id),
-      member_id: userSender(peer),
+      member_id: userSender(participant),
       status: muted
         ? {
             '@type': 'chatMemberStatusRestricted',
@@ -226,11 +230,11 @@ export class TelegramGroups {
     this.host.td.members.delete(Number(id));
   }
 
-  async renameGroup(id: ConversationId, title: string): Promise<void> {
+  async renameGroup(id: ProtocolChatId, title: string): Promise<void> {
     await this.host.api().send({ '@type': 'setChatTitle', chat_id: Number(id), title });
   }
 
-  async leaveGroup(id: ConversationId): Promise<void> {
+  async leaveGroup(id: ProtocolChatId): Promise<void> {
     await this.host.api().send({ '@type': 'leaveChat', chat_id: Number(id) });
   }
 }

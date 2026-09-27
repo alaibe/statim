@@ -1,8 +1,11 @@
 import type { AccountStorage } from '@/storage/account';
 import { deferredWrite } from '@/storage/deferred-write';
-import type { ConversationId, MessageId } from './types';
+import type { ChatId, MessageId } from './types';
 
-export type Drafts = Record<ConversationId, string>;
+declare const draftKeyBrand: unique symbol;
+export type DraftKey = string & { readonly [draftKeyBrand]: true };
+
+export type Drafts = Record<DraftKey, string>;
 
 const KEY = 'chat.drafts';
 
@@ -13,28 +16,28 @@ export async function loadDrafts(storage: AccountStorage): Promise<Drafts> {
 export const { saveSoon: saveDraftsSoon, flush: flushDrafts } = deferredWrite<Drafts>(KEY, 400);
 
 /** A thread keeps its own draft, on this device only. */
-export function draftKey(id: ConversationId, thread?: MessageId): string {
-  return thread ? `${id}#thread:${thread}` : id;
+export function draftKey(id: ChatId, thread?: MessageId): DraftKey {
+  return (thread ? `${id}#thread:${thread}` : id) as DraftKey;
 }
 
-export function withDraft(drafts: Drafts, id: ConversationId, text: string): Drafts {
+export function withDraft(drafts: Drafts, key: DraftKey, text: string): Drafts {
   const next = { ...drafts };
-  if (text) next[id] = text;
-  else delete next[id];
+  if (text) next[key] = text;
+  else delete next[key];
   return next;
 }
 
 const PUSH_DELAY_MS = 1_500;
 
 /**
- * What the network last had is remembered, so its echo of our own save changes
+ * What the protocol last had is remembered, so its echo of our own save changes
  * nothing and a draft typed elsewhere replaces ours only while ours is unchanged.
  */
 export class DraftSync {
-  private readonly remote = new Map<ConversationId, string>();
-  private readonly timers = new Map<ConversationId, ReturnType<typeof setTimeout>>();
+  private readonly remote = new Map<ChatId, string>();
+  private readonly timers = new Map<ChatId, ReturnType<typeof setTimeout>>();
 
-  typed(id: ConversationId, text: string, push: (text: string) => Promise<void>): void {
+  typed(id: ChatId, text: string, push: (text: string) => Promise<void>): void {
     clearTimeout(this.timers.get(id));
     this.timers.set(
       id,
@@ -47,8 +50,8 @@ export class DraftSync {
     );
   }
 
-  /** The draft to show now that the network reports `text`, if it should replace `local`. */
-  received(id: ConversationId, text: string, local: string): string | undefined {
+  /** The draft to show now that the protocol reports `text`, if it should replace `local`. */
+  received(id: ChatId, text: string, local: string): string | undefined {
     const last = this.remote.get(id);
     this.remote.set(id, text);
     if (last === text || local === text || this.timers.has(id)) return undefined;

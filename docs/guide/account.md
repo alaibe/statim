@@ -2,8 +2,8 @@
 
 Your account is a recovery phrase: twelve words the app generates on your
 device the first time you open it. Everything follows from those words: your
-identity on every messaging network, and the Ethereum, Bitcoin and Solana
-addresses the wallet uses. There is no password to forget, and no server that
+keys on XMTP, Nostr and Waku, and the Ethereum, Bitcoin and Solana addresses
+the wallet uses. There is no password to forget, and no server that
 knows you exist.
 
 <div class="phones">
@@ -18,8 +18,8 @@ knows you exist.
    paper. Not a screenshot, not a note that syncs somewhere.
 3. Tap **I've written it down**.
 
-That is the whole sign-up. The chat list opens with one conversation, the
-Status room, which holds help and commands.
+That is the whole sign-up. The chat list opens with one chat, the
+Status chat, which holds help and slash commands.
 
 ::: warning Nobody can reset this
 The phrase *is* the account. Lose both the phrase and the device and the
@@ -33,9 +33,9 @@ Tap **I already have a recovery phrase** and type the twelve words. Your
 addresses come back exactly as they were.
 
 Chat history does not travel with the phrase. What comes back depends on the
-network: XMTP restores from the network, Telegram and Matrix from their
+protocol: XMTP restores from its nodes, Telegram and Matrix from their
 servers, Nostr only what your relays still hold, Waku nothing.
-[Networks](./networks) has the detail.
+[Protocols](./networks) has the detail.
 
 ## Use a hardware wallet
 
@@ -45,7 +45,7 @@ that needs a signature happens on the device, and the key never touches the
 phone.
 
 Some things a hardware account cannot do. Bitcoin and Solana need the device's
-own apps for those chains, which this app does not drive, so those networks are
+own apps for those chains, which this app does not drive, so those chains are
 unavailable on a hardware account. The app says so where it matters and
 suggests a phrase-based account for them.
 
@@ -57,7 +57,7 @@ codes, so it needs a camera. Use the phone for a Keystone account.
 **Settings → Accounts** holds every account on this device. Add one from a new
 phrase, an existing phrase or a hardware wallet, and switch between them from
 the same screen. Each account has its own history, plugins, keys and settings.
-Nothing is shared between them, including which networks are connected.
+Nothing is shared between them, including which protocols are connected.
 
 ## Lock it
 
@@ -77,6 +77,6 @@ never leaves it.
 and settings from this device, and signs out of Telegram and Matrix if they
 were connected.
 
-It does not delete anything those networks hold, and it does not touch the
+It does not delete anything those protocols hold, and it does not touch the
 recovery phrase you wrote down. The same phrase restores the same account
 later.

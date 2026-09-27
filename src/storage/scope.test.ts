@@ -17,10 +17,10 @@ describe('account storage', () => {
   it('binds plugin reads and writes to their owning account', async () => {
     const a = createAccountStorage('one').plugin('wallet');
     const b = createAccountStorage('two').plugin('wallet');
-    await a.set('network', 'mainnet');
+    await a.set('chain', 'mainnet');
 
-    expect(await a.get('network')).toBe('mainnet');
-    expect(await b.get('network')).toBeNull();
+    expect(await a.get('chain')).toBe('mainnet');
+    expect(await b.get('chain')).toBeNull();
   });
 });
 

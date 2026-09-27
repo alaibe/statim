@@ -2,11 +2,12 @@ import { liveViews } from '@/core/plugins/live';
 import type { PluginContext, PluginSummary, SlashCommand } from '@/core/plugins/types';
 
 import { assistantCommands, pluginsCard } from './commands';
+import { STATUS_LOCAL_ID } from '@/core/messaging/bots';
 
 const AVAILABLE_COMMANDS = [
   {
     name: 'commands',
-    description: 'Show commands available in this chat',
+    description: 'Show slash commands available in this chat',
     usage: '/commands [plugin]',
     pluginId: 'assistant',
   },
@@ -50,7 +51,7 @@ const run = async (name: string, args: string[], context: PluginContext) => {
   const result = await find(name, context).run({
     rest: args.join(' '),
     args,
-    conversationId: 'local-status',
+    chatId: STATUS_LOCAL_ID,
     context,
     respond: async (content) => {
       if (typeof content === 'string') said.push(content);
@@ -96,7 +97,7 @@ const ETH: PluginSummary = {
 
 describe('/commands', () => {
   it.each([undefined, 'ethereum'])(
-    'lists every current-room command with owner %s',
+    'lists every current-chat command with owner %s',
     async (owner) => {
       const { widget } = await run('commands', [], makeContext([ETH], jest.fn(), owner));
 
@@ -112,7 +113,7 @@ describe('/commands', () => {
     }
   );
 
-  it('does not add commands unavailable in the current room', async () => {
+  it('does not add commands unavailable in the current chat', async () => {
     const { widget } = await run(
       'commands',
       [],

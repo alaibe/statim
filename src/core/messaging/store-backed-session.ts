@@ -1,28 +1,28 @@
 import { HistoryTracker, type HistoryState } from './history';
-import type { MessageStore, StoredConversation } from './message-store';
+import type { MessageStore, TransportChat } from './message-store';
 import type { ChatSession } from './protocol';
 import type { ChatTransport, IncomingMessage, TransportSink } from './transport';
 import type {
-  ChatMessage,
-  Conversation,
-  ConversationId,
+  ProtocolChatId,
   GroupMember,
   MessageContent,
   MessageId,
   ParticipantId,
-  SelfIdentity,
+  SelfParticipant,
   Unsubscribe,
+  ProtocolMessage,
+  ProtocolChat,
 } from './types';
 
 export class StoreBackedSession implements ChatSession, TransportSink {
-  readonly self: SelfIdentity;
+  readonly self: SelfParticipant;
 
-  private readonly conversations = new Map<ConversationId, StoredConversation>();
-  private readonly byRoutingKey = new Map<string, StoredConversation>();
-  private readonly messageListeners = new Set<(message: ChatMessage) => void>();
-  private readonly conversationListeners = new Set<(conversation: Conversation) => void>();
+  private readonly chats = new Map<ProtocolChatId, TransportChat>();
+  private readonly byRoutingKey = new Map<string, TransportChat>();
+  private readonly messageListeners = new Set<(message: ProtocolMessage) => void>();
+  private readonly chatListeners = new Set<(chat: ProtocolChat) => void>();
   private readonly history = new HistoryTracker();
-  private readonly opening = new Map<ConversationId, Promise<void>>();
+  private readonly opening = new Map<ProtocolChatId, Promise<void>>();
   private deliveries = Promise.resolve();
   private failedDelivery: string | undefined;
   private acceptingDeliveries = true;
@@ -35,18 +35,18 @@ export class StoreBackedSession implements ChatSession, TransportSink {
   }
 
   async hydrate(): Promise<void> {
-    const stored = await this.store.loadConversations(this.transport.protocolId);
-    for (const conversation of stored) this.remember(conversation);
-    for (const conversation of this.conversations.values()) {
-      if (!conversation.hidden) void this.open(conversation)?.catch(() => {});
+    const stored = await this.store.loadChats<ProtocolChatId>(this.transport.protocolId);
+    for (const chat of stored) this.remember(chat);
+    for (const chat of this.chats.values()) {
+      if (!chat.hidden) void this.open(chat)?.catch(() => {});
     }
   }
 
   deliverToRoutingKey(routingKey: string, incoming: IncomingMessage): Promise<void> {
     if (!this.acceptingDeliveries) return Promise.resolve();
     return this.enqueueDelivery(async () => {
-      const conversation = this.byRoutingKey.get(routingKey);
-      if (conversation) await this.deliver(conversation, incoming, false);
+      const chat = this.byRoutingKey.get(routingKey);
+      if (chat) await this.deliver(chat, incoming, false);
     });
   }
 
@@ -57,9 +57,9 @@ export class StoreBackedSession implements ChatSession, TransportSink {
   ): Promise<void> {
     if (!this.acceptingDeliveries) return Promise.resolve();
     return this.enqueueDelivery(async () => {
-      const id = this.transport.conversationIdFor(participants);
-      const existing = this.conversations.get(id);
-      const conversation = existing
+      const id = this.transport.chatIdFor(participants);
+      const existing = this.chats.get(id);
+      const chat = existing
         ? {
             ...existing,
             title: meta?.title ?? existing.title,
@@ -70,17 +70,17 @@ export class StoreBackedSession implements ChatSession, TransportSink {
             hidden: false,
           }
         : this.build(participants, meta?.title, meta?.createdAt);
-      await this.deliver(conversation, incoming, !existing || existing.hidden);
+      await this.deliver(chat, incoming, !existing || existing.hidden);
     });
   }
 
-  private async deliver(
-    conversation: StoredConversation,
-    incoming: IncomingMessage,
-    isNew: boolean
-  ) {
-    const visible = { ...conversation, hidden: false };
-    const message: ChatMessage = { ...incoming, conversationId: visible.id, status: 'sent' };
+  private async deliver(chat: TransportChat, incoming: IncomingMessage, isNew: boolean) {
+    const visible = { ...chat, hidden: false };
+    const message: ProtocolMessage = {
+      ...incoming,
+      chatId: visible.id,
+      status: 'sent',
+    };
 
     let inserted: boolean;
     const deliveryKey = `${visible.id}:${message.id}`;
@@ -112,14 +112,10 @@ export class StoreBackedSession implements ChatSession, TransportSink {
     this.deliveries = result.catch(() => {});
     return result;
   }
-  private build(
-    participants: ParticipantId[],
-    title?: string,
-    createdAt?: number
-  ): StoredConversation {
+  private build(participants: ParticipantId[], title?: string, createdAt?: number): TransportChat {
     const sorted = [...new Set([...participants, this.self.participantId])].sort();
     return {
-      id: this.transport.conversationIdFor(sorted),
+      id: this.transport.chatIdFor(sorted),
       protocolId: this.transport.protocolId,
       participants: sorted,
       title,
@@ -128,147 +124,144 @@ export class StoreBackedSession implements ChatSession, TransportSink {
       routingKey: this.transport.routingKeyFor?.(sorted),
     };
   }
-  private remember(conversation: StoredConversation): void {
-    this.conversations.set(conversation.id, conversation);
-    if (conversation.routingKey) this.byRoutingKey.set(conversation.routingKey, conversation);
+  private remember(chat: TransportChat): void {
+    this.chats.set(chat.id, chat);
+    if (chat.routingKey) this.byRoutingKey.set(chat.routingKey, chat);
   }
-  private open(conversation: StoredConversation): Promise<void> | undefined {
-    if (!this.transport.openConversation) return;
-    const existing = this.opening.get(conversation.id);
+  private open(chat: TransportChat): Promise<void> | undefined {
+    if (!this.transport.openChat) return;
+    const existing = this.opening.get(chat.id);
     if (existing) return existing;
     const work = this.history
       .run(async () => {
         const since = await this.store.newestTransportTimestamp(
           this.transport.protocolId,
           this.transport.cursorUpperBound?.() ?? Number.POSITIVE_INFINITY,
-          conversation.id
+          chat.id
         );
-        await this.transport.openConversation!(this.snapshot(conversation), { since });
+        await this.transport.openChat!(this.snapshot(chat), { since });
       })
-      .finally(() => this.opening.delete(conversation.id));
-    this.opening.set(conversation.id, work);
+      .finally(() => this.opening.delete(chat.id));
+    this.opening.set(chat.id, work);
     return work;
   }
 
   newestSeenAt(notAfter = Number.POSITIVE_INFINITY): Promise<number | undefined> {
     return this.store.newestTransportTimestamp(this.transport.protocolId, notAfter);
   }
-  private announce(conversation: StoredConversation, lastMessage?: ChatMessage): void {
-    const projected = this.toConversation(conversation, lastMessage);
-    for (const listener of this.conversationListeners) listener(projected);
+  private announce(chat: TransportChat, lastMessage?: ProtocolMessage): void {
+    const projected = this.toChat(chat, lastMessage);
+    for (const listener of this.chatListeners) listener(projected);
   }
-  private toConversation(
-    conversation: StoredConversation,
-    lastMessage?: ChatMessage
-  ): Conversation {
-    const others = conversation.participants.filter((id) => id !== this.self.participantId);
+  private toChat(chat: TransportChat, lastMessage?: ProtocolMessage): ProtocolChat {
+    const others = chat.participants.filter((id) => id !== this.self.participantId);
     return {
-      id: conversation.id,
+      id: chat.id,
       kind: others.length > 1 ? 'group' : 'dm',
-      title: conversation.title?.trim() || (others[0] ?? this.self.participantId),
-      memberIds: conversation.participants,
-      createdAt: conversation.createdAt,
-      consent: 'allowed',
+      title: chat.title?.trim() || (others[0] ?? this.self.participantId),
+      memberIds: chat.participants,
+      createdAt: chat.createdAt,
+      consent: 'accepted',
       lastMessage,
       selfRole: undefined,
     };
   }
-  private require(id: ConversationId): StoredConversation {
-    const conversation = this.conversations.get(id);
-    if (!conversation) throw new Error(`Conversation ${id} not found`);
-    return conversation;
+  private require(id: ProtocolChatId): TransportChat {
+    const chat = this.chats.get(id);
+    if (!chat) throw new Error(`Chat ${id} not found`);
+    return chat;
   }
-  private async ensure(peers: ParticipantId[], title?: string): Promise<StoredConversation> {
-    const participants = [...new Set([...peers, this.self.participantId])].sort();
-    const id = this.transport.conversationIdFor(participants);
-    const existing = this.conversations.get(id);
-    const conversation = existing
+  private async ensure(others: ParticipantId[], title?: string): Promise<TransportChat> {
+    const participants = [...new Set([...others, this.self.participantId])].sort();
+    const id = this.transport.chatIdFor(participants);
+    const existing = this.chats.get(id);
+    const chat = existing
       ? { ...existing, hidden: false, title: title ?? existing.title }
       : this.build(participants, title);
 
-    if (!existing || existing.hidden || title) await this.store.upsertConversation(conversation);
-    this.remember(conversation);
-    if (!existing) void this.open(conversation)?.catch(() => {});
-    return conversation;
+    if (!existing || existing.hidden || title) await this.store.upsertChat(chat);
+    this.remember(chat);
+    if (!existing) void this.open(chat)?.catch(() => {});
+    return chat;
   }
 
-  async whenListed(first: Conversation[]): Promise<Conversation[]> {
+  async whenListed(first: ProtocolChat[]): Promise<ProtocolChat[]> {
     return first;
   }
 
-  async listConversations(): Promise<Conversation[]> {
+  async listChats(): Promise<ProtocolChat[]> {
     const [stored, latest] = await Promise.all([
-      this.store.loadConversations(this.transport.protocolId),
-      this.store.latestMessages(this.transport.protocolId),
+      this.store.loadChats<ProtocolChatId>(this.transport.protocolId),
+      this.store.latestMessages<ProtocolChatId>(this.transport.protocolId),
     ]);
     return stored
-      .filter((conversation) => !conversation.hidden)
-      .map((conversation) => this.toConversation(conversation, latest.get(conversation.id)));
+      .filter((chat) => !chat.hidden)
+      .map((chat) => this.toChat(chat, latest.get(chat.id)));
   }
 
   async getMessages(
-    id: ConversationId,
+    id: ProtocolChatId,
     opts?: {
       limit?: number;
       before?: { sentAt: number; id: MessageId };
     }
-  ): Promise<ChatMessage[]> {
-    if (!this.conversations.has(id)) return [];
+  ): Promise<ProtocolMessage[]> {
+    if (!this.chats.has(id)) return [];
     return this.store.loadMessages(id, opts?.limit, opts?.before);
   }
 
-  async resolvePeer(addressOrId: string): Promise<ParticipantId | null> {
-    return this.transport.resolvePeer(addressOrId);
+  async resolveParticipant(addressOrId: string): Promise<ParticipantId | null> {
+    return this.transport.resolveParticipant(addressOrId);
   }
 
   async resolveAddresses(ids: ParticipantId[]): Promise<Record<ParticipantId, string>> {
     return this.transport.resolveAddresses(ids);
   }
 
-  async createDm(peer: ParticipantId): Promise<Conversation> {
-    return this.toConversation(await this.ensure([peer]));
+  async createDm(participant: ParticipantId): Promise<ProtocolChat> {
+    return this.toChat(await this.ensure([participant]));
   }
 
-  async createGroup(peers: ParticipantId[], title: string): Promise<Conversation> {
-    return this.toConversation(await this.ensure(peers, title));
+  async createGroup(participants: ParticipantId[], title: string): Promise<ProtocolChat> {
+    return this.toChat(await this.ensure(participants, title));
   }
 
-  async getMembers(id: ConversationId): Promise<GroupMember[]> {
+  async getMembers(id: ProtocolChatId): Promise<GroupMember[]> {
     return this.require(id).participants.map((participant) => ({
       id: participant,
       role: 'member',
     }));
   }
 
-  async addMembers(_id: ConversationId, _peers: ParticipantId[]): Promise<void> {
+  async addMembers(_id: ProtocolChatId, _participants: ParticipantId[]): Promise<void> {
     throw new Error(this.transport.rosterIsFixed.onAdd);
   }
 
-  async removeMembers(_id: ConversationId, _peers: ParticipantId[]): Promise<void> {
+  async removeMembers(_id: ProtocolChatId, _participants: ParticipantId[]): Promise<void> {
     throw new Error(this.transport.rosterIsFixed.onRemove);
   }
 
-  async renameGroup(id: ConversationId, title: string): Promise<void> {
-    const conversation = { ...this.require(id), title };
-    await this.store.upsertConversation(conversation);
-    this.remember(conversation);
-    this.announce(conversation, (await this.store.loadMessages(id, 1))[0]);
+  async renameGroup(id: ProtocolChatId, title: string): Promise<void> {
+    const chat = { ...this.require(id), title };
+    await this.store.upsertChat(chat);
+    this.remember(chat);
+    this.announce(chat, (await this.store.loadMessages(id, 1))[0]);
   }
 
-  async leaveGroup(id: ConversationId): Promise<void> {
-    const conversation = { ...this.require(id), hidden: true };
-    await this.store.upsertConversation(conversation);
-    this.remember(conversation);
-    if (conversation.routingKey) this.byRoutingKey.delete(conversation.routingKey);
-    await this.transport.closeConversation?.(this.snapshot(conversation));
+  async leaveGroup(id: ProtocolChatId): Promise<void> {
+    const chat = { ...this.require(id), hidden: true };
+    await this.store.upsertChat(chat);
+    this.remember(chat);
+    if (chat.routingKey) this.byRoutingKey.delete(chat.routingKey);
+    await this.transport.closeChat?.(this.snapshot(chat));
   }
 
-  async send(id: ConversationId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
+  async send(id: ProtocolChatId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
     if (replyTo) throw new Error(`${this.transport.protocolId} does not support reply metadata`);
-    const conversation = this.require(id);
-    const result = await this.transport.send(this.snapshot(conversation), content);
+    const chat = this.require(id);
+    const result = await this.transport.send(this.snapshot(chat), content);
     if (result.localMessage) {
-      await this.enqueueDelivery(() => this.deliver(conversation, result.localMessage!, false));
+      await this.enqueueDelivery(() => this.deliver(chat, result.localMessage!, false));
     }
     this.transport.confirmSend?.(id, result.id);
     return result.id;
@@ -278,9 +271,7 @@ export class StoreBackedSession implements ChatSession, TransportSink {
     await this.deliveries;
     await this.history.run(async () => {
       const results = await Promise.allSettled(
-        [...this.conversations.values()]
-          .filter((conversation) => !conversation.hidden)
-          .map((conversation) => this.open(conversation))
+        [...this.chats.values()].filter((chat) => !chat.hidden).map((chat) => this.open(chat))
       );
       await this.transport.sync();
       await this.deliveries;
@@ -289,7 +280,7 @@ export class StoreBackedSession implements ChatSession, TransportSink {
     });
   }
 
-  countUnread(id: ConversationId, since: number): Promise<number> {
+  countUnread(id: ProtocolChatId, since: number): Promise<number> {
     return this.store.countUnreadMessages(id, since);
   }
 
@@ -297,16 +288,14 @@ export class StoreBackedSession implements ChatSession, TransportSink {
     return this.history.subscribe(listener);
   }
 
-  async streamMessages(onMessage: (message: ChatMessage) => void): Promise<Unsubscribe> {
+  async streamMessages(onMessage: (message: ProtocolMessage) => void): Promise<Unsubscribe> {
     this.messageListeners.add(onMessage);
     return () => this.messageListeners.delete(onMessage);
   }
 
-  async streamConversations(
-    onConversation: (conversation: Conversation) => void
-  ): Promise<Unsubscribe> {
-    this.conversationListeners.add(onConversation);
-    return () => this.conversationListeners.delete(onConversation);
+  async streamChats(onChat: (chat: ProtocolChat) => void): Promise<Unsubscribe> {
+    this.chatListeners.add(onChat);
+    return () => this.chatListeners.delete(onChat);
   }
 
   async disconnect(): Promise<void> {
@@ -316,11 +305,11 @@ export class StoreBackedSession implements ChatSession, TransportSink {
     } finally {
       await this.deliveries;
       this.messageListeners.clear();
-      this.conversationListeners.clear();
+      this.chatListeners.clear();
     }
   }
 
-  private snapshot(conversation: StoredConversation): StoredConversation {
-    return { ...conversation, participants: [...conversation.participants] };
+  private snapshot(chat: TransportChat): TransportChat {
+    return { ...chat, participants: [...chat.participants] };
   }
 }

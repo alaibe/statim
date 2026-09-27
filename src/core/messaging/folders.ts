@@ -1,105 +1,109 @@
-import { isLocalConversation } from './bots';
+import { isLocalChat } from './bots';
 import type { ChatPrefsMap } from './chat-prefs';
 import { LOCAL_PROTOCOL } from './namespace';
 import { hasUnreadMentions, isUnread } from './unread';
-import type { Conversation, ConversationId } from './types';
+import type { Chat, ChatId } from './types';
 
-export type Directory = 'archive' | `network:${string}`;
+export type Folder = 'archive' | `network:${string}`;
 
-export type ChatFilter = 'all' | 'unread' | 'mentions' | 'direct' | 'groups';
+export type ChatFilter = 'all' | 'unread' | 'mentions' | 'dms' | 'groups';
 
-export interface FolderContext {
+export interface FilterContext {
   prefs: ChatPrefsMap;
-  readAt: Record<ConversationId, number>;
+  readAt: Record<ChatId, number>;
 }
 
-export type InboxRow =
-  | { kind: 'chat'; conversation: Conversation }
-  | { kind: 'directory'; directory: Directory; latest: Conversation; chats: Conversation[] };
+export type ChatListRow =
+  | { kind: 'chat'; chat: Chat }
+  | { kind: 'folder'; folder: Folder; latest: Chat; chats: Chat[] };
 
-export function networkOf(conversation: Conversation): string | undefined {
-  if (!conversation.protocol || conversation.protocol === LOCAL_PROTOCOL) return undefined;
-  return conversation.network ?? conversation.protocol;
+export function splitRequests(chats: readonly Chat[]): {
+  accepted: Chat[];
+  requests: Chat[];
+} {
+  const split = { accepted: [] as Chat[], requests: [] as Chat[] };
+  for (const chat of chats) {
+    if (chat.consent === 'accepted') split.accepted.push(chat);
+    else if (chat.consent === 'request') split.requests.push(chat);
+  }
+  return split;
 }
 
-const chatRows = new WeakMap<Conversation, InboxRow>();
+export function networkOf(chat: Chat): string | undefined {
+  if (!chat.protocol || chat.protocol === LOCAL_PROTOCOL) return undefined;
+  return chat.network ?? chat.protocol;
+}
 
-export function chatRow(conversation: Conversation): InboxRow {
-  let row = chatRows.get(conversation);
+const chatRows = new WeakMap<Chat, ChatListRow>();
+
+export function chatRow(chat: Chat): ChatListRow {
+  let row = chatRows.get(chat);
   if (!row) {
-    row = { kind: 'chat', conversation };
-    chatRows.set(conversation, row);
+    row = { kind: 'chat', chat };
+    chatRows.set(chat, row);
   }
   return row;
 }
 
-export function isUnreadHere(conversation: Conversation, context: FolderContext): boolean {
-  return !context.prefs[conversation.id]?.muted && isUnread(conversation, context.readAt);
+export function isUnreadHere(chat: Chat, context: FilterContext): boolean {
+  return !context.prefs[chat.id]?.muted && isUnread(chat, context.readAt);
 }
 
-export function matchesFilter(
-  conversation: Conversation,
-  filter: ChatFilter,
-  context: FolderContext
-): boolean {
+export function matchesFilter(chat: Chat, filter: ChatFilter, context: FilterContext): boolean {
   switch (filter) {
     case 'all':
       return true;
     case 'unread':
-      return isUnreadHere(conversation, context);
+      return isUnreadHere(chat, context);
     case 'mentions':
-      return hasUnreadMentions(conversation, context.readAt);
-    case 'direct':
-      return conversation.kind === 'dm' && !isLocalConversation(conversation.id);
+      return hasUnreadMentions(chat, context.readAt);
+    case 'dms':
+      return chat.kind === 'dm' && !isLocalChat(chat.id);
     case 'groups':
-      return conversation.kind === 'group' || conversation.kind === 'channel';
+      return chat.kind === 'group' || chat.kind === 'channel';
   }
 }
 
-export function inDirectory(
-  conversation: Conversation,
-  directory: Directory,
-  context: FolderContext
-): boolean {
-  const archived = Boolean(context.prefs[conversation.id]?.archived);
-  if (directory === 'archive') return archived;
-  return !archived && networkOf(conversation) === directory.slice('network:'.length);
+export function inFolder(chat: Chat, folder: Folder, context: FilterContext): boolean {
+  const archived = Boolean(context.prefs[chat.id]?.archived);
+  if (folder === 'archive') return archived;
+  return !archived && networkOf(chat) === folder.slice('network:'.length);
 }
 
 /** A pinned chat stays out of its folder, since pinning asks to see it. */
-export function inboxRows(
-  ordered: Conversation[],
-  include: (conversation: Conversation) => boolean,
+export function chatListRows(
+  ordered: Chat[],
+  include: (chat: Chat) => boolean,
   folded: (network: string) => boolean,
-  context: FolderContext
-): InboxRow[] {
-  const rows: InboxRow[] = [];
-  const directories = new Map<string, Extract<InboxRow, { kind: 'directory' }>>();
+  context: FilterContext
+): ChatListRow[] {
+  const rows: ChatListRow[] = [];
+  const folders = new Map<string, Extract<ChatListRow, { kind: 'folder' }>>();
 
   const archived = ordered.filter((c) => context.prefs[c.id]?.archived && include(c));
   if (archived.length > 0) {
-    rows.push({ kind: 'directory', directory: 'archive', latest: archived[0], chats: archived });
+    rows.push({ kind: 'folder', folder: 'archive', latest: archived[0], chats: archived });
   }
 
-  for (const conversation of ordered) {
-    if (context.prefs[conversation.id]?.archived || !include(conversation)) continue;
-    const network = networkOf(conversation);
-    if (!network || !folded(network) || context.prefs[conversation.id]?.pinned) {
-      rows.push(chatRow(conversation));
+  for (const chat of ordered) {
+    if (context.prefs[chat.id]?.archived || !include(chat)) continue;
+    const network = networkOf(chat);
+    if (!network || !folded(network) || context.prefs[chat.id]?.pinned) {
+      rows.push(chatRow(chat));
       continue;
     }
-    const existing = directories.get(network);
+    const existing = folders.get(network);
     if (existing) {
-      existing.chats.push(conversation);
+      existing.chats.push(chat);
       continue;
     }
-    const row: Extract<InboxRow, { kind: 'directory' }> = {
-      kind: 'directory',
-      directory: `network:${network}`,
-      latest: conversation,
-      chats: [conversation],
+    const row: Extract<ChatListRow, { kind: 'folder' }> = {
+      kind: 'folder',
+      folder: `network:${network}`,
+      latest: chat,
+      chats: [chat],
     };
-    directories.set(network, row);
+    folders.set(network, row);
     rows.push(row);
   }
   return rows;

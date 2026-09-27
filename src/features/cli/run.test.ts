@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { useIdentityStore } from '@/core/identity/identity-store';
-import { useLockStore } from '@/core/identity/lock-store';
+import { useAccountStore } from '@/core/account/account-store';
+import { useLockStore } from '@/core/account/lock-store';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { InMemoryChatSession } from '@/core/messaging/in-memory-session';
 import { connectFake, disconnectFake, ns, resetChatStore } from '@/core/messaging/testing/store';
@@ -15,8 +15,8 @@ import type { CliIo } from './context';
 import { COMMANDS } from './commands';
 import { runCli } from './run';
 
-jest.mock('@/core/identity/keyring', () => ({
-  ...jest.requireActual('@/core/identity/keyring'),
+jest.mock('@/core/account/keyring', () => ({
+  ...jest.requireActual('@/core/account/keyring'),
   loadOrCreateDbEncryptionKey: async () => new Uint8Array(32),
 }));
 
@@ -56,7 +56,7 @@ function fakeIo(stdin = ''): FakeIo {
   return io;
 }
 
-const PEER = 'b'.repeat(64);
+const PARTICIPANT = 'b'.repeat(64);
 
 function host(plugins: Plugin[] = []): PluginHostValue {
   const registry = new PluginRegistry(plugins);
@@ -78,10 +78,10 @@ beforeEach(async () => {
   await AsyncStorage.clear();
   resetChatStore();
   session = new InMemoryChatSession();
-  session.seedConversation({ id: 'alice', title: 'Alice' });
-  session.seedAddress(PEER, '0x2222222222222222222222222222222222222222');
-  session.seedConversation({ id: 'team', title: 'Team chat', kind: 'group', selfRole: 'owner' });
-  session.seedConversation({
+  session.seedChat({ id: 'alice', title: 'Alice' });
+  session.seedAddress(PARTICIPANT, '0x2222222222222222222222222222222222222222');
+  session.seedChat({ id: 'team', title: 'Team chat', kind: 'group', selfRole: 'owner' });
+  session.seedChat({
     id: 'teammate',
     title: 'Team lead',
     memberIds: [session.self.participantId, 'c'.repeat(64)],
@@ -90,7 +90,7 @@ beforeEach(async () => {
   await connectFake(session);
   useLockStore.setState({ status: 'open' });
   await setCliAllowed(true);
-  useIdentityStore.setState({
+  useAccountStore.setState({
     status: 'ready',
     activeAccountId: 'test-account',
     accounts: [
@@ -118,13 +118,13 @@ describe('reading', () => {
     );
     expect(chats.find((c: { id: string }) => c.id === ns('alice'))).toMatchObject({
       title: '0x2222…2222',
-      peer: PEER,
+      participant: PARTICIPANT,
       kind: 'dm',
       lastMessage: 'lunch?',
     });
   });
 
-  it('finds a direct message by the other person’s address', async () => {
+  it('finds a DM by the other person’s address', async () => {
     const { code, out } = await run(['read', '0x2222222222222222222222222222222222222222']);
 
     expect(code).toBe(0);
@@ -154,13 +154,64 @@ describe('reading', () => {
   });
 });
 
+describe('network and protocol', () => {
+  const ids = async (argv: string[]) =>
+    JSON.parse((await run([...argv, '--json'])).out).map((row: { id: string }) => row.id);
+
+  it('lists the chats on a network, a bridged chat under the network at the far end', async () => {
+    session.seedChat({
+      id: 'bridged',
+      title: 'Slack chat',
+      kind: 'group',
+      network: 'Slack',
+    });
+    await useChatStore.getState().refreshChats();
+
+    expect(await ids(['chats', '--network', 'slack'])).toEqual([ns('bridged')]);
+    const xmtp = await ids(['chats', '--network', 'XMTP']);
+    expect(xmtp).toEqual(expect.arrayContaining([ns('alice'), ns('team')]));
+    expect(xmtp).not.toContain(ns('bridged'));
+  });
+
+  it('takes a protocol id with --protocol', async () => {
+    expect(await ids(['contacts', '--protocol', 'xmtp'])).toContain(PARTICIPANT);
+    expect((await run(['contacts', '--network', 'xmtp'])).err).toContain('Unknown option');
+  });
+
+  it('names the known protocols when --protocol matches none', async () => {
+    const { code, err } = await run(['join', 'somegroup', '--protocol', 'icq']);
+
+    expect(code).not.toBe(0);
+    expect(err).toContain('No protocol "icq". Known:');
+  });
+});
+
+it('declines a request and reports it as declined', async () => {
+  session.seedChat({ id: 'stranger', title: 'Stranger', consent: 'request' });
+  await useChatStore.getState().refreshChats();
+
+  const declined = await run(['decline', 'stranger']);
+  expect(declined.code).toBe(0);
+  expect(declined.out).toMatch(/^Declined /);
+
+  const { out } = await run(['chat', 'stranger', '--json']);
+  expect(JSON.parse(out)).toMatchObject({ id: ns('stranger'), declined: true, request: false });
+});
+
+it('declines nothing but a request', async () => {
+  const { code, err } = await run(['decline', 'alice']);
+
+  expect(code).not.toBe(0);
+  expect(err).toContain('Only a request can be declined.');
+});
+
 describe('sending', () => {
   it('sends the text given', async () => {
     const { code } = await run(['send', 'alice', 'on', 'my', 'way']);
 
     expect(code).toBe(0);
     expect(session.sent).toEqual([
-      { conversationId: 'alice', content: { kind: 'text', text: 'on my way' } },
+      { chatId: 'alice', content: { kind: 'text', text: 'on my way' } },
     ]);
   });
 
@@ -286,10 +337,10 @@ describe('every command that asks first', () => {
   const cases: Record<Asking, { argv: string[]; untouched: () => void }> = {
     'accounts erase': {
       argv: ['accounts', 'erase', 'Main'],
-      untouched: () => expect(useIdentityStore.getState().accounts).toHaveLength(1),
+      untouched: () => expect(useAccountStore.getState().accounts).toHaveLength(1),
     },
-    'networks logout': {
-      argv: ['networks', 'logout', 'xmtp'],
+    'protocols logout': {
+      argv: ['protocols', 'logout', 'xmtp'],
       untouched: () => expect(signOut).not.toHaveBeenCalled(),
     },
     'devices revoke': {
@@ -333,7 +384,7 @@ it('names people the way your plugins do', async () => {
       icon: 'people-outline',
       permissions: [],
     },
-    setup: () => ({ names: async () => ({ [PEER]: 'Weather bot' }) }),
+    setup: () => ({ names: async () => ({ [PARTICIPANT]: 'Weather bot' }) }),
   };
   const registry = new PluginRegistry([naming]);
   await registry.activate('namer', () => ({}) as never);
@@ -383,8 +434,8 @@ it('streams each new message once, however many places it lands in', async () =>
 
   const message = {
     id: 'm2',
-    conversationId: ns('alice'),
-    senderId: PEER,
+    chatId: ns('alice'),
+    senderId: PARTICIPANT,
     sentAt: Date.now(),
     content: { kind: 'text' as const, text: 'are you there?' },
     fromMe: false,
@@ -392,11 +443,11 @@ it('streams each new message once, however many places it lands in', async () =>
   };
   useChatStore.setState((s) => ({
     messages: { ...s.messages, [ns('alice')]: [...(s.messages[ns('alice')] ?? []), message] },
-    conversations: s.conversations.map((c) =>
+    chats: s.chats.map((c) =>
       c.id === ns('alice')
         ? { ...c, lastMessage: { ...message, id: 'preview:m2', preview: true } }
         : c.id === ns('team')
-          ? { ...c, lastMessage: { ...message, id: 'm3', conversationId: ns('team') } }
+          ? { ...c, lastMessage: { ...message, id: 'm3', chatId: ns('team') } }
           : c
     ),
   }));

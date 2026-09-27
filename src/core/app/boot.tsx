@@ -2,23 +2,24 @@ import * as Linking from 'expo-linking';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
-import { useIdentityStore } from '../identity/identity-store';
-import { registerHardwareVendors } from '../identity/vendors';
-import { useLockStore } from '../identity/lock-store';
+import { useAccountStore } from '../account/account-store';
+import { registerHardwareVendors } from '../account/vendors';
+import { useLockStore } from '../account/lock-store';
 import { usePluginHost } from '../plugins/host';
+import { reportError } from './report-error';
 import { accountRuntime } from '@/runtime';
 
 registerHardwareVendors();
 
 export function useAppBoot(): void {
-  const status = useIdentityStore((s) => s.status);
-  const keyring = useIdentityStore((s) => s.keyring);
-  const activeAccountId = useIdentityStore((s) => s.activeAccountId);
-  const restore = useIdentityStore((s) => s.restore);
+  const status = useAccountStore((s) => s.status);
+  const keyring = useAccountStore((s) => s.keyring);
+  const activeAccountId = useAccountStore((s) => s.activeAccountId);
+  const restore = useAccountStore((s) => s.restore);
   const { registry, defaultEnabled, makeContext, onPluginsChanged } = usePluginHost();
 
   useEffect(() => {
-    if (status === 'loading') restore();
+    if (status === 'loading') void restore();
   }, [status, restore]);
 
   useEffect(() => {
@@ -50,7 +51,7 @@ export function useDeepLinkRouter() {
       });
     };
 
-    Linking.getInitialURL().then(consume);
+    Linking.getInitialURL().then(consume).catch(reportError);
     const sub = Linking.addEventListener('url', ({ url }) => consume(url));
     return () => sub.remove();
   }, [handleUri]);
@@ -61,13 +62,13 @@ export function useAppLock() {
   const evaluate = useLockStore((s) => s.evaluate);
 
   useEffect(() => {
-    if (status === 'checking') evaluate();
+    if (status === 'checking') evaluate().catch(reportError);
   }, [status, evaluate]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (next) => {
       const lock = useLockStore.getState();
-      if (next === 'active') lock.noteForegrounded();
+      if (next === 'active') lock.noteForegrounded().catch(reportError);
       else lock.noteBackgrounded();
     });
     return () => subscription.remove();

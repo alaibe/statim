@@ -70,7 +70,7 @@ export function renderSkill(): string {
   const exitRows = Object.values(EXIT_CODES).map((code) => `| ${code} | ${EXIT_MEANINGS[code]} |`);
   return `---
 name: status-original
-description: Read, search and send messages across XMTP, Telegram, Matrix and the other networks of the Status Original desktop app, manage chats and groups, and run its wallet and plugin commands, with the \`status-original\` command. Use when the user asks to check, summarise, answer or send messages, find something in their chats, manage a group or a network sign-in, or act on their Status Original account from the terminal.
+description: Read, search and send messages across XMTP, Telegram, Matrix and the other protocols of the Status Original desktop app, manage chats and groups, and run its wallet and plugin commands, with the \`status-original\` command. Use when the user asks to check, summarise, answer or send messages, find something in their chats, manage a group or a protocol sign-in, or act on their Status Original account from the terminal.
 ---
 
 # Status Original command line
@@ -86,9 +86,9 @@ description: Read, search and send messages across XMTP, Telegram, Matrix and th
 - Pipe long text or file contents through stdin rather than the command line: \`status-original send <chat> - < note.md\`, \`--file - --name photo.jpg < photo.jpg\`.
 - Some commands wait for the person at the app to approve them (marked below). Exit 5 means they declined: tell the user, do not retry.
 - Money: wallet commands such as \`run <chat> /send 0.01 ETH\` first print a review with the exact \`--confirm\` command. Show the review to the user; running the \`--confirm\` command asks for approval in the app before anything is signed.
-- Exit 4 means the command line is turned off, the app is locked, it has no account, or the network is not connected. Tell the user. The command line is off until they turn it on in the app under Settings › Command line; never try to change that yourself.
-- Networks that sign in by phone number and code: run \`networks login <network> --json\` to see the step, ask the user for the answer, then pass it as \`networks login <network> <answer> --json\`, one step at a time.
-- Right after the app starts or the account changes, a network can still be catching up. If a chat or message you expect is missing, run \`networks sync --json\` and look again.
+- Exit 4 means the command line is turned off, the app is locked, it has no account, or a protocol is not connected. Tell the user. The command line is off until they turn it on in the app under Settings › Command line; never try to change that yourself.
+- Protocols that sign in by phone number and code: run \`protocols login <protocol> --json\` to see the step, ask the user for the answer, then pass it as \`protocols login <protocol> <answer> --json\`, one step at a time.
+- Right after the app starts or the account changes, a protocol can still be catching up. If a chat or message you expect is missing, run \`protocols sync --json\` and look again.
 - \`watch --json\` prints one JSON object per new message until it is stopped. Run it with a timeout or in the background.
 - Plugins add their own slash commands. \`commands --json\` lists them with their usage; \`run\` runs one.
 - The recovery phrase is never available here. Do not look for it.

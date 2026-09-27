@@ -11,7 +11,7 @@ import {
   manageLimitedAccess,
   type ContactAccess,
 } from '@/features/contacts/device-contacts';
-import { fromPeerKey, peerKey, peersOf } from '@/features/contacts/peers';
+import { fromContactKey, contactKey, contactsOf } from '@/features/contacts/contacts';
 import { openChat } from '@/features/navigation/open';
 
 export type ContactSort = 'name' | 'recent';
@@ -23,28 +23,24 @@ export interface ContactListProps {
   sorting: boolean;
   onSort: (sortBy: ContactSort) => void;
   onCloseSort: () => void;
-  /** The conversation open beside the list, on layouts that show both. */
-  selectedConversationId?: string;
+  /** The chat open beside the list, on layouts that show both. */
+  selectedChatId?: string;
 }
 
 let lastKeys: {
-  conversations: ChatState['conversations'];
+  chats: ChatState['chats'];
   sessions: ChatState['sessions'];
   byName: boolean;
   keys: string[];
 } | null = null;
 
-function peerKeysOf(state: ChatState, byName: boolean): string[] {
-  const { conversations, sessions } = state;
-  if (
-    lastKeys?.conversations === conversations &&
-    lastKeys.sessions === sessions &&
-    lastKeys.byName === byName
-  ) {
+function contactKeysOf(state: ChatState, byName: boolean): string[] {
+  const { chats, sessions } = state;
+  if (lastKeys?.chats === chats && lastKeys.sessions === sessions && lastKeys.byName === byName) {
     return lastKeys.keys;
   }
-  const listed = peersOf(conversations, (protocol) => selfIdFor(state, protocol)).map(peerKey);
-  lastKeys = { conversations, sessions, byName, keys: byName ? listed.sort() : listed };
+  const listed = contactsOf(chats, (protocol) => selfIdFor(state, protocol)).map(contactKey);
+  lastKeys = { chats, sessions, byName, keys: byName ? listed.sort() : listed };
   return lastKeys.keys;
 }
 
@@ -55,11 +51,11 @@ export function ContactList({
   sorting,
   onSort,
   onCloseSort,
-  selectedConversationId,
+  selectedChatId,
 }: ContactListProps) {
   const router = useRouter();
 
-  const keys = useChatStore(useShallow((s) => peerKeysOf(s, sortBy === 'name')));
+  const keys = useChatStore(useShallow((s) => contactKeysOf(s, sortBy === 'name')));
 
   const [access, setAccess] = useState<ContactAccess>('unknown');
 
@@ -71,14 +67,14 @@ export function ContactList({
 
   useEffect(refreshAccess, [refreshAccess]);
 
-  const peers = keys.map(fromPeerKey);
+  const contacts = keys.map(fromContactKey);
 
-  const { nameFor } = useDisplayNames(peers);
+  const { nameFor } = useDisplayNames(contacts);
 
   const ordered =
     sortBy === 'name'
-      ? [...peers].sort((a, b) => nameFor(a.id).localeCompare(nameFor(b.id)))
-      : peers;
+      ? [...contacts].sort((a, b) => nameFor(a.id).localeCompare(nameFor(b.id)))
+      : contacts;
   const q = query.trim().toLowerCase();
   const visible = q ? ordered.filter((p) => nameFor(p.id).toLowerCase().includes(q)) : ordered;
 
@@ -105,8 +101,8 @@ export function ContactList({
 
         <Section surface="list">
           <ListItem
-            testID="invite-friends"
-            title={<Text className="font-semibold text-brand">Invite friends</Text>}
+            testID="invite-contacts"
+            title={<Text className="font-semibold text-brand">Invite contacts</Text>}
             leading={<Icon name="person-add-outline" size={22} tone="brand" />}
             onPress={() => router.push('/invite')}
           />
@@ -118,17 +114,17 @@ export function ContactList({
           empty={
             query
               ? 'Nobody matches that search.'
-              : 'Nobody yet. Start a conversation with an address or an ENS name and they will appear here.'
+              : 'Nobody yet. Start a chat with an address or an ENS name and they will appear here.'
           }
           className="mt-6">
-          {visible.map((peer) => (
+          {visible.map((contact) => (
             <ListItem
-              key={`${peer.protocol}-${peer.id}`}
-              title={nameFor(peer.id)}
-              subtitle={peer.protocol?.toUpperCase()}
-              leading={<Avatar seed={nameFor(peer.id)} size="md" />}
-              selected={peer.conversationId === selectedConversationId}
-              onPress={() => openChat(peer.conversationId)}
+              key={`${contact.protocol}-${contact.id}`}
+              title={nameFor(contact.id)}
+              subtitle={contact.protocol?.toUpperCase()}
+              leading={<Avatar seed={nameFor(contact.id)} size="md" />}
+              selected={contact.chatId === selectedChatId}
+              onPress={() => openChat(contact.chatId)}
             />
           ))}
         </Section>

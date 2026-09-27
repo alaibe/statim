@@ -4,7 +4,7 @@ import { Badge, ConfirmSheet, Icon, ListItem, Loading, Note, Section, Text } fro
 import { errorMessage } from '@/core/errors';
 import { useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
 import { formatDayLabel } from '@/core/messaging/preview';
-import { useAction } from '@/core/app/use-action';
+import { useAction } from '@/features/use-action';
 import { SettingsScreen } from '@/features/settings/settings-screen';
 
 interface Installation {
@@ -35,8 +35,8 @@ export default function DevicesScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.resolve().then(() => {
-      if (!cancelled) return load();
+    queueMicrotask(() => {
+      if (!cancelled) void load();
     });
     return () => {
       cancelled = true;
@@ -63,7 +63,7 @@ export default function DevicesScreen() {
           <Section
             title="This device"
             surface="card"
-            empty="This transport does not report devices, so there is nothing to show here."
+            empty="This protocol does not report devices, so there is nothing to show here."
             className="mb-6">
             {here ? (
               <ListItem
@@ -118,7 +118,6 @@ export default function DevicesScreen() {
           'That device will no longer be able to read or send messages for this account. It cannot be undone: the device would have to be added again from scratch, and it would start with no history.',
           'This needs a signature from your account.',
         ]}
-        busy={revoke.busy}
         confirm={{
           label: 'Revoke device',
           busyLabel: 'Revoking…',

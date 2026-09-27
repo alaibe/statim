@@ -250,7 +250,7 @@ docker compose exec synapse register_new_matrix_user \
 of versions. Each bridge's log should end with `Bridge started`.
 
 In this app, open **Settings → Protocols → Matrix** and enter
-`https://matrix.example.org` and `@you:example.org`. [Networks](./networks#matrix)
+`https://matrix.example.org` and `@you:example.org`. [Protocols](./networks#matrix)
 has the rest.
 
 ## Sign in to each network
@@ -282,7 +282,7 @@ bot's questions there:
 | `@discordbot:example.org` | Discord | `login-qr`, then scan the QR code with the Discord app on your phone |
 | Any other bridge bot | | `login` lists the ways it can sign in; send `login` followed by the one you want |
 
-Once signed in, your chats appear in this app's list as Matrix conversations
+Once signed in, your chats appear in this app's list as Matrix chats
 and fill in as the bridge catches up.
 
 ## Keep it running

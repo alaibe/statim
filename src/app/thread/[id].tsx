@@ -1,10 +1,13 @@
-import { useLocalSearchParams } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 
-import { ConversationView } from '@/features/chat/conversation-view';
+import { parseChatId } from '@/core/messaging/namespace';
+import { ChatView } from '@/features/chat/chat-view';
 import { useBack } from '@/features/navigation/use-back';
 
 export default function ThreadScreen() {
-  const { id, root } = useLocalSearchParams<{ id: string; root: string }>();
-  const back = useBack(`/chat/${id}`);
-  return <ConversationView id={id} thread={root} onBack={back} />;
+  const params = useLocalSearchParams<{ id: string; root: string }>();
+  const back = useBack(`/chat/${params.id}`);
+  const id = parseChatId(params.id);
+  if (!id) return <Redirect href="/chats" />;
+  return <ChatView id={id} thread={params.root} onBack={back} />;
 }

@@ -2,7 +2,7 @@ import { InMemoryMessageStore } from './message-store';
 import { StoreBackedSession } from './store-backed-session';
 import {
   flushWrites,
-  STORE_TEST_PEER as THEM,
+  STORE_TEST_PARTICIPANT as THEM,
   STORE_TEST_SELF as ME,
   StoreBackedTestTransport,
   storeBackedSession as sessionOn,
@@ -14,18 +14,18 @@ describe('history across a restart', () => {
 
     const first = await sessionOn(store);
     await first.transport.receive('m1', 1000, 'said before the restart');
-    const conversation = first.transport.conversationIdFor([ME, THEM]);
+    const chat = first.transport.chatIdFor([ME, THEM]);
     await flushWrites();
 
     const second = await sessionOn(store);
 
-    const messages = await second.session.getMessages(conversation);
+    const messages = await second.session.getMessages(chat);
     expect(messages.map((m) => (m.content as { text: string }).text)).toEqual([
       'said before the restart',
     ]);
   });
 
-  it('lists the conversation again without waiting for the network', async () => {
+  it('lists the chat again without waiting for the protocol', async () => {
     const store = new InMemoryMessageStore();
 
     const first = await sessionOn(store);
@@ -34,12 +34,12 @@ describe('history across a restart', () => {
 
     const second = await sessionOn(store);
 
-    const conversations = await second.session.listConversations();
-    expect(conversations).toHaveLength(1);
-    expect(conversations[0].lastMessage?.id).toBe('m1');
+    const chats = await second.session.listChats();
+    expect(chats).toHaveLength(1);
+    expect(chats[0].lastMessage?.id).toBe('m1');
   });
 
-  it('reopens restored conversations on the transport', async () => {
+  it('reopens restored chats on the transport', async () => {
     const store = new InMemoryMessageStore();
 
     const first = await sessionOn(store);
@@ -50,17 +50,17 @@ describe('history across a restart', () => {
     expect(second.transport.opened).toEqual([`topic:${[ME, THEM].sort().join('+')}`]);
   });
 
-  it('does not resurrect a conversation that was left', async () => {
+  it('does not resurrect a chat that was left', async () => {
     const store = new InMemoryMessageStore();
 
     const first = await sessionOn(store);
     await first.transport.receive('m1', 1000, 'hello');
     await flushWrites();
-    const id = first.transport.conversationIdFor([ME, THEM]);
+    const id = first.transport.chatIdFor([ME, THEM]);
     await first.session.leaveGroup(id);
 
     const second = await sessionOn(store);
-    expect(await second.session.listConversations()).toEqual([]);
+    expect(await second.session.listChats()).toEqual([]);
     expect(await second.session.getMessages(id)).toHaveLength(1);
   });
 
@@ -68,12 +68,12 @@ describe('history across a restart', () => {
     const store = new InMemoryMessageStore();
 
     const first = await sessionOn(store);
-    const conversation = await first.session.createDm(THEM);
-    await first.session.send(conversation.id, { kind: 'text', text: 'mine' });
+    const chat = await first.session.createDm(THEM);
+    await first.session.send(chat.id, { kind: 'text', text: 'mine' });
     await flushWrites();
 
     const second = await sessionOn(store);
-    expect(await second.session.getMessages(conversation.id)).toHaveLength(1);
+    expect(await second.session.getMessages(chat.id)).toHaveLength(1);
   });
 });
 
@@ -86,7 +86,7 @@ describe('dedupe', () => {
     await transport.receive('m1', 1000, 'once');
     await flushWrites();
 
-    expect(await session.getMessages(transport.conversationIdFor([ME, THEM]))).toHaveLength(1);
+    expect(await session.getMessages(transport.chatIdFor([ME, THEM]))).toHaveLength(1);
   });
 
   it('does not replay history as new messages on the next launch', async () => {
@@ -113,11 +113,11 @@ describe('durable writes', () => {
       attempts = 0;
       override async insertMessage(
         message: Parameters<InMemoryMessageStore['insertMessage']>[0],
-        conversation?: Parameters<InMemoryMessageStore['insertMessage']>[1]
+        chat?: Parameters<InMemoryMessageStore['insertMessage']>[1]
       ) {
         this.attempts += 1;
         if (this.attempts === 1) throw new Error('disk full');
-        return super.insertMessage(message, conversation);
+        return super.insertMessage(message, chat);
       }
     }
     const store = new FlakyStore();
@@ -139,7 +139,7 @@ describe('durable writes', () => {
     await transport.receive('m1', 1000, 'keep me');
     expect(history).toEqual({ status: 'idle' });
     expect(seen).toEqual(['m1']);
-    expect(await store.loadMessages(transport.conversationIdFor([ME, THEM]))).toHaveLength(1);
+    expect(await store.loadMessages(transport.chatIdFor([ME, THEM]))).toHaveLength(1);
   });
 
   it('stops intake before waiting for queued writes during disconnect', async () => {
@@ -147,12 +147,12 @@ describe('durable writes', () => {
     class SlowStore extends InMemoryMessageStore {
       override async insertMessage(
         message: Parameters<InMemoryMessageStore['insertMessage']>[0],
-        conversation?: Parameters<InMemoryMessageStore['insertMessage']>[1]
+        chat?: Parameters<InMemoryMessageStore['insertMessage']>[1]
       ) {
         await new Promise<void>((resolve) => {
           release = resolve;
         });
-        return super.insertMessage(message, conversation);
+        return super.insertMessage(message, chat);
       }
     }
     const { session, transport } = await sessionOn(new SlowStore());
@@ -165,23 +165,17 @@ describe('durable writes', () => {
     await receiving;
     await disconnecting;
     expect(transport.disconnected).toBe(true);
-    expect(await session.getMessages(transport.conversationIdFor([ME, THEM]))).toHaveLength(1);
+    expect(await session.getMessages(transport.chatIdFor([ME, THEM]))).toHaveLength(1);
   });
 });
 
 describe('pagination', () => {
   it('loads stored messages older than the hydration limit', async () => {
-    class CountingStore extends InMemoryMessageStore {
-      loads = 0;
-      override async loadMessages(...args: Parameters<InMemoryMessageStore['loadMessages']>) {
-        this.loads += 1;
-        return super.loadMessages(...args);
-      }
-    }
-    const store = new CountingStore();
+    const store = new InMemoryMessageStore();
+    const loads = jest.spyOn(store, 'loadMessages');
     const transport = new StoreBackedTestTransport();
-    const id = transport.conversationIdFor([ME, THEM]);
-    await store.upsertConversation({
+    const id = transport.chatIdFor([ME, THEM]);
+    await store.upsertChat({
       id,
       protocolId: transport.protocolId,
       participants: [ME, THEM],
@@ -191,7 +185,7 @@ describe('pagination', () => {
     for (let index = 1; index <= 600; index++) {
       await store.insertMessage({
         id: `m${String(index).padStart(3, '0')}`,
-        conversationId: id,
+        chatId: id,
         senderId: THEM,
         sentAt: index,
         content: { kind: 'text', text: String(index) },
@@ -203,7 +197,7 @@ describe('pagination', () => {
     const session = new StoreBackedSession(transport, store);
     transport.attach(session);
     await session.hydrate();
-    expect(store.loads).toBe(0);
+    expect(loads).not.toHaveBeenCalled();
     const hydrated = await session.getMessages(id);
     expect(hydrated).toHaveLength(500);
     const older = await session.getMessages(id, { limit: 100, before: hydrated[0] });

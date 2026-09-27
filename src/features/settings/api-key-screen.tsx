@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { Button, Field, Note, Section, Text, toast } from '@/design';
-import { useIdentityStore } from '@/core/identity/identity-store';
+import { useAccountStore } from '@/core/account/account-store';
 import { openExternal } from '@/lib/open-url';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 
 import { SettingsScreen } from './settings-screen';
-import { useAction } from '@/core/app/use-action';
+import { useAction } from '@/features/use-action';
 
 export interface ApiKeyScreenProps {
   title: string;
@@ -33,7 +33,7 @@ export function ApiKeyScreen({
   notes,
   link,
 }: ApiKeyScreenProps) {
-  const accountId = useIdentityStore((s) => s.activeAccountId);
+  const accountId = useAccountStore((s) => s.activeAccountId);
   const [version, setVersion] = useState(0);
   const stored = useKeyedLoad(accountId, load, version);
   const saved = stored.loading ? undefined : (stored.value ?? null);
@@ -84,7 +84,7 @@ export function ApiKeyScreen({
                     disabled={submit.busy}
                     onPress={() => {
                       setDraft({ accountId, text: '' });
-                      void submit.run('');
+                      return submit.run('');
                     }}
                   />
                 </View>

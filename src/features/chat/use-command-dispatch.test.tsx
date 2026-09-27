@@ -1,9 +1,10 @@
 import { act, createElement, useEffect, useState } from 'react';
 import { create, type ReactTestRenderer } from 'react-test-renderer';
 
-import type { ConversationScope } from '@/core/messaging/conversation-scope';
+import type { ChatScope } from '@/core/messaging/chat-scope';
 
 import { useCommandDispatch } from './use-command-dispatch';
+import { asChatId } from '@/core/messaging/testing/ids';
 
 const mockNoCommands: never[] = [];
 jest.mock('@/core/plugins/host', () => ({
@@ -30,8 +31,8 @@ function Chat({ send }: { send: (text: string) => void }) {
     press = setPending;
   }, []);
   useCommandDispatch({
-    conversationId: 'conv-1',
-    scope: 'dm' as unknown as ConversationScope,
+    chatId: asChatId('conv-1'),
+    scope: 'dm' as unknown as ChatScope,
     onSendText: async (text) => {
       send(text);
       setMessages(messages + 1);

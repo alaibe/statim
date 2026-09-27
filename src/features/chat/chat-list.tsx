@@ -16,49 +16,44 @@ import {
   useEscapeKey,
   useThemeColors,
 } from '@/design';
+import { reportError } from '@/core/app/report-error';
 import { useChatStore } from '@/core/messaging/chat-store';
-import type { Conversation } from '@/core/messaging/types';
+import type { Chat, ChatId } from '@/core/messaging/types';
 import { messagePreview } from '@/core/messaging/preview';
 import { type ChatPrefs } from '@/core/messaging/chat-prefs';
-import { type Directory, type InboxRow, isUnreadHere, networkOf } from '@/core/messaging/folders';
+import { type Folder, type ChatListRow, isUnreadHere, networkOf } from '@/core/messaging/folders';
 import { isUnread } from '@/core/messaging/unread';
-import { useConversationTitles } from '@/features/chat/use-display-names';
+import { useChatTitles } from '@/features/chat/use-display-names';
 import { HistoryStatus } from '@/features/chat/history-status';
-import { FilterTabs } from '@/features/chat/folder-tabs';
-import { useFolderStore } from '@/features/chat/folder-store';
+import { FilterBar } from '@/features/chat/filter-bar';
+import { useChatListStore } from '@/features/chat/chat-list-store';
 import { useUnreadCounts } from '@/features/chat/use-unread-counts';
 import { ChatMenu, type ChatMenuTarget } from './chat-menu';
-import {
-  ConnectingState,
-  ConversationRow,
-  DirectoryHeader,
-  DirectoryRow,
-  Separator,
-} from './chat-list-rows';
-import { inbox, isFolded } from './inbox';
+import { ConnectingState, ChatRow, FolderHeader, FolderRow, Separator } from './chat-list-rows';
+import { chatListContents, isFolded } from './chat-list-contents';
 
 const NO_IDS: ReadonlySet<string> = new Set();
 
 export interface ChatListProps {
   query: string;
-  /** The conversation open beside the list, on layouts that show both. */
+  /** The chat open beside the list, on layouts that show both. */
   selectedId?: string;
 }
 
-/** The conversation list: the Chats tab on a phone, the sidebar on desktop. */
+/** The chat list: the Chats tab on a phone, the sidebar on desktop. */
 export function ChatList({ query, selectedId }: ChatListProps) {
   const router = useRouter();
   const colors = useThemeColors();
 
-  const baseConversations = useChatStore((s) => s.conversations);
+  const baseChats = useChatStore((s) => s.chats);
   const status = useChatStore((s) => s.status);
 
   const { markInteractive } = useObserve();
   useEffect(() => {
-    if (baseConversations.length > 0 || status === 'ready' || status === 'error') {
+    if (baseChats.length > 0 || status === 'ready' || status === 'error') {
       markInteractive();
     }
-  }, [baseConversations.length, status, markInteractive]);
+  }, [baseChats.length, status, markInteractive]);
   const syncing = useChatStore((s) => s.syncing);
   const fetchingHistory = useChatStore((s) =>
     Object.values(s.protocols).some(
@@ -67,49 +62,48 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   );
   const sync = useChatStore((s) => s.sync);
   const readAt = useChatStore((s) => s.readAt);
-  const conversations = useUnreadCounts(baseConversations);
+  const chats = useUnreadCounts(baseChats);
 
-  const { selfIdOf, titleOf } = useConversationTitles(conversations);
+  const { selfIdOf, titleOf } = useChatTitles(chats);
   const chatPrefs = useChatStore((s) => s.chatPrefs);
   const setChatPref = useChatStore((s) => s.setChatPref);
-  const toggle = (id: string, key: keyof ChatPrefs) =>
-    setChatPref(id, { [key]: !useChatStore.getState().chatPrefs[id]?.[key] });
+  const toggle = (id: ChatId, key: keyof ChatPrefs) => {
+    setChatPref(id, { [key]: !useChatStore.getState().chatPrefs[id]?.[key] }).catch(reportError);
+  };
 
   const [menu, setMenu] = useState<ChatMenuTarget | null>(null);
-  const showMenu = (conversation: Conversation, anchor: MenuAnchor | null) =>
-    setMenu({ conversation, anchor });
-  const directory = useFolderStore((s) => s.directory);
-  const setDirectory = useFolderStore((s) => s.setDirectory);
-  const filter = useFolderStore((s) => s.filter);
-  const setFilter = useFolderStore((s) => s.setFilter);
+  const showMenu = (chat: Chat, anchor: MenuAnchor | null) => setMenu({ chat, anchor });
+  const folder = useChatListStore((s) => s.folder);
+  const setFolder = useChatListStore((s) => s.setFolder);
+  const filter = useChatListStore((s) => s.filter);
+  const setFilter = useChatListStore((s) => s.setFilter);
   const [navigated, setNavigated] = useState(false);
 
   // A chat read under Unread stays until the view changes, rather than vanishing under the pointer.
-  const view = `${directory}|${filter}`;
+  const view = `${folder}|${filter}`;
   const [kept, setKept] = useState({ view, ids: NO_IDS });
   const held = kept.view === view ? kept.ids : NO_IDS;
   const deferredQuery = useDeferredValue(query);
-  const { allowed, requests, scope, rows, unseen, unreadHere, mentionsHere, showNetwork } = useMemo(
-    () =>
-      inbox({
-        conversations,
-        chatPrefs,
-        readAt,
-        directory,
-        filter,
-        query: deferredQuery,
-        held,
-        titleOf,
-      }),
-    [conversations, chatPrefs, readAt, directory, filter, deferredQuery, held, titleOf]
-  );
+  const { accepted, requests, scope, rows, unseen, unreadHere, mentionsHere, showNetwork } =
+    useMemo(
+      () =>
+        chatListContents({
+          chats,
+          chatPrefs,
+          readAt,
+          folder,
+          filter,
+          query: deferredQuery,
+          held,
+          titleOf,
+        }),
+      [chats, chatPrefs, readAt, folder, filter, deferredQuery, held, titleOf]
+    );
   if (unseen.length > 0) setKept({ view, ids: new Set([...held, ...unseen]) });
 
   const trimmed = query.trim();
-  const list = useRef<FlashListRef<InboxRow>>(null);
-  const selectedIndex = rows.findIndex(
-    (row) => row.kind === 'chat' && row.conversation.id === selectedId
-  );
+  const list = useRef<FlashListRef<ChatListRow>>(null);
+  const selectedIndex = rows.findIndex((row) => row.kind === 'chat' && row.chat.id === selectedId);
   const selectedListed = selectedIndex >= 0;
   const revealSelected = useEffectEvent(() => {
     const view = list.current;
@@ -122,45 +116,45 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   useEffect(() => {
     if (selectedListed) revealSelected();
   }, [selectedId, selectedListed]);
-  const go = (next: Directory | null) => {
+  const go = (next: Folder | null) => {
     setNavigated(true);
-    setDirectory(next);
+    setFolder(next);
   };
-  const leaveDirectory = () => go(null);
-  useEscapeKey(directory !== null, leaveDirectory);
-  const openSelectedDirectory = useEffectEvent(() => {
-    const selected = allowed.find((c) => c.id === selectedId);
+  const leaveFolder = () => go(null);
+  useEscapeKey(folder !== null, leaveFolder);
+  const openSelectedFolder = useEffectEvent(() => {
+    const selected = accepted.find((c) => c.id === selectedId);
     if (!selected || selectedListed || trimmed) return;
     const network = networkOf(selected);
-    const home: Directory | null = chatPrefs[selected.id]?.archived
+    const home: Folder | null = chatPrefs[selected.id]?.archived
       ? 'archive'
       : network && isFolded(network) && !chatPrefs[selected.id]?.pinned
         ? `network:${network}`
         : null;
-    if (home !== directory) setDirectory(home);
+    if (home !== folder) setFolder(home);
   });
   useEffect(() => {
-    openSelectedDirectory();
+    openSelectedFolder();
   }, [selectedId]);
 
-  const folderContext = { prefs: chatPrefs, readAt };
-  const renderItem = ({ item: row }: ListRenderItemInfo<InboxRow>) =>
-    row.kind === 'directory' ? (
-      <DirectoryRow
+  const filterContext = { prefs: chatPrefs, readAt };
+  const renderItem = ({ item: row }: ListRenderItemInfo<ChatListRow>) =>
+    row.kind === 'folder' ? (
+      <FolderRow
         row={row}
-        unread={row.chats.filter((c) => isUnreadHere(c, folderContext)).length}
+        unread={row.chats.filter((c) => isUnreadHere(c, filterContext)).length}
         preview={`${titleOf(row.latest)}: ${messagePreview(row.latest.lastMessage)}`}
-        onPress={() => go(row.directory)}
+        onPress={() => go(row.folder)}
       />
     ) : (
-      <ConversationRow
-        conversation={row.conversation}
-        title={titleOf(row.conversation)}
-        selfId={selfIdOf(row.conversation)}
-        unread={isUnread(row.conversation, readAt)}
-        network={showNetwork ? networkOf(row.conversation) : undefined}
-        prefs={chatPrefs[row.conversation.id]}
-        selected={row.conversation.id === selectedId}
+      <ChatRow
+        chat={row.chat}
+        title={titleOf(row.chat)}
+        selfId={selfIdOf(row.chat)}
+        unread={isUnread(row.chat, readAt)}
+        network={showNetwork ? networkOf(row.chat) : undefined}
+        prefs={chatPrefs[row.chat.id]}
+        selected={row.chat.id === selectedId}
         onMenu={showMenu}
         onToggle={toggle}
       />
@@ -168,37 +162,35 @@ export function ChatList({ query, selectedId }: ChatListProps) {
 
   return (
     <>
-      {conversations.length > 0 ? (
-        <FilterTabs
+      {chats.length > 0 ? (
+        <FilterBar
           active={filter}
           onSelect={setFilter}
           unread={unreadHere}
           mentions={mentionsHere}
         />
       ) : null}
-      {directory ? (
-        <DirectoryHeader directory={directory} onBack={leaveDirectory} count={scope.length} />
-      ) : null}
+      {folder ? <FolderHeader folder={folder} onBack={leaveFolder} count={scope.length} /> : null}
       <HistoryStatus compact />
-      {(status === 'connecting' || fetchingHistory) && conversations.length === 0 ? (
+      {(status === 'connecting' || fetchingHistory) && chats.length === 0 ? (
         <ConnectingState />
-      ) : conversations.length === 0 ? (
+      ) : chats.length === 0 ? (
         <EmptyState
           icon="chatbubbles-outline"
-          title="No conversations yet"
+          title="No chats yet"
           description="Start one with an Ethereum address on XMTP, or a public key on Nostr or Waku."
-          actionLabel="New conversation"
+          actionLabel="New chat"
           onAction={() => router.push('/new-chat')}
         />
       ) : (
         <Animated.View
-          key={directory ?? 'inbox'}
-          entering={navigated ? (directory ? Enter.fromRight() : Enter.fromLeft()) : undefined}
+          key={folder ?? 'all'}
+          entering={navigated ? (folder ? Enter.fromRight() : Enter.fromLeft()) : undefined}
           className="flex-1">
           <FlashList
             ref={list}
             data={rows}
-            keyExtractor={(row) => (row.kind === 'chat' ? row.conversation.id : row.directory)}
+            keyExtractor={(row) => (row.kind === 'chat' ? row.chat.id : row.folder)}
             getItemType={(row) => row.kind}
             drawDistance={process.env.EXPO_OS === 'web' ? 2000 : undefined}
             ItemSeparatorComponent={Separator}
@@ -223,11 +215,15 @@ export function ChatList({ query, selectedId }: ChatListProps) {
               />
             }
             refreshControl={
-              <RefreshControl refreshing={syncing} onRefresh={sync} tintColor={colors.brand} />
+              <RefreshControl
+                refreshing={syncing}
+                onRefresh={() => void sync()}
+                tintColor={colors.brand}
+              />
             }
             ListHeaderComponent={
               <>
-                {requests.length > 0 && !directory ? (
+                {requests.length > 0 && !folder ? (
                   <Pressable
                     testID="open-requests"
                     accessibilityRole="button"
@@ -235,7 +231,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
                     className="mx-gutter mb-2 min-h-tap flex-row items-center gap-3 rounded-card border border-line bg-surface px-3 py-3">
                     <Icon name="mail-unread-outline" size={20} tone="brand" />
                     <View className="min-w-0 flex-1">
-                      <Text className="font-semibold">Message requests</Text>
+                      <Text className="font-semibold">Requests</Text>
                       <Text variant="caption">From people you haven’t replied to</Text>
                     </View>
                     <CountBadge count={requests.length} />

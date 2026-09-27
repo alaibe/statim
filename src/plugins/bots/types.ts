@@ -1,11 +1,12 @@
 import type { PluginContext } from '@/core/plugins/types';
-import type { Widget } from '@/design/widgets';
+import { isWidget, type Widget } from '@/design/widgets';
+import { isString, shape } from '@/lib/guards';
 
 export interface KnownBot {
   address: string;
   name: string;
   description?: string;
-  inboxId?: string;
+  participantId?: string;
   addedAt: number;
 }
 
@@ -15,6 +16,8 @@ export interface UiMessage {
   widget: Widget;
   fallback: string;
 }
+
+export const isUiMessage = shape<UiMessage>({ widget: isWidget, fallback: isString });
 
 const STORAGE_BOTS = 'known-bots';
 

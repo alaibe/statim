@@ -4,31 +4,31 @@ import Animated from 'react-native-reanimated';
 
 import { Enter, Exit, Icon, Pressable, Text } from '@/design';
 import { parseCommand } from '@/core/commands/parser';
-import type { ConversationScope } from '@/core/messaging/conversation-scope';
-import type { ConversationId } from '@/core/messaging/types';
+import type { ChatScope } from '@/core/messaging/chat-scope';
+import type { ChatId } from '@/core/messaging/types';
 import { usePluginHost } from '@/core/plugins/host';
 import { worksOn } from '@/core/plugins/registry';
 
 import { useSupports } from './use-supports';
 
-/** The buttons plugins offer above the composer, minus those whose command this network lacks. */
+/** The buttons plugins offer above the composer, minus those whose command this protocol lacks. */
 export function QuickActions({
-  conversationId,
+  chatId,
   scope,
   onRun,
 }: {
-  conversationId: ConversationId;
-  scope: ConversationScope;
+  chatId: ChatId;
+  scope: ChatScope;
   onRun: (command: string) => void;
 }) {
   const { registry } = usePluginHost();
-  const { session } = useSupports(conversationId);
+  const { session } = useSupports(chatId);
   const offered = useSyncExternalStore(
     registry.subscribe,
-    () => registry.composerActionsFor(conversationId, scope),
-    () => registry.composerActionsFor(conversationId, scope)
+    () => registry.composerActionsFor(chatId, scope),
+    () => registry.composerActionsFor(chatId, scope)
   );
-  const commands = registry.commandsFor(conversationId, scope);
+  const commands = registry.commandsFor(chatId, scope);
   const actions = offered.filter(({ action }) => {
     const entry = commands.get(parseCommand(action.command)?.name ?? '');
     return !entry || worksOn(entry.command, session);

@@ -3,14 +3,14 @@ import { create } from 'zustand';
 
 import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
 import {
-  conversationPeers,
-  conversationTitle,
+  chatParticipants,
+  chatTitle,
   nameFrom,
   resolveParticipants,
   type DisplayParticipant,
   type ResolvedParticipants,
 } from '@/core/messaging/display-names';
-import type { Conversation, ParticipantId } from '@/core/messaging/types';
+import type { Chat, ParticipantId } from '@/core/messaging/types';
 import { usePluginRegistry } from '@/core/plugins/host';
 import { useLiveViews } from '@/core/plugins/live';
 import { sameValue } from '@/lib/same-value';
@@ -20,7 +20,12 @@ interface KnownNames extends ResolvedParticipants {
   own: Record<ParticipantId, string>;
 }
 
-const NONE: KnownNames = { accountId: null, names: {}, addresses: {}, own: {} };
+const NONE: Readonly<KnownNames> = Object.freeze({
+  accountId: null,
+  names: Object.freeze({}),
+  addresses: Object.freeze({}),
+  own: Object.freeze({}),
+});
 
 const useKnownNames = create<KnownNames>(() => NONE);
 
@@ -99,15 +104,15 @@ export function useDisplayNames(participants: DisplayParticipant[]) {
   };
 }
 
-export function useConversationTitles(conversations: Conversation[]) {
+export function useChatTitles(chats: readonly Chat[]) {
   const sessions = useChatStore((s) => s.sessions);
-  const selfIdOf = (c: Conversation) => selfIdFor({ sessions }, c.protocol);
+  const selfIdOf = (c: Chat) => selfIdFor({ sessions }, c.protocol);
   const { nameFor } = useDisplayNames(
-    conversations.flatMap((c) => (c.kind === 'dm' ? conversationPeers(c, selfIdOf(c)) : []))
+    chats.flatMap((c) => (c.kind === 'dm' ? chatParticipants(c, selfIdOf(c)) : []))
   );
   return {
     nameFor,
     selfIdOf,
-    titleOf: (c: Conversation) => conversationTitle(c, selfIdOf(c), nameFor),
+    titleOf: (c: Chat) => chatTitle(c, selfIdOf(c), nameFor),
   };
 }

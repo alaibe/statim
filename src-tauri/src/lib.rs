@@ -137,7 +137,6 @@ pub fn run() {
             matrix::mx_set_name,
             matrix::mx_join,
             matrix::mx_leave,
-            matrix::mx_ignore,
             matrix::mx_send,
             matrix::mx_toggle_reaction,
             matrix::mx_redact,

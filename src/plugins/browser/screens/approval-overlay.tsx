@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 
 import { Badge, Button, Sheet, Text } from '@/design';
+import { errorMessage } from '@/core/errors';
 import type { PluginContext } from '@/core/plugins/types';
 
 import { describeRequest } from '../rpc';
@@ -10,7 +11,11 @@ export function makeApprovalOverlay(context: PluginContext) {
   return function ApprovalOverlay() {
     const head = useWalletConnectStore((s) => s.queue[0]);
     const approve = useWalletConnectStore((s) => s.approveHead);
-    const reject = useWalletConnectStore((s) => s.rejectHead);
+    const rejectHead = useWalletConnectStore((s) => s.rejectHead);
+    const reject = () =>
+      rejectHead().catch((error) =>
+        context.ui.notify(errorMessage(error, 'Could not tell the site you said no'), 'error')
+      );
 
     if (!head) return null;
 
@@ -21,7 +26,7 @@ export function makeApprovalOverlay(context: PluginContext) {
     return (
       <Sheet
         visible
-        onClose={reject}
+        onClose={() => void reject()}
         title={isProposal ? 'Connect to site' : (described?.title ?? 'Request')}>
         <View className="gap-3">
           <View className="gap-1 rounded-card bg-surface-sunken p-3">

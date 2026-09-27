@@ -54,7 +54,7 @@ async function planTransfer(
     };
   }
 
-  const from = p2wpkhAddress(context.identity.derive(BIP84_ACCOUNT_PATH).publicKey);
+  const from = p2wpkhAddress(context.account.derive(BIP84_ACCOUNT_PATH).publicKey);
   const [utxos, fees] = await Promise.all([fetchUtxos(from, apiBase()), fetchFeeRates(apiBase())]);
 
   const planned = planSpend(utxos, sats, fees.medium, { sendMax: false });
@@ -67,7 +67,7 @@ async function planTransfer(
     }
     const available = utxos.reduce((total, utxo) => total + utxo.value, 0n);
     return {
-      error: `Not enough spendable BTC on Bitcoin. You have ${formatBtc(available)} BTC available and need ${formatBtc(sats)} BTC plus the network fee. Lower the amount to leave room for the fee, or add BTC to this wallet and wait for confirmation.`,
+      error: `Not enough spendable BTC on Bitcoin. You have ${formatBtc(available)} BTC available and need ${formatBtc(sats)} BTC plus the fee. Lower the amount to leave room for the fee, or add BTC to this wallet and wait for confirmation.`,
     };
   }
 
@@ -85,7 +85,7 @@ export function bitcoinStrategy(context: PluginContext): ChainStrategy {
     id: 'bitcoin',
     name: 'Bitcoin',
     icon: 'logo-bitcoin',
-    selfAddress: (ctx) => p2wpkhAddress(ctx.identity.derive(BIP84_ACCOUNT_PATH).publicKey),
+    selfAddress: (ctx) => p2wpkhAddress(ctx.account.derive(BIP84_ACCOUNT_PATH).publicKey),
     isAddress: isBitcoinAddress,
     addressHint: 'bc1…',
     // A name's *Bitcoin* record, per ENSIP-9. Reading its Ethereum record
@@ -153,7 +153,7 @@ export function bitcoinStrategy(context: PluginContext): ChainStrategy {
         return {
           symbol: 'BTC',
           rows: [
-            { label: 'Network', value: 'Bitcoin' },
+            { label: 'Chain', value: 'Bitcoin' },
             { label: 'Amount', value: `${formatBtc(sending)} BTC` },
             { label: 'Fee', value: `${formatBtc(fee)} BTC (${feeRate} sat/vB)` },
             {
@@ -168,7 +168,7 @@ export function bitcoinStrategy(context: PluginContext): ChainStrategy {
         const plan = await planTransfer(ctx, amount, to);
         if ('error' in plan) throw new Error(plan.error);
 
-        const key = ctx.identity.derive(BIP84_ACCOUNT_PATH);
+        const key = ctx.account.derive(BIP84_ACCOUNT_PATH);
         const from = p2wpkhAddress(key.publicKey);
         const outputs = [{ script: scriptPubKey(to), value: plan.sending }];
         if (plan.change !== null) {

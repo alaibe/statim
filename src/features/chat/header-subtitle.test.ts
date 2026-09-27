@@ -1,21 +1,20 @@
-import type { Conversation } from '@/core/messaging/types';
+import type { Chat } from '@/core/messaging/types';
 
 import { headerSubtitle } from './header-subtitle';
+import { testChat } from '@/core/messaging/testing/chats';
 
 jest.mock('@/features/protocols/presentation', () => ({
   protocolSubtitle: (protocol?: string) => (protocol === 'telegram' ? 'Telegram' : 'Status'),
 }));
 
-const chat = (over: Partial<Conversation>): Conversation => ({
-  id: 'c1',
-  kind: 'group',
-  title: 'Builders',
-  memberIds: ['a', 'b', 'c'],
-  createdAt: 0,
-  consent: 'allowed',
-  protocol: 'telegram',
-  ...over,
-});
+const chat = (over: Partial<Chat>): Chat =>
+  testChat({
+    kind: 'group',
+    title: 'Builders',
+    memberIds: ['a', 'b', 'c'],
+    protocol: 'telegram',
+    ...over,
+  });
 
 describe('headerSubtitle', () => {
   it('puts typing first, then presence in a DM', () => {

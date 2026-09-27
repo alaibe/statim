@@ -15,11 +15,11 @@ import {
   Text,
   useThemeColors,
 } from '@/design';
-import { isLocalConversation, SAVED_LOCAL_ID, STATUS_LOCAL_ID } from '@/core/messaging/bots';
-import { conversationScope } from '@/core/messaging/conversation-scope';
+import { isLocalChat, SAVED_LOCAL_ID, STATUS_LOCAL_ID } from '@/core/messaging/bots';
+import { chatScope } from '@/core/messaging/chat-scope';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { draftKey } from '@/core/messaging/drafts';
-import type { ConversationId, MessageContent, MessageId } from '@/core/messaging/types';
+import type { ChatId, MessageContent, MessageId } from '@/core/messaging/types';
 import { usePluginHost } from '@/core/plugins/host';
 import { errorMessage } from '@/core/errors';
 
@@ -45,7 +45,7 @@ import { useSupports } from './use-supports';
 import { useTypingAnnouncer } from './use-typing-announcer';
 
 export interface ComposerProps {
-  conversationId: ConversationId;
+  chatId: ChatId;
   /** Writes into this thread, with a draft of its own. */
   thread?: MessageId;
   onSendText(text: string): Promise<string>;
@@ -60,7 +60,7 @@ export interface ComposerProps {
 }
 
 export function Composer({
-  conversationId,
+  chatId,
   thread,
   onSendText,
   onSendContent,
@@ -74,19 +74,19 @@ export function Composer({
   const colors = useThemeColors();
   const inputRef = useRef<ComposerInputHandle>(null);
   const { registry } = usePluginHost();
-  const { supports, sendsVideo } = useSupports(conversationId);
+  const { supports, sendsVideo } = useSupports(chatId);
 
-  const value = useChatStore((s) => s.drafts[draftKey(conversationId, thread)] ?? '');
+  const value = useChatStore((s) => s.drafts[draftKey(chatId, thread)] ?? '');
   const setDraftFor = useChatStore((s) => s.setDraft);
   const setValue = useCallback(
-    (text: string) => setDraftFor(conversationId, text, thread),
-    [conversationId, thread, setDraftFor]
+    (text: string) => setDraftFor(chatId, text, thread),
+    [chatId, thread, setDraftFor]
   );
 
-  const kind = useChatStore((s) => s.conversations.find((c) => c.id === conversationId)?.kind);
-  const scope = conversationScope(conversationId, kind);
+  const kind = useChatStore((s) => s.chats.find((c) => c.id === chatId)?.kind);
+  const scope = chatScope(chatId, kind);
   const { commands, dispatch, busy, error, setError } = useCommandDispatch({
-    conversationId,
+    chatId,
     scope,
     onSendText,
     setDraft: setValue,
@@ -94,9 +94,9 @@ export function Composer({
     pendingCommand,
     onPendingCommandHandled,
   });
-  const announceTyping = useTypingAnnouncer(conversationId, supports('setTyping'));
+  const announceTyping = useTypingAnnouncer(chatId, supports('setTyping'));
   const mentions = useMentionSuggestions(
-    conversationId,
+    chatId,
     value,
     !editing && kind === 'group' && supports('mentionCandidates')
   );
@@ -113,10 +113,7 @@ export function Composer({
   };
 
   const canAttach =
-    !editing &&
-    (!isLocalConversation(conversationId) ||
-      conversationId === STATUS_LOCAL_ID ||
-      conversationId === SAVED_LOCAL_ID);
+    !editing && (!isLocalChat(chatId) || chatId === STATUS_LOCAL_ID || chatId === SAVED_LOCAL_ID);
 
   const attach = async (pick: () => Promise<MessageContent | null>) => {
     try {
@@ -141,7 +138,7 @@ export function Composer({
 
   useEffect(() => {
     if (process.env.EXPO_OS === 'web') inputRef.current?.focus();
-  }, [conversationId, thread]);
+  }, [chatId, thread]);
 
   const canSend = value.trim().length > 0 && !busy;
 
@@ -155,7 +152,7 @@ export function Composer({
         render={(person) => (
           <>
             <Text className="flex-1 font-semibold">{person.name}</Text>
-            <Text variant="caption">{person.handle}</Text>
+            <Text variant="caption">{person.address}</Text>
           </>
         )}
       />
@@ -185,9 +182,9 @@ export function Composer({
       ) : null}
 
       <QuickActions
-        conversationId={conversationId}
+        chatId={chatId}
         scope={scope}
-        onRun={(command) => dispatch(command, 'action')}
+        onRun={(command) => void dispatch(command, 'action')}
       />
 
       {banner ? <ModeBanner banner={banner} editing={editing} onCancel={onCancelBanner} /> : null}
@@ -252,7 +249,7 @@ export function Composer({
             tone={canSend ? 'brand-on' : 'subtle'}
             size={20}
             disabled={!canSend}
-            onPress={submit}
+            onPress={() => void submit()}
           />
         )}
       </Animated.View>

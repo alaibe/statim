@@ -1,7 +1,7 @@
 import { downloadMedia } from '@/core/messaging/media-store';
 
 import { HttpError } from '@/core/errors';
-import { readCredential, writeCredential } from '@/core/identity/credentials';
+import { readCredential, writeCredential } from '@/core/account/credentials';
 import { INLINE_LIMIT_BYTES } from '@/core/messaging/attachments';
 import type { MessageContent } from '@/core/messaging/types';
 

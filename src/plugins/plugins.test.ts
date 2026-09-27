@@ -4,7 +4,9 @@ import { PluginRegistry } from '@/core/plugins/registry';
 
 import { ALL_PLUGINS, DEFAULT_ENABLED_PLUGINS } from './index';
 import { STATUS_BOT_ID } from './assistant/bot';
-import { NETWORKS, networkById } from './wallet/networks';
+import { CHAINS, walletChainById } from './wallet/chain-list';
+import { botChatId } from '@/core/messaging/bots';
+import { asChatId } from '@/core/messaging/testing/ids';
 
 /**
  * Consistency guards for the plugin surface.
@@ -36,11 +38,11 @@ function stubContext() {
       permissions: [],
     },
     storage: { get: async () => null, set: async () => {}, remove: async () => {} },
-    identity: {
+    account: {
       address: '0x0000000000000000000000000000000000000000',
       participantId: '',
       signMessage: throwing,
-      account: throwing,
+      signer: throwing,
       derive: throwing,
     },
     chat: {
@@ -53,7 +55,7 @@ function stubContext() {
     ui: {
       notify: () => {},
       openExternalUrl: throwing,
-      openConversation: () => {},
+      openChat: () => {},
       openProfile: () => {},
     },
     plugins: { list: () => [], setEnabled: throwing, commands: () => [] },
@@ -94,12 +96,14 @@ describe('every command', () => {
     }
   });
 
-  it('resolves a shared name to the room you are standing in', () => {
+  it('resolves a shared name to the chat you are standing in', async () => {
     // Two plugins may declare the same name. What has to hold is that in any
-    // given conversation the name resolves to the command you would expect
+    // given chat the name resolves to the command you would expect
     // and nothing is silently shadowed, so this asks the registry.
     const registry = new PluginRegistry(ALL_PLUGINS);
-    for (const plugin of ALL_PLUGINS) registry.activate(plugin.manifest.id, stubContext);
+    await Promise.all(
+      ALL_PLUGINS.map((plugin) => registry.activate(plugin.manifest.id, stubContext))
+    );
 
     const duplicated = new Map<string, Set<string>>();
     for (const { pluginId, command } of allCommands) {
@@ -111,28 +115,28 @@ describe('every command', () => {
     for (const [key, owners] of duplicated) {
       if (owners.size === 1) continue;
 
-      // Inside a plugin's own room, its own command wins. A plugin with no
-      // room is skipped: there is no such conversation, and an unowned channel
+      // Inside a plugin's own chat, its own command wins. A plugin with no
+      // chat is skipped: there is no such chat, and an unowned channel
       // offers everything by design, so the assertion would be about a thread
       // nobody can open.
       for (const owner of owners) {
-        const room = channelIdOf(owner);
-        if (!room) continue;
-        const resolved = registry.commandsFor(`local-${room}`, 'channel').get(key);
+        const chat = channelIdOf(owner);
+        if (!chat) continue;
+        const resolved = registry.commandsFor(botChatId(chat), 'channel').get(key);
         if (resolved) expect(resolved.pluginId).toBe(owner);
       }
 
-      // Outside every room no plugin's room breaks the tie, so at most one
+      // Outside every chat no plugin's chat breaks the tie, so at most one
       // may claim the name.
       const inDm = [...owners].filter(
-        (owner) => registry.commandsFor('xmtp-abc', 'dm').get(key)?.pluginId === owner
+        (owner) => registry.commandsFor(asChatId('xmtp-abc'), 'dm').get(key)?.pluginId === owner
       );
       expect(inDm.length).toBeLessThanOrEqual(1);
     }
   });
 
   /**
-   * Whatever a conversation dispatches, it also offers. Both sides are read
+   * Whatever a chat dispatches, it also offers. Both sides are read
    * with the same scope, so a command typed in full cannot run somewhere it
    * was never listed.
    *
@@ -142,16 +146,18 @@ describe('every command', () => {
    */
   it.each(['dm', 'group', 'channel'] as const)(
     'dispatches only what it offers in a %s',
-    (scope) => {
-      const registry = activeRegistry();
+    async (scope) => {
+      const registry = await activeRegistry();
 
-      const conversations =
-        scope === 'channel' ? registry.bots().map((bot) => `local-${bot.id}`) : ['xmtp-abc'];
-      for (const conversation of conversations) {
+      const chats =
+        scope === 'channel'
+          ? registry.bots().map((bot) => botChatId(bot.id))
+          : [asChatId('xmtp-abc')];
+      for (const chat of chats) {
         const offered = new Set(
-          registry.commandListFor(conversation, scope).map(({ command }) => command.name)
+          registry.commandListFor(chat, scope).map(({ command }) => command.name)
         );
-        for (const [name, entry] of registry.commandsFor(conversation, scope)) {
+        for (const [name, entry] of registry.commandsFor(chat, scope)) {
           expect(parseCommand(`/${name}`)).toEqual({ name, rest: '', args: [] });
           expect(offered.has(entry.command.name)).toBe(!entry.command.hidden);
         }
@@ -166,26 +172,26 @@ describe('every command', () => {
    */
   it.each(['dm', 'group', 'channel'] as const)(
     'only offers a chip in a %s when its command runs there',
-    (scope) => {
-      const registry = activeRegistry();
+    async (scope) => {
+      const registry = await activeRegistry();
 
-      // Every room, because a chip is gated by the plugin that owns the room
+      // Every chat, because a chip is gated by the plugin that owns the chat
       // it sits in; checking a single channel would leave every other
       // plugin's chips unchecked.
-      const conversations =
+      const chats =
         scope === 'channel'
           ? ALL_PLUGINS.flatMap((plugin) =>
-              (plugin.setup(stubContext() as never).bots ?? []).map((bot) => `local-${bot.id}`)
+              (plugin.setup(stubContext() as never).bots ?? []).map((bot) => botChatId(bot.id))
             )
-          : ['xmtp-abc'];
+          : [asChatId('xmtp-abc')];
 
-      for (const conversation of conversations) {
-        const runnable = registry.commandsFor(conversation, scope);
+      for (const chat of chats) {
+        const runnable = registry.commandsFor(chat, scope);
         const offered = new Set(
-          registry.commandListFor(conversation, scope).map(({ command }) => command.name)
+          registry.commandListFor(chat, scope).map(({ command }) => command.name)
         );
 
-        for (const { action } of registry.composerActionsFor(conversation, scope)) {
+        for (const { action } of registry.composerActionsFor(chat, scope)) {
           const parsed = parseCommand(action.command);
           const entry = parsed ? runnable.get(parsed.name) : undefined;
           expect({
@@ -218,7 +224,7 @@ describe('every command', () => {
       await command.run({
         args: [],
         rest: '',
-        conversationId: `local-${pluginId}`,
+        chatId: botChatId(pluginId),
         context,
         respond,
       })
@@ -227,22 +233,22 @@ describe('every command', () => {
   });
 
   /**
-   * A button in a room runs in *that* room. A command can exist somewhere and
-   * still belong to another plugin's room, in which case tapping the button
+   * A button in a chat runs in *that* chat. A command can exist somewhere and
+   * still belong to another plugin's chat, in which case tapping the button
    * only answers "that belongs to X".
    *
    * Greetings are the part that can be checked statically: they are built at
    * setup, before anything has been asked.
    */
-  it('never offers a button its own room cannot run', () => {
-    const registry = activeRegistry();
+  it('never offers a button its own chat cannot run', async () => {
+    const registry = await activeRegistry();
     const wrong: string[] = [];
 
     for (const plugin of ALL_PLUGINS) {
       const contribution = plugin.setup(stubContext() as never);
       for (const bot of contribution.bots ?? []) {
-        const room = `local-${bot.id}`;
-        const runnable = registry.commandsFor(room, 'channel');
+        const chat = botChatId(bot.id);
+        const runnable = registry.commandsFor(chat, 'channel');
 
         for (const line of bot.greeting()) {
           if (typeof line === 'string' || line.kind !== 'widget') continue;
@@ -263,33 +269,33 @@ describe('every command', () => {
   });
 
   /**
-   * Inside a plugin's room, every command belongs to that plugin or is app
-   * furniture. Checked as a property rather than a list so it holds for rooms
+   * Inside a plugin's chat, every command belongs to that plugin or is app
+   * furniture. Checked as a property rather than a list so it holds for chats
    * that do not exist yet. Additions that look local break it, such as a
    * command marked global to satisfy its own chip.
    */
-  it('never leaks a foreign command into a plugin room', () => {
-    const registry = activeRegistry();
+  it('never leaks a foreign command into a plugin chat', async () => {
+    const registry = await activeRegistry();
 
-    // The app's own furniture: reachable from every room by design.
+    // The app's own furniture: reachable from every chat by design.
     const FURNITURE = ['commands'];
 
     for (const plugin of ALL_PLUGINS) {
       const contribution = plugin.setup(stubContext() as never);
       for (const bot of contribution.bots ?? []) {
         const foreign = registry
-          .commandListFor(`local-${bot.id}`, 'channel')
+          .commandListFor(botChatId(bot.id), 'channel')
           .filter((e) => e.pluginId !== plugin.manifest.id)
           .filter((e) => !FURNITURE.includes(e.command.name))
           .map((e) => `/${e.command.name} from ${e.pluginId}`);
 
-        expect({ room: bot.id, foreign }).toEqual({ room: bot.id, foreign: [] });
+        expect({ chat: bot.id, foreign }).toEqual({ chat: bot.id, foreign: [] });
       }
     }
   });
 
   /**
-   * What a conversation with a person offers, pinned.
+   * What a chat with a person offers, pinned.
    *
    * Brittle on purpose: `showIn` is optional and "undefined means everywhere"
    * is a default that fails quietly (market alerts in a DM, the plugin
@@ -323,11 +329,11 @@ describe('every command', () => {
         'split',
       ],
     ],
-  ] as const)('offers exactly the agreed set in a %s', (scope, expected) => {
-    const registry = activeRegistry();
+  ] as const)('offers exactly the agreed set in a %s', async (scope, expected) => {
+    const registry = await activeRegistry();
 
     const offered = registry
-      .commandListFor('xmtp-abc', scope)
+      .commandListFor(asChatId('xmtp-abc'), scope)
       .map(({ command }) => command.name)
       .sort();
 
@@ -335,16 +341,16 @@ describe('every command', () => {
   });
 
   /**
-   * Every network that ships can be sent from, and says how. `/send` asks the
-   * strategy registry, so a network that forgets to declare `transfer`
+   * Every chain that ships can be sent from, and says how. `/send` asks the
+   * strategy registry, so a chain that forgets to declare `transfer`
    * disappears from the picker silently.
    *
-   * Checked on the strategy rather than through `start()`, because networks
+   * Checked on the strategy rather than through `start()`, because chains
    * are one plugin's setting, registered as a set when the Wallet plugin
    * starts.
    */
-  it('lets every network send its own coin', () => {
-    expect(NETWORKS.map((n) => n.id).sort()).toEqual([
+  it('lets every chain send its own coin', () => {
+    expect(CHAINS.map((n) => n.id).sort()).toEqual([
       'arbitrum',
       'arbitrum-sepolia',
       'base',
@@ -358,15 +364,15 @@ describe('every command', () => {
       'solana',
     ]);
 
-    for (const network of NETWORKS) {
-      const strategy = network.strategy(stubContext() as never);
-      expect({ id: network.id, sends: typeof strategy.transfer?.commit }).toEqual({
-        id: network.id,
+    for (const chain of CHAINS) {
+      const strategy = chain.strategy(stubContext() as never);
+      expect({ id: chain.id, sends: typeof strategy.transfer?.commit }).toEqual({
+        id: chain.id,
         sends: 'function',
       });
-      // A balance a card cannot read is a network the room cannot show.
-      expect({ id: network.id, reads: typeof strategy.balance }).toEqual({
-        id: network.id,
+      // A balance a card cannot read is a chain the chat cannot show.
+      expect({ id: chain.id, reads: typeof strategy.balance }).toEqual({
+        id: chain.id,
         reads: 'function',
       });
     }
@@ -397,20 +403,22 @@ describe('every command', () => {
   /**
    * The registry as the app builds it: every plugin active, plus the core
    * commands the app contributes itself. A test that leaves those out is
-   * measuring a conversation nobody has.
+   * measuring a chat nobody has.
    */
-  function activeRegistry(): PluginRegistry {
+  async function activeRegistry(): Promise<PluginRegistry> {
     const registry = new PluginRegistry(ALL_PLUGINS, {
       commands: groupCommands,
       composerActions: groupComposerActions,
     });
-    for (const plugin of ALL_PLUGINS) {
-      registry.activate(plugin.manifest.id, () => stubContext() as never);
-    }
+    await Promise.all(
+      ALL_PLUGINS.map((plugin) =>
+        registry.activate(plugin.manifest.id, () => stubContext() as never)
+      )
+    );
     return registry;
   }
 
-  /** The plugin's own room, or null when it has none. */
+  /** The plugin's own chat, or null when it has none. */
   function channelIdOf(pluginId: string): string | null {
     const plugin = ALL_PLUGINS.find((p) => p.manifest.id === pluginId);
     return plugin?.setup(stubContext()).bots?.[0]?.id ?? null;
@@ -423,7 +431,7 @@ const allBots = ALL_PLUGINS.flatMap((plugin) =>
 
 describe('every bot', () => {
   it('has a unique id', () => {
-    // A bot id becomes the conversation id, so a collision silently hands two
+    // A bot id becomes the chat id, so a collision silently hands two
     // plugins the same thread and the same persisted transcript.
     const seen = new Map<string, string>();
     for (const { pluginId, bot } of allBots) {
@@ -438,7 +446,7 @@ describe('every bot', () => {
 
   it('introduces itself', () => {
     for (const { bot } of allBots) {
-      // The greeting is the only thing in the conversation on first run; an
+      // The greeting is the only thing in the chat on first run; an
       // empty one leaves a chat row that opens onto nothing.
       expect(bot.greeting().length).toBeGreaterThan(0);
       expect(bot.tagline.length).toBeGreaterThan(0);
@@ -463,10 +471,10 @@ describe('defaults', () => {
    * Nothing optional is on before anyone asks for it. Adding a plugin is
    * exactly the moment someone reaches for this list, and a default that grows
    * one plugin at a time is how an app that starts as a messenger ends up
-   * shipping ten chain rooms nobody chose.
+   * shipping ten chain chats nobody chose.
    *
    * The two here are not optional: `assistant` provides the Status
-   * conversation and `profile` the core identity commands.
+   * chat and `profile` the core account commands.
    */
   it('starts with nothing optional switched on', () => {
     expect([...DEFAULT_ENABLED_PLUGINS].sort()).toEqual(['assistant', 'profile']);
@@ -474,29 +482,29 @@ describe('defaults', () => {
 });
 
 /**
- * Networks are one plugin's setting, so a command has to be told its chain,
+ * Chains are one plugin's setting, so a command has to be told its chain,
  * and a chain that answers the wrong question (Bitcoin resolving a name to
  * its Ethereum record, say) costs real money.
  */
-describe('every network', () => {
+describe('every chain', () => {
   function stub() {
     return stubContext() as never;
   }
 
   it('is reachable by name and by id', () => {
-    for (const network of NETWORKS) {
-      expect(networkById(network.id)?.id).toBe(network.id);
-      expect(networkById(network.name)?.id).toBe(network.id);
-      expect(networkById(network.name.toUpperCase())?.id).toBe(network.id);
+    for (const chain of CHAINS) {
+      expect(walletChainById(chain.id)?.id).toBe(chain.id);
+      expect(walletChainById(chain.name)?.id).toBe(chain.id);
+      expect(walletChainById(chain.name.toUpperCase())?.id).toBe(chain.id);
     }
-    expect(networkById('bass')).toBeUndefined();
+    expect(walletChainById('bass')).toBeUndefined();
   });
 
   it('says which addresses are its own', () => {
     const evm = '0x0000000000000000000000000000000000000001';
     const btc = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4';
 
-    const strategyOf = (id: string) => NETWORKS.find((n) => n.id === id)!.strategy(stub());
+    const strategyOf = (id: string) => CHAINS.find((n) => n.id === id)!.strategy(stub());
 
     expect(strategyOf('ethereum').isAddress(evm)).toBe(true);
     expect(strategyOf('ethereum').isAddress(btc)).toBe(false);
@@ -508,10 +516,10 @@ describe('every network', () => {
    * ENSIP-9 gives a name one record per coin. Reading the Ethereum record and
    * sending bitcoin to it would burn the money, so Bitcoin must not share the
    * EVM resolver. This pins that they are different functions; checking that
-   * they return different values needs a network.
+   * they return different values needs a chain.
    */
   it('resolves names its own way, or not at all', () => {
-    const resolvers = Object.fromEntries(NETWORKS.map((n) => [n.id, n.strategy(stub()).resolve]));
+    const resolvers = Object.fromEntries(CHAINS.map((n) => [n.id, n.strategy(stub()).resolve]));
 
     expect(typeof resolvers.ethereum).toBe('function');
     expect(typeof resolvers.bitcoin).toBe('function');
@@ -520,8 +528,8 @@ describe('every network', () => {
     expect(resolvers.solana).toBeUndefined();
   });
 
-  it('only lets viem-backed networks be watched', () => {
-    const evmIds = NETWORKS.filter((n) => n.evm).map((n) => n.id);
+  it('only lets viem-backed chains be watched', () => {
+    const evmIds = CHAINS.filter((n) => n.evm).map((n) => n.id);
     expect(evmIds).toEqual([
       'ethereum',
       'base',

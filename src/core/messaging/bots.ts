@@ -1,12 +1,13 @@
-import type { ConversationId, MessageContent } from './types';
+import { LOCAL_PROTOCOL, namespacedId, protocolChatId } from './namespace';
+import type { ChatId, MessageContent } from './types';
 
-export const LOCAL_PREFIX = 'local-';
+export const LOCAL_PREFIX = `${LOCAL_PROTOCOL}-`;
 
-export function botConversationId(botId: string): ConversationId {
-  return `${LOCAL_PREFIX}${botId}`;
+export function botChatId(botId: string): ChatId {
+  return namespacedId(LOCAL_PROTOCOL, protocolChatId(botId));
 }
 
-export function isLocalConversation(id: ConversationId): boolean {
+export function isLocalChat(id: ChatId): boolean {
   return id.startsWith(LOCAL_PREFIX);
 }
 
@@ -14,12 +15,12 @@ export function isParticipantId(value: string): boolean {
   return /^[0-9a-fA-F]{64}$/.test(value.trim());
 }
 
-export function botIdFromConversation(id: ConversationId): string {
+export function botIdFromChat(id: ChatId): string {
   return id.slice(LOCAL_PREFIX.length);
 }
 
-export const STATUS_LOCAL_ID = botConversationId('status');
-export const SAVED_LOCAL_ID = botConversationId('saved');
+export const STATUS_LOCAL_ID = botChatId('status');
+export const SAVED_LOCAL_ID = botChatId('saved');
 
 export const SAVED_MESSAGES: Bot = {
   id: 'saved',
@@ -29,7 +30,7 @@ export const SAVED_MESSAGES: Bot = {
 };
 
 export interface BotContext {
-  conversationId: ConversationId;
+  chatId: ChatId;
   say(content: MessageContent | string): Promise<void>;
 }
 
@@ -39,7 +40,7 @@ export interface Bot {
   id: string;
   name: string;
   tagline: string;
-  /** A bundled image, as `require` returns it. Without one the room gets initials. */
+  /** A bundled image, as `require` returns it. Without one the chat gets initials. */
   avatar?: number;
   emoji?: string;
   greeting(): (MessageContent | string)[];
@@ -64,7 +65,7 @@ export function poll(
     };
 
     void run();
-    const timer = setInterval(run, everyMs);
+    const timer = setInterval(() => void run(), everyMs);
 
     return () => {
       stopped = true;

@@ -34,8 +34,6 @@ jest.mock('@/design', () => ({
   useThemeColors: () => ({ brand: '#000', success: '#000' }),
 }));
 
-const actEnvironment = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
-const previousActEnvironment = actEnvironment.IS_REACT_ACT_ENVIRONMENT;
 const hash = `0x${'ab'.repeat(32)}`;
 const quote = jest.fn();
 const commit = jest.fn();
@@ -44,13 +42,6 @@ const RequestCard = walletContentTypes.find((type) => type.typeId === CONTENT_TY
   .render!;
 let tree: ReactTestRenderer;
 let dispose: () => void;
-
-beforeAll(() => {
-  actEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
-});
-afterAll(() => {
-  actEnvironment.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment;
-});
 
 beforeEach(async () => {
   quote.mockReset().mockResolvedValue({ rows: [{ label: 'Fee', value: '0.00001 ETH' }] });
@@ -64,7 +55,7 @@ beforeEach(async () => {
   const props = {
     data: { amount: '0.1', symbol: 'ETH', to: `0x${'12'.repeat(20)}`, chain: 'ethereum' },
     fromMe: false,
-    message: { conversationId: 'test-payment-errors' },
+    message: { chatId: 'test-payment-errors' },
     context: {
       chat: { sendCustom: shareReceipt },
       ui: { notify: jest.fn() },

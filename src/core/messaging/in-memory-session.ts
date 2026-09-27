@@ -1,37 +1,39 @@
 import { isParticipantId } from './bots';
+import { protocolChatId } from './namespace';
 import type { ChatSession } from './protocol';
 import type {
-  ChatMessage,
-  Conversation,
-  ConversationId,
+  ProtocolChatId,
   GroupMember,
   GroupRole,
   MessageContent,
   MessageId,
   ParticipantId,
-  SelfIdentity,
+  SelfParticipant,
   Unsubscribe,
+  ConsentDecision,
+  ProtocolMessage,
+  ProtocolChat,
 } from './types';
 
 export class InMemoryChatSession implements ChatSession {
-  readonly self: SelfIdentity;
+  readonly self: SelfParticipant;
   readonly sendsCustom = true;
 
-  private conversations = new Map<ConversationId, Conversation>();
-  private messages = new Map<ConversationId, ChatMessage[]>();
+  private chats = new Map<ProtocolChatId, ProtocolChat>();
+  private messages = new Map<ProtocolChatId, ProtocolMessage[]>();
   private addresses = new Map<ParticipantId, string>();
   private roles = new Map<string, GroupRole>();
 
-  private messageListeners = new Set<(m: ChatMessage) => void>();
-  private conversationListeners = new Set<(c: Conversation) => void>();
+  private messageListeners = new Set<(m: ProtocolMessage) => void>();
+  private chatListeners = new Set<(c: ProtocolChat) => void>();
 
-  readonly sent: { conversationId: ConversationId; content: MessageContent }[] = [];
-  readonly left: ConversationId[] = [];
+  readonly sent: { chatId: ProtocolChatId; content: MessageContent }[] = [];
+  readonly left: ProtocolChatId[] = [];
   syncCount = 0;
   disconnected = false;
   erased = false;
 
-  constructor(self?: Partial<SelfIdentity>) {
+  constructor(self?: Partial<SelfParticipant>) {
     this.self = {
       participantId: 'a'.repeat(64),
       address: '0x1111111111111111111111111111111111111111',
@@ -39,69 +41,72 @@ export class InMemoryChatSession implements ChatSession {
     };
   }
 
-  seedConversation(partial: Partial<Conversation> & { id: ConversationId }): Conversation {
-    const conversation: Conversation = {
+  seedChat(partial: Omit<Partial<ProtocolChat>, 'id'> & { id: string }): ProtocolChat {
+    const chat: ProtocolChat = {
       kind: 'dm',
       title: partial.id,
       memberIds: [this.self.participantId, 'b'.repeat(64)],
       createdAt: 1_000,
-      consent: 'allowed',
+      consent: 'accepted',
       ...partial,
+      id: protocolChatId(partial.id),
     };
-    this.conversations.set(conversation.id, conversation);
-    this.messages.set(conversation.id, this.messages.get(conversation.id) ?? []);
-    return conversation;
+    this.chats.set(chat.id, chat);
+    this.messages.set(chat.id, this.messages.get(chat.id) ?? []);
+    return chat;
   }
 
   seedAddress(participantId: ParticipantId, address: string) {
     this.addresses.set(participantId, address);
   }
 
-  seedRole(conversationId: ConversationId, participantId: ParticipantId, role: GroupRole) {
-    this.roles.set(`${conversationId}:${participantId}`, role);
+  seedRole(chatId: string, participantId: ParticipantId, role: GroupRole) {
+    this.roles.set(`${chatId}:${participantId}`, role);
   }
 
-  deliver(conversationId: ConversationId, message: Partial<ChatMessage> = {}): ChatMessage {
-    const full: ChatMessage = {
+  deliver(id: string, message: Partial<ProtocolMessage> = {}): ProtocolMessage {
+    const chatId = protocolChatId(id);
+    const full: ProtocolMessage = {
       id: `remote-${Math.random().toString(36).slice(2, 8)}`,
-      conversationId,
+      chatId,
       senderId: 'b'.repeat(64),
       sentAt: 2_000,
-      content: { kind: 'text', text: 'hello from the network' },
+      content: { kind: 'text', text: 'hello from the protocol' },
       fromMe: false,
       status: 'sent',
       ...message,
     };
 
-    this.messages.set(conversationId, [...(this.messages.get(conversationId) ?? []), full]);
+    this.messages.set(chatId, [...(this.messages.get(chatId) ?? []), full]);
 
-    const conversation = this.conversations.get(conversationId);
-    if (conversation && full.content.kind !== 'reaction') {
-      const newer = (conversation.lastMessage?.sentAt ?? 0) <= full.sentAt;
-      if (newer) this.conversations.set(conversationId, { ...conversation, lastMessage: full });
+    const chat = this.chats.get(chatId);
+    if (chat && full.content.kind !== 'reaction') {
+      const newer = (chat.lastMessage?.sentAt ?? 0) <= full.sentAt;
+      if (newer) this.chats.set(chatId, { ...chat, lastMessage: full });
     }
 
     for (const listener of this.messageListeners) listener(full);
     return full;
   }
 
-  announce(conversation: Conversation) {
-    this.conversations.set(conversation.id, conversation);
-    for (const listener of this.conversationListeners) listener(conversation);
+  announce(announced: Omit<ProtocolChat, 'id'> & { id: string }) {
+    const chat = { ...announced, id: protocolChatId(announced.id) };
+    this.chats.set(chat.id, chat);
+    for (const listener of this.chatListeners) listener(chat);
   }
 
-  async whenListed(first: Conversation[]): Promise<Conversation[]> {
+  async whenListed(first: ProtocolChat[]): Promise<ProtocolChat[]> {
     return first;
   }
 
-  async listConversations(): Promise<Conversation[]> {
-    return [...this.conversations.values()];
+  async listChats(): Promise<ProtocolChat[]> {
+    return [...this.chats.values()];
   }
 
   async getMessages(
-    id: ConversationId,
+    id: ProtocolChatId,
     opts?: { limit?: number; before?: { sentAt: number; id: MessageId } }
-  ): Promise<ChatMessage[]> {
+  ): Promise<ProtocolMessage[]> {
     const messages = [...(this.messages.get(id) ?? [])]
       .filter(
         (message) =>
@@ -113,7 +118,7 @@ export class InMemoryChatSession implements ChatSession {
     return opts?.limit ? messages.slice(-opts.limit) : messages;
   }
 
-  async resolvePeer(addressOrId: string): Promise<ParticipantId | null> {
+  async resolveParticipant(addressOrId: string): Promise<ParticipantId | null> {
     if (isParticipantId(addressOrId)) return addressOrId;
     for (const [participantId, address] of this.addresses) {
       if (address.toLowerCase() === addressOrId.toLowerCase()) return participantId;
@@ -130,34 +135,34 @@ export class InMemoryChatSession implements ChatSession {
     return out;
   }
 
-  async createDm(peer: ParticipantId): Promise<Conversation> {
-    return this.seedConversation({
-      id: `dm-${peer.slice(0, 6)}`,
-      memberIds: [this.self.participantId, peer],
-      title: peer,
+  async createDm(participant: ParticipantId): Promise<ProtocolChat> {
+    return this.seedChat({
+      id: `dm-${participant.slice(0, 6)}`,
+      memberIds: [this.self.participantId, participant],
+      title: participant,
     });
   }
 
-  async createGroup(peers: ParticipantId[], title: string): Promise<Conversation> {
-    return this.seedConversation({
+  async createGroup(participants: ParticipantId[], title: string): Promise<ProtocolChat> {
+    return this.seedChat({
       id: `group-${title}`,
       kind: 'group',
       title,
-      memberIds: [this.self.participantId, ...peers],
+      memberIds: [this.self.participantId, ...participants],
       selfRole: 'owner',
     });
   }
 
-  private requireGroup(id: ConversationId): Conversation {
-    const conversation = this.conversations.get(id);
-    if (!conversation) throw new Error(`Conversation ${id} not found`);
-    if (conversation.kind !== 'group') throw new Error('That only works in a group conversation.');
-    return conversation;
+  private requireGroup(id: ProtocolChatId): ProtocolChat {
+    const chat = this.chats.get(id);
+    if (!chat) throw new Error(`Chat ${id} not found`);
+    if (chat.kind !== 'group') throw new Error('That only works in a group.');
+    return chat;
   }
 
-  async getMembers(id: ConversationId): Promise<GroupMember[]> {
-    const conversation = this.requireGroup(id);
-    return conversation.memberIds.map((memberId) => ({
+  async getMembers(id: ProtocolChatId): Promise<GroupMember[]> {
+    const chat = this.requireGroup(id);
+    return chat.memberIds.map((memberId) => ({
       id: memberId,
       role:
         this.roles.get(`${id}:${memberId}`) ??
@@ -165,56 +170,56 @@ export class InMemoryChatSession implements ChatSession {
     }));
   }
 
-  async addMembers(id: ConversationId, peers: ParticipantId[]): Promise<void> {
-    const conversation = this.requireGroup(id);
+  async addMembers(id: ProtocolChatId, participants: ParticipantId[]): Promise<void> {
+    const chat = this.requireGroup(id);
     const next = {
-      ...conversation,
-      memberIds: [...new Set([...conversation.memberIds, ...peers])],
+      ...chat,
+      memberIds: [...new Set([...chat.memberIds, ...participants])],
     };
-    this.conversations.set(id, next);
-    for (const listener of this.conversationListeners) listener(next);
+    this.chats.set(id, next);
+    for (const listener of this.chatListeners) listener(next);
   }
 
-  async removeMembers(id: ConversationId, peers: ParticipantId[]): Promise<void> {
-    const conversation = this.requireGroup(id);
-    const drop = new Set(peers);
+  async removeMembers(id: ProtocolChatId, participants: ParticipantId[]): Promise<void> {
+    const chat = this.requireGroup(id);
+    const drop = new Set(participants);
     const next = {
-      ...conversation,
-      memberIds: conversation.memberIds.filter((m) => !drop.has(m)),
+      ...chat,
+      memberIds: chat.memberIds.filter((m) => !drop.has(m)),
     };
-    this.conversations.set(id, next);
-    for (const listener of this.conversationListeners) listener(next);
+    this.chats.set(id, next);
+    for (const listener of this.chatListeners) listener(next);
   }
 
-  async renameGroup(id: ConversationId, title: string): Promise<void> {
-    const conversation = this.requireGroup(id);
-    const next = { ...conversation, title };
-    this.conversations.set(id, next);
-    for (const listener of this.conversationListeners) listener(next);
+  async renameGroup(id: ProtocolChatId, title: string): Promise<void> {
+    const chat = this.requireGroup(id);
+    const next = { ...chat, title };
+    this.chats.set(id, next);
+    for (const listener of this.chatListeners) listener(next);
   }
 
-  async leaveGroup(id: ConversationId): Promise<void> {
+  async leaveGroup(id: ProtocolChatId): Promise<void> {
     this.requireGroup(id);
-    this.conversations.delete(id);
+    this.chats.delete(id);
     this.left.push(id);
   }
 
-  async setConsent(id: ConversationId, consent: 'allowed' | 'denied'): Promise<void> {
-    const conversation = this.conversations.get(id);
-    if (!conversation) return;
-    const next = { ...conversation, consent };
-    this.conversations.set(id, next);
-    for (const listener of this.conversationListeners) listener(next);
+  async setConsent(id: ProtocolChatId, consent: ConsentDecision): Promise<void> {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+    const next = { ...chat, consent };
+    this.chats.set(id, next);
+    for (const listener of this.chatListeners) listener(next);
   }
 
-  async send(id: ConversationId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
-    if (!this.conversations.has(id)) throw new Error(`Conversation ${id} not found`);
+  async send(id: ProtocolChatId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
+    if (!this.chats.has(id)) throw new Error(`Chat ${id} not found`);
 
-    this.sent.push({ conversationId: id, content });
+    this.sent.push({ chatId: id, content });
     const messageId = `sent-${this.sent.length}`;
-    const outbound: ChatMessage = {
+    const outbound: ProtocolMessage = {
       id: messageId,
-      conversationId: id,
+      chatId: id,
       senderId: this.self.participantId,
       sentAt: 3_000,
       content,
@@ -231,25 +236,25 @@ export class InMemoryChatSession implements ChatSession {
     this.syncCount += 1;
   }
 
-  async streamMessages(onMessage: (m: ChatMessage) => void): Promise<Unsubscribe> {
+  async streamMessages(onMessage: (m: ProtocolMessage) => void): Promise<Unsubscribe> {
     this.messageListeners.add(onMessage);
     return () => this.messageListeners.delete(onMessage);
   }
 
-  async streamConversations(onConversation: (c: Conversation) => void): Promise<Unsubscribe> {
-    this.conversationListeners.add(onConversation);
-    return () => this.conversationListeners.delete(onConversation);
+  async streamChats(onChat: (c: ProtocolChat) => void): Promise<Unsubscribe> {
+    this.chatListeners.add(onChat);
+    return () => this.chatListeners.delete(onChat);
   }
 
   async disconnect(): Promise<void> {
     this.disconnected = true;
     this.messageListeners.clear();
-    this.conversationListeners.clear();
+    this.chatListeners.clear();
   }
 
   async eraseLocalDatabase(): Promise<void> {
     this.erased = true;
-    this.conversations.clear();
+    this.chats.clear();
     this.messages.clear();
   }
 }

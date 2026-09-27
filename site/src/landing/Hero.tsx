@@ -99,7 +99,7 @@ function TerminalIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   );
 }
 
-const networks = ['XMTP', 'Nostr', 'Waku', 'Telegram', 'Matrix'];
+const protocols = ['XMTP', 'Nostr', 'Waku', 'Telegram', 'Matrix'];
 
 export function Hero({ release }: { release: Release }) {
   return (
@@ -151,7 +151,7 @@ export function Hero({ release }: { release: Release }) {
             <ul
               role="list"
               className="mx-auto mt-6 flex max-w-xl flex-wrap justify-center gap-x-3 gap-y-3 lg:mx-0 lg:justify-start">
-              {networks.map((name) => (
+              {protocols.map((name) => (
                 <li
                   key={name}
                   className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold tracking-tight text-gray-500 shadow-sm ring-1 shadow-gray-900/5 ring-gray-900/10">

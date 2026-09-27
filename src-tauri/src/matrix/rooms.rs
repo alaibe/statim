@@ -304,28 +304,3 @@ pub async fn mx_leave(state: State<'_, Matrix>, room_id: String) -> Result<(), S
     let session = current(&state)?;
     session.room(&room_id)?.leave().await.map_err(err)
 }
-
-#[tauri::command]
-pub async fn mx_ignore(
-    state: State<'_, Matrix>,
-    user_id: String,
-    ignored: bool,
-) -> Result<(), String> {
-    let session = current(&state)?;
-    let user = UserId::parse(&user_id).map_err(err)?;
-    if ignored {
-        session
-            .client
-            .account()
-            .ignore_user(&user)
-            .await
-            .map_err(err)
-    } else {
-        session
-            .client
-            .account()
-            .unignore_user(&user)
-            .await
-            .map_err(err)
-    }
-}

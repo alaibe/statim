@@ -1,13 +1,14 @@
 import type {
-  ChatMessage,
-  Conversation,
-  ConversationId,
+  ProtocolChatId,
   GroupMember,
   MessageContent,
   MessageId,
   ParticipantId,
-  SelfIdentity,
+  SelfParticipant,
   Unsubscribe,
+  ConsentDecision,
+  ProtocolMessage,
+  ProtocolChat,
 } from './types';
 import type { HistoryState } from './history';
 
@@ -33,16 +34,17 @@ export interface GroupInfo {
 }
 
 export interface PublicChatPreview extends GroupInfo {
-  id: ConversationId;
+  /** What `joinPublicChat` takes: the protocol's chat id, an alias or an invite link. */
+  id: string;
   title: string;
-  kind: 'group' | 'channel' | 'room';
+  kind: 'group' | 'channel';
   joined: boolean;
   requiresApproval?: boolean;
   joinUnavailableReason?: string;
 }
 
 export interface JoinRequest {
-  userId: ParticipantId;
+  participantId: ParticipantId;
   name: string;
   bio?: string;
   requestedAt: number;
@@ -52,76 +54,80 @@ export interface MentionCandidate {
   id: ParticipantId;
   name: string;
   /** Inserted as typed where there is one; without, the mention is a link to the person. */
-  handle?: string;
+  address?: string;
 }
 
 export interface ChatSession {
-  readonly self: SelfIdentity;
+  readonly self: SelfParticipant;
   readonly sendsVideo?: boolean;
   /** Messages carry `threadRoot`, and `send` posts into a thread. */
   readonly threads?: boolean;
   readonly sendsCustom?: boolean;
 
-  listConversations(): Promise<Conversation[]>;
+  listChats(): Promise<ProtocolChat[]>;
   getMessages(
-    id: ConversationId,
+    id: ProtocolChatId,
     opts?: { limit?: number; before?: { sentAt: number; id: MessageId } }
-  ): Promise<ChatMessage[]>;
-  searchMessages?(query: string, id?: ConversationId): Promise<ChatMessage[]>;
-  countUnread?(id: ConversationId, since: number): Promise<number>;
+  ): Promise<ProtocolMessage[]>;
+  searchMessages?(query: string, id?: ProtocolChatId): Promise<ProtocolMessage[]>;
+  countUnread?(id: ProtocolChatId, since: number): Promise<number>;
 
-  resolvePeer(addressOrId: string): Promise<ParticipantId | null>;
+  resolveParticipant(addressOrId: string): Promise<ParticipantId | null>;
   resolveAddresses(ids: ParticipantId[]): Promise<Record<ParticipantId, string>>;
-  /** Human names where the network has them; addresses are what gets copied. */
+  /** Human names where the protocol has them; addresses are what gets copied. */
   resolveNames?(ids: ParticipantId[]): Promise<Record<ParticipantId, string>>;
-  mentionCandidates?(id: ConversationId, query: string): Promise<MentionCandidate[]>;
-  createDm(peer: ParticipantId): Promise<Conversation>;
-  createGroup(peers: ParticipantId[], title: string): Promise<Conversation>;
+  mentionCandidates?(id: ProtocolChatId, query: string): Promise<MentionCandidate[]>;
+  createDm(participant: ParticipantId): Promise<ProtocolChat>;
+  createGroup(participants: ParticipantId[], title: string): Promise<ProtocolChat>;
   previewPublicChat?(usernameOrLink: string): Promise<PublicChatPreview>;
-  joinPublicChat?(id: ConversationId): Promise<Conversation | null>;
-  createInviteLink?(id: ConversationId, requiresApproval: boolean): Promise<string>;
-  getJoinRequests?(id: ConversationId): Promise<JoinRequest[]>;
-  processJoinRequest?(id: ConversationId, userId: ParticipantId, approve: boolean): Promise<void>;
+  joinPublicChat?(reference: string): Promise<ProtocolChat | null>;
+  createInviteLink?(id: ProtocolChatId, requiresApproval: boolean): Promise<string>;
+  getJoinRequests?(id: ProtocolChatId): Promise<JoinRequest[]>;
+  processJoinRequest?(
+    id: ProtocolChatId,
+    participantId: ParticipantId,
+    approve: boolean
+  ): Promise<void>;
 
-  getMembers(id: ConversationId): Promise<GroupMember[]>;
-  getGroupInfo?(id: ConversationId): Promise<GroupInfo>;
-  setSlowModeDelay?(id: ConversationId, seconds: number): Promise<void>;
-  addMembers(id: ConversationId, peers: ParticipantId[]): Promise<void>;
-  removeMembers(id: ConversationId, peers: ParticipantId[]): Promise<void>;
+  getMembers(id: ProtocolChatId): Promise<GroupMember[]>;
+  getGroupInfo?(id: ProtocolChatId): Promise<GroupInfo>;
+  setSlowModeDelay?(id: ProtocolChatId, seconds: number): Promise<void>;
+  addMembers(id: ProtocolChatId, participants: ParticipantId[]): Promise<void>;
+  removeMembers(id: ProtocolChatId, participants: ParticipantId[]): Promise<void>;
   /** Removes them and keeps them out, where removing alone lets them come back. */
-  banMember?(id: ConversationId, peer: ParticipantId): Promise<void>;
-  setMemberMuted?(id: ConversationId, peer: ParticipantId, muted: boolean): Promise<void>;
-  renameGroup(id: ConversationId, title: string): Promise<void>;
-  leaveGroup(id: ConversationId): Promise<void>;
+  banMember?(id: ProtocolChatId, participant: ParticipantId): Promise<void>;
+  setMemberMuted?(id: ProtocolChatId, participant: ParticipantId, muted: boolean): Promise<void>;
+  renameGroup(id: ProtocolChatId, title: string): Promise<void>;
+  leaveGroup(id: ProtocolChatId): Promise<void>;
 
   send(
-    id: ConversationId,
+    id: ProtocolChatId,
     content: MessageContent,
     replyTo?: MessageId,
     threadRoot?: MessageId
   ): Promise<MessageId>;
   /** Emits the edited message through streamMessages when the server confirms it. */
-  editMessage?(id: ConversationId, messageId: MessageId, text: string): Promise<void>;
-  deleteMessage?(id: ConversationId, messageId: MessageId): Promise<void>;
-  deleteMessageForMe?(id: ConversationId, messageId: MessageId): Promise<void>;
-  votePoll?(id: ConversationId, messageId: MessageId, optionIds: number[]): Promise<void>;
-  createPoll?(id: ConversationId, question: string, options: string[]): Promise<void>;
-  listPinnedMessages?(id: ConversationId): Promise<ChatMessage[]>;
-  setMessagePinned?(id: ConversationId, messageId: MessageId, pinned: boolean): Promise<void>;
+  editMessage?(id: ProtocolChatId, messageId: MessageId, text: string): Promise<void>;
+  deleteMessage?(id: ProtocolChatId, messageId: MessageId): Promise<void>;
+  deleteMessageForMe?(id: ProtocolChatId, messageId: MessageId): Promise<void>;
+  votePoll?(id: ProtocolChatId, messageId: MessageId, optionIds: number[]): Promise<void>;
+  createPoll?(id: ProtocolChatId, question: string, options: string[]): Promise<void>;
+  listPinnedMessages?(id: ProtocolChatId): Promise<ProtocolMessage[]>;
+  setMessagePinned?(id: ProtocolChatId, messageId: MessageId, pinned: boolean): Promise<void>;
   /** Fetches a message's files that are not on this device yet; the message streams again once they are. */
-  fetchMedia?(id: ConversationId, messageId: MessageId): Promise<void>;
+  fetchMedia?(id: ProtocolChatId, messageId: MessageId): Promise<void>;
   streamDeletedMessages?(
-    listener: (id: ConversationId, messageIds: MessageId[]) => void
+    listener: (id: ProtocolChatId, messageIds: MessageId[]) => void
   ): Promise<Unsubscribe>;
 
-  setConsent?(id: ConversationId, consent: 'allowed' | 'denied'): Promise<void>;
+  setConsent?(id: ProtocolChatId, consent: ConsentDecision): Promise<void>;
 
-  sendReadReceipt?(id: ConversationId): Promise<void>;
-  setMarkedUnread?(id: ConversationId, unread: boolean): Promise<void>;
-  saveDraft?(id: ConversationId, text: string): Promise<void>;
-  setTyping?(id: ConversationId, typing: boolean): Promise<void>;
-  /** For networks that only say who is online when asked; stops when the chat closes. */
-  watchPresence?(id: ConversationId): Unsubscribe;
+  sendReadReceipt?(id: ProtocolChatId): Promise<void>;
+  setMarkedUnread?(id: ProtocolChatId, unread: boolean): Promise<void>;
+  saveDraft?(id: ProtocolChatId, text: string): Promise<void>;
+  setTyping?(id: ProtocolChatId, typing: boolean): Promise<void>;
+  /** For protocols that only say who is online when asked; stops when the chat closes. */
+  watchPresence?(id: ProtocolChatId): Unsubscribe;
 
   sync(): Promise<void>;
   subscribeHistory?(listener: (state: HistoryState) => void): Unsubscribe;
@@ -130,10 +136,10 @@ export interface ChatSession {
   submitLogin?(value: string): Promise<void>;
   signOut?(): Promise<void>;
 
-  streamMessages(onMessage: (m: ChatMessage) => void): Promise<Unsubscribe>;
-  streamConversations(onConversation: (c: Conversation) => void): Promise<Unsubscribe>;
+  streamMessages(onMessage: (m: ProtocolMessage) => void): Promise<Unsubscribe>;
+  streamChats(onChat: (c: ProtocolChat) => void): Promise<Unsubscribe>;
   /** Every chat, once the session can list them all; `first` is its first listing. */
-  whenListed?(first: Conversation[]): Promise<Conversation[]>;
+  whenListed?(first: ProtocolChat[]): Promise<ProtocolChat[]>;
 
   disconnect(): Promise<void>;
 }
@@ -144,7 +150,7 @@ export interface XmtpCapabilities {
   revokeInstallations?(ids: string[]): Promise<void>;
 }
 
-export type GroupModel = 'enforced' | 'recipient-set' | 'topic';
+export type GroupModel = 'enforced' | 'participant-set' | 'topic';
 
 export interface ChatProtocolMeta {
   trustModel: string;
@@ -158,7 +164,7 @@ export interface ChatProtocolMeta {
   };
 }
 
-export interface CustomContentType<T = any> {
+export interface CustomContentType {
   typeId: string;
-  fallback: (data: T) => string;
+  fallback(data: unknown): string;
 }

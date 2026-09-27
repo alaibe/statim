@@ -42,8 +42,8 @@ export default function PrivacyScreen() {
       </Section>
 
       <Text variant="footnote" className="px-gutter pb-6">
-        Unread state is otherwise kept on this device only. Nothing tells anyone which conversations
-        you have open, which you have pinned, or which you have muted.
+        Unread state is otherwise kept on this device only. Nothing tells anyone which chats you
+        have open, which you have pinned, or which you have muted.
       </Text>
 
       <Section title="Links" surface="card" className="mb-4">

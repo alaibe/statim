@@ -7,7 +7,7 @@ import {
 } from '@/core/messaging/chat-store';
 import { readMediaBase64 } from '@/core/messaging/media-store';
 import { awaitsFile } from '@/core/messaging/preview';
-import type { ChatMessage, ConversationId, MessageContent } from '@/core/messaging/types';
+import type { ChatMessage, ChatId, MessageContent } from '@/core/messaging/types';
 import { errorMessage } from '@/core/errors';
 import { base64ToBytes } from '@/lib/bytes';
 import { contentFromBrowserFile } from '@/features/chat/attachments/pick';
@@ -29,7 +29,7 @@ import { basename, readFileArg, stdinText } from './input';
 
 async function attachment(
   io: CliIo,
-  chatId: ConversationId,
+  chatId: ChatId,
   path: string,
   name: string | undefined
 ): Promise<MessageContent> {
@@ -40,7 +40,7 @@ async function attachment(
   return contentFromBrowserFile(file, sendsVideo);
 }
 
-function sent(chatId: ConversationId, outcome: SendOutcome | null): void {
+function sent(chatId: ChatId, outcome: SendOutcome | null): void {
   if (outcome && !outcome.sent) {
     throw new CliError(
       `${errorMessage(outcome.error, 'Sending failed')}. Try again with: status-original retry ${chatId} ${outcome.messageId}`
@@ -48,7 +48,7 @@ function sent(chatId: ConversationId, outcome: SendOutcome | null): void {
   }
 }
 
-async function deliver(chatId: ConversationId, content: MessageContent, replyTo?: string) {
+async function deliver(chatId: ChatId, content: MessageContent, replyTo?: string) {
   sent(chatId, await useChatStore.getState().sendMessage(chatId, content, replyTo));
 }
 
@@ -190,7 +190,7 @@ export const messageHandlers = {
   },
 } satisfies Record<string, CliHandler>;
 
-async function withLocalMedia(chatId: ConversationId, message: ChatMessage): Promise<ChatMessage> {
+async function withLocalMedia(chatId: ChatId, message: ChatMessage): Promise<ChatMessage> {
   const store = useChatStore.getState();
   if (!awaitsFile(message.content) || !sessionFor(store, chatId)?.fetchMedia) {
     return message;

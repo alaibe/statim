@@ -147,7 +147,7 @@ export function markdownToFormatted(markdown: string): TdFormattedText {
     }
   };
 
-  const write = (list: Block[]) => {
+  const write = (list: readonly Block[]) => {
     list.forEach((block, i) => {
       if (i > 0) text += block.spaced ? '\n\n' : '\n';
       const start = text.length;

@@ -1,5 +1,5 @@
-import { useIdentityStore } from '@/core/identity/identity-store';
-import { useLockStore } from '@/core/identity/lock-store';
+import { useAccountStore } from '@/core/account/account-store';
+import { useLockStore } from '@/core/account/lock-store';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { openChat } from '@/features/navigation/open';
 
@@ -9,9 +9,9 @@ export const appHandlers = {
   async status() {
     await whenSettled();
     const lock = useLockStore.getState().status;
-    const identity = useIdentityStore.getState();
-    const account = identity.accounts.find((a) => a.id === identity.activeAccountId);
-    const networks = Object.fromEntries(
+    const accountState = useAccountStore.getState();
+    const account = accountState.accounts.find((a) => a.id === accountState.activeAccountId);
+    const protocols = Object.fromEntries(
       Object.entries(useChatStore.getState().protocols).map(([id, p]) => [
         id,
         { status: p.status, error: p.error ?? undefined, waitingFor: p.login?.step },
@@ -19,9 +19,9 @@ export const appHandlers = {
     );
     const data = {
       locked: lock === 'locked',
-      identity: identity.status,
+      accountStatus: accountState.status,
       account: account ? { id: account.id, label: account.label, address: account.address } : null,
-      networks,
+      protocols,
     };
     return {
       data,
@@ -29,8 +29,8 @@ export const appHandlers = {
         lock === 'locked' ? 'Locked' : 'Unlocked',
         account
           ? `Account: ${account.label} (${account.address})`
-          : `Account: none (${identity.status})`,
-        ...Object.entries(networks).map(
+          : `Account: none (${accountState.status})`,
+        ...Object.entries(protocols).map(
           ([id, n]) =>
             `  ${id}: ${n.status}${n.waitingFor ? ` (waiting for ${n.waitingFor})` : ''}${n.error ? ` — ${n.error}` : ''}`
         ),

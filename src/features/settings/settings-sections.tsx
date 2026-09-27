@@ -2,22 +2,22 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
 import { Chevron, ConfirmSheet, ListItem, RowIcon, Section } from '@/design';
-import { useIdentityStore } from '@/core/identity/identity-store';
-import { readCredentials, type Credentials } from '@/core/identity/credentials';
+import { useAccountStore } from '@/core/account/account-store';
+import { readCredentials, type Credentials } from '@/core/account/credentials';
 import { useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
-import { transportProtocols } from '@/protocols';
+import { connectableProtocols } from '@/protocols';
 import { xmtpEnvironment } from '@/protocols/xmtp/shared';
 import { eraseAccount } from '@/core/app/erase-account';
 import { usePluginHost } from '@/core/plugins/host';
 import { BiometricSection } from '@/features/settings/biometric-section';
 import { openTab } from '@/features/navigation/open';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
-import { useAction } from '@/core/app/use-action';
+import { useAction } from '@/features/use-action';
 
 /** The routes the sections open, so a layout showing both can mark the open one. */
 export const SETTINGS_PAGES = [
   'accounts',
-  'identity',
+  'recovery-phrase',
   'appearance',
   'privacy',
   'trades',
@@ -35,11 +35,11 @@ export type SettingsPage = (typeof SETTINGS_PAGES)[number];
  * which a screen ties to focus and the desktop sidebar to navigation.
  */
 export function useSettingsKeys(revision: unknown): Credentials {
-  const activeAccountId = useIdentityStore((s) => s.activeAccountId);
+  const activeAccountId = useAccountStore((s) => s.activeAccountId);
   return useKeyedLoad(activeAccountId, readCredentials, revision).value ?? NO_KEYS;
 }
 
-const NO_KEYS: Credentials = {};
+const NO_KEYS: Readonly<Credentials> = Object.freeze({});
 
 export function SettingsSections({
   keys,
@@ -54,7 +54,7 @@ export function SettingsSections({
   const router = useRouter();
   const chevron = compact ? undefined : <Chevron />;
   const hint = (text: string) => (compact ? undefined : text);
-  const accounts = useIdentityStore((s) => s.accounts);
+  const accounts = useAccountStore((s) => s.accounts);
   const xmtp = useChatStore(xmtpSessionFor);
   const protocols = useChatStore((s) => s.protocols);
   const { enabledIds, registry } = usePluginHost();
@@ -90,14 +90,14 @@ export function SettingsSections({
           onPress={() => router.push('/qr')}
         />
         <ListItem
-          testID="settings-identity"
+          testID="settings-recovery-phrase"
           title="Recovery phrase"
           subtitle={hint('View the words that control this account')}
           numberOfLinesSubtitle={2}
           leading={<RowIcon name="key-outline" tone="orange" />}
           trailing={chevron}
-          selected={selected === 'identity'}
-          onPress={() => openTab('/settings/identity')}
+          selected={selected === 'recovery-phrase'}
+          onPress={() => openTab('/settings/recovery-phrase')}
         />
         <ListItem
           testID="settings-erase-account"
@@ -164,7 +164,10 @@ export function SettingsSections({
         />
       </Section>
 
-      <Section title="Extensions" surface="card" className="mb-6">
+      <Section
+        title={process.env.EXPO_OS === 'web' ? 'Plugins and command line' : 'Plugins'}
+        surface="card"
+        className="mb-6">
         <ListItem
           testID="settings-plugins"
           title="Plugins"
@@ -187,7 +190,7 @@ export function SettingsSections({
         ) : null}
       </Section>
 
-      <Section title="Network" surface="card" className="mb-6">
+      <Section title="Messaging" surface="card" className="mb-6">
         <ListItem
           testID="settings-protocols"
           title="Protocols"
@@ -199,11 +202,11 @@ export function SettingsSections({
           onPress={() => openTab('/settings/protocols')}
         />
         <ListItem
-          title="XMTP network"
+          title="XMTP environment"
           subtitle={
             compact
               ? xmtpEnvironment()
-              : `${xmtpEnvironment()}, reachable only from clients on the same network`
+              : `${xmtpEnvironment()}, reachable only from clients on the same environment`
           }
           numberOfLinesSubtitle={2}
           leading={<RowIcon name="globe-outline" tone="teal" />}
@@ -221,7 +224,6 @@ export function SettingsSections({
         onClose={() => setConfirmErase(false)}
         title="Erase this account?"
         body="This erases the keys and every message stored on this device. Nothing is kept, and nobody can send it back to you. The only way to return is the recovery phrase."
-        busy={erase.busy}
         confirm={{
           testID: 'confirm-erase-account',
           label: 'Erase account',
@@ -238,10 +240,10 @@ export function SettingsSections({
 function describeConnections(
   connections: Record<string, { status: string; error: string | null; login?: unknown }>
 ): string {
-  const connected = transportProtocols().filter(
+  const connected = connectableProtocols().filter(
     (p) => connections[p.id]?.status === 'ready' && !connections[p.id]?.login
   );
-  const failed = transportProtocols().filter((p) => connections[p.id]?.status === 'error');
+  const failed = connectableProtocols().filter((p) => connections[p.id]?.status === 'error');
 
   if (connected.length === 0) {
     return failed.length > 0

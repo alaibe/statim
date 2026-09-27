@@ -1,9 +1,9 @@
 import { type Capability, supports } from '@/core/messaging/capability';
 import { sessionFor, useChatStore } from '@/core/messaging/chat-store';
-import type { ConversationId } from '@/core/messaging/types';
+import type { ChatId } from '@/core/messaging/types';
 
-export function useSupports(conversationId: ConversationId | undefined) {
-  const session = useChatStore((s) => sessionFor(s, conversationId));
+export function useSupports(chatId: ChatId | undefined) {
+  const session = useChatStore((s) => sessionFor(s, chatId));
   return {
     session,
     supports: (key: Capability) => supports(session, key),

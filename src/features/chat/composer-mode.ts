@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 
 import { useChatStore } from '@/core/messaging/chat-store';
 import { draftKey } from '@/core/messaging/drafts';
-import type { ChatMessage, ConversationId, MessageId } from '@/core/messaging/types';
+import type { ChatMessage, ChatId, MessageId } from '@/core/messaging/types';
 
 import type { ReplyPreview } from './message-bubble';
 
@@ -20,7 +20,7 @@ const COMPOSE: ComposerMode = { kind: 'compose' };
 
 export class ComposerModeController {
   constructor(
-    private readonly id: ConversationId,
+    private readonly id: ChatId,
     readonly mode: ComposerMode,
     private readonly enter: (mode: ComposerMode) => void,
     private readonly onSend?: () => void,
@@ -82,7 +82,7 @@ export class ComposerModeController {
 }
 
 /** The composer's mode for one chat or thread; opening another starts it fresh. */
-export function useComposerMode(id: ConversationId, onSend?: () => void, thread?: MessageId) {
+export function useComposerMode(id: ChatId, onSend?: () => void, thread?: MessageId) {
   const key = draftKey(id, thread);
   const [state, setState] = useState({ key, mode: COMPOSE });
   const mode = state.key === key ? state.mode : COMPOSE;

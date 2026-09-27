@@ -19,34 +19,34 @@ const features = [
   {
     name: 'Your account is twelve words',
     description:
-      'No sign-up, no phone number, no email. The app writes a recovery phrase on your device, and that phrase is your identity on every network and the key to your wallet.',
+      'No sign-up, no phone number, no email. The app writes a recovery phrase on your device, and that phrase is your account and the key to your wallet.',
     icon: DeviceUserIcon,
     screen: 'welcome',
     alt: 'The welcome screen: create an account, restore a phrase or connect a hardware wallet',
   },
   {
-    name: 'Every network in one inbox',
+    name: 'Every protocol in one chat list',
     description:
-      'XMTP, Nostr and Waku work the moment your account exists. Sign in to Telegram and Matrix and those chats land in the same list, each saying what its network protects.',
+      'XMTP, Nostr and Waku work the moment your account exists. Sign in to Telegram and Matrix and those chats land in the same list, each saying what its protocol protects.',
     icon: DeviceNotificationIcon,
     screen: 'protocols',
-    alt: 'Settings → Protocols: the five networks and their state',
+    alt: 'Settings → Protocols: the five protocols and their state',
   },
   {
-    name: 'Commands live in the chat',
+    name: 'Slash commands live in the chat',
     description:
-      'Type / to see what a room can do. The Status room holds notes, reminders and help, all saved on this device, and plugins add their own commands where they belong.',
+      'Type / to see what a chat can do. The Status chat holds notes, reminders and help, all saved on this device, and plugins add their own slash commands where they belong.',
     icon: DeviceTouchIcon,
-    screen: 'status-room',
-    alt: 'The Status room with command chips above the composer',
+    screen: 'status-chat',
+    alt: 'The Status chat with slash command chips above the composer',
   },
   {
     name: 'A wallet where the money talk is',
     description:
-      'Check a balance, send, swap, request or split a bill in the conversation where it came up. Every send goes through a review step, and the key never leaves your phone.',
+      'Check a balance, send, swap, request or split a bill in the chat where it came up. Every send goes through a review step, and the key never leaves your phone.',
     icon: DeviceUserIcon,
     screen: 'wallet-send',
-    alt: 'The send form: network, asset, amount, recipient and review',
+    alt: 'The send form: chain, asset, amount, recipient and review',
   },
 ];
 
@@ -346,7 +346,7 @@ export function PrimaryFeatures() {
             A messenger first, with the rest there when you want it.
           </h2>
           <p className="mt-2 text-lg text-gray-400">
-            One app for the networks you already use and the ones that need no account at all.
+            One app for the protocols you already use and the ones that need no account at all.
             Nobody runs a server in the middle, so there is nobody to trust with your messages or
             your money.
           </p>

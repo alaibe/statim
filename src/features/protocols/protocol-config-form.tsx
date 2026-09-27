@@ -2,7 +2,7 @@ import { Button, ErrorText, Field, Loading, Text } from '@/design';
 import { errorMessage } from '@/core/errors';
 import { loadProtocolConfig, missingFields, withDefaults } from '@/core/messaging/config';
 import type { ProtocolDescriptor } from '@/core/messaging/registry';
-import { useAction } from '@/core/app/use-action';
+import { useAction } from '@/features/use-action';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 import { accountRuntime } from '@/runtime';
 
@@ -67,7 +67,6 @@ export function ProtocolConfigForm({
         label="Save and reconnect"
         size="md"
         fullWidth
-        loading={save.busy}
         onPress={() => save.run()}
       />
     </>

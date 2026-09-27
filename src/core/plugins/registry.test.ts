@@ -1,7 +1,11 @@
-import { capabilitiesOf } from '../identity/account-kind';
+import { isRecord, isString, shape } from '@/lib/guards';
+
+import { capabilitiesOf } from '../account/account-kind';
 
 import { PluginRegistry, worksOn } from './registry';
-import type { Plugin, PluginContext } from './types';
+import { contentType, type Plugin, type PluginContext } from './types';
+import { botChatId } from '@/core/messaging/bots';
+import { asChatId } from '@/core/messaging/testing/ids';
 
 function stubContext(): PluginContext {
   return {
@@ -14,13 +18,13 @@ function stubContext(): PluginContext {
       permissions: [],
     },
     storage: { get: async () => null, set: async () => {}, remove: async () => {} },
-    identity: {
+    account: {
       accountId: 'test-account',
       capabilities: capabilitiesOf('phrase'),
       address: '0x0000000000000000000000000000000000000000',
       participantId: 'inbox',
       signMessage: async () => '0x',
-      account: () => {
+      signer: () => {
         throw new Error('not needed in tests');
       },
       derive: () => {
@@ -32,7 +36,7 @@ function stubContext(): PluginContext {
     },
     chat: {
       startDm: async () => null,
-      startGroup: async () => ({ conversationId: 'g', unreachable: [] }),
+      startGroup: async () => ({ chatId: asChatId('g'), unreachable: [] }),
       send: async () => {},
       sendText: async () => {},
       sendCustom: async () => {},
@@ -41,7 +45,7 @@ function stubContext(): PluginContext {
     ui: {
       notify: () => {},
       openExternalUrl: async () => {},
-      openConversation: () => {},
+      openChat: () => {},
       openProfile: () => {},
     },
     plugins: {
@@ -83,9 +87,9 @@ describe('PluginRegistry', () => {
     });
     const registry = new PluginRegistry([plugin]);
 
-    expect(registry.commandListFor('xmtp-abc')).toHaveLength(0);
+    expect(registry.commandListFor(asChatId('xmtp-abc'))).toHaveLength(0);
     await activate(registry, 'a');
-    expect(registry.commandListFor('xmtp-abc')).toHaveLength(1);
+    expect(registry.commandListFor(asChatId('xmtp-abc'))).toHaveLength(1);
   });
 
   it('registers aliases alongside the primary command name', async () => {
@@ -108,7 +112,7 @@ describe('PluginRegistry', () => {
     expect(commands.get('balance')).toBeDefined();
     expect(commands.get('bal')).toBeDefined();
     // The dedupe list is for the autocomplete, so aliases must not appear twice.
-    expect(registry.commandListFor('xmtp-abc')).toHaveLength(1);
+    expect(registry.commandListFor(asChatId('xmtp-abc'))).toHaveLength(1);
   });
 
   it('lets the first plugin keep a contested command name', async () => {
@@ -138,6 +142,7 @@ describe('PluginRegistry', () => {
         contentTypes: [
           {
             typeId: 'eth.payment.request',
+            is: isRecord,
             fallback: () => 'payment',
             render: () => null,
           },
@@ -147,12 +152,38 @@ describe('PluginRegistry', () => {
     await activate(registry, 'eth');
 
     // Data, not codecs: handing back `JSContentCodec[]` would put one
-    // transport's SDK type in the plugin system's public surface. Turning these
-    // into codecs is the transport's job, and XMTP does it in its own adapter.
+    // protocol's SDK type in the plugin system's public surface. Turning these
+    // into codecs is the protocol's job, and XMTP does it in its own adapter.
     const specs = registry.contentTypeSpecs();
     expect(specs).toHaveLength(1);
     expect(specs[0].typeId).toBe('eth.payment.request');
     expect(specs[0].fallback({ amount: '1' })).toBe('payment');
+  });
+
+  it('renders a custom message only when its payload parses', async () => {
+    const render = () => null;
+    const is = shape<{ amount: string }>({ amount: isString });
+    const registry = new PluginRegistry([
+      makePlugin('eth', {
+        contentTypes: [
+          contentType({
+            typeId: 'eth.payment.request',
+            is,
+            fallback: (data) => data.amount,
+            render,
+          }),
+        ],
+      }),
+    ]);
+    await activate(registry, 'eth');
+
+    expect(registry.customRenderer('eth.payment.request', { amount: '1' })).toMatchObject({
+      render,
+      data: { amount: '1' },
+    });
+    expect(registry.customRenderer('eth.payment.request', { amount: {} })).toBeNull();
+    expect(registry.customRenderer('eth.payment.request', null)).toBeNull();
+    expect(registry.customRenderer('eth.payment.split', { amount: '1' })).toBeNull();
   });
 
   it('routes a URI to the plugin claiming its scheme', async () => {
@@ -276,7 +307,7 @@ describe('channel scoping', () => {
       ...extra,
     });
 
-  const withChannels = () => {
+  const withChannels = async () => {
     const registry = new PluginRegistry([
       channelPlugin('ethereum'),
       channelPlugin('bitcoin'),
@@ -301,71 +332,71 @@ describe('channel scoping', () => {
         ],
       }),
     ]);
-    for (const id of ['ethereum', 'bitcoin', 'assistant']) activate(registry, id);
+    for (const id of ['ethereum', 'bitcoin', 'assistant']) await activate(registry, id);
     return registry;
   };
 
-  it('knows which plugin owns a channel', () => {
-    const registry = withChannels();
+  it('knows which plugin owns a channel', async () => {
+    const registry = await withChannels();
 
-    expect(registry.channelOwner('local-ethereum')).toBe('ethereum');
-    expect(registry.channelOwner('local-bitcoin')).toBe('bitcoin');
+    expect(registry.channelOwner(botChatId('ethereum'))).toBe('ethereum');
+    expect(registry.channelOwner(botChatId('bitcoin'))).toBe('bitcoin');
     // A DM is nobody's channel.
-    expect(registry.channelOwner('xmtp-0xabc')).toBeUndefined();
+    expect(registry.channelOwner(asChatId('xmtp-0xabc'))).toBeUndefined();
   });
 
-  it('does not answer another plugin’s command inside a channel', () => {
+  it('does not answer another plugin’s command inside a channel', async () => {
     // Otherwise Bitcoin's commands would work in the Ethereum channel, which
     // would make the name at the top of the thread decorative.
-    const inEthereum = withChannels().commandsFor('local-ethereum');
+    const inEthereum = (await withChannels()).commandsFor(botChatId('ethereum'));
 
     expect(inEthereum.has('ethereum-cmd')).toBe(true);
     expect(inEthereum.has('bitcoin-cmd')).toBe(false);
   });
 
-  it('keeps global commands available inside every channel', () => {
-    const registry = withChannels();
+  it('keeps global commands available inside every channel', async () => {
+    const registry = await withChannels();
 
-    expect(registry.commandsFor('local-ethereum').has('commands')).toBe(true);
-    expect(registry.commandsFor('local-bitcoin').has('commands')).toBe(true);
+    expect(registry.commandsFor(botChatId('ethereum')).has('commands')).toBe(true);
+    expect(registry.commandsFor(botChatId('bitcoin')).has('commands')).toBe(true);
   });
 
-  it('scopes the autocomplete the same way it scopes dispatch', () => {
+  it('scopes the autocomplete the same way it scopes dispatch', async () => {
     // Suggesting a command that will not run is worse than not suggesting it.
-    const names = withChannels()
-      .commandListFor('local-bitcoin')
+    const names = (await withChannels())
+      .commandListFor(botChatId('bitcoin'))
       .map((e) => e.command.name)
       .sort();
 
     expect(names).toEqual(['bitcoin-cmd', 'commands']);
   });
 
-  it('scopes composer chips the same way', () => {
-    const ids = withChannels()
-      .composerActionsFor('local-ethereum')
+  it('scopes composer chips the same way', async () => {
+    const ids = (await withChannels())
+      .composerActionsFor(botChatId('ethereum'))
       .map((e) => e.action.id)
       .sort();
 
     expect(ids).toEqual(['chip-commands', 'ethereum-chip']);
   });
 
-  it('scopes nothing outside a plugin channel', () => {
+  it('scopes nothing outside a plugin channel', async () => {
     // A DM is where /balance and /request belong; asking a person for money
     // is the whole point.
-    const registry = withChannels();
+    const registry = await withChannels();
 
-    expect(registry.commandsFor('xmtp-0xabc').size).toBe(registry.commands().size);
-    expect(registry.commandListFor('xmtp-0xabc').map((e) => e.command.name)).toEqual([
+    expect(registry.commandsFor(asChatId('xmtp-0xabc')).size).toBe(registry.commands().size);
+    expect(registry.commandListFor(asChatId('xmtp-0xabc')).map((e) => e.command.name)).toEqual([
       'bitcoin-cmd',
       'commands',
       'ethereum-cmd',
     ]);
-    expect(registry.composerActionsFor('xmtp-0xabc')).toHaveLength(
+    expect(registry.composerActionsFor(asChatId('xmtp-0xabc'))).toHaveLength(
       registry.composerActions().length
     );
   });
 
-  it('offers a group command only in a group', () => {
+  it('offers a group command only in a group', async () => {
     // Otherwise a DM with one person would list /rename and /invite, which
     // cannot mean anything there.
     const registry = new PluginRegistry([
@@ -387,15 +418,15 @@ describe('channel scoping', () => {
         ],
       }),
     ]);
-    activate(registry, 'groups');
+    await activate(registry, 'groups');
 
-    expect(registry.commandsFor('xmtp-abc', 'group').has('rename')).toBe(true);
-    expect(registry.commandsFor('xmtp-abc', 'dm').has('rename')).toBe(false);
+    expect(registry.commandsFor(asChatId('xmtp-abc'), 'group').has('rename')).toBe(true);
+    expect(registry.commandsFor(asChatId('xmtp-abc'), 'dm').has('rename')).toBe(false);
     // An undeclared command is universal, which is what most of them are.
-    expect(registry.commandsFor('xmtp-abc', 'dm').has('dm')).toBe(true);
+    expect(registry.commandsFor(asChatId('xmtp-abc'), 'dm').has('dm')).toBe(true);
   });
 
-  it('offers a command only where the network can do what it needs', () => {
+  it('offers a command only where the protocol can do what it needs', () => {
     const command = {
       name: 'poll',
       description: '',
@@ -408,7 +439,7 @@ describe('channel scoping', () => {
     expect(worksOn({ ...command, requires: undefined }, undefined)).toBe(true);
   });
 
-  it('offers a command that posts a content type only where the network carries one', () => {
+  it('offers a command that posts a content type only where the protocol carries one', () => {
     const command = {
       name: 'request',
       description: '',
@@ -421,21 +452,21 @@ describe('channel scoping', () => {
     expect(worksOn(command, undefined)).toBe(false);
   });
 
-  it('needs both gates, not either', () => {
+  it('needs both gates, not either', async () => {
     // Ownership and `showIn` answer different questions, so passing one is not
     // enough: a config command scoped to `channel` must still be refused in
     // another plugin's channel.
-    const registry = withChannels();
+    const registry = await withChannels();
 
-    expect(registry.commandsFor('local-bitcoin', 'channel').has('ethereum-cmd')).toBe(false);
-    expect(registry.commandsFor('local-ethereum', 'channel').has('ethereum-cmd')).toBe(true);
+    expect(registry.commandsFor(botChatId('bitcoin'), 'channel').has('ethereum-cmd')).toBe(false);
+    expect(registry.commandsFor(botChatId('ethereum'), 'channel').has('ethereum-cmd')).toBe(true);
   });
 
   it('forgets channel ownership when a plugin is disabled', async () => {
-    const registry = withChannels();
+    const registry = await withChannels();
     await registry.deactivate('ethereum');
 
-    expect(registry.channelOwner('local-ethereum')).toBeUndefined();
+    expect(registry.channelOwner(botChatId('ethereum'))).toBeUndefined();
   });
 
   it("exposes a plugin's views only while it is on", async () => {

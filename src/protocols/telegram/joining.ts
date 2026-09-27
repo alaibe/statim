@@ -1,9 +1,10 @@
 import type { JoinRequest, PublicChatPreview } from '@/core/messaging/protocol';
-import type { Conversation, ConversationId, ParticipantId } from '@/core/messaging/types';
+import type { ProtocolChatId, ParticipantId, ProtocolChat } from '@/core/messaging/types';
 import { localFileUri } from '@/storage/media';
 
 import type { TdObject } from './api';
 import { inMainList, isCurrentMember } from './chats';
+import { chatIdOf } from './ids';
 import type { TelegramGroups } from './groups';
 import { isInviteLink, joinOrRequest, normalizeInviteLink } from './invite-links';
 import type { TdChat, TdFile, TdSupergroup } from './types';
@@ -40,7 +41,7 @@ export class TelegramJoining {
     if (chat.type['@type'] !== 'chatTypeSupergroup')
       throw new Error('That username belongs to a person, not a group or channel.');
     this.host.td.chats.set(chat.id, chat);
-    const info = await this.groups.getGroupInfo(String(chat.id)).catch(() => ({}));
+    const info = await this.groups.getGroupInfo(chatIdOf(chat.id)).catch(() => ({}));
     const group = this.host.td.supergroups.get(chat.type.supergroup_id);
     return {
       id: String(chat.id),
@@ -52,9 +53,9 @@ export class TelegramJoining {
     };
   }
 
-  async joinPublicChat(id: ConversationId): Promise<Conversation | null> {
-    if (isInviteLink(id)) return this.joinInviteLink(id);
-    const chatId = Number(id);
+  async joinPublicChat(reference: string): Promise<ProtocolChat | null> {
+    if (isInviteLink(reference)) return this.joinInviteLink(reference);
+    const chatId = Number(reference);
     const current = await this.host.td.requireChat(chatId);
     if (current.type['@type'] !== 'chatTypeSupergroup')
       throw new Error('That chat is not a public group or channel.');
@@ -71,7 +72,7 @@ export class TelegramJoining {
       return null;
     const chat = await this.host.api().send<TdChat>({ '@type': 'getChat', chat_id: chatId });
     this.host.td.chats.set(chatId, chat);
-    return this.host.toConversation(chat);
+    return this.host.toChat(chat);
   }
 
   private async previewInviteLink(link: string): Promise<PublicChatPreview> {
@@ -101,7 +102,7 @@ export class TelegramJoining {
     };
   }
 
-  private async joinInviteLink(link: string): Promise<Conversation | null> {
+  private async joinInviteLink(link: string): Promise<ProtocolChat | null> {
     const chat = await joinOrRequest(
       this.host.api().send<TdChat>({
         '@type': 'joinChatByInviteLink',
@@ -110,10 +111,10 @@ export class TelegramJoining {
     );
     if (!chat) return null;
     this.host.td.chats.set(chat.id, chat);
-    return this.host.toConversation(chat);
+    return this.host.toChat(chat);
   }
 
-  async createInviteLink(id: ConversationId, requiresApproval: boolean): Promise<string> {
+  async createInviteLink(id: ProtocolChatId, requiresApproval: boolean): Promise<string> {
     const link = await this.host.api().send<{ '@type': string; invite_link: string }>({
       '@type': 'createChatInviteLink',
       chat_id: Number(id),
@@ -125,7 +126,7 @@ export class TelegramJoining {
     return link.invite_link;
   }
 
-  async getJoinRequests(id: ConversationId): Promise<JoinRequest[]> {
+  async getJoinRequests(id: ProtocolChatId): Promise<JoinRequest[]> {
     const chatId = Number(id);
     const requests: TdJoinRequest[] = [];
     let offset: TdJoinRequest | null = null;
@@ -149,7 +150,7 @@ export class TelegramJoining {
       requests.map(async (request) => {
         const user = await this.host.td.userFor(String(request.user_id));
         return {
-          userId: String(request.user_id),
+          participantId: String(request.user_id),
           name: user ? nameOf(user) : String(request.user_id),
           bio: request.bio || undefined,
           requestedAt: request.date * 1000,
@@ -159,14 +160,14 @@ export class TelegramJoining {
   }
 
   async processJoinRequest(
-    id: ConversationId,
-    userId: ParticipantId,
+    id: ProtocolChatId,
+    participantId: ParticipantId,
     approve: boolean
   ): Promise<void> {
     await this.host.api().send({
       '@type': 'processChatJoinRequest',
       chat_id: Number(id),
-      user_id: Number(userId),
+      user_id: Number(participantId),
       approve,
     });
     this.host.td.members.delete(Number(id));

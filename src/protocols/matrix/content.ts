@@ -30,8 +30,8 @@ const MEMBERSHIP: Record<MxMembershipChange, (who: string, by: string) => string
 const STATE: Record<MxStateChange, (value?: string) => string> = {
   name: (value) => (value ? `Renamed to "${value}"` : 'Name removed'),
   topic: (value) => (value ? `Topic set to "${value}"` : 'Topic removed'),
-  avatar: () => 'Room photo changed',
-  created: () => 'Room created',
+  avatar: () => 'Chat photo changed',
+  created: () => 'Chat created',
   encryption: () => 'Encryption enabled',
 };
 

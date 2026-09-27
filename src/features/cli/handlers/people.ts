@@ -1,49 +1,55 @@
 import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
 import type { ParticipantId } from '@/core/messaging/types';
-import { peersOf } from '@/features/contacts/peers';
-import { transportProtocols } from '@/protocols';
+import { contactsOf } from '@/features/contacts/contacts';
+import { connectableProtocols } from '@/protocols';
 
 import { chatLabels, displayNames, whenAccountReady, type CliHandler } from '../context';
 import { CliError } from '../errors';
-import { findNetwork } from './networks';
+import { requireProtocol } from './protocols';
 
-function connectedNetworks(flag: string | true | undefined) {
+function connectedProtocols(flag: string | true | undefined) {
   const sessions = useChatStore.getState().sessions;
-  const wanted = typeof flag === 'string' ? [findNetwork(flag)] : transportProtocols();
+  const wanted = typeof flag === 'string' ? [requireProtocol(flag)] : connectableProtocols();
   const connected = wanted.filter((p) => sessions[p.id]);
   if (connected.length === 0) {
     throw new CliError(
       typeof flag === 'string'
         ? `${wanted[0].label} is not connected.`
-        : 'No network is connected.',
+        : 'No protocol is connected.',
       'unavailable'
     );
   }
   return connected;
 }
 
-/** The first network, in the app's order, that knows the peer. */
+/** The first protocol, in the app's order, that resolves the address. */
 export async function resolveOn(
   flag: string | true | undefined,
-  peer: string
-): Promise<{ network: string; id: ParticipantId }> {
-  const networks = connectedNetworks(flag);
+  address: string
+): Promise<{ protocol: string; id: ParticipantId }> {
+  const protocols = connectedProtocols(flag);
   const store = useChatStore.getState();
-  for (const network of networks) {
-    const id = await store.resolvePeer(network.id, peer).catch(() => null);
-    if (id) return { network: network.id, id };
+  for (const protocol of protocols) {
+    const id = await store.resolveParticipant(protocol.id, address).catch(() => null);
+    if (id) return { protocol: protocol.id, id };
   }
   const reason =
-    networks.length === 1 ? networks[0].recipient.unreachable(peer) : `No network knows "${peer}".`;
+    protocols.length === 1
+      ? protocols[0].address.unreachable(address)
+      : `No protocol knows "${address}".`;
   throw new CliError(reason, 'notFound');
 }
 
-export async function resolveAllOn(network: string, peers: string[]): Promise<ParticipantId[]> {
+export async function resolveAllOn(
+  protocol: string,
+  addresses: string[]
+): Promise<ParticipantId[]> {
   const store = useChatStore.getState();
   return Promise.all(
-    peers.map(async (peer) => {
-      const id = await store.resolvePeer(network, peer).catch(() => null);
-      if (!id) throw new CliError(findNetwork(network).recipient.unreachable(peer), 'notFound');
+    addresses.map(async (address) => {
+      const id = await store.resolveParticipant(protocol, address).catch(() => null);
+      if (!id)
+        throw new CliError(requireProtocol(protocol).address.unreachable(address), 'notFound');
       return id;
     })
   );
@@ -52,50 +58,51 @@ export async function resolveAllOn(network: string, peers: string[]): Promise<Pa
 export const peopleHandlers = {
   async new({ args, flags }) {
     await whenAccountReady();
-    const { network, id } = await resolveOn(flags.network, args.peer!);
-    const chat = await useChatStore.getState().startDm(network, id);
+    const { protocol, id } = await resolveOn(flags.protocol, args.address!);
+    const chat = await useChatStore.getState().startDm(protocol, id);
     const title = (await chatLabels([chat])).get(chat.id)?.title ?? chat.title;
     return {
-      data: { id: chat.id, title, network },
+      data: { id: chat.id, title, protocol },
       text: `Chat ready: ${title}  ${chat.id}`,
     };
   },
 
   async resolve({ args, flags }) {
     await whenAccountReady();
-    const found = await resolveOn(flags.network, args.peer!);
-    return { data: found, text: `${found.network}: ${found.id}` };
+    const found = await resolveOn(flags.protocol, args.address!);
+    return { data: found, text: `${found.protocol}: ${found.id}` };
   },
 
   async contacts({ flags }) {
     await whenAccountReady();
     const state = useChatStore.getState();
-    const network = typeof flags.network === 'string' ? findNetwork(flags.network).id : undefined;
-    const peers = peersOf(state.conversations, (p) => selfIdFor(state, p)).filter(
-      (p) => !network || p.protocol === network
+    const protocol =
+      typeof flags.protocol === 'string' ? requireProtocol(flags.protocol).id : undefined;
+    const contacts = contactsOf(state.chats, (p) => selfIdFor(state, p)).filter(
+      (p) => !protocol || p.protocol === protocol
     );
     const names: Record<string, string> = {};
-    for (const protocol of new Set(peers.map((p) => p.protocol))) {
+    for (const protocol of new Set(contacts.map((p) => p.protocol))) {
       Object.assign(
         names,
         await displayNames(
           protocol,
-          peers.filter((p) => p.protocol === protocol).map((p) => p.id)
+          contacts.filter((p) => p.protocol === protocol).map((p) => p.id)
         )
       );
     }
-    const data = peers
+    const data = contacts
       .map((p) => ({
         id: p.id,
         name: names[p.id] ?? p.id,
-        network: p.protocol,
-        chat: p.conversationId,
+        protocol: p.protocol,
+        chat: p.chatId,
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
     return {
       data,
       text: data.length
-        ? data.map((p) => `${p.name}  (${p.network})  ${p.chat}`)
+        ? data.map((p) => `${p.name}  (${p.protocol})  ${p.chat}`)
         : 'No contacts yet.',
     };
   },

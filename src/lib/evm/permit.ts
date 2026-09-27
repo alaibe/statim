@@ -118,7 +118,7 @@ export async function supportsEip2612(
   );
   if (nonce === null) return null;
 
-  probed.get(key) ??
+  if (!probed.has(key)) {
     probed.set(
       key,
       (async () => {
@@ -146,6 +146,7 @@ export async function supportsEip2612(
         return null;
       })()
     );
+  }
 
   const domain = await probed.get(key)!;
   return domain && { ...domain, nonce };

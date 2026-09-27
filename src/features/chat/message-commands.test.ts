@@ -1,6 +1,7 @@
 import type { ChatMessage } from '@/core/messaging/types';
 
 import { messageActions } from './message-commands';
+import { asChatId } from '@/core/messaging/testing/ids';
 
 const handlers = {
   reply: jest.fn(),
@@ -30,7 +31,7 @@ const none = {
 
 const message = (over: Partial<ChatMessage> = {}): ChatMessage => ({
   id: 'm1',
-  conversationId: 'c1',
+  chatId: asChatId('c1'),
   senderId: 'me',
   sentAt: 1,
   content: { kind: 'text', text: 'hello' },
@@ -42,7 +43,7 @@ const message = (over: Partial<ChatMessage> = {}): ChatMessage => ({
 const ids = (m: ChatMessage, can = all) => messageActions(m, handlers, can).map((a) => a.id);
 
 describe('messageActions', () => {
-  it('offers everything for my own sent text where the network can do it', () => {
+  it('offers everything for my own sent text where the protocol can do it', () => {
     expect(ids(message())).toEqual([
       'reply',
       'copy',
@@ -54,7 +55,7 @@ describe('messageActions', () => {
     ]);
   });
 
-  it('leaves out what the network cannot do', () => {
+  it('leaves out what the protocol cannot do', () => {
     expect(ids(message(), none)).toEqual(['reply', 'copy', 'forward']);
   });
 
@@ -69,7 +70,7 @@ describe('messageActions', () => {
     expect(ids(message({ fromMe: false }), { ...all, deleteOthers: true })).toContain('delete');
   });
 
-  it('offers a thread where the network has them, once the message has arrived', () => {
+  it('offers a thread where the protocol has them, once the message has arrived', () => {
     expect(ids(message(), { ...all, thread: true })).toEqual([
       'reply',
       'thread',

@@ -1,6 +1,6 @@
 import type { ProtocolDescriptor } from '@/core/messaging/registry';
 import { guideUrl } from '@/lib/guide';
-import { loadDbEncryptionKey } from '@/core/identity/keyring';
+import { loadDbEncryptionKey } from '@/core/account/keyring';
 
 export const XMTP_PROTOCOL = {
   id: 'xmtp',
@@ -8,7 +8,7 @@ export const XMTP_PROTOCOL = {
   external: false,
   description: 'Messages addressed to Ethereum accounts, encrypted with MLS.',
   docsUrl: guideUrl('networks', 'xmtp'),
-  recipient: {
+  address: {
     label: 'Address or ENS name',
     placeholder: 'vitalik.eth or 0x…',
     noun: 'an address',
@@ -19,7 +19,7 @@ export const XMTP_PROTOCOL = {
   },
   meta: {
     trustModel:
-      'Nobody, including the network, can read your messages or reconstruct a group roster. ' +
+      'Nobody, including the nodes that relay them, can read your messages or reconstruct a group roster. ' +
       'Relays do see that two inboxes are talking.',
     properties: {
       endToEndEncrypted: true,
@@ -34,7 +34,7 @@ export const XMTP_PROTOCOL = {
     fields: [
       {
         key: 'env',
-        label: 'Network',
+        label: 'Environment',
         kind: 'text',
         placeholder: 'production',
         help: 'production or dev. Two clients only see each other on the same one.',
@@ -44,11 +44,7 @@ export const XMTP_PROTOCOL = {
   usesPluginContentTypes: true,
   async connect({ accountId, account, contentTypes, config, storage }) {
     const [{ XmtpSession }, { createPluginCodec }, { loadOrCreateDbEncryptionKey }] =
-      await Promise.all([
-        import('./adapter'),
-        import('./codec'),
-        import('@/core/identity/keyring'),
-      ]);
+      await Promise.all([import('./adapter'), import('./codec'), import('@/core/account/keyring')]);
     const env = xmtpEnvironment(config.env);
     return XmtpSession.connect({
       accountId,

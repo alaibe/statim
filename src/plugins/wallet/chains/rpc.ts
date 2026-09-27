@@ -31,7 +31,7 @@ export async function checkRpcUrl(chainId: number, url: string): Promise<RpcChec
         ok: false,
         reason:
           `That endpoint serves chain ${reported}${actual ? ` (${actual.name})` : ''}, ` +
-          `not ${chain.name}, so it was not saved. The wrong network would give you ` +
+          `not ${chain.name}, so it was not saved. The wrong chain would give you ` +
           'wrong balances and could broadcast transactions to the wrong chain.',
       };
     }

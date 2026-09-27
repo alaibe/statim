@@ -1,18 +1,19 @@
 import type { Capability } from '../messaging/capability';
-import type { ComponentType } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import type { Address, Hex, LocalAccount } from 'viem';
 
-import type { DerivedKey } from '../identity/keyring';
-import type { Ed25519Key } from '../identity/slip10';
-import type { AccountCapabilities } from '../identity/account-kind';
+import type { DerivedKey } from '../account/keyring';
+import type { Ed25519Key } from '../account/slip10';
+import type { AccountCapabilities } from '../account/account-kind';
 
 import type { IconName } from '@/design';
-import type { ConversationScope } from '../messaging/conversation-scope';
+import type { Guard } from '@/lib/guards';
+import type { ChatScope } from '../messaging/chat-scope';
 
 import type { Bot } from '../messaging/bots';
 import type {
   ChatMessage,
-  ConversationId,
+  ChatId,
   MessageContent,
   ParticipantId,
   WidgetContent,
@@ -24,8 +25,8 @@ export { poll } from '../messaging/bots';
 export type PluginId = string;
 
 export type PluginPermission =
-  | 'identity.read'
-  | 'identity.sign'
+  | 'account.read'
+  | 'account.sign'
   | 'chat.read'
   | 'chat.send'
   | 'network'
@@ -34,9 +35,9 @@ export type PluginPermission =
   | 'plugins.manage';
 
 export const PERMISSION_LABELS: Record<PluginPermission, string> = {
-  'identity.read': 'See your address and inbox id',
-  'identity.sign': 'Ask you to sign messages and transactions',
-  'chat.read': 'Read messages in your conversations',
+  'account.read': 'See your address and participant id',
+  'account.sign': 'Ask you to sign messages and transactions',
+  'chat.read': 'Read messages in your chats',
   'chat.send': 'Send messages on your behalf',
   network: 'Make network requests',
   storage: 'Store data on this device',
@@ -60,27 +61,27 @@ export interface PluginStorage {
   remove(key: string): Promise<void>;
 }
 
-export interface PluginIdentityApi {
+export interface PluginAccountApi {
   accountId: string | null;
   capabilities: AccountCapabilities;
   address: Address;
   participantId: string;
   signMessage(message: string): Promise<Hex>;
-  account(): LocalAccount;
+  signer(): LocalAccount;
   derive(path: string): DerivedKey;
   deriveEd25519(path: string): Ed25519Key;
 }
 
 export interface PluginChatApi {
-  startDm(addressOrInboxId: string): Promise<ConversationId | null>;
+  startDm(addressOrId: string): Promise<ChatId | null>;
   startGroup(
-    addressesOrInboxIds: string[],
+    addressesOrIds: string[],
     title: string
-  ): Promise<{ conversationId: ConversationId; unreachable: string[] }>;
-  send(conversationId: ConversationId, content: MessageContent): Promise<void>;
-  sendText(conversationId: ConversationId, text: string): Promise<void>;
-  sendCustom(conversationId: ConversationId, typeId: string, data: unknown): Promise<void>;
-  members(conversationId: ConversationId): Promise<ParticipantId[]>;
+  ): Promise<{ chatId: ChatId; unreachable: string[] }>;
+  send(chatId: ChatId, content: MessageContent): Promise<void>;
+  sendText(chatId: ChatId, text: string): Promise<void>;
+  sendCustom(chatId: ChatId, typeId: string, data: unknown): Promise<void>;
+  members(chatId: ChatId): Promise<ParticipantId[]>;
 }
 
 export interface PluginUiApi {
@@ -90,8 +91,8 @@ export interface PluginUiApi {
    * the moment the user came back here to approve a WalletConnect request.
    */
   openExternalUrl(url: string): Promise<void>;
-  openConversation(conversationId: ConversationId): void;
-  openProfile(conversationId: ConversationId, participantId?: ParticipantId): void;
+  openChat(chatId: ChatId): void;
+  openProfile(chatId: ChatId, participantId?: ParticipantId): void;
 }
 
 export interface PluginSummary {
@@ -106,15 +107,15 @@ export interface PluginManagementApi {
   list(): PluginSummary[];
   setEnabled(id: PluginId, enabled: boolean): Promise<void>;
   commands(
-    conversationId: ConversationId
+    chatId: ChatId
   ): { name: string; description: string; usage: string; pluginId: PluginId }[];
-  channelOwner(conversationId: ConversationId): PluginId | undefined;
+  channelOwner(chatId: ChatId): PluginId | undefined;
 }
 
 export interface PluginContext {
   manifest: PluginManifest;
   storage: PluginStorage;
-  identity: PluginIdentityApi;
+  account: PluginAccountApi;
   chat: PluginChatApi;
   ui: PluginUiApi;
   plugins: PluginManagementApi;
@@ -129,7 +130,7 @@ export interface CommandInvocation {
   rest: string;
   respond(content: MessageContent | string): Promise<void>;
   args: string[];
-  conversationId: ConversationId;
+  chatId: ChatId;
   context: PluginContext;
 }
 
@@ -141,15 +142,15 @@ export type CommandResult =
 
 export interface SlashCommand {
   name: string;
-  /** Offered only in chats whose network can do this. */
+  /** Offered only in chats whose protocol can do this. */
   requires?: Capability;
-  /** Posts a plugin content type, which only some networks carry. */
+  /** Posts a plugin content type, which only some protocols carry. */
   sendsCustom?: boolean;
   aliases?: string[];
   description: string;
   usage: string;
   global?: boolean;
-  showIn?: readonly ConversationScope[];
+  showIn?: readonly ChatScope[];
   hidden?: boolean;
   run(invocation: CommandInvocation): Promise<CommandResult>;
 }
@@ -162,10 +163,16 @@ export interface MessageRendererProps<T = unknown> {
   onCommand?: (command: string) => void;
 }
 
-export interface PluginContentType<T = any> {
+export interface PluginContentType<T = unknown> {
   typeId: string;
-  fallback: (data: T) => string;
-  render: ComponentType<MessageRendererProps<T>>;
+  /** False when a participant sent something this plugin cannot read. */
+  is: Guard<T>;
+  fallback(data: T): string;
+  render(props: MessageRendererProps<T>): ReactNode;
+}
+
+export function contentType<T>(spec: PluginContentType<T>): PluginContentType {
+  return spec;
 }
 
 export interface ComposerAction {
@@ -173,7 +180,7 @@ export interface ComposerAction {
   label: string;
   icon: IconName;
   command: string;
-  showIn?: readonly ConversationScope[];
+  showIn?: readonly ChatScope[];
   global?: boolean;
 }
 
@@ -187,17 +194,17 @@ export interface UriHandler {
   handle(url: string, context: PluginContext): Promise<boolean>;
 }
 
-export type PluginView = (args?: string[]) => Promise<WidgetContent>;
+export type PluginView = (args?: readonly string[]) => Promise<WidgetContent>;
 
 export interface PluginContribution {
   commands?: SlashCommand[];
   views?: Record<string, PluginView>;
   bots?: Bot[];
-  contentTypes?: PluginContentType<any>[];
+  contentTypes?: PluginContentType[];
   composerActions?: ComposerAction[];
   overlays?: PluginOverlay[];
   uriHandlers?: UriHandler[];
-  /** Names you gave participants, such as bots you added. They win over names from the network. */
+  /** Names you gave participants, such as bots you added. They win over names from the protocol. */
   names?(): Promise<Record<ParticipantId, string>>;
   start?(): Promise<(() => void) | void>;
 }

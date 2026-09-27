@@ -36,7 +36,7 @@ export function linkActions(
   const copy = (label: string): SheetAction => ({
     label,
     icon: 'copy-outline',
-    onPress: () => void copyText(link.kind === 'url' ? link.href : link.text),
+    onPress: () => copyText(link.kind === 'url' ? link.href : link.text),
   });
   const open = (label: string, icon: SheetAction['icon']): SheetAction => ({
     label,

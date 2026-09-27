@@ -2,7 +2,7 @@
 appId: com.statusoriginal.app
 ---
 - evalScript: ${output.note = 'ridge-trip-' + new Date().getTime().toString()}
-- runFlow: lib/open-status-room.yaml
+- runFlow: lib/open-status-chat.yaml
 - assertVisible:
     id: "chat-header-local-status"
 - assertNotVisible: ${output.note}
@@ -25,7 +25,7 @@ appId: com.statusoriginal.app
     visible: ${output.note}
     timeout: 10000
 
-- runFlow: lib/open-status-room.yaml
+- runFlow: lib/open-status-chat.yaml
 - assertVisible:
     id: "chat-header-local-status"
 - extendedWaitUntil:

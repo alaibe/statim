@@ -3,9 +3,9 @@ import Animated from 'react-native-reanimated';
 
 import type { ChatPrefs } from '@/core/messaging/chat-prefs';
 import { useChatStore } from '@/core/messaging/chat-store';
-import type { Directory, InboxRow } from '@/core/messaging/folders';
+import type { Folder, ChatListRow } from '@/core/messaging/folders';
 import { formatTimestamp, messagePreview } from '@/core/messaging/preview';
-import type { Conversation, ConversationId } from '@/core/messaging/types';
+import type { Chat, ChatId } from '@/core/messaging/types';
 import { unreadBadge } from '@/core/messaging/unread';
 import {
   CountBadge,
@@ -20,11 +20,11 @@ import {
 } from '@/design';
 import { openChat } from '@/features/navigation/open';
 import { protocolLabel } from '@/features/protocols/presentation';
-import { ConversationAvatar } from './conversation-avatar';
+import { ChatAvatar } from './chat-avatar';
 import { DeliveryIcon } from './delivery-icon';
 
-export function ConversationRow({
-  conversation,
+export function ChatRow({
+  chat,
   title,
   selfId,
   unread,
@@ -34,22 +34,22 @@ export function ConversationRow({
   onMenu,
   onToggle,
 }: {
-  conversation: Conversation;
+  chat: Chat;
   title: string;
   selfId: string;
   unread: boolean;
   network?: string;
   prefs: ChatPrefs | undefined;
   selected?: boolean;
-  onMenu: (conversation: Conversation, anchor: MenuAnchor | null) => void;
-  onToggle: (id: ConversationId, key: keyof ChatPrefs) => void;
+  onMenu: (chat: Chat, anchor: MenuAnchor | null) => void;
+  onToggle: (id: ChatId, key: keyof ChatPrefs) => void;
 }) {
-  const last = conversation.lastMessage;
+  const last = chat.lastMessage;
   const preview = messagePreview(last);
   const pinned = Boolean(prefs?.pinned);
   const muted = Boolean(prefs?.muted);
-  const loaded = useChatStore((s) => s.messages[conversation.id]);
-  const since = useChatStore((s) => s.readAt[conversation.id] ?? 0);
+  const loaded = useChatStore((s) => s.messages[chat.id]);
+  const since = useChatStore((s) => s.readAt[chat.id] ?? 0);
 
   return (
     <SwipeableRow
@@ -59,7 +59,7 @@ export function ConversationRow({
           label: pinned ? 'Unpin' : 'Pin',
           icon: 'pin-outline',
           tone: 'neutral',
-          onPress: () => onToggle(conversation.id, 'pinned'),
+          onPress: () => onToggle(chat.id, 'pinned'),
         },
       ]}
       right={[
@@ -68,18 +68,18 @@ export function ConversationRow({
           label: muted ? 'Unmute' : 'Mute',
           icon: muted ? 'volume-high-outline' : 'volume-mute-outline',
           tone: 'warning',
-          onPress: () => onToggle(conversation.id, 'muted'),
+          onPress: () => onToggle(chat.id, 'muted'),
         },
         {
           id: 'archive',
           label: prefs?.archived ? 'Unarchive' : 'Archive',
           icon: 'archive-outline',
           tone: 'brand',
-          onPress: () => onToggle(conversation.id, 'archived'),
+          onPress: () => onToggle(chat.id, 'archived'),
         },
       ]}>
       <ListItem
-        testID={`conversation-${conversation.id}`}
+        testID={`chat-${chat.id}`}
         title={
           <>
             {title}
@@ -91,18 +91,16 @@ export function ConversationRow({
             ) : null}
           </>
         }
-        accessibilityLabel={[title, conversation.typing ? 'typing' : preview]
-          .filter(Boolean)
-          .join(', ')}
-        subtitle={conversation.typing ? 'typing…' : preview}
-        onPress={() => openChat(conversation.id)}
-        onLongPress={() => onMenu(conversation, null)}
-        onContextMenu={(anchor) => onMenu(conversation, anchor)}
+        accessibilityLabel={[title, chat.typing ? 'typing' : preview].filter(Boolean).join(', ')}
+        subtitle={chat.typing ? 'typing…' : preview}
+        onPress={() => openChat(chat.id)}
+        onLongPress={() => onMenu(chat, null)}
+        onContextMenu={(anchor) => onMenu(chat, anchor)}
         selected={selected}
         unread={unread && !muted}
         leading={
-          <ConversationAvatar
-            conversation={conversation}
+          <ChatAvatar
+            chat={chat}
             selfId={selfId}
             size="md"
             network={network ? protocolLabel(network) : undefined}
@@ -120,7 +118,7 @@ export function ConversationRow({
         }
         subtitleTrailing={
           unread ? (
-            <CountBadge count={unreadBadge(conversation, since, loaded)} muted={muted} />
+            <CountBadge count={unreadBadge(chat, since, loaded)} muted={muted} />
           ) : pinned ? (
             <Icon name="pin" size={14} tone="subtle" />
           ) : undefined
@@ -132,13 +130,13 @@ export function ConversationRow({
 
 const chatCount = (n: number) => `${n} ${n === 1 ? 'chat' : 'chats'}`;
 
-function directoryLabel(directory: Directory): string {
-  return directory === 'archive' ? 'Archive' : protocolLabel(directory.slice('network:'.length));
+function folderLabel(folder: Folder): string {
+  return folder === 'archive' ? 'Archive' : protocolLabel(folder.slice('network:'.length));
 }
 
-function DirectoryIcon({ directory, size }: { directory: Directory; size: number }) {
-  if (directory !== 'archive') {
-    return <NetworkMark network={directoryLabel(directory)} size={size} />;
+function FolderIcon({ folder, size }: { folder: Folder; size: number }) {
+  if (folder !== 'archive') {
+    return <NetworkMark network={folderLabel(folder)} size={size} />;
   }
   return (
     <View
@@ -149,28 +147,28 @@ function DirectoryIcon({ directory, size }: { directory: Directory; size: number
   );
 }
 
-export function DirectoryRow({
+export function FolderRow({
   row,
   unread,
   preview,
   onPress,
 }: {
-  row: Extract<InboxRow, { kind: 'directory' }>;
+  row: Extract<ChatListRow, { kind: 'folder' }>;
   unread: number;
   preview: string;
   onPress: () => void;
 }) {
-  const archive = row.directory === 'archive';
+  const archive = row.folder === 'archive';
   const highlight = unread > 0 && !archive;
   return (
     <ListItem
-      testID={`directory-${row.directory}`}
-      title={directoryLabel(row.directory)}
+      testID={`folder-${row.folder}`}
+      title={folderLabel(row.folder)}
       subtitle={preview}
-      accessibilityLabel={`${directoryLabel(row.directory)}, ${chatCount(row.chats.length)}${unread ? `, ${unread} unread` : ''}`}
+      accessibilityLabel={`${folderLabel(row.folder)}, ${chatCount(row.chats.length)}${unread ? `, ${unread} unread` : ''}`}
       onPress={onPress}
       unread={highlight}
-      leading={<DirectoryIcon directory={row.directory} size={44} />}
+      leading={<FolderIcon folder={row.folder} size={44} />}
       meta={
         row.latest.lastMessage ? (
           <Text variant="caption" className={highlight ? 'text-brand' : undefined}>
@@ -183,25 +181,25 @@ export function DirectoryRow({
   );
 }
 
-export function DirectoryHeader({
-  directory,
+export function FolderHeader({
+  folder,
   count,
   onBack,
 }: {
-  directory: Directory;
+  folder: Folder;
   count: number;
   onBack: () => void;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Back to all chats from ${directoryLabel(directory)}`}
+      accessibilityLabel={`Back to all chats from ${folderLabel(folder)}`}
       onPress={onBack}
       className="flex-row items-center gap-2 border-b border-line px-3 py-2">
       <Icon name="chevron-back" size={20} tone="brand" />
-      <DirectoryIcon directory={directory} size={22} />
+      <FolderIcon folder={folder} size={22} />
       <Text className="flex-1 font-semibold" numberOfLines={1}>
-        {directoryLabel(directory)}
+        {folderLabel(folder)}
       </Text>
       <Text variant="caption">{chatCount(count)}</Text>
     </Pressable>

@@ -3,21 +3,24 @@ import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { Badge, Button, cn, Enter, ErrorText, Eyebrow, Icon, Sheet, Text } from '@/design';
-import { shortAddress } from '@/core/identity/keyring';
-import type { ConversationId } from '@/core/messaging/types';
-import type { MessageRendererProps, PluginContentType, PluginContext } from '@/core/plugins/types';
+import { shortAddress } from '@/core/account/keyring';
+import type { ChatId } from '@/core/messaging/types';
+import { contentType, type MessageRendererProps, type PluginContext } from '@/core/plugins/types';
 
 import { chainById } from '@/lib/evm/chains';
 import {
   CONTENT_TYPE_PAYMENT_RECEIPT,
   CONTENT_TYPE_PAYMENT_REQUEST,
   CONTENT_TYPE_PAYMENT_SPLIT,
+  isPaymentReceipt,
+  isPaymentRequest,
+  isSplitRequest,
   type PaymentReceipt,
   type PaymentRequest,
   type SplitRequest,
 } from './types';
 import { walletErrorMessage } from './errors';
-import { commitTransfer, networkOffMessage } from './transfer';
+import { commitTransfer, chainOffMessage } from './transfer';
 import { chainStrategies, type ChainStrategy } from './chains/strategy';
 
 function CardShell({ fromMe, children }: { fromMe: boolean; children: React.ReactNode }) {
@@ -54,7 +57,7 @@ interface PaymentTarget {
   to: string;
 }
 
-function usePayment(data: PaymentTarget, context: PluginContext, conversationId: ConversationId) {
+function usePayment(data: PaymentTarget, context: PluginContext, chatId: ChatId) {
   const chain = strategyFor(data);
   const [busy, setBusy] = useState(false);
   const [paid, setPaid] = useState(false);
@@ -63,7 +66,7 @@ function usePayment(data: PaymentTarget, context: PluginContext, conversationId:
   const usable = () => {
     setError(null);
     if (chain?.transfer) return chain;
-    setError(networkOffMessage(chainLabel(data)));
+    setError(chainOffMessage(chainLabel(data)));
     return null;
   };
 
@@ -94,7 +97,7 @@ function usePayment(data: PaymentTarget, context: PluginContext, conversationId:
         ready,
         context,
         { amount, to: data.to },
-        { conversationId, symbol: data.symbol, onSent: () => setPaid(true) }
+        { chatId, symbol: data.symbol, onSent: () => setPaid(true) }
       ).finally(() => setBusy(false));
       if (!sent.ok) setError(sent.message);
       return sent.ok;
@@ -108,7 +111,7 @@ function PaymentRequestCard({
   context,
   message,
 }: MessageRendererProps<PaymentRequest>) {
-  const payment = usePayment(data, context, message.conversationId);
+  const payment = usePayment(data, context, message.chatId);
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<{ label: string; value: string }[] | null>(null);
 
@@ -181,7 +184,7 @@ function PaymentRequestCard({
 }
 
 function SplitRequestCard({ data, fromMe, context, message }: MessageRendererProps<SplitRequest>) {
-  const payment = usePayment(data, context, message.conversationId);
+  const payment = usePayment(data, context, message.chatId);
 
   return (
     <CardShell fromMe={fromMe}>
@@ -197,7 +200,7 @@ function SplitRequestCard({ data, fromMe, context, message }: MessageRendererPro
         your share of {data.total} {data.symbol}, {data.people} ways
       </Text>
 
-      <Row label="Network" value={chainLabel(data)} />
+      <Row label="Chain" value={chainLabel(data)} />
       <Row label="Goes to" value={shortAddress(data.to)} />
 
       <ErrorText>{payment.error}</ErrorText>
@@ -210,8 +213,7 @@ function SplitRequestCard({ data, fromMe, context, message }: MessageRendererPro
         </Text>
       ) : (
         <Button
-          label={payment.busy ? 'Sending…' : `Pay ${data.share} ${data.symbol}`}
-          disabled={payment.busy}
+          label={`Pay ${data.share} ${data.symbol}`}
           fullWidth
           onPress={() => payment.send(data.share)}
         />
@@ -255,22 +257,25 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-export const walletContentTypes: PluginContentType<any>[] = [
-  {
+export const walletContentTypes = [
+  contentType({
     typeId: CONTENT_TYPE_PAYMENT_REQUEST,
-    fallback: (data: PaymentRequest) =>
+    is: isPaymentRequest,
+    fallback: (data) =>
       `Payment request: ${data.amount} ${data.symbol}${data.note ? ` (${data.note})` : ''}`,
     render: PaymentRequestCard,
-  },
-  {
+  }),
+  contentType({
     typeId: CONTENT_TYPE_PAYMENT_SPLIT,
+    is: isSplitRequest,
     render: SplitRequestCard,
-    fallback: (data: SplitRequest) =>
+    fallback: (data) =>
       `Split ${data.total} ${data.symbol} ${data.people} ways, ${data.share} each`,
-  },
-  {
+  }),
+  contentType({
     typeId: CONTENT_TYPE_PAYMENT_RECEIPT,
-    fallback: (data: PaymentReceipt) => `Sent ${data.amount} ${data.symbol} (${data.hash})`,
+    is: isPaymentReceipt,
+    fallback: (data) => `Sent ${data.amount} ${data.symbol} (${data.hash})`,
     render: PaymentReceiptCard,
-  },
+  }),
 ];

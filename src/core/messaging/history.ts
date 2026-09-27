@@ -14,7 +14,7 @@ export function historyFailure(error: unknown): HistoryState {
   };
 }
 
-/** Counts overlapping backfills so the first finished topic cannot hide the rest. */
+/** Counts overlapping backfills so the first one to finish cannot hide the rest. */
 export class HistoryTracker {
   private pending = 0;
   private failure: HistoryState | undefined;

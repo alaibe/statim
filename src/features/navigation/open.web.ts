@@ -3,7 +3,7 @@ import { router, type Href } from 'expo-router';
 // The desktop has no back button: the sidebar decides what the pane shows, so
 // whatever was stacked above the tabs goes first. Left in place, each click
 // would add a screen, and a dismissed dialog would keep the pane beneath it
-// visible under the conversation.
+// visible under the chat.
 function fresh(): void {
   if (router.canDismiss()) router.dismissAll();
 }

@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 
 import { groupCommands } from './group';
+import { asChatId } from '@/core/messaging/testing/ids';
 
 /**
  * Core commands have no plugin context, and must not reach for one: the
@@ -15,7 +16,7 @@ describe('/profile', () => {
     profile.run({
       args,
       rest: args.join(' '),
-      conversationId: 'xmtp-abc',
+      chatId: asChatId('xmtp-abc'),
       // The same proxy the registry passes core commands: any access throws.
       context: new Proxy(
         {},

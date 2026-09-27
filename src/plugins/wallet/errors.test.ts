@@ -36,7 +36,7 @@ describe('walletErrorMessage', () => {
     expect(message).toContain('Polygon');
     expect(message).toMatch(/POL.*fees|fees.*POL/i);
     expect(message).toMatch(/add POL on Polygon/i);
-    expect(message).toMatch(/other networks cannot pay/i);
+    expect(message).toMatch(/other chains cannot pay/i);
     expect(message).toMatch(/nothing was sent/i);
     expect(message).not.toMatch(/cancel|approve|ETH|Transaction creation failed/i);
   });
@@ -70,11 +70,11 @@ describe('walletErrorMessage', () => {
     const message = walletErrorMessage(error, { ...polygon, name: 'Sepolia' }, 'review');
 
     expect(message).toMatch(/Sepolia.*not available/i);
-    expect(message).toContain('/networks');
+    expect(message).toContain('/chains');
     expect(message).not.toContain('/rpc');
   });
 
-  it('distinguishes user cancellation from a transfer that would revert during review', () => {
+  it('distinguishes a cancellation by the user from a transfer that would revert during review', () => {
     const cancelled = walletErrorMessage(
       new UserRejectedRequestError(new Error('Rejected')),
       polygon,
@@ -108,11 +108,11 @@ describe('walletErrorMessage', () => {
     );
   });
 
-  it('does not treat a cancelled HTTP request as a user cancelling the payment', () => {
+  it('does not treat a cancelled HTTP request as the user cancelling the payment', () => {
     const error = Object.assign(new Error('The request was cancelled.'), { name: 'AbortError' });
     const message = walletErrorMessage(error, polygon, 'send');
 
-    expect(message).toMatch(/network service.*could not be reached/i);
+    expect(message).toMatch(/remote server.*could not be reached/i);
     expect(message).toMatch(/history or .*explorer before trying again/i);
     expect(message).not.toMatch(/approve|nothing was sent/i);
   });
@@ -156,7 +156,7 @@ describe('walletErrorMessage', () => {
     expect(send).not.toMatch(
       /private-|Authorization|rpc\.example|https:|viem@|nothing was sent|Transaction creation failed/i
     );
-    expect(fees).toMatch(/load network fees/i);
+    expect(fees).toMatch(/load fees/i);
     expect(fees).not.toMatch(/transaction creation|may have been submitted|nothing was sent/i);
   });
 

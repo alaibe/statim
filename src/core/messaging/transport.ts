@@ -1,5 +1,11 @@
-import type { MessageContent, MessageId, ParticipantId, SelfIdentity } from './types';
-import type { StoredConversation } from './message-store';
+import type {
+  MessageContent,
+  MessageId,
+  ParticipantId,
+  ProtocolChatId,
+  SelfParticipant,
+} from './types';
+import type { TransportChat } from './message-store';
 
 export interface TransportSink {
   deliverToRoutingKey(routingKey: string, message: IncomingMessage): Promise<void>;
@@ -31,25 +37,25 @@ export interface SendResult {
 
 export interface ChatTransport {
   readonly protocolId: string;
-  readonly self: SelfIdentity;
+  readonly self: SelfParticipant;
   cursorUpperBound?(): number;
 
-  conversationIdFor(participants: ParticipantId[]): string;
+  chatIdFor(participants: ParticipantId[]): ProtocolChatId;
 
   routingKeyFor?(participants: ParticipantId[]): string;
 
   /**
    * `since` is the newest persisted message time, not the last delivery time.
-   * It is undefined when the conversation has no local history.
+   * It is undefined when the chat has no local history.
    */
-  openConversation?(conversation: StoredConversation, opts?: { since?: number }): Promise<void>;
+  openChat?(chat: TransportChat, opts?: { since?: number }): Promise<void>;
 
-  closeConversation?(conversation: StoredConversation): Promise<void>;
+  closeChat?(chat: TransportChat): Promise<void>;
 
-  send(conversation: StoredConversation, content: MessageContent): Promise<SendResult>;
-  confirmSend?(conversationId: string, messageId: MessageId): void;
+  send(chat: TransportChat, content: MessageContent): Promise<SendResult>;
+  confirmSend?(chatId: ProtocolChatId, messageId: MessageId): void;
 
-  resolvePeer(addressOrId: string): Promise<ParticipantId | null>;
+  resolveParticipant(addressOrId: string): Promise<ParticipantId | null>;
   resolveAddresses(ids: ParticipantId[]): Promise<Record<ParticipantId, string>>;
 
   sync(): Promise<void>;

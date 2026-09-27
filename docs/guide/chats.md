@@ -1,17 +1,17 @@
 # Chats
 
-Three tabs: **Chats**, **Contacts** and **Settings**. Chats is the inbox, and
-every conversation in it says which network it is on.
+Three tabs: **Chats**, **Contacts** and **Settings**. Chats is the chat list, and
+every chat in it says which network it is on.
 
 <div class="phones">
   <figure><img src="/screenshots/chats.png" alt="The chat list"><figcaption>The chat list</figcaption></figure>
-  <figure><img src="/screenshots/new-chat.png" alt="Starting a new chat: pick a network, paste who to talk to"><figcaption>New chat: a network, then who</figcaption></figure>
+  <figure><img src="/screenshots/new-chat.png" alt="Starting a new chat: pick a protocol, paste who to talk to"><figcaption>New chat: a protocol, then who</figcaption></figure>
   <figure><img src="/screenshots/contacts.png" alt="The Contacts tab"><figcaption>Contacts</figcaption></figure>
 </div>
 
-## The Status room
+## The Status chat
 
-A fresh install has exactly one conversation: the Status room. It lives on your
+A fresh install has exactly one chat, the Status chat. It lives on your
 device and nowhere else. It answers `/commands`, explains what the app can do,
 and is where plugins post their own messages. It also works as a notepad, since
 nothing written there is sent anywhere.
@@ -20,12 +20,12 @@ nothing written there is sent anywhere.
 
 Tap the compose button at the top right of Chats.
 
-1. **Pick a network.** Only connected networks are offered;
-   [Networks](./networks) covers connecting each one.
-2. **Say who.** What you paste depends on the network: an Ethereum address or
+1. Pick a protocol. Only connected protocols are offered;
+   [Protocols](./networks) covers connecting each one.
+2. Paste their address. What that is depends on the protocol: an Ethereum address or
    ENS name for XMTP, a public key for Nostr or Waku, a `@username` or phone
    number for Telegram, a `@user:server` ID or a `matrix.to` link for Matrix.
-3. **Add more people and a title** to make a group, where the network allows
+3. Add more people and a title to make a group, where the protocol allows
    it.
 
 The app checks the person can actually receive messages there before opening
@@ -34,17 +34,18 @@ opened an XMTP app, for instance, has no inbox to deliver to.
 
 ## Contacts
 
-The Contacts tab lists the people you have talked to, across every network, and
+The Contacts tab lists the people you have talked to, across every protocol, and
 is where you save a name against an address you will use again. **Invite
-friends** reads your device address book to suggest who to ask, on the device
+contacts** reads your device address book to suggest who to ask, on the device
 only. Nothing from it is uploaded.
 
-## Message requests
+## Requests
 
-A conversation someone else starts arrives under **Message requests** at the
-top of the list, not in your chats. Open it, read it, then **Accept** or
-**Ignore**. Until you accept, nothing you do is visible to the sender. A Matrix
-room invitation arrives as a request too, and accepting it joins the room.
+A chat someone else starts arrives under **Requests** at the top of the
+list, not in your chats. Open it, read it, then **Accept** or **Decline**.
+Declining takes the chat off your list without blocking the sender. Until
+you accept, nothing you do is visible to the sender. An
+invitation to a Matrix chat arrives as a request too, and accepting it joins it.
 
 ## Folders and filters
 
@@ -53,21 +54,21 @@ in the list, such as **Telegram** or **Slack**, so a busy account does not bury
 the rest. Pin a chat and it stays in the main list. Archived chats have their
 own **Archive** folder.
 
-The tabs at the top filter the list: **All**, **Unread**, **Mentions** (chats
-where someone mentioned or replied to you), **Direct** and **Groups**.
+The filters at the top narrow the list: **All**, **Unread**, **Mentions** (chats
+where someone mentioned or replied to you), **DMs** and **Groups**.
 
 ## Search
 
 The search button inside a chat searches that chat; search from the list looks
 through all of them. Telegram searches its whole history. Matrix searches the
-homeserver's history for rooms without encryption, and for encrypted rooms what
-this device holds. The other networks search what is stored on this device.
+homeserver's history for chats without encryption, and for encrypted chats what
+this device holds. The other protocols search what is stored on this device.
 
 On the Mac, **⌘K** jumps to a chat by name, unread chats first.
 
 ## Pin, archive, mute, mark unread
 
-Swipe a conversation, or long-press it, to pin it to the top, archive it, or
+Swipe a chat, or long-press it, to pin it to the top, archive it, or
 silence its notifications. Muted chats stay out of the **Unread** count and do
 not notify.
 
@@ -89,7 +90,7 @@ A group's details show its description, link and member count. Admins also see:
   **Remove from group** (they can come back with an invite or a link) and
   **Ban from group** (they cannot come back).
 
-What each of those means underneath depends on the network. XMTP enforces
-membership cryptographically; a Nostr group is simply the set of recipients;
-Matrix has room power levels; Waku groups are a shared topic. The app only
-offers what the network can actually do.
+What each of those means underneath depends on the protocol. XMTP enforces
+membership cryptographically; a Nostr group is simply the set of participants;
+Matrix has power levels; Waku groups are a shared topic. The app only
+offers what the protocol can actually do.

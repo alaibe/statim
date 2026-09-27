@@ -9,8 +9,8 @@ import {
 } from 'viem';
 
 import { flagValue, withoutFlag } from '@/core/commands/flags';
-import { shortAddress } from '@/core/identity/keyring';
-import { loadTradeKey } from '@/core/identity/trade-key';
+import { shortAddress } from '@/core/account/keyring';
+import { loadTradeKey } from '@/core/account/trade-key';
 import type {
   CommandInvocation,
   CommandResult,
@@ -51,7 +51,13 @@ import {
 } from './chains/strategy';
 import { assetField, withoutConfirm } from './commands';
 import { sentPaymentErrorMessage, walletErrorMessage } from './errors';
-import { activeNetwork, defaultChain, networkById, NO_NETWORK_ON, pickStrategy } from './networks';
+import {
+  activeChain,
+  defaultChain,
+  walletChainById,
+  NO_CHAIN_ON,
+  pickStrategy,
+} from './chain-list';
 
 type Respond = CommandInvocation['respond'];
 
@@ -79,13 +85,13 @@ function receiveOptions(chains: TradeChain[], held: WidgetOption[]): WidgetOptio
 
 type TradeChain = ChainStrategy & { evm: Chain };
 
-/** LI.FI routes between EVM networks here; Bitcoin and Solana sit this one out. */
+/** LI.FI routes between EVM chains here; Bitcoin and Solana sit this one out. */
 const tradeChains = () => sendableChains().filter((c): c is TradeChain => c.evm !== undefined);
 
 function chainNamed(chains: TradeChain[], named: string): TradeChain | { error: string } {
-  const known = networkById(named);
+  const known = walletChainById(named);
   if (known && !known.evm) {
-    return { error: `Trades run between EVM networks, and ${known.name} is not one.` };
+    return { error: `Trades run between EVM chains, and ${known.name} is not one.` };
   }
   const picked = pickStrategy(chains, named);
   return 'error' in picked ? picked : picked.chain;
@@ -137,7 +143,7 @@ async function tradeForm(
   respond: Respond
 ): Promise<CommandResult> {
   const assets = await assetField(chains, context);
-  const networks = chains.map((c) => ({ label: c.name, value: c.id }));
+  const choices = chains.map((c) => ({ label: c.name, value: c.id }));
 
   await respond({
     kind: 'widget',
@@ -146,7 +152,7 @@ async function tradeForm(
       [
         W.form(
           [
-            { id: 'from', label: 'From', value: from.id, options: networks },
+            { id: 'from', label: 'From', value: from.id, options: choices },
             {
               id: 'token',
               label: 'Asset',
@@ -161,7 +167,7 @@ async function tradeForm(
               keyboard: 'decimal',
               value: given.amount ?? '',
             },
-            { id: 'to', label: 'To', value: to.id, options: networks },
+            { id: 'to', label: 'To', value: to.id, options: choices },
             {
               id: 'receive',
               label: 'Receive',
@@ -176,7 +182,7 @@ async function tradeForm(
               placeholder: 'Your own address',
               value: given.recipient ?? '',
               optional: true,
-              hint: 'Leave it blank to keep the trade. Your address is the same on every EVM network.',
+              hint: 'Leave it blank to keep the trade. Your address is the same on every EVM chain.',
             },
           ],
           {
@@ -186,7 +192,7 @@ async function tradeForm(
           }
         ),
         W.text(
-          'The same network on both sides is a swap; different networks, a bridge. LI.FI finds ' +
+          'The same chain on both sides is a swap; different chains, a bridge. LI.FI finds ' +
             'the route and quotes it. Nothing is signed until you confirm the quote.'
         ),
         POWERED_BY,
@@ -251,7 +257,7 @@ async function prepare(
   const fromAmount = parseUnits(amount, fromToken.decimals);
   if (fromAmount <= 0n) return { error: 'The amount must be greater than 0.' };
 
-  const address = context.identity.address;
+  const address = context.account.address;
   const wanted = await targetAddress(from, context, recipient?.trim(), { resolve: true });
   if ('error' in wanted) return { error: wanted.error };
   const landsIn = wanted.address as Address;
@@ -343,7 +349,7 @@ async function prepare(
 
 function canSign(context: PluginContext): boolean {
   try {
-    return typeof context.identity.account().signTypedData === 'function';
+    return typeof context.account.signer().signTypedData === 'function';
   } catch {
     return false;
   }
@@ -387,7 +393,7 @@ function reviewCard(
       : []),
     { label: 'Route', value: quote.toolDetails.name },
     { label: 'Takes about', value: duration(estimate.executionDuration) },
-    ...(gas ? [{ label: 'Network fee', value: gas }] : []),
+    ...(gas ? [{ label: 'Gas fee', value: gas }] : []),
     ...(fees ? [{ label: 'Route fees', value: fees }] : []),
     ...(fromUsd && toUsd ? [{ label: 'Value', value: `${fromUsd} → ${toUsd}` }] : []),
   ];
@@ -442,7 +448,7 @@ async function execute(
   { quote, fromToken, needsApproval, permit, targets }: Trade,
   respond: Respond
 ): Promise<{ approval?: Hex; hash: Hex }> {
-  const account = context.identity.account();
+  const account = context.account.signer();
   const client = walletClientFor(account, from.evm.id);
   let approval: Hex | undefined;
 
@@ -464,7 +470,7 @@ async function execute(
     });
 
     // Two transactions look like one long wait from here, so the first one says
-    // it is out rather than leaving the room on a spinner.
+    // it is out rather than leaving the chat on a spinner.
     const follow = explorerUrlFor(from.evm.id, approval);
     await respond({
       kind: 'widget',
@@ -617,7 +623,7 @@ async function statusCard(
 export const tradeCommand: SlashCommand = {
   name: 'trade',
   aliases: ['swap', 'bridge'],
-  description: 'Swap a token, or bridge it to another network, through LI.FI',
+  description: 'Swap a token, or bridge it to another chain, through LI.FI',
   showIn: ['channel'],
   usage:
     '/trade <amount> <asset> <asset to receive> [--from base] [--to arbitrum] [--recipient 0x…]',
@@ -628,8 +634,8 @@ export const tradeCommand: SlashCommand = {
         type: 'error',
         message:
           sendableChains().length > 0
-            ? 'Trades run between EVM networks, and none is switched on. /networks turns one on.'
-            : NO_NETWORK_ON,
+            ? 'Trades run between EVM chains, and none is switched on. /chains turns one on.'
+            : NO_CHAIN_ON,
       };
     }
 
@@ -647,7 +653,7 @@ export const tradeCommand: SlashCommand = {
 
     const from = fromId
       ? chainNamed(chains, fromId)
-      : defaultChain(chains, undefined, (await activeNetwork(context))?.id);
+      : defaultChain(chains, undefined, (await activeChain(context))?.id);
     if ('error' in from) return { type: 'error', message: from.error };
     const to = toId ? chainNamed(chains, toId) : from;
     if ('error' in to) return { type: 'error', message: to.error };
@@ -657,7 +663,7 @@ export const tradeCommand: SlashCommand = {
       return tradeForm(chains, from, to, given, context, respond);
     }
 
-    const accountId = context.identity.accountId;
+    const accountId = context.account.accountId;
     const key = accountId ? await loadTradeKey(accountId) : null;
 
     if (status) {

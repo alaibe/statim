@@ -46,7 +46,6 @@ export interface TdChat extends TdObject {
   pending_join_requests?: { total_count: number } | null;
   permissions?: TdPermissions;
   last_read_outbox_message_id: number;
-  block_list?: TdObject | null;
 }
 
 export type TdMemberStatus =

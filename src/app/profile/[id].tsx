@@ -1,3 +1,3 @@
-import { ConversationProfile } from '@/features/chat/conversation-profile';
+import { ChatProfile } from '@/features/chat/chat-profile';
 
-export default ConversationProfile;
+export default ChatProfile;

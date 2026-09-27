@@ -1,8 +1,8 @@
-import { shortAddress } from '@/core/identity/keyring';
+import { shortAddress } from '@/core/account/keyring';
 
-import { isLocalConversation } from './bots';
+import { isLocalChat } from './bots';
 import { useChatStore } from './chat-store';
-import type { Conversation, ParticipantId } from './types';
+import type { Chat, ParticipantId } from './types';
 
 export interface DisplayParticipant {
   id: ParticipantId;
@@ -14,7 +14,7 @@ export interface ResolvedParticipants {
   addresses: Record<ParticipantId, string>;
 }
 
-/** What a network knows about these participants; a lookup that fails leaves them out. */
+/** What a protocol knows about these participants; a lookup that fails leaves them out. */
 export async function resolveParticipants(
   protocol: string | null | undefined,
   ids: ParticipantId[]
@@ -29,7 +29,7 @@ export async function resolveParticipants(
   return { names, addresses };
 }
 
-/** `own` are the names you gave people, through a plugin; they win over the network's. */
+/** `own` are the names you gave people, through a plugin; they win over the protocol's. */
 export function nameFrom(
   id: ParticipantId,
   { names, addresses }: ResolvedParticipants,
@@ -42,24 +42,21 @@ export function displayName(id: ParticipantId, name?: string, address?: string):
   return name || (address ? shortAddress(address) : shortAddress(id, 6, 4));
 }
 
-export function conversationTitle(
-  conversation: Conversation,
+export function chatTitle(
+  chat: Chat,
   selfId: ParticipantId,
   nameFor: (id: ParticipantId) => string
 ): string {
-  if (conversation.kind !== 'dm') return conversation.title;
-  if (isLocalConversation(conversation.id)) return conversation.title;
+  if (chat.kind !== 'dm') return chat.title;
+  if (isLocalChat(chat.id)) return chat.title;
 
-  const peer = conversation.memberIds.find((id) => id !== selfId) ?? conversation.title;
-  return nameFor(peer);
+  const participant = chat.memberIds.find((id) => id !== selfId) ?? chat.title;
+  return nameFor(participant);
 }
 
-/** Everyone in the conversation but us. */
-export function conversationPeers(
-  conversation: Conversation,
-  selfId: ParticipantId
-): DisplayParticipant[] {
-  return conversation.memberIds
+/** Everyone in the chat but us. */
+export function chatParticipants(chat: Chat, selfId: ParticipantId): DisplayParticipant[] {
+  return chat.memberIds
     .filter((id) => id !== selfId)
-    .map((id) => ({ id, protocol: conversation.protocol }));
+    .map((id) => ({ id, protocol: chat.protocol }));
 }

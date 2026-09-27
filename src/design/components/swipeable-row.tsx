@@ -9,6 +9,7 @@ import { Pressable } from './pressable';
 import { Text } from './text';
 import { useThemeColors } from '../hooks/use-theme-colors';
 import { Icon, type IconName } from '../icon';
+import { type PressHandler, runPress } from '../lib/press';
 
 export type SwipeTone = 'neutral' | 'warning' | 'brand' | 'danger';
 
@@ -18,7 +19,7 @@ export interface SwipeAction {
   icon: IconName;
   tone?: SwipeTone;
   destructive?: boolean;
-  onPress(): void;
+  onPress: PressHandler;
 }
 
 export interface SwipeableRowProps {
@@ -40,7 +41,7 @@ export function SwipeableRow({ right, left, children }: SwipeableRowProps) {
         action.destructive ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light
       ).catch(() => {});
     }
-    action.onPress();
+    void runPress(action.onPress);
   };
 
   const render = (actions: SwipeAction[], side: 'left' | 'right') =>

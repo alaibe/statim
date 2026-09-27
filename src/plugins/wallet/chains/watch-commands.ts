@@ -3,7 +3,7 @@ import type { Address, Chain } from 'viem';
 import type { PluginContext, PluginView, SlashCommand } from '@/core/plugins/types';
 import { W } from '@/design/widgets';
 import { looksLikeEnsName, resolveName } from '@/lib/evm/ens';
-import { shortAddress } from '@/core/identity/keyring';
+import { shortAddress } from '@/core/account/keyring';
 
 import { publicClientFor, trimDecimals } from '@/lib/evm/chains';
 import { formatEther } from 'viem';
@@ -31,9 +31,9 @@ async function targetAddress(
 
 export type ChainResolver = (
   args: string[]
-) => Promise<{ chain: Chain; networkId: string; rest: string[] } | { error: string }>;
+) => Promise<{ chain: Chain; chainKey: string; rest: string[] } | { error: string }>;
 
-export async function watchedCard(context: PluginContext, chain: Chain, networkId: string) {
+export async function watchedCard(context: PluginContext, chain: Chain, chainKey: string) {
   const list = await readWatched(context, chain.id);
 
   if (list.length === 0) {
@@ -70,7 +70,7 @@ export async function watchedCard(context: PluginContext, chain: Chain, networkI
             actions: [
               {
                 label: `Stop watching ${b.entry.label}`,
-                command: `/unwatch ${b.entry.address} --chain ${networkId}`,
+                command: `/unwatch ${b.entry.address} --chain ${chainKey}`,
                 icon: 'eye-off-outline' as const,
                 tone: 'danger' as const,
               },
@@ -102,7 +102,7 @@ export function watchCommands(
         const [input, ...labelParts] = rest;
         if (!input) return { type: 'error', message: 'Give me an address: /watch vitalik.eth' };
 
-        const target = await targetAddress(input, () => context.identity.address);
+        const target = await targetAddress(input, () => context.account.address);
         if ('error' in target) return { type: 'error', message: target.error };
 
         const list = await readWatched(context, chain.id);
@@ -163,7 +163,7 @@ export function watchCommands(
         const picked = await resolve(args);
         if ('error' in picked) return { type: 'error', message: picked.error };
 
-        await respond(await views.watched([picked.networkId]));
+        await respond(await views.watched([picked.chainKey]));
         return { type: 'handled' };
       },
     },

@@ -35,18 +35,21 @@ import {
   readInlineAttachment,
   writeInlineAttachment,
 } from '@/core/messaging/attachments';
+import { protocolChatId } from '@/core/messaging/namespace';
 import type { ChatSession, GroupInfo } from '@/core/messaging/protocol';
 import type {
-  ChatMessage,
-  Conversation,
-  ConversationId,
+  Chat,
+  ProtocolChatId,
   GroupMember,
   GroupRole,
   MessageContent,
   MessageId,
   ParticipantId,
-  SelfIdentity,
+  SelfParticipant,
   Unsubscribe,
+  ConsentDecision,
+  ProtocolMessage,
+  ProtocolChat,
 } from '@/core/messaging/types';
 import { isParticipantId } from '@/core/messaging/bots';
 import { base64ToBytes, bytesToBase64 } from '@/lib/bytes';
@@ -67,7 +70,7 @@ function signerForAccount(account: LocalAccount): Signer {
   };
 }
 
-// One OPFS database per account and network, named so it can be erased later.
+// One OPFS database per account and environment, named so it can be erased later.
 function databasePath(env: XmtpEnv, address: string): string {
   return `xmtp-${env}-${address.toLowerCase()}.db3`;
 }
@@ -97,7 +100,7 @@ export async function eraseXmtpLocalDatabase(options: XmtpEraseOptions): Promise
 }
 
 export class XmtpSession implements ChatSession {
-  readonly self: SelfIdentity;
+  readonly self: SelfParticipant;
   readonly sendsCustom = true;
 
   private readonly addressCache = new Map<ParticipantId, string>();
@@ -143,11 +146,11 @@ export class XmtpSession implements ChatSession {
     return new XmtpSession(client, byTypeId, opts.account, opts.accountId);
   }
 
-  async whenListed(first: Conversation[]): Promise<Conversation[]> {
+  async whenListed(first: ProtocolChat[]): Promise<ProtocolChat[]> {
     return first;
   }
 
-  async listConversations(): Promise<Conversation[]> {
+  async listChats(): Promise<ProtocolChat[]> {
     const lists = await Promise.all(
       VISIBLE.map(async (consent) => ({
         consent,
@@ -159,12 +162,12 @@ export class XmtpSession implements ChatSession {
     );
     return Promise.all(
       lists.flatMap(({ consent, conversations }) =>
-        conversations.map((c) => this.toConversation(c, undefined, consent))
+        conversations.map((c) => this.toChat(c, undefined, consent))
       )
     );
   }
 
-  async getMessages(id: ConversationId, opts?: { limit?: number }): Promise<ChatMessage[]> {
+  async getMessages(id: ProtocolChatId, opts?: { limit?: number }): Promise<ProtocolMessage[]> {
     const conversation = await this.client.conversations.getConversationById(id);
     if (!conversation) return [];
 
@@ -178,7 +181,7 @@ export class XmtpSession implements ChatSession {
     return converted.reverse();
   }
 
-  async countUnread(id: ConversationId, since: number): Promise<number> {
+  async countUnread(id: ProtocolChatId, since: number): Promise<number> {
     const conversation = await this.client.conversations.getConversationById(id);
     if (!conversation) return 0;
     const count = await conversation.countMessages({
@@ -193,7 +196,7 @@ export class XmtpSession implements ChatSession {
     return Number(count);
   }
 
-  async resolvePeer(addressOrId: string): Promise<ParticipantId | null> {
+  async resolveParticipant(addressOrId: string): Promise<ParticipantId | null> {
     const trimmed = addressOrId.trim();
 
     if (isParticipantId(trimmed)) return trimmed;
@@ -235,31 +238,31 @@ export class XmtpSession implements ChatSession {
     return out;
   }
 
-  async createDm(peer: ParticipantId): Promise<Conversation> {
-    const dm = await this.client.conversations.createDm(peer);
-    return this.toConversation(dm);
+  async createDm(participant: ParticipantId): Promise<ProtocolChat> {
+    const dm = await this.client.conversations.createDm(participant);
+    return this.toChat(dm);
   }
 
-  async createGroup(peers: ParticipantId[], title: string): Promise<Conversation> {
-    const group = await this.client.conversations.createGroup(peers, { groupName: title });
-    return this.toConversation(group);
+  async createGroup(participants: ParticipantId[], title: string): Promise<ProtocolChat> {
+    const group = await this.client.conversations.createGroup(participants, { groupName: title });
+    return this.toChat(group);
   }
 
-  private async requireGroup(id: ConversationId): Promise<Group<any>> {
+  private async requireGroup(id: ProtocolChatId): Promise<Group<any>> {
     const conversation = await this.client.conversations.getConversationById(id);
-    if (!conversation) throw new Error(`Conversation ${id} not found`);
+    if (!conversation) throw new Error(`Chat ${id} not found`);
     if (!(conversation instanceof Group)) {
-      throw new Error('That only works in a group conversation.');
+      throw new Error('That only works in a group.');
     }
     return conversation;
   }
 
-  async getMembers(id: ConversationId): Promise<GroupMember[]> {
+  async getMembers(id: ProtocolChatId): Promise<GroupMember[]> {
     const members = await (await this.requireGroup(id)).members();
     return members.map((m) => ({ id: m.inboxId, role: mapRole(m.permissionLevel) }));
   }
 
-  async getGroupInfo(id: ConversationId): Promise<GroupInfo> {
+  async getGroupInfo(id: ProtocolChatId): Promise<GroupInfo> {
     const group = await this.requireGroup(id);
     const members = await group.members();
     return {
@@ -269,25 +272,25 @@ export class XmtpSession implements ChatSession {
     };
   }
 
-  async addMembers(id: ConversationId, peers: ParticipantId[]): Promise<void> {
-    await (await this.requireGroup(id)).addMembers(peers);
+  async addMembers(id: ProtocolChatId, participants: ParticipantId[]): Promise<void> {
+    await (await this.requireGroup(id)).addMembers(participants);
   }
 
-  async removeMembers(id: ConversationId, peers: ParticipantId[]): Promise<void> {
-    await (await this.requireGroup(id)).removeMembers(peers);
+  async removeMembers(id: ProtocolChatId, participants: ParticipantId[]): Promise<void> {
+    await (await this.requireGroup(id)).removeMembers(participants);
   }
 
-  async renameGroup(id: ConversationId, title: string): Promise<void> {
+  async renameGroup(id: ProtocolChatId, title: string): Promise<void> {
     await (await this.requireGroup(id)).updateName(title);
   }
 
-  async leaveGroup(id: ConversationId): Promise<void> {
+  async leaveGroup(id: ProtocolChatId): Promise<void> {
     await (await this.requireGroup(id)).requestRemoval();
   }
 
-  async send(id: ConversationId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
+  async send(id: ProtocolChatId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
     const conversation = await this.client.conversations.getConversationById(id);
-    if (!conversation) throw new Error(`Conversation ${id} not found`);
+    if (!conversation) throw new Error(`Chat ${id} not found`);
 
     if (replyTo && content.kind === 'text') {
       return conversation.sendReply({
@@ -343,15 +346,15 @@ export class XmtpSession implements ChatSession {
     throw new Error(`Cannot send content of kind "${content.kind}"`);
   }
 
-  async setConsent(id: ConversationId, consent: 'allowed' | 'denied'): Promise<void> {
+  async setConsent(id: ProtocolChatId, consent: ConsentDecision): Promise<void> {
     const conversation = await this.client.conversations.getConversationById(id);
     if (!conversation) return;
     await conversation.updateConsentState(
-      consent === 'allowed' ? ConsentState.Allowed : ConsentState.Denied
+      consent === 'accepted' ? ConsentState.Allowed : ConsentState.Denied
     );
   }
 
-  async sendReadReceipt(id: ConversationId): Promise<void> {
+  async sendReadReceipt(id: ProtocolChatId): Promise<void> {
     const conversation = await this.client.conversations.getConversationById(id);
     if (!conversation) return;
     await conversation.sendReadReceipt();
@@ -384,33 +387,35 @@ export class XmtpSession implements ChatSession {
     await this.client.conversations.syncAll(VISIBLE);
   }
 
-  async streamMessages(onMessage: (m: ChatMessage) => void): Promise<Unsubscribe> {
+  async streamMessages(onMessage: (m: ProtocolMessage) => void): Promise<Unsubscribe> {
     const stream = await this.client.conversations.streamAllMessages({
       consentStates: VISIBLE,
       onError: (error) => console.warn('[xmtp] message stream error', error),
     });
     return this.consume(stream, async (message) => {
       if (isReadReceipt(message)) return;
-      onMessage(await this.toMessage(message, message.conversationId));
+      onMessage(await this.toMessage(message, protocolChatId(message.conversationId)));
     });
   }
 
   async streamDeletedMessages(
-    listener: (id: ConversationId, messageIds: MessageId[]) => void
+    listener: (id: ProtocolChatId, messageIds: MessageId[]) => void
   ): Promise<Unsubscribe> {
     const stream = await this.client.conversations.streamDeletedMessages({
       onError: (error) => console.warn('[xmtp] deletion stream error', error),
     });
-    return this.consume(stream, (message) => listener(message.conversationId, [message.id]));
+    return this.consume(stream, (message) =>
+      listener(protocolChatId(message.conversationId), [message.id])
+    );
   }
 
-  async streamConversations(onConversation: (c: Conversation) => void): Promise<Unsubscribe> {
+  async streamChats(onChat: (c: ProtocolChat) => void): Promise<Unsubscribe> {
     const stream = await this.client.conversations.stream({
       onError: (error) => console.warn('[xmtp] conversation stream error', error),
     });
     return this.consume(stream, async (conversation) => {
-      const converted = await this.toConversation(conversation, () => !this.closed);
-      if (!this.closed) onConversation(converted);
+      const converted = await this.toChat(conversation, () => !this.closed);
+      if (!this.closed) onChat(converted);
     });
   }
 
@@ -460,11 +465,11 @@ export class XmtpSession implements ChatSession {
   }
 
   /** `consent` is passed when the listing already filtered by it. */
-  private async toConversation(
+  private async toChat(
     raw: Group<any> | Dm<any>,
     current: () => boolean = () => true,
     consent?: ConsentState
-  ): Promise<Conversation> {
+  ): Promise<ProtocolChat> {
     const isGroup = raw instanceof Group;
 
     let title: string;
@@ -479,9 +484,9 @@ export class XmtpSession implements ChatSession {
         members.find((m) => m.inboxId === this.self.participantId)?.permissionLevel
       );
     } else {
-      const peer = await (raw as Dm<any>).peerInboxId();
-      title = peer;
-      memberIds = [peer, this.self.participantId];
+      const participant = await (raw as Dm<any>).peerInboxId();
+      title = participant;
+      memberIds = [participant, this.self.participantId];
     }
 
     const [state, recent] = await Promise.all([
@@ -489,10 +494,11 @@ export class XmtpSession implements ChatSession {
       current() ? raw.messages({ limit: 5n, direction: SortDirection.Descending }) : [],
     ]);
     const last = recent.find((m) => !isReadReceipt(m));
-    const lastMessage = current() && last ? await this.toMessage(last, raw.id) : undefined;
+    const lastMessage =
+      current() && last ? await this.toMessage(last, protocolChatId(raw.id)) : undefined;
 
     return {
-      id: raw.id,
+      id: protocolChatId(raw.id),
       kind: isGroup ? 'group' : 'dm',
       title,
       memberIds,
@@ -505,11 +511,11 @@ export class XmtpSession implements ChatSession {
 
   private async toMessage(
     raw: DecodedMessage<any>,
-    conversationId: ConversationId
-  ): Promise<ChatMessage> {
+    chatId: ProtocolChatId
+  ): Promise<ProtocolMessage> {
     return {
       id: raw.id,
-      conversationId,
+      chatId,
       senderId: raw.senderInboxId,
       sentAt: Number(raw.sentAtNs / 1_000_000n),
       fromMe: raw.senderInboxId === this.self.participantId,
@@ -595,10 +601,10 @@ function mapRole(level: PermissionLevel | undefined): GroupRole {
   return 'member';
 }
 
-function mapConsent(state: ConsentState): Conversation['consent'] {
-  if (state === ConsentState.Allowed) return 'allowed';
-  if (state === ConsentState.Denied) return 'denied';
-  return 'unknown';
+function mapConsent(state: ConsentState): Chat['consent'] {
+  if (state === ConsentState.Allowed) return 'accepted';
+  if (state === ConsentState.Denied) return 'declined';
+  return 'request';
 }
 
 function describeGroupUpdate(update: GroupUpdated): string {

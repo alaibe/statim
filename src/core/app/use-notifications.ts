@@ -1,11 +1,10 @@
 import { useEffect } from 'react';
 
 import { wasProactive } from '@/runtime';
-import { openChat } from '@/features/navigation/open';
-import { isLocalConversation } from '../messaging/bots';
+import { isLocalChat } from '../messaging/bots';
 import { useChatStore, type ChatState } from '../messaging/chat-store';
 import { contentPreview } from '../messaging/preview';
-import type { ChatMessage, Conversation } from '../messaging/types';
+import type { ChatMessage, Chat, ChatId } from '../messaging/types';
 import { totalUnread } from '../messaging/unread';
 import {
   configureNotifications,
@@ -14,7 +13,7 @@ import {
   setBadgeCount,
 } from '../notifications';
 
-export function useMessageNotifications() {
+export function useMessageNotifications(onTap: (id: ChatId) => void) {
   useEffect(() => {
     configureNotifications();
   }, []);
@@ -22,31 +21,27 @@ export function useMessageNotifications() {
   useEffect(() => {
     const since = Date.now();
     const badge = (state: ChatState) =>
-      setBadgeCount(totalUnread(state.conversations, state.readAt, state.chatPrefs));
-    badge(useChatStore.getState());
+      setBadgeCount(totalUnread(state.chats, state.readAt, state.chatPrefs));
+    void badge(useChatStore.getState());
     const unsubscribe = useChatStore.subscribe((state, previous) => {
       if (
-        state.conversations !== previous.conversations ||
+        state.chats !== previous.chats ||
         state.readAt !== previous.readAt ||
         state.chatPrefs !== previous.chatPrefs
       ) {
-        badge(state);
+        void badge(state);
       }
-      if (state.conversations === previous.conversations) return;
+      if (state.chats === previous.chats) return;
 
-      for (const { conversation, message } of arrivals(
-        previous.conversations,
-        state.conversations,
-        since
-      )) {
+      for (const { chat, message } of arrivals(previous.chats, state.chats, since)) {
         if (message.fromMe) continue;
         if (message.content.kind === 'system') continue;
-        if (state.chatPrefs[conversation.id]?.muted) continue;
-        if (isLocalConversation(conversation.id) && !wasProactive(message.id)) continue;
+        if (state.chatPrefs[chat.id]?.muted) continue;
+        if (isLocalChat(chat.id) && !wasProactive(message.id)) continue;
 
-        notifyMessage({
-          conversationId: conversation.id,
-          title: conversation.title,
+        void notifyMessage({
+          chatId: chat.id,
+          title: chat.title,
           body: contentPreview(message.content),
         });
       }
@@ -55,24 +50,20 @@ export function useMessageNotifications() {
     return unsubscribe;
   }, []);
 
-  useEffect(() => {
-    return onNotificationTapped((conversationId) => {
-      openChat(conversationId);
-    });
-  }, []);
+  useEffect(() => onNotificationTapped(onTap), [onTap]);
 }
 
 export function arrivals(
-  previous: Conversation[],
-  current: Conversation[],
+  previous: readonly Chat[],
+  current: readonly Chat[],
   since: number
-): { conversation: Conversation; message: ChatMessage }[] {
+): { chat: Chat; message: ChatMessage }[] {
   const before = new Map(previous.map((c) => [c.id, c.lastMessage]));
-  return current.flatMap((conversation) => {
-    const message = conversation.lastMessage;
-    const replaced = before.get(conversation.id);
+  return current.flatMap((chat) => {
+    const message = chat.lastMessage;
+    const replaced = before.get(chat.id);
     if (!message || message.id === replaced?.id) return [];
     if (message.sentAt <= Math.max(since, replaced?.sentAt ?? 0)) return [];
-    return [{ conversation, message }];
+    return [{ chat, message }];
   });
 }

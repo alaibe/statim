@@ -35,7 +35,7 @@ function DragStrip() {
 
 /**
  * The wallpaper covers the whole window and the sidebar floats on it; the
- * conversation draws straight onto it, so the chat screen skips its own copy.
+ * chat draws straight onto it, so the chat screen skips its own copy.
  */
 export function AppFrame({ children }: PropsWithChildren) {
   const segments = useSegments();

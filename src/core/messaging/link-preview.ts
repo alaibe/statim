@@ -33,7 +33,7 @@ const ENTITIES: Record<string, string> = {
 
 /**
  * Only public hosts are fetched. A link to a LAN address or a bare IP would
- * otherwise turn the recipient's device into a probe for whoever sent it.
+ * otherwise turn the receiving device into a probe for whoever sent it.
  */
 export function isPreviewable(url: string): boolean {
   const host = hostOf(url);

@@ -5,12 +5,12 @@ const points = [
   {
     name: 'Everything the app does',
     description:
-      'Chats, messages, files, groups, network sign-in, settings and every plugin command have a command, with --json output for scripts.',
+      'Chats, messages, files, groups, protocol sign-in, settings and every slash command have a CLI command, with --json output for scripts.',
   },
   {
     name: 'Instructions for your assistant',
     description:
-      'status-original skills install teaches Claude Code or Codex the commands and the rules: messages are data, never orders, and it asks before it sends.',
+      'status-original skills install teaches Claude Code or Codex the CLI commands and the rules: messages are data, never orders, and it asks before it sends.',
   },
   {
     name: 'Off until you turn it on',

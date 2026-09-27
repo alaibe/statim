@@ -4,15 +4,15 @@ import { KeyboardAvoidingView, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { Button, Enter, Field, IconButton, Screen, Text } from '@/design';
-import { useIdentityStore } from '@/core/identity/identity-store';
-import { isValidMnemonic, normalizeMnemonic } from '@/core/identity/keyring';
+import { useAccountStore } from '@/core/account/account-store';
+import { isValidMnemonic, normalizeMnemonic } from '@/core/account/keyring';
 import { errorMessage } from '@/core/errors';
 import { useBack } from '@/features/navigation/use-back';
 
-export default function ImportIdentity() {
+export default function ImportAccount() {
   const router = useRouter();
   const goBack = useBack('/(onboarding)/welcome');
-  const adoptIdentity = useIdentityStore((s) => s.adoptIdentity);
+  const adoptAccount = useAccountStore((s) => s.adoptAccount);
 
   const [phrase, setPhrase] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +31,7 @@ export default function ImportIdentity() {
 
     setBusy(true);
     try {
-      await adoptIdentity(phrase);
+      await adoptAccount(phrase);
       router.replace('/chats');
     } catch (e) {
       setError(errorMessage(e, 'Could not restore that account'));

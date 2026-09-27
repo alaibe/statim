@@ -2,7 +2,7 @@
 
 On a computer, `status-original` does from a terminal what the app does in its
 window: read and search chats, send messages and files, run groups, sign in to
-networks, change settings, and run any plugin command. It talks to the app
+protocols, change settings, and run any plugin command. It talks to the app
 running on the same computer, under the account you are using there. If the
 app is closed, the first command starts it without a window.
 
@@ -61,7 +61,7 @@ asks you, and nothing happens until you say yes:
   `--confirm`
 - erasing an account
 - turning on a plugin, since that grants it permissions
-- signing out of a network, and revoking XMTP installations
+- signing out of a protocol, and revoking XMTP installations
 
 If you close the terminal while the app is asking, the request is dropped.
 Your recovery phrase is never shown on the command line.

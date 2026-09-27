@@ -1,11 +1,13 @@
 import { useChatStore } from '@/core/messaging/chat-store';
+import { draftKey } from '@/core/messaging/drafts';
 import type { ChatMessage } from '@/core/messaging/types';
 
 import { type ComposerMode, ComposerModeController } from './composer-mode';
+import { asChatId } from '@/core/messaging/testing/ids';
 
 const message = (id: string, text: string): ChatMessage => ({
   id,
-  conversationId: 'c1',
+  chatId: asChatId('c1'),
   senderId: 'me',
   sentAt: 1,
   content: { kind: 'text', text },
@@ -17,7 +19,7 @@ function harness(start: ComposerMode = { kind: 'compose' }, thread?: string) {
   let mode = start;
   const onSend = jest.fn();
   const controller = () =>
-    new ComposerModeController('c1', mode, (next) => (mode = next), onSend, thread);
+    new ComposerModeController(asChatId('c1'), mode, (next) => (mode = next), onSend, thread);
   return { controller, mode: () => mode, onSend };
 }
 
@@ -28,7 +30,10 @@ const editMessage = jest.fn(async () => {});
 beforeEach(() => {
   jest.clearAllMocks();
   useChatStore.setState({
-    drafts: { c1: 'half typed', 'c1#thread:root': 'thread draft' },
+    drafts: {
+      [draftKey(asChatId('c1'))]: 'half typed',
+      [draftKey(asChatId('c1'), 'root')]: 'thread draft',
+    },
     setDraft,
     sendMessage,
     editMessage,

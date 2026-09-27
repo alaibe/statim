@@ -18,7 +18,8 @@ import {
   Text,
   toast,
 } from '@/design';
-import { useIdentityStore } from '@/core/identity/identity-store';
+import { useAction } from '@/features/use-action';
+import { useAccountStore } from '@/core/account/account-store';
 import {
   askForAccess,
   contactSortKeyFor,
@@ -39,7 +40,7 @@ function inviteText(address: string): string {
 
 export default function InviteScreen() {
   const router = useRouter();
-  const keyring = useIdentityStore((s) => s.keyring);
+  const keyring = useAccountStore((s) => s.keyring);
 
   const [access, setAccess] = useState<ContactAccess>('unknown');
   const [contacts, setContacts] = useState<DeviceContact[]>([]);
@@ -61,7 +62,7 @@ export default function InviteScreen() {
   }, []);
 
   useEffect(() => {
-    (async () => {
+    void (async () => {
       try {
         const privileges = await currentAccess();
         setAccess(privileges);
@@ -94,6 +95,15 @@ export default function InviteScreen() {
     if (result === 'copied-for-messages') toast.success('Invite copied, paste it into Messages');
   }
 
+  const allowContacts = useAction(
+    async () => {
+      const privileges = await askForAccess();
+      setAccess(privileges);
+      await load(privileges).catch(() => {});
+    },
+    { failure: 'Could not ask for your contacts' }
+  );
+
   async function sendInvites() {
     if (!keyring) return;
 
@@ -116,7 +126,7 @@ export default function InviteScreen() {
   return (
     <Screen className="px-0" edges={['top']}>
       <ModalHeader
-        title="Invite friends"
+        title="Invite contacts"
         onClose={() => router.back()}
         className="px-gutter"
         action={
@@ -169,14 +179,7 @@ export default function InviteScreen() {
               uploaded and never matched against a server. That is why this list cannot tell you who
               is already here.
             </Text>
-            <Button
-              label="Allow contacts"
-              onPress={async () => {
-                const privileges = await askForAccess();
-                setAccess(privileges);
-                await load(privileges).catch(() => {});
-              }}
-            />
+            <Button label="Allow contacts" onPress={() => allowContacts.run()} />
           </Note>
         ) : (
           <Section title={`Contacts · ${visible.length}`} surface="list" className="mt-6">

@@ -2,6 +2,7 @@ import { act, createElement } from 'react';
 import { create, type ReactTestRenderer } from 'react-test-renderer';
 
 import { MemberModeration } from './group-sections';
+import { asChatId } from '@/core/messaging/testing/ids';
 
 jest.mock('expo-clipboard', () => ({ setStringAsync: jest.fn() }));
 jest.mock('@/design', () => ({
@@ -31,7 +32,6 @@ jest.mock('./use-supports', () => ({
   useSupports: () => ({ supports: (key: string) => mockSupported.includes(key) }),
 }));
 
-const actEnvironment = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
 let tree: ReactTestRenderer;
 const onRemoved = jest.fn();
 
@@ -39,7 +39,7 @@ const mount = () =>
   act(async () => {
     tree = create(
       createElement(MemberModeration, {
-        conversationId: 'telegram-5',
+        chatId: asChatId('telegram-5'),
         member: 'bob',
         memberName: 'Bob',
         groupTitle: 'Builders',
@@ -53,9 +53,6 @@ const rows = () =>
   tree.root.findAllByType('ListItem' as never).map((node) => node.props.testID as string);
 const confirm = () => tree.root.findByType('ConfirmSheet' as never);
 
-beforeAll(() => {
-  actEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
-});
 afterEach(async () => {
   await act(() => tree?.unmount());
   jest.clearAllMocks();
@@ -63,7 +60,7 @@ afterEach(async () => {
 });
 
 describe('MemberModeration', () => {
-  it('offers only what the network can do', async () => {
+  it('offers only what the protocol can do', async () => {
     await mount();
     expect(rows()).toEqual(['profile-mute-member', 'profile-remove-member', 'profile-ban-member']);
     await act(() => tree.unmount());

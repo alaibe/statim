@@ -1,13 +1,13 @@
 import type { LocalAccount } from 'viem';
 
 import { errorMessage } from '../errors';
-import type { DerivedKey, Keyring } from '../identity/keyring';
+import type { DerivedKey, Keyring } from '../account/keyring';
 import { useChatStore, type ProtocolConnection } from '../messaging/chat-store';
-import type { ConversationCache } from '../messaging/conversation-cache';
+import type { ChatCache } from '../messaging/chat-cache';
 import { loadProtocolConfigs } from '../messaging/config';
 import {
   namespacedId,
-  namespaceConversation,
+  namespaceChat,
   namespaceMessage,
   type ProtocolId,
 } from '../messaging/namespace';
@@ -15,10 +15,10 @@ import type { ChatSession, CustomContentType } from '../messaging/protocol';
 import {
   effectiveConfig,
   isConfigured,
-  transportProtocols,
+  connectableProtocols,
   type ProtocolDescriptor,
 } from '../messaging/registry';
-import type { Conversation, Unsubscribe } from '../messaging/types';
+import type { Chat, Unsubscribe, ProtocolChat } from '../messaging/types';
 import type { AccountStorage } from '@/storage/account';
 
 export type SessionFactory = (params: {
@@ -36,13 +36,13 @@ export interface ProtocolAccount {
   only?: ProtocolId[];
   /** Settles once plugins are active. */
   plugins?: Promise<void>;
-  cache?: ConversationCache;
+  cache?: ChatCache;
 }
 
 export class ProtocolRuntime {
   private subscriptions = new Map<ProtocolId, Unsubscribe[]>();
   private sessions = new Map<ProtocolId, ChatSession>();
-  private cache: ConversationCache | undefined;
+  private cache: ChatCache | undefined;
 
   constructor(private readonly descriptors: readonly ProtocolDescriptor[]) {}
 
@@ -56,7 +56,7 @@ export class ProtocolRuntime {
     this.cache = input.cache;
     useChatStore.setState({ status: 'connecting', error: null });
     const selected = input.only ?? (input.createSession ? ['xmtp' as const] : undefined);
-    const descriptors = transportProtocols(this.descriptors).filter(
+    const descriptors = connectableProtocols(this.descriptors).filter(
       (descriptor) =>
         (!selected || selected.includes(descriptor.id)) && (!only || only.includes(descriptor.id))
     );
@@ -95,7 +95,7 @@ export class ProtocolRuntime {
               derive: input.keyring.derive,
               contentTypes: input.contentTypes(),
               config,
-              storage: storage,
+              storage,
             });
           }
 
@@ -133,7 +133,7 @@ export class ProtocolRuntime {
               })
             );
           }
-          const streamed: Conversation[] = [];
+          const streamed: Chat[] = [];
           const streams = await Promise.all([
             session.streamMessages((message) => {
               if (live())
@@ -143,14 +143,14 @@ export class ProtocolRuntime {
               if (live())
                 useChatStore.getState().removeMessages(namespacedId(protocolId, id), messageIds);
             }),
-            session.streamConversations((conversation) => {
+            session.streamChats((chat) => {
               if (streamed.length === 0) {
                 queueMicrotask(() => {
                   const batch = streamed.splice(0);
-                  if (live()) useChatStore.getState().ingestConversations(batch);
+                  if (live()) useChatStore.getState().ingestChats(batch);
                 });
               }
-              streamed.push(namespaceConversation(protocolId, conversation));
+              streamed.push(namespaceChat(protocolId, chat));
             }),
           ]);
           if (!live()) {
@@ -159,19 +159,19 @@ export class ProtocolRuntime {
             return;
           }
           for (const stop of streams) if (stop) subscriptions.push(stop);
-          const first = await session.listConversations();
+          const first = await session.listChats();
           if (!live()) return;
-          const namespaced = (list: Conversation[]) =>
-            list.map((conversation) => namespaceConversation(protocolId, conversation));
-          const conversations = namespaced(first);
-          useChatStore.getState().ingestConversations(conversations);
+          const namespaced = (list: ProtocolChat[]) =>
+            list.map((chat) => namespaceChat(protocolId, chat));
+          const chats = namespaced(first);
+          useChatStore.getState().ingestChats(chats);
           if (session.whenListed && this.cache) {
             void session
               .whenListed(first)
               .then((everything) => {
                 if (!live()) return;
-                const listed = everything === first ? conversations : namespaced(everything);
-                if (listed !== conversations) useChatStore.getState().ingestConversations(listed);
+                const listed = everything === first ? chats : namespaced(everything);
+                if (listed !== chats) useChatStore.getState().ingestChats(listed);
                 this.cache?.listed(protocolId, listed);
               })
               .catch(() => {});
@@ -188,7 +188,7 @@ export class ProtocolRuntime {
     if (active()) this.rollUpStatus();
   }
 
-  /** Drops the network projection of `only` (every network by default) but keeps local chats. */
+  /** Drops the protocol projection of `only` (every protocol by default) but keeps local chats. */
   async stop(only?: ProtocolId[]): Promise<void> {
     for (const protocol of only ?? this.sessions.keys()) this.cache?.pause(protocol);
     await this.disconnect(only);
@@ -196,19 +196,17 @@ export class ProtocolRuntime {
     const dropped = (protocol: string) => (only ? only.includes(protocol) : protocol !== 'local');
     const keep = <T>(record: Record<string, T>, protocolOf = (key: string) => key) =>
       Object.fromEntries(Object.entries(record).filter(([key]) => !dropped(protocolOf(key))));
-    const conversationProtocol = (id: string) => id.slice(0, id.indexOf('-'));
+    const chatProtocol = (id: string) => id.slice(0, id.indexOf('-'));
     useChatStore.setState({
       status: only ? state.status : 'idle',
       error: only ? state.error : null,
       sessions: keep(state.sessions),
       protocols: keep(state.protocols),
       syncing: only ? state.syncing : false,
-      conversations: state.conversations.filter(
-        (conversation) => !dropped(conversation.protocol ?? '')
-      ),
-      messages: keep(state.messages, conversationProtocol),
-      rawMessages: keep(state.rawMessages, conversationProtocol),
-      messageHistory: keep(state.messageHistory, conversationProtocol),
+      chats: state.chats.filter((chat) => !dropped(chat.protocol ?? '')),
+      messages: keep(state.messages, chatProtocol),
+      rawMessages: keep(state.rawMessages, chatProtocol),
+      messageHistory: keep(state.messageHistory, chatProtocol),
     });
   }
 

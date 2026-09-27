@@ -69,7 +69,7 @@ export const SUGGESTED_BOOKMARKS: Bookmark[] = [
     id: 'sushiswap',
     name: 'SushiSwap',
     url: 'https://www.sushi.com/swap',
-    description: 'Swap with aggregated liquidity across supported EVM networks.',
+    description: 'Swap with aggregated liquidity across supported EVM chains.',
     icon: 'swap-horizontal-outline',
   },
   {

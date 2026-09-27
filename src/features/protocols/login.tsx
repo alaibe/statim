@@ -3,7 +3,7 @@ import type { TextInputProps } from 'react-native';
 
 import { Button, Card, Field, Text } from '@/design';
 import type { ChatSession, LoginState } from '@/core/messaging/protocol';
-import { useAction } from '@/core/app/use-action';
+import { useAction } from '@/features/use-action';
 
 const COPY: Record<
   LoginState['step'],
@@ -111,13 +111,7 @@ export function SignedIn({ session, label }: { session: ChatSession; label: stri
         Signing out ends this session on {label} as well and removes its data from this device.
       </Text>
       {session.signOut ? (
-        <Button
-          label="Sign out"
-          tone="neutral"
-          size="sm"
-          loading={signOut.busy}
-          onPress={() => signOut.run()}
-        />
+        <Button label="Sign out" tone="neutral" size="sm" onPress={() => signOut.run()} />
       ) : null}
     </Card>
   );

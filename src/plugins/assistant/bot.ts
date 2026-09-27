@@ -7,7 +7,7 @@ export function makeStatusBot(): Bot {
   return {
     id: STATUS_BOT_ID,
     name: 'Status',
-    tagline: 'Notebook & commands · on-device',
+    tagline: 'Notebook & slash commands · on-device',
     avatar: require('@/assets/images/status-avatar.png') as number,
 
     greeting,
@@ -21,14 +21,14 @@ function greeting(): ReturnType<Bot['greeting']> {
     {
       kind: 'widget',
       fallback:
-        'Get started: /commands for commands, /plugins for plugins. Messaging networks: XMTP, Nostr and Waku.',
+        'Get started: /commands for slash commands, /plugins for plugins. Messaging protocols: XMTP, Nostr and Waku.',
       widget: W.card(
         [
           W.actions([
             { label: 'Commands', command: '/commands' },
             { label: 'Plugins', command: '/plugins' },
           ]),
-          W.text('Learn about the messaging networks:'),
+          W.text('Learn about the messaging protocols:'),
           W.link('XMTP', 'https://xmtp.org'),
           W.link('Nostr', 'https://nostr.com'),
           W.link('Waku', 'https://waku.org'),

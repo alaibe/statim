@@ -2,6 +2,7 @@ import type { PluginContext, SlashCommand } from '@/core/plugins/types';
 
 import { botsPlugin } from './index';
 import type { KnownBot } from './types';
+import { asChatId } from '@/core/messaging/testing/ids';
 
 const PRICES = '0x1111111111111111111111111111111111111111';
 const NOBODY = '0x2222222222222222222222222222222222222222';
@@ -19,7 +20,7 @@ jest.mock('@/core/messaging/chat-store', () => ({
     getState: () => ({
       sessions: {
         xmtp: {
-          resolvePeer: async (v: string) =>
+          resolveParticipant: async (v: string) =>
             v === '0x2222222222222222222222222222222222222222' ? null : 'inbox-1',
         },
       },
@@ -28,7 +29,7 @@ jest.mock('@/core/messaging/chat-store', () => ({
 }));
 
 function makeContext(store: Record<string, unknown> = {}) {
-  const sent: { conversationId: string; text: string }[] = [];
+  const sent: { chatId: string; text: string }[] = [];
   const context = {
     manifest: { id: 'bots' },
     storage: {
@@ -42,8 +43,8 @@ function makeContext(store: Record<string, unknown> = {}) {
     },
     chat: {
       startDm: async (a: string) => (a === NOBODY ? null : 'conv-1'),
-      sendText: async (conversationId: string, text: string) => {
-        sent.push({ conversationId, text });
+      sendText: async (chatId: string, text: string) => {
+        sent.push({ chatId, text });
       },
     },
   } as unknown as PluginContext;
@@ -57,14 +58,14 @@ async function run(
   name: string,
   args: string[],
   context: PluginContext,
-  conversationId = 'conv-1'
+  chatId = asChatId('conv-1')
 ) {
   const command = commandsFor(context).find((c) => c.name === name || c.aliases?.includes(name))!;
   const said: string[] = [];
   const result = await command.run({
     rest: args.join(' '),
     args,
-    conversationId,
+    chatId,
     context,
     respond: async (c) => {
       said.push(typeof c === 'string' ? c : c.kind === 'widget' ? c.fallback : '');
@@ -74,7 +75,7 @@ async function run(
 }
 
 describe('/addbot', () => {
-  it('stores a bot once its inbox resolves', async () => {
+  it('stores a bot once its address resolves', async () => {
     const { context, store } = makeContext();
 
     const { result, said } = await run('addbot', ['pricebot.eth', 'Prices'], context);
@@ -85,7 +86,7 @@ describe('/addbot', () => {
       message: expect.stringContaining('Prices added'),
     });
     expect(store['known-bots']).toEqual([
-      expect.objectContaining({ address: PRICES, name: 'Prices', inboxId: 'inbox-1' }),
+      expect.objectContaining({ address: PRICES, name: 'Prices', participantId: 'inbox-1' }),
     ]);
   });
 
@@ -152,7 +153,7 @@ describe('names', () => {
 });
 
 describe('/removebot', () => {
-  it('forgets a bot but says the conversation stays', async () => {
+  it('forgets a bot but says the chat stays', async () => {
     const bot: KnownBot = { address: 'pricebot.eth', name: 'Prices', addedAt: 0 };
     const { context, store } = makeContext({ 'known-bots': [bot] });
 
@@ -162,7 +163,7 @@ describe('/removebot', () => {
     expect(said).toBe('');
     expect(result).toMatchObject({
       type: 'notice',
-      message: expect.stringContaining('conversation stays'),
+      message: expect.stringContaining('chat stays'),
     });
   });
 
@@ -173,18 +174,18 @@ describe('/removebot', () => {
   });
 });
 describe('/startbot', () => {
-  it('opens a conversation and sends the /start convention', async () => {
+  it('opens a chat and sends the /start convention', async () => {
     const { context, sent } = makeContext();
 
     await run('startbot', ['pricebot.eth'], context);
 
-    expect(sent).toEqual([{ conversationId: 'conv-1', text: '/start' }]);
+    expect(sent).toEqual([{ chatId: 'conv-1', text: '/start' }]);
   });
 
-  it('sends /start in place when already in a conversation', async () => {
+  it('sends /start in place when already in a chat', async () => {
     const { context, sent } = makeContext();
-    await run('startbot', [], context, 'conv-9');
-    expect(sent).toEqual([{ conversationId: 'conv-9', text: '/start' }]);
+    await run('startbot', [], context, asChatId('conv-9'));
+    expect(sent).toEqual([{ chatId: 'conv-9', text: '/start' }]);
   });
 });
 
@@ -197,7 +198,15 @@ describe('the ui.widget content type', () => {
     expect(spec.fallback({ fallback: 'Pick an option', widget: { kind: 'text', text: 'x' } })).toBe(
       'Pick an option'
     );
-    // A malformed payload from an unknown bot must not blank the bubble.
-    expect(spec.fallback({} as never)).toBe('Interactive message');
+  });
+
+  it('refuses a malformed payload from an unknown bot, so the bubble shows its fallback', () => {
+    const { context } = makeContext();
+    const [spec] = botsPlugin.setup(context).contentTypes!;
+
+    expect(spec.is({})).toBe(false);
+    expect(spec.is({ fallback: 'Hi', widget: { kind: 'rows', rows: 'x' } })).toBe(false);
+    expect(spec.is({ fallback: 3, widget: { kind: 'text', text: 'x' } })).toBe(false);
+    expect(spec.is({ fallback: 'Hi', widget: { kind: 'text', text: 'x' } })).toBe(true);
   });
 });

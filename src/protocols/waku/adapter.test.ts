@@ -1,12 +1,12 @@
 import { schnorr } from '@noble/curves/secp256k1';
 import { bytesToHex } from '@noble/hashes/utils';
 
-import type { DerivedKey } from '@/core/identity/keyring';
+import type { DerivedKey } from '@/core/account/keyring';
 import { InMemoryMessageStore, type MessageStore } from '@/core/messaging/message-store';
-import { NATIVE_ID } from '@/core/messaging/namespace';
-import type { ChatMessage } from '@/core/messaging/types';
+import { NATIVE_ID, protocolChatId } from '@/core/messaging/namespace';
+import type { ProtocolMessage } from '@/core/messaging/types';
 import { WakuSession, WAKU_DERIVATION_PATH } from './adapter';
-import { contentTopicFor, conversationIdForTopic, encodeEnvelope, sealEnvelope } from './crypto';
+import { contentTopicFor, chatIdForTopic, encodeEnvelope, sealEnvelope } from './crypto';
 import { FakeWakuNode } from './testing/fake-node';
 import { WAKU_PROTOCOL } from './descriptor';
 
@@ -82,7 +82,7 @@ describe('connecting', () => {
   });
 });
 
-describe('conversations', () => {
+describe('chats', () => {
   it('subscribes to the topic for the participant set', async () => {
     const { session, node } = await connect();
     await session.createDm(bobPub);
@@ -91,10 +91,10 @@ describe('conversations', () => {
     expect([...node.subscriptions]).toEqual([contentTopicFor([alicePub, bobPub])]);
   });
 
-  it('produces a conversation id that can be a URL path segment', async () => {
+  it('produces a chat id that can be a URL path segment', async () => {
     const { session } = await connect();
-    const conversation = await session.createDm(bobPub);
-    expect(NATIVE_ID.test(conversation.id)).toBe(true);
+    const chat = await session.createDm(bobPub);
+    expect(NATIVE_ID.test(chat.id)).toBe(true);
   });
 
   it('treats three participants as a group', async () => {
@@ -108,10 +108,10 @@ describe('conversations', () => {
 describe('sending and receiving', () => {
   it('publishes one sealed copy per participant, self included', async () => {
     const { session, node } = await connect();
-    const conversation = await session.createDm(bobPub);
+    const chat = await session.createDm(bobPub);
     await settle();
 
-    await session.send(conversation.id, { kind: 'text', text: 'hi bob' });
+    await session.send(chat.id, { kind: 'text', text: 'hi bob' });
 
     expect(node.published).toHaveLength(2);
     // Nothing readable on the wire.
@@ -122,24 +122,24 @@ describe('sending and receiving', () => {
     // The self-addressed copy is what makes the outbox readable after a
     // restart, when everything is re-fetched from the node's store.
     const { session } = await connect();
-    const conversation = await session.createDm(bobPub);
+    const chat = await session.createDm(bobPub);
     await settle();
 
-    await session.send(conversation.id, { kind: 'text', text: 'note to self' });
+    await session.send(chat.id, { kind: 'text', text: 'note to self' });
     await session.pollOnce();
 
-    const messages = await session.getMessages(conversation.id);
+    const messages = await session.getMessages(chat.id);
     expect(messages.map(textOf)).toContain('note to self');
     expect(messages.every((m) => m.fromMe)).toBe(true);
   });
 
   it('receives a message someone else posted to the topic', async () => {
     const { session, node } = await connect();
-    // Creates the conversation and subscribes to its topic.
+    // Creates the chat and subscribes to its topic.
     await session.createDm(bobPub);
     await settle();
 
-    const received: ChatMessage[] = [];
+    const received: ProtocolMessage[] = [];
     await session.streamMessages((m) => received.push(m));
 
     node.deliver({
@@ -153,9 +153,9 @@ describe('sending and receiving', () => {
     expect(received[0].fromMe).toBe(false);
   });
 
-  it('rejects a signed envelope from outside the conversation participant set', async () => {
+  it('rejects a signed envelope from outside the chat participant set', async () => {
     const { session, node } = await connect();
-    const conversation = await session.createDm(bobPub);
+    const chat = await session.createDm(bobPub);
     await settle();
 
     node.deliver({
@@ -164,21 +164,21 @@ describe('sending and receiving', () => {
     });
     await session.pollOnce();
 
-    expect(await session.getMessages(conversation.id)).toHaveLength(0);
+    expect(await session.getMessages(chat.id)).toHaveLength(0);
   });
 
   it('round-trips between independently keyed sessions through the node', async () => {
     const node = new FakeWakuNode();
     const { session: aliceSession } = await connect(node, ALICE);
     const { session: bobSession } = await connect(node, BOB);
-    const aliceConversation = await aliceSession.createDm(bobPub);
-    const bobConversation = await bobSession.createDm(alicePub);
+    const aliceChat = await aliceSession.createDm(bobPub);
+    const bobChat = await bobSession.createDm(alicePub);
     await settle();
 
-    await aliceSession.send(aliceConversation.id, { kind: 'text', text: 'end to end' });
+    await aliceSession.send(aliceChat.id, { kind: 'text', text: 'end to end' });
     await bobSession.pollOnce();
 
-    const messages = await bobSession.getMessages(bobConversation.id);
+    const messages = await bobSession.getMessages(bobChat.id);
     expect(messages.map(textOf)).toEqual(['end to end']);
     expect(messages[0].senderId).toBe(alicePub);
     expect(messages[0].fromMe).toBe(false);
@@ -186,7 +186,7 @@ describe('sending and receiving', () => {
 
   it('ignores an envelope sealed to someone else on the same public topic', async () => {
     const { session, node } = await connect();
-    const conversation = await session.createDm(bobPub);
+    const chat = await session.createDm(bobPub);
     await settle();
 
     node.deliver({
@@ -196,10 +196,10 @@ describe('sending and receiving', () => {
     node.deliver({ contentTopic: contentTopicFor([alicePub, bobPub]), payload: 'garbage' });
     await session.pollOnce();
 
-    expect(await session.getMessages(conversation.id)).toHaveLength(0);
+    expect(await session.getMessages(chat.id)).toHaveLength(0);
   });
 
-  it('backfills from the node store when a conversation is opened', async () => {
+  it('backfills from the node store when a chat is opened', async () => {
     const node = new FakeWakuNode();
     // Something already on the node before this device knew about it.
     node.deliver({
@@ -208,10 +208,10 @@ describe('sending and receiving', () => {
     });
 
     const { session } = await connect(node);
-    const conversation = await session.createDm(bobPub);
+    const chat = await session.createDm(bobPub);
     await settle();
 
-    expect((await session.getMessages(conversation.id)).map(textOf)).toEqual(['said earlier']);
+    expect((await session.getMessages(chat.id)).map(textOf)).toEqual(['said earlier']);
   });
 
   it('continues through more than twenty realistic store pages', async () => {
@@ -226,10 +226,10 @@ describe('sending and receiving', () => {
     }
 
     const { session } = await connect(node);
-    const conversation = await session.createDm(bobPub);
+    const chat = await session.createDm(bobPub);
     await settle();
 
-    expect(await session.getMessages(conversation.id)).toHaveLength(45);
+    expect(await session.getMessages(chat.id)).toHaveLength(45);
     expect(node.historyQueries.length).toBeGreaterThan(20);
   });
 
@@ -244,10 +244,10 @@ describe('sending and receiving', () => {
     });
 
     const { session } = await connect(node);
-    const conversation = await session.createDm(bobPub);
+    const chat = await session.createDm(bobPub);
     await settle();
 
-    expect((await session.getMessages(conversation.id)).map(textOf)).toEqual(['after empty page']);
+    expect((await session.getMessages(chat.id)).map(textOf)).toEqual(['after empty page']);
     expect(node.historyQueries).toHaveLength(2);
   });
 
@@ -264,7 +264,7 @@ describe('sending and receiving', () => {
     node.hasStore = false;
     const store = new FlakyStore();
     const { session } = await connect(node, ALICE, store);
-    const conversation = await session.createDm(bobPub);
+    const chat = await session.createDm(bobPub);
     await settle();
     node.deliver({
       contentTopic: contentTopicFor([alicePub, bobPub]),
@@ -273,16 +273,16 @@ describe('sending and receiving', () => {
 
     await expect(session.pollOnce()).rejects.toThrow('disk full');
     await expect(session.pollOnce()).resolves.toBeUndefined();
-    expect((await session.getMessages(conversation.id)).map(textOf)).toEqual(['do not lose me']);
+    expect((await session.getMessages(chat.id)).map(textOf)).toEqual(['do not lose me']);
   });
 
   it('does not let a persisted future timestamp move the store cursor', async () => {
     const now = Date.now();
     const topic = contentTopicFor([alicePub, bobPub]);
-    const conversationId = conversationIdForTopic(topic);
+    const chatId = protocolChatId(chatIdForTopic(topic));
     const store = new InMemoryMessageStore();
-    await store.upsertConversation({
-      id: conversationId,
+    await store.upsertChat({
+      id: chatId,
       protocolId: 'waku',
       participants: [alicePub, bobPub].sort(),
       createdAt: now,
@@ -291,7 +291,7 @@ describe('sending and receiving', () => {
     });
     await store.insertMessage({
       id: 'poison',
-      conversationId,
+      chatId,
       senderId: bobPub,
       sentAt: now + 365 * 24 * 60 * 60 * 1_000,
       fromMe: false,
@@ -308,7 +308,7 @@ describe('sending and receiving', () => {
     const { session } = await connect(node, ALICE, store);
     await settle();
 
-    expect((await session.getMessages(conversationId)).map(textOf)).toContain('earlier');
+    expect((await session.getMessages(chatId)).map(textOf)).toContain('earlier');
     expect(node.historyQueries[0].searchParams.has('startTime')).toBe(false);
   });
 
@@ -318,7 +318,7 @@ describe('sending and receiving', () => {
     const node = new FakeWakuNode();
     const store = new InMemoryMessageStore();
     const { session } = await connect(node, ALICE, store);
-    const conversation = await session.createDm(bobPub);
+    const chat = await session.createDm(bobPub);
     await settle();
     const clock = jest.spyOn(Date, 'now').mockReturnValue(now + 365 * 24 * 60 * 60 * 1_000);
     const payload = encodeEnvelope(sealEnvelope('future sender clock', BOB, alicePub));
@@ -330,8 +330,8 @@ describe('sending and receiving', () => {
     });
     await session.pollOnce();
 
-    expect((await session.getMessages(conversation.id))[0].sentAt).toBeGreaterThan(now);
-    await expect(store.newestTransportTimestamp('waku', now, conversation.id)).resolves.toBe(
+    expect((await session.getMessages(chat.id))[0].sentAt).toBeGreaterThan(now);
+    await expect(store.newestTransportTimestamp('waku', now, chat.id)).resolves.toBe(
       outerTimestamp
     );
     await session.disconnect();
@@ -348,31 +348,31 @@ describe('sending and receiving', () => {
     node.hasStore = false;
 
     const { session } = await connect(node);
-    const conversation = await session.createDm(bobPub);
+    const chat = await session.createDm(bobPub);
     await settle();
 
     // Starts empty rather than failing to connect.
-    expect(await session.getMessages(conversation.id)).toHaveLength(0);
-    await session.send(conversation.id, { kind: 'text', text: 'from now on' });
+    expect(await session.getMessages(chat.id)).toHaveLength(0);
+    await session.send(chat.id, { kind: 'text', text: 'from now on' });
     await session.pollOnce();
-    expect((await session.getMessages(conversation.id)).map(textOf)).toContain('from now on');
+    expect((await session.getMessages(chat.id)).map(textOf)).toContain('from now on');
   });
 
   it('refuses content it cannot carry', async () => {
     const { session } = await connect();
-    const conversation = await session.createDm(bobPub);
+    const chat = await session.createDm(bobPub);
     await expect(
-      session.send(conversation.id, { kind: 'custom', typeId: 'eth.tx', data: {} })
+      session.send(chat.id, { kind: 'custom', typeId: 'eth.tx', data: {} })
     ).rejects.toThrow(/can only send text/);
   });
 
   it('rejects reply metadata instead of silently sending a plain message', async () => {
     const { session, node } = await connect();
-    const conversation = await session.createDm(bobPub);
+    const chat = await session.createDm(bobPub);
     await settle();
 
     await expect(
-      session.send(conversation.id, { kind: 'text', text: 'reply' }, 'earlier-id')
+      session.send(chat.id, { kind: 'text', text: 'reply' }, 'earlier-id')
     ).rejects.toThrow(/does not support reply metadata/);
     expect(node.published).toHaveLength(0);
   });
@@ -381,18 +381,14 @@ describe('sending and receiving', () => {
     const node = new FakeWakuNode();
     node.failPublishAttempts.add(2);
     const { session } = await connect(node);
-    const conversation = await session.createDm(bobPub);
+    const chat = await session.createDm(bobPub);
     await settle();
 
-    await expect(
-      session.send(conversation.id, { kind: 'text', text: 'once each' })
-    ).rejects.toThrow();
+    await expect(session.send(chat.id, { kind: 'text', text: 'once each' })).rejects.toThrow();
     expect(node.published).toHaveLength(1);
     const firstPayload = node.published[0].payload;
 
-    await expect(
-      session.send(conversation.id, { kind: 'text', text: 'once each' })
-    ).resolves.toBeTruthy();
+    await expect(session.send(chat.id, { kind: 'text', text: 'once each' })).resolves.toBeTruthy();
     expect(node.published).toHaveLength(2);
     expect(node.published.filter((message) => message.payload === firstPayload)).toHaveLength(1);
   });
@@ -436,21 +432,23 @@ describe('groups, honestly', () => {
 
     await session.leaveGroup(group.id);
     expect(node.subscriptions.size).toBe(0);
-    expect(await session.listConversations()).toHaveLength(0);
+    expect(await session.listChats()).toHaveLength(0);
   });
 });
 
-describe('identity', () => {
+describe('the self participant', () => {
   it('derives from an app-local branch, distinct from the Ethereum key', async () => {
     const { session } = await connect();
     expect(session.self.participantId).toBe(alicePub);
     expect(WAKU_DERIVATION_PATH).not.toBe("m/44'/60'/0'/0/0");
   });
 
-  it('accepts npub or hex peers, like Nostr, since the key format is the same', async () => {
+  it('accepts npub or hex addresses, like Nostr, since the key format is the same', async () => {
     const { session } = await connect();
-    expect(await session.resolvePeer(bobPub)).toBe(bobPub);
-    expect(await session.resolvePeer('0x1111111111111111111111111111111111111111')).toBeNull();
+    expect(await session.resolveParticipant(bobPub)).toBe(bobPub);
+    expect(
+      await session.resolveParticipant('0x1111111111111111111111111111111111111111')
+    ).toBeNull();
   });
 });
 
@@ -460,6 +458,6 @@ describe('capabilities', () => {
   });
 });
 
-function textOf(message: ChatMessage): string {
+function textOf(message: ProtocolMessage): string {
   return message.content.kind === 'text' ? message.content.text : '';
 }

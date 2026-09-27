@@ -25,17 +25,19 @@ interface FoundBridge {
 }
 
 export function MatrixBridges({ session }: { session: ChatSession & Partial<MatrixCapabilities> }) {
-  const resolvePeer = useChatStore((s) => s.resolvePeer);
-  const conversations = useChatStore((s) => s.conversations);
+  const resolveParticipant = useChatStore((s) => s.resolveParticipant);
+  const chats = useChatStore((s) => s.chats);
   const [found, setFound] = useState<FoundBridge[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const self = session.self.address;
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all(
+    void Promise.all(
       KNOWN_BRIDGES.map(async (bridge): Promise<FoundBridge | null> => {
-        const botId = await resolvePeer(PROTOCOL, bridgeBotId(bridge, self)).catch(() => null);
+        const botId = await resolveParticipant(PROTOCOL, bridgeBotId(bridge, self)).catch(
+          () => null
+        );
         if (!botId) return null;
         const whoami = await session
           .bridgeProvisioning?.(provisioningName(bridge))
@@ -50,7 +52,7 @@ export function MatrixBridges({ session }: { session: ChatSession & Partial<Matr
     return () => {
       cancelled = true;
     };
-  }, [resolvePeer, self, session]);
+  }, [resolveParticipant, self, session]);
 
   async function connect(item: FoundBridge) {
     if (item.accounts !== null) {
@@ -90,7 +92,7 @@ export function MatrixBridges({ session }: { session: ChatSession & Partial<Matr
           </Text>
           {found.map((item) => {
             const connected = item.accounts !== null && item.accounts.length > 0;
-            const chat = item.accounts === null && existingBotChat(conversations, item.botId);
+            const chat = item.accounts === null && existingBotChat(chats, item.botId);
             return (
               <ListItem
                 key={item.botId}

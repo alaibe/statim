@@ -40,7 +40,7 @@ describe('scriptPubKey', () => {
     expect(() => scriptPubKey('bc1p' + 'q'.repeat(58))).toThrow();
   });
 
-  it('refuses an address from the other network', () => {
+  it('refuses an address from the other chain', () => {
     expect(() => scriptPubKey(p2wpkhAddress(pub, 'testnet'), 'mainnet')).toThrow(/mainnet/);
   });
 });

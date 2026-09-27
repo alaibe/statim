@@ -85,16 +85,16 @@ export function MessageBubble({
       break;
 
     case 'custom': {
-      const entry = registry.contentTypes().get(content.typeId);
-      if (entry) {
-        const Renderer = entry.spec.render;
+      const custom = registry.customRenderer(content.typeId, content.data);
+      if (custom) {
+        const Renderer = custom.render;
         bare = true;
         children = (
           <Renderer
-            data={content.data}
+            data={custom.data}
             message={message}
             fromMe={fromMe}
-            context={entry.context}
+            context={custom.context}
             onCommand={onCommand}
           />
         );
@@ -244,7 +244,7 @@ function TextBody({
         text={text}
         fromMe={fromMe}
         className={className}
-        conversationId={message.conversationId}
+        chatId={message.chatId}
         onCommand={onCommand}
       />
 
@@ -255,11 +255,7 @@ function TextBody({
         <LinkPreviewCard url={link.href} fromMe={fromMe} />
       ) : null}
       {account ? (
-        <AddressPreview
-          value={account.text}
-          conversationId={message.conversationId}
-          onCommand={onCommand}
-        />
+        <AddressPreview value={account.text} chatId={message.chatId} onCommand={onCommand} />
       ) : null}
 
       <Footer message={message} />
@@ -308,13 +304,13 @@ function LiveWidget({
 
 const requestedMedia = new Set<MessageId>();
 
-function useMissingMedia({ id, conversationId, content }: ChatMessage) {
+function useMissingMedia({ id, chatId, content }: ChatMessage) {
   const missing = awaitsFile(content);
   useEffect(() => {
     if (!missing || requestedMedia.has(id)) return;
     const store = useChatStore.getState();
-    if (!sessionFor(store, conversationId)?.fetchMedia) return;
+    if (!sessionFor(store, chatId)?.fetchMedia) return;
     requestedMedia.add(id);
-    store.fetchMedia(conversationId, id).catch(() => requestedMedia.delete(id));
-  }, [missing, id, conversationId]);
+    store.fetchMedia(chatId, id).catch(() => requestedMedia.delete(id));
+  }, [missing, id, chatId]);
 }

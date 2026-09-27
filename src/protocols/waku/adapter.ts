@@ -1,17 +1,23 @@
 import { schnorr } from '@noble/curves/secp256k1';
 import { bytesToHex } from '@noble/hashes/utils';
 
-import type { DerivedKey } from '@/core/identity/keyring';
+import type { DerivedKey } from '@/core/account/keyring';
 import { PartialHistoryError } from '@/core/messaging/history';
-import type { MessageStore, StoredConversation } from '@/core/messaging/message-store';
+import type { MessageStore, TransportChat } from '@/core/messaging/message-store';
+import { protocolChatId } from '@/core/messaging/namespace';
 import type { ChatSession } from '@/core/messaging/protocol';
 import { StoreBackedSession } from '@/core/messaging/store-backed-session';
 import type { ChatTransport, SendResult, TransportSink } from '@/core/messaging/transport';
-import type { MessageContent, ParticipantId, SelfIdentity } from '@/core/messaging/types';
+import type {
+  MessageContent,
+  ParticipantId,
+  SelfParticipant,
+  ProtocolChatId,
+} from '@/core/messaging/types';
 import { encodeNpub, npubFor, parsePublicKey } from '@/lib/bech32';
 import {
   contentTopicFor,
-  conversationIdForTopic,
+  chatIdForTopic,
   decodeEnvelope,
   encodeEnvelope,
   openEnvelope,
@@ -35,11 +41,11 @@ export interface WakuConnectOptions {
 
 class WakuTransport implements ChatTransport {
   readonly protocolId = WAKU_PROTOCOL_ID;
-  readonly self: SelfIdentity;
+  readonly self: SelfParticipant;
 
   readonly rosterIsFixed = {
     onAdd:
-      'A Waku conversation is a content topic derived from its participants. ' +
+      'A Waku chat is a content topic derived from its participants. ' +
       'Adding someone means a different topic, so start a new group instead.',
     onRemove:
       'Waku cannot remove anyone: a content topic is public and nothing revokes access to it.',
@@ -150,8 +156,8 @@ class WakuTransport implements ChatTransport {
     });
   }
 
-  conversationIdFor(participants: ParticipantId[]): string {
-    return conversationIdForTopic(contentTopicFor(participants));
+  chatIdFor(participants: ParticipantId[]): ProtocolChatId {
+    return protocolChatId(chatIdForTopic(contentTopicFor(participants)));
   }
 
   routingKeyFor(participants: ParticipantId[]): string {
@@ -169,15 +175,12 @@ class WakuTransport implements ChatTransport {
    * one's. Store failures propagate to the history indicator; live messaging
    * stays available and catch-up can be retried on its own.
    */
-  async openConversation(
-    conversation: StoredConversation,
-    opts?: { since?: number }
-  ): Promise<void> {
-    const topic = conversation.routingKey;
+  async openChat(chat: TransportChat, opts?: { since?: number }): Promise<void> {
+    const topic = chat.routingKey;
     if (!topic || this.stopped) return;
 
     this.openTopics.add(topic);
-    this.topicParticipants.set(topic, new Set(conversation.participants));
+    this.topicParticipants.set(topic, new Set(chat.participants));
     try {
       await this.client.subscribe([topic]);
 
@@ -206,8 +209,8 @@ class WakuTransport implements ChatTransport {
     }
   }
 
-  async closeConversation(conversation: StoredConversation): Promise<void> {
-    const topic = conversation.routingKey;
+  async closeChat(chat: TransportChat): Promise<void> {
+    const topic = chat.routingKey;
     if (!topic) return;
 
     this.openTopics.delete(topic);
@@ -217,15 +220,15 @@ class WakuTransport implements ChatTransport {
     } catch {}
   }
 
-  async send(conversation: StoredConversation, content: MessageContent): Promise<SendResult> {
+  async send(chat: TransportChat, content: MessageContent): Promise<SendResult> {
     if (content.kind !== 'text') {
       throw new Error(`Waku can only send text, not "${content.kind}"`);
     }
 
-    const topic = conversation.routingKey;
-    if (!topic) throw new Error(`Conversation ${conversation.id} has no content topic`);
+    const topic = chat.routingKey;
+    if (!topic) throw new Error(`Chat ${chat.id} has no content topic`);
 
-    let pending = this.pendingSends.get(conversation.id);
+    let pending = this.pendingSends.get(chat.id);
     if (pending && pending.content !== content.text) {
       throw new Error(
         'Finish retrying the partially published Waku message before sending another'
@@ -233,36 +236,34 @@ class WakuTransport implements ChatTransport {
     }
     if (!pending) {
       let messageId = '';
-      const remaining = [...new Set([...conversation.participants, this.publicKey])].map(
-        (recipient) => {
-          const envelope = sealEnvelope(content.text, this.secretKey, recipient);
-          if (recipient === this.publicKey) {
-            messageId = messageIdFor(envelope.from, envelope.ts, envelope.sig);
-          }
-          return {
-            recipient,
-            message: {
-              payload: encodeEnvelope(envelope),
-              contentTopic: topic,
-              version: 0,
-              timestamp: Date.now() * 1_000_000,
-            },
-          };
+      const remaining = [...new Set([...chat.participants, this.publicKey])].map((recipient) => {
+        const envelope = sealEnvelope(content.text, this.secretKey, recipient);
+        if (recipient === this.publicKey) {
+          messageId = messageIdFor(envelope.from, envelope.ts, envelope.sig);
         }
-      );
+        return {
+          recipient,
+          message: {
+            payload: encodeEnvelope(envelope),
+            contentTopic: topic,
+            version: 0,
+            timestamp: Date.now() * 1_000_000,
+          },
+        };
+      });
       pending = { content: content.text, messageId, remaining };
-      this.pendingSends.set(conversation.id, pending);
+      this.pendingSends.set(chat.id, pending);
     }
 
     while (pending.remaining.length > 0) {
       await this.client.publish(pending.remaining[0].message);
       pending.remaining.shift();
     }
-    this.pendingSends.delete(conversation.id);
+    this.pendingSends.delete(chat.id);
     return { id: pending.messageId || `${this.publicKey.slice(0, 16)}-${Date.now()}` };
   }
 
-  async resolvePeer(addressOrId: string): Promise<ParticipantId | null> {
+  async resolveParticipant(addressOrId: string): Promise<ParticipantId | null> {
     return parsePublicKey(addressOrId);
   }
 

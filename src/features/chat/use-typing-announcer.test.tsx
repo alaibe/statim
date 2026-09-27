@@ -3,12 +3,13 @@ import { create, type ReactTestRenderer } from 'react-test-renderer';
 
 import { useChatStore } from '@/core/messaging/chat-store';
 import { useTypingAnnouncer } from './use-typing-announcer';
+import { asChatId } from '@/core/messaging/testing/ids';
 
 function Probe() {
-  return createElement('probe', { announce: useTypingAnnouncer('chat', true) });
+  return createElement('probe', { announce: useTypingAnnouncer(asChatId('chat'), true) });
 }
 
-it('tells the network once per few seconds of typing, not on every keystroke', () => {
+it('tells the protocol once per few seconds of typing, not on every keystroke', () => {
   jest.useFakeTimers();
   const setTyping = jest.fn(async () => {});
   useChatStore.setState({ setTyping });

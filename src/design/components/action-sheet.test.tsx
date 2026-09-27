@@ -1,8 +1,10 @@
 import { act, createElement } from 'react';
 import { create, type ReactTestRenderer } from 'react-test-renderer';
 
+import { reportError } from '@/core/app/report-error';
 import { ActionSheet, type SheetAction } from './action-sheet';
 
+jest.mock('@/core/app/report-error', () => ({ reportError: jest.fn() }));
 jest.mock('./sheet', () => ({
   Sheet: ({ children }: { children: React.ReactNode }) => children,
   closeSheetThen: (_sheet: unknown, action: () => void) => action(),
@@ -56,17 +58,23 @@ describe('a sheet that picks one of several', () => {
   it('keeps what matches, wherever it matches, ignoring case', () => {
     const tree = render(TOKENS.map(action));
 
-    act(() => search(tree).props.onChangeText('bt'));
+    act(() => {
+      search(tree).props.onChangeText('bt');
+    });
     expect(labels(tree)).toEqual(['WBTC']);
 
-    act(() => search(tree).props.onChangeText('ET'));
+    act(() => {
+      search(tree).props.onChangeText('ET');
+    });
     expect(labels(tree)).toEqual(['WETH', 'ETH']);
   });
 
   it('says so rather than showing an empty sheet', () => {
     const tree = render(TOKENS.map(action));
 
-    act(() => search(tree).props.onChangeText('zzz'));
+    act(() => {
+      search(tree).props.onChangeText('zzz');
+    });
     expect(labels(tree)).toEqual([]);
     expect(JSON.stringify(tree.toJSON())).toContain('Nothing matches');
   });
@@ -74,10 +82,29 @@ describe('a sheet that picks one of several', () => {
   it('brings everything back when the search is cleared', () => {
     const tree = render(TOKENS.map(action));
 
-    act(() => search(tree).props.onChangeText('dai'));
+    act(() => {
+      search(tree).props.onChangeText('dai');
+    });
     expect(labels(tree)).toEqual(['DAI']);
 
-    act(() => search(tree).props.onClear());
+    act(() => {
+      search(tree).props.onClear();
+    });
     expect(labels(tree)).toHaveLength(TOKENS.length);
+  });
+});
+
+describe('an action', () => {
+  it('reports a failure that comes after the sheet has closed', async () => {
+    const error = new Error('offline');
+    const tree = render([{ label: 'Send', onPress: () => Promise.reject(error) }]);
+    const row = tree.root.findAll(
+      (node) => node.props.accessibilityLabel === 'Send' && Boolean(node.props.onPress),
+      { deep: false }
+    )[0];
+
+    await act(async () => row.props.onPress());
+
+    expect(reportError).toHaveBeenCalledWith(error);
   });
 });

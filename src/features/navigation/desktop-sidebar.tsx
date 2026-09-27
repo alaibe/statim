@@ -13,7 +13,7 @@ import {
 } from '@/design';
 import { ChatList } from '@/features/chat/chat-list';
 import { ContactList, type ContactSort } from '@/features/contacts/contact-list';
-import { SettingsProfile, useEnsName } from '@/features/settings/settings-profile';
+import { SettingsAccount, useEnsName } from '@/features/settings/settings-account';
 import { openTab } from '@/features/navigation/open';
 import {
   SETTINGS_PAGES,
@@ -132,7 +132,7 @@ export function DesktopSidebar() {
       <View className="flex-1">
         {tab === 'settings' ? (
           <ScrollView>
-            <SettingsProfile ensName={ensName} />
+            <SettingsAccount ensName={ensName} />
             <SettingsSections keys={keys} selected={settingsPage} compact />
           </ScrollView>
         ) : tab === 'contacts' ? (
@@ -142,7 +142,7 @@ export function DesktopSidebar() {
             sorting={sorting}
             onSort={setSortBy}
             onCloseSort={() => setSorting(false)}
-            selectedConversationId={selectedId}
+            selectedChatId={selectedId}
           />
         ) : (
           <ChatList query={query} selectedId={selectedId} />

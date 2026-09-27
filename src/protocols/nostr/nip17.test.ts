@@ -1,8 +1,8 @@
 import { eventId, serializeEvent, signEvent, verifyEvent } from './events';
-import { identityFromSecretKey } from './keys';
+import { keysFromSecretKey } from './keys';
 import {
   buildRumor,
-  conversationIdFor,
+  chatIdFor,
   giftWrap,
   KIND_DM,
   KIND_GIFT_WRAP,
@@ -13,10 +13,10 @@ import {
   wrapForRecipients,
 } from './nip17';
 
-const alice = identityFromSecretKey(new Uint8Array(32).fill(1));
-const bob = identityFromSecretKey(new Uint8Array(32).fill(2));
-const carol = identityFromSecretKey(new Uint8Array(32).fill(3));
-const mallory = identityFromSecretKey(new Uint8Array(32).fill(9));
+const alice = keysFromSecretKey(new Uint8Array(32).fill(1));
+const bob = keysFromSecretKey(new Uint8Array(32).fill(2));
+const carol = keysFromSecretKey(new Uint8Array(32).fill(3));
+const mallory = keysFromSecretKey(new Uint8Array(32).fill(9));
 
 describe('event ids', () => {
   it('hash the canonical array, in the spec order', () => {
@@ -211,20 +211,20 @@ describe('unwrapping refuses forgeries', () => {
   });
 });
 
-describe('conversation identity', () => {
+describe('chat id', () => {
   it('is the participant set, order-independent', () => {
-    expect(conversationIdFor([alice.publicKey, bob.publicKey])).toBe(
-      conversationIdFor([bob.publicKey, alice.publicKey])
+    expect(chatIdFor([alice.publicKey, bob.publicKey])).toBe(
+      chatIdFor([bob.publicKey, alice.publicKey])
     );
   });
 
-  it('is hex, so it is a legal conversation id with no further encoding', () => {
-    expect(conversationIdFor([alice.publicKey])).toMatch(/^[0-9a-f]{64}$/);
+  it('is hex, so it is a legal chat id with no further encoding', () => {
+    expect(chatIdFor([alice.publicKey])).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it('differs once the set differs, which is why there is no "add member"', () => {
-    const pair = conversationIdFor([alice.publicKey, bob.publicKey]);
-    const trio = conversationIdFor([alice.publicKey, bob.publicKey, carol.publicKey]);
+    const pair = chatIdFor([alice.publicKey, bob.publicKey]);
+    const trio = chatIdFor([alice.publicKey, bob.publicKey, carol.publicKey]);
     expect(pair).not.toBe(trio);
   });
 
@@ -246,7 +246,7 @@ function encryptTo(plaintext: string, from: typeof alice, toPublicKey: string): 
 }
 
 function wrapAs(seal: ReturnType<typeof signEvent>, recipientPublicKey: string) {
-  const ephemeral = identityFromSecretKey(new Uint8Array(32).fill(11));
+  const ephemeral = keysFromSecretKey(new Uint8Array(32).fill(11));
   return signEvent(
     {
       pubkey: ephemeral.publicKey,

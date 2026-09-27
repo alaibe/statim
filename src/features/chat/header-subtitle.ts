@@ -1,17 +1,17 @@
 import { formatTimestamp } from '@/core/messaging/preview';
-import type { Conversation } from '@/core/messaging/types';
+import type { Chat } from '@/core/messaging/types';
 import { protocolSubtitle } from '@/features/protocols/presentation';
 
-export function headerSubtitle(conversation: Conversation | undefined): string {
-  if (conversation?.typing) return 'typing…';
-  if (conversation?.kind === 'dm' && conversation.online) return 'online';
-  if (conversation?.kind === 'dm' && conversation.lastSeenAt)
-    return `last seen ${formatTimestamp(conversation.lastSeenAt)}`;
-  const requests = conversation?.pendingJoinRequests;
+export function headerSubtitle(chat: Chat | undefined): string {
+  if (chat?.typing) return 'typing…';
+  if (chat?.kind === 'dm' && chat.online) return 'online';
+  if (chat?.kind === 'dm' && chat.lastSeenAt)
+    return `last seen ${formatTimestamp(chat.lastSeenAt)}`;
+  const requests = chat?.pendingJoinRequests;
   if (requests) return requests === 1 ? '1 join request' : `${requests} join requests`;
-  const network = protocolSubtitle(conversation?.protocol);
-  if (conversation?.kind === 'channel') return `Channel · ${network}`;
-  if (conversation?.kind === 'group')
-    return `${conversation.memberCount ?? conversation.memberIds.length} members · ${network}`;
-  return network;
+  const protocol = protocolSubtitle(chat?.protocol);
+  if (chat?.kind === 'channel') return `Channel · ${protocol}`;
+  if (chat?.kind === 'group')
+    return `${chat.memberCount ?? chat.memberIds.length} members · ${protocol}`;
+  return protocol;
 }

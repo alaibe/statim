@@ -32,7 +32,7 @@ export function NewChatScreen() {
     descriptor,
     draft,
     draftRef,
-    recipients,
+    participants,
     groupName,
     error,
     busy,
@@ -42,9 +42,9 @@ export function NewChatScreen() {
     existingDm,
     chooseProtocol,
     changeDraft,
-    addRecipient,
-    toggleRecipient,
-    removeRecipient,
+    addParticipant,
+    toggleParticipant,
+    removeParticipant,
     setTitle,
     start,
   } = useNewChat();
@@ -87,7 +87,7 @@ export function NewChatScreen() {
 
           <Text variant="bodyMuted">
             {descriptor
-              ? `${descriptor.recipient.hint} Add more than one to make it a group.`
+              ? `${descriptor.address.hint} Add more than one to make it a group.`
               : 'Connecting…'}
           </Text>
 
@@ -104,7 +104,7 @@ export function NewChatScreen() {
               </Eyebrow>
               {known.length === 0 ? (
                 <Text variant="caption">
-                  {`Paste ${descriptor.recipient.noun} below to start the first one. People you talk to on another protocol are listed under that protocol, because an id only means something to the network that made it.`}
+                  {`Paste ${descriptor.address.noun} below to start the first one. People you talk to on another protocol are listed under that protocol, because an id only means something to the network that made it.`}
                 </Text>
               ) : null}
               {known.map((entry) =>
@@ -118,7 +118,7 @@ export function NewChatScreen() {
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked: selectedIds.has(entry.id) }}
                     accessibilityLabel={entry.name}
-                    onPress={() => toggleRecipient(entry.id, entry.name)}
+                    onPress={() => toggleParticipant(entry.id, entry.name)}
                     className="min-h-tap flex-row items-center gap-3 py-1.5">
                     <Avatar seed={entry.name} size="md" />
                     <Text className="flex-1 font-medium" numberOfLines={1}>
@@ -139,22 +139,22 @@ export function NewChatScreen() {
             <Field
               testID="new-chat-input"
               containerClassName="flex-1"
-              label={descriptor?.recipient.label ?? 'Recipient'}
-              placeholder={descriptor?.recipient.placeholder}
+              label={descriptor?.address.label ?? 'Address'}
+              placeholder={descriptor?.address.placeholder}
               ref={draftRef}
               onChangeText={changeDraft}
               autoCapitalize="none"
               autoCorrect={false}
               spellCheck={false}
               returnKeyType="done"
-              onSubmitEditing={addRecipient}
+              onSubmitEditing={() => void addParticipant()}
             />
             <IconButton
               testID="new-chat-add"
               icon="add"
-              label="Add recipient"
+              label="Add participant"
               tone="brand"
-              onPress={addRecipient}
+              onPress={() => void addParticipant()}
               disabled={draft.trim().length < 3 || busy}
               className="mb-0.5"
             />
@@ -162,11 +162,11 @@ export function NewChatScreen() {
 
           <ErrorText>{error}</ErrorText>
 
-          {recipients.length > 0 ? (
+          {participants.length > 0 ? (
             <Animated.View layout={springLayout()} className="gap-2">
-              <Eyebrow>{`${recipients.length} recipient${recipients.length === 1 ? '' : 's'}`}</Eyebrow>
+              <Eyebrow>{`${participants.length} participant${participants.length === 1 ? '' : 's'}`}</Eyebrow>
 
-              {recipients.map((r) => (
+              {participants.map((r) => (
                 <View
                   key={r.participantId}
                   className="flex-row items-center gap-3 rounded-card border border-line bg-surface px-3 py-2.5">
@@ -178,7 +178,7 @@ export function NewChatScreen() {
                     icon="close"
                     label={`Remove ${r.input}`}
                     size={18}
-                    onPress={() => removeRecipient(r.participantId)}
+                    onPress={() => removeParticipant(r.participantId)}
                   />
                 </View>
               ))}
@@ -214,7 +214,7 @@ export function NewChatScreen() {
             testID="new-chat-start"
             label={
               isGroup
-                ? `Create group of ${recipients.length + 1}`
+                ? `Create group of ${participants.length + 1}`
                 : existingDm
                   ? 'Open chat'
                   : 'Start chatting'
@@ -222,7 +222,7 @@ export function NewChatScreen() {
             size="md"
             fullWidth
             loading={busy}
-            disabled={recipients.length === 0 || !active}
+            disabled={participants.length === 0 || !active}
             onPress={start}
           />
           <Button label="Cancel" tone="ghost" fullWidth onPress={goBack} />
@@ -239,7 +239,7 @@ const GROUP_BADGE = {
     detail:
       'Membership changes are themselves encrypted messages, so everyone converges on the same roster.',
   },
-  'recipient-set': {
+  'participant-set': {
     label: 'No roster',
     tone: 'warning' as const,
     detail:

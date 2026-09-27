@@ -1,21 +1,21 @@
 import type { LocalAccount } from 'viem';
 
 import { clearChatProjection, projectAccount } from '../chat-store';
-import { namespacedId, splitConversationId, type ProtocolId } from '../namespace';
-import { InMemoryMessageStore } from '../message-store';
-import type { StoredConversation } from '../message-store';
+import { namespacedId, protocolChatId, splitChatId, type ProtocolId } from '../namespace';
+import { InMemoryMessageStore, type TransportChat } from '../message-store';
+
 import type { ChatSession } from '../protocol';
 import { StoreBackedSession } from '../store-backed-session';
 import type { ChatTransport, SendResult, TransportSink } from '../transport';
-import type { MessageContent, ParticipantId } from '../types';
+import type { ChatId, MessageContent, ParticipantId, ProtocolChatId } from '../types';
 import { accountRuntime } from '@/runtime';
 import { PluginRegistry } from '@/core/plugins/registry';
-import type { Keyring } from '@/core/identity/keyring';
+import type { Keyring } from '@/core/account/keyring';
 import { createAccountStorage, type AccountStorage } from '@/storage/account';
 
 export const TEST_PROTOCOL: ProtocolId = 'xmtp';
 export const STORE_TEST_SELF = 'me';
-export const STORE_TEST_PEER = 'them';
+export const STORE_TEST_PARTICIPANT = 'them';
 
 export class StoreBackedTestTransport implements ChatTransport {
   readonly protocolId = 'stub';
@@ -32,23 +32,20 @@ export class StoreBackedTestTransport implements ChatTransport {
     this.sink = sink;
   }
 
-  conversationIdFor(participants: ParticipantId[]): string {
-    return `c:${[...participants].sort().join('+')}`;
+  chatIdFor(participants: ParticipantId[]): ProtocolChatId {
+    return protocolChatId(`c:${[...participants].sort().join('+')}`);
   }
 
   routingKeyFor(participants: ParticipantId[]): string {
     return `topic:${[...participants].sort().join('+')}`;
   }
 
-  async openConversation(
-    conversation: StoredConversation,
-    options?: { since?: number }
-  ): Promise<void> {
-    this.opened.push(conversation.routingKey ?? conversation.id);
+  async openChat(chat: TransportChat, options?: { since?: number }): Promise<void> {
+    this.opened.push(chat.routingKey ?? chat.id);
     this.openCursors.push(options?.since);
   }
 
-  async send(_conversation: StoredConversation, content: MessageContent): Promise<SendResult> {
+  async send(_chat: TransportChat, content: MessageContent): Promise<SendResult> {
     this.sent += 1;
     const id = `m${this.sent}`;
     return {
@@ -63,7 +60,7 @@ export class StoreBackedTestTransport implements ChatTransport {
     };
   }
 
-  async resolvePeer(id: string): Promise<ParticipantId> {
+  async resolveParticipant(id: string): Promise<ParticipantId> {
     return id;
   }
 
@@ -79,9 +76,9 @@ export class StoreBackedTestTransport implements ChatTransport {
 
   receive(id: string, sentAt: number, text = id): Promise<void> {
     return (
-      this.sink?.deliverToParticipants([STORE_TEST_SELF, STORE_TEST_PEER], {
+      this.sink?.deliverToParticipants([STORE_TEST_SELF, STORE_TEST_PARTICIPANT], {
         id,
-        senderId: STORE_TEST_PEER,
+        senderId: STORE_TEST_PARTICIPANT,
         sentAt,
         transportTimestamp: sentAt,
         content: { kind: 'text', text },
@@ -110,12 +107,12 @@ export const TEST_KEYRING = {
 
 export const flushWrites = () => new Promise<void>((resolve) => setImmediate(resolve));
 
-export function ns(nativeId: string, protocol: ProtocolId = TEST_PROTOCOL): string {
-  return namespacedId(protocol, nativeId);
+export function ns(nativeId: string, protocol: ProtocolId = TEST_PROTOCOL): ChatId {
+  return namespacedId(protocol, protocolChatId(nativeId));
 }
 
-export function native(id: string): string {
-  return splitConversationId(id)?.nativeId ?? id;
+export function native(id: ChatId): ProtocolChatId {
+  return splitChatId(id)?.nativeId ?? protocolChatId(id);
 }
 
 export interface ConnectFakeOptions {

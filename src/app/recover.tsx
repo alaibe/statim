@@ -3,15 +3,21 @@ import { View } from 'react-native';
 
 import { Button, Card, Icon, Screen, Text } from '@/design';
 import { eraseAllAccounts } from '@/core/app/erase-account';
-import { useIdentityStore } from '@/core/identity/identity-store';
-import { shortAddress } from '@/core/identity/keyring';
-import { useAction } from '@/core/app/use-action';
+import { useAccountStore } from '@/core/account/account-store';
+import { shortAddress } from '@/core/account/keyring';
+import { useAction } from '@/features/use-action';
 
 export default function RecoverScreen() {
   const router = useRouter();
 
-  const accounts = useIdentityStore((s) => s.accounts);
-  const erase = useAction(eraseAllAccounts, { failure: 'Could not erase this device' });
+  const accounts = useAccountStore((s) => s.accounts);
+  const erase = useAction(
+    async () => {
+      await eraseAllAccounts();
+      router.replace('/(onboarding)/welcome');
+    },
+    { failure: 'Could not erase this device' }
+  );
 
   return (
     <Screen className="justify-center gap-6 px-gutter">
@@ -50,13 +56,10 @@ export default function RecoverScreen() {
           onPress={() => router.push('/(onboarding)/import')}
         />
         <Button
-          label={erase.busy ? 'Erasing…' : 'Erase everything and start over'}
+          label="Erase everything and start over"
           tone="danger"
           fullWidth
-          disabled={erase.busy}
-          onPress={async () => {
-            if (await erase.run()) router.replace('/(onboarding)/welcome');
-          }}
+          onPress={() => erase.run()}
         />
       </View>
     </Screen>

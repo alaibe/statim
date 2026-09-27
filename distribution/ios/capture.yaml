@@ -38,13 +38,13 @@ appId: com.statusoriginal.app
 
 - extendedWaitUntil:
     visible:
-      id: "conversation-local-status"
+      id: "chat-local-status"
     timeout: 30000
 - waitForAnimationToEnd
 - takeScreenshot: 02-chats
 
 - tapOn:
-    id: "conversation-local-status"
+    id: "chat-local-status"
 - extendedWaitUntil:
     visible:
       id: "composer-input"
@@ -56,7 +56,7 @@ appId: com.statusoriginal.app
         id: "composer-input"
     commands:
       - tapOn:
-          id: "conversation-local-status"
+          id: "chat-local-status"
 - extendedWaitUntil:
     visible:
       id: "composer-input"

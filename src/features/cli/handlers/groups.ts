@@ -1,19 +1,19 @@
 import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
-import type { Conversation } from '@/core/messaging/types';
+import type { Chat } from '@/core/messaging/types';
 
 import { displayNames, readyChat, whenAccountReady, type CliHandler } from '../context';
 import { CliError } from '../errors';
 import { resolveAllOn, resolveOn } from './people';
+import { requireProtocol } from './protocols';
 
 async function group(ref: string) {
   const chat = await readyChat(ref);
-  if (chat.kind === 'dm')
-    throw new CliError(`${chat.label} is a direct message, not a group.`, 'usage');
+  if (chat.kind === 'dm') throw new CliError(`${chat.label} is a DM, not a group.`, 'usage');
   return chat;
 }
 
 function memberAction(
-  run: (chat: Conversation, member: string) => Promise<void>,
+  run: (chat: Chat, member: string) => Promise<void>,
   done: string
 ): CliHandler {
   return async ({ args }) => {
@@ -26,9 +26,9 @@ function memberAction(
 function joinRequestAction(approve: boolean): CliHandler {
   return async ({ args }) => {
     const chat = await group(args.chat!);
-    await useChatStore.getState().processJoinRequest(chat.id, args.user!, approve);
+    await useChatStore.getState().processJoinRequest(chat.id, args.participant!, approve);
     return {
-      data: { chat: chat.id, user: args.user, approved: approve },
+      data: { chat: chat.id, participant: args.participant, approved: approve },
       text: approve ? 'Approved.' : 'Declined.',
     };
   };
@@ -38,11 +38,11 @@ export const groupHandlers = {
   async 'group create'({ args, rest, flags }) {
     await whenAccountReady();
     if (rest.length === 0) throw new CliError('Name at least one member.', 'usage');
-    const { network } = await resolveOn(flags.network, rest[0]);
-    const members = await resolveAllOn(network, rest);
-    const chat = await useChatStore.getState().startGroup(network, members, args.title!);
+    const { protocol } = await resolveOn(flags.protocol, rest[0]);
+    const members = await resolveAllOn(protocol, rest);
+    const chat = await useChatStore.getState().startGroup(protocol, members, args.title!);
     return {
-      data: { id: chat.id, title: chat.title, network },
+      data: { id: chat.id, title: chat.title, protocol },
       text: `Created ${chat.title}  ${chat.id}`,
     };
   },
@@ -127,7 +127,7 @@ export const groupHandlers = {
     return {
       data: requests.map((r) => ({ ...r, requestedAt: new Date(r.requestedAt).toISOString() })),
       text: requests.length
-        ? requests.map((r) => `${r.name}  ${r.userId}${r.bio ? `  ${r.bio}` : ''}`)
+        ? requests.map((r) => `${r.name}  ${r.participantId}${r.bio ? `  ${r.bio}` : ''}`)
         : 'No requests.',
     };
   },
@@ -138,26 +138,28 @@ export const groupHandlers = {
   async join({ args, flags }) {
     await whenAccountReady();
     const store = useChatStore.getState();
-    const networks =
-      typeof flags.network === 'string' ? [flags.network] : Object.keys(store.sessions);
+    const protocols =
+      typeof flags.protocol === 'string'
+        ? [requireProtocol(flags.protocol).id]
+        : Object.keys(store.sessions);
     let lastError: unknown;
-    for (const network of networks) {
-      const session = store.sessions[network];
+    for (const protocol of protocols) {
+      const session = store.sessions[protocol];
       if (!session?.previewPublicChat) continue;
       let preview;
       try {
-        preview = await store.previewPublicChat(network, args.link!);
+        preview = await store.previewPublicChat(protocol, args.link!);
       } catch (error) {
         lastError = error;
         continue;
       }
-      const data = { network, ...preview };
+      const data = { protocol, ...preview };
       const summary = `${preview.title} (${preview.kind}${preview.memberCount ? `, ${preview.memberCount} members` : ''})`;
       if (flags.preview || preview.joined) {
         return { data, text: preview.joined ? `Already in ${summary}.` : summary };
       }
       if (preview.joinUnavailableReason) throw new CliError(preview.joinUnavailableReason);
-      const chat = await store.joinPublicChat(network, preview.id);
+      const chat = await store.joinPublicChat(protocol, preview.id);
       return {
         data: { ...data, joined: Boolean(chat), chat: chat?.id },
         text: chat ? `Joined ${summary}  ${chat.id}` : `Asked to join ${summary}.`,

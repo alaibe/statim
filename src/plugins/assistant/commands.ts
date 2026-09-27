@@ -7,14 +7,14 @@ export function assistantCommands(views: { plugins: PluginView }): SlashCommand[
   return [
     {
       name: 'commands',
-      description: 'Show commands available in this chat',
+      description: 'Show slash commands available in this chat',
       usage: '/commands [plugin]',
       global: true,
-      async run({ respond, context, args, conversationId }) {
-        const commands = context.plugins.commands(conversationId);
+      async run({ respond, context, args, chatId }) {
+        const commands = context.plugins.commands(chatId);
 
         if (commands.length === 0) {
-          await respond('No commands available. Enable a plugin with /plugins.');
+          await respond('No slash commands available. Enable a plugin with /plugins.');
           return { type: 'handled' };
         }
 
@@ -34,7 +34,7 @@ export function assistantCommands(views: { plugins: PluginView }): SlashCommand[
           if (!plugin) {
             return {
               type: 'error',
-              message: `No commands available here for "${args[0]}". Try ${owners.map((p) => `/commands ${p.id}`).join(', ')}.`,
+              message: `No slash commands available here for "${args[0]}". Try ${owners.map((p) => `/commands ${p.id}`).join(', ')}.`,
             };
           }
         }
@@ -42,7 +42,7 @@ export function assistantCommands(views: { plugins: PluginView }): SlashCommand[
         const available = plugin ? commands.filter((c) => c.pluginId === plugin.id) : commands;
         await respond({
           kind: 'widget',
-          fallback: `${plugin?.name ?? 'Commands'}: ${available.map((c) => `/${c.name}`).join(', ')}`,
+          fallback: `${plugin?.name ?? 'Slash commands'}: ${available.map((c) => `/${c.name}`).join(', ')}`,
           widget: W.card(
             [
               W.list(
@@ -54,7 +54,7 @@ export function assistantCommands(views: { plugins: PluginView }): SlashCommand[
                 }))
               ),
             ],
-            { title: plugin?.name ?? 'Commands', icon: plugin?.icon ?? 'sparkles-outline' }
+            { title: plugin?.name ?? 'Slash commands', icon: plugin?.icon ?? 'sparkles-outline' }
           ),
         });
         return { type: 'handled' };
@@ -81,7 +81,7 @@ export function assistantCommands(views: { plugins: PluginView }): SlashCommand[
       async run({ respond, context }) {
         let address: string;
         try {
-          address = context.identity.address;
+          address = context.account.address;
         } catch {
           return { type: 'error', message: 'No account loaded yet.' };
         }
@@ -108,7 +108,7 @@ export function assistantCommands(views: { plugins: PluginView }): SlashCommand[
               W.actions([
                 { label: 'Which plugins are on?', command: '/plugins', tone: 'neutral' as const },
               ]),
-              // A link: `/open` belongs to the Browser's own room, so a button
+              // A link: `/open` belongs to the Browser's own chat, so a button
               // running it from here would answer "that belongs to Browser". The
               // link opens the site with no plugin switched on.
               W.link(
@@ -175,8 +175,8 @@ export function pluginsCard(context: PluginContext): Omit<WidgetContent, 'live'>
           }))
         ),
         W.text(
-          'Tap a plugin to switch it. Its commands appear or vanish immediately. ' +
-            'Use /commands in a chat to see the commands available there.'
+          'Tap a plugin to switch it. Its slash commands appear or vanish immediately. ' +
+            'Use /commands in a chat to see the slash commands available there.'
         ),
       ],
       { title: 'Plugins', icon: 'extension-puzzle-outline' }

@@ -3,6 +3,7 @@ import type { Widget, WidgetRow } from '@/design/widgets';
 
 import { registerChainStrategy, type ChainStrategy, type Holding } from './chains/strategy';
 import { walletCommands } from './commands';
+import { STATUS_LOCAL_ID } from '@/core/messaging/bots';
 
 jest.mock('./bitcoin/bot', () => ({ checkAddress: jest.fn() }));
 jest.mock('./bitcoin', () => ({ bitcoinStrategy: jest.fn() }));
@@ -61,7 +62,7 @@ async function overview(): Promise<WidgetRow[]> {
       args: [],
       rest: '',
       context,
-      conversationId: 'local-status',
+      chatId: STATUS_LOCAL_ID,
       respond: async (content) => {
         if (typeof content !== 'string' && content.kind === 'widget') widget = content.widget;
       },
@@ -71,7 +72,7 @@ async function overview(): Promise<WidgetRow[]> {
 }
 
 describe('/balance with no argument', () => {
-  it('lists the tokens a network holds under its coin', async () => {
+  it('lists the tokens a chain holds under its coin', async () => {
     register(
       chain('ethereum', 'ETH', '1.5', [
         { symbol: 'USDC', amount: '250', id: '0xa0b8' },
@@ -83,7 +84,7 @@ describe('/balance with no argument', () => {
 
     expect(rows.map((row) => row.label.trim())).toEqual(['ethereum', 'USDC', 'DAI']);
     expect(rows[1].value).toBe('250');
-    // Indented, so a token reads as belonging to the network above it.
+    // Indented, so a token reads as belonging to the chain above it.
     expect(rows[1].label.startsWith(' ')).toBe(true);
   });
 
@@ -114,7 +115,7 @@ describe('/balance with no argument', () => {
     expect(rows[0].value).toBe('1.5 ETH');
   });
 
-  it('says a network is unavailable rather than claiming nothing is held', async () => {
+  it('says a chain is unavailable rather than claiming nothing is held', async () => {
     register(chain('ethereum', 'ETH', null, [{ symbol: 'USDC', amount: '250' }]));
 
     const rows = await overview();

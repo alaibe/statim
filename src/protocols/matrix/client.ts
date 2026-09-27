@@ -440,11 +440,6 @@ class RnMatrixClient implements MatrixApi {
     await this.requireRoom(roomId).leave();
   }
 
-  async ignore(userId: string, ignored: boolean): Promise<void> {
-    if (ignored) await this.client.ignoreUser(userId);
-    else await this.client.unignoreUser(userId);
-  }
-
   // ---- sending ----
 
   /**

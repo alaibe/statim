@@ -1,7 +1,7 @@
 import type { LoginState } from '@/core/messaging/protocol';
-import type { ChatMessage, Conversation } from '@/core/messaging/types';
+import type { ProtocolMessage, ProtocolChat } from '@/core/messaging/types';
 import { TelegramSession } from './adapter';
-import { messageIdOf } from './ids';
+import { chatIdOf, messageIdOf } from './ids';
 import {
   authState,
   channelChat,
@@ -186,7 +186,7 @@ describe('TelegramSession sign-in', () => {
   });
 });
 
-describe('TelegramSession conversations', () => {
+describe('TelegramSession chats', () => {
   async function signedIn() {
     const context = await connect();
     await signIn(context.td());
@@ -232,7 +232,7 @@ describe('TelegramSession conversations', () => {
       invite_link: { invite_link: 'https://t.me/+private' },
     });
 
-    expect(await session.getGroupInfo('-1000000000009')).toEqual({
+    expect(await session.getGroupInfo(chatIdOf(-1000000000009))).toEqual({
       description: 'Daily updates',
       link: 'https://t.me/newsfeed',
       memberCount: 27,
@@ -263,16 +263,16 @@ describe('TelegramSession conversations', () => {
       slow_mode_delay: 30,
     });
 
-    expect(await session.getGroupInfo(String(group.id))).toMatchObject({
+    expect(await session.getGroupInfo(chatIdOf(group.id))).toMatchObject({
       slowModeDelay: 30,
       canSetSlowMode: true,
     });
-    await session.setSlowModeDelay(String(group.id), 60);
+    await session.setSlowModeDelay(chatIdOf(group.id), 60);
     expect(td().requests('setChatSlowModeDelay')[0]).toMatchObject({
       chat_id: group.id,
       slow_mode_delay: 60,
     });
-    await expect(session.setSlowModeDelay(String(group.id), 7)).rejects.toThrow();
+    await expect(session.setSlowModeDelay(chatIdOf(group.id), 7)).rejects.toThrow();
   });
 
   it('says what an admin may do to messages, and what a member may not', async () => {
@@ -295,15 +295,15 @@ describe('TelegramSession conversations', () => {
     });
     td().emit({ '@type': 'updateNewChat', chat: group });
     td().answer('getChats', { '@type': 'chats', chat_ids: [group.id] });
-    const [admin] = await session.listConversations();
+    const [admin] = await session.listChats();
     expect(admin).toMatchObject({ canPin: false, canDeleteOthers: true });
 
     td().emit({ '@type': 'updateNewChat', chat: privateChat(200, 'Bob') });
     td().answer('getChats', { '@type': 'chats', chat_ids: [200] });
-    const [dm] = await session.listConversations();
+    const [dm] = await session.listChats();
     expect(dm).toMatchObject({ canPin: true, canDeleteOthers: true });
 
-    await session.deleteMessageForMe('200', messageIdOf(200, 7));
+    await session.deleteMessageForMe(chatIdOf(200), messageIdOf(200, 7));
     expect(td().requests('deleteMessages')[0]).toMatchObject({
       chat_id: 200,
       message_ids: [7],
@@ -387,8 +387,8 @@ describe('TelegramSession conversations', () => {
       '@type': 'chatInviteLink',
       invite_link: 'https://t.me/+newlink',
     });
-    expect(await session.createInviteLink('-5', false)).toBe('https://t.me/+newlink');
-    expect(await session.createInviteLink('-5', true)).toBe('https://t.me/+newlink');
+    expect(await session.createInviteLink(chatIdOf(-5), false)).toBe('https://t.me/+newlink');
+    expect(await session.createInviteLink(chatIdOf(-5), true)).toBe('https://t.me/+newlink');
     expect(td().requests('createChatInviteLink')).toEqual([
       expect.objectContaining({ chat_id: -5, creates_join_request: false, member_limit: 0 }),
       expect.objectContaining({ chat_id: -5, creates_join_request: true, member_limit: 0 }),
@@ -402,9 +402,9 @@ describe('TelegramSession conversations', () => {
       total_count: 1,
       requests: [{ '@type': 'chatJoinRequest', user_id: 200, date: 1_700_000_000, bio: 'Hi' }],
     });
-    expect(await session.getJoinRequests('-5')).toEqual([
+    expect(await session.getJoinRequests(chatIdOf(-5))).toEqual([
       {
-        userId: '200',
+        participantId: '200',
         name: 'Bob Builder',
         bio: 'Hi',
         requestedAt: 1_700_000_000_000,
@@ -412,8 +412,8 @@ describe('TelegramSession conversations', () => {
     ]);
     expect(td().requests('getChatJoinRequests')[0]).toMatchObject({ chat_id: -5, limit: 100 });
 
-    await session.processJoinRequest('-5', '200', true);
-    await session.processJoinRequest('-5', '200', false);
+    await session.processJoinRequest(chatIdOf(-5), '200', true);
+    await session.processJoinRequest(chatIdOf(-5), '200', false);
     expect(td().requests('processChatJoinRequest')).toEqual([
       expect.objectContaining({ chat_id: -5, user_id: 200, approve: true }),
       expect.objectContaining({ chat_id: -5, user_id: 200, approve: false }),
@@ -436,11 +436,13 @@ describe('TelegramSession conversations', () => {
     });
     td().emit({ '@type': 'updateNewChat', chat: groupChat(5, 'Builders') });
     await flush();
-    expect(await session.getMembers('-5')).toEqual([{ id: '300', role: 'member', muted: true }]);
+    expect(await session.getMembers(chatIdOf(-5))).toEqual([
+      { id: '300', role: 'member', muted: true },
+    ]);
 
-    await session.setMemberMuted('-5', '300', false);
-    await session.setMemberMuted('-5', '300', true);
-    await session.banMember('-5', '300');
+    await session.setMemberMuted(chatIdOf(-5), '300', false);
+    await session.setMemberMuted(chatIdOf(-5), '300', true);
+    await session.banMember(chatIdOf(-5), '300');
     expect(
       td()
         .requests('setChatMemberStatus')
@@ -496,29 +498,51 @@ describe('TelegramSession conversations', () => {
     td().emit({ '@type': 'updateNewChat', chat: channelChat(9, 'News') });
     td().answer('getChats', { '@type': 'chats', chat_ids: [-5, -1_000_000_000_009, 200] });
 
-    const conversations = await session.listConversations();
-    expect(conversations.map((c) => [c.id, c.kind, c.title])).toEqual([
+    const chats = await session.listChats();
+    expect(chats.map((c) => [c.id, c.kind, c.title])).toEqual([
       ['-5', 'group', 'Builders'],
       ['-1000000000009', 'channel', 'News'],
       ['200', 'dm', 'Bob Builder'],
     ]);
-    expect(conversations[0]).toMatchObject({
+    expect(chats[0]).toMatchObject({
       memberIds: ['100'],
       memberCount: 2,
       selfRole: 'owner',
       canSend: true,
-      consent: 'allowed',
+      consent: 'accepted',
     });
     expect(td().requests('getBasicGroupFullInfo')).toEqual([]);
-    expect((await session.getMembers('-5')).map((m) => m.id)).toEqual(['100', '200']);
-    expect((await session.listConversations())[0].memberIds).toEqual(['100', '200']);
-    expect(conversations[1]).toMatchObject({ memberIds: ['100'], canSend: false });
-    expect(conversations[2]).toMatchObject({
+    expect((await session.getMembers(chatIdOf(-5))).map((m) => m.id)).toEqual(['100', '200']);
+    expect((await session.listChats())[0].memberIds).toEqual(['100', '200']);
+    expect(chats[1]).toMatchObject({ memberIds: ['100'], canSend: false });
+    expect(chats[2]).toMatchObject({
       memberIds: ['200', '100'],
       canSend: true,
       lastMessage: { id: '200_7', content: { kind: 'text', text: 'hi' } },
       unreadCount: 4,
     });
+  });
+
+  it('declines a DM by taking it off the chat list without blocking the sender', async () => {
+    const { session, td } = await signedIn();
+    td().emit({ '@type': 'updateNewChat', chat: privateChat(200, 'Bob') });
+    td().emit({ '@type': 'updateNewChat', chat: groupChat(5, 'Builders') });
+
+    const sent = td().sent.length;
+    await session.setConsent(chatIdOf(200), 'accepted');
+    expect(td().sent).toHaveLength(sent);
+    await session.setConsent(chatIdOf(200), 'declined');
+    await expect(session.setConsent(chatIdOf(-5), 'declined')).rejects.toThrow('only a DM');
+
+    expect(td().requests('deleteChatHistory')).toEqual([
+      {
+        '@type': 'deleteChatHistory',
+        chat_id: 200,
+        remove_from_chat_list: true,
+        revoke: false,
+      },
+    ]);
+    expect(td().requests('setMessageSenderBlockList')).toEqual([]);
   });
 
   it('lets a channel admin post only with the right to post', async () => {
@@ -537,10 +561,10 @@ describe('TelegramSession conversations', () => {
     admin({});
     td().emit({ '@type': 'updateNewChat', chat: channelChat(9, 'News') });
     td().answer('getChats', { '@type': 'chats', chat_ids: [-1_000_000_000_009] });
-    expect((await session.listConversations())[0].canSend).toBe(false);
+    expect((await session.listChats())[0].canSend).toBe(false);
 
     admin({ can_post_messages: true });
-    expect((await session.listConversations())[0].canSend).toBe(true);
+    expect((await session.listChats())[0].canSend).toBe(true);
   });
 
   it('updates group posting rights when permissions change', async () => {
@@ -559,10 +583,10 @@ describe('TelegramSession conversations', () => {
     chat.permissions = { can_send_basic_messages: false };
     td().emit({ '@type': 'updateNewChat', chat });
     td().answer('getChats', { '@type': 'chats', chat_ids: [-5] });
-    expect((await session.listConversations())[0].canSend).toBe(false);
+    expect((await session.listChats())[0].canSend).toBe(false);
 
-    const seen: Conversation[] = [];
-    await session.streamConversations((conversation) => seen.push(conversation));
+    const seen: ProtocolChat[] = [];
+    await session.streamChats((c) => seen.push(c));
     td().emit({
       '@type': 'updateChatPermissions',
       chat_id: -5,
@@ -574,8 +598,8 @@ describe('TelegramSession conversations', () => {
 
   it('announces a chat once for all the updates that touched it in one batch', async () => {
     const { session, td } = await signedIn();
-    const seen: Conversation[] = [];
-    await session.streamConversations((c) => seen.push(c));
+    const seen: ProtocolChat[] = [];
+    await session.streamChats((c) => seen.push(c));
 
     td().emit({ '@type': 'updateNewChat', chat: privateChat(200, 'Bob') });
     td().emit({ '@type': 'updateChatTitle', chat_id: 200, title: 'Robert' });
@@ -591,8 +615,8 @@ describe('TelegramSession conversations', () => {
 
   it('streams a chat when it lands in the main list, and again when its title changes', async () => {
     const { session, td } = await signedIn();
-    const seen: Conversation[] = [];
-    await session.streamConversations((c) => seen.push(c));
+    const seen: ProtocolChat[] = [];
+    await session.streamChats((c) => seen.push(c));
 
     td().emit({ '@type': 'updateNewChat', chat: privateChat(200, 'Bob', []) });
     await flush();
@@ -624,10 +648,10 @@ describe('TelegramSession conversations', () => {
     expect(seen.at(-1)?.mentionCount).toBe(3);
   });
 
-  it('shows typing and the peer’s online or last-seen status', async () => {
+  it('shows typing and the other participant’s online or last-seen status', async () => {
     const { session, td } = await signedIn();
-    const seen: Conversation[] = [];
-    await session.streamConversations((conversation) => seen.push(conversation));
+    const seen: ProtocolChat[] = [];
+    await session.streamChats((chat) => seen.push(chat));
     td().emit({ '@type': 'updateNewChat', chat: privateChat(200, 'Bob') });
     await flush();
 
@@ -670,8 +694,8 @@ describe('TelegramSession conversations', () => {
   it('replays chats that arrived before anyone listened', async () => {
     const { session, td } = await signedIn();
     td().emit({ '@type': 'updateNewChat', chat: privateChat(200, 'Bob') });
-    const seen: Conversation[] = [];
-    await session.streamConversations((c) => seen.push(c));
+    const seen: ProtocolChat[] = [];
+    await session.streamChats((c) => seen.push(c));
     await flush();
     expect(seen.map((c) => c.id)).toEqual(['200']);
   });
@@ -690,13 +714,13 @@ describe('TelegramSession conversations', () => {
     );
     td().answer('getUser', tdError(400, 'USER_ID_INVALID'));
 
-    expect(await session.resolvePeer('@bob')).toBe('200');
-    expect(await session.resolvePeer('https://t.me/bob')).toBe('200');
-    expect(await session.resolvePeer('@news')).toBeNull();
-    expect(await session.resolvePeer('nobody_here')).toBeNull();
-    expect(await session.resolvePeer('+44123')).toBe('200');
-    expect(await session.resolvePeer('+1555')).toBeNull();
-    expect(await session.resolvePeer('not a handle!')).toBeNull();
+    expect(await session.resolveParticipant('@bob')).toBe('200');
+    expect(await session.resolveParticipant('https://t.me/bob')).toBe('200');
+    expect(await session.resolveParticipant('@news')).toBeNull();
+    expect(await session.resolveParticipant('nobody_here')).toBeNull();
+    expect(await session.resolveParticipant('+44123')).toBe('200');
+    expect(await session.resolveParticipant('+1555')).toBeNull();
+    expect(await session.resolveParticipant('not an address!')).toBeNull();
   });
 
   it('gives handles as addresses and full names as names', async () => {
@@ -726,8 +750,8 @@ describe('TelegramSession conversations', () => {
         },
       ],
     });
-    expect(await session.mentionCandidates('-5', 'bo')).toEqual([
-      { id: '200', name: 'Bob Builder', handle: '@bob' },
+    expect(await session.mentionCandidates(chatIdOf(-5), 'bo')).toEqual([
+      { id: '200', name: 'Bob Builder', address: '@bob' },
     ]);
     expect(td().requests('searchChatMembers')[0]).toMatchObject({
       chat_id: -5,
@@ -743,7 +767,7 @@ describe('TelegramSession messages', () => {
     await signIn(context.td());
     context.td().emit({ '@type': 'updateUser', user: BOB });
     context.td().emit({ '@type': 'updateNewChat', chat: privateChat(200, 'Bob') });
-    const received: ChatMessage[] = [];
+    const received: ProtocolMessage[] = [];
     await context.session.streamMessages((m) => received.push(m));
     return { ...context, received };
   }
@@ -761,9 +785,9 @@ describe('TelegramSession messages', () => {
       next_offset: '',
     });
 
-    expect((await session.searchMessages('needle', '200')).map((message) => message.id)).toEqual([
-      '200_2',
-    ]);
+    expect(
+      (await session.searchMessages('needle', chatIdOf(200))).map((message) => message.id)
+    ).toEqual(['200_2']);
     expect((await session.searchMessages('needle')).map((message) => message.id)).toEqual([
       '200_2',
     ]);
@@ -780,7 +804,7 @@ describe('TelegramSession messages', () => {
       messages: [raw],
       next_from_message_id: 0,
     });
-    expect(await session.listPinnedMessages('200')).toEqual([
+    expect(await session.listPinnedMessages(chatIdOf(200))).toEqual([
       expect.objectContaining({ id: '200_8', isPinned: true }),
     ]);
     expect(td().requests('searchChatMessages')[0]).toMatchObject({
@@ -793,7 +817,7 @@ describe('TelegramSession messages', () => {
       can_be_pinned: true,
     });
     td().answer('getMessage', raw);
-    await session.setMessagePinned('200', '200_8', true);
+    await session.setMessagePinned(chatIdOf(200), '200_8', true);
     expect(td().requests('pinChatMessage')[0]).toMatchObject({
       chat_id: 200,
       message_id: 8,
@@ -801,7 +825,7 @@ describe('TelegramSession messages', () => {
       only_for_self: false,
     });
     expect(received.at(-1)?.isPinned).toBe(true);
-    await session.setMessagePinned('200', '200_8', false);
+    await session.setMessagePinned(chatIdOf(200), '200_8', false);
     expect(td().requests('unpinChatMessage')[0]).toMatchObject({ chat_id: 200, message_id: 8 });
   });
 
@@ -845,7 +869,7 @@ describe('TelegramSession messages', () => {
     poll.options[1].is_chosen = true;
     poll.total_voter_count = 1;
     td().answer('getMessage', voted);
-    await session.votePoll('200', '200_21', [1]);
+    await session.votePoll(chatIdOf(200), '200_21', [1]);
     expect(td().requests('setPollAnswer')[0]).toMatchObject({
       chat_id: 200,
       message_id: 21,
@@ -861,7 +885,7 @@ describe('TelegramSession messages', () => {
   it('creates an anonymous single-choice poll through TDLib', async () => {
     const { session, td } = await inChatWithBob();
     td().answer('sendMessage', textMessage(200, 25, 100, '', { outgoing: true }));
-    await session.createPoll('200', 'Lunch?', ['Pizza', 'Soup']);
+    await session.createPoll(chatIdOf(200), 'Lunch?', ['Pizza', 'Soup']);
     expect(td().requests('sendMessage')[0]).toMatchObject({
       chat_id: 200,
       input_message_content: {
@@ -885,7 +909,7 @@ describe('TelegramSession messages', () => {
     });
     td().answer('editMessageText', textMessage(200, 5, 100, 'new text', { outgoing: true }));
 
-    await session.editMessage('200', '200_5', 'new text');
+    await session.editMessage(chatIdOf(200), '200_5', 'new text');
     expect(td().requests('editMessageText')[0]).toMatchObject({
       chat_id: 200,
       message_id: 5,
@@ -893,7 +917,7 @@ describe('TelegramSession messages', () => {
     });
     expect(received.at(-1)?.content).toEqual({ kind: 'text', text: 'new text' });
 
-    await session.deleteMessage('200', '200_5');
+    await session.deleteMessage(chatIdOf(200), '200_5');
     expect(td().requests('deleteMessages')[0]).toMatchObject({
       chat_id: 200,
       message_ids: [5],
@@ -913,10 +937,10 @@ describe('TelegramSession messages', () => {
       can_be_edited: false,
       can_be_deleted_for_all_users: false,
     });
-    await expect(session.editMessage('200', '200_5', 'too late')).rejects.toThrow(
+    await expect(session.editMessage(chatIdOf(200), '200_5', 'too late')).rejects.toThrow(
       'does not allow editing'
     );
-    await expect(session.deleteMessage('200', '200_5')).rejects.toThrow('for everyone');
+    await expect(session.deleteMessage(chatIdOf(200), '200_5')).rejects.toThrow('for everyone');
     expect(td().requests('deleteMessages')).toHaveLength(1);
   });
 
@@ -941,7 +965,7 @@ describe('TelegramSession messages', () => {
     expect(received).toEqual([
       expect.objectContaining({
         id: '200_12',
-        conversationId: '200',
+        chatId: '200',
         senderId: '200',
         fromMe: false,
         status: 'sent',
@@ -962,7 +986,7 @@ describe('TelegramSession messages', () => {
     await flush();
     expect(received).toEqual([
       expect.objectContaining({
-        conversationId: '-1000000000009',
+        chatId: '-1000000000009',
         content: { kind: 'text', text: 'broadcast' },
       }),
     ]);
@@ -975,7 +999,7 @@ describe('TelegramSession messages', () => {
       textMessage(200, 5_000, 100, 'yo', { outgoing: true, pending: true })
     );
 
-    const sending = session.send('200', { kind: 'text', text: 'yo' }, '200_12');
+    const sending = session.send(chatIdOf(200), { kind: 'text', text: 'yo' }, '200_12');
     await flush();
     expect(td().requests('sendMessage')[0]).toMatchObject({
       chat_id: 200,
@@ -1004,7 +1028,7 @@ describe('TelegramSession messages', () => {
       'sendMessage',
       textMessage(200, 5_001, 100, 'x', { outgoing: true, pending: true })
     );
-    const sending = session.send('200', { kind: 'text', text: 'x' });
+    const sending = session.send(chatIdOf(200), { kind: 'text', text: 'x' });
     await flush();
     td().emit({
       '@type': 'updateMessageSendFailed',
@@ -1017,16 +1041,24 @@ describe('TelegramSession messages', () => {
   it('sends photos, files, voice notes and video from local paths', async () => {
     const { session, td } = await inChatWithBob();
     td().answer('sendMessage', textMessage(200, 14, 100, '', { outgoing: true }));
-    await session.send('200', {
+    await session.send(chatIdOf(200), {
       kind: 'image',
       uri: 'file:///tmp/a%20b.jpg',
       caption: 'cap',
       width: 1,
       height: 2,
     });
-    await session.send('200', { kind: 'file', uri: 'file:///tmp/doc.pdf', name: 'doc.pdf' });
-    await session.send('200', { kind: 'voice', uri: 'file:///tmp/v.m4a', durationMs: 2_400 });
-    await session.send('200', {
+    await session.send(chatIdOf(200), {
+      kind: 'file',
+      uri: 'file:///tmp/doc.pdf',
+      name: 'doc.pdf',
+    });
+    await session.send(chatIdOf(200), {
+      kind: 'voice',
+      uri: 'file:///tmp/v.m4a',
+      durationMs: 2_400,
+    });
+    await session.send(chatIdOf(200), {
       kind: 'video',
       uri: 'file:///tmp/movie.mp4',
       durationMs: 2_400,
@@ -1058,13 +1090,13 @@ describe('TelegramSession messages', () => {
 
   it('adds and removes reactions on the target message', async () => {
     const { session, td } = await inChatWithBob();
-    await session.send('200', {
+    await session.send(chatIdOf(200), {
       kind: 'reaction',
       targetId: '200_12',
       emoji: '❤️',
       action: 'added',
     });
-    await session.send('200', {
+    await session.send(chatIdOf(200), {
       kind: 'reaction',
       targetId: '200_12',
       emoji: '❤️',
@@ -1095,10 +1127,10 @@ describe('TelegramSession messages', () => {
       };
     });
 
-    const page = await session.getMessages('200', { limit: 3 });
+    const page = await session.getMessages(chatIdOf(200), { limit: 3 });
     expect(page.map((m) => m.id)).toEqual(['200_28', '200_29', '200_30']);
 
-    const earlier = await session.getMessages('200', {
+    const earlier = await session.getMessages(chatIdOf(200), {
       limit: 10,
       before: { id: '200_28', sentAt: 0 },
     });
@@ -1107,8 +1139,8 @@ describe('TelegramSession messages', () => {
 
   it('shows a chat’s photo once TDLib has downloaded it', async () => {
     const { session, td } = await inChatWithBob();
-    const conversations: Conversation[] = [];
-    await session.streamConversations((conversation) => conversations.push(conversation));
+    const chats: ProtocolChat[] = [];
+    await session.streamChats((c) => chats.push(c));
     const small = {
       '@type': 'file',
       id: 88,
@@ -1120,15 +1152,15 @@ describe('TelegramSession messages', () => {
     chat.photo = { small, big: small } as never;
     td().emit({ '@type': 'updateNewChat', chat });
     await flush();
-    expect(conversations.at(-1)?.avatarUri).toBeUndefined();
+    expect(chats.at(-1)?.avatarUri).toBeUndefined();
     expect(td().requests('downloadFile')[0]).toMatchObject({ file_id: 88, priority: 1 });
 
     const done = { ...small, local: { path: '/files/carol.jpg', is_downloading_completed: true } };
     chat.photo = { small: done, big: done } as never;
     td().emit({ '@type': 'updateFile', file: done });
     await flush();
-    expect(conversations.at(-1)).toMatchObject({ id: '300' });
-    expect(conversations.at(-1)?.avatarUri).toContain('/files/carol.jpg');
+    expect(chats.at(-1)).toMatchObject({ id: '300' });
+    expect(chats.at(-1)?.avatarUri).toContain('/files/carol.jpg');
   });
 
   it('shows a placeholder for a photo, downloads it when it is shown, then the image', async () => {
@@ -1150,7 +1182,7 @@ describe('TelegramSession messages', () => {
     expect(td().requests('downloadFile')).toEqual([]);
 
     td().answer('getMessage', pending);
-    await session.fetchMedia('200', received[0].id);
+    await session.fetchMedia(chatIdOf(200), received[0].id);
     expect(td().requests('downloadFile')[0]).toMatchObject({ file_id: 77 });
 
     td().answer(
@@ -1241,7 +1273,7 @@ describe('TelegramSession messages', () => {
       positions: chat.positions,
     });
     await flush();
-    await session.sendReadReceipt('200');
+    await session.sendReadReceipt(chatIdOf(200));
     expect(td().requests('viewMessages')[0]).toMatchObject({
       chat_id: 200,
       message_ids: [40],
@@ -1251,22 +1283,22 @@ describe('TelegramSession messages', () => {
 
   it('counts requests to join as they arrive', async () => {
     const { session, td } = await inChatWithBob();
-    const conversations: Conversation[] = [];
-    await session.streamConversations((conversation) => conversations.push(conversation));
+    const chats: ProtocolChat[] = [];
+    await session.streamChats((chat) => chats.push(chat));
     td().emit({
       '@type': 'updateChatPendingJoinRequests',
       chat_id: 200,
       pending_join_requests: { total_count: 2, user_ids: [300] },
     });
     await flush();
-    expect(conversations.at(-1)).toMatchObject({ id: '200', pendingJoinRequests: 2 });
+    expect(chats.at(-1)).toMatchObject({ id: '200', pendingJoinRequests: 2 });
   });
 
   it('keeps drafts on Telegram so they follow the chat', async () => {
     const { session, td } = await inChatWithBob();
-    const conversations: Conversation[] = [];
-    await session.streamConversations((conversation) => conversations.push(conversation));
-    await session.saveDraft('200', 'see **you**');
+    const chats: ProtocolChat[] = [];
+    await session.streamChats((chat) => chats.push(chat));
+    await session.saveDraft(chatIdOf(200), 'see **you**');
     expect(td().requests('setChatDraftMessage')[0]).toMatchObject({
       chat_id: 200,
       draft_message: {
@@ -1274,7 +1306,7 @@ describe('TelegramSession messages', () => {
         content: { '@type': 'draftMessageContentText', text: { text: 'see you' } },
       },
     });
-    await session.saveDraft('200', '');
+    await session.saveDraft(chatIdOf(200), '');
     expect(td().requests('setChatDraftMessage')[1]).toMatchObject({ draft_message: null });
 
     td().emit({
@@ -1289,27 +1321,27 @@ describe('TelegramSession messages', () => {
       positions: [MAIN_POSITION],
     });
     await flush();
-    expect(conversations.at(-1)).toMatchObject({ id: '200', draft: 'from phone' });
+    expect(chats.at(-1)).toMatchObject({ id: '200', draft: 'from phone' });
   });
 
   it('marks a chat unread on Telegram and hears it from other devices', async () => {
     const { session, td } = await inChatWithBob();
-    const conversations: Conversation[] = [];
-    await session.streamConversations((conversation) => conversations.push(conversation));
-    await session.setMarkedUnread('200', true);
+    const chats: ProtocolChat[] = [];
+    await session.streamChats((chat) => chats.push(chat));
+    await session.setMarkedUnread(chatIdOf(200), true);
     expect(td().requests('toggleChatIsMarkedAsUnread')[0]).toMatchObject({
       chat_id: 200,
       is_marked_as_unread: true,
     });
     td().emit({ '@type': 'updateChatIsMarkedAsUnread', chat_id: 200, is_marked_as_unread: true });
     await flush();
-    expect(conversations.at(-1)).toMatchObject({ id: '200', markedUnread: true });
+    expect(chats.at(-1)).toMatchObject({ id: '200', markedUnread: true });
   });
 
   it('tells the chat when you start and stop typing', async () => {
     const { session, td } = await inChatWithBob();
-    await session.setTyping('200', true);
-    await session.setTyping('200', false);
+    await session.setTyping(chatIdOf(200), true);
+    await session.setTyping(chatIdOf(200), false);
     expect(
       td()
         .requests('sendChatAction')

@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { Button, Field, Sheet } from '@/design';
-import type { AccountRecord } from '@/core/identity/accounts';
-import { useIdentityStore } from '@/core/identity/identity-store';
+import { useAction } from '@/features/use-action';
+import type { AccountRecord } from '@/core/account/accounts';
+import { useAccountStore } from '@/core/account/account-store';
 
 export function RenameAccountSheet({
   account,
@@ -12,13 +13,20 @@ export function RenameAccountSheet({
   account: AccountRecord | null;
   onClose: () => void;
 }) {
-  const renameAccount = useIdentityStore((s) => s.renameAccount);
+  const renameAccount = useAccountStore((s) => s.renameAccount);
   const [draft, setDraft] = useState<string | null>(null);
   const label = draft ?? account?.label ?? '';
   const close = () => {
     setDraft(null);
     onClose();
   };
+  const save = useAction(
+    async () => {
+      if (account) await renameAccount(account.id, label);
+      close();
+    },
+    { failure: 'Could not rename the account' }
+  );
 
   return (
     <Sheet visible={account !== null} onClose={close} title="Rename account">
@@ -38,10 +46,7 @@ export function RenameAccountSheet({
           label="Save"
           fullWidth
           disabled={label.trim().length === 0}
-          onPress={async () => {
-            if (account) await renameAccount(account.id, label);
-            close();
-          }}
+          onPress={() => save.run()}
         />
       </View>
     </Sheet>

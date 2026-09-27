@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 
 import { cn, Icon, Pressable, Text, useThemeColors } from '@/design';
-import { shortAddress } from '@/core/identity/keyring';
+import { shortAddress } from '@/core/account/keyring';
 import { SUPPORTED_CHAINS } from '@/lib/evm/chains';
 import { locateTransaction } from '@/lib/evm/transactions';
 import { useKeyedLoad } from '@/lib/use-keyed-load';

@@ -2,7 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 
 import { Badge, Button, Card, Note, Text } from '@/design';
-import { useIdentityStore } from '@/core/identity/identity-store';
+import { useAccountStore } from '@/core/account/account-store';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { protocolById } from '@/protocols';
 import { LoginStep, SignedIn } from '@/features/protocols/login';
@@ -18,7 +18,7 @@ export default function ProtocolConfigScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const descriptor = protocolById(id);
-  const accountId = useIdentityStore((s) => s.activeAccountId);
+  const accountId = useAccountStore((s) => s.activeAccountId);
   const connection = useChatStore((s) => (id ? s.protocols[id] : undefined));
   const session = useChatStore((s) => (id ? s.sessions[id] : undefined));
 

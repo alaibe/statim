@@ -7,14 +7,14 @@ personal account or provide no way to build one.
 What the app has is Matrix, and Matrix has **bridges**.
 
 A bridge is a program that runs next to a Matrix homeserver, signs in to the
-other network as you, and turns each chat there into a Matrix room. Connect
-this app to that homeserver ([Networks → Matrix](./networks#matrix)) and those
-rooms appear in your list like any other Matrix DM.
+other network as you, and turns each chat there into a Matrix chat. Connect
+this app to that homeserver ([Protocols → Matrix](./networks#matrix)) and those
+chats appear in your list like any other Matrix chat.
 
-Actions such as polls, edits, redactions, pins, typing and mentions work in the
-Matrix room when its homeserver permits them. Whether an action also appears
+Actions such as polls, edits, redactions, pins, typing and mentions work on the
+Matrix side when the homeserver permits them. Whether an action also appears
 on the remote network depends on that bridge's implementation and settings,
-and on the remote service's API. Check the bridge's own feature list before
+and on the remote network's API. Check the bridge's own feature list before
 relying on remote delivery.
 
 ## What you can bridge

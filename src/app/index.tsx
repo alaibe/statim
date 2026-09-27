@@ -1,10 +1,10 @@
 import { Redirect } from 'expo-router';
 
 import { Loading } from '@/design';
-import { useIdentityStore } from '@/core/identity/identity-store';
+import { useAccountStore } from '@/core/account/account-store';
 
 export default function Index() {
-  const status = useIdentityStore((s) => s.status);
+  const status = useAccountStore((s) => s.status);
 
   if (status === 'ready') return <Redirect href="/chats" />;
 

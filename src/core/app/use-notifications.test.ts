@@ -1,13 +1,15 @@
-import type { ChatMessage, Conversation } from '../messaging/types';
+import type { ChatMessage, Chat } from '../messaging/types';
 import { arrivals } from './use-notifications';
+import { testChat } from '@/core/messaging/testing/chats';
+import { asChatId } from '@/core/messaging/testing/ids';
 
 const SINCE = 1_000;
 
 function message(id: string, sentAt: number): ChatMessage {
   return {
     id,
-    conversationId: 'telegram-1',
-    senderId: 'peer',
+    chatId: asChatId('telegram-1'),
+    senderId: 'other',
     sentAt,
     content: { kind: 'text', text: id },
     fromMe: false,
@@ -15,24 +17,15 @@ function message(id: string, sentAt: number): ChatMessage {
   };
 }
 
-function chat(lastMessage?: ChatMessage, extra: Partial<Conversation> = {}): Conversation {
-  return {
-    id: 'telegram-1',
-    kind: 'dm',
-    title: 'Bob',
-    memberIds: [],
-    createdAt: 0,
-    consent: 'allowed',
-    lastMessage,
-    ...extra,
-  };
+function chat(lastMessage?: ChatMessage, extra: Partial<Chat> = {}): Chat {
+  return testChat({ id: 'telegram-1', title: 'Bob', lastMessage, ...extra });
 }
 
 describe('arrivals', () => {
   it('reports a message that replaced an older one', () => {
     const next = chat(message('b', 2_000));
     expect(arrivals([chat(message('a', 1_500))], [next], SINCE)).toEqual([
-      { conversation: next, message: next.lastMessage },
+      { chat: next, message: next.lastMessage },
     ]);
   });
 

@@ -15,7 +15,7 @@ export interface CliFlag {
 export type CliGroup =
   | 'App'
   | 'Accounts'
-  | 'Networks'
+  | 'Protocols'
   | 'Chats'
   | 'Messages'
   | 'Groups'
@@ -39,10 +39,10 @@ export interface CliCommandSpec {
 
 const chat: CliArg = { name: 'chat', description: 'Chat id, or a unique part of its title' };
 const message: CliArg = { name: 'message', description: 'Message id, or `last`' };
-const network: CliFlag = {
-  name: 'network',
+const protocol: CliFlag = {
+  name: 'protocol',
   value: 'id',
-  description: 'Network to use (see `networks`)',
+  description: 'Protocol to use (see `protocols`)',
 };
 const limit: CliFlag = { name: 'limit', value: 'n', description: 'How many to show' };
 
@@ -50,7 +50,7 @@ export const COMMANDS = [
   {
     path: 'status',
     group: 'App',
-    summary: 'Show whether the app is unlocked, the active account and each network',
+    summary: 'Show whether the app is unlocked, the active account and each protocol',
   },
   {
     path: 'open',
@@ -106,60 +106,60 @@ export const COMMANDS = [
   {
     path: 'whoami',
     group: 'Accounts',
-    summary: 'Show the active account and your id on each network',
+    summary: 'Show the active account and your id on each protocol',
   },
   {
-    path: 'networks',
-    group: 'Networks',
-    summary: 'List networks with their connection state',
+    path: 'protocols',
+    group: 'Protocols',
+    summary: 'List protocols with their connection state',
   },
   {
-    path: 'networks config',
-    group: 'Networks',
-    summary: 'Show or change a network’s settings; secret fields are prompted for',
+    path: 'protocols config',
+    group: 'Protocols',
+    summary: 'Show or change a protocol’s settings; secret fields are prompted for',
     args: [
-      { name: 'network', description: 'Network id' },
+      { name: 'protocol', description: 'Protocol id' },
       { name: 'key=value', description: 'Settings to change', optional: true, variadic: true },
     ],
     examples: [
-      'status-original networks config matrix homeserver=https://matrix.org username=alice',
+      'status-original protocols config matrix homeserver=https://matrix.org username=alice',
     ],
   },
   {
-    path: 'networks login',
-    group: 'Networks',
+    path: 'protocols login',
+    group: 'Protocols',
     summary:
-      'Sign in to a network that asks for a phone number, code or password. At a terminal it prompts; otherwise give one answer at a time and it prints the next step',
+      'Sign in to a protocol that asks for a phone number, code or password. At a terminal it prompts; otherwise give one answer at a time and it prints the next step',
     args: [
-      { name: 'network', description: 'Network id' },
+      { name: 'protocol', description: 'Protocol id' },
       { name: 'answer', description: 'Answer to the step it is waiting on', optional: true },
     ],
     examples: [
-      'status-original networks login telegram',
-      'status-original networks login telegram +447700900123 --json',
+      'status-original protocols login telegram',
+      'status-original protocols login telegram +447700900123 --json',
     ],
   },
   {
-    path: 'networks logout',
-    group: 'Networks',
-    summary: 'Sign out of a network',
-    args: [{ name: 'network', description: 'Network id' }],
+    path: 'protocols logout',
+    group: 'Protocols',
+    summary: 'Sign out of a protocol',
+    args: [{ name: 'protocol', description: 'Protocol id' }],
     approval: true,
   },
   {
-    path: 'networks sync',
-    group: 'Networks',
-    summary: 'Fetch what is new from every network, or one',
-    args: [{ name: 'network', description: 'Network id', optional: true }],
+    path: 'protocols sync',
+    group: 'Protocols',
+    summary: 'Fetch what is new from every protocol, or one',
+    args: [{ name: 'protocol', description: 'Protocol id', optional: true }],
   },
   {
     path: 'devices',
-    group: 'Networks',
+    group: 'Protocols',
     summary: 'List the XMTP installations of this account',
   },
   {
     path: 'devices revoke',
-    group: 'Networks',
+    group: 'Protocols',
     summary: 'Revoke XMTP installations other than this one',
     args: [{ name: 'installation', description: 'Installation ids', variadic: true }],
     approval: true,
@@ -171,11 +171,15 @@ export const COMMANDS = [
     flags: [
       { name: 'unread', description: 'Only unread chats' },
       { name: 'mentions', description: 'Only chats with unread mentions' },
-      { name: 'dms', description: 'Only direct messages' },
+      { name: 'dms', description: 'Only DMs' },
       { name: 'groups', description: 'Only groups and channels' },
       { name: 'archived', description: 'Only archived chats' },
-      { name: 'requests', description: 'Only message requests' },
-      network,
+      { name: 'requests', description: 'Only requests' },
+      {
+        name: 'network',
+        value: 'name',
+        description: 'Only chats on this network, such as telegram or Slack',
+      },
       limit,
     ],
   },
@@ -218,13 +222,13 @@ export const COMMANDS = [
   {
     path: 'accept',
     group: 'Chats',
-    summary: 'Accept a message request',
+    summary: 'Accept a request',
     args: [chat],
   },
   {
-    path: 'block',
+    path: 'decline',
     group: 'Chats',
-    summary: 'Decline a message request, or block a chat',
+    summary: 'Decline a request: the chat leaves your list and the sender is not blocked',
     args: [chat],
   },
   {
@@ -366,23 +370,23 @@ export const COMMANDS = [
   {
     path: 'new',
     group: 'People',
-    summary: 'Start a direct message; the peer can be an address, ENS name, username or link',
-    args: [{ name: 'peer', description: 'Who to message' }],
-    flags: [network],
-    examples: ['status-original new vitalik.eth', 'status-original new @durov --network telegram'],
+    summary: 'Start a DM with an address: an Ethereum address, ENS name, username or link',
+    args: [{ name: 'address', description: 'Who to message' }],
+    flags: [protocol],
+    examples: ['status-original new vitalik.eth', 'status-original new @durov --protocol telegram'],
   },
   {
     path: 'resolve',
     group: 'People',
-    summary: 'Find the id a network uses for an address, name or link',
-    args: [{ name: 'peer', description: 'Address, ENS name, username or link' }],
-    flags: [network],
+    summary: 'Find the id a protocol uses for an address, name or link',
+    args: [{ name: 'address', description: 'Ethereum address, ENS name, username or link' }],
+    flags: [protocol],
   },
   {
     path: 'contacts',
     group: 'People',
-    summary: 'List the people you have direct messages with',
-    flags: [network],
+    summary: 'List your contacts, the participants you have DMs with',
+    flags: [protocol],
   },
   {
     path: 'group create',
@@ -390,9 +394,9 @@ export const COMMANDS = [
     summary: 'Create a group',
     args: [
       { name: 'title', description: 'Group name' },
-      { name: 'peer', description: 'Members to add', variadic: true },
+      { name: 'address', description: 'Members to add', variadic: true },
     ],
-    flags: [network],
+    flags: [protocol],
   },
   {
     path: 'group members',
@@ -404,7 +408,7 @@ export const COMMANDS = [
     path: 'group add',
     group: 'Groups',
     summary: 'Add members',
-    args: [chat, { name: 'peer', description: 'Members to add', variadic: true }],
+    args: [chat, { name: 'address', description: 'Members to add', variadic: true }],
   },
   {
     path: 'group remove',
@@ -465,20 +469,20 @@ export const COMMANDS = [
     path: 'group approve',
     group: 'Groups',
     summary: 'Approve a join request',
-    args: [chat, { name: 'user', description: 'Requester id' }],
+    args: [chat, { name: 'participant', description: 'Id of whoever asked to join' }],
   },
   {
     path: 'group decline',
     group: 'Groups',
     summary: 'Decline a join request',
-    args: [chat, { name: 'user', description: 'Requester id' }],
+    args: [chat, { name: 'participant', description: 'Id of whoever asked to join' }],
   },
   {
     path: 'join',
     group: 'Groups',
     summary: 'Preview and join a public group or channel by username or link',
     args: [{ name: 'link', description: 'Username or link' }],
-    flags: [network, { name: 'preview', description: 'Only show what you would join' }],
+    flags: [protocol, { name: 'preview', description: 'Only show what you would join' }],
   },
   {
     path: 'settings',
@@ -575,7 +579,7 @@ export const EXIT_CODES = {
   usage: 2,
   notFound: 3,
   unavailable: 4,
-  denied: 5,
+  declined: 5,
   unsupported: 6,
 } as const;
 
@@ -583,10 +587,10 @@ export type ExitCode = (typeof EXIT_CODES)[keyof typeof EXIT_CODES];
 
 export const EXIT_MEANINGS: Record<ExitCode, string> = {
   0: 'Done',
-  1: 'The network or the app refused, or something failed; the message says why',
+  1: 'The protocol or the app refused, or something failed; the message says why',
   2: 'Wrong arguments; run the command with --help',
-  3: 'No chat, message, account or network matches, or more than one does',
-  4: 'The command line is turned off in the app, the app is locked, it has no account, or the network is not connected',
+  3: 'No chat, message, account or protocol matches, or more than one does',
+  4: 'The command line is turned off in the app, the app is locked, it has no account, or the protocol is not connected',
   5: 'You declined the request in the app',
-  6: 'That network cannot do this',
+  6: 'That protocol cannot do this',
 };
