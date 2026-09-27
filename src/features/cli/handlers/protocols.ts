@@ -1,5 +1,5 @@
 import { useAccountStore } from '@/core/account/account-store';
-import { useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
+import { connectionFor, useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
 import { loadProtocolConfig, missingFields, withDefaults } from '@/core/messaging/config';
 import type { LoginState } from '@/core/messaging/protocol';
 import { isConfigured } from '@/core/messaging/registry';
@@ -38,7 +38,7 @@ function sessionOf(id: string) {
 }
 
 function loginOf(id: string): LoginState | null {
-  return useChatStore.getState().protocols[id]?.login ?? null;
+  return connectionFor(useChatStore.getState().protocols, id).login;
 }
 
 function describeLogin(label: string, login: LoginState | null) {
@@ -57,7 +57,7 @@ async function submitLogin(id: string, answer: string): Promise<void> {
   const session = sessionOf(id);
   const before = loginOf(id);
   await session.submitLogin!(answer);
-  await waitFor(useChatStore, (s) => (s.protocols[id]?.login ?? null) !== before, 60_000);
+  await waitFor(useChatStore, (s) => connectionFor(s.protocols, id).login !== before, 60_000);
 }
 
 async function interactiveLogin(id: string, label: string, io: CliIo) {

@@ -54,8 +54,22 @@ export type ConnectionStatus = 'idle' | 'connecting' | 'ready' | 'error' | 'eras
 export interface ProtocolConnection {
   status: ConnectionStatus;
   error: string | null;
-  history?: import('./history').HistoryState;
-  login?: import('./protocol').LoginState | null;
+  history: import('./history').HistoryState;
+  login: import('./protocol').LoginState | null;
+}
+
+export const NO_CONNECTION: Readonly<ProtocolConnection> = Object.freeze({
+  status: 'idle',
+  error: null,
+  history: Object.freeze({ status: 'idle' }),
+  login: null,
+});
+
+export function connectionFor(
+  protocols: Record<ProtocolId, ProtocolConnection>,
+  id: ProtocolId
+): Readonly<ProtocolConnection> {
+  return protocols[id] ?? NO_CONNECTION;
 }
 
 export interface ChatState {
@@ -534,7 +548,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   async syncProtocol(protocolId) {
     const session = get().sessions[protocolId];
-    if (!session || get().protocols[protocolId]?.history?.status === 'fetching') return;
+    if (!session || connectionFor(get().protocols, protocolId).history.status === 'fetching')
+      return;
     const accountId = get().accountId;
     const current = () => get().accountId === accountId && get().sessions[protocolId] === session;
     const report = (history: import('./history').HistoryState) => {
@@ -970,10 +985,10 @@ function requireRoute(state: ChatState, id: ChatId): Route {
 
   const split = splitChatId(id);
   if (split) {
-    const connection = state.protocols[split.protocol];
+    const { error } = connectionFor(state.protocols, split.protocol);
     throw new NotConnectedError(
       split.protocol,
-      connection?.error ? `${split.protocol} is not connected: ${connection.error}` : undefined
+      error ? `${split.protocol} is not connected: ${error}` : undefined
     );
   }
   throw new Error('Not connected to that protocol yet.');

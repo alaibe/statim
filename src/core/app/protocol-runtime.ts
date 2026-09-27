@@ -2,7 +2,7 @@ import type { LocalAccount } from 'viem';
 
 import { errorMessage } from '../errors';
 import type { DerivedKey, Keyring } from '../account/keyring';
-import { useChatStore, type ProtocolConnection } from '../messaging/chat-store';
+import { NO_CONNECTION, useChatStore, type ProtocolConnection } from '../messaging/chat-store';
 import type { ChatCache } from '../messaging/chat-cache';
 import { loadProtocolConfigs } from '../messaging/config';
 import {
@@ -68,7 +68,7 @@ export class ProtocolRuntime {
         const protocolId = descriptor.id;
         const subscriptions: Unsubscribe[] = [];
         this.subscriptions.set(protocolId, subscriptions);
-        this.setProtocol(protocolId, { status: 'connecting', error: null });
+        this.setProtocol(protocolId, { ...NO_CONNECTION, status: 'connecting' });
         try {
           if (descriptor.usesPluginContentTypes) await input.plugins;
           if (!active()) return;
@@ -86,7 +86,7 @@ export class ProtocolRuntime {
             const config = effectiveConfig(descriptor, stored);
             if (!isConfigured(descriptor, config)) {
               this.cache?.forget(protocolId);
-              this.setProtocol(protocolId, { status: 'idle', error: null });
+              this.setProtocol(protocolId, NO_CONNECTION);
               return;
             }
             session = await descriptor.connect!({
@@ -107,7 +107,7 @@ export class ProtocolRuntime {
           useChatStore.setState((state) => ({
             sessions: { ...state.sessions, [protocolId]: session },
           }));
-          this.setProtocol(protocolId, { status: 'ready', error: null });
+          this.setProtocol(protocolId, { ...NO_CONNECTION, status: 'ready' });
           const live = () => active() && this.sessions.get(protocolId) === session;
 
           if (session.subscribeHistory) {
@@ -179,7 +179,11 @@ export class ProtocolRuntime {
           await useChatStore.getState().syncProtocol(protocolId);
         } catch (error) {
           if (active()) {
-            this.setProtocol(protocolId, { status: 'error', error: errorMessage(error) });
+            this.setProtocol(protocolId, {
+              ...NO_CONNECTION,
+              status: 'error',
+              error: errorMessage(error),
+            });
           }
         }
       })

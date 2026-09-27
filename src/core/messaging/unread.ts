@@ -1,4 +1,4 @@
-import type { ChatPrefsMap } from './chat-prefs';
+import { type ChatPrefsMap, prefsFor } from './chat-prefs';
 import type { AnyChatId, ChatMessage, Chat, ChatId } from './types';
 
 /** Kept in `readAt` for a chat marked unread by hand: before any real read time. */
@@ -47,5 +47,5 @@ export function totalUnread(
   readAt: Record<ChatId, number>,
   prefs: ChatPrefsMap
 ): number {
-  return chats.filter((c) => !prefs[c.id]?.muted && isUnread(c, readAt)).length;
+  return chats.filter((c) => !prefsFor(prefs, c.id).muted && isUnread(c, readAt)).length;
 }

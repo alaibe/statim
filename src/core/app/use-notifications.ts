@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 
 import { wasProactive } from '@/runtime';
 import { isLocalChat } from '../messaging/bots';
+import { prefsFor } from '../messaging/chat-prefs';
 import { useChatStore, type ChatState } from '../messaging/chat-store';
 import { contentPreview } from '../messaging/preview';
 import type { ChatMessage, Chat, ChatId } from '../messaging/types';
@@ -36,7 +37,7 @@ export function useMessageNotifications(onTap: (id: ChatId) => void) {
       for (const { chat, message } of arrivals(previous.chats, state.chats, since)) {
         if (message.fromMe) continue;
         if (message.content.kind === 'system') continue;
-        if (state.chatPrefs[chat.id]?.muted) continue;
+        if (prefsFor(state.chatPrefs, chat.id).muted) continue;
         if (isLocalChat(chat.id) && !wasProactive(message.id)) continue;
 
         void notifyMessage({

@@ -20,7 +20,7 @@ import { reportError } from '@/core/app/report-error';
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { Chat, ChatId } from '@/core/messaging/types';
 import { messagePreview } from '@/core/messaging/preview';
-import { type ChatPrefs } from '@/core/messaging/chat-prefs';
+import { type ChatPrefs, prefsFor } from '@/core/messaging/chat-prefs';
 import { type Folder, type ChatListRow, isUnreadHere, networkOf } from '@/core/messaging/folders';
 import { isUnread } from '@/core/messaging/unread';
 import { useChatTitles } from '@/features/chat/use-display-names';
@@ -57,7 +57,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   const syncing = useChatStore((s) => s.syncing);
   const fetchingHistory = useChatStore((s) =>
     Object.values(s.protocols).some(
-      (p) => p.status === 'connecting' || p.history?.status === 'fetching'
+      (p) => p.status === 'connecting' || p.history.status === 'fetching'
     )
   );
   const sync = useChatStore((s) => s.sync);
@@ -68,7 +68,9 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   const chatPrefs = useChatStore((s) => s.chatPrefs);
   const setChatPref = useChatStore((s) => s.setChatPref);
   const toggle = (id: ChatId, key: keyof ChatPrefs) => {
-    setChatPref(id, { [key]: !useChatStore.getState().chatPrefs[id]?.[key] }).catch(reportError);
+    setChatPref(id, { [key]: !prefsFor(useChatStore.getState().chatPrefs, id)[key] }).catch(
+      reportError
+    );
   };
 
   const [menu, setMenu] = useState<ChatMenuTarget | null>(null);
@@ -126,9 +128,10 @@ export function ChatList({ query, selectedId }: ChatListProps) {
     const selected = accepted.find((c) => c.id === selectedId);
     if (!selected || selectedListed || trimmed) return;
     const network = networkOf(selected);
-    const home: Folder | null = chatPrefs[selected.id]?.archived
+    const prefs = prefsFor(chatPrefs, selected.id);
+    const home: Folder | null = prefs.archived
       ? 'archive'
-      : network && isFolded(network) && !chatPrefs[selected.id]?.pinned
+      : network && isFolded(network) && !prefs.pinned
         ? `network:${network}`
         : null;
     if (home !== folder) setFolder(home);
@@ -153,7 +156,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
         selfId={selfIdOf(row.chat)}
         unread={isUnread(row.chat, readAt)}
         network={showNetwork ? networkOf(row.chat) : undefined}
-        prefs={chatPrefs[row.chat.id]}
+        prefs={prefsFor(chatPrefs, row.chat.id)}
         selected={row.chat.id === selectedId}
         onMenu={showMenu}
         onToggle={toggle}

@@ -4,7 +4,12 @@ import { useState } from 'react';
 import { Chevron, ConfirmSheet, ListItem, RowIcon, Section } from '@/design';
 import { useAccountStore } from '@/core/account/account-store';
 import { readCredentials, type Credentials } from '@/core/account/credentials';
-import { useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
+import {
+  connectionFor,
+  type ProtocolConnection,
+  useChatStore,
+  xmtpSessionFor,
+} from '@/core/messaging/chat-store';
 import { connectableProtocols } from '@/protocols';
 import { xmtpEnvironment } from '@/protocols/xmtp/shared';
 import { eraseAccount } from '@/core/app/erase-account';
@@ -237,13 +242,14 @@ export function SettingsSections({
   );
 }
 
-function describeConnections(
-  connections: Record<string, { status: string; error: string | null; login?: unknown }>
-): string {
-  const connected = connectableProtocols().filter(
-    (p) => connections[p.id]?.status === 'ready' && !connections[p.id]?.login
+function describeConnections(connections: Record<string, ProtocolConnection>): string {
+  const connected = connectableProtocols().filter((p) => {
+    const { status, login } = connectionFor(connections, p.id);
+    return status === 'ready' && !login;
+  });
+  const failed = connectableProtocols().filter(
+    (p) => connectionFor(connections, p.id).status === 'error'
   );
-  const failed = connectableProtocols().filter((p) => connections[p.id]?.status === 'error');
 
   if (connected.length === 0) {
     return failed.length > 0

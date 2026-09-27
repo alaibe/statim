@@ -39,15 +39,15 @@ export function ChatRow({
   selfId: string;
   unread: boolean;
   network?: string;
-  prefs: ChatPrefs | undefined;
+  prefs: Readonly<ChatPrefs>;
   selected?: boolean;
   onMenu: (chat: Chat, anchor: MenuAnchor | null) => void;
   onToggle: (id: ChatId, key: keyof ChatPrefs) => void;
 }) {
   const last = chat.lastMessage;
   const preview = messagePreview(last);
-  const pinned = Boolean(prefs?.pinned);
-  const muted = Boolean(prefs?.muted);
+  const pinned = Boolean(prefs.pinned);
+  const muted = Boolean(prefs.muted);
   const loaded = useChatStore((s) => s.messages[chat.id]);
   const since = useChatStore((s) => s.readAt[chat.id] ?? 0);
 
@@ -72,7 +72,7 @@ export function ChatRow({
         },
         {
           id: 'archive',
-          label: prefs?.archived ? 'Unarchive' : 'Archive',
+          label: prefs.archived ? 'Unarchive' : 'Archive',
           icon: 'archive-outline',
           tone: 'brand',
           onPress: () => onToggle(chat.id, 'archived'),

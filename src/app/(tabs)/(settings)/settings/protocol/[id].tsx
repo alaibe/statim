@@ -3,7 +3,7 @@ import { View } from 'react-native';
 
 import { Badge, Button, Card, Note, Text } from '@/design';
 import { useAccountStore } from '@/core/account/account-store';
-import { useChatStore } from '@/core/messaging/chat-store';
+import { connectionFor, useChatStore } from '@/core/messaging/chat-store';
 import { protocolById } from '@/protocols';
 import { LoginStep, SignedIn } from '@/features/protocols/login';
 import { MatrixBridges } from '@/features/protocols/matrix-bridges';
@@ -19,7 +19,7 @@ export default function ProtocolConfigScreen() {
 
   const descriptor = protocolById(id);
   const accountId = useAccountStore((s) => s.activeAccountId);
-  const connection = useChatStore((s) => (id ? s.protocols[id] : undefined));
+  const connection = useChatStore((s) => connectionFor(s.protocols, id));
   const session = useChatStore((s) => (id ? s.sessions[id] : undefined));
 
   if (!descriptor) {
@@ -54,13 +54,13 @@ export default function ProtocolConfigScreen() {
           ) : null}
         </Card>
 
-        {connection?.error ? (
+        {connection.error ? (
           <Note tone="danger" title="Last connection failed">
             {connection.error}
           </Note>
         ) : null}
 
-        {connection?.login ? (
+        {connection.login ? (
           <LoginStep
             key={connection.login.step}
             login={connection.login}
@@ -71,7 +71,7 @@ export default function ProtocolConfigScreen() {
           <SignedIn session={session} label={descriptor.label} />
         ) : null}
 
-        {id === 'matrix' && session?.self.address && !connection?.login ? (
+        {id === 'matrix' && session?.self.address && !connection.login ? (
           <MatrixBridges session={session as ChatSession & Partial<MatrixCapabilities>} />
         ) : null}
 

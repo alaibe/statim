@@ -9,7 +9,7 @@ import {
   type IconName,
   type RowIconTone,
 } from '@/design';
-import { useChatStore, type ProtocolConnection } from '@/core/messaging/chat-store';
+import { connectionFor, useChatStore, type ProtocolConnection } from '@/core/messaging/chat-store';
 import type { ProtocolDescriptor } from '@/core/messaging/registry';
 import { PROTOCOLS } from '@/protocols';
 import { SettingsScreen } from '@/features/settings/settings-screen';
@@ -24,13 +24,14 @@ export default function ProtocolsScreen() {
       intro="Every configured protocol connects at once and shares one chat list. Each chat stays on the protocol it started on, and they do not offer the same guarantees.">
       <Section surface="card" className="mb-6">
         {PROTOCOLS.map((descriptor) => {
-          const status = describeStatus(descriptor, connections[descriptor.id]);
+          const connection = connectionFor(connections, descriptor.id);
+          const status = describeStatus(descriptor, connection);
           return (
             <ListItem
               key={descriptor.id}
               testID={`protocol-${descriptor.id}`}
               title={descriptor.label}
-              subtitle={connections[descriptor.id]?.error ?? descriptor.description}
+              subtitle={connection.error ?? descriptor.description}
               numberOfLinesSubtitle={2}
               leading={
                 <RowIcon
@@ -67,12 +68,12 @@ const ICON: Record<string, IconName> = {
 
 function describeStatus(
   descriptor: ProtocolDescriptor,
-  connection: ProtocolConnection | undefined
+  connection: ProtocolConnection
 ): { label: string; tone: 'neutral' | 'brand' | 'success' | 'warning' | 'danger' } {
   if (!descriptor.connect) return { label: 'Not available', tone: 'neutral' };
-  if (connection?.login) return { label: 'Sign in', tone: 'warning' };
+  if (connection.login) return { label: 'Sign in', tone: 'warning' };
 
-  switch (connection?.status) {
+  switch (connection.status) {
     case 'ready':
       return { label: 'Connected', tone: 'success' };
     case 'connecting':

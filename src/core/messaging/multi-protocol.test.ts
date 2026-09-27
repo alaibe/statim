@@ -153,6 +153,7 @@ describe('independent failure', () => {
       status: 'ready',
       error: null,
       history: { status: 'idle' },
+      login: null,
     });
     expect(state.protocols.nostr.status).toBe('error');
     expect(state.protocols.nostr.error).toBe('every relay refused');
@@ -205,7 +206,8 @@ describe('independent failure', () => {
     const connecting = connect();
     for (
       let i = 0;
-      i < 1_000 && useChatStore.getState().protocols.xmtp?.history?.status !== 'idle';
+      i < 1_000 &&
+      (xmtp.syncCount === 0 || useChatStore.getState().protocols.xmtp.history.status !== 'idle');
       i++
     ) {
       await Promise.resolve();

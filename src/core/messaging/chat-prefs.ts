@@ -9,6 +9,12 @@ export interface ChatPrefs {
 
 export type ChatPrefsMap = Record<ChatId, ChatPrefs>;
 
+const NO_PREFS: Readonly<ChatPrefs> = Object.freeze({});
+
+export function prefsFor(prefs: ChatPrefsMap, id: ChatId): Readonly<ChatPrefs> {
+  return prefs[id] ?? NO_PREFS;
+}
+
 const KEY = 'chat.prefs';
 
 export async function loadChatPrefs(storage: AccountStorage): Promise<ChatPrefsMap> {
@@ -28,7 +34,7 @@ export function withPref(
   id: ChatId,
   change: Partial<ChatPrefs>
 ): ChatPrefsMap {
-  const next = { ...(prefs[id] ?? {}), ...change };
+  const next = { ...prefsFor(prefs, id), ...change };
 
   const cleaned: ChatPrefs = {};
   if (next.pinned) cleaned.pinned = true;
@@ -49,10 +55,10 @@ export function orderChats(
   const recency = (c: Chat) => c.lastMessage?.sentAt ?? c.createdAt;
 
   return chats
-    .filter((c) => includeArchived || !prefs[c.id]?.archived)
+    .filter((c) => includeArchived || !prefsFor(prefs, c.id).archived)
     .sort((a, b) => {
-      const pinnedA = prefs[a.id]?.pinned ? 1 : 0;
-      const pinnedB = prefs[b.id]?.pinned ? 1 : 0;
+      const pinnedA = prefsFor(prefs, a.id).pinned ? 1 : 0;
+      const pinnedB = prefsFor(prefs, b.id).pinned ? 1 : 0;
       if (pinnedA !== pinnedB) return pinnedB - pinnedA;
       return recency(b) - recency(a);
     });

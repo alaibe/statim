@@ -1,4 +1,4 @@
-import { orderChats, type ChatPrefsMap } from '@/core/messaging/chat-prefs';
+import { orderChats, prefsFor, type ChatPrefsMap } from '@/core/messaging/chat-prefs';
 import {
   type ChatFilter,
   chatRow,
@@ -41,7 +41,7 @@ export function chatListContents({
   const ordered = orderChats(accepted, chatPrefs, { includeArchived: true });
   const scope = folder
     ? ordered.filter((c) => inFolder(c, folder, context))
-    : ordered.filter((c) => !chatPrefs[c.id]?.archived);
+    : ordered.filter((c) => !prefsFor(chatPrefs, c.id).archived);
   const unread = scope.filter((c) => isUnreadHere(c, context));
 
   const q = query.trim().toLowerCase();

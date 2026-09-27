@@ -13,7 +13,13 @@ import {
   useLayoutInsets,
 } from '@/design';
 import { isLocalChat } from '@/core/messaging/bots';
-import { type MessageHistoryState, selfIdFor, useChatStore } from '@/core/messaging/chat-store';
+import { prefsFor } from '@/core/messaging/chat-prefs';
+import {
+  connectionFor,
+  type MessageHistoryState,
+  selfIdFor,
+  useChatStore,
+} from '@/core/messaging/chat-store';
 import { chatPermissions } from '@/core/messaging/permissions';
 import type { ChatMessage, Chat, ChatId, MessageContent, MessageId } from '@/core/messaging/types';
 import { useAppearanceStore } from '@/core/app/appearance';
@@ -269,7 +275,7 @@ function chatPeople(
 
 function EmptyTranscript({ protocol, isBot }: { protocol: string | undefined; isBot: boolean }) {
   const fetchingHistory = useChatStore(
-    (s) => !!protocol && s.protocols[protocol]?.history?.status === 'fetching'
+    (s) => !!protocol && connectionFor(s.protocols, protocol).history.status === 'fetching'
   );
   return (
     <EmptyState
@@ -312,7 +318,7 @@ function LoadEarlierButton({
 }
 
 function ChannelMuteBar({ id }: { id: ChatId }) {
-  const muted = useChatStore((s) => Boolean(s.chatPrefs[id]?.muted));
+  const muted = useChatStore((s) => Boolean(prefsFor(s.chatPrefs, id).muted));
   const setChatPref = useChatStore((s) => s.setChatPref);
   return (
     <Pressable

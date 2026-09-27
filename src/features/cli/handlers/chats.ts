@@ -1,4 +1,4 @@
-import { orderChats, type ChatPrefs } from '@/core/messaging/chat-prefs';
+import { orderChats, prefsFor, type ChatPrefs } from '@/core/messaging/chat-prefs';
 import { sessionFor, useChatStore } from '@/core/messaging/chat-store';
 import { draftKey } from '@/core/messaging/drafts';
 import { matchesFilter, networkOf, splitRequests, type ChatFilter } from '@/core/messaging/folders';
@@ -31,7 +31,7 @@ function draftOf(chat: Chat): string | undefined {
 function chatJson(c: Chat, label: ChatLabel = { title: c.title }) {
   const state = useChatStore.getState();
   const { chatPrefs, readAt } = state;
-  const prefs = chatPrefs[c.id] ?? {};
+  const prefs = prefsFor(chatPrefs, c.id);
   const draft = draftOf(c);
   return {
     id: c.id,
@@ -115,7 +115,7 @@ export const chatHandlers = {
     const limit = flags.limit === undefined ? Infinity : Number(flags.limit);
     const { accepted, requests } = splitRequests(chats);
     const picked = (flags.requests ? requests : accepted).filter((c) => {
-      if (Boolean(flags.archived) !== Boolean(chatPrefs[c.id]?.archived)) return false;
+      if (Boolean(flags.archived) !== Boolean(prefsFor(chatPrefs, c.id).archived)) return false;
       if (flags.dms && !matchesFilter(c, 'dms', context)) return false;
       if (flags.groups && !matchesFilter(c, 'groups', context)) return false;
       if (

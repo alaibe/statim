@@ -1,5 +1,5 @@
 import { isLocalChat } from './bots';
-import type { ChatPrefsMap } from './chat-prefs';
+import { type ChatPrefsMap, prefsFor } from './chat-prefs';
 import { LOCAL_PROTOCOL } from './namespace';
 import { hasUnreadMentions, isUnread } from './unread';
 import type { Chat, ChatId } from './types';
@@ -46,7 +46,7 @@ export function chatRow(chat: Chat): ChatListRow {
 }
 
 export function isUnreadHere(chat: Chat, context: FilterContext): boolean {
-  return !context.prefs[chat.id]?.muted && isUnread(chat, context.readAt);
+  return !prefsFor(context.prefs, chat.id).muted && isUnread(chat, context.readAt);
 }
 
 export function matchesFilter(chat: Chat, filter: ChatFilter, context: FilterContext): boolean {
@@ -65,7 +65,7 @@ export function matchesFilter(chat: Chat, filter: ChatFilter, context: FilterCon
 }
 
 export function inFolder(chat: Chat, folder: Folder, context: FilterContext): boolean {
-  const archived = Boolean(context.prefs[chat.id]?.archived);
+  const archived = Boolean(prefsFor(context.prefs, chat.id).archived);
   if (folder === 'archive') return archived;
   return !archived && networkOf(chat) === folder.slice('network:'.length);
 }
@@ -80,15 +80,16 @@ export function chatListRows(
   const rows: ChatListRow[] = [];
   const folders = new Map<string, Extract<ChatListRow, { kind: 'folder' }>>();
 
-  const archived = ordered.filter((c) => context.prefs[c.id]?.archived && include(c));
+  const archived = ordered.filter((c) => prefsFor(context.prefs, c.id).archived && include(c));
   if (archived.length > 0) {
     rows.push({ kind: 'folder', folder: 'archive', latest: archived[0], chats: archived });
   }
 
   for (const chat of ordered) {
-    if (context.prefs[chat.id]?.archived || !include(chat)) continue;
+    const prefs = prefsFor(context.prefs, chat.id);
+    if (prefs.archived || !include(chat)) continue;
     const network = networkOf(chat);
-    if (!network || !folded(network) || context.prefs[chat.id]?.pinned) {
+    if (!network || !folded(network) || prefs.pinned) {
       rows.push(chatRow(chat));
       continue;
     }

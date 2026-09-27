@@ -16,6 +16,7 @@ import {
 } from '@/design';
 import { shortAddress } from '@/core/account/keyring';
 import { reportError } from '@/core/app/report-error';
+import { prefsFor } from '@/core/messaging/chat-prefs';
 import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
 import { chatPermissions } from '@/core/messaging/permissions';
 import { errorMessage } from '@/core/errors';
@@ -84,7 +85,7 @@ export function ChatProfile() {
   const title = shownEns?.name ?? (member ? nameFor(member) : chatTitle(chat, selfId, nameFor));
   const permissions = chatPermissions(chat, session);
   const canRemove = Boolean(member) && member !== selfId && permissions.removeMembers;
-  const muted = Boolean(chatPrefs[chat.id]?.muted);
+  const muted = Boolean(prefsFor(chatPrefs, chat.id).muted);
   const groupInfo = details.value;
   const groupLink = groupInfo?.link;
   const canInvite = !member && permissions.invite;

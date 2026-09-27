@@ -1,6 +1,6 @@
 import { ActivityIndicator, View } from 'react-native';
 
-import { useChatStore } from '@/core/messaging/chat-store';
+import { type ProtocolConnection, useChatStore } from '@/core/messaging/chat-store';
 import { Pressable, Text, useThemeColors } from '@/design';
 import { protocolLabel } from '@/features/protocols/presentation';
 
@@ -16,10 +16,10 @@ export function HistoryStatus({
   const protocols = useChatStore((s) => s.protocols);
   const syncProtocol = useChatStore((s) => s.syncProtocol);
   const entries = Object.entries(protocols).filter(([id]) => !protocol || id === protocol);
-  const fetching = entries.filter(([, state]) => state.history?.status === 'fetching');
+  const fetching = entries.filter(([, state]) => state.history.status === 'fetching');
   const connecting = entries.filter(([, state]) => state.status === 'connecting');
-  const failed = entries.filter(([, state]) => state.history?.status === 'error');
-  const partial = entries.filter(([, state]) => state.history?.status === 'partial');
+  const failed = entries.filter(([, state]) => state.history.status === 'error');
+  const partial = entries.filter(([, state]) => state.history.status === 'partial');
   const active = [
     ...fetching,
     ...connecting.filter(([id]) => !fetching.some(([key]) => key === id)),
@@ -79,8 +79,8 @@ function summary(entries: [string, unknown][]): string {
   return `${entries.map(([id]) => protocolLabel(id)).join(', ')}: some history unavailable`;
 }
 
-function details(entries: [string, { history?: { error?: string } }][]): string {
+function details(entries: [string, ProtocolConnection][]): string {
   return entries
-    .map(([id, state]) => `${protocolLabel(id)}: ${state.history?.error ?? 'History unavailable'}`)
+    .map(([id, state]) => `${protocolLabel(id)}: ${state.history.error ?? 'History unavailable'}`)
     .join(' · ');
 }
