@@ -348,12 +348,7 @@ export function ConversationView({ id, thread, onOpenThread, onBack }: Conversat
         </View>
       </KeyboardAvoidingView>
 
-      <ForwardSheet
-        message={forwarding}
-        from={id}
-        nameFor={nameFor}
-        onClose={() => setForwarding(null)}
-      />
+      <ForwardSheet message={forwarding} from={id} onClose={() => setForwarding(null)} />
       <ConfirmSheet
         visible={deleting !== null}
         onClose={() => setDeleting(null)}

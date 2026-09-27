@@ -12,13 +12,12 @@ import {
   useEscapeKey,
   useLayoutInsets,
 } from '@/design';
-import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
+import { useChatStore } from '@/core/messaging/chat-store';
 import { orderConversations } from '@/core/messaging/chat-prefs';
 import { isUnreadHere, networkOf } from '@/core/messaging/folders';
 import { protocolLabel } from '@/features/protocols/presentation';
 import type { Conversation } from '@/core/messaging/types';
-import { conversationTitle } from '@/core/messaging/display-names';
-import { useDisplayNames, usePeers } from '@/features/chat/use-display-names';
+import { useConversationTitles } from '@/features/chat/use-display-names';
 import { openChat, openTab } from '@/features/navigation/open';
 
 interface Entry {
@@ -87,22 +86,20 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
   useEscapeKey(true, onClose);
 
   const conversations = useChatStore((s) => s.conversations);
-  const sessions = useChatStore((s) => s.sessions);
   const chatPrefs = useChatStore((s) => s.chatPrefs);
   const readAt = useChatStore((s) => s.readAt);
-  const { nameFor } = useDisplayNames(usePeers(conversations));
+  const { selfIdOf, titleOf } = useConversationTitles(conversations);
 
   const entries = useMemo<{ heading: string; items: Entry[] }[]>(() => {
     const allowed = conversations.filter((c) => c.consent === 'allowed');
     const context = { prefs: chatPrefs, readAt };
     const ordered = orderConversations(allowed, chatPrefs);
     const unread = ordered.filter((c) => isUnreadHere(c, context));
-    const selfIdOf = (conversation: Conversation) => selfIdFor({ sessions }, conversation.protocol);
     const entry = (conversation: Conversation): Entry => {
       const network = networkOf(conversation);
       return {
         id: conversation.id,
-        title: conversationTitle(conversation, selfIdOf(conversation), nameFor),
+        title: titleOf(conversation),
         subtitle: network ? protocolLabel(network) : undefined,
         conversation,
         selfId: selfIdOf(conversation),
@@ -154,7 +151,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
       { heading: 'Chats', items: chats.filter(matches) },
       { heading: 'Commands', items: commands.filter(matches) },
     ].filter((section) => section.items.length > 0);
-  }, [conversations, chatPrefs, readAt, sessions, nameFor, query, router]);
+  }, [conversations, chatPrefs, readAt, selfIdOf, titleOf, query, router]);
 
   const flat = entries.flatMap((section) => section.items);
   const highlighted = Math.min(index, Math.max(flat.length - 1, 0));

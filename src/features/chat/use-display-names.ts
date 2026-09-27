@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
 import {
   conversationPeers,
+  conversationTitle,
   nameFrom,
   resolveParticipants,
   type DisplayParticipant,
@@ -95,6 +96,18 @@ export function useDisplayNames(participants: DisplayParticipant[]) {
     addressFor(id: ParticipantId): string | undefined {
       return known.addresses[id];
     },
+  };
+}
+
+/** Names for the people in `conversations`, and each conversation's title from them. */
+export function useConversationTitles(conversations: Conversation[]) {
+  const sessions = useChatStore((s) => s.sessions);
+  const { nameFor } = useDisplayNames(usePeers(conversations));
+  const selfIdOf = (c: Conversation) => selfIdFor({ sessions }, c.protocol);
+  return {
+    nameFor,
+    selfIdOf,
+    titleOf: (c: Conversation) => conversationTitle(c, selfIdOf(c), nameFor),
   };
 }
 

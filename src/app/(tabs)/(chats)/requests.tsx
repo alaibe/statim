@@ -3,20 +3,18 @@ import { Stack } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
 
 import { EmptyState, ListItem, Screen, SwipeableRow } from '@/design';
-import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
+import { useChatStore } from '@/core/messaging/chat-store';
 import { formatTimestamp, messagePreview } from '@/core/messaging/preview';
 import { decideConsent } from '@/features/chat/consent';
 import { ConversationAvatar } from '@/features/chat/conversation-avatar';
-import { conversationTitle } from '@/core/messaging/display-names';
-import { useDisplayNames, usePeers } from '@/features/chat/use-display-names';
+import { useConversationTitles } from '@/features/chat/use-display-names';
 import { openChat } from '@/features/navigation/open';
 
 export default function RequestsScreen() {
-  const sessions = useChatStore((s) => s.sessions);
   const conversations = useChatStore((s) => s.conversations);
   const requests = conversations.filter((c) => c.consent === 'unknown');
 
-  const { nameFor } = useDisplayNames(usePeers(requests));
+  const { selfIdOf, titleOf } = useConversationTitles(requests);
 
   return (
     <Screen className="px-0" edges={[]}>
@@ -30,7 +28,6 @@ export default function RequestsScreen() {
           keyExtractor={(c) => c.id}
           contentInsetAdjustmentBehavior="automatic"
           renderItem={({ item }) => {
-            const selfId = selfIdFor({ sessions }, item.protocol);
             return (
               <SwipeableRow
                 left={[
@@ -53,10 +50,12 @@ export default function RequestsScreen() {
                 ]}>
                 <ListItem
                   testID={`request-${item.id}`}
-                  title={conversationTitle(item, selfId, nameFor)}
+                  title={titleOf(item)}
                   subtitle={messagePreview(item.lastMessage)}
                   meta={item.lastMessage ? formatTimestamp(item.lastMessage.sentAt) : undefined}
-                  leading={<ConversationAvatar conversation={item} selfId={selfId} size="md" />}
+                  leading={
+                    <ConversationAvatar conversation={item} selfId={selfIdOf(item)} size="md" />
+                  }
                   onPress={() => openChat(item.id)}
                 />
               </SwipeableRow>

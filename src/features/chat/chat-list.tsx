@@ -17,7 +17,7 @@ import {
   useEscapeKey,
   useThemeColors,
 } from '@/design';
-import { type ChatState, selfIdFor, useChatStore } from '@/core/messaging/chat-store';
+import { useChatStore } from '@/core/messaging/chat-store';
 import type { Conversation, ConversationId } from '@/core/messaging/types';
 import { messagePreview } from '@/core/messaging/preview';
 import { orderConversations, type ChatPrefs, type ChatPrefsMap } from '@/core/messaging/chat-prefs';
@@ -34,8 +34,7 @@ import {
 } from '@/core/messaging/folders';
 import { hasUnreadMentions, isUnread } from '@/core/messaging/unread';
 import { ConversationAvatar } from '@/features/chat/conversation-avatar';
-import { conversationTitle } from '@/core/messaging/display-names';
-import { useDisplayNames, usePeers } from '@/features/chat/use-display-names';
+import { useConversationTitles } from '@/features/chat/use-display-names';
 import { protocolSubtitle } from '@/features/protocols/presentation';
 import { HistoryStatus } from '@/features/chat/history-status';
 import { FilterTabs } from '@/features/chat/folder-tabs';
@@ -62,8 +61,7 @@ function inbox({
   filter,
   query,
   held,
-  sessions,
-  nameFor,
+  titleOf,
 }: {
   conversations: Conversation[];
   chatPrefs: ChatPrefsMap;
@@ -72,11 +70,8 @@ function inbox({
   filter: ChatFilter;
   query: string;
   held: ReadonlySet<string>;
-  sessions: ChatState['sessions'];
-  nameFor: (id: string) => string;
+  titleOf: (c: Conversation) => string;
 }) {
-  const titleOf = (c: Conversation) =>
-    conversationTitle(c, selfIdFor({ sessions }, c.protocol), nameFor);
   const allowed = conversations.filter((c) => c.consent === 'allowed');
   const requests = conversations.filter((c) => c.consent === 'unknown');
   const context = { prefs: chatPrefs, readAt };
@@ -138,13 +133,10 @@ export function ChatList({ query, selectedId }: ChatListProps) {
     )
   );
   const sync = useChatStore((s) => s.sync);
-  const sessions = useChatStore((s) => s.sessions);
   const readAt = useChatStore((s) => s.readAt);
   const conversations = useUnreadCounts(baseConversations);
 
-  const selfIdOf = (conversation: Conversation) => selfIdFor({ sessions }, conversation.protocol);
-
-  const { nameFor } = useDisplayNames(usePeers(conversations));
+  const { nameFor, selfIdOf, titleOf } = useConversationTitles(conversations);
   const chatPrefs = useChatStore((s) => s.chatPrefs);
   const setChatPref = useChatStore((s) => s.setChatPref);
   const markUnread = useChatStore((s) => s.markUnread);
@@ -168,7 +160,6 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   const view = `${directory}|${filter}`;
   const [kept, setKept] = useState({ view, ids: NO_IDS });
   const held = kept.view === view ? kept.ids : NO_IDS;
-  const titleOf = (c: Conversation) => conversationTitle(c, selfIdOf(c), nameFor);
   const deferredQuery = useDeferredValue(query);
   const { allowed, requests, scope, rows, unseen, unreadHere, mentionsHere, showNetwork } = useMemo(
     () =>
@@ -180,10 +171,9 @@ export function ChatList({ query, selectedId }: ChatListProps) {
         filter,
         query: deferredQuery,
         held,
-        sessions,
-        nameFor,
+        titleOf,
       }),
-    [conversations, chatPrefs, readAt, directory, filter, deferredQuery, held, sessions, nameFor]
+    [conversations, chatPrefs, readAt, directory, filter, deferredQuery, held, titleOf]
   );
   if (unseen.length > 0) setKept({ view, ids: new Set([...held, ...unseen]) });
 
@@ -338,7 +328,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
         visible={menu !== null}
         anchor={menu?.anchor}
         onClose={() => setMenu(null)}
-        title={managing ? conversationTitle(managing, selfIdOf(managing), nameFor) : undefined}
+        title={managing ? titleOf(managing) : undefined}
         subtitle={managing ? protocolSubtitle(managing.protocol) : undefined}
         leading={
           managing ? (
