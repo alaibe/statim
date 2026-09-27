@@ -17,7 +17,6 @@ export function PluginIcon({ plugin }: { plugin: Plugin }) {
   return <RowIcon name={plugin.manifest.icon} tone={TONE[plugin.manifest.id] ?? 'grey'} />;
 }
 
-/** What a plugin is, what it can reach, and what turning it off does. */
 export function PluginDetailSheet({
   plugin,
   onClose,

@@ -1,8 +1,7 @@
 import { commandNamePrefix, isTypingCommandName } from '@/core/commands/parser';
 import type { SlashCommand } from '@/core/plugins/types';
 
-/** The commands whose name or alias starts what is being typed, and every name to complete against. */
-export function useCommandSuggestions<T extends { command: SlashCommand }>(
+export function commandSuggestions<T extends { command: SlashCommand }>(
   value: string,
   commands: T[]
 ) {

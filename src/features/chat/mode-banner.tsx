@@ -5,7 +5,6 @@ import { Enter, Exit, IconButton, Text } from '@/design';
 
 import type { ComposerBanner } from './composer-mode';
 
-/** What the composer is replying to or editing, above the input. */
 export function ModeBanner({
   banner,
   editing,

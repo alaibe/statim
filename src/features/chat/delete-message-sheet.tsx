@@ -2,7 +2,7 @@ import { ConfirmSheet } from '@/design';
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { ChatMessage, ConversationId } from '@/core/messaging/types';
 
-import { useAction } from './use-action';
+import { useAction } from '@/core/app/use-action';
 
 export interface DeleteTarget {
   message: ChatMessage;

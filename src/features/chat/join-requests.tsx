@@ -7,7 +7,7 @@ import { formatDayLabel } from '@/core/messaging/preview';
 import type { ParticipantId } from '@/core/messaging/types';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 
-import { useAction } from './use-action';
+import { useAction } from '@/core/app/use-action';
 
 export function JoinRequests({
   conversationId,

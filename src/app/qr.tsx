@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { Share, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
-import { Button, Card, copyText, Icon, Pressable, Screen, Text } from '@/design';
+import { Button, Card, copyText, IconButton, Screen, Text } from '@/design';
 import { useIdentityStore } from '@/core/identity/identity-store';
 import { shortAddress } from '@/core/identity/keyring';
 
@@ -25,12 +25,13 @@ export default function QrScreen() {
   return (
     <Screen className="justify-between px-gutter py-4" edges={['top', 'bottom']}>
       <View className="flex-row justify-end">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-          onPress={() => router.back()}>
-          <Icon name="close" size={26} tone="muted" />
-        </Pressable>
+        <IconButton
+          icon="close"
+          label="Close"
+          surface="sunken"
+          size={18}
+          onPress={() => router.back()}
+        />
       </View>
 
       <View className="items-center gap-6">

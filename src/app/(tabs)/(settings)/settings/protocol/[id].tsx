@@ -56,7 +56,7 @@ export default function ProtocolConfigScreen() {
 
         {connection?.error ? (
           <Note tone="danger" title="Last connection failed">
-            <Text variant="caption">{connection.error}</Text>
+            {connection.error}
           </Note>
         ) : null}
 

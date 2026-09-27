@@ -80,10 +80,8 @@ export default function Welcome() {
       <Animated.View entering={Enter.content(stagger(3, 70))} className="gap-3 pb-8">
         {!isSecureStorageAvailable ? (
           <Note tone="warning">
-            <Text variant="caption" className="text-warning">
-              On web, keys are stored in localStorage and are not protected against other scripts.
-              Use a device build for a real account.
-            </Text>
+            On web, keys are stored in localStorage and are not protected against other scripts. Use
+            a device build for a real account.
           </Note>
         ) : null}
 

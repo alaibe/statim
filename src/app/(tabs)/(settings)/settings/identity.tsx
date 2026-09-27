@@ -32,10 +32,8 @@ export default function IdentityScreen() {
         </Card>
 
         <Note tone="danger">
-          <Text variant="caption" className="text-danger">
-            Anyone with these words controls your messages and any funds at this address. Never type
-            them into a website or share them with support.
-          </Text>
+          Anyone with these words controls your messages and any funds at this address. Never type
+          them into a website or share them with support.
         </Note>
 
         <RevealablePhrase

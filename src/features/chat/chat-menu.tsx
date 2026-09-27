@@ -11,25 +11,23 @@ export interface ChatMenuTarget {
   anchor: MenuAnchor | null;
 }
 
-/** Pin, mute, archive and mark unread, for a chat held or right-clicked in the list. */
 export function ChatMenu({
   target,
   onClose,
   titleOf,
   selfIdOf,
-  onToggle,
 }: {
   target: ChatMenuTarget | null;
   onClose: () => void;
   titleOf: (c: Conversation) => string;
   selfIdOf: (c: Conversation) => string;
-  onToggle: (id: string, key: keyof ChatPrefs) => void;
 }) {
   const conversation = target?.conversation;
   const prefs = useChatStore((s) => (conversation ? s.chatPrefs[conversation.id] : undefined));
+  const setChatPref = useChatStore((s) => s.setChatPref);
   const markUnread = useChatStore((s) => s.markUnread);
   const choose = (key: keyof ChatPrefs) => {
-    if (conversation) onToggle(conversation.id, key);
+    if (conversation) void setChatPref(conversation.id, { [key]: !prefs?.[key] });
   };
 
   return (

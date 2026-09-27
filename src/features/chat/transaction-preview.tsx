@@ -4,8 +4,8 @@ import { cn, Icon, Pressable, Text, useThemeColors } from '@/design';
 import { shortAddress } from '@/core/identity/keyring';
 import { SUPPORTED_CHAINS } from '@/lib/evm/chains';
 import { locateTransaction } from '@/lib/evm/transactions';
-import { openInBrowser } from '@/lib/open-url';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
+import { openUrlQuietly } from './link-actions';
 
 export function TransactionPreview({ hash, fromMe }: { hash: `0x${string}`; fromMe: boolean }) {
   const colors = useThemeColors();
@@ -25,7 +25,7 @@ export function TransactionPreview({ hash, fromMe }: { hash: `0x${string}`; from
       accessibilityRole="button"
       accessibilityLabel={`Transaction on ${summary.chainName}`}
       onPress={() => {
-        if (summary.explorerUrl) openInBrowser(summary.explorerUrl).catch(() => {});
+        if (summary.explorerUrl) openUrlQuietly(summary.explorerUrl);
       }}
       className={cn(
         'mt-1.5 gap-1 rounded-md border p-2',

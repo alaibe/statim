@@ -13,16 +13,16 @@ export function useAction<A extends unknown[]>(
     async run(...args: A): Promise<boolean> {
       if (busy) return false;
       setBusy(true);
+      let ok = true;
       try {
         await action(...args);
         if (messages.success) toast.success(messages.success);
-        return true;
       } catch (error) {
         toast.error(errorMessage(error, messages.failure));
-        return false;
-      } finally {
-        setBusy(false);
+        ok = false;
       }
+      setBusy(false);
+      return ok;
     },
   };
 }

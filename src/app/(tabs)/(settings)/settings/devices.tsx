@@ -4,7 +4,7 @@ import { Badge, ConfirmSheet, Icon, ListItem, Loading, Note, Section, Text } fro
 import { errorMessage } from '@/core/errors';
 import { useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
 import { formatDayLabel } from '@/core/messaging/preview';
-import { useAction } from '@/features/chat/use-action';
+import { useAction } from '@/core/app/use-action';
 import { SettingsScreen } from '@/features/settings/settings-screen';
 
 interface Installation {
@@ -98,9 +98,7 @@ export default function DevicesScreen() {
 
       {error ? (
         <Note tone="danger" className="mx-gutter mb-4">
-          <Text variant="caption" className="text-danger">
-            {error}
-          </Text>
+          {error}
         </Note>
       ) : null}
 

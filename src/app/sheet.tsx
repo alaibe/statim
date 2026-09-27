@@ -41,7 +41,7 @@ export default function SheetRoute() {
           icon="close"
           label="Close"
           size={18}
-          className="bg-surface-sunken"
+          surface="sunken"
           onPress={() => current?.onClose()}
         />
       </View>

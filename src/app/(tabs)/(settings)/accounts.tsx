@@ -20,7 +20,7 @@ import { shortAddress } from '@/core/identity/keyring';
 import { describeKind } from '@/core/identity/account-kind';
 import { hardwareVendors } from '@/core/identity/hardware';
 import { ConnectHardware } from '@/features/identity/connect-hardware';
-import { useAction } from '@/features/chat/use-action';
+import { useAction } from '@/core/app/use-action';
 import { RenameAccountSheet } from '@/features/settings/rename-account-sheet';
 import { SettingsScreen } from '@/features/settings/settings-screen';
 

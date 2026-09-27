@@ -1,11 +1,10 @@
 import { View } from 'react-native';
 
-import { cn, Icon, Pressable, Text, useThemeColors } from '@/design';
+import { cn, Icon, Pressable, Text } from '@/design';
 import { coordinatesLabel, type Location } from '@/core/messaging/locations';
 import { openInMaps } from './link-actions';
 
 export function LocationCard({ location, fromMe }: { location: Location; fromMe: boolean }) {
-  const colors = useThemeColors();
   const coordinates = coordinatesLabel(location);
   const title = location.label ?? coordinates ?? 'Shared place';
 
@@ -21,11 +20,7 @@ export function LocationCard({ location, fromMe }: { location: Location; fromMe:
         fromMe ? 'bg-bubble-out-on/15' : 'bg-content/5'
       )}
       style={{ borderCurve: 'continuous' }}>
-      <Icon
-        name="location-outline"
-        size={22}
-        color={fromMe ? colors['bubble-out-on'] : colors.brand}
-      />
+      <Icon name="location-outline" size={22} tone={fromMe ? 'bubble-out-on' : 'brand'} />
       <View className="min-w-0 flex-1">
         <Text
           variant="footnote"

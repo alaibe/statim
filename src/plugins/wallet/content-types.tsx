@@ -54,7 +54,6 @@ interface PaymentTarget {
   to: string;
 }
 
-/** Quoting and sending a transfer to `data.to`, with the busy, paid and error state a card shows. */
 function usePayment(data: PaymentTarget, context: PluginContext, conversationId: ConversationId) {
   const chain = strategyFor(data);
   const [busy, setBusy] = useState(false);
@@ -76,16 +75,16 @@ function usePayment(data: PaymentTarget, context: PluginContext, conversationId:
       const ready = usable();
       if (!ready) return null;
       setBusy(true);
+      let rows: { label: string; value: string }[] | null = null;
       try {
         const quoted = await ready.transfer!.quote(context, { amount, to: data.to });
-        if (!('error' in quoted)) return quoted.rows;
-        setError(`${quoted.error} Nothing was sent.`);
+        if ('error' in quoted) setError(`${quoted.error} Nothing was sent.`);
+        else rows = quoted.rows;
       } catch (e) {
         setError(walletErrorMessage(e, ready, 'review'));
-      } finally {
-        setBusy(false);
       }
-      return null;
+      setBusy(false);
+      return rows;
     },
     async send(amount: string): Promise<boolean> {
       const ready = usable();

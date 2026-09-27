@@ -3,7 +3,6 @@ import Animated from 'react-native-reanimated';
 
 import type { ChatPrefs } from '@/core/messaging/chat-prefs';
 import { useChatStore } from '@/core/messaging/chat-store';
-import { conversationTitle } from '@/core/messaging/display-names';
 import type { Directory, InboxRow } from '@/core/messaging/folders';
 import { formatTimestamp, messagePreview } from '@/core/messaging/preview';
 import type { Conversation, ConversationId } from '@/core/messaging/types';
@@ -26,8 +25,8 @@ import { DeliveryIcon } from './delivery-icon';
 
 export function ConversationRow({
   conversation,
+  title,
   selfId,
-  nameFor,
   unread,
   network,
   prefs,
@@ -36,8 +35,8 @@ export function ConversationRow({
   onToggle,
 }: {
   conversation: Conversation;
+  title: string;
   selfId: string;
-  nameFor: (id: string) => string;
   unread: boolean;
   network?: string;
   prefs: ChatPrefs | undefined;
@@ -45,7 +44,6 @@ export function ConversationRow({
   onMenu: (conversation: Conversation, anchor: MenuAnchor | null) => void;
   onToggle: (id: ConversationId, key: keyof ChatPrefs) => void;
 }) {
-  const title = conversationTitle(conversation, selfId, nameFor);
   const last = conversation.lastMessage;
   const preview = messagePreview(last);
   const pinned = Boolean(prefs?.pinned);

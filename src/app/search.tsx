@@ -9,6 +9,7 @@ import { contentPreview, formatTimestamp } from '@/core/messaging/preview';
 import { useJumpStore } from '@/features/chat/jump-store';
 import { openChatFromSheet } from '@/features/navigation/open';
 import { errorMessage } from '@/core/errors';
+import { useConversationTitles } from '@/features/chat/use-display-names';
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -39,7 +40,8 @@ export default function SearchScreen() {
     };
   }, [chatId, trimmed, searchMessages]);
 
-  const titles = new Map(conversations.map((c) => [c.id, c.title]));
+  const { titleOf } = useConversationTitles(conversations);
+  const titles = new Map(conversations.map((c) => [c.id, titleOf(c)]));
   const results = trimmed && found?.query === trimmed ? found.messages : [];
   const searching = Boolean(trimmed) && found?.query !== trimmed && !error;
 

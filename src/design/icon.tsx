@@ -130,6 +130,7 @@ const TONE = {
   subtle: 'content-subtle',
   brand: 'brand',
   'brand-on': 'brand-on',
+  'bubble-out-on': 'bubble-out-on',
   success: 'success',
   warning: 'warning',
   danger: 'danger',
@@ -145,12 +146,11 @@ export interface IconProps {
 }
 
 export function Icon({ name, size = 20, tone, color }: IconProps) {
+  if (tone && !color) return <TonedIcon name={name} size={size} tone={tone} />;
+  return <SymbolView name={ICONS[name]} size={size} tintColor={color} />;
+}
+
+function TonedIcon({ name, size, tone }: { name: IconName; size: number; tone: IconTone }) {
   const colors = useThemeColors();
-  return (
-    <SymbolView
-      name={ICONS[name]}
-      size={size}
-      tintColor={color ?? (tone ? colors[TONE[tone]] : undefined)}
-    />
-  );
+  return <SymbolView name={ICONS[name]} size={size} tintColor={colors[TONE[tone]]} />;
 }

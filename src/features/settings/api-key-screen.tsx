@@ -3,11 +3,11 @@ import { View } from 'react-native';
 
 import { Button, Field, Note, Section, Text, toast } from '@/design';
 import { useIdentityStore } from '@/core/identity/identity-store';
-import { errorMessage } from '@/core/errors';
 import { openExternal } from '@/lib/open-url';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 
 import { SettingsScreen } from './settings-screen';
+import { useAction } from '@/core/app/use-action';
 
 export interface ApiKeyScreenProps {
   title: string;
@@ -39,25 +39,15 @@ export function ApiKeyScreen({
   const saved = stored.loading ? undefined : (stored.value ?? null);
   const [draft, setDraft] = useState<{ accountId: string | null; text: string } | null>(null);
   const key = draft?.accountId === accountId ? draft.text : (saved ?? '');
-  const [busy, setBusy] = useState(false);
-
-  async function submit(value: string) {
-    if (!accountId) {
-      toast.error('No account is active yet.');
-      return;
-    }
-    const next = value.trim() === '' ? null : value.trim();
-    const done = next ? savedMessage : 'Key removed';
-    setBusy(true);
-    try {
+  const submit = useAction(
+    async (value: string) => {
+      if (!accountId) throw new Error('No account is active yet.');
       await save(accountId, value);
       setVersion((v) => v + 1);
-      toast.success(done);
-    } catch (e) {
-      toast.error(errorMessage(e, 'Could not save that key'));
-    }
-    setBusy(false);
-  }
+      toast.success(value.trim() ? savedMessage : 'Key removed');
+    },
+    { failure: 'Could not save that key' }
+  );
 
   return (
     <SettingsScreen title={title}>
@@ -79,9 +69,9 @@ export function ApiKeyScreen({
                   testID={`${testIdPrefix}-save`}
                   label="Save"
                   fullWidth
-                  loading={busy}
-                  disabled={busy || key.trim() === (saved ?? '')}
-                  onPress={() => submit(key)}
+                  loading={submit.busy}
+                  disabled={submit.busy || key.trim() === (saved ?? '')}
+                  onPress={() => submit.run(key)}
                 />
               </View>
               {saved ? (
@@ -91,10 +81,10 @@ export function ApiKeyScreen({
                     label="Remove"
                     tone="neutral"
                     fullWidth
-                    disabled={busy}
+                    disabled={submit.busy}
                     onPress={() => {
                       setDraft({ accountId, text: '' });
-                      submit('');
+                      void submit.run('');
                     }}
                   />
                 </View>

@@ -1,7 +1,7 @@
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 
-import { Icon, Pressable, Screen, Text } from '@/design';
+import { IconButton, Pressable, Screen, Text } from '@/design';
 import { ContactList, type ContactSort } from '@/features/contacts/contact-list';
 
 export default function ContactsScreen() {
@@ -25,12 +25,13 @@ export default function ContactsScreen() {
             </Pressable>
           ),
           headerRight: () => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="New conversation"
-              onPress={() => router.push('/new-chat')}>
-              <Icon name="add" size={24} tone="brand" />
-            </Pressable>
+            <IconButton
+              icon="add"
+              label="New conversation"
+              tone="brand"
+              size={24}
+              onPress={() => router.push('/new-chat')}
+            />
           ),
         }}
       />

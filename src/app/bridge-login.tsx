@@ -84,7 +84,7 @@ export default function BridgeLoginScreen() {
                   key={`${step.login_id}/${step.step_id}`}
                   step={step}
                   busy={login.busy}
-                  onSubmit={(values) => login.submit(step, values)}
+                  onSubmit={login.submit}
                 />
               ) : step.type === 'display_and_wait' ? (
                 <WaitStep step={step} />
@@ -93,7 +93,7 @@ export default function BridgeLoginScreen() {
                   key={`${step.login_id}/${step.step_id}`}
                   params={step.cookies}
                   network={bridge.network}
-                  onValues={(values) => login.submit(step, values)}
+                  onValues={login.submit}
                   onCancel={login.restart}
                 />
               ) : (
@@ -124,7 +124,7 @@ export default function BridgeLoginScreen() {
 
           {login.error ? (
             <Note tone="danger" title="That did not work">
-              <Text variant="caption">{login.error}</Text>
+              {login.error}
             </Note>
           ) : null}
         </ScrollView>

@@ -108,7 +108,6 @@ function Affordance({ actions }: { actions: WidgetAction[] | undefined }) {
   );
 }
 
-/** Pressable, offering `actions` under `heading`, when there are any. */
 function Offerable({
   actions,
   heading,

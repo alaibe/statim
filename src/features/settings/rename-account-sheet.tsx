@@ -13,16 +13,19 @@ export function RenameAccountSheet({
   onClose: () => void;
 }) {
   const renameAccount = useIdentityStore((s) => s.renameAccount);
-  const [draft, setDraft] = useState<{ id: string; label: string } | null>(null);
-  const label = draft && draft.id === account?.id ? draft.label : (account?.label ?? '');
+  const [draft, setDraft] = useState<string | null>(null);
+  const label = draft ?? account?.label ?? '';
+  const close = () => {
+    setDraft(null);
+    onClose();
+  };
 
   return (
-    <Sheet visible={account !== null} onClose={onClose} title="Rename account">
+    <Sheet visible={account !== null} onClose={close} title="Rename account">
       <View className="gap-3">
         <Field
-          key={account?.id}
-          defaultValue={account?.label}
-          onChangeText={(text) => account && setDraft({ id: account.id, label: text })}
+          value={label}
+          onChangeText={setDraft}
           autoFocus
           placeholder="Personal"
           maxLength={40}
@@ -37,7 +40,7 @@ export function RenameAccountSheet({
           disabled={label.trim().length === 0}
           onPress={async () => {
             if (account) await renameAccount(account.id, label);
-            onClose();
+            close();
           }}
         />
       </View>

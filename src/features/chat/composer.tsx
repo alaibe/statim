@@ -35,7 +35,7 @@ import {
 import { VoiceRecorder } from './attachments/voice-recorder';
 import { ModeBanner } from './mode-banner';
 import { QuickActions } from './quick-actions';
-import { useCommandSuggestions } from './use-command-suggestions';
+import { commandSuggestions } from './command-suggestions';
 import { ComposerInput, type ComposerInputHandle } from './composer-input';
 import type { ComposerBanner } from './composer-mode';
 import { SuggestionPopover } from './suggestion-popover';
@@ -127,7 +127,7 @@ export function Composer({
     }
   };
 
-  const { suggestions, commandNames } = useCommandSuggestions(value, commands);
+  const { suggestions, commandNames } = commandSuggestions(value, commands);
 
   const fill = (text: string) => {
     setValue(text);

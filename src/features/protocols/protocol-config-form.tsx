@@ -1,11 +1,11 @@
-import { Button, Field, Text } from '@/design';
+import { Button, ErrorText, Field, Loading, Text } from '@/design';
+import { errorMessage } from '@/core/errors';
 import { loadProtocolConfig, missingFields, withDefaults } from '@/core/messaging/config';
 import type { ProtocolDescriptor } from '@/core/messaging/registry';
-import { useAction } from '@/features/chat/use-action';
+import { useAction } from '@/core/app/use-action';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 import { accountRuntime } from '@/runtime';
 
-/** A network's settings for the account, saved with a reconnect. */
 export function ProtocolConfigForm({
   accountId,
   descriptor,
@@ -26,7 +26,10 @@ export function ProtocolConfigForm({
     { success: `${descriptor.label} settings saved`, failure: 'Could not save those settings' }
   );
 
-  if (!config) return <Text variant="caption">Loading…</Text>;
+  if (loaded.error) {
+    return <ErrorText>{errorMessage(loaded.error, 'Could not read these settings')}</ErrorText>;
+  }
+  if (!config) return <Loading className="py-4" />;
 
   const missing = missingFields(descriptor.configSchema, config);
 

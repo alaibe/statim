@@ -21,7 +21,7 @@ import type { ConversationId, ParticipantId } from '@/core/messaging/types';
 
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 
-import { useAction } from './use-action';
+import { useAction } from '@/core/app/use-action';
 import { useSupports } from './use-supports';
 
 const SLOW_MODE: { seconds: number; label: string }[] = [

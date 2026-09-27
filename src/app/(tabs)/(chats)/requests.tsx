@@ -27,40 +27,38 @@ export default function RequestsScreen() {
           data={requests}
           keyExtractor={(c) => c.id}
           contentInsetAdjustmentBehavior="automatic"
-          renderItem={({ item }) => {
-            return (
-              <SwipeableRow
-                left={[
-                  {
-                    id: 'accept',
-                    label: 'Accept',
-                    icon: 'checkmark-circle-outline',
-                    tone: 'brand',
-                    onPress: () => decideConsent(item.id, 'allowed'),
-                  },
-                ]}
-                right={[
-                  {
-                    id: 'ignore',
-                    label: 'Ignore',
-                    icon: 'close-circle-outline',
-                    destructive: true,
-                    onPress: () => decideConsent(item.id, 'denied'),
-                  },
-                ]}>
-                <ListItem
-                  testID={`request-${item.id}`}
-                  title={titleOf(item)}
-                  subtitle={messagePreview(item.lastMessage)}
-                  meta={item.lastMessage ? formatTimestamp(item.lastMessage.sentAt) : undefined}
-                  leading={
-                    <ConversationAvatar conversation={item} selfId={selfIdOf(item)} size="md" />
-                  }
-                  onPress={() => openChat(item.id)}
-                />
-              </SwipeableRow>
-            );
-          }}
+          renderItem={({ item }) => (
+            <SwipeableRow
+              left={[
+                {
+                  id: 'accept',
+                  label: 'Accept',
+                  icon: 'checkmark-circle-outline',
+                  tone: 'brand',
+                  onPress: () => decideConsent(item.id, 'allowed'),
+                },
+              ]}
+              right={[
+                {
+                  id: 'ignore',
+                  label: 'Ignore',
+                  icon: 'close-circle-outline',
+                  destructive: true,
+                  onPress: () => decideConsent(item.id, 'denied'),
+                },
+              ]}>
+              <ListItem
+                testID={`request-${item.id}`}
+                title={titleOf(item)}
+                subtitle={messagePreview(item.lastMessage)}
+                meta={item.lastMessage ? formatTimestamp(item.lastMessage.sentAt) : undefined}
+                leading={
+                  <ConversationAvatar conversation={item} selfId={selfIdOf(item)} size="md" />
+                }
+                onPress={() => openChat(item.id)}
+              />
+            </SwipeableRow>
+          )}
         />
       )}
     </Screen>

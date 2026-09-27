@@ -69,7 +69,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   const readAt = useChatStore((s) => s.readAt);
   const conversations = useUnreadCounts(baseConversations);
 
-  const { nameFor, selfIdOf, titleOf } = useConversationTitles(conversations);
+  const { selfIdOf, titleOf } = useConversationTitles(conversations);
   const chatPrefs = useChatStore((s) => s.chatPrefs);
   const setChatPref = useChatStore((s) => s.setChatPref);
   const toggle = (id: string, key: keyof ChatPrefs) =>
@@ -155,8 +155,8 @@ export function ChatList({ query, selectedId }: ChatListProps) {
     ) : (
       <ConversationRow
         conversation={row.conversation}
+        title={titleOf(row.conversation)}
         selfId={selfIdOf(row.conversation)}
-        nameFor={nameFor}
         unread={isUnread(row.conversation, readAt)}
         network={showNetwork ? networkOf(row.conversation) : undefined}
         prefs={chatPrefs[row.conversation.id]}
@@ -247,13 +247,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
         </Animated.View>
       )}
 
-      <ChatMenu
-        target={menu}
-        onClose={() => setMenu(null)}
-        titleOf={titleOf}
-        selfIdOf={selfIdOf}
-        onToggle={toggle}
-      />
+      <ChatMenu target={menu} onClose={() => setMenu(null)} titleOf={titleOf} selfIdOf={selfIdOf} />
     </>
   );
 }

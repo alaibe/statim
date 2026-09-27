@@ -2,7 +2,7 @@ import { View } from 'react-native';
 
 import { formatBytes } from './format';
 import { Icon, type IconName, Pressable, Text, useThemeColors } from '@/design';
-import { openInBrowser } from '@/lib/open-url';
+import { openUrlQuietly } from '../link-actions';
 
 export interface FileBubbleProps {
   uri: string;
@@ -31,9 +31,7 @@ export function FileBubble({ uri, name, mimeType, size, fromMe }: FileBubbleProp
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Open ${name}`}
-      onPress={() => {
-        openInBrowser(uri).catch(() => {});
-      }}
+      onPress={() => openUrlQuietly(uri)}
       pressScale={0.99}>
       <View className="min-w-[180px] flex-row items-center gap-3 py-0.5">
         <View className="h-10 w-10 items-center justify-center rounded-full bg-surface-sunken">

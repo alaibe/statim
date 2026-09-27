@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { View } from 'react-native';
 
-import { cn, Text, useThemeColors } from '@/design';
+import { cn, Text } from '@/design';
 import { usePluginHost } from '@/core/plugins/host';
 import { sessionFor, useChatStore } from '@/core/messaging/chat-store';
 import type { ChatMessage, MessageId, WidgetContent } from '@/core/messaging/types';
@@ -269,8 +269,6 @@ function TextBody({
 
 /** `overlay` sits the time on a photo that has no bubble around it. */
 function Footer({ message, overlay = false }: { message: ChatMessage; overlay?: boolean }) {
-  const colors = useThemeColors();
-
   return (
     <View
       className={cn(
@@ -288,7 +286,8 @@ function Footer({ message, overlay = false }: { message: ChatMessage; overlay?: 
         <DeliveryIcon
           message={message}
           size={13}
-          color={overlay ? '#fff' : colors['bubble-out-on']}
+          tone="bubble-out-on"
+          color={overlay ? '#fff' : undefined}
         />
       ) : null}
     </View>

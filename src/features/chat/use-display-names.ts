@@ -99,21 +99,15 @@ export function useDisplayNames(participants: DisplayParticipant[]) {
   };
 }
 
-/** Names for the people in `conversations`, and each conversation's title from them. */
 export function useConversationTitles(conversations: Conversation[]) {
   const sessions = useChatStore((s) => s.sessions);
-  const { nameFor } = useDisplayNames(usePeers(conversations));
   const selfIdOf = (c: Conversation) => selfIdFor({ sessions }, c.protocol);
+  const { nameFor } = useDisplayNames(
+    conversations.flatMap((c) => (c.kind === 'dm' ? conversationPeers(c, selfIdOf(c)) : []))
+  );
   return {
     nameFor,
     selfIdOf,
     titleOf: (c: Conversation) => conversationTitle(c, selfIdOf(c), nameFor),
   };
-}
-
-export function usePeers(conversations: Conversation[]): DisplayParticipant[] {
-  const sessions = useChatStore((s) => s.sessions);
-  return conversations.flatMap((c) =>
-    c.kind === 'dm' ? conversationPeers(c, selfIdFor({ sessions }, c.protocol)) : []
-  );
 }

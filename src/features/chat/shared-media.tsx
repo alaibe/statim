@@ -12,7 +12,7 @@ import {
   type MediaEntry,
 } from '@/core/messaging/media-index';
 import { formatDayLabel } from '@/core/messaging/preview';
-import { openInBrowser } from '@/lib/open-url';
+import { openUrlQuietly } from './link-actions';
 
 const TABS: { id: MediaCategory; label: string }[] = [
   { id: 'media', label: 'Media' },
@@ -101,9 +101,7 @@ function MediaRow({ entry, category }: { entry: MediaEntry; category: MediaCateg
       title={entry.label ?? entry.uri}
       subtitle={formatDayLabel(entry.sentAt)}
       leading={<Icon name={icon} size={20} tone="muted" />}
-      onPress={() => {
-        openInBrowser(entry.uri).catch(() => {});
-      }}
+      onPress={() => openUrlQuietly(entry.uri)}
     />
   );
 }

@@ -1,18 +1,13 @@
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { Card, cn, Enter, Icon, Pressable, Text } from '@/design';
+import { Card, Enter, Icon, Pressable, Text } from '@/design';
 
-export interface RecoveryPhraseProps {
-  phrase: string;
-  className?: string;
-}
-
-export function RecoveryPhrase({ phrase, className }: RecoveryPhraseProps) {
+function RecoveryPhrase({ phrase }: { phrase: string }) {
   const words = phrase.split(' ');
 
   return (
-    <View className={cn('flex-row flex-wrap gap-2', className)}>
+    <View className="flex-row flex-wrap gap-2">
       {words.map((word, i) => (
         <View
           key={`${word}-${i}`}

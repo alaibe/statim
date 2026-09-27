@@ -5,7 +5,7 @@ import { Button, Card, Icon, Screen, Text } from '@/design';
 import { eraseAllAccounts } from '@/core/app/erase-account';
 import { useIdentityStore } from '@/core/identity/identity-store';
 import { shortAddress } from '@/core/identity/keyring';
-import { useAction } from '@/features/chat/use-action';
+import { useAction } from '@/core/app/use-action';
 
 export default function RecoverScreen() {
   const router = useRouter();

@@ -3,7 +3,7 @@ import { ActivityIndicator, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import { Badge, Button, Card, Chip, Field, ListItem, Text, useThemeColors } from '@/design';
-import type { InputField, LoginFlow, LoginStep, Whoami } from '@/protocols/matrix/provisioning';
+import type { InputField, LoginStep, Whoami } from '@/protocols/matrix/provisioning';
 
 export function InputStep({
   step,
@@ -125,7 +125,6 @@ const AUTOCOMPLETE: Partial<
   '2fa_code': 'one-time-code',
 };
 
-/** The bridge's ways to sign in, its recommended one first, under any accounts already signed in. */
 export function FlowPicker({
   whoami,
   network,
@@ -138,7 +137,7 @@ export function FlowPicker({
   onPick: (flowId: string) => void;
 }) {
   const flows = [...(whoami?.login_flows ?? [])].sort(
-    (a: LoginFlow, b: LoginFlow) => Number(b.id === preferred) - Number(a.id === preferred)
+    (a, b) => Number(b.id === preferred) - Number(a.id === preferred)
   );
 
   return (

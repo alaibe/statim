@@ -5,9 +5,9 @@ import { Icon, type IconName } from '../icon';
 import { Text } from './text';
 
 const TONE = {
-  brand: { box: 'border-brand/15 bg-brand-soft', title: 'text-brand' },
-  warning: { box: 'border-warning/40 bg-warning/10', title: 'text-warning' },
-  danger: { box: 'border-danger/40 bg-danger/10', title: 'text-danger' },
+  brand: { box: 'border-brand/15 bg-brand-soft', title: 'text-brand', body: undefined },
+  warning: { box: 'border-warning/40 bg-warning/10', title: 'text-warning', body: 'text-warning' },
+  danger: { box: 'border-danger/40 bg-danger/10', title: 'text-danger', body: 'text-danger' },
 } as const;
 
 export interface NoteProps {
@@ -19,6 +19,15 @@ export interface NoteProps {
 }
 
 export function Note({ title, icon, tone = 'brand', children, className }: NoteProps) {
+  const body =
+    typeof children === 'string' ? (
+      <Text variant="caption" className={TONE[tone].body}>
+        {children}
+      </Text>
+    ) : (
+      children
+    );
+
   return (
     <View
       style={{ borderCurve: 'continuous' }}
@@ -31,17 +40,17 @@ export function Note({ title, icon, tone = 'brand', children, className }: NoteP
               {title}
             </Text>
           </View>
-          {children}
+          {body}
         </View>
       ) : icon ? (
         <View className="flex-row items-start gap-2.5">
           <View className="pt-0.5">
             <Icon name={icon} size={16} tone={tone} />
           </View>
-          <View className="min-w-0 flex-1 gap-2">{children}</View>
+          <View className="min-w-0 flex-1 gap-2">{body}</View>
         </View>
       ) : (
-        <View className="gap-2">{children}</View>
+        <View className="gap-2">{body}</View>
       )}
     </View>
   );

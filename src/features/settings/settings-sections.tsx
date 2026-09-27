@@ -12,7 +12,7 @@ import { usePluginHost } from '@/core/plugins/host';
 import { BiometricSection } from '@/features/settings/biometric-section';
 import { openTab } from '@/features/navigation/open';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
-import { useAction } from '@/features/chat/use-action';
+import { useAction } from '@/core/app/use-action';
 
 /** The routes the sections open, so a layout showing both can mark the open one. */
 export const SETTINGS_PAGES = [

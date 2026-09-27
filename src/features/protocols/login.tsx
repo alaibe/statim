@@ -3,7 +3,7 @@ import type { TextInputProps } from 'react-native';
 
 import { Button, Card, Field, Text } from '@/design';
 import type { ChatSession, LoginState } from '@/core/messaging/protocol';
-import { useAction } from '@/features/chat/use-action';
+import { useAction } from '@/core/app/use-action';
 
 const COPY: Record<
   LoginState['step'],

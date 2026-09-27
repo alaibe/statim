@@ -21,7 +21,7 @@ export function IconButton({
   icon,
   label,
   surface = 'plain',
-  tone = surface === 'brand' ? 'brand-on' : 'muted',
+  tone,
   size = 22,
   className,
   ...props
@@ -36,7 +36,7 @@ export function IconButton({
         className
       )}
       {...props}>
-      <Icon name={icon} size={size} tone={tone} />
+      <Icon name={icon} size={size} tone={tone ?? (surface === 'brand' ? 'brand-on' : 'muted')} />
     </Pressable>
   );
 }
