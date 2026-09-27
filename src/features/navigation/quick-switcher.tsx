@@ -20,15 +20,12 @@ import type { Chat } from '@/core/messaging/types';
 import { useChatTitles } from '@/features/chat/use-display-names';
 import { openChat, openTab } from '@/features/navigation/open';
 
-interface Entry {
+type Entry = {
   id: string;
   title: string;
   subtitle?: string;
-  icon?: IconName;
-  chat?: Chat;
-  selfId?: string;
   run: () => void;
-}
+} & ({ kind: 'chat'; chat: Chat; selfId: string } | { kind: 'command'; icon: IconName });
 
 const RECENT = 6;
 
@@ -98,6 +95,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
     const entry = (chat: Chat): Entry => {
       const network = networkOf(chat);
       return {
+        kind: 'chat',
         id: chat.id,
         title: titleOf(chat),
         subtitle: network ? protocolLabel(network) : undefined,
@@ -109,6 +107,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
     const chatEntries = [...unread, ...ordered.filter((c) => !unread.includes(c))].map(entry);
     const commands: Entry[] = [
       {
+        kind: 'command',
         id: 'new',
         title: 'New message',
         subtitle: '⌘N',
@@ -116,6 +115,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
         run: () => router.push('/new-chat'),
       },
       {
+        kind: 'command',
         id: 'search',
         title: 'Search messages',
         subtitle: '⌘F',
@@ -123,6 +123,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
         run: () => router.push('/search'),
       },
       {
+        kind: 'command',
         id: 'contacts',
         title: 'Contacts',
         subtitle: '⌘2',
@@ -130,6 +131,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
         run: () => openTab('/contacts'),
       },
       {
+        kind: 'command',
         id: 'settings',
         title: 'Settings',
         subtitle: '⌘,',
@@ -222,7 +224,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
                           ? 'flex-row items-center gap-3 bg-brand px-5 py-2.5'
                           : 'flex-row items-center gap-3 px-5 py-2.5'
                       }>
-                      {entry.chat && entry.selfId !== undefined ? (
+                      {entry.kind === 'chat' ? (
                         <ChatAvatar chat={entry.chat} selfId={entry.selfId} size="sm" />
                       ) : (
                         <View
@@ -231,11 +233,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
                               ? 'h-8 w-8 items-center justify-center rounded-pill bg-brand-on/20'
                               : 'h-8 w-8 items-center justify-center rounded-pill bg-surface-sunken'
                           }>
-                          <Icon
-                            name={entry.icon ?? 'sparkles-outline'}
-                            size={18}
-                            tone={active ? 'brand-on' : 'muted'}
-                          />
+                          <Icon name={entry.icon} size={18} tone={active ? 'brand-on' : 'muted'} />
                         </View>
                       )}
                       <Text

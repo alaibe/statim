@@ -17,21 +17,31 @@ export interface ChatPermissions {
   invite: boolean;
 }
 
-export function chatPermissions(
-  chat: Chat | undefined,
-  session: ChatSession | undefined
-): ChatPermissions {
-  const manages = chat?.selfRole === 'owner' || chat?.selfRole === 'admin';
-  const managesGroup = chat?.kind === 'group' && manages;
+export const NO_PERMISSIONS: Readonly<ChatPermissions> = Object.freeze({
+  send: false,
+  edit: false,
+  delete: false,
+  deleteForMe: false,
+  deleteOthers: false,
+  pin: false,
+  answerRequest: false,
+  addMembers: false,
+  removeMembers: false,
+  invite: false,
+});
+
+export function chatPermissions(chat: Chat, session: ChatSession | undefined): ChatPermissions {
+  const manages = chat.selfRole === 'owner' || chat.selfRole === 'admin';
+  const managesGroup = chat.kind === 'group' && manages;
   const deletes = supports(session, 'deleteMessage');
   return {
-    send: chat?.canSend ?? chat?.kind !== 'channel',
+    send: chat.canSend ?? chat.kind !== 'channel',
     edit: supports(session, 'editMessage'),
     delete: deletes,
     deleteForMe: supports(session, 'deleteMessageForMe'),
-    deleteOthers: deletes && chat?.canDeleteOthers === true,
-    pin: supports(session, 'setMessagePinned') && chat?.canPin !== false,
-    answerRequest: chat?.consent === 'request' && supports(session, 'setConsent'),
+    deleteOthers: deletes && chat.canDeleteOthers === true,
+    pin: supports(session, 'setMessagePinned') && chat.canPin !== false,
+    answerRequest: chat.consent === 'request' && supports(session, 'setConsent'),
     addMembers: managesGroup,
     removeMembers: managesGroup,
     invite: manages && supports(session, 'createInviteLink'),

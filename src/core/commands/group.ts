@@ -28,17 +28,16 @@ async function resolveOn(
   return { ok: true, participantId: await state.resolveParticipant(protocol, who) };
 }
 
-async function membersCard(chatId: ChatId, note?: string) {
-  const chat = useChatStore.getState().chats.find((c) => c.id === chatId);
-  const protocol = chat?.protocol;
-  const members = await useChatStore.getState().getMembers(chatId);
+async function membersCard(chat: Chat, note?: string) {
+  const { protocol } = chat;
+  const members = await useChatStore.getState().getMembers(chat.id);
   const selfId = selfIdFor(useChatStore.getState(), protocol);
   const resolved = await resolveParticipants(
     protocol,
     members.map((m) => m.id)
   );
 
-  const selfRole = chat?.selfRole ?? 'member';
+  const selfRole = chat.selfRole ?? 'member';
 
   return {
     kind: 'widget' as const,
@@ -98,7 +97,7 @@ export const groupCommands: SlashCommand[] = [
       const guard = groupGuard(chatId);
       if (!guard.ok) return { type: 'error', message: guard.message };
 
-      await respond(await membersCard(chatId));
+      await respond(await membersCard(guard.chat));
       return { type: 'handled' };
     },
   },
@@ -131,7 +130,7 @@ export const groupCommands: SlashCommand[] = [
 
       await useChatStore.getState().addMembers(chatId, [participantId]);
       await respond(
-        await membersCard(chatId, `Added ${who}. Everyone in the group sees the change.`)
+        await membersCard(guard.chat, `Added ${who}. Everyone in the group sees the change.`)
       );
       return { type: 'handled' };
     },
@@ -164,7 +163,7 @@ export const groupCommands: SlashCommand[] = [
       await useChatStore.getState().removeMembers(chatId, [participantId]);
       await respond(
         await membersCard(
-          chatId,
+          guard.chat,
           `Removed ${who}. They keep messages they already had. MLS re-keys the group ` +
             'so they cannot read anything sent from now on.'
         )

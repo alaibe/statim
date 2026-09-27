@@ -755,7 +755,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const accountId = get().accountId;
     const chat = get().chats.find((c) => c.id === id);
     const previous = chat?.consent;
-    if (consent === 'declined' && !chatPermissions(chat, route.session).answerRequest) {
+    if (consent === 'declined' && !(chat && chatPermissions(chat, route.session).answerRequest)) {
       throw new Error('Only a request can be declined.');
     }
     set((state) => ({
@@ -1013,7 +1013,7 @@ async function onChat<K extends Capability>(
 
 function requireSendable(state: ChatState, id: ChatId): void {
   const chat = state.chats.find((c) => c.id === id);
-  if (!chatPermissions(chat, sessionFor(state, id)).send) {
+  if (chat && !chatPermissions(chat, sessionFor(state, id)).send) {
     throw new Error('You cannot send messages in this chat.');
   }
 }
@@ -1241,9 +1241,9 @@ export function selfIdFor(
 
 export function sessionFor(
   state: Pick<ChatState, 'sessions'>,
-  id: ChatId | undefined
+  id: ChatId
 ): ChatSession | undefined {
-  const route = id ? splitChatId(id) : null;
+  const route = splitChatId(id);
   return route ? state.sessions[route.protocol] : undefined;
 }
 

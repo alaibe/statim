@@ -21,6 +21,7 @@ import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
 import { chatPermissions } from '@/core/messaging/permissions';
 import { errorMessage } from '@/core/errors';
 import { chatParticipants, chatTitle } from '@/core/messaging/display-names';
+import type { Chat, ParticipantId } from '@/core/messaging/types';
 import { useDisplayNames } from '@/features/chat/use-display-names';
 import { useSupports } from '@/features/chat/use-supports';
 import { useBack } from '@/features/navigation/use-back';
@@ -42,33 +43,7 @@ const ensOf = (address: string) => resolveEnsProfile(address as `0x${string}`);
 export function ChatProfile() {
   const { id, member } = useLocalSearchParams<{ id: string; member?: string }>();
   const goBack = useBack('/chats');
-
-  const chats = useChatStore((s) => s.chats);
-  const sessions = useChatStore((s) => s.sessions);
-  const chatPrefs = useChatStore((s) => s.chatPrefs);
-  const setChatPref = useChatStore((s) => s.setChatPref);
-  const getGroupInfo = useChatStore((s) => s.getGroupInfo);
-
-  const chat = chats.find((c) => c.id === id);
-  const chatKind = chat?.kind;
-  const { session, supports } = useSupports(chat?.id);
-  const canGetGroupInfo = supports('getGroupInfo');
-  const selfId = selfIdFor({ sessions }, chat?.protocol);
-  const participants = chat ? chatParticipants(chat, selfId) : [];
-  const { nameFor, addressFor } = useDisplayNames(participants);
-
-  const [inviting, setInviting] = useState(false);
-  const details = useKeyedLoad(
-    chat && chat.kind !== 'dm' && !member && canGetGroupInfo ? chat.id : null,
-    getGroupInfo
-  );
-
-  const focusId = member ?? (chatKind === 'dm' ? participants[0]?.id : undefined);
-  const participantAddress = focusId ? addressFor?.(focusId) : undefined;
-  const shownEns = useKeyedLoad(
-    participantAddress?.startsWith('0x') ? participantAddress : null,
-    ensOf
-  ).value;
+  const chat = useChatStore((s) => s.chats.find((c) => c.id === id));
 
   if (!chat) {
     return (
@@ -81,11 +56,45 @@ export function ChatProfile() {
       </Screen>
     );
   }
+  return <LoadedChatProfile chat={chat} member={member} goBack={goBack} />;
+}
+
+function LoadedChatProfile({
+  chat,
+  member,
+  goBack,
+}: {
+  chat: Chat;
+  member: ParticipantId | undefined;
+  goBack: () => void;
+}) {
+  const sessions = useChatStore((s) => s.sessions);
+  const muted = useChatStore((s) => Boolean(prefsFor(s.chatPrefs, chat.id).muted));
+  const setChatPref = useChatStore((s) => s.setChatPref);
+  const getGroupInfo = useChatStore((s) => s.getGroupInfo);
+
+  const { session, supports } = useSupports(chat.id);
+  const canGetGroupInfo = supports('getGroupInfo');
+  const selfId = selfIdFor({ sessions }, chat.protocol);
+  const participants = chatParticipants(chat, selfId);
+  const { nameFor, addressFor } = useDisplayNames(participants);
+
+  const [inviting, setInviting] = useState(false);
+  const details = useKeyedLoad(
+    chat.kind !== 'dm' && !member && canGetGroupInfo ? chat.id : null,
+    getGroupInfo
+  );
+
+  const focusId = member ?? (chat.kind === 'dm' ? participants[0]?.id : undefined);
+  const participantAddress = focusId ? addressFor(focusId) : undefined;
+  const shownEns = useKeyedLoad(
+    participantAddress?.startsWith('0x') ? participantAddress : null,
+    ensOf
+  ).value;
 
   const title = shownEns?.name ?? (member ? nameFor(member) : chatTitle(chat, selfId, nameFor));
   const permissions = chatPermissions(chat, session);
   const canRemove = Boolean(member) && member !== selfId && permissions.removeMembers;
-  const muted = Boolean(prefsFor(chatPrefs, chat.id).muted);
   const groupInfo = details.value;
   const groupLink = groupInfo?.link;
   const canInvite = !member && permissions.invite;

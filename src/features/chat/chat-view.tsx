@@ -20,7 +20,8 @@ import {
   selfIdFor,
   useChatStore,
 } from '@/core/messaging/chat-store';
-import { chatPermissions } from '@/core/messaging/permissions';
+import { protocolOf } from '@/core/messaging/namespace';
+import { chatPermissions, NO_PERMISSIONS } from '@/core/messaging/permissions';
 import type { ChatMessage, Chat, ChatId, MessageContent, MessageId } from '@/core/messaging/types';
 import { useAppearanceStore } from '@/core/app/appearance';
 import { errorMessage } from '@/core/errors';
@@ -29,11 +30,7 @@ import { RequestBar } from './request-bar';
 import { CommandPending } from './command-pending';
 import { ForwardSheet } from './forward-sheet';
 import { MessageList } from './message-list';
-import {
-  chatParticipants,
-  chatTitle,
-  type DisplayParticipant,
-} from '@/core/messaging/display-names';
+import { chatParticipants, type DisplayParticipant } from '@/core/messaging/display-names';
 import { useDisplayNames } from './use-display-names';
 import { useSupports } from './use-supports';
 import { useComposerMode } from './composer-mode';
@@ -42,7 +39,7 @@ import { type ActionSupport, type ChatActions, messageActions } from './message-
 import { HistoryStatus } from './history-status';
 import { useChatTimeline } from './use-chat-timeline';
 import { PinnedMessages } from './pinned-messages';
-import { ChatHeader } from './chat-header';
+import { ChatHeader, PendingChatHeader } from './chat-header';
 import { DeleteMessageSheet, type DeleteTarget } from './delete-message-sheet';
 import { MessageRow, replyPreview } from './message-row';
 
@@ -75,9 +72,8 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
   const [deleting, setDeleting] = useState<DeleteTarget | null>(null);
   const [showPinned, setShowPinned] = useState(false);
 
-  const selfId = selfIdFor({ sessions }, chat?.protocol);
-
   const isBot = isLocalChat(id);
+  const protocol = protocolOf(id) ?? undefined;
 
   const { session, supports, threads } = useSupports(id);
   const {
@@ -91,8 +87,10 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
     followNewest,
     loadEarlier,
     highlighted,
-  } = useChatTimeline(id, thread, chat, session, Boolean(onOpenThread));
-  const { nameFor } = useDisplayNames(chat ? chatPeople(chat, selfId, allMessages) : []);
+  } = useChatTimeline(id, thread, session, Boolean(onOpenThread));
+  const { nameFor } = useDisplayNames(
+    chat ? chatPeople(chat, selfIdFor({ sessions }, chat.protocol), allMessages) : []
+  );
   const pinnedMessages = usePinnedMessages(
     id,
     allMessages,
@@ -136,7 +134,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
     retry: (message) => void retryMessage(id, message.id),
     togglePin: (message) => void onPinMessage(message),
   };
-  const permissions = chatPermissions(chat, session);
+  const permissions = chat ? chatPermissions(chat, session) : NO_PERMISSIONS;
   const can: ActionSupport = { ...permissions, thread: threads && onOpenThread !== undefined };
   const actionsFor = (message: ChatMessage) => messageActions(message, handlers, can);
   const onVote = supports('votePoll')
@@ -161,20 +159,15 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
     />
   );
 
-  const title = chat ? chatTitle(chat, selfId, nameFor) : 'Chat';
-
   return (
     <View className={desktop ? 'flex-1' : 'flex-1 bg-canvas'}>
       {desktop ? null : <ChatBackground pattern={wallpaper} />}
 
-      <ChatHeader
-        id={id}
-        thread={thread}
-        chat={chat}
-        selfId={selfId}
-        chatTitle={title}
-        onBack={onBack}
-      />
+      {chat ? (
+        <ChatHeader chat={chat} thread={thread} nameFor={nameFor} onBack={onBack} />
+      ) : (
+        <PendingChatHeader thread={thread} onBack={onBack} />
+      )}
 
       <PinnedMessages
         messages={pinnedMessages}
@@ -190,10 +183,8 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
         className="flex-1">
         {messages.length === 0 ? (
           <View className="flex-1">
-            <HistoryStatus protocol={chat?.protocol} />
-            {messageHistory || isBot ? (
-              <EmptyTranscript protocol={chat?.protocol} isBot={isBot} />
-            ) : null}
+            <HistoryStatus protocol={protocol} />
+            {messageHistory || isBot ? <EmptyTranscript protocol={protocol} isBot={isBot} /> : null}
           </View>
         ) : (
           <MessageList
@@ -210,7 +201,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
                     onPress={() => void loadOlderMessages(id)}
                   />
                 ) : null}
-                {!isBot && chat?.protocol ? <HistoryStatus protocol={chat.protocol} /> : null}
+                {!isBot && protocol ? <HistoryStatus protocol={protocol} /> : null}
               </View>
             }
             footer={running ? <CommandPending label={`Running ${running}…`} /> : null}
@@ -219,9 +210,9 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
         )}
 
         <View style={{ paddingBottom: insets.bottom }}>
-          {chat?.consent === 'request' ? (
+          {!chat ? null : chat.consent === 'request' ? (
             <RequestBar chatId={id} />
-          ) : chat?.kind === 'channel' && !permissions.send ? (
+          ) : chat.kind === 'channel' && !permissions.send ? (
             <ChannelMuteBar id={id} />
           ) : !permissions.send ? (
             <View className="mx-gutter mb-2 min-h-tap items-center justify-center rounded-pill border border-line bg-surface-raised px-4">
@@ -230,6 +221,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
           ) : (
             <Composer
               chatId={id}
+              kind={chat.kind}
               thread={thread}
               onSendText={(text) => composer.submit(text)}
               onSendContent={onSendContent}

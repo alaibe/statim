@@ -16,7 +16,6 @@ describe('chatPermissions', () => {
     expect(chatPermissions(testChat({ kind: 'group', canSend: false }), undefined).send).toBe(
       false
     );
-    expect(chatPermissions(undefined, undefined).send).toBe(true);
   });
 
   it('offers only the message actions the session has', () => {

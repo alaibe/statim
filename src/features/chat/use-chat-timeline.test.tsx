@@ -5,6 +5,7 @@ import { useChatStore } from '@/core/messaging/chat-store';
 import type { ChatMessage } from '@/core/messaging/types';
 import { useChatTimeline } from './use-chat-timeline';
 import { asChatId } from '@/core/messaging/testing/ids';
+import { testChat } from '@/core/messaging/testing/chats';
 
 jest.mock('expo-observe', () => ({ useObserve: () => ({ markInteractive: () => {} }) }));
 
@@ -20,7 +21,7 @@ const message = (id: string, threadRoot?: string): ChatMessage => ({
 });
 
 function Probe({ thread }: { thread?: string }) {
-  const timeline = useChatTimeline(asChatId('chat'), thread, undefined, undefined, true);
+  const timeline = useChatTimeline(asChatId('chat'), thread, undefined, true);
   return createElement('probe', {
     ids: timeline.messages.map((item) => item.id),
     replies: timeline.replyCounts.get('root'),
@@ -88,6 +89,28 @@ it('marks the chat read only when something arrived since it was last read', () 
       messages: { [asChatId('chat')]: [fromParticipant('seen', 5), fromParticipant('new', 20)] },
     })
   );
+  expect(markRead).toHaveBeenCalledTimes(1);
+  act(() => tree.unmount());
+});
+
+it('marks the chat read when its protocol reports unread messages', () => {
+  const markRead = jest.fn(async () => {});
+  useChatStore.setState({
+    accountId: null,
+    chats: [testChat({ id: 'chat', unreadCount: 0 })],
+    messages: {},
+    messageHistory: {},
+    readAt: {},
+    markRead,
+  });
+
+  let tree!: ReactTestRenderer;
+  act(() => {
+    tree = create(createElement(Probe));
+  });
+  expect(markRead).not.toHaveBeenCalled();
+
+  act(() => useChatStore.setState({ chats: [testChat({ id: 'chat', unreadCount: 3 })] }));
   expect(markRead).toHaveBeenCalledTimes(1);
   act(() => tree.unmount());
 });

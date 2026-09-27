@@ -19,7 +19,7 @@ import { isLocalChat, SAVED_LOCAL_ID, STATUS_LOCAL_ID } from '@/core/messaging/b
 import { chatScope } from '@/core/messaging/chat-scope';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { draftKey } from '@/core/messaging/drafts';
-import type { ChatId, MessageContent, MessageId } from '@/core/messaging/types';
+import type { ChatId, ChatKind, MessageContent, MessageId } from '@/core/messaging/types';
 import { usePluginHost } from '@/core/plugins/host';
 import { errorMessage } from '@/core/errors';
 
@@ -46,6 +46,7 @@ import { useTypingAnnouncer } from './use-typing-announcer';
 
 export interface ComposerProps {
   chatId: ChatId;
+  kind: ChatKind;
   /** Writes into this thread, with a draft of its own. */
   thread?: MessageId;
   onSendText(text: string): Promise<string>;
@@ -61,6 +62,7 @@ export interface ComposerProps {
 
 export function Composer({
   chatId,
+  kind,
   thread,
   onSendText,
   onSendContent,
@@ -83,7 +85,6 @@ export function Composer({
     [chatId, thread, setDraftFor]
   );
 
-  const kind = useChatStore((s) => s.chats.find((c) => c.id === chatId)?.kind);
   const scope = chatScope(chatId, kind);
   const { commands, dispatch, busy, error, setError } = useCommandDispatch({
     chatId,
