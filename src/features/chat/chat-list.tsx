@@ -7,7 +7,7 @@ import Animated from 'react-native-reanimated';
 
 import {
   ActionSheet,
-  Badge,
+  CountBadge,
   EmptyState,
   Enter,
   Icon,
@@ -324,7 +324,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
                       <Text className="font-semibold">Message requests</Text>
                       <Text variant="caption">From people you haven’t replied to</Text>
                     </View>
-                    <Badge label={String(requests.length)} tone="brand" />
+                    <CountBadge count={requests.length} />
                   </Pressable>
                 ) : null}
               </>

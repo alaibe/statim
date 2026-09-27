@@ -9,6 +9,7 @@ import { formatTimestamp, messagePreview } from '@/core/messaging/preview';
 import type { Conversation, ConversationId } from '@/core/messaging/types';
 import { unreadBadge } from '@/core/messaging/unread';
 import {
+  CountBadge,
   Enter,
   Icon,
   ListItem,
@@ -22,7 +23,6 @@ import {
 import { openChat } from '@/features/navigation/open';
 import { protocolLabel } from '@/features/protocols/presentation';
 import { ConversationAvatar } from './conversation-avatar';
-import { CountBadge } from './folder-tabs';
 
 export function ConversationRow({
   conversation,
