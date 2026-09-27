@@ -2,7 +2,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 
-import { Badge, Button, Card, Field, Note, Screen, Text, toast } from '@/design';
+import { Badge, Button, Card, Field, Note, Screen, Text } from '@/design';
 import { useIdentityStore } from '@/core/identity/identity-store';
 import { useChatStore } from '@/core/messaging/chat-store';
 import {
@@ -12,7 +12,6 @@ import {
   type ProtocolConfig,
 } from '@/core/messaging/config';
 import { protocolById } from '@/protocols';
-import { errorMessage } from '@/core/errors';
 import { LoginStep, SignedIn } from '@/features/protocols/login';
 import { MatrixBridges } from '@/features/protocols/matrix-bridges';
 import type { ChatSession } from '@/core/messaging/protocol';
@@ -20,6 +19,7 @@ import type { MatrixCapabilities } from '@/protocols/matrix/provisioning';
 import { describeProtocol, toneFor } from '@/features/protocols/presentation';
 import { accountRuntime } from '@/runtime';
 import { openExternal } from '@/lib/open-url';
+import { useAction } from '@/features/chat/use-action';
 
 export default function ProtocolConfigScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -30,7 +30,6 @@ export default function ProtocolConfigScreen() {
   const session = useChatStore((s) => (id ? s.sessions[id] : undefined));
 
   const [config, setConfig] = useState<ProtocolConfig | null>(null);
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!accountId || !descriptor) return;
@@ -43,6 +42,14 @@ export default function ProtocolConfigScreen() {
     };
   }, [accountId, descriptor]);
 
+  const save = useAction(
+    async () => {
+      if (!accountId || !config || !descriptor) return;
+      await accountRuntime.updateProtocolConfig(accountId, descriptor.id, config);
+    },
+    { success: `${descriptor?.label} settings saved`, failure: 'Could not save those settings' }
+  );
+
   if (!descriptor) {
     return (
       <Screen className="px-0" edges={[]}>
@@ -53,19 +60,6 @@ export default function ProtocolConfigScreen() {
   }
 
   const missing = config ? missingFields(descriptor.configSchema, config) : [];
-
-  async function save() {
-    if (!accountId || !config || !descriptor) return;
-
-    setBusy(true);
-    try {
-      await accountRuntime.updateProtocolConfig(accountId, descriptor.id, config);
-      toast.success(`${descriptor.label} settings saved`);
-    } catch (e) {
-      toast.error(errorMessage(e, 'Could not save those settings'));
-    }
-    setBusy(false);
-  }
 
   return (
     <Screen className="px-0" edges={[]}>
@@ -162,9 +156,9 @@ export default function ProtocolConfigScreen() {
               label="Save and reconnect"
               size="md"
               fullWidth
-              loading={busy}
+              loading={save.busy}
               disabled={config === null}
-              onPress={save}
+              onPress={() => save.run()}
             />
           </View>
         </ScrollView>

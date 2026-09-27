@@ -1,17 +1,17 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 import { View } from 'react-native';
 
 import { Button, Card, Icon, Screen, Text } from '@/design';
 import { eraseAllAccounts } from '@/core/app/erase-account';
 import { useIdentityStore } from '@/core/identity/identity-store';
 import { shortAddress } from '@/core/identity/keyring';
+import { useAction } from '@/features/chat/use-action';
 
 export default function RecoverScreen() {
   const router = useRouter();
 
   const accounts = useIdentityStore((s) => s.accounts);
-  const [erasing, setErasing] = useState(false);
+  const erase = useAction(eraseAllAccounts, { failure: 'Could not erase this device' });
 
   return (
     <Screen className="justify-center gap-6 px-gutter">
@@ -50,15 +50,12 @@ export default function RecoverScreen() {
           onPress={() => router.push('/(onboarding)/import')}
         />
         <Button
-          label={erasing ? 'Erasing…' : 'Erase everything and start over'}
+          label={erase.busy ? 'Erasing…' : 'Erase everything and start over'}
           tone="danger"
           fullWidth
-          disabled={erasing}
-          onPress={() => {
-            setErasing(true);
-            eraseAllAccounts()
-              .then(() => router.replace('/(onboarding)/welcome'))
-              .finally(() => setErasing(false));
+          disabled={erase.busy}
+          onPress={async () => {
+            if (await erase.run()) router.replace('/(onboarding)/welcome');
           }}
         />
       </View>

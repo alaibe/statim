@@ -12,11 +12,11 @@ import {
   Screen,
   Section,
   Text,
-  toast,
 } from '@/design';
 import { errorMessage } from '@/core/errors';
 import { useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
 import { formatDayLabel } from '@/core/messaging/preview';
+import { useAction } from '@/features/chat/use-action';
 
 interface Installation {
   id: string;
@@ -30,7 +30,6 @@ export default function DevicesScreen() {
   const [installations, setInstallations] = useState<Installation[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<Installation | null>(null);
-  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!session?.listInstallations) {
@@ -55,19 +54,13 @@ export default function DevicesScreen() {
     };
   }, [load]);
 
-  async function revoke(installation: Installation) {
-    if (!session?.revokeInstallations) return;
-    setBusy(true);
-    try {
-      await session.revokeInstallations([installation.id]);
-      toast.success('Device revoked');
+  const revoke = useAction(
+    async (installation: Installation) => {
+      await session?.revokeInstallations?.([installation.id]);
       await load();
-    } catch (e) {
-      toast.error(errorMessage(e, 'Could not revoke that device'));
-    }
-    setBusy(false);
-    setConfirming(null);
-  }
+    },
+    { success: 'Device revoked', failure: 'Could not revoke that device' }
+  );
 
   const others = (installations ?? []).filter((i) => !i.current);
   const here = (installations ?? []).find((i) => i.current);
@@ -142,12 +135,15 @@ export default function DevicesScreen() {
           'That device will no longer be able to read or send messages for this account. It cannot be undone: the device would have to be added again from scratch, and it would start with no history.',
           'This needs a signature from your account.',
         ]}
-        busy={busy}
+        busy={revoke.busy}
         confirm={{
           label: 'Revoke device',
           busyLabel: 'Revoking…',
           tone: 'danger',
-          onPress: () => confirming && revoke(confirming),
+          onPress: async () => {
+            if (confirming) await revoke.run(confirming);
+            setConfirming(null);
+          },
         }}
       />
     </Screen>

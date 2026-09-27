@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
-import { Button, Card, Field, Text, toast } from '@/design';
-import { errorMessage } from '@/core/errors';
+import { Button, Card, Field, Text } from '@/design';
 import type { ChatSession, LoginState } from '@/core/messaging/protocol';
+import { useAction } from '@/features/chat/use-action';
 
 const COPY: Record<LoginState['step'], { label: string; placeholder: string; action: string }> = {
   phone: { label: 'Phone number', placeholder: '+44 7700 900123', action: 'Send code' },
@@ -24,18 +24,13 @@ export function LoginStep({
   label: string;
 }) {
   const [value, setValue] = useState('');
-  const [busy, setBusy] = useState(false);
   const copy = COPY[login.step];
+  const submitLogin = useAction(async () => session?.submitLogin?.(value), {
+    failure: `${label} did not accept that`,
+  });
 
-  async function submit() {
-    if (!session?.submitLogin || value.trim().length === 0) return;
-    setBusy(true);
-    try {
-      await session.submitLogin(value);
-    } catch (e) {
-      toast.error(errorMessage(e, `${label} did not accept that`));
-    }
-    setBusy(false);
+  function submit() {
+    if (value.trim().length > 0) void submitLogin.run();
   }
 
   return (
@@ -79,7 +74,7 @@ export function LoginStep({
         label={copy.action}
         size="md"
         fullWidth
-        loading={busy}
+        loading={submitLogin.busy}
         disabled={value.trim().length === 0}
         onPress={submit}
       />
@@ -88,19 +83,10 @@ export function LoginStep({
 }
 
 export function SignedIn({ session, label }: { session: ChatSession; label: string }) {
-  const [busy, setBusy] = useState(false);
-
-  async function signOut() {
-    if (!session.signOut) return;
-    setBusy(true);
-    try {
-      await session.signOut();
-      toast.success(`Signed out of ${label}`);
-    } catch (e) {
-      toast.error(errorMessage(e, 'Could not sign out'));
-    }
-    setBusy(false);
-  }
+  const signOut = useAction(async () => session.signOut?.(), {
+    success: `Signed out of ${label}`,
+    failure: 'Could not sign out',
+  });
 
   return (
     <Card className="gap-2" testID="protocol-signed-in">
@@ -111,7 +97,13 @@ export function SignedIn({ session, label }: { session: ChatSession; label: stri
         Signing out ends this session on {label} as well and removes its data from this device.
       </Text>
       {session.signOut ? (
-        <Button label="Sign out" tone="neutral" size="sm" loading={busy} onPress={signOut} />
+        <Button
+          label="Sign out"
+          tone="neutral"
+          size="sm"
+          loading={signOut.busy}
+          onPress={() => signOut.run()}
+        />
       ) : null}
     </Card>
   );

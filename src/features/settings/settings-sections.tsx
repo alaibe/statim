@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
-import { Chevron, ConfirmSheet, ListItem, RowIcon, Section, toast } from '@/design';
+import { Chevron, ConfirmSheet, ListItem, RowIcon, Section } from '@/design';
 import { useIdentityStore } from '@/core/identity/identity-store';
 import { readCredentials, type Credentials } from '@/core/identity/credentials';
 import { useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
@@ -9,10 +9,10 @@ import { transportProtocols } from '@/protocols';
 import { xmtpEnvironment } from '@/protocols/xmtp/shared';
 import { eraseAccount } from '@/core/app/erase-account';
 import { usePluginHost } from '@/core/plugins/host';
-import { errorMessage } from '@/core/errors';
 import { BiometricSection } from '@/features/settings/biometric-section';
 import { openTab } from '@/features/navigation/open';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
+import { useAction } from '@/features/chat/use-action';
 
 /** The routes the sections open, so a layout showing both can mark the open one. */
 export const SETTINGS_PAGES = [
@@ -60,7 +60,7 @@ export function SettingsSections({
   const { enabledIds, registry } = usePluginHost();
 
   const [confirmErase, setConfirmErase] = useState(false);
-  const [erasing, setErasing] = useState(false);
+  const erase = useAction(() => eraseAccount(), { failure: 'Could not erase that account' });
 
   return (
     <>
@@ -221,20 +221,13 @@ export function SettingsSections({
         onClose={() => setConfirmErase(false)}
         title="Erase this account?"
         body="This erases the keys and every message stored on this device. Nothing is kept, and nobody can send it back to you. The only way to return is the recovery phrase."
-        busy={erasing}
+        busy={erase.busy}
         confirm={{
           testID: 'confirm-erase-account',
           label: 'Erase account',
           tone: 'danger',
           onPress: async () => {
-            setErasing(true);
-            try {
-              await eraseAccount();
-              setConfirmErase(false);
-            } catch (error) {
-              toast.error(errorMessage(error, 'Could not erase that account'));
-            }
-            setErasing(false);
+            if (await erase.run()) setConfirmErase(false);
           },
         }}
       />

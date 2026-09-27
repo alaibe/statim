@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
-import { Button, cn, Text, toast } from '@/design';
-import { errorMessage } from '@/core/errors';
+import { Button, cn, Text } from '@/design';
 import type { MessageContent } from '@/core/messaging/types';
+
+import { useAction } from './use-action';
 
 type Poll = Extract<MessageContent, { kind: 'poll' }>;
 
@@ -19,22 +20,19 @@ export function PollBubble({
   const chosen = poll.options.flatMap((option, index) => (option.chosen ? [index] : []));
   const [selected, setSelected] = useState<number[] | null>(null);
   const currentSelection = selected ?? chosen;
-  const [busy, setBusy] = useState(false);
+  const vote = useAction(
+    async (ids: number[]) => {
+      await onVote?.(ids);
+      setSelected(null);
+    },
+    { failure: 'Could not vote' }
+  );
   const voted = chosen.length > 0;
-  const canVote = !!onVote && !poll.closed && !busy;
+  const canVote = !!onVote && !poll.closed && !vote.busy;
   const textColor = fromMe ? 'text-bubble-out-on' : 'text-bubble-in-on';
 
-  const submit = async (ids: number[]) => {
-    if (!canVote) return;
-    setBusy(true);
-    try {
-      await onVote(ids);
-      setSelected(null);
-    } catch (error) {
-      toast.error(errorMessage(error, 'Could not vote'));
-    } finally {
-      setBusy(false);
-    }
+  const submit = (ids: number[]) => {
+    if (canVote) void vote.run(ids);
   };
 
   return (
@@ -57,7 +55,7 @@ export function PollBubble({
                     const ids = current ?? chosen;
                     return ids.includes(index) ? ids.filter((id) => id !== index) : [...ids, index];
                   })
-                : void submit([index])
+                : submit([index])
             }
             className={cn(
               'min-h-10 flex-row items-center gap-2 rounded-lg px-2 py-1.5',
@@ -80,7 +78,7 @@ export function PollBubble({
       selected &&
       selected.length > 0 &&
       (selected.length !== chosen.length || selected.some((id) => !chosen.includes(id))) ? (
-        <Button label="Vote" size="sm" onPress={() => void submit(selected)} />
+        <Button label="Vote" size="sm" onPress={() => submit(selected)} />
       ) : null}
       <Text variant="micro" className={fromMe ? 'text-bubble-out-on/70' : undefined}>
         {poll.totalVoters} {poll.totalVoters === 1 ? 'vote' : 'votes'}

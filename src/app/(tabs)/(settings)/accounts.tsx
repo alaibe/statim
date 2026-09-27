@@ -24,6 +24,7 @@ import { shortAddress } from '@/core/identity/keyring';
 import { describeKind } from '@/core/identity/account-kind';
 import { hardwareVendors } from '@/core/identity/hardware';
 import { ConnectHardware } from '@/features/identity/connect-hardware';
+import { useAction } from '@/features/chat/use-action';
 
 export default function AccountsScreen() {
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function AccountsScreen() {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [confirmWipe, setConfirmWipe] = useState<string | null>(null);
   const [draftLabel, setDraftLabel] = useState('');
-  const [busy, setBusy] = useState(false);
+  const erase = useAction(eraseAccount, { failure: 'Could not erase that account' });
   const [connecting, setConnecting] = useState(false);
 
   const target = accounts.find((a) => a.id === (managing ?? renaming ?? confirmWipe));
@@ -175,23 +176,17 @@ export default function AccountsScreen() {
         onClose={() => setConfirmWipe(null)}
         title="Erase this account?"
         body={`This deletes ${target?.label}'s keys, messages and plugin data from this device. Nobody else holds them, so without its recovery phrase written down the account cannot be recovered. Your other accounts are untouched.`}
-        busy={busy}
+        busy={erase.busy}
         confirm={{
           label: 'Erase account',
           busyLabel: 'Erasing…',
           tone: 'danger',
           onPress: async () => {
             if (!confirmWipe) return;
-            setBusy(true);
             const next = accounts.length === 1 ? '/(onboarding)/welcome' : '/chats';
-            try {
-              await eraseAccount(confirmWipe);
-              setConfirmWipe(null);
-              router.replace(next);
-            } catch (error) {
-              toast.error(errorMessage(error, 'Could not erase that account'));
-            }
-            setBusy(false);
+            if (!(await erase.run(confirmWipe))) return;
+            setConfirmWipe(null);
+            router.replace(next);
           },
         }}
       />
