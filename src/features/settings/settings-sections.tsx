@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { Chevron, ConfirmSheet, ListItem, RowIcon, Section, toast } from '@/design';
 import { useIdentityStore } from '@/core/identity/identity-store';
@@ -12,6 +12,7 @@ import { usePluginHost } from '@/core/plugins/host';
 import { errorMessage } from '@/core/errors';
 import { BiometricSection } from '@/features/settings/biometric-section';
 import { openTab } from '@/features/navigation/open';
+import { useKeyedLoad } from '@/lib/use-keyed-load';
 
 /** The routes the sections open, so a layout showing both can mark the open one. */
 export const SETTINGS_PAGES = [
@@ -35,25 +36,10 @@ export type SettingsPage = (typeof SETTINGS_PAGES)[number];
  */
 export function useSettingsKeys(revision: unknown): Credentials {
   const activeAccountId = useIdentityStore((s) => s.activeAccountId);
-  const [keys, setKeys] = useState<{ accountId: string; credentials: Credentials } | null>(null);
-
-  useEffect(() => {
-    if (!activeAccountId) return;
-    let cancelled = false;
-    const accountId = activeAccountId;
-    readCredentials(accountId)
-      .catch((): Credentials => ({}))
-      .then((credentials) => {
-        if (!cancelled) setKeys({ accountId, credentials });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeAccountId, revision]);
-
-  // Another account's keys never show, not even for the moment a load takes.
-  return keys?.accountId === activeAccountId ? keys.credentials : {};
+  return useKeyedLoad(activeAccountId, readCredentials, revision).value ?? NO_KEYS;
 }
+
+const NO_KEYS: Credentials = {};
 
 export function SettingsSections({
   keys,

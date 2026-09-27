@@ -10,10 +10,10 @@ interface Loaded<T> {
  * What `load` returned for `key`, or the error it threw. A result that arrives
  * after the key changed is dropped; `version` reloads the same key.
  */
-export function useKeyedLoad<T>(
-  key: string | null,
-  load: (key: string) => Promise<T>,
-  version?: string | number
+export function useKeyedLoad<T, K extends string = string>(
+  key: K | null,
+  load: (key: K) => Promise<T>,
+  version?: unknown
 ) {
   const [loaded, setLoaded] = useState<Loaded<T> | null>(null);
   const run = useEffectEvent(load);

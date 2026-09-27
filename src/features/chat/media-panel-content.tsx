@@ -6,6 +6,7 @@ import { ErrorText, Loading, Pressable, SearchField, Text } from '@/design';
 import { useIdentityStore } from '@/core/identity/identity-store';
 import type { MessageContent } from '@/core/messaging/types';
 import { errorMessage } from '@/core/errors';
+import { useKeyedLoad } from '@/lib/use-keyed-load';
 
 import { featuredGifs, gifToContent, loadGifKey, searchGifs, type Gif } from './attachments/gifs';
 import { EmojiGrid } from './emoji-grid';
@@ -97,26 +98,12 @@ function GifGrid({
 }) {
   const accountId = useIdentityStore((s) => s.activeAccountId);
 
-  const [key, setKey] = useState<string | null | undefined>(undefined);
+  const gifKey = useKeyedLoad(accountId, loadGifKey);
+  const key = gifKey.loading ? undefined : (gifKey.value ?? null);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Gif[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!accountId) return;
-    let cancelled = false;
-    loadGifKey(accountId)
-      .then((value) => {
-        if (!cancelled) setKey(value);
-      })
-      .catch(() => {
-        if (!cancelled) setKey(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [accountId]);
 
   useEffect(() => {
     if (!key) return;

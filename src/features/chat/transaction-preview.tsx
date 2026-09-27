@@ -1,35 +1,17 @@
-import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { cn, Icon, Pressable, Text, useThemeColors } from '@/design';
 import { shortAddress } from '@/core/identity/keyring';
 import { SUPPORTED_CHAINS } from '@/lib/evm/chains';
-import { locateTransaction, type TransactionSummary } from '@/lib/evm/transactions';
+import { locateTransaction } from '@/lib/evm/transactions';
 import { openInBrowser } from '@/lib/open-url';
+import { useKeyedLoad } from '@/lib/use-keyed-load';
 
 export function TransactionPreview({ hash, fromMe }: { hash: `0x${string}`; fromMe: boolean }) {
   const colors = useThemeColors();
-  const [summary, setSummary] = useState<TransactionSummary | null>(null);
-  const [looking, setLooking] = useState(true);
+  const summary = useKeyedLoad(hash, locate).value;
 
-  useEffect(() => {
-    let cancelled = false;
-    locateTransaction(
-      hash,
-      SUPPORTED_CHAINS.map((chain) => chain.id)
-    )
-      .then((found) => {
-        if (!cancelled) setSummary(found);
-      })
-      .finally(() => {
-        if (!cancelled) setLooking(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [hash]);
-
-  if (looking || !summary) return null;
+  if (!summary) return null;
 
   const tone =
     summary.status === 'success'
@@ -80,5 +62,12 @@ export function TransactionPreview({ hash, fromMe }: { hash: `0x${string}`; from
         {shortAddress(summary.from)} → {summary.to ? shortAddress(summary.to) : 'contract creation'}
       </Text>
     </Pressable>
+  );
+}
+
+function locate(hash: `0x${string}`) {
+  return locateTransaction(
+    hash,
+    SUPPORTED_CHAINS.map((chain) => chain.id)
   );
 }

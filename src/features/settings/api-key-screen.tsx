@@ -1,11 +1,12 @@
 import { Stack } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { ScrollView, type TextInput, View } from 'react-native';
+import { useState } from 'react';
+import { ScrollView, View } from 'react-native';
 
 import { Button, Field, Note, Screen, Section, Text, toast } from '@/design';
 import { useIdentityStore } from '@/core/identity/identity-store';
 import { errorMessage } from '@/core/errors';
 import { openExternal } from '@/lib/open-url';
+import { useKeyedLoad } from '@/lib/use-keyed-load';
 
 export interface ApiKeyScreenProps {
   title: string;
@@ -32,20 +33,12 @@ export function ApiKeyScreen({
   link,
 }: ApiKeyScreenProps) {
   const accountId = useIdentityStore((s) => s.activeAccountId);
-  const [key, setKey] = useState('');
-  const [saved, setSaved] = useState<string | null>();
-  const inputRef = useRef<TextInput>(null);
+  const [version, setVersion] = useState(0);
+  const stored = useKeyedLoad(accountId, load, version);
+  const saved = stored.loading ? undefined : (stored.value ?? null);
+  const [draft, setDraft] = useState<{ accountId: string | null; text: string } | null>(null);
+  const key = draft?.accountId === accountId ? draft.text : (saved ?? '');
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (!accountId) return;
-    load(accountId)
-      .then((existing) => {
-        setSaved(existing);
-        setKey(existing ?? '');
-      })
-      .catch(() => setSaved(null));
-  }, [accountId, load]);
 
   async function submit(value: string) {
     if (!accountId) {
@@ -57,7 +50,7 @@ export function ApiKeyScreen({
     setBusy(true);
     try {
       await save(accountId, value);
-      setSaved(next);
+      setVersion((v) => v + 1);
       toast.success(done);
     } catch (e) {
       toast.error(errorMessage(e, 'Could not save that key'));
@@ -76,10 +69,9 @@ export function ApiKeyScreen({
           <Section title={sectionTitle} surface="card" className="mb-6">
             <View className="gap-3 px-gutter py-4">
               <Field
-                ref={inputRef}
                 testID={testIdPrefix}
-                defaultValue={saved ?? ''}
-                onChangeText={setKey}
+                value={key}
+                onChangeText={(text) => setDraft({ accountId, text })}
                 placeholder={placeholder}
                 autoCorrect={false}
                 autoCapitalize="none"
@@ -105,8 +97,7 @@ export function ApiKeyScreen({
                       fullWidth
                       disabled={busy}
                       onPress={() => {
-                        inputRef.current?.clear();
-                        setKey('');
+                        setDraft({ accountId, text: '' });
                         submit('');
                       }}
                     />

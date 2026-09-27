@@ -1,5 +1,4 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { Avatar, Badge, IconButton, Text } from '@/design';
@@ -8,26 +7,12 @@ import { shortAddress } from '@/core/identity/keyring';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { lookupName } from '@/lib/evm/ens';
 import { openInBrowser } from '@/lib/open-url';
+import { useKeyedLoad } from '@/lib/use-keyed-load';
 
 /** Looked up again whenever `revision` changes, so a name claimed on the ENS site shows on the way back. */
 export function useEnsName(revision: unknown): string | null {
   const address = useIdentityStore((s) => s.keyring?.address);
-  const [ens, setEns] = useState<{ address: string; name: string | null } | null>(null);
-
-  useEffect(() => {
-    if (!address) return;
-    let cancelled = false;
-    lookupName(address)
-      .then((name) => {
-        if (!cancelled) setEns({ address, name });
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [address, revision]);
-
-  return ens && ens.address === address ? ens.name : null;
+  return useKeyedLoad(address ?? null, lookupName, revision).value ?? null;
 }
 
 /** The account at the top of Settings: who you are, and whether you are connected. */
