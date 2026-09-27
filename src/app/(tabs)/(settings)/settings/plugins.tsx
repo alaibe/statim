@@ -1,24 +1,12 @@
 import { useState } from 'react';
-import { View } from 'react-native';
 
-import {
-  Badge,
-  cn,
-  ConfirmSheet,
-  ListItem,
-  RowIcon,
-  Section,
-  Sheet,
-  Text,
-  toast,
-  Toggle,
-  type RowIconTone,
-} from '@/design';
+import { ConfirmSheet, ListItem, Section, toast, Toggle } from '@/design';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { botChatLoss, botChatLossCopy, type BotChatLoss } from '@/core/plugins/bot-chats';
 import { usePluginHost } from '@/core/plugins/host';
-import { PERMISSION_LABELS, type Plugin } from '@/core/plugins/types';
+import { type Plugin } from '@/core/plugins/types';
 import { errorMessage } from '@/core/errors';
+import { PluginDetailSheet, PluginIcon } from '@/features/settings/plugin-detail-sheet';
 import { SettingsScreen } from '@/features/settings/settings-screen';
 
 export default function PluginsScreen() {
@@ -59,8 +47,6 @@ export default function PluginsScreen() {
     ? botChatLossCopy(pendingDisable.plugin.manifest.name, pendingDisable.loss)
     : null;
 
-  const detailHasChat = detail ? registry.botsOf(detail.manifest.id).length > 0 : false;
-
   return (
     <SettingsScreen
       title="Plugins"
@@ -75,9 +61,7 @@ export default function PluginsScreen() {
               title={plugin.manifest.name}
               subtitle={plugin.manifest.description}
               numberOfLinesSubtitle={2}
-              leading={
-                <RowIcon name={plugin.manifest.icon} tone={TONE[plugin.manifest.id] ?? 'grey'} />
-              }
+              leading={<PluginIcon plugin={plugin} />}
               trailing={
                 <Toggle
                   label={plugin.manifest.name}
@@ -91,47 +75,7 @@ export default function PluginsScreen() {
         })}
       </Section>
 
-      <Sheet
-        visible={detail !== null}
-        onClose={() => setDetail(null)}
-        title={detail?.manifest.name}
-        subtitle={detail ? `v${detail.manifest.version}` : undefined}
-        leading={
-          detail ? (
-            <RowIcon name={detail.manifest.icon} tone={TONE[detail.manifest.id] ?? 'grey'} />
-          ) : undefined
-        }>
-        <View className="gap-3">
-          <Text variant="footnote">{detail?.manifest.description}</Text>
-
-          <Section title="What it can reach" surface="card" inset={false}>
-            {detail?.manifest.permissions.map((permission, i) => (
-              <Text
-                key={permission}
-                variant="footnote"
-                className={cn('px-4 py-2.5', i > 0 && 'border-t border-line')}>
-                {PERMISSION_LABELS[permission]}
-              </Text>
-            ))}
-          </Section>
-
-          {detail?.manifest.requiresSessionRestart || detailHasChat ? (
-            <View className="flex-row flex-wrap gap-1.5">
-              {detail?.manifest.requiresSessionRestart ? (
-                <Badge label="Reconnects chat" tone="warning" />
-              ) : null}
-              {detailHasChat ? <Badge label="Has its own chat" tone="brand" /> : null}
-            </View>
-          ) : null}
-
-          {detailHasChat ? (
-            <Text variant="caption">
-              Turning this off takes its chat out of your list. The transcript stays on this device
-              and returns if you turn it back on.
-            </Text>
-          ) : null}
-        </View>
-      </Sheet>
+      <PluginDetailSheet plugin={detail} onClose={() => setDetail(null)} />
 
       <ConfirmSheet
         visible={pendingDisable !== null}
@@ -152,12 +96,3 @@ export default function PluginsScreen() {
     </SettingsScreen>
   );
 }
-
-const TONE: Record<string, RowIconTone> = {
-  assistant: 'purple',
-  profile: 'blue',
-  bots: 'grey',
-  wallet: 'green',
-  browser: 'teal',
-  markets: 'orange',
-};
