@@ -8,10 +8,8 @@ import {
   Button,
   Checkmark,
   ConfirmSheet,
-  Field,
   ListItem,
   Section,
-  Sheet,
   SwipeableRow,
   toast,
 } from '@/design';
@@ -23,6 +21,7 @@ import { describeKind } from '@/core/identity/account-kind';
 import { hardwareVendors } from '@/core/identity/hardware';
 import { ConnectHardware } from '@/features/identity/connect-hardware';
 import { useAction } from '@/features/chat/use-action';
+import { RenameAccountSheet } from '@/features/settings/rename-account-sheet';
 import { SettingsScreen } from '@/features/settings/settings-screen';
 
 export default function AccountsScreen() {
@@ -31,12 +30,10 @@ export default function AccountsScreen() {
   const accounts = useIdentityStore((s) => s.accounts);
   const activeAccountId = useIdentityStore((s) => s.activeAccountId);
   const selectAccount = useIdentityStore((s) => s.selectAccount);
-  const renameAccount = useIdentityStore((s) => s.renameAccount);
 
   const [managing, setManaging] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [confirmWipe, setConfirmWipe] = useState<string | null>(null);
-  const [draftLabel, setDraftLabel] = useState('');
   const erase = useAction(eraseAccount, { failure: 'Could not erase that account' });
   const [connecting, setConnecting] = useState(false);
 
@@ -124,10 +121,7 @@ export default function AccountsScreen() {
           {
             label: 'Rename',
             icon: 'create-outline',
-            onPress: () => {
-              setDraftLabel(target?.label ?? '');
-              setRenaming(managing);
-            },
+            onPress: () => setRenaming(managing),
           },
           {
             label: 'Erase this account',
@@ -138,30 +132,10 @@ export default function AccountsScreen() {
         ]}
       />
 
-      <Sheet visible={renaming !== null} onClose={() => setRenaming(null)} title="Rename account">
-        <View className="gap-3">
-          <Field
-            defaultValue={draftLabel}
-            onChangeText={setDraftLabel}
-            autoFocus
-            placeholder="Personal"
-            maxLength={40}
-            // The same distinction the create screen draws. Without it the
-            // field looks like it sets what other people see, and it is the
-            // one name that never leaves the device.
-            hint="Just for you, on this device. An ENS name is the one other people see."
-          />
-          <Button
-            label="Save"
-            fullWidth
-            disabled={draftLabel.trim().length === 0}
-            onPress={async () => {
-              if (renaming) await renameAccount(renaming, draftLabel);
-              setRenaming(null);
-            }}
-          />
-        </View>
-      </Sheet>
+      <RenameAccountSheet
+        account={accounts.find((a) => a.id === renaming) ?? null}
+        onClose={() => setRenaming(null)}
+      />
 
       <ConfirmSheet
         visible={confirmWipe !== null}
