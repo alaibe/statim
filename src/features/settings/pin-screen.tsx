@@ -27,20 +27,20 @@ import { SettingsScreen } from '@/features/settings/settings-screen';
 import {
   advancePinFlow,
   type PinFlowEvent,
-  type PinFlowKind,
+  type SettingsPinFlow,
   type PinFlowState,
   pinFlowKind,
   type PinTask,
   startPinFlow,
-} from './pin-flow';
+} from '@/features/account/pin-flow';
 
-const TITLE: Record<PinFlowKind, string> = {
+const TITLE: Record<SettingsPinFlow, string> = {
   set: 'Set PIN',
   change: 'Change PIN',
   off: 'Turn off PIN',
 };
 
-const DONE: Record<PinFlowKind, string> = {
+const DONE: Record<SettingsPinFlow, string> = {
   set: 'PIN set. The app asks for it when it opens.',
   change: 'PIN changed',
   off: 'PIN turned off',
@@ -61,7 +61,7 @@ export function PinRoute({ requested }: { requested: 'change' | 'off' }) {
   return <PinScreen kind={pinFlowKind(requested, setup.pin)} />;
 }
 
-function PinScreen({ kind }: { kind: PinFlowKind }) {
+function PinScreen({ kind }: { kind: SettingsPinFlow }) {
   const router = useRouter();
   const focused = useIsFocused();
   const verifyPin = useLockStore((s) => s.verifyPin);

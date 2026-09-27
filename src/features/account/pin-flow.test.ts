@@ -13,12 +13,12 @@ const type = (pin: string): PinFlowEvent[] =>
 
 describe('which flow opens', () => {
   it('sets a PIN when there is none, whatever was asked', () => {
-    expect(pinFlowKind(undefined, false)).toBe('set');
+    expect(pinFlowKind('change', false)).toBe('set');
     expect(pinFlowKind('off', false)).toBe('set');
   });
 
   it('changes or turns off a PIN that exists', () => {
-    expect(pinFlowKind(undefined, true)).toBe('change');
+    expect(pinFlowKind('change', true)).toBe('change');
     expect(pinFlowKind('off', true)).toBe('off');
   });
 });
@@ -138,5 +138,27 @@ describe('turning a PIN off', () => {
     });
     expect(state.task).toEqual({ run: 'remove' });
     expect(run(state, { type: 'finished' }).stage).toEqual({ name: 'done' });
+  });
+});
+
+describe('unlocking with the PIN', () => {
+  it('checks the PIN on the sixth digit and is done when it is right', () => {
+    const state = run(startPinFlow('unlock'), ...type('112233'));
+    expect(state.task).toEqual({ run: 'check', pin: '112233' });
+
+    expect(run(state, { type: 'checked', check: { result: 'correct' } })).toMatchObject({
+      stage: { name: 'done' },
+      task: null,
+    });
+  });
+
+  it('takes nothing while a check is running', () => {
+    const state = run(startPinFlow('unlock'), ...type('112233'));
+    expect(run(state, { type: 'digit', digit: '4' }, { type: 'delete' })).toBe(state);
+  });
+
+  it('shows a wait that was already running when the lock screen opened', () => {
+    const state = run(startPinFlow('unlock'), ...type('12'), { type: 'wait', until: 7000 });
+    expect(state).toMatchObject({ digits: '', note: { kind: 'wait', until: 7000 }, shakes: 0 });
   });
 });

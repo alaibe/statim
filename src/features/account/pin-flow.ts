@@ -1,6 +1,9 @@
 import { PIN_LENGTH, type PinCheck } from '@/core/account/pin';
 
-export type PinFlowKind = 'set' | 'change' | 'off';
+/** Unlocking is the lock screen; the other three are the screens in Settings. */
+export type PinFlowKind = 'unlock' | 'set' | 'change' | 'off';
+
+export type SettingsPinFlow = Exclude<PinFlowKind, 'unlock'>;
 
 export type PinStage =
   | { name: 'intro' }
@@ -36,11 +39,12 @@ export type PinFlowEvent =
   | { type: 'digit'; digit: string }
   | { type: 'delete' }
   | { type: 'checked'; check: PinCheck }
+  | { type: 'wait'; until: number }
   | { type: 'finished' }
   | { type: 'failed'; message: string };
 
 /** Without a PIN there is only setting one; with one, changing it unless turning it off was asked for. */
-export function pinFlowKind(requested: string | undefined, pinSet: boolean): PinFlowKind {
+export function pinFlowKind(requested: 'change' | 'off', pinSet: boolean): SettingsPinFlow {
   if (!pinSet) return 'set';
   return requested === 'off' ? 'off' : 'change';
 }
@@ -66,6 +70,8 @@ export function advancePinFlow(state: PinFlowState, event: PinFlowEvent): PinFlo
       return takesDigits(state) ? { ...state, digits: state.digits.slice(0, -1) } : state;
     case 'checked':
       return state.task?.run === 'check' ? checked(state, event.check) : state;
+    case 'wait':
+      return { ...state, digits: '', note: { kind: 'wait', until: event.until } };
     case 'finished':
       return { ...state, stage: { name: 'done' }, task: null };
     case 'failed':
@@ -110,6 +116,7 @@ function typed(state: PinFlowState, digit: string): PinFlowState {
 function checked(state: PinFlowState, check: PinCheck): PinFlowState {
   switch (check.result) {
     case 'correct':
+      if (state.kind === 'unlock') return { ...state, stage: { name: 'done' }, task: null };
       return state.kind === 'off'
         ? { ...state, task: { run: 'remove' } }
         : { ...state, stage: { name: 'choose' }, digits: '', task: null };
