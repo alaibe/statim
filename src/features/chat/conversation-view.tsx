@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   ChatBackground,
-  ConfirmSheet,
   EmptyState,
   Icon,
   Pressable,
@@ -15,7 +14,7 @@ import {
   useLayoutInsets,
 } from '@/design';
 import { isLocalConversation } from '@/core/messaging/bots';
-import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
+import { type MessageHistoryState, selfIdFor, useChatStore } from '@/core/messaging/chat-store';
 import type {
   ChatMessage,
   Conversation,
@@ -24,14 +23,11 @@ import type {
   MessageId,
 } from '@/core/messaging/types';
 import { useAppearanceStore } from '@/core/app/appearance';
-import { contentPreview, isNewDay } from '@/core/messaging/preview';
 import { errorMessage } from '@/core/errors';
 import { Composer } from './composer';
 import { ConsentBar } from './consent-bar';
-import { DateSeparator } from './date-separator';
 import { CommandPending } from './command-pending';
 import { ForwardSheet } from './forward-sheet';
-import { MessageBubble, type ReplyPreview } from './message-bubble';
 import {
   conversationPeers,
   conversationTitle,
@@ -40,31 +36,14 @@ import {
 import { useDisplayNames } from './use-display-names';
 import { useSupports } from './use-supports';
 import { useComposerMode } from './composer-mode';
-import { useAction } from './use-action';
 import { usePinnedMessages } from './use-pinned-messages';
-import type { MessageAction } from './message-actions';
 import { type ActionSupport, type ConversationActions, messageActions } from './message-commands';
 import { HistoryStatus } from './history-status';
 import { useConversationTimeline } from './use-conversation-timeline';
 import { PinnedMessages } from './pinned-messages';
 import { ConversationHeader } from './conversation-header';
-
-const GROUP_WINDOW_MS = 60_000;
-
-const MISSING_REPLY = { author: '', preview: 'Original message' };
-
-const DELETE_COPY = {
-  everyone: {
-    title: 'Delete message for everyone?',
-    body: 'This removes the message for everyone in the chat.',
-    label: 'Delete for everyone',
-  },
-  me: {
-    title: 'Delete message for you?',
-    body: 'This removes the message from your account. The others in the chat keep it.',
-    label: 'Delete for me',
-  },
-};
+import { DeleteMessageSheet, type DeleteTarget } from './delete-message-sheet';
+import { MessageRow, replyPreview } from './message-row';
 
 export interface ConversationViewProps {
   id: ConversationId;
@@ -84,24 +63,15 @@ export function ConversationView({ id, thread, onOpenThread, onBack }: Conversat
 
   const sessions = useChatStore((s) => s.sessions);
   const conversation = useChatStore((s) => s.conversations.find((c) => c.id === id));
-  const fetchingHistory = useChatStore(
-    (s) =>
-      !!conversation?.protocol && s.protocols[conversation.protocol]?.history?.status === 'fetching'
-  );
   const sendMessage = useChatStore((s) => s.sendMessage);
   const retryMessage = useChatStore((s) => s.retryMessage);
-  const deleteMessage = useChatStore((s) => s.deleteMessage);
   const react = useChatStore((s) => s.react);
   const votePoll = useChatStore((s) => s.votePoll);
   const setMessagePinned = useChatStore((s) => s.setMessagePinned);
   const ingestMessage = useChatStore((s) => s.ingestMessage);
-  const muted = useChatStore((s) => Boolean(s.chatPrefs[id]?.muted));
-  const setChatPref = useChatStore((s) => s.setChatPref);
 
   const [forwarding, setForwarding] = useState<ChatMessage | null>(null);
-  const [deleting, setDeleting] = useState<{ message: ChatMessage; forEveryone: boolean } | null>(
-    null
-  );
+  const [deleting, setDeleting] = useState<DeleteTarget | null>(null);
   const [showPinned, setShowPinned] = useState(false);
 
   const selfId = selfIdFor({ sessions }, conversation?.protocol);
@@ -130,14 +100,6 @@ export function ConversationView({ id, thread, onOpenThread, onBack }: Conversat
     id,
     allMessages,
     !thread && supports('listPinnedMessages')
-  );
-  const deleteCopy = DELETE_COPY[deleting?.forEveryone ? 'everyone' : 'me'];
-  const remove = useAction(
-    ({ message, forEveryone }: { message: ChatMessage; forEveryone: boolean }) =>
-      deleteMessage(id, message.id, forEveryone),
-    {
-      failure: 'Could not delete message',
-    }
   );
   const [pendingCommand, setPendingCommand] = useState<string | null>(null);
   const [running, setRunning] = useState<string | null>(null);
@@ -241,15 +203,7 @@ export function ConversationView({ id, thread, onOpenThread, onBack }: Conversat
           <View className="flex-1">
             <HistoryStatus protocol={conversation?.protocol} />
             {messageHistory || isBot ? (
-              <EmptyState
-                icon={isBot ? 'sparkles-outline' : 'lock-closed-outline'}
-                title={fetchingHistory ? 'Fetching history…' : 'No messages yet'}
-                description={
-                  isBot
-                    ? 'Type /commands to see what you can do in this chat.'
-                    : 'Messages are end-to-end encrypted. Type /commands to see what you can do here.'
-                }
-              />
+              <EmptyTranscript protocol={conversation?.protocol} isBot={isBot} />
             ) : null}
           </View>
         ) : (
@@ -271,26 +225,10 @@ export function ConversationView({ id, thread, onOpenThread, onBack }: Conversat
             ListHeaderComponent={
               <View>
                 {!thread && messageHistory?.hasOlder ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      messageHistory.error
-                        ? `Retry loading earlier messages. ${messageHistory.error}`
-                        : 'Load earlier messages'
-                    }
-                    disabled={messageHistory.loading}
+                  <LoadEarlierButton
+                    history={messageHistory}
                     onPress={() => void loadOlderMessages(id)}
-                    className="items-center px-gutter py-3">
-                    <Text
-                      variant="caption"
-                      className={messageHistory.error ? 'text-danger' : undefined}>
-                      {messageHistory.loading
-                        ? 'Loading earlier messages…'
-                        : messageHistory.error
-                          ? `${messageHistory.error} · Retry`
-                          : 'Load earlier messages'}
-                    </Text>
-                  </Pressable>
+                  />
                 ) : null}
                 {!isBot && conversation?.protocol ? (
                   <HistoryStatus protocol={conversation.protocol} />
@@ -312,18 +250,7 @@ export function ConversationView({ id, thread, onOpenThread, onBack }: Conversat
           {conversation?.consent === 'unknown' ? (
             <ConsentBar conversationId={id} />
           ) : conversation?.kind === 'channel' && conversation.canSend !== true ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={muted ? 'Unmute channel' : 'Mute channel'}
-              onPress={() => void setChatPref(id, { muted: !muted })}
-              className="mx-gutter mb-2 min-h-tap flex-row items-center justify-center gap-2 rounded-pill border border-line bg-surface-raised">
-              <Icon
-                name={muted ? 'volume-high-outline' : 'volume-mute-outline'}
-                size={18}
-                tone="brand"
-              />
-              <Text className="font-semibold text-brand">{muted ? 'Unmute' : 'Mute'}</Text>
-            </Pressable>
+            <ChannelMuteBar id={id} />
           ) : conversation?.canSend === false ? (
             <View className="mx-gutter mb-2 min-h-tap items-center justify-center rounded-pill border border-line bg-surface-raised px-4">
               <Text variant="caption">You cannot send messages in this chat.</Text>
@@ -349,20 +276,7 @@ export function ConversationView({ id, thread, onOpenThread, onBack }: Conversat
       </KeyboardAvoidingView>
 
       <ForwardSheet message={forwarding} from={id} onClose={() => setForwarding(null)} />
-      <ConfirmSheet
-        visible={deleting !== null}
-        onClose={() => setDeleting(null)}
-        title={deleteCopy.title}
-        body={deleteCopy.body}
-        busy={remove.busy}
-        confirm={{
-          label: deleteCopy.label,
-          tone: 'danger',
-          onPress: async () => {
-            if (deleting && (await remove.run(deleting))) setDeleting(null);
-          },
-        }}
-      />
+      <DeleteMessageSheet conversationId={id} target={deleting} onClose={() => setDeleting(null)} />
     </View>
   );
 }
@@ -382,77 +296,61 @@ function chatPeople(
   return [...members, ...[...writers].map((id) => ({ id, protocol: conversation.protocol }))];
 }
 
-function replyPreview(target: ChatMessage, nameFor: (id: string) => string): ReplyPreview {
-  return {
-    author: target.fromMe ? 'You' : nameFor(target.senderId),
-    preview: contentPreview(target.content) || 'Message',
-  };
+function EmptyTranscript({ protocol, isBot }: { protocol: string | undefined; isBot: boolean }) {
+  const fetchingHistory = useChatStore(
+    (s) => !!protocol && s.protocols[protocol]?.history?.status === 'fetching'
+  );
+  return (
+    <EmptyState
+      icon={isBot ? 'sparkles-outline' : 'lock-closed-outline'}
+      title={fetchingHistory ? 'Fetching history…' : 'No messages yet'}
+      description={
+        isBot
+          ? 'Type /commands to see what you can do in this chat.'
+          : 'Messages are end-to-end encrypted. Type /commands to see what you can do here.'
+      }
+    />
+  );
 }
 
-function MessageRow({
-  message,
-  previous,
-  highlighted,
-  replyTarget,
-  nameFor,
-  senderName,
-  isGroup,
-  onCommand,
-  actionsFor,
-  onReact,
-  onVote,
-  replies,
-  onOpenThread,
+function LoadEarlierButton({
+  history,
+  onPress,
 }: {
-  message: ChatMessage;
-  previous: ChatMessage | undefined;
-  highlighted: boolean;
-  replyTarget: ChatMessage | undefined;
-  nameFor: (id: string) => string;
-  senderName: string;
-  isGroup: boolean;
-  onCommand: (command: string) => void;
-  actionsFor: (message: ChatMessage) => MessageAction[];
-  onReact?: (messageId: MessageId, emoji: string) => void;
-  onVote?: (messageId: MessageId, optionIds: number[]) => Promise<void>;
-  replies: number;
-  onOpenThread?: (root: MessageId) => void;
+  history: MessageHistoryState;
+  onPress: () => void;
 }) {
-  const grouped =
-    !!previous &&
-    previous.senderId === message.senderId &&
-    message.sentAt - previous.sentAt < GROUP_WINDOW_MS &&
-    previous.content.kind !== 'system';
-
-  const startsNewDay = isNewDay(previous?.sentAt, message.sentAt);
-
   return (
-    <>
-      {startsNewDay ? <DateSeparator at={message.sentAt} /> : null}
-      <View className={highlighted ? 'bg-brand/15' : undefined}>
-        <MessageBubble
-          message={message}
-          grouped={grouped && !startsNewDay}
-          senderName={senderName}
-          showSender={isGroup && !grouped && !message.privateToMe}
-          onCommand={onCommand}
-          actions={() => actionsFor(message)}
-          replyPreview={
-            message.replyTo
-              ? replyTarget
-                ? replyPreview(replyTarget, nameFor)
-                : MISSING_REPLY
-              : undefined
-          }
-          onReact={onReact && ((emoji) => onReact(message.id, emoji))}
-          onVote={onVote && ((optionIds) => onVote(message.id, optionIds))}
-          thread={
-            replies > 0 && onOpenThread
-              ? { replies, onOpen: () => onOpenThread(message.id) }
-              : undefined
-          }
-        />
-      </View>
-    </>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={
+        history.error ? `Retry loading earlier messages. ${history.error}` : 'Load earlier messages'
+      }
+      disabled={history.loading}
+      onPress={onPress}
+      className="items-center px-gutter py-3">
+      <Text variant="caption" className={history.error ? 'text-danger' : undefined}>
+        {history.loading
+          ? 'Loading earlier messages…'
+          : history.error
+            ? `${history.error} · Retry`
+            : 'Load earlier messages'}
+      </Text>
+    </Pressable>
+  );
+}
+
+function ChannelMuteBar({ id }: { id: ConversationId }) {
+  const muted = useChatStore((s) => Boolean(s.chatPrefs[id]?.muted));
+  const setChatPref = useChatStore((s) => s.setChatPref);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={muted ? 'Unmute channel' : 'Mute channel'}
+      onPress={() => void setChatPref(id, { muted: !muted })}
+      className="mx-gutter mb-2 min-h-tap flex-row items-center justify-center gap-2 rounded-pill border border-line bg-surface-raised">
+      <Icon name={muted ? 'volume-high-outline' : 'volume-mute-outline'} size={18} tone="brand" />
+      <Text className="font-semibold text-brand">{muted ? 'Unmute' : 'Mute'}</Text>
+    </Pressable>
   );
 }
