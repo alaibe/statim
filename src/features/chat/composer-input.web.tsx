@@ -129,47 +129,7 @@ export function ComposerInput({
     document.execCommand('insertText', false, event.clipboardData.getData('text/plain'));
   };
 
-  // A file dropped anywhere in the window goes to the open conversation.
-  const [dragging, setDragging] = useState(false);
-  const depth = useRef(0);
-  const carriesFiles = (event: DragEvent) =>
-    Boolean(onFile && event.dataTransfer?.types.includes('Files'));
-  const onDragEnter = useEffectEvent((event: DragEvent) => {
-    if (!carriesFiles(event)) return;
-    depth.current += 1;
-    setDragging(true);
-  });
-  const onDragLeave = useEffectEvent((event: DragEvent) => {
-    if (!carriesFiles(event)) return;
-    depth.current = Math.max(0, depth.current - 1);
-    if (depth.current === 0) setDragging(false);
-  });
-  const onDragOver = useEffectEvent((event: DragEvent) => {
-    if (carriesFiles(event)) event.preventDefault();
-  });
-  const onDrop = useEffectEvent((event: DragEvent) => {
-    depth.current = 0;
-    setDragging(false);
-    if (!onFile || !carriesFiles(event)) return;
-    event.preventDefault();
-    [...(event.dataTransfer?.files ?? [])].forEach(onFile);
-  });
-  useEffect(() => {
-    const listeners = {
-      dragenter: (event: DragEvent) => onDragEnter(event),
-      dragleave: (event: DragEvent) => onDragLeave(event),
-      dragover: (event: DragEvent) => onDragOver(event),
-      drop: (event: DragEvent) => onDrop(event),
-    };
-    for (const [type, listener] of Object.entries(listeners)) {
-      window.addEventListener(type, listener as EventListener);
-    }
-    return () => {
-      for (const [type, listener] of Object.entries(listeners)) {
-        window.removeEventListener(type, listener as EventListener);
-      }
-    };
-  }, []);
+  const dragging = useWindowFileDrop(onFile);
 
   return (
     <div style={{ position: 'relative', flex: 1, minWidth: 0, alignSelf: 'center' }}>
@@ -295,4 +255,50 @@ function applyTypedMarkdown() {
     placeCaretAfter(element);
     return;
   }
+}
+
+/** Files dropped anywhere in the window go to `onFile`; true while some are dragged over it. */
+function useWindowFileDrop(onFile: ((file: File) => void) | undefined): boolean {
+  const [dragging, setDragging] = useState(false);
+  const depth = useRef(0);
+  const carriesFiles = (event: DragEvent) =>
+    Boolean(onFile && event.dataTransfer?.types.includes('Files'));
+  const onDragEnter = useEffectEvent((event: DragEvent) => {
+    if (!carriesFiles(event)) return;
+    depth.current += 1;
+    setDragging(true);
+  });
+  const onDragLeave = useEffectEvent((event: DragEvent) => {
+    if (!carriesFiles(event)) return;
+    depth.current = Math.max(0, depth.current - 1);
+    if (depth.current === 0) setDragging(false);
+  });
+  const onDragOver = useEffectEvent((event: DragEvent) => {
+    if (carriesFiles(event)) event.preventDefault();
+  });
+  const onDrop = useEffectEvent((event: DragEvent) => {
+    depth.current = 0;
+    setDragging(false);
+    if (!onFile || !carriesFiles(event)) return;
+    event.preventDefault();
+    [...(event.dataTransfer?.files ?? [])].forEach(onFile);
+  });
+  useEffect(() => {
+    const listeners = {
+      dragenter: (event: DragEvent) => onDragEnter(event),
+      dragleave: (event: DragEvent) => onDragLeave(event),
+      dragover: (event: DragEvent) => onDragOver(event),
+      drop: (event: DragEvent) => onDrop(event),
+    };
+    for (const [type, listener] of Object.entries(listeners)) {
+      window.addEventListener(type, listener as EventListener);
+    }
+    return () => {
+      for (const [type, listener] of Object.entries(listeners)) {
+        window.removeEventListener(type, listener as EventListener);
+      }
+    };
+  }, []);
+
+  return dragging;
 }
