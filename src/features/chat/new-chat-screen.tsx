@@ -53,9 +53,7 @@ export function NewChatScreen() {
     <Screen className="px-gutter" edges={['top', 'bottom']}>
       <ModalHeader title={isGroup ? 'New group' : 'New message'} onClose={goBack} />
 
-      <KeyboardAvoidingView
-        behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
-        className="flex-1 justify-between">
+      <KeyboardAvoidingView behavior="padding" className="flex-1 justify-between">
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4">
           {available.length > 1 ? (
             <View className="gap-2">

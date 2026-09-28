@@ -51,9 +51,7 @@ function BridgeLogin({ bridge, goBack }: { bridge: KnownBridge; goBack: () => vo
     <Screen className="px-gutter" edges={['top', 'bottom']}>
       <ModalHeader title={`Connect ${label}`} onClose={goBack} />
 
-      <KeyboardAvoidingView
-        behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
-        className="flex-1">
+      <KeyboardAvoidingView behavior="padding" className="flex-1">
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4 pb-6">
           {phase === 'loading' ? <Text variant="caption">Asking the bridge…</Text> : null}
 

@@ -15,9 +15,7 @@ export function SettingsScreen({
   return (
     <Screen className="bg-surface px-0" edges={[]}>
       <Stack.Screen options={{ title }} />
-      <KeyboardAvoidingView
-        behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
-        className="flex-1">
+      <KeyboardAvoidingView behavior="padding" className="flex-1">
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"

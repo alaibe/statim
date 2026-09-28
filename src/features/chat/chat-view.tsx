@@ -178,9 +178,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
         top={insets.top + frame.top + 62}
       />
 
-      <KeyboardAvoidingView
-        behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
-        className="flex-1">
+      <KeyboardAvoidingView behavior="padding" className="flex-1">
         {messages.length === 0 ? (
           <View className="flex-1">
             <HistoryStatus protocol={protocol} />

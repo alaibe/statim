@@ -318,9 +318,7 @@ function ForgotPin({ onCancel }: { onCancel: () => void }) {
 
   return (
     <Screen>
-      <KeyboardAvoidingView
-        behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
-        className="flex-1">
+      <KeyboardAvoidingView behavior="padding" className="flex-1">
         <ScrollView
           keyboardShouldPersistTaps="handled"
           contentContainerClassName="grow justify-center gap-5 px-gutter py-8">

@@ -49,9 +49,7 @@ export default function ImportAccount() {
       <View className="-ml-2 flex-row pt-1">
         <IconButton icon="chevron-back" label="Back" onPress={goBack} />
       </View>
-      <KeyboardAvoidingView
-        behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
-        className="flex-1 justify-between">
+      <KeyboardAvoidingView behavior="padding" className="flex-1 justify-between">
         <Animated.View entering={Enter.content()} className="gap-4 pt-4">
           <View className="gap-1.5">
             <Text variant="headline">Restore your account</Text>
