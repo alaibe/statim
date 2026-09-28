@@ -1,0 +1,21 @@
+diff --git a/node_modules/@expo/metro-config/build/serializer/fork/js.js b/node_modules/@expo/metro-config/build/serializer/fork/js.js
+index 68ccf1a..61a9f36 100644
+--- a/node_modules/@expo/metro-config/build/serializer/fork/js.js
++++ b/node_modules/@expo/metro-config/build/serializer/fork/js.js
+@@ -75,13 +75,14 @@ function getModuleParams(module, options) {
+                         searchParams.set('runModule', 'false');
+                     }
+                     const bundlePath = path_1.default.relative(options.serverRoot, dependency.absolutePath);
++                    const extension = path_1.default.extname(bundlePath);
+                     paths[id] =
+                         '/' +
+                             path_1.default.join(
+                             // TODO: This is not the proper Metro URL encoding of a file path
+                             path_1.default.dirname(bundlePath),
+-                            // Strip the file extension
+-                            path_1.default.basename(bundlePath, path_1.default.extname(bundlePath))) +
++                            // Strip the file extension, unless the server would resolve the stripped path to a sibling `.js`
++                            path_1.default.basename(bundlePath, /^\.[cm]js$/.test(extension) ? '' : extension)) +
+                             '.bundle?' +
+                             searchParams.toString();
+                 }

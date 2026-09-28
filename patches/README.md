@@ -9,6 +9,7 @@ them work around upstream bugs, and three work around the same one: Swift 6.2.4
 | `expo-modules-jsi+57.0.7` | Swift 6.2.4 rejects `SWIFT_RETURNS_RETAINED` on a shared-reference constructor |
 | `expo-observe+57.0.23` | `[String: Any]` is not `Sendable` and crosses an isolation boundary |
 | `expo-modules-core+57.0.18` | A `nonisolated(unsafe) weak let` emitter can no longer cross into an actor |
+| `@expo+metro-config+57.0.12` | A lazy `import()` of a `.cjs` entry loads its `.js` sibling instead |
 | `@xmtp+react-native-sdk+5.7.0` | `SwiftUI.Group` collides with `XMTPiOS.Group`; the Android module does not build or report install times |
 | `react-native-tdlib+2.3.0` | No way to free the raw client without wiping the database |
 | `nativewind+4.2.6` | `NATIVEWIND_OS=web` treated as native, so `platformSelect()` reaches the browser |
@@ -291,6 +292,38 @@ was occluded or the tab throttled, used to leave the element hidden for good.
 
 **Remove when** a Reanimated release leaves entering elements in normal flow
 after their custom animation ends.
+
+---
+
+## `@expo+metro-config+57.0.12.patch`
+
+Dev server only. Found on the first Android run, 2026-09-28.
+
+Symptom: As soon as WalletConnect starts:
+
+```
+Requiring unknown module "4793". If you are sure the module exists, try restarting Metro.
+```
+
+Cause: With lazy bundling, each `import()` gets its own chunk URL, which
+`serializer/fork/js.js` builds by swapping the file's extension for `.bundle`.
+`@walletconnect/core` and `@reown/walletkit` resolve to `dist/index.cjs`, so
+their URLs become `dist/index.bundle`, and the server resolves that to the
+`dist/index.js` next to it: a different file with a different module ID. The
+chunk arrives without the module the main bundle asked for. Expo's own comment
+on that line already calls it "not the proper Metro URL encoding of a file
+path". Release builds do not split chunks and are unaffected.
+
+Fix: Keep `.cjs` and `.mjs` in the URL. The server resolves
+`dist/index.cjs.bundle` to exactly that file. Every other extension is still
+stripped, so no other chunk URL changes.
+
+**Remove when** `@expo/metro-config` encodes the full file path in lazy chunk
+URLs. Regenerate with:
+
+```bash
+npx patch-package @expo/metro-config --include 'build/serializer/fork/js\.js$'
+```
 
 ---
 
