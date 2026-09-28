@@ -22,7 +22,7 @@ export function Footer() {
             <div className="flex items-center text-gray-900">
               <Logomark className="h-10 w-10 flex-none" />
               <div className="ml-4">
-                <p className="text-base font-semibold">Status Original</p>
+                <p className="text-base font-semibold">Statim</p>
                 <p className="mt-1 text-sm">A messenger with no company in the middle.</p>
               </div>
             </div>
@@ -53,7 +53,8 @@ export function Footer() {
             ))}
           </nav>
           <p className="text-sm text-gray-500">
-            &copy; {new Date().getFullYear()} Status Original contributors.
+            &copy; {new Date().getFullYear()} Statim contributors. Statim takes its logo from the
+            2018 Status app and is not affiliated with or endorsed by Status.
           </p>
         </div>
       </Container>

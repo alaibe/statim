@@ -133,9 +133,9 @@ function PinIntro({ onBegin }: { onBegin: () => void }) {
 
       <View className="gap-3">
         <Text variant="bodyMuted">
-          Status Original asks for this {PIN_LENGTH}-digit PIN whenever it opens. It is separate
-          from your {desktop ? 'computer’s password' : 'phone’s passcode'}, so knowing that does not
-          open this app.
+          Statim asks for this {PIN_LENGTH}-digit PIN whenever it opens. It is separate from your{' '}
+          {desktop ? 'computer’s password' : 'phone’s passcode'}, so knowing that does not open this
+          app.
         </Text>
         <Text variant="bodyMuted">
           The PIN itself is never stored. The app keeps a one-way fingerprint of it{' '}

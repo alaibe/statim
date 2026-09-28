@@ -33,7 +33,7 @@ import { shareText, shareWithNumbers, type ShareResult } from '@/lib/share';
 
 function inviteText(address: string): string {
   return (
-    `I'm on Status Original, encrypted chat where your account is a key instead of a phone number.\n\n` +
+    `I'm on Statim, encrypted chat where your account is a key instead of a phone number.\n\n` +
     `Add me: ${address}`
   );
 }
@@ -155,7 +155,7 @@ export default function InviteScreen() {
         <Section surface="list">
           <ListItem
             testID="share-app"
-            title={<Text className="font-semibold text-brand">Share Status Original</Text>}
+            title={<Text className="font-semibold text-brand">Share Statim</Text>}
             leading={<Icon name="heart-outline" size={22} tone="brand" />}
             onPress={async () => {
               if (keyring) report(await shareText(inviteText(keyring.address)).catch(() => null));

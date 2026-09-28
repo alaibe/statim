@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 Use GitHub's private vulnerability reporting on
-[alaibe/status-original](https://github.com/alaibe/status-original/security/advisories/new).
+[alaibe/statim](https://github.com/alaibe/statim/security/advisories/new).
 Do not open a public issue, and do not post a proof of concept anywhere public
 until there is a fix.
 
@@ -80,7 +80,7 @@ the OS credential store. Debug builds keep that key in a user-only file instead,
 so unsigned rebuilds do not prompt on every launch. That also makes a debug
 build the wrong place to keep a real account.
 
-The desktop command line (`status-original`) talks to the running app over a
+The desktop command line (`statim`) talks to the running app over a
 socket in the app's data directory, readable and writable by your user only
 (a named pipe per user on Windows). It refuses every command until the person
 turns it on under Settings › Command line, off by default. While it is on,

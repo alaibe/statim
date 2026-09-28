@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 
-const PROTECTED_SERVICE = 'com.statusoriginal.protected';
+const PROTECTED_SERVICE = 'im.statim.protected';
 
 export const isSecureStorageAvailable = true;
 

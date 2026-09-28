@@ -1,5 +1,5 @@
 # Runs commands from a quick action and from the composer.
-appId: com.statusoriginal.app
+appId: im.statim.app
 ---
 - runFlow: lib/open-status-chat.yaml
 

@@ -31,7 +31,7 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
   const spec = findCommand(argv);
   if (!spec) {
     throw new CliError(
-      argv.length ? `Unknown command "${argv[0]}". Run status-original help.` : 'No command given.',
+      argv.length ? `Unknown command "${argv[0]}". Run statim help.` : 'No command given.',
       'usage'
     );
   }
@@ -107,7 +107,7 @@ export function usage(spec: CliCommandSpec): string {
     return a.optional ? `[${name}]` : `<${name}>`;
   });
   const flags = (spec.flags ?? []).map((f) => `[${flagSyntax(f)}]`);
-  return `Usage: status-original ${[spec.path, ...args, ...flags].join(' ')}`;
+  return `Usage: statim ${[spec.path, ...args, ...flags].join(' ')}`;
 }
 
 export function flagSyntax(flag: CliFlag): string {

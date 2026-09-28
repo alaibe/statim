@@ -5,7 +5,7 @@ import { HttpError } from '@/core/errors';
 const BASE = 'https://li.quest/v1';
 
 /** Names this app in LI.FI's routing stats; it is not a credential. */
-const INTEGRATOR = 'status-original';
+const INTEGRATOR = 'statim';
 
 export const LIFI_NATIVE: Address = zeroAddress;
 

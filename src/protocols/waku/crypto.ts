@@ -90,8 +90,8 @@ export function decodeEnvelope(payloadBase64: string): WakuEnvelope | null {
 
 export function contentTopicFor(participants: string[]): string {
   const sorted = [...new Set(participants)].sort();
-  const digest = bytesToHex(sha256(utf8ToBytes(`status-original:waku:${sorted.join(',')}`)));
-  return `/status-original/1/c-${digest.slice(0, 32)}/proto`;
+  const digest = bytesToHex(sha256(utf8ToBytes(`statim:waku:${sorted.join(',')}`)));
+  return `/statim/1/c-${digest.slice(0, 32)}/proto`;
 }
 
 export function chatIdForTopic(contentTopic: string): string {

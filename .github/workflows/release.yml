@@ -57,7 +57,7 @@ jobs:
             --jq ".[] | select(.tag_name == \"$TAG\") | .id" | head -1)
           if [ -z "$id" ]; then
             id=$(gh api "repos/${{ github.repository }}/releases" \
-              -f tag_name="$TAG" -f name="Status Original ${{ steps.version.outputs.version }}" \
+              -f tag_name="$TAG" -f name="Statim ${{ steps.version.outputs.version }}" \
               -F draft=true -F prerelease=false --jq .id)
           fi
           [[ "$id" =~ ^[0-9]+$ ]] || { echo "no release id: $id" >&2; exit 1; }
@@ -140,9 +140,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           V="${{ needs.prepare.outputs.version }}"
-          PKG="Status.Original_${V}_universal.pkg"
+          PKG="Statim_${V}_universal.pkg"
           ./scripts/build-mac-pkg.sh \
-            "src-tauri/target/universal-apple-darwin/release/bundle/macos/Status Original.app" "$V" "$PKG"
+            "src-tauri/target/universal-apple-darwin/release/bundle/macos/Statim.app" "$V" "$PKG"
           gh api -X POST -H "Content-Type: application/octet-stream" --input "$PKG" --silent \
             "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ needs.prepare.outputs.release_id }}/assets?name=$PKG"
 

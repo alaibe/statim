@@ -9,9 +9,9 @@ every chat in it says which network it is on.
   <figure><img src="/screenshots/contacts.png" alt="The Contacts tab"><figcaption>Contacts</figcaption></figure>
 </div>
 
-## The Status chat
+## The Statim chat
 
-A fresh install has exactly one chat, the Status chat. It lives on your
+A fresh install has exactly one chat, the Statim chat. It lives on your
 device and nowhere else. It answers `/commands`, explains what the app can do,
 and is where plugins post their own messages. It also works as a notepad, since
 nothing written there is sent anywhere.

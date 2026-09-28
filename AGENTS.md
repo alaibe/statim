@@ -26,7 +26,7 @@ Biome formats TypeScript and JSON, rustfmt formats `src-tauri`. Neither lints;
   `src/design/tokens.ts` (`npm run theme:build`); `assets/brand/mark.svg`,
   every icon and store graphic from `assets/brand/status-logo-2018.png`
   (`npm run brand:build`); `ios/` and `android/` from `app.json`
-  (`npx expo prebuild`); `skills/status-original/SKILL.md` and
+  (`npx expo prebuild`); `skills/statim/SKILL.md` and
   `src-tauri/cli/help.txt` from `src/features/cli/commands.ts`
   (`npm run cli:docs`); `docs/public/promo/` from `marketing/film.html`
   (`npm run promo:build`). Editing the output is undone on the next build.
@@ -43,7 +43,7 @@ Biome formats TypeScript and JSON, rustfmt formats `src-tauri`. Neither lints;
 - Chat widgets are data, not components (`src/design/widgets/schema.ts`),
   because a message is stored, forwarded and rendered by clients that may not
   have the plugin that made it. Keep the union additive.
-- `status-original <command>` is the desktop binary in client mode, talking
+- `statim <command>` is the desktop binary in client mode, talking
   to the running app over a local socket; the page runs the command
   (`src/features/cli`). A new store action fails typecheck until
   `src/features/cli/coverage.ts` names its command or why it has none.
@@ -140,7 +140,7 @@ _Avoid_: extension, mini-app
 **Slash command**: A `/name` typed in a chat's composer.
 _Avoid_: command (on its own), action
 
-**CLI command**: A `status-original <name>` run in a terminal against the running desktop app.
+**CLI command**: A `statim <name>` run in a terminal against the running desktop app.
 
 **Widget**: A message whose layout and buttons are described by data and drawn by the app.
 

@@ -2,14 +2,14 @@
 
 Goes into App Store Connect → App Review Information → Notes.
 
-Status Original is a non-custodial encrypted messenger. There is no sign-in and
+Statim is a non-custodial encrypted messenger. There is no sign-in and
 no account on our servers, so there are no login credentials to provide. The app
 creates a local key on first launch.
 
 TO REVIEW THE APP
 
 Open the app and tap "Create an account", then "Reveal recovery phrase" and
-"I've written it down". The local Status room provides help and commands and
+"I've written it down". The local Statim room provides help and commands and
 works without a second party. Sending a message to someone requires another
 XMTP, Nostr or Waku user.
 

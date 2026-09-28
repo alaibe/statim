@@ -1,4 +1,4 @@
-export const repo = 'alaibe/status-original';
+export const repo = 'alaibe/statim';
 export const repoUrl = `https://github.com/${repo}`;
 export const releasesUrl = `${repoUrl}/releases`;
 export const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';

@@ -63,8 +63,8 @@ friends](./guide/bridges) explains what that involves.
 
 ## Can an AI assistant use it?
 
-Yes, on a computer. The `status-original` command does whatever the app does,
-and `status-original skills install` teaches Claude Code or Codex how to use
+Yes, on a computer. The `statim` command does whatever the app does,
+and `statim skills install` teaches Claude Code or Codex how to use
 it. Turn it on first under **Settings › Command line**; it is off until you do.
 The assistant runs as you, on your machine. Anything that signs, erases an
 account or turns on a plugin still waits for you to approve it in the app. See
@@ -110,8 +110,8 @@ The desktop app isn't signed with an Apple or Microsoft certificate yet, so
 both systems treat it as coming from an unknown developer.
 
 - **macOS** refuses to open it the first time. Click Done, then go to System
-  Settings → Privacy & Security, scroll down to the message about Status
-  Original and click Open Anyway. After an update, macOS may ask once more
+  Settings → Privacy & Security, scroll down to the message about
+  Statim and click Open Anyway. After an update, macOS may ask once more
   whether the app can use its Keychain item. Choose Always Allow.
 - **Windows** shows "Windows protected your PC". Click More info, then Run
   anyway.
@@ -125,9 +125,15 @@ offer on Android.
 The desktop app for macOS, Windows and Linux is what you can use today. The
 iPhone app is on its way to the App Store.
 
+## Is this Status?
+
+No. Statim takes its logo from the 2018 Status app. It is not affiliated with
+or endorsed by Status. It cannot message Status users either: Status builds its
+own protocol on top of Waku, and Statim uses Waku with a format of its own.
+
 ## Where do I report a bug?
 
-[github.com/alaibe/status-original/issues](https://github.com/alaibe/status-original/issues).
+[github.com/alaibe/statim/issues](https://github.com/alaibe/statim/issues).
 For anything security-sensitive, use the private route in
-[SECURITY.md](https://github.com/alaibe/status-original/blob/main/SECURITY.md)
+[SECURITY.md](https://github.com/alaibe/statim/blob/main/SECURITY.md)
 instead of a public issue.

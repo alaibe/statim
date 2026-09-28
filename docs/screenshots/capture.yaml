@@ -2,7 +2,7 @@
 # `scripts/capture-screenshots.sh docs` prepares. Same idea as
 # store/ios/capture.yaml: nothing
 # visible comes from a device someone has used.
-appId: com.statusoriginal.app
+appId: im.statim.app
 ---
 - launchApp:
     stopApp: true
@@ -80,7 +80,7 @@ appId: com.statusoriginal.app
     point: "50%,10%"
 - waitForAnimationToEnd
 
-- openLink: "statusoriginal://new-chat"
+- openLink: "statim://new-chat"
 - runFlow:
     when:
       visible: "Open"
@@ -93,7 +93,7 @@ appId: com.statusoriginal.app
 - waitForAnimationToEnd
 - takeScreenshot: new-chat
 
-- openLink: "statusoriginal://settings"
+- openLink: "statim://settings"
 - runFlow:
     when:
       visible: "Open"
@@ -106,7 +106,7 @@ appId: com.statusoriginal.app
 - waitForAnimationToEnd
 - takeScreenshot: settings
 
-- openLink: "statusoriginal://settings/protocols"
+- openLink: "statim://settings/protocols"
 - runFlow:
     when:
       visible: "Open"
@@ -115,7 +115,7 @@ appId: com.statusoriginal.app
 - waitForAnimationToEnd
 - takeScreenshot: protocols
 
-- openLink: "statusoriginal://settings/protocol/matrix"
+- openLink: "statim://settings/protocol/matrix"
 - runFlow:
     when:
       visible: "Open"
@@ -128,7 +128,7 @@ appId: com.statusoriginal.app
 - waitForAnimationToEnd
 - takeScreenshot: protocol-matrix
 
-- openLink: "statusoriginal://settings/protocol/telegram"
+- openLink: "statim://settings/protocol/telegram"
 - runFlow:
     when:
       visible: "Open"
@@ -141,7 +141,7 @@ appId: com.statusoriginal.app
 - waitForAnimationToEnd
 - takeScreenshot: protocol-telegram
 
-- openLink: "statusoriginal://settings/privacy"
+- openLink: "statim://settings/privacy"
 - runFlow:
     when:
       visible: "Open"
@@ -150,7 +150,7 @@ appId: com.statusoriginal.app
 - waitForAnimationToEnd
 - takeScreenshot: privacy
 
-- openLink: "statusoriginal://settings/plugins"
+- openLink: "statim://settings/plugins"
 - runFlow:
     when:
       visible: "Open"
@@ -163,7 +163,7 @@ appId: com.statusoriginal.app
 - waitForAnimationToEnd
 - takeScreenshot: plugins
 
-- openLink: "statusoriginal://chat/local-status"
+- openLink: "statim://chat/local-status"
 - runFlow:
     when:
       visible: "Open"
@@ -179,7 +179,7 @@ appId: com.statusoriginal.app
 - tapOn:
     id: "composer-send"
 - waitForAnimationToEnd
-- openLink: "statusoriginal://chat/local-wallet"
+- openLink: "statim://chat/local-wallet"
 - runFlow:
     when:
       visible: "Open"
@@ -204,7 +204,7 @@ appId: com.statusoriginal.app
 - waitForAnimationToEnd
 - takeScreenshot: wallet-send
 
-- openLink: "statusoriginal://contacts"
+- openLink: "statim://contacts"
 - runFlow:
     when:
       visible: "Open"

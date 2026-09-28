@@ -1,5 +1,5 @@
 # Sends TEXT from an emptied composer, since the chat may keep a draft, then taps the gutter beside the reply to dismiss the keyboard.
-appId: com.statusoriginal.app
+appId: im.statim.app
 ---
 - tapOn:
     id: "composer-input"

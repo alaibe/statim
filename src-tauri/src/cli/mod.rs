@@ -176,7 +176,7 @@ pub fn cli_show(app: AppHandle) {
 #[derive(serde::Serialize)]
 pub struct Install {
     installed: bool,
-    /// What to run in a terminal to put `status-original` on the PATH.
+    /// What to run in a terminal to put `statim` on the PATH.
     command: Option<String>,
 }
 
@@ -195,11 +195,11 @@ pub fn cli_install() -> Install {
         |path: &std::ffi::OsStr| format!("'{}'", path.to_string_lossy().replace('\'', r"'\''"));
 
     if cfg!(target_os = "macos") {
-        let link = std::path::Path::new("/usr/local/bin/status-original");
+        let link = std::path::Path::new("/usr/local/bin/statim");
         return Install {
             installed: links_here(link),
             command: Some(format!(
-                "sudo mkdir -p /usr/local/bin && sudo ln -sf {} /usr/local/bin/status-original",
+                "sudo mkdir -p /usr/local/bin && sudo ln -sf {} /usr/local/bin/statim",
                 quoted(exe.as_os_str())
             )),
         };
@@ -207,11 +207,11 @@ pub fn cli_install() -> Install {
     if let Some(image) = appimage() {
         let link = dirs::home_dir()
             .unwrap_or_default()
-            .join(".local/bin/status-original");
+            .join(".local/bin/statim");
         return Install {
             installed: links_here(&link),
             command: Some(format!(
-                "mkdir -p ~/.local/bin && ln -sf {} ~/.local/bin/status-original",
+                "mkdir -p ~/.local/bin && ln -sf {} ~/.local/bin/statim",
                 quoted(&image)
             )),
         };

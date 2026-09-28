@@ -39,7 +39,7 @@ curl -sf -m 5 http://localhost:8081/status >/dev/null 2>&1 || {
 
 # A stale dev client may not contain the native modules in the lock file.
 APP_PATH="$(find "$HOME/Library/Developer/Xcode/DerivedData" \
-  -path "*Debug-iphonesimulator*" -name "StatusOriginal.app" -print0 2>/dev/null \
+  -path "*Debug-iphonesimulator*" -name "Statim.app" -print0 2>/dev/null \
   | xargs -0 ls -dt 2>/dev/null | head -1)"
 if [ "${E2E_SKIP_BUILD_CHECK:-0}" != "1" ] \
   && [ -n "$APP_PATH" ] && [ package-lock.json -nt "$APP_PATH" ]; then

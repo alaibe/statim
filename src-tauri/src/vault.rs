@@ -14,7 +14,7 @@ use tauri::{AppHandle, Manager, State};
 
 use crate::paths::app_data_dir;
 
-const SERVICE: &str = "com.statusoriginal.app";
+const SERVICE: &str = "im.statim.app";
 const MASTER_KEY_ENTRY: &str = "vault-key";
 const NONCE_LEN: usize = 12;
 

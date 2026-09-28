@@ -1,5 +1,5 @@
-# Verifies local Status messages survive navigation and relaunch.
-appId: com.statusoriginal.app
+# Verifies local Statim messages survive navigation and relaunch.
+appId: im.statim.app
 ---
 - evalScript: ${output.note = 'ridge-trip-' + new Date().getTime().toString()}
 - runFlow: lib/open-status-chat.yaml
@@ -18,7 +18,7 @@ appId: com.statusoriginal.app
 - tapOn: "Back"
 - waitForAnimationToEnd:
     timeout: 5000
-- openLink: "statusoriginal://chat/local-status"
+- openLink: "statim://chat/local-status"
 - assertVisible:
     id: "chat-header-local-status"
 - extendedWaitUntil:

@@ -1,6 +1,6 @@
 # Privacy policy
 
-Status Original has no server. Your account is a recovery phrase on your device,
+Statim has no server. Your account is a recovery phrase on your device,
 there is no sign-up, and the developer operates nothing that your messages, keys
 or contacts pass through. This page is the complete account of what leaves your
 device, and to whom.
@@ -139,9 +139,9 @@ commit. Material changes will be noted in the app's release notes.
 ## Contact
 
 Open an issue at
-[github.com/alaibe/status-original/issues](https://github.com/alaibe/status-original/issues).
+[github.com/alaibe/statim/issues](https://github.com/alaibe/statim/issues).
 For anything security-sensitive, use the private route in
-[SECURITY.md](https://github.com/alaibe/status-original/blob/main/SECURITY.md)
+[SECURITY.md](https://github.com/alaibe/statim/blob/main/SECURITY.md)
 instead.
 
 Last updated 2026-09-22.

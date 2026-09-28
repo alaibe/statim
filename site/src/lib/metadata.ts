@@ -6,7 +6,7 @@ export const siteMetadata: Metadata = {
   metadataBase: new URL('https://alaibe.github.io'),
   icons: { icon: `${basePath}/logomark.svg` },
   openGraph: {
-    siteName: 'Status Original',
+    siteName: 'Statim',
     images: [`${basePath}/screenshots/chats.png`],
   },
 };

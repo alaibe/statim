@@ -1,5 +1,5 @@
 [package]
-name = "status-original"
+name = "statim"
 version = "0.2.1"
 description = "A self-custodial messenger."
 edition = "2021"
@@ -7,7 +7,7 @@ rust-version = "1.77.2"
 publish = false
 
 [lib]
-name = "status_original_lib"
+name = "statim_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [features]

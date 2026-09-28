@@ -26,7 +26,7 @@ export async function runCli(argv: string[], env: CliEnv): Promise<ExitCode> {
     if (parsed.spec.path === 'quit') return EXIT_CODES.ok;
     if (!(await isCliAllowed())) {
       throw new CliError(
-        'The command line is off. Turn it on in Status Original: Settings › Command line.',
+        'The command line is off. Turn it on in Statim: Settings › Command line.',
         'unavailable'
       );
     }

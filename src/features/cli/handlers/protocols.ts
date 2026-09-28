@@ -31,7 +31,7 @@ function sessionOf({ id, label }: ProtocolDescriptor) {
   const session = useChatStore.getState().sessions[id];
   if (!session) {
     throw new CliError(
-      `${label} is not connected. Check status-original protocols config ${id}.`,
+      `${label} is not connected. Check statim protocols config ${id}.`,
       'unavailable'
     );
   }
@@ -172,7 +172,7 @@ export const protocolHandlers = {
     const session = sessionOf(descriptor);
     if (!session.subscribeLogin || !session.submitLogin) {
       throw new CliError(
-        `${descriptor.label} does not sign in step by step. Use status-original protocols config ${descriptor.id}.`,
+        `${descriptor.label} does not sign in step by step. Use statim protocols config ${descriptor.id}.`,
         'unsupported'
       );
     }

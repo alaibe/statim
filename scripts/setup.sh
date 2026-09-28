@@ -189,7 +189,7 @@ if [ -d node_modules ] && [ -d patches ]; then
 fi
 
 if find "$HOME/Library/Developer/Xcode/DerivedData" -path "*Debug-iphonesimulator*" \
-     -name "StatusOriginal.app" 2>/dev/null | grep -q .; then
+     -name "Statim.app" 2>/dev/null | grep -q .; then
   ok "a native build exists"
 else
   bad "no native build yet"

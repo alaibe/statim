@@ -1,5 +1,5 @@
 # Opens a bookmark in the system browser and comes back with the composer free again.
-appId: com.statusoriginal.app
+appId: im.statim.app
 tags:
   - ios-only
 ---
@@ -10,7 +10,7 @@ tags:
     timeout: 15000
 - waitForAnimationToEnd:
     timeout: 5000
-- openLink: "statusoriginal://chat/local-browser"
+- openLink: "statim://chat/local-browser"
 - runFlow:
     when:
       visible: "Open"

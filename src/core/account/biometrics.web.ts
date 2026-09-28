@@ -19,7 +19,7 @@ export async function biometricCapability(): Promise<BiometricCapability> {
   return { available, enrolled, label: 'Touch ID' };
 }
 
-/** macOS shows the reason as "Status Original is trying to …". */
+/** macOS shows the reason as "Statim is trying to …". */
 const REASON: Record<PromptPurpose, string> = {
   unlock: 'unlock your chats',
   'turn-on': 'turn on Touch ID for this app',

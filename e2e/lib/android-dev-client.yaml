@@ -1,5 +1,5 @@
 # Loads the development build from Metro and waits for its first screen, so the dev client reopens it on every later launchApp.
-appId: com.statusoriginal.app
+appId: im.statim.app
 ---
 - openLink: ${DEV_CLIENT_URL}
 - extendedWaitUntil:

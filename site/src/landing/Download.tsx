@@ -40,7 +40,7 @@ export function Download({ release }: { release: Release }) {
           <h2
             id="download-title"
             className="text-3xl font-medium tracking-tight text-white sm:text-4xl">
-            Get Status Original
+            Get Statim
           </h2>
           <p className="mt-4 text-lg text-gray-300">
             {release.version

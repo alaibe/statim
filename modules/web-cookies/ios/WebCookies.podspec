@@ -3,7 +3,7 @@ Pod::Spec.new do |s|
   s.version        = '1.0.0'
   s.summary        = 'Reads and clears the cookies of the app web views'
   s.author         = ''
-  s.homepage       = 'https://github.com/alaibe/status-original'
+  s.homepage       = 'https://github.com/alaibe/statim'
   s.platforms      = { :ios => '16.4' }
   s.source         = { git: '' }
   s.static_framework = true

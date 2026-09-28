@@ -1,18 +1,18 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Status Original",
+  "productName": "Statim",
   "version": "0.2.1",
-  "identifier": "com.statusoriginal.app",
+  "identifier": "im.statim.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:8082",
-    "beforeDevCommand": "npx expo start --port 8082 --scheme statusoriginal",
+    "beforeDevCommand": "npx expo start --port 8082 --scheme statim",
     "beforeBuildCommand": "npx expo export --platform web"
   },
   "app": {
     "windows": [
       {
-        "title": "Status Original",
+        "title": "Statim",
         "visible": false,
         "backgroundThrottling": "disabled",
         "width": 1200,
@@ -76,7 +76,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMzQzJDRUYzMjYzQjhGNkEKUldScWp6c204ODdDdzUrb1k3QmtnT1ZmM1AvcDVUMmN2aUxCaFFLTjJoblkxd3k0Um5pT01pMWIK",
       "endpoints": [
-        "https://github.com/alaibe/status-original/releases/latest/download/latest.json"
+        "https://github.com/alaibe/statim/releases/latest/download/latest.json"
       ]
     }
   }

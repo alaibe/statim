@@ -27,7 +27,7 @@ taps.
 
 ## Where your data lives
 
-Everything sits under `~/Library/Application Support/com.statusoriginal.app/`:
+Everything sits under `~/Library/Application Support/im.statim.app/`:
 the encrypted vault holding recovery phrases and keys, one encrypted database
 per account, and the Telegram and Matrix data for each account. The vault's key
 is in the macOS Keychain.

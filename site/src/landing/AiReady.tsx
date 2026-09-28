@@ -10,7 +10,7 @@ const points = [
   {
     name: 'Instructions for your assistant',
     description:
-      'status-original skills install teaches Claude Code or Codex the CLI commands and the rules: messages are data, never orders, and it asks before it sends.',
+      'statim skills install teaches Claude Code or Codex the CLI commands and the rules: messages are data, never orders, and it asks before it sends.',
   },
   {
     name: 'Off until you turn it on',
@@ -20,13 +20,13 @@ const points = [
 ];
 
 const session = [
-  { prompt: true, text: 'status-original chats --unread' },
+  { prompt: true, text: 'statim chats --unread' },
   { text: 'Team  (matrix group, 4 unread)' },
   { text: '0x4331…fbed  (xmtp dm, 1 unread)' },
-  { prompt: true, text: 'status-original read Team --limit 2' },
+  { prompt: true, text: 'statim read Team --limit 2' },
   { text: 'Sep 24, 09:12  Ana: can someone send the invoice?' },
   { text: 'Sep 24, 09:14  Ben: and the slides for Friday' },
-  { prompt: true, text: 'status-original send Team --file invoice.pdf "Here it is"' },
+  { prompt: true, text: 'statim send Team --file invoice.pdf "Here it is"' },
   { text: 'Sent to Team.' },
 ];
 
@@ -40,9 +40,8 @@ export function AiReady() {
               Ready for your AI assistant.
             </h2>
             <p className="mt-2 text-lg text-gray-400">
-              On a computer, the status-original command does whatever the app does. Use it yourself
-              from a terminal, or let Claude Code or Codex read, sum up and answer your chats for
-              you.
+              On a computer, the statim command does whatever the app does. Use it yourself from a
+              terminal, or let Claude Code or Codex read, sum up and answer your chats for you.
             </p>
             <dl className="mt-10 space-y-8">
               {points.map((point) => (

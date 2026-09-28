@@ -35,10 +35,10 @@ const features = [
   {
     name: 'Slash commands live in the chat',
     description:
-      'Type / to see what a chat can do. The Status chat holds notes, reminders and help, all saved on this device, and plugins add their own slash commands where they belong.',
+      'Type / to see what a chat can do. The Statim chat holds notes, reminders and help, all saved on this device, and plugins add their own slash commands where they belong.',
     icon: DeviceTouchIcon,
     screen: 'status-chat',
-    alt: 'The Status chat with slash command chips above the composer',
+    alt: 'The Statim chat with slash command chips above the composer',
   },
   {
     name: 'A wallet where the money talk is',

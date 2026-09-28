@@ -1,6 +1,6 @@
 # Disclaimer
 
-Status Original is software, not a service. There is no company behind it
+Statim is software, not a service. There is no company behind it
 holding anything on your behalf, and that is the point of it. It also means the
 responsibilities below are yours, because there is nobody else they could fall
 to.
@@ -50,7 +50,7 @@ send it, exactly as a person would.
 ## No warranty
 
 The software is provided as is, under the MIT licence in
-[LICENSE](https://github.com/alaibe/status-original/blob/main/LICENSE), without warranty of any kind. To the extent the law
+[LICENSE](https://github.com/alaibe/statim/blob/main/LICENSE), without warranty of any kind. To the extent the law
 allows, the developer is not liable for any loss arising from its use,
 including loss of funds, loss of messages or loss of access to an account.
 

@@ -74,10 +74,7 @@ export async function whenSettled(): Promise<void> {
 export async function whenUnlocked(): Promise<void> {
   await whenSettled();
   if (useLockStore.getState().status === 'locked') {
-    throw new CliError(
-      'The app is locked. Unlock it in the window: status-original open',
-      'unavailable'
-    );
+    throw new CliError('The app is locked. Unlock it in the window: statim open', 'unavailable');
   }
 }
 
@@ -86,7 +83,7 @@ export async function whenAccountReady(): Promise<void> {
   const accountState = useAccountStore.getState();
   if (accountState.status === 'absent') {
     throw new CliError(
-      'There is no account yet. Run status-original accounts create, or accounts import.',
+      'There is no account yet. Run statim accounts create, or accounts import.',
       'unavailable'
     );
   }

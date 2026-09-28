@@ -1,5 +1,5 @@
 # Opens settings screens and verifies account erasure requires confirmation.
-appId: com.statusoriginal.app
+appId: im.statim.app
 ---
 - runFlow: lib/launch.yaml
 - tapOn: "Settings"

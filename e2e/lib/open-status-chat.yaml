@@ -1,7 +1,7 @@
-# Launches, lets the chat list settle, and opens the local Status chat through its app link.
-appId: com.statusoriginal.app
+# Launches, lets the chat list settle, and opens the local Statim chat through its app link.
+appId: im.statim.app
 ---
 - runFlow: launch.yaml
 - waitForAnimationToEnd:
     timeout: 5000
-- openLink: "statusoriginal://chat/local-status"
+- openLink: "statim://chat/local-status"

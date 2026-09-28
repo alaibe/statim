@@ -4,7 +4,7 @@
 <dict>
     <!-- Replace TEAMID with the Apple Developer team identifier before building. -->
     <key>com.apple.application-identifier</key>
-    <string>TEAMID.com.statusoriginal.app</string>
+    <string>TEAMID.im.statim.app</string>
     <key>com.apple.developer.team-identifier</key>
     <string>TEAMID</string>
 

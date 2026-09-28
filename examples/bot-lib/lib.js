@@ -10,7 +10,7 @@ const CONSENT_ALLOWED = 1;
 const CONSENT_DENIED = 2;
 
 const UI_CONTENT_TYPE = {
-  authorityId: 'status-original.plugin',
+  authorityId: 'statim.plugin',
   typeId: 'ui.widget',
   versionMajor: 1,
   versionMinor: 0,

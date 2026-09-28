@@ -43,7 +43,7 @@ async function attachment(
 function sent(chatId: ChatId, outcome: SendOutcome | null): void {
   if (outcome && !outcome.sent) {
     throw new CliError(
-      `${errorMessage(outcome.error, 'Sending failed')}. Try again with: status-original retry ${chatId} ${outcome.messageId}`
+      `${errorMessage(outcome.error, 'Sending failed')}. Try again with: statim retry ${chatId} ${outcome.messageId}`
     );
   }
 }

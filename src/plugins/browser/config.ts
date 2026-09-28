@@ -18,12 +18,12 @@ export const APP_METADATA: {
   icons: string[];
   redirect: { native: string };
 } = {
-  name: 'Status Original',
+  name: 'Statim',
   description: 'Encrypted chat with an Ethereum wallet built in.',
   url: METADATA_URL,
   icons: ['https://avatars.githubusercontent.com/u/37784886'],
   redirect: {
-    native: 'statusoriginal://',
+    native: 'statim://',
   },
 };
 

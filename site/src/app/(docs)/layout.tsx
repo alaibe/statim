@@ -12,7 +12,7 @@ const inter = Inter({ subsets: ['latin'], display: 'swap', variable: '--font-int
 
 export const metadata: Metadata = {
   ...siteMetadata,
-  title: { template: '%s · Status Original guide', default: 'Status Original guide' },
+  title: { template: '%s · Statim guide', default: 'Statim guide' },
 };
 
 export default function DocsLayout({ children }: { children: React.ReactNode }) {

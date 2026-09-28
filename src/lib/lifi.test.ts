@@ -36,7 +36,7 @@ describe('the LI.FI client', () => {
     const url = new URL(calls[0].url);
     expect(url.origin + url.pathname).toBe('https://li.quest/v1/quote');
     expect(url.searchParams.get('fromAmount')).toBe('1000000000000000');
-    expect(url.searchParams.get('integrator')).toBe('status-original');
+    expect(url.searchParams.get('integrator')).toBe('statim');
     expect(url.searchParams.get('slippage')).toBe('0.005');
     // Where the bought token lands is always stated, never left to a default.
     expect(url.searchParams.get('toAddress')).toBe(me);

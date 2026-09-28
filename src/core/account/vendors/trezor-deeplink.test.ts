@@ -24,10 +24,10 @@ describe('parsing the callback', () => {
     // Not `new URL` and not `Linking.parse`: the first is unreliable for
     // custom schemes across engines, the second needs a native module in what
     // should be a pure function.
-    expect(handleTrezorCallback('statusoriginal://trezor?id=x&payload=0xabc')).toBe(false);
+    expect(handleTrezorCallback('statim://trezor?id=x&payload=0xabc')).toBe(false);
   });
 
   it('does not mistake an encoded value for a missing one', () => {
-    expect(handleTrezorCallback('statusoriginal://trezor?id=a%2Fb&payload=0x1')).toBe(false);
+    expect(handleTrezorCallback('statim://trezor?id=a%2Fb&payload=0x1')).toBe(false);
   });
 });

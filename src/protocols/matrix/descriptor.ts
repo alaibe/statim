@@ -15,7 +15,7 @@ import type { MxSession } from './api';
 import { USER_ID } from './ids';
 
 /** What the homeserver lists for this app under Sessions. */
-const DEVICE_NAME = `Status Original on ${Platform.select({ ios: 'iPhone', android: 'Android', default: 'Mac' })}`;
+const DEVICE_NAME = `Statim on ${Platform.select({ ios: 'iPhone', android: 'Android', default: 'Mac' })}`;
 
 export const MATRIX_PROTOCOL = {
   id: 'matrix',

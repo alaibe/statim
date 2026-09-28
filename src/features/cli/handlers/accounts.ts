@@ -30,7 +30,7 @@ export const accountHandlers = {
       data,
       text: data.length
         ? data.map((a) => `${a.active ? '*' : ' '} ${a.label}  ${a.address}  ${a.kind}  ${a.id}`)
-        : 'No accounts yet. Run status-original accounts create, or accounts import.',
+        : 'No accounts yet. Run statim accounts create, or accounts import.',
     };
   },
 

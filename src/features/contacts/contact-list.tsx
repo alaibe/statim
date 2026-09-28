@@ -85,7 +85,7 @@ export function ContactList({
           <Card className="mx-gutter mb-4 flex-row items-center gap-3">
             <View className="flex-1">
               <Text variant="footnote">
-                You have shared only some of your contacts with Status Original.
+                You have shared only some of your contacts with Statim.
               </Text>
             </View>
             <Button
@@ -109,7 +109,7 @@ export function ContactList({
         </Section>
 
         <Section
-          title="On Status Original"
+          title="On Statim"
           surface="list"
           empty={
             query

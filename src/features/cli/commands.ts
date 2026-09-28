@@ -94,7 +94,7 @@ export const COMMANDS = [
     group: 'Accounts',
     summary: 'Import an account from a recovery phrase read from stdin or a hidden prompt',
     flags: [{ name: 'label', value: 'name', description: 'Name for the account' }],
-    examples: ['status-original accounts import --label Work < phrase.txt'],
+    examples: ['statim accounts import --label Work < phrase.txt'],
   },
   {
     path: 'accounts erase',
@@ -102,7 +102,7 @@ export const COMMANDS = [
     summary: 'Erase an account and everything stored for it on this device',
     args: [{ name: 'account', description: 'Account id, label or address', optional: true }],
     flags: [{ name: 'all', description: 'Erase every account instead of one' }],
-    examples: ['status-original accounts erase --all'],
+    examples: ['statim accounts erase --all'],
     approval: true,
   },
   {
@@ -123,9 +123,7 @@ export const COMMANDS = [
       { name: 'protocol', description: 'Protocol id' },
       { name: 'key=value', description: 'Settings to change', optional: true, variadic: true },
     ],
-    examples: [
-      'status-original protocols config matrix homeserver=https://matrix.org username=alice',
-    ],
+    examples: ['statim protocols config matrix homeserver=https://matrix.org username=alice'],
   },
   {
     path: 'protocols login',
@@ -137,8 +135,8 @@ export const COMMANDS = [
       { name: 'answer', description: 'Answer to the step it is waiting on', optional: true },
     ],
     examples: [
-      'status-original protocols login telegram',
-      'status-original protocols login telegram +447700900123 --json',
+      'statim protocols login telegram',
+      'statim protocols login telegram +447700900123 --json',
     ],
   },
   {
@@ -289,9 +287,9 @@ export const COMMANDS = [
       { name: 'reply', value: 'message', description: 'Reply to this message' },
     ],
     examples: [
-      'status-original send "Alice" "on my way"',
-      'git log -1 | status-original send dev-team -',
-      'status-original send alice --file ./photo.jpg "from the trip"',
+      'statim send "Alice" "on my way"',
+      'git log -1 | statim send dev-team -',
+      'statim send alice --file ./photo.jpg "from the trip"',
     ],
   },
   {
@@ -352,7 +350,7 @@ export const COMMANDS = [
       { name: 'question', description: 'The question' },
       { name: 'option', description: 'At least two answers', variadic: true },
     ],
-    examples: ['status-original poll create team "Lunch?" Pizza Sushi Salad'],
+    examples: ['statim poll create team "Lunch?" Pizza Sushi Salad'],
   },
   {
     path: 'poll vote',
@@ -375,7 +373,7 @@ export const COMMANDS = [
     summary: 'Start a DM with an address: an Ethereum address, ENS name, username or link',
     args: [{ name: 'address', description: 'Who to message' }],
     flags: [protocol],
-    examples: ['status-original new vitalik.eth', 'status-original new @durov --protocol telegram'],
+    examples: ['statim new vitalik.eth', 'statim new @durov --protocol telegram'],
   },
   {
     path: 'resolve',
@@ -502,10 +500,7 @@ export const COMMANDS = [
       },
       { name: 'value', description: 'For switches: on or off' },
     ],
-    examples: [
-      'status-original settings set theme dark',
-      'status-original settings set read-receipts off',
-    ],
+    examples: ['statim settings set theme dark', 'statim settings set read-receipts off'],
   },
   {
     path: 'apikey',
@@ -547,11 +542,7 @@ export const COMMANDS = [
       { ...chat, optional: true },
       { name: 'command', description: 'The command, starting with /', variadic: true },
     ],
-    examples: [
-      'status-original run /balance',
-      'status-original run /price eth',
-      'status-original run alice /send 0.01 ETH',
-    ],
+    examples: ['statim run /balance', 'statim run /price eth', 'statim run alice /send 0.01 ETH'],
     passthrough: true,
   },
   {

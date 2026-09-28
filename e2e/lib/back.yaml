@@ -1,5 +1,5 @@
 # Leaves a native stack screen. Only iOS gives the header's back button the BackButton id.
-appId: com.statusoriginal.app
+appId: im.statim.app
 ---
 - runFlow:
     when:

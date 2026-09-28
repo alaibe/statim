@@ -19,11 +19,11 @@ knows you exist.
 3. Tap **I've written it down**.
 
 That is the whole sign-up. The chat list opens with one chat, the
-Status chat, which holds help and slash commands.
+Statim chat, which holds help and slash commands.
 
 ::: warning Nobody can reset this
 The phrase *is* the account. Lose both the phrase and the device and the
-account, with anything in its wallet, is gone. Nobody at Status, Apple or
+account, with anything in its wallet, is gone. Nobody at Statim, Apple or
 Google can bring it back, because none of them ever had it.
 :::
 

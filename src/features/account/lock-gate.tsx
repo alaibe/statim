@@ -276,7 +276,7 @@ function PinUnlock({
           <Spinner />
         ) : (
           <Text variant="footnote" className={cn('text-center', message && 'text-danger')}>
-            {message ?? 'Status Original is locked'}
+            {message ?? 'Statim is locked'}
           </Text>
         )}
       </View>
@@ -330,8 +330,8 @@ function ForgotPin({ onCancel }: { onCancel: () => void }) {
           </View>
 
           <Text variant="bodyMuted">
-            A forgotten PIN cannot be reset. To use Status Original again, erase everything it keeps
-            on this device: every account’s keys, chats and settings.
+            A forgotten PIN cannot be reset. To use Statim again, erase everything it keeps on this
+            device: every account’s keys, chats and settings.
           </Text>
           <Text variant="bodyMuted">
             Then restore each account from its recovery phrase. Notes and anything else kept only on
@@ -375,7 +375,7 @@ function ForgotPin({ onCancel }: { onCancel: () => void }) {
 function LockFrame({
   icon,
   tone = 'muted',
-  title = 'Status Original',
+  title = 'Statim',
   message,
   children,
 }: {

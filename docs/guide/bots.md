@@ -50,9 +50,9 @@ ask about.
 ## The compose file
 
 Each bot is built from its own directory in this app's repository,
-[`weather-bot`](https://github.com/alaibe/status-original/tree/main/examples/weather-bot)
+[`weather-bot`](https://github.com/alaibe/statim/tree/main/examples/weather-bot)
 and
-[`llama-bot`](https://github.com/alaibe/status-original/tree/main/examples/llama-bot).
+[`llama-bot`](https://github.com/alaibe/statim/tree/main/examples/llama-bot).
 Put this in an empty directory as `docker-compose.yml`:
 
 ```yaml
@@ -75,7 +75,7 @@ services:
   weather-bot:
     <<: *bot
     build:
-      context: https://github.com/alaibe/status-original.git#main:examples
+      context: https://github.com/alaibe/statim.git#main:examples
       dockerfile: weather-bot/Dockerfile
     environment:
       <<: *env
@@ -88,7 +88,7 @@ services:
   llama-bot:
     <<: *bot
     build:
-      context: https://github.com/alaibe/status-original.git#main:examples
+      context: https://github.com/alaibe/statim.git#main:examples
       dockerfile: llama-bot/Dockerfile
     environment:
       <<: *env
@@ -191,7 +191,7 @@ buttons.
 ## Write your own
 
 Each bot is a directory in
-[`examples`](https://github.com/alaibe/status-original/tree/main/examples)
+[`examples`](https://github.com/alaibe/statim/tree/main/examples)
 with one `bot.js`. They share `bot-lib`, which handles the key, the owner check
 and catching up, and calls your function with each message from you and a way
 to reply, as text or as a card. `echo-bot` is the smallest, at about twenty

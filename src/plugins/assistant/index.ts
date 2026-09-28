@@ -8,7 +8,7 @@ import { makeStatusBot } from './bot';
 export const assistantPlugin: Plugin = {
   manifest: {
     id: 'assistant',
-    name: 'Status Assistant',
+    name: 'Statim Assistant',
     description: 'Your on-device space for notes, slash commands and discovering features.',
     version: '1.0.0',
     icon: 'sparkles-outline',

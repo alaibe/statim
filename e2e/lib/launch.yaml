@@ -1,5 +1,5 @@
 # Launches and waits for the chat list. A development build on the Android emulator takes about half a minute to load its bundle.
-appId: com.statusoriginal.app
+appId: im.statim.app
 ---
 - launchApp
 - extendedWaitUntil:

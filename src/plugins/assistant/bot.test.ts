@@ -13,7 +13,7 @@ beforeEach(async () => {
   projectTestAccount('status-test');
 });
 
-it('keeps ordinary notes quiet and pages Status history from account SQLite', async () => {
+it('keeps ordinary notes quiet and pages Statim history from account SQLite', async () => {
   const bot = makeStatusBot();
   await useChatStore.getState().registerBots([bot]);
   const welcomeLength = useChatStore.getState().messages[STATUS_LOCAL_ID].length;
@@ -74,7 +74,7 @@ describe('the lock card in the greeting', () => {
     ]);
   });
 
-  it('is part of the Status greeting', () => {
+  it('is part of the Statim greeting', () => {
     expect(makeStatusBot().greeting()).toContainEqual(lockCard());
   });
 });

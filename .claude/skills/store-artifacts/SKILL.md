@@ -1,6 +1,6 @@
 ---
 name: store-artifacts
-description: Regenerate every store submission artifact for Status Original (App Store and Google Play screenshots at the required sizes, listing text, privacy answers, review notes) and check them against the limits each store enforces. Use before any store submission, or after changing onboarding, the chat list, settings or app.json.
+description: Regenerate every store submission artifact for Statim (App Store and Google Play screenshots at the required sizes, listing text, privacy answers, review notes) and check them against the limits each store enforces. Use before any store submission, or after changing onboarding, the chat list, settings or app.json.
 ---
 
 # Store artifacts
@@ -61,8 +61,8 @@ For a real submission use a release build: a debug build can show the dev
 launcher, and its performance is not what a reviewer sees. A debug build is
 fine for checking the flow still works.
 
-Build the debug app with `xcodebuild -workspace ios/StatusOriginal.xcworkspace
--scheme StatusOriginal -configuration Debug -sdk iphonesimulator -destination
+Build the debug app with `xcodebuild -workspace ios/Statim.xcworkspace
+-scheme Statim -configuration Debug -sdk iphonesimulator -destination
 "id=<simulator>" build` (or `npx expo run:ios`) after `npx expo prebuild
 --platform ios` and `npx pod-install`. `patches/README.md` explains why
 Expo modules are built from source; a debug build with the precompiled ones
@@ -138,7 +138,7 @@ npx eas-cli@latest build -p android --profile development
 
 # Then, with an emulator running and the build installed:
 DEVICE=emulator-5554
-adb -s "$DEVICE" shell pm clear com.statusoriginal.app
+adb -s "$DEVICE" shell pm clear im.statim.app
 PATH="/opt/homebrew/opt/openjdk/bin:$PATH" ~/.maestro/bin/maestro --device "$DEVICE" \
   test distribution/ios/capture.yaml
 ```

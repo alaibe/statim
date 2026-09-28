@@ -42,7 +42,7 @@ DEVICE=$(xcrun simctl list devices available | grep "$MODEL (" | head -1 | sed -
 [ -n "$DEVICE" ] || { echo "No available simulator named '$MODEL'." >&2; exit 1; }
 
 # The newest debug build, since several worktrees may have one.
-APP="${2:-$(ls -td ~/Library/Developer/Xcode/DerivedData/StatusOriginal-*/Build/Products/Debug-iphonesimulator/StatusOriginal.app 2>/dev/null | head -1)}"
+APP="${2:-$(ls -td ~/Library/Developer/Xcode/DerivedData/Statim-*/Build/Products/Debug-iphonesimulator/Statim.app 2>/dev/null | head -1)}"
 [ -d "$APP" ] || { echo "No app bundle. Build one (xcodebuild or expo run:ios) or pass its path." >&2; exit 1; }
 
 echo "device  $MODEL ($DEVICE)"
@@ -60,7 +60,7 @@ xcrun simctl install "$DEVICE" "$APP"
 if [ -f "$APP/EXDevLauncher.bundle/Info.plist" ] || [ -d "$APP/Frameworks/EXDevLauncher.framework" ] || [ -z "${2:-}" ]; then
   curl -sf "http://localhost:$PORT/status" >/dev/null || { echo "Metro is not listening on :$PORT; start it with npm start." >&2; exit 1; }
   HOST=$(ipconfig getifaddr "$(route -n get default | awk '/interface:/{print $2}')")
-  xcrun simctl openurl "$DEVICE" "com.statusoriginal.app://expo-development-client/?url=http%3A%2F%2F${HOST}%3A${PORT}"
+  xcrun simctl openurl "$DEVICE" "im.statim.app://expo-development-client/?url=http%3A%2F%2F${HOST}%3A${PORT}"
   sleep 20
 fi
 

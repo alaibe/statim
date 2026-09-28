@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "Status Original",
-    "slug": "status-original",
+    "name": "Statim",
+    "slug": "statim",
     "version": "0.2.1",
     "runtimeVersion": {
       "policy": "fingerprint"
     },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "statusoriginal",
+    "scheme": "statim",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
@@ -17,7 +17,7 @@
         "dark": "./assets/images/icon-dark.png",
         "tinted": "./assets/images/icon-tinted.png"
       },
-      "bundleIdentifier": "com.statusoriginal.app",
+      "bundleIdentifier": "im.statim.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": true,
         "LSApplicationQueriesSchemes": ["wc", "ethereum"],
@@ -61,7 +61,7 @@
         "monochromeImage": "./assets/images/adaptive-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.statusoriginal.app",
+      "package": "im.statim.app",
       "versionCode": 1,
       "permissions": [
         "android.permission.RECORD_AUDIO",
@@ -115,7 +115,7 @@
       [
         "expo-secure-store",
         {
-          "faceIDPermission": "Confirm Face ID to unlock Status Original and the keys that control your accounts.",
+          "faceIDPermission": "Confirm Face ID to unlock Statim and the keys that control your accounts.",
           "configureAndroidBackup": true
         }
       ],
@@ -130,13 +130,13 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Confirm Face ID to unlock Status Original and the keys that control your accounts."
+          "faceIDPermission": "Confirm Face ID to unlock Statim and the keys that control your accounts."
         }
       ],
       [
         "expo-contacts",
         {
-          "contactsPermission": "Status Original reads your contacts on this device only, to suggest who to invite. They are never uploaded."
+          "contactsPermission": "Statim reads your contacts on this device only, to suggest who to invite. They are never uploaded."
         }
       ],
       [

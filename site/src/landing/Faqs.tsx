@@ -64,9 +64,7 @@ export function Faqs() {
               full FAQ
             </Link>
             , and bugs go to{' '}
-            <a
-              href="https://github.com/alaibe/status-original/issues"
-              className="text-gray-900 underline">
+            <a href="https://github.com/alaibe/statim/issues" className="text-gray-900 underline">
               GitHub issues
             </a>
             .

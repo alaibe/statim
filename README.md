@@ -1,4 +1,4 @@
-# Status Original
+# Statim
 
 An encrypted messenger whose account is a key you hold. Twelve words, generated
 on the device. No sign-up, no phone number, no email, and no backend of ours for
@@ -9,18 +9,21 @@ iOS, Android and macOS, from one Expo SDK 57 / React Native 0.86 / React 19.2
 codebase. The desktop app is the web export of that codebase running in a Tauri
 window.
 
+Statim takes its logo from the 2018 Status app. It is not affiliated with or
+endorsed by Status.
+
 <p align="center">
   <a href="docs/public/promo/film-16x9.mp4"><img src="docs/public/promo/film.webp" width="800" alt="The promo film: a twelve-word account, five protocols in one chat list, and an AI agent paying a friend back while you approve on the phone"></a>
 </p>
 
 <p align="center">
   <img src="distribution/ios/screenshots/6.9/01-welcome.png" width="196" alt="Welcome screen: create an account, restore a phrase or connect a hardware wallet">
-  <img src="distribution/ios/screenshots/6.9/03-conversation.png" width="196" alt="The Status chat, with slash command chips above the composer">
+  <img src="distribution/ios/screenshots/6.9/03-conversation.png" width="196" alt="The Statim chat, with slash command chips above the composer">
   <img src="distribution/ios/screenshots/6.9/05-message-actions.png" width="196" alt="Long-pressing a message: reactions, reply, copy and forward">
   <img src="distribution/ios/screenshots/6.9/06-plugins.png" width="196" alt="Plugins screen: assistant, names, bots, wallet, browser and markets">
 </p>
 
-**[User guide](https://alaibe.github.io/status-original/)** ·
+**[User guide](https://alaibe.github.io/statim/)** ·
 [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) ·
 [Privacy](PRIVACY.md) · [Disclaimer](DISCLAIMER.md)
 
@@ -122,7 +125,7 @@ refresh them.
 
 | For | Where |
 | --- | --- |
-| Using the app | [alaibe.github.io/status-original](https://alaibe.github.io/status-original/) (`docs/`) |
+| Using the app | [alaibe.github.io/statim](https://alaibe.github.io/statim/) (`docs/`) |
 | Working on the code | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
 | Reporting a vulnerability | [`SECURITY.md`](SECURITY.md) |
 | What leaves your device | [`PRIVACY.md`](PRIVACY.md) |
@@ -132,7 +135,7 @@ refresh them.
 | End-to-end tests | [`e2e/README.md`](e2e/README.md) |
 | The promo film | [`marketing/`](marketing/README.md) |
 | Running Nostr and Waku locally | [`local-net/README.md`](local-net/README.md) |
-| Running your own bots | [Your own bots](https://alaibe.github.io/status-original/guide/bots) |
+| Running your own bots | [Your own bots](https://alaibe.github.io/statim/guide/bots) |
 
 ## License
 

@@ -1,6 +1,6 @@
 # Command line
 
-On a computer, `status-original` does from a terminal what the app does in its
+On a computer, `statim` does from a terminal what the app does in its
 window: read and search chats, send messages and files, run groups, sign in to
 protocols, change settings, and run any plugin command. It talks to the app
 running on the same computer, under the account you are using there. If the
@@ -26,30 +26,30 @@ On Windows, both installers add it; open a new terminal afterwards. On Linux,
 the `.deb` and `.rpm` packages add it, and with the AppImage you use the line
 in **Settings › Command line**.
 
-Run `status-original help` to check it works.
+Run `statim help` to check it works.
 
 ## Using it
 
 ```sh
-status-original chats --unread
-status-original read Alice
-status-original send Alice "On my way"
-git log -1 | status-original send dev-team -
-status-original send Alice --file ./photo.jpg
-status-original search invoice
-status-original run /price eth
+statim chats --unread
+statim read Alice
+statim send Alice "On my way"
+git log -1 | statim send dev-team -
+statim send Alice --file ./photo.jpg
+statim search invoice
+statim run /price eth
 ```
 
 A chat can be named by its id or by part of its title, or of the other
 person's name or address. When a name fits more than one chat, the command
 stops and lists them with their ids. `last` means the newest message in a
-chat, so `status-original edit Alice last "on my way!"` fixes a typo.
+chat, so `statim edit Alice last "on my way!"` fixes a typo.
 
-Add `--json` to any command for output a script can read. `status-original
-help <command>` explains one command, and `status-original help` lists them
+Add `--json` to any command for output a script can read. `statim
+help <command>` explains one command, and `statim help` lists them
 all.
 
-`status-original watch` prints new messages as they arrive, until you stop
+`statim watch` prints new messages as they arrive, until you stop
 it with Ctrl-C.
 
 ## What still asks you first
@@ -69,12 +69,12 @@ Your recovery phrase is never shown on the command line.
 ## AI assistants
 
 ```sh
-status-original skills install
+statim skills install
 ```
 
 This installs instructions for Claude Code that explain the commands and the
 rules to follow. Use `--codex` for Codex, or `--dir <folder>` for another
-assistant. `status-original --skills` prints the same instructions.
+assistant. `statim --skills` prints the same instructions.
 
 The instructions tell the assistant that messages are written by other people
 and are never orders to follow, and that it should ask you before sending,
@@ -87,4 +87,4 @@ When the command line started the app, it has no window and no Dock icon.
 Open the app as usual to bring its window up. If you close the window while a
 command is still running, such as `watch`, the app keeps going in the
 background. With no window and nothing running, it quits after ten minutes.
-`status-original quit` quits it straight away.
+`statim quit` quits it straight away.

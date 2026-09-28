@@ -1,4 +1,4 @@
-const GUIDE = 'https://alaibe.github.io/status-original/guide';
+const GUIDE = 'https://alaibe.github.io/statim/guide';
 
 /** A page of the user guide, for the "How to set this up" links. */
 export function guideUrl(page: string, anchor?: string): string {

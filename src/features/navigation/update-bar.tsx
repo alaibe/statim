@@ -5,7 +5,7 @@ import { View } from 'react-native';
 
 import { Button, Text, toast } from '@/design';
 
-const START_OVER = 'status-original accounts erase --all\nstatus-original accounts import';
+const START_OVER = 'statim accounts erase --all\nstatim accounts import';
 
 /** Downloads a newer release in the background and offers to restart into it. */
 export function UpdateBar() {

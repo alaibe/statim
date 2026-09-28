@@ -293,8 +293,8 @@ describe('approval', () => {
     const { code, out, io } = await run(['run', '/pay', '5'], fakeIo(), await registryWith(wallet));
 
     expect(code).toBe(0);
-    expect(out).toContain('Confirm: status-original run /pay 5 --confirm');
-    expect(out).toContain('Other amount: status-original run /pay  (fill in the rest)');
+    expect(out).toContain('Confirm: statim run /pay 5 --confirm');
+    expect(out).toContain('Other amount: statim run /pay  (fill in the rest)');
     expect(io.approvals).toEqual([]);
   });
 

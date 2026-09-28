@@ -3,7 +3,7 @@
   "bundle": {
     "resources": {
       "frameworks/tdjson.dll": "tdjson.dll",
-      "windows/status-original.cmd": "bin/status-original.cmd"
+      "windows/statim.cmd": "bin/statim.cmd"
     },
     "windows": {
       "nsis": {

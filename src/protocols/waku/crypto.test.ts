@@ -97,7 +97,7 @@ describe('topics and ids', () => {
     const topic = contentTopicFor([alicePub, bobPub]);
     expect(topic).not.toContain(alicePub);
     expect(topic).not.toContain(bobPub);
-    expect(topic.startsWith('/status-original/1/')).toBe(true);
+    expect(topic.startsWith('/statim/1/')).toBe(true);
   });
 
   it('hashes the topic into a chat id that can be a URL segment', () => {

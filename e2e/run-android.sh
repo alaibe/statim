@@ -14,7 +14,7 @@ if [ "${1:-}" = "--fresh" ]; then
   shift
 fi
 
-APP_ID=com.statusoriginal.app
+APP_ID=im.statim.app
 PORT="${E2E_METRO_PORT:-8081}"
 
 MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
@@ -52,7 +52,7 @@ fi
 # lands in the app only once it has loaded this one.
 "${ADB[@]}" reverse "tcp:$PORT" "tcp:$PORT" >/dev/null
 "$MAESTRO" --device "$SERIAL" test \
-  -e DEV_CLIENT_URL="exp+status-original://expo-development-client/?url=http%3A%2F%2Flocalhost%3A$PORT&disableOnboarding=1" \
+  -e DEV_CLIENT_URL="exp+statim://expo-development-client/?url=http%3A%2F%2Flocalhost%3A$PORT&disableOnboarding=1" \
   e2e/lib/android-dev-client.yaml
 
 if [ $# -gt 0 ]; then

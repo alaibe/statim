@@ -1,5 +1,5 @@
 # Captures store images from the clean simulator prepared by `store-artifacts`.
-appId: com.statusoriginal.app
+appId: im.statim.app
 ---
 - launchApp:
     stopApp: true

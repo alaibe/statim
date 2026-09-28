@@ -36,8 +36,7 @@ export const pluginHandlers = {
   async 'plugins enable'({ args }, { host, io }) {
     await whenAccountReady();
     const plugin = host.registry.get(args.plugin!);
-    if (!plugin)
-      throw new CliError(`No plugin "${args.plugin}". Run status-original plugins.`, 'notFound');
+    if (!plugin) throw new CliError(`No plugin "${args.plugin}". Run statim plugins.`, 'notFound');
     const permissions = plugin.manifest.permissions.map((p) => PERMISSION_LABELS[p]);
     await approveOrThrow(
       io,
@@ -56,8 +55,7 @@ export const pluginHandlers = {
   async 'plugins disable'({ args }, { host }) {
     await whenAccountReady();
     const plugin = host.registry.get(args.plugin!);
-    if (!plugin)
-      throw new CliError(`No plugin "${args.plugin}". Run status-original plugins.`, 'notFound');
+    if (!plugin) throw new CliError(`No plugin "${args.plugin}". Run statim plugins.`, 'notFound');
     await host.setEnabled(plugin.manifest.id, false);
     return {
       data: { id: plugin.manifest.id, enabled: false },
@@ -122,17 +120,11 @@ export const pluginHandlers = {
       entry = registry.commands().get(parsed.name);
       const bot = entry ? registry.botsOf(entry.pluginId)[0] : undefined;
       if (entry && !bot)
-        throw new CliError(
-          `/${parsed.name} needs a chat: status-original run <chat> ${text}`,
-          'usage'
-        );
+        throw new CliError(`/${parsed.name} needs a chat: statim run <chat> ${text}`, 'usage');
       chatId = bot && botChatId(bot.id);
     }
     if (!entry || !chatId) {
-      throw new CliError(
-        `Unknown command /${parsed.name}. Run status-original commands.`,
-        'notFound'
-      );
+      throw new CliError(`Unknown command /${parsed.name}. Run statim commands.`, 'notFound');
     }
 
     const title = useChatStore.getState().chats.find((c) => c.id === chatId)?.title ?? chatId;
@@ -153,10 +145,10 @@ export const pluginHandlers = {
     const again = (command: string) => {
       const button = buttonCommand(command);
       if (button.kind === 'reply') {
-        return `status-original send ${target || `${chatId} `}${quote(button.text)}`;
+        return `statim send ${target || `${chatId} `}${quote(button.text)}`;
       }
       const hint = button.kind === 'draft' ? '  (fill in the rest)' : '';
-      return `status-original run ${target}${button.text.trim()}${hint}`;
+      return `statim run ${target}${button.text.trim()}${hint}`;
     };
     const lines = replies.flatMap((content) => contentLines(content, again));
     if (result.type === 'error') throw new CliError([...lines, result.message].join('\n'));

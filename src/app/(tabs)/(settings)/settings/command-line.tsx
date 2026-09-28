@@ -7,7 +7,7 @@ import { isCliAllowed, setCliAllowed } from '@/features/cli/access';
 import { cliInstall, type CliInstall } from '@/features/cli/install';
 import { SettingsScreen } from '@/features/settings/settings-screen';
 
-const SKILLS = 'status-original skills install';
+const SKILLS = 'statim skills install';
 
 function Command({ command, done }: { command: string; done: string }) {
   return (
@@ -42,9 +42,9 @@ export default function CommandLineScreen() {
     <SettingsScreen title="Command line">
       <View className="gap-2 px-gutter pb-6">
         <Text variant="body">
-          status-original does from a terminal whatever this app does: read and send messages,
-          manage chats and groups, run plugin commands. It talks to this app, and starts it in the
-          background when it is closed.
+          statim does from a terminal whatever this app does: read and send messages, manage chats
+          and groups, run plugin commands. It talks to this app, and starts it in the background
+          when it is closed.
         </Text>
         <Text variant="footnote">
           Anything that signs, erases or turns on a plugin waits for you to approve it here.
@@ -66,7 +66,7 @@ export default function CommandLineScreen() {
       <Section title="Install" surface="card" className="mb-6">
         <View className="gap-3 p-4">
           {install?.installed ? (
-            <Text variant="footnote">Installed. Open a terminal and run status-original help.</Text>
+            <Text variant="footnote">Installed. Open a terminal and run statim help.</Text>
           ) : install?.command ? (
             <>
               <Text variant="footnote">

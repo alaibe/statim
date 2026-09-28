@@ -151,7 +151,7 @@ The update signing keypair is separate from anything Apple issues, and you make
 it once:
 
 ```sh
-npx tauri signer generate -w ~/.tauri/status-original.key
+npx tauri signer generate -w ~/.tauri/statim.key
 ```
 
 The public key goes in `src-tauri/tauri.conf.json` under
@@ -195,10 +195,10 @@ npx tauri build --bundles app --target universal-apple-darwin \
   --config src-tauri/tauri.appstore.conf.json -- --no-default-features
 
 xcrun productbuild --sign "$APPLE_INSTALLER_IDENTITY" \
-  --component "src-tauri/target/universal-apple-darwin/release/bundle/macos/Status Original.app" \
-  /Applications "Status Original.pkg"
+  --component "src-tauri/target/universal-apple-darwin/release/bundle/macos/Statim.app" \
+  /Applications "Statim.pkg"
 
-xcrun altool --upload-app --type macos --file "Status Original.pkg" \
+xcrun altool --upload-app --type macos --file "Statim.pkg" \
   --apiKey "$APPLE_API_KEY" --apiIssuer "$APPLE_API_ISSUER"
 ```
 

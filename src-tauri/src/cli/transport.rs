@@ -4,7 +4,7 @@ use interprocess::local_socket::{prelude::*, Listener, ListenerOptions, Name, St
 
 #[cfg_attr(windows, allow(dead_code))]
 /// `identifier` in tauri.conf.json: the client runs before Tauri and cannot ask it.
-const IDENTIFIER: &str = "com.statusoriginal.app";
+const IDENTIFIER: &str = "im.statim.app";
 
 const NAME: &str = if cfg!(debug_assertions) {
     "cli-dev.sock"
@@ -36,7 +36,7 @@ fn with_name<T>(f: impl FnOnce(Name) -> io::Result<T>) -> io::Result<T> {
     use interprocess::local_socket::GenericNamespaced;
 
     let user = std::env::var("USERNAME").unwrap_or_default();
-    format!("status-original-{user}-{NAME}")
+    format!("statim-{user}-{NAME}")
         .to_ns_name::<GenericNamespaced>()
         .and_then(f)
 }

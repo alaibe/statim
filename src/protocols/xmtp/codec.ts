@@ -1,6 +1,6 @@
 import type { ContentTypeId, EncodedContent, JSContentCodec } from '@xmtp/react-native-sdk';
 
-export const PLUGIN_AUTHORITY = 'status-original.plugin';
+export const PLUGIN_AUTHORITY = 'statim.plugin';
 
 export interface PluginContentType<T> {
   typeId: string;

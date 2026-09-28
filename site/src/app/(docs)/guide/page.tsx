@@ -10,7 +10,7 @@ import { navigation } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Introduction',
-  description: 'How to use Status Original, the self-custodial messenger.',
+  description: 'How to use Statim, the self-custodial messenger.',
 };
 
 export default function Introduction() {
@@ -25,11 +25,11 @@ export default function Introduction() {
     <article className="flex h-full flex-col pt-16 pb-10">
       <HeroPattern />
       <Prose className="flex-auto">
-        <h1>Status Original guide</h1>
+        <h1>Statim guide</h1>
         <p className="lead">
-          Status Original is a messenger with no company in the middle. Your account is twelve words
-          on your device: no sign-up, no phone number, no email. This guide covers everything the
-          app does, screen by screen.
+          Statim is a messenger with no company in the middle. Your account is twelve words on your
+          device: no sign-up, no phone number, no email. This guide covers everything the app does,
+          screen by screen.
         </p>
         <div className="not-prose mt-6 mb-16 flex gap-3">
           <Button href="/guide/account" arrow="right">

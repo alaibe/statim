@@ -141,7 +141,7 @@ render('favicon', svg({ plate: PLATE, shape: 'rounded' }), 64);
 // src-tauri/icons; see `brand:build`.
 render('icon-desktop', svg({ plate: PLATE, shape: 'desktop', scale: DESKTOP_TILE }), 1024);
 
-// The Status room's avatar in the chat list, header and pickers: a circle,
+// The Statim room's avatar in the chat list, header and pickers: a circle,
 // since that is what every other avatar is. 96pt at 3x.
 render('status-avatar', svg({ plate: PLATE, shape: 'circle' }), 288);
 

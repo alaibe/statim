@@ -39,8 +39,8 @@ function describe(types: LocalAuthentication.AuthenticationType[]): string {
 }
 
 const REASON: Record<PromptPurpose, string> = {
-  unlock: 'Unlock Status Original',
-  'turn-on': 'Confirm to lock Status Original',
+  unlock: 'Unlock Statim',
+  'turn-on': 'Confirm to lock Statim',
 };
 
 export async function promptBiometrics(

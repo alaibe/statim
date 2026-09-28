@@ -12,7 +12,7 @@ use serde_json::{json, Value};
 
 use super::{transport, BACKGROUND};
 
-const SKILL: &str = include_str!("../../../skills/status-original/SKILL.md");
+const SKILL: &str = include_str!("../../../skills/statim/SKILL.md");
 const HELP: &str = include_str!("../../cli/help.txt");
 
 /// How long a copy started for the command line gets to open its socket.
@@ -39,7 +39,7 @@ fn offline(args: &[String]) -> Option<i32> {
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     match args.as_slice() {
         ["--version" | "-V" | "version"] => {
-            println!("status-original {}", env!("CARGO_PKG_VERSION"));
+            println!("statim {}", env!("CARGO_PKG_VERSION"));
         }
         ["--help" | "-h" | "help"] => print!("{HELP}"),
         ["--skills" | "skills"] => print!("{SKILL}"),
@@ -74,7 +74,7 @@ fn install_skill(targets: &[&str]) -> i32 {
         dirs.push(home.join(".claude/skills"));
     }
     for dir in dirs {
-        let path = dir.join("status-original").join("SKILL.md");
+        let path = dir.join("statim").join("SKILL.md");
         let written = path
             .parent()
             .map_or(Ok(()), fs::create_dir_all)
@@ -94,13 +94,13 @@ fn remote(args: Vec<String>) -> i32 {
     let stream = match transport::connect() {
         Ok(stream) => stream,
         Err(_) if args[0] == "quit" => {
-            eprintln!("Status Original is not running.");
+            eprintln!("Statim is not running.");
             return 0;
         }
         Err(_) => match start_app() {
             Ok(stream) => stream,
             Err(error) => {
-                eprintln!("Could not start Status Original: {error}");
+                eprintln!("Could not start Statim: {error}");
                 return 1;
             }
         },
@@ -114,7 +114,7 @@ fn remote(args: Vec<String>) -> i32 {
         "stdinTty": io::stdin().is_terminal(),
     });
     if super::write_line(&mut writer, &request).is_err() {
-        eprintln!("Status Original closed the connection.");
+        eprintln!("Statim closed the connection.");
         return 1;
     }
 
@@ -141,7 +141,7 @@ fn remote(args: Vec<String>) -> i32 {
             _ => {}
         }
     }
-    eprintln!("Status Original closed the connection.");
+    eprintln!("Statim closed the connection.");
     1
 }
 
@@ -205,7 +205,7 @@ fn start_app() -> io::Result<Stream> {
     }
     command.spawn()?;
     if io::stderr().is_terminal() {
-        eprintln!("Starting Status Original…");
+        eprintln!("Starting Statim…");
     }
 
     let deadline = Instant::now() + START_TIMEOUT;

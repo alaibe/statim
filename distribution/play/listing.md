@@ -12,7 +12,7 @@ Android build. Everything else below is ready to paste.
 **App name** (30):
 
 ```
-Status Original
+Statim
 ```
 
 **Short description** (80), shown in search results and above the fold:
@@ -32,7 +32,7 @@ WHAT IT DOES
 • End-to-end encrypted one-to-one and group chats over XMTP, Nostr or Waku. You choose per conversation, and the app says what each network protects.
 • Your own Telegram and Matrix accounts in the same inbox, signed in with your credentials. A Matrix server running a bridge brings WhatsApp, Signal, Slack or iMessage along with it.
 • Replies, reactions, forwarding, photos, files, GIFs and voice notes.
-• An on-device Status room for help and plugin commands.
+• An on-device Statim room for help and plugin commands.
 • The same recovery phrase is an Ethereum, Bitcoin and Solana wallet: check a balance, send, swap, ask someone to pay you, or split a bill inside the conversation where it came up.
 • Connect a Ledger, Trezor or Keystone and the key never touches this phone.
 

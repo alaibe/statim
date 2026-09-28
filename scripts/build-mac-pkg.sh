@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   scripts/build-mac-pkg.sh <path/to/Status Original.app> <version> <out.pkg>
+#   scripts/build-mac-pkg.sh <path/to/Statim.app> <version> <out.pkg>
 set -euo pipefail
 
 APP="$1"
@@ -16,7 +16,7 @@ ditto "$APP" "$work/root/Applications/$NAME"
 cat > "$work/scripts/postinstall" <<SCRIPT
 #!/bin/sh
 mkdir -p /usr/local/bin
-ln -sf "/Applications/$NAME/Contents/MacOS/status-original" /usr/local/bin/status-original
+ln -sf "/Applications/$NAME/Contents/MacOS/statim" /usr/local/bin/statim
 SCRIPT
 chmod +x "$work/scripts/postinstall"
 
@@ -28,7 +28,7 @@ pkgbuild \
   --root "$work/root" \
   --component-plist "$work/components.plist" \
   --scripts "$work/scripts" \
-  --identifier com.statusoriginal.app.pkg \
+  --identifier im.statim.app.pkg \
   --version "$VERSION" \
   --install-location / \
   "$OUT"

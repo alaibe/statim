@@ -13,7 +13,7 @@ chat list or makes a network request until you do.
 
 | Plugin | What it adds |
 | --- | --- |
-| **Status Assistant** | Your on-device space for notes, slash commands and finding features. On from the start; it is the Status chat. |
+| **Statim Assistant** | Your on-device space for notes, slash commands and finding features. On from the start; it is the Statim chat. |
 | **Names & addresses** | `/address` shares your address in a chat; `/ens name.eth` shows what a name points at, including its Bitcoin record. On from the start. |
 | **Wallet** | Balances, sends, trades and payment requests on the chains you switch on. See [Wallet](./wallet). |
 | **Browser** | Bookmarked sites, opened in your system browser and connected to your wallet over WalletConnect. |

@@ -1,5 +1,5 @@
-# Launches and checks the Status chat navigation used by later flows.
-appId: com.statusoriginal.app
+# Launches and checks the Statim chat navigation used by later flows.
+appId: im.statim.app
 ---
 - runFlow: lib/launch.yaml
 - assertVisible:
@@ -7,7 +7,7 @@ appId: com.statusoriginal.app
 - assertVisible:
     id: "header-new-chat"
 
-- openLink: "statusoriginal://chat/local-status"
+- openLink: "statim://chat/local-status"
 # A freshly erased simulator asks before opening a custom scheme the first time.
 - runFlow:
     when:

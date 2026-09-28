@@ -474,7 +474,7 @@ describe('defaults', () => {
    * one plugin at a time is how an app that starts as a messenger ends up
    * shipping ten chain chats nobody chose.
    *
-   * The two here are not optional: `assistant` provides the Status
+   * The two here are not optional: `assistant` provides the Statim
    * chat and `profile` the core account commands.
    */
   it('starts with nothing optional switched on', () => {

@@ -1,1 +1,1 @@
-export const METADATA_URL = 'https://github.com/alaibe/status-original';
+export const METADATA_URL = 'https://github.com/alaibe/statim';

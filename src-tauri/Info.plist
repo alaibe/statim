@@ -8,6 +8,6 @@
   <key>NSCameraUsageDescription</key>
   <string>Scanning a WalletConnect QR code is how a website connects to your wallet. The camera is used for that only, and nothing it sees leaves this device.</string>
   <key>NSContactsUsageDescription</key>
-  <string>Status Original reads your contacts on this device only, to suggest who to invite. They are never uploaded.</string>
+  <string>Statim reads your contacts on this device only, to suggest who to invite. They are never uploaded.</string>
 </dict>
 </plist>

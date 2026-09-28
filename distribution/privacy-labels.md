@@ -71,7 +71,7 @@ will want to know.
 
 Already in `app.json`, and worth re-reading before submission because Apple
 rejects vague ones. Each names both the reason and the limit. Contacts, for
-instance: *"Status Original reads your contacts on this device only, to suggest
+instance: *"Statim reads your contacts on this device only, to suggest
 who to invite. They are never uploaded."*
 
 Covered: contacts, microphone, camera, photos, Face ID, Bluetooth.

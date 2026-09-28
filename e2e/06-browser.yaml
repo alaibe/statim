@@ -1,4 +1,4 @@
-appId: com.statusoriginal.app
+appId: im.statim.app
 ---
 - runFlow: lib/open-status-chat.yaml
 - runFlow:
@@ -10,7 +10,7 @@ appId: com.statusoriginal.app
     visible:
       id: "chat-local-browser"
     timeout: 15000
-- openLink: "statusoriginal://chat/local-browser"
+- openLink: "statim://chat/local-browser"
 - assertNotVisible:
     id: "quick-swap"
 - tapOn:

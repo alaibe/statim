@@ -1,5 +1,5 @@
 # Creates the account required by later flows after a fresh reset.
-appId: com.statusoriginal.app
+appId: im.statim.app
 ---
 - launchApp
 - extendedWaitUntil:

@@ -8,7 +8,7 @@ const root = join(__dirname, '../../..');
 
 /** Embedded in the binary, which prints them without starting the app. `npm run cli:docs` rewrites them. */
 const GENERATED = {
-  'skills/status-original/SKILL.md': renderSkill,
+  'skills/statim/SKILL.md': renderSkill,
   'src-tauri/cli/help.txt': renderHelp,
 };
 
