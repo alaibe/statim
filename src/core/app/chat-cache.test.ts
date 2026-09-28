@@ -146,7 +146,10 @@ describe('the cached chat list', () => {
 
   it('forgets a protocol that is no longer set up', async () => {
     const store = new InMemoryMessageStore();
-    await store.cacheChats([chat('kept', { id: asChatId('tg-kept'), protocol: 'telegram' })], []);
+    await store.cacheChats(
+      [chat('kept', { id: asChatId('xmtp-tg-kept'), protocol: 'telegram' })],
+      []
+    );
     const runtime = new AccountRuntime(PROTOCOLS);
 
     await runtime.synchronize({

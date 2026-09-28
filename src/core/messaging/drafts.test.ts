@@ -1,9 +1,9 @@
 import { DraftSync, draftKey, flushDrafts, saveDraftsSoon, withDraft } from './drafts';
 import { asChatId } from './testing/ids';
 
-const C = asChatId('c');
-const A = draftKey(asChatId('a'));
-const B = draftKey(asChatId('b'));
+const C = asChatId('xmtp-c');
+const A = draftKey(asChatId('xmtp-a'));
+const B = draftKey(asChatId('xmtp-b'));
 
 describe('drafts', () => {
   it('keeps a draft per chat and drops an empty one', () => {

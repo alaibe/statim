@@ -57,8 +57,9 @@ export function parseChatRoute(raw: string): (SplitId & { id: ChatId }) | null {
   return route && { ...route, id: raw as ChatId };
 }
 
-export function splitChatId(id: ChatId): SplitId | null {
-  return split(id);
+/** Only namespacedId and parseChatId make a ChatId, and both check it splits. */
+export function splitChatId(id: ChatId): SplitId {
+  return split(id)!;
 }
 
 function split(raw: string): SplitId | null {
@@ -71,8 +72,8 @@ function split(raw: string): SplitId | null {
   return { protocol, nativeId: protocolChatId(nativeId) };
 }
 
-export function protocolOf(id: ChatId): ProtocolId | null {
-  return splitChatId(id)?.protocol ?? null;
+export function protocolOf(id: ChatId): ProtocolId {
+  return splitChatId(id).protocol;
 }
 
 export function namespaceMessage(protocol: ProtocolId, message: ProtocolMessage): ChatMessage {

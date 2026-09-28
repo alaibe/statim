@@ -1,4 +1,5 @@
 import { useChatStore, type ChatState } from '@/core/messaging/chat-store';
+import { protocolOf } from '@/core/messaging/namespace';
 import type { ChatMessage } from '@/core/messaging/types';
 
 import {
@@ -53,13 +54,13 @@ export const liveHandlers = {
 
       printing = printing.then(async () => {
         const chats = new Map(state.chats.map((c) => [c.id, c]));
-        const protocols = [...new Set(fresh.flatMap((m) => chats.get(m.chatId)?.protocol ?? []))];
+        const protocols = [...new Set(fresh.map((m) => protocolOf(m.chatId)))];
         const [labels, ...names] = await Promise.all([
           chatLabels([...new Set(fresh.flatMap((m) => chats.get(m.chatId) ?? []))]),
           ...protocols.map((p) =>
             displayNames(
               p,
-              fresh.filter((m) => chats.get(m.chatId)?.protocol === p).map((m) => m.senderId)
+              fresh.filter((m) => protocolOf(m.chatId) === p).map((m) => m.senderId)
             )
           ),
         ]);

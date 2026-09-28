@@ -11,7 +11,7 @@ jest.mock('expo-observe', () => ({ useObserve: () => ({ markInteractive: () => {
 
 const message = (id: string, threadRoot?: string): ChatMessage => ({
   id,
-  chatId: asChatId('chat'),
+  chatId: asChatId('xmtp-chat'),
   senderId: 'me',
   sentAt: 1,
   content: { kind: 'text', text: id },
@@ -21,7 +21,7 @@ const message = (id: string, threadRoot?: string): ChatMessage => ({
 });
 
 function Probe({ thread }: { thread?: string }) {
-  const timeline = useChatTimeline(asChatId('chat'), thread, undefined, true);
+  const timeline = useChatTimeline(asChatId('xmtp-chat'), thread, undefined, true);
   return createElement('probe', {
     ids: timeline.messages.map((item) => item.id),
     replies: timeline.replyCounts.get('root'),
@@ -31,7 +31,9 @@ function Probe({ thread }: { thread?: string }) {
 it('shows root messages in the chat and only that root with its replies in a thread', () => {
   useChatStore.setState({
     accountId: null,
-    messages: { [asChatId('chat')]: [message('root'), message('reply', 'root'), message('later')] },
+    messages: {
+      [asChatId('xmtp-chat')]: [message('root'), message('reply', 'root'), message('later')],
+    },
     messageHistory: {},
     readAt: {},
   });
@@ -60,9 +62,9 @@ it('marks the chat read only when something arrived since it was last read', () 
   });
   useChatStore.setState({
     accountId: null,
-    messages: { [asChatId('chat')]: [fromParticipant('seen', 5)] },
+    messages: { [asChatId('xmtp-chat')]: [fromParticipant('seen', 5)] },
     messageHistory: {},
-    readAt: { [asChatId('chat')]: 10 },
+    readAt: { [asChatId('xmtp-chat')]: 10 },
     markRead,
   });
 
@@ -75,7 +77,7 @@ it('marks the chat read only when something arrived since it was last read', () 
   act(() =>
     useChatStore.setState({
       messages: {
-        [asChatId('chat')]: [
+        [asChatId('xmtp-chat')]: [
           fromParticipant('seen', 5),
           { ...fromParticipant('joined', 15), content: { kind: 'system', text: 'joined' } },
         ],
@@ -86,7 +88,9 @@ it('marks the chat read only when something arrived since it was last read', () 
 
   act(() =>
     useChatStore.setState({
-      messages: { [asChatId('chat')]: [fromParticipant('seen', 5), fromParticipant('new', 20)] },
+      messages: {
+        [asChatId('xmtp-chat')]: [fromParticipant('seen', 5), fromParticipant('new', 20)],
+      },
     })
   );
   expect(markRead).toHaveBeenCalledTimes(1);
@@ -97,7 +101,7 @@ it('marks the chat read when its protocol reports unread messages', () => {
   const markRead = jest.fn(async () => {});
   useChatStore.setState({
     accountId: null,
-    chats: [testChat({ id: 'chat', unreadCount: 0 })],
+    chats: [testChat({ id: 'xmtp-chat', unreadCount: 0 })],
     messages: {},
     messageHistory: {},
     readAt: {},
@@ -110,7 +114,7 @@ it('marks the chat read when its protocol reports unread messages', () => {
   });
   expect(markRead).not.toHaveBeenCalled();
 
-  act(() => useChatStore.setState({ chats: [testChat({ id: 'chat', unreadCount: 3 })] }));
+  act(() => useChatStore.setState({ chats: [testChat({ id: 'xmtp-chat', unreadCount: 3 })] }));
   expect(markRead).toHaveBeenCalledTimes(1);
   act(() => tree.unmount());
 });

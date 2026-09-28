@@ -204,11 +204,11 @@ export class ProtocolRuntime {
     for (const protocol of only ?? this.sessions.keys()) this.cache?.pause(protocol);
     await this.disconnect(only);
     const state = useChatStore.getState();
-    const dropped = (protocol: ProtocolId | null | undefined) =>
-      only ? !!protocol && only.includes(protocol) : protocol !== LOCAL_PROTOCOL;
+    const dropped = (protocol: ProtocolId) =>
+      only ? only.includes(protocol) : protocol !== LOCAL_PROTOCOL;
     const keep = <K extends string, T>(
       record: Partial<Record<K, T>>,
-      ownerOf: (key: K) => ProtocolId | null
+      ownerOf: (key: K) => ProtocolId
     ) =>
       Object.fromEntries(
         (Object.entries(record) as [K, T][]).filter(([key]) => !dropped(ownerOf(key)))

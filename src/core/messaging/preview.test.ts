@@ -5,7 +5,7 @@ import { asChatId } from './testing/ids';
 
 const base: ChatMessage = {
   id: '1',
-  chatId: asChatId('c'),
+  chatId: asChatId('xmtp-c'),
   senderId: 's',
   sentAt: 0,
   fromMe: false,

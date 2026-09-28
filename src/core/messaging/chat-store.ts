@@ -9,6 +9,7 @@ import {
   namespaceMessage,
   namespacedId,
   protocolEntries,
+  protocolOf,
   splitChatId,
   type ProtocolId,
 } from './namespace';
@@ -973,27 +974,21 @@ function localSentAt(messages: readonly ChatMessage[] | undefined, now: number):
 }
 
 function routeOrNull(state: ChatState, id: ChatId): Route | null {
-  const split = splitChatId(id);
-  if (!split) return null;
-
-  const session = state.sessions[split.protocol];
-  if (!session) return null;
-  return { protocol: split.protocol, nativeId: split.nativeId, session };
+  const { protocol, nativeId } = splitChatId(id);
+  const session = state.sessions[protocol];
+  return session ? { protocol, nativeId, session } : null;
 }
 
 function requireRoute(state: ChatState, id: ChatId): Route {
   const route = routeOrNull(state, id);
   if (route) return route;
 
-  const split = splitChatId(id);
-  if (split) {
-    const { error } = connectionFor(state.protocols, split.protocol);
-    throw new NotConnectedError(
-      split.protocol,
-      error ? `${split.protocol} is not connected: ${error}` : undefined
-    );
-  }
-  throw new Error('Not connected to that protocol yet.');
+  const protocol = protocolOf(id);
+  const { error } = connectionFor(state.protocols, protocol);
+  throw new NotConnectedError(
+    protocol,
+    error ? `${protocol} is not connected: ${error}` : undefined
+  );
 }
 
 type ChatArgs<K extends Capability> =
@@ -1241,8 +1236,7 @@ export function sessionFor(
   state: Pick<ChatState, 'sessions'>,
   id: ChatId
 ): ChatSession | undefined {
-  const route = splitChatId(id);
-  return route ? state.sessions[route.protocol] : undefined;
+  return state.sessions[protocolOf(id)];
 }
 
 export function xmtpSessionFor(

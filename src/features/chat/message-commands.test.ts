@@ -31,7 +31,7 @@ const none = {
 
 const message = (over: Partial<ChatMessage> = {}): ChatMessage => ({
   id: 'm1',
-  chatId: asChatId('c1'),
+  chatId: asChatId('xmtp-c1'),
   senderId: 'me',
   sentAt: 1,
   content: { kind: 'text', text: 'hello' },

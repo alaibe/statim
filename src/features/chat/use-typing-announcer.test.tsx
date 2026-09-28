@@ -6,7 +6,7 @@ import { useTypingAnnouncer } from './use-typing-announcer';
 import { asChatId } from '@/core/messaging/testing/ids';
 
 function Probe() {
-  return createElement('probe', { announce: useTypingAnnouncer(asChatId('chat'), true) });
+  return createElement('probe', { announce: useTypingAnnouncer(asChatId('xmtp-chat'), true) });
 }
 
 it('tells the protocol once per few seconds of typing, not on every keystroke', () => {
@@ -20,17 +20,17 @@ it('tells the protocol once per few seconds of typing, not on every keystroke', 
   const announce: (text: string) => void = tree.root.findByType('probe' as never).props.announce;
 
   for (const text of ['h', 'he', 'hel', 'hell', 'hello']) announce(text);
-  expect(setTyping.mock.calls).toEqual([['chat', true]]);
+  expect(setTyping.mock.calls).toEqual([['xmtp-chat', true]]);
 
   jest.advanceTimersByTime(3_000);
   announce('hello!');
   expect(setTyping.mock.calls).toEqual([
-    ['chat', true],
-    ['chat', true],
+    ['xmtp-chat', true],
+    ['xmtp-chat', true],
   ]);
 
   announce('');
-  expect(setTyping.mock.calls.at(-1)).toEqual(['chat', false]);
+  expect(setTyping.mock.calls.at(-1)).toEqual(['xmtp-chat', false]);
   announce('');
   expect(setTyping).toHaveBeenCalledTimes(3);
 

@@ -31,7 +31,7 @@ function Chat({ send }: { send: (text: string) => void }) {
     press = setPending;
   }, []);
   useCommandDispatch({
-    chatId: asChatId('conv-1'),
+    chatId: asChatId('xmtp-conv-1'),
     scope: 'dm' as unknown as ChatScope,
     onSendText: async (text) => {
       send(text);

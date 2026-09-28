@@ -1,11 +1,11 @@
-import { LOCAL_PROTOCOL, protocolOf } from '../namespace';
+import { protocolOf } from '../namespace';
 import type { Chat } from '../types';
 import { asChatId } from './ids';
 
 export function testChat(over: Omit<Partial<Chat>, 'id'> & { id?: string } = {}): Chat {
-  const id = asChatId(over.id ?? 'c1');
+  const id = asChatId(over.id ?? 'xmtp-c1');
   return {
-    protocol: protocolOf(id) ?? LOCAL_PROTOCOL,
+    protocol: protocolOf(id),
     kind: 'dm',
     title: id,
     memberIds: [],

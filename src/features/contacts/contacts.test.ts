@@ -60,7 +60,7 @@ describe('the people behind a list of chats', () => {
   it('leaves out groups, declined threads and local chats', () => {
     const contacts = contactsOf(
       [
-        dm({ id: asChatId('group-1'), kind: 'group', memberIds: ['me', 'a'] }),
+        dm({ id: asChatId('xmtp-group-1'), kind: 'group', memberIds: ['me', 'a'] }),
         dm({ id: asChatId('nostr-declined'), memberIds: ['me', 'b'], consent: 'declined' }),
         dm({ id: botChatId('wallet'), memberIds: ['me', 'wallet'] }),
         dm({ id: asChatId('nostr-real'), memberIds: ['me', 'c'] }),

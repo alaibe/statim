@@ -11,8 +11,8 @@ import {
   unreadCount,
 } from './unread';
 
-const C1 = asChatId('c1');
-const C2 = asChatId('c2');
+const C1 = asChatId('xmtp-c1');
+const C2 = asChatId('xmtp-c2');
 
 const message = (overrides: Partial<ChatMessage> = {}): ChatMessage => ({
   id: 'm1',
@@ -70,15 +70,15 @@ describe('isUnread', () => {
 describe('totalUnread', () => {
   it('counts chats, not messages, because that is what a badge means', () => {
     const chats = [
-      chat({ id: 'c1', lastMessage: message({ sentAt: 1_000 }) }),
-      chat({ id: 'c2', lastMessage: message({ sentAt: 2_000 }) }),
-      chat({ id: 'c3', lastMessage: message({ fromMe: true, sentAt: 3_000 }) }),
+      chat({ id: 'xmtp-c1', lastMessage: message({ sentAt: 1_000 }) }),
+      chat({ id: 'xmtp-c2', lastMessage: message({ sentAt: 2_000 }) }),
+      chat({ id: 'xmtp-c3', lastMessage: message({ fromMe: true, sentAt: 3_000 }) }),
     ];
     expect(totalUnread(chats, { [C1]: 5_000 }, {})).toBe(1);
   });
 
   it('leaves muted chats out', () => {
-    const chats = [chat({ id: 'c1' }), chat({ id: 'c2' })];
+    const chats = [chat({ id: 'xmtp-c1' }), chat({ id: 'xmtp-c2' })];
     expect(totalUnread(chats, {}, { [C2]: { muted: true } })).toBe(1);
   });
 });

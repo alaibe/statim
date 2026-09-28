@@ -6,15 +6,17 @@ import {
   splitRequests,
   type ChatListRow,
 } from './folders';
+import { splitChatId } from './namespace';
 import { testChat } from './testing/chats';
 import { asChatId } from './testing/ids';
 import type { Chat } from './types';
 
 function chat(over: Omit<Partial<Chat>, 'id'> & { id: string }): Chat {
+  const id = asChatId(`${over.protocol ?? 'xmtp'}-${over.id}`);
   return testChat({
     lastMessage: {
       id: `${over.id}-m`,
-      chatId: asChatId(over.id),
+      chatId: id,
       senderId: 'other',
       sentAt: 1_000,
       content: { kind: 'text', text: 'hi' },
@@ -22,12 +24,14 @@ function chat(over: Omit<Partial<Chat>, 'id'> & { id: string }): Chat {
       status: 'sent',
     },
     ...over,
+    id,
   });
 }
 
+const native = (c: Chat) => splitChatId(c.id).nativeId;
 const empty = { prefs: {}, readAt: {} };
 const shape = (rows: ChatListRow[]) =>
-  rows.map((r) => (r.kind === 'chat' ? r.chat.id : `${r.folder}[${r.chats.map((c) => c.id)}]`));
+  rows.map((r) => (r.kind === 'chat' ? native(r.chat) : `${r.folder}[${r.chats.map(native)}]`));
 
 describe('splitRequests', () => {
   it('splits your chats from requests and leaves declined chats out of both', () => {
@@ -36,8 +40,8 @@ describe('splitRequests', () => {
       chat({ id: 'stranger', consent: 'request' }),
       chat({ id: 'declined', consent: 'declined' }),
     ]);
-    expect(split.accepted.map((c) => c.id)).toEqual(['accepted']);
-    expect(split.requests.map((c) => c.id)).toEqual(['stranger']);
+    expect(split.accepted.map(native)).toEqual(['accepted']);
+    expect(split.requests.map(native)).toEqual(['stranger']);
   });
 });
 
@@ -46,7 +50,7 @@ describe('matchesFilter', () => {
     expect(matchesFilter(chat({ id: 'dm' }), 'dms', empty)).toBe(true);
     expect(matchesFilter(chat({ id: 'g', kind: 'group' }), 'groups', empty)).toBe(true);
     expect(matchesFilter(chat({ id: 'c', kind: 'channel' }), 'groups', empty)).toBe(true);
-    expect(matchesFilter(chat({ id: 'local-status' }), 'dms', empty)).toBe(false);
+    expect(matchesFilter(chat({ id: 'status', protocol: 'local' }), 'dms', empty)).toBe(false);
   });
 
   it('counts unread, but not muted or already read', () => {
@@ -66,7 +70,7 @@ describe('matchesFilter', () => {
   });
 
   it('drops a chat from Mentions once it is read here, whatever the protocol still counts', () => {
-    const read = { prefs: {}, readAt: { g: 5_000 } };
+    const read = { prefs: {}, readAt: { 'xmtp-g': 5_000 } };
     expect(matchesFilter(chat({ id: 'g', kind: 'group', mentionCount: 2 }), 'mentions', read)).toBe(
       false
     );
@@ -79,7 +83,7 @@ describe('inFolder', () => {
     expect(inFolder(slack, 'network:Slack', empty)).toBe(true);
     expect(inFolder(slack, 'network:matrix', empty)).toBe(false);
 
-    const archived = { prefs: { s: { archived: true } }, readAt: {} };
+    const archived = { prefs: { 'matrix-s': { archived: true } }, readAt: {} };
     expect(inFolder(slack, 'network:Slack', archived)).toBe(false);
     expect(inFolder(slack, 'archive', archived)).toBe(true);
   });
@@ -110,7 +114,7 @@ describe('chatListRows', () => {
       chat({ id: 'n1', protocol: 'nostr' }),
       chat({ id: 's1', protocol: 'matrix', network: 'Slack' }),
     ];
-    const context = { prefs: { s1: { archived: true } }, readAt: {} };
+    const context = { prefs: { 'matrix-s1': { archived: true } }, readAt: {} };
     expect(shape(chatListRows(ordered, all, folded, context))).toEqual(['archive[s1]', 'n1']);
   });
 
@@ -119,7 +123,7 @@ describe('chatListRows', () => {
       chat({ id: 's1', protocol: 'matrix', network: 'Slack' }),
       chat({ id: 's2', protocol: 'matrix', network: 'Slack' }),
     ];
-    const context = { prefs: { s1: { pinned: true } }, readAt: {} };
+    const context = { prefs: { 'matrix-s1': { pinned: true } }, readAt: {} };
     expect(shape(chatListRows(ordered, all, folded, context))).toEqual(['s1', 'network:Slack[s2]']);
   });
 

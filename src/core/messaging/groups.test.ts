@@ -113,8 +113,8 @@ describe('group operations refuse non-groups', () => {
   });
 
   it('refuses everything before the session exists', async () => {
-    await expect(useChatStore.getState().getMembers(asChatId('anything'))).rejects.toThrow(
-      /Not connected/
+    await expect(useChatStore.getState().getMembers(asChatId('xmtp-anything'))).rejects.toThrow(
+      /not connected/
     );
   });
 });

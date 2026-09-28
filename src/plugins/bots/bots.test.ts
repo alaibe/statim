@@ -58,7 +58,7 @@ async function run(
   name: string,
   args: string[],
   context: PluginContext,
-  chatId = asChatId('conv-1')
+  chatId = asChatId('xmtp-conv-1')
 ) {
   const command = commandsFor(context).find((c) => c.name === name || c.aliases?.includes(name))!;
   const said: string[] = [];
@@ -184,8 +184,8 @@ describe('/startbot', () => {
 
   it('sends /start in place when already in a chat', async () => {
     const { context, sent } = makeContext();
-    await run('startbot', [], context, asChatId('conv-9'));
-    expect(sent).toEqual([{ chatId: 'conv-9', text: '/start' }]);
+    await run('startbot', [], context, asChatId('xmtp-conv-9'));
+    expect(sent).toEqual([{ chatId: 'xmtp-conv-9', text: '/start' }]);
   });
 });
 

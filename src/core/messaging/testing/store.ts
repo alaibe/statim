@@ -112,7 +112,7 @@ export function ns(nativeId: string, protocol: ProtocolId = TEST_PROTOCOL): Chat
 }
 
 export function native(id: ChatId): ProtocolChatId {
-  return splitChatId(id)?.nativeId ?? protocolChatId(id);
+  return splitChatId(id).nativeId;
 }
 
 export interface ConnectFakeOptions {

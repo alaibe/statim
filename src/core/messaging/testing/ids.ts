@@ -1,6 +1,8 @@
+import { parseChatId } from '../namespace';
 import type { ChatId } from '../types';
 
-/** Fixture ids such as "a" are not valid app ids, which parseChatId would reject. */
 export function asChatId(raw: string): ChatId {
-  return raw as ChatId;
+  const id = parseChatId(raw);
+  if (!id) throw new Error(`"${raw}" is not a chat id. Give it a protocol, like "xmtp-${raw}".`);
+  return id;
 }

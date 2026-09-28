@@ -14,8 +14,8 @@ import {
 import { asChatId } from './testing/ids';
 import type { ChatMessage, MessageContent } from './types';
 
-const C1 = asChatId('c1');
-const C2 = asChatId('c2');
+const C1 = asChatId('xmtp-c1');
+const C2 = asChatId('xmtp-c2');
 
 function message(id: string, content: MessageContent, sentAt = 1): ChatMessage {
   return {

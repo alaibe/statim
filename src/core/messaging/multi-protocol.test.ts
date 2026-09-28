@@ -123,15 +123,6 @@ describe('routing by id', () => {
       /waku is not connected/
     );
   });
-
-  it('refuses an id from before namespacing rather than guessing a protocol', async () => {
-    const { connect } = twoProtocols();
-    await connect();
-
-    await expect(useChatStore.getState().getMembers(asChatId('a'.repeat(64)))).rejects.toThrow(
-      /Not connected/
-    );
-  });
 });
 
 describe('independent failure', () => {

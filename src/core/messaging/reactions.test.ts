@@ -4,7 +4,7 @@ import { asChatId } from './testing/ids';
 
 function message(over: Partial<ChatMessage> & { id: string }): ChatMessage {
   return {
-    chatId: asChatId('c1'),
+    chatId: asChatId('xmtp-c1'),
     senderId: 'alice',
     sentAt: 1,
     content: { kind: 'text', text: 'hi' },

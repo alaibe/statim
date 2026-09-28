@@ -171,7 +171,7 @@ describe('isLocalChat', () => {
   it('is URL-safe, because ids become route segments', () => {
     expect(CHAT).not.toContain(':');
     expect(isLocalChat(CHAT)).toBe(true);
-    expect(isLocalChat(asChatId('a'.repeat(64)))).toBe(false);
+    expect(isLocalChat(asChatId(`xmtp-${'a'.repeat(64)}`))).toBe(false);
   });
 });
 

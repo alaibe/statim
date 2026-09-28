@@ -73,7 +73,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
   const [showPinned, setShowPinned] = useState(false);
 
   const isBot = isLocalChat(id);
-  const protocol = protocolOf(id) ?? undefined;
+  const protocol = protocolOf(id);
 
   const { session, supports, threads } = useSupports(id);
   const {
@@ -201,7 +201,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
                     onPress={() => void loadOlderMessages(id)}
                   />
                 ) : null}
-                {!isBot && protocol ? <HistoryStatus protocol={protocol} /> : null}
+                {!isBot ? <HistoryStatus protocol={protocol} /> : null}
               </View>
             }
             footer={running ? <CommandPending label={`Running ${running}…`} /> : null}
@@ -269,15 +269,9 @@ function chatPeople(
   return [...members, ...[...writers].map((id) => ({ id, protocol: chat.protocol }))];
 }
 
-function EmptyTranscript({
-  protocol,
-  isBot,
-}: {
-  protocol: ProtocolId | undefined;
-  isBot: boolean;
-}) {
+function EmptyTranscript({ protocol, isBot }: { protocol: ProtocolId; isBot: boolean }) {
   const fetchingHistory = useChatStore(
-    (s) => !!protocol && connectionFor(s.protocols, protocol).history.status === 'fetching'
+    (s) => connectionFor(s.protocols, protocol).history.status === 'fetching'
   );
   return (
     <EmptyState

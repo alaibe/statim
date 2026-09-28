@@ -682,11 +682,11 @@ describe('account-bound async projections', () => {
 
     const refreshing = useChatStore.getState().refreshChats();
     projectTestAccount('new');
-    useChatStore.setState({ chats: [testChat({ id: 'new-chat' })] });
+    useChatStore.setState({ chats: [testChat({ id: 'xmtp-new-chat' })] });
     deferred.resolve([protocolChat('old-chat')]);
     await refreshing;
 
-    expect(useChatStore.getState().chats.map((entry) => entry.id)).toEqual(['new-chat']);
+    expect(useChatStore.getState().chats.map((entry) => entry.id)).toEqual(['xmtp-new-chat']);
   });
 
   it.each(['startDm', 'startGroup'] as const)(
@@ -704,11 +704,11 @@ describe('account-bound async projections', () => {
           ? useChatStore.getState().startDm('xmtp', 'carol')
           : useChatStore.getState().startGroup('xmtp', ['carol'], 'Old');
       projectTestAccount('new');
-      useChatStore.setState({ chats: [testChat({ id: 'new-chat' })] });
+      useChatStore.setState({ chats: [testChat({ id: 'xmtp-new-chat' })] });
       deferred.resolve(protocolChat('native-old'));
       await starting;
 
-      expect(useChatStore.getState().chats.map((entry) => entry.id)).toEqual(['new-chat']);
+      expect(useChatStore.getState().chats.map((entry) => entry.id)).toEqual(['xmtp-new-chat']);
     }
   );
 
@@ -735,11 +735,11 @@ describe('account-bound async projections', () => {
               ? state.renameGroup(ns('group'), 'Renamed')
               : state.leaveGroup(ns('group'));
       projectTestAccount('new');
-      useChatStore.setState({ chats: [testChat({ id: 'new-chat' })] });
+      useChatStore.setState({ chats: [testChat({ id: 'xmtp-new-chat' })] });
       deferred.resolve();
       await mutating;
 
-      expect(useChatStore.getState().chats.map((entry) => entry.id)).toEqual(['new-chat']);
+      expect(useChatStore.getState().chats.map((entry) => entry.id)).toEqual(['xmtp-new-chat']);
     }
   );
 });
@@ -1009,7 +1009,7 @@ it('starts every account from empty lists no one can change in place', () => {
 
 describe('mergeChats', () => {
   const chat = (id: string, over: Partial<Chat> = {}) =>
-    testChat({ createdAt: 1_000, ...over, id });
+    testChat({ createdAt: 1_000, ...over, id: `xmtp-${id}` });
   const noDraft = () => undefined;
 
   it('hands back the same slices when an update changes nothing', () => {
@@ -1024,7 +1024,7 @@ describe('mergeChats', () => {
     const list = {
       chats: [chat('a', { markedUnread: true })],
       drafts: {},
-      readAt: { a: MARKED_UNREAD },
+      readAt: { 'xmtp-a': MARKED_UNREAD },
     };
     const next = mergeChats(
       list,
@@ -1032,9 +1032,9 @@ describe('mergeChats', () => {
       (_id, text) => text,
       7_000
     );
-    expect(next.chats.map((c) => c.id)).toEqual(['b', 'a']);
-    expect(next.drafts).toEqual({ a: 'later' });
-    expect(next.readAt).toEqual({ a: 7_000 });
+    expect(next.chats.map((c) => c.id)).toEqual(['xmtp-b', 'xmtp-a']);
+    expect(next.drafts).toEqual({ 'xmtp-a': 'later' });
+    expect(next.readAt).toEqual({ 'xmtp-a': 7_000 });
   });
 });
 
@@ -1062,7 +1062,7 @@ describe('local messages', () => {
   it('keep the order they were posted in when the clock stands still or goes back', async () => {
     projectTestAccount('test-account', new InMemoryMessageStore());
     const clock = jest.spyOn(Date, 'now').mockReturnValue(5_000);
-    const notes = asChatId('local:notes');
+    const notes = asChatId('xmtp-local:notes');
     const post = (text: string) =>
       useChatStore.getState().postLocalMessage(notes, { kind: 'text', text }, 'me');
 
@@ -1080,7 +1080,7 @@ describe('local messages', () => {
 
 describe('switching accounts', () => {
   it('forgets which pending send an echo belongs to', () => {
-    const chat = asChatId('chat');
+    const chat = asChatId('xmtp-chat');
     const pending = (id: string): ChatMessage => ({
       id,
       chatId: chat,
@@ -1111,5 +1111,5 @@ function defer<T>() {
 }
 
 function protocolChat(id: string): ProtocolChat {
-  return { ...testChat({ id }), id: protocolChatId(id), lastMessage: undefined };
+  return { ...testChat({ title: id }), id: protocolChatId(id), lastMessage: undefined };
 }

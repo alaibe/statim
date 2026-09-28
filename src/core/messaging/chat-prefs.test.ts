@@ -12,15 +12,16 @@ import { testChat } from './testing/chats';
 import { asChatId } from './testing/ids';
 import type { Chat } from './types';
 
-const C1 = asChatId('c1');
-const C2 = asChatId('c2');
+const C1 = asChatId('xmtp-c1');
+const C2 = asChatId('xmtp-c2');
 
 function chat(raw: string, sentAt: number): Chat {
+  const id = `xmtp-${raw}`;
   return testChat({
-    id: raw,
+    id,
     lastMessage: {
       id: `${raw}-m`,
-      chatId: asChatId(raw),
+      chatId: asChatId(id),
       senderId: 'a',
       sentAt,
       content: { kind: 'text', text: 'hi' },
@@ -63,28 +64,28 @@ describe('withPref', () => {
 describe('orderChats', () => {
   it('puts pinned chats first', () => {
     const list = [chat('old', 1), chat('new', 9)];
-    const out = orderChats(list, { [asChatId('old')]: { pinned: true } });
+    const out = orderChats(list, { [asChatId('xmtp-old')]: { pinned: true } });
 
-    expect(out.map((c) => c.id)).toEqual(['old', 'new']);
+    expect(out.map((c) => c.id)).toEqual(['xmtp-old', 'xmtp-new']);
   });
 
   it('sorts by recency within each group', () => {
     const list = [chat('a', 1), chat('b', 5), chat('c', 3)];
-    expect(orderChats(list, {}).map((c) => c.id)).toEqual(['b', 'c', 'a']);
+    expect(orderChats(list, {}).map((c) => c.id)).toEqual(['xmtp-b', 'xmtp-c', 'xmtp-a']);
   });
 
   it('removes archived chats rather than sinking them', () => {
     const list = [chat('a', 5), chat('b', 1)];
-    expect(orderChats(list, { [asChatId('a')]: { archived: true } }).map((c) => c.id)).toEqual([
-      'b',
-    ]);
+    expect(orderChats(list, { [asChatId('xmtp-a')]: { archived: true } }).map((c) => c.id)).toEqual(
+      ['xmtp-b']
+    );
   });
 
   it('can include archived when the archive is being viewed', () => {
     const list = [chat('a', 5), chat('b', 1)];
     const out = orderChats(
       list,
-      { [asChatId('a')]: { archived: true } },
+      { [asChatId('xmtp-a')]: { archived: true } },
       { includeArchived: true }
     );
     expect(out).toHaveLength(2);
