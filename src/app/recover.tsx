@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { View } from 'react-native';
 
 import { Button, Card, Icon, Screen, Text } from '@/design';
-import { eraseAllAccounts } from '@/core/app/erase-account';
+import { eraseEverything } from '@/core/app/erase-account';
 import { useAccountStore } from '@/core/account/account-store';
 import { shortAddress } from '@/core/account/keyring';
 import { useAction } from '@/features/use-action';
@@ -13,7 +13,7 @@ export default function RecoverScreen() {
   const accounts = useAccountStore((s) => s.accounts);
   const erase = useAction(
     async () => {
-      await eraseAllAccounts();
+      await eraseEverything();
       router.replace('/(onboarding)/welcome');
     },
     { failure: 'Could not erase this device' }

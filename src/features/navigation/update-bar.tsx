@@ -5,7 +5,7 @@ import { View } from 'react-native';
 
 import { Button, Text, toast } from '@/design';
 
-const START_OVER = 'status-original accounts erase <account>\nstatus-original accounts import';
+const START_OVER = 'status-original accounts erase --all\nstatus-original accounts import';
 
 /** Downloads a newer release in the background and offers to restart into it. */
 export function UpdateBar() {
@@ -47,7 +47,7 @@ export function UpdateBar() {
       </View>
       <Text variant="footnote">
         Before 1.0 a new version is not built to read what an older one stored. After restarting,
-        erase each account and import it again from its recovery phrase:
+        erase your accounts and import each again from its recovery phrase:
       </Text>
       <Text selectable className="font-mono text-xs">
         {START_OVER}

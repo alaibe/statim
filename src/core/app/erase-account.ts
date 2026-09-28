@@ -22,6 +22,10 @@ export async function eraseAllAccounts(): Promise<void> {
   if (accountState.activeAccountId) ordered.push(accountState.activeAccountId);
 
   for (const id of ordered) await eraseAccount(id);
+}
+
+export async function eraseEverything(): Promise<void> {
+  await eraseAllAccounts();
   await vaultWipe();
   await useLockStore.getState().evaluate();
 }

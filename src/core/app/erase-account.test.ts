@@ -4,8 +4,9 @@ import { useChatStore } from '../messaging/chat-store';
 import { InMemoryChatSession } from '../messaging/in-memory-session';
 import { connectFake } from '../messaging/testing/store';
 import { useAccountStore } from '../account/account-store';
-import { eraseAccount } from './erase-account';
+import { eraseAccount, eraseAllAccounts } from './erase-account';
 import { accountRuntime } from '@/runtime';
+import { VaultKey, vaultGet, vaultSet } from '@/storage/vault';
 
 jest.mock('../account/keyring', () => ({
   ...jest.requireActual('../account/keyring'),
@@ -59,6 +60,26 @@ async function connected() {
   await connectFake(session, { accountId: 'test-account' });
   return session;
 }
+
+describe('eraseAllAccounts', () => {
+  it('erases every account and leaves the device settings', async () => {
+    await connected();
+    const [active] = useAccountStore.getState().accounts;
+    const inactive = {
+      ...active,
+      id: 'inactive-account',
+      address: '0x0000000000000000000000000000000000000002' as const,
+    };
+    await saveAccounts([active, inactive]);
+    useAccountStore.setState({ accounts: [active, inactive] });
+    await vaultSet(VaultKey.commandLine, '1');
+
+    await eraseAllAccounts();
+
+    expect(useAccountStore.getState().accounts).toEqual([]);
+    expect(await vaultGet(VaultKey.commandLine)).toBe('1');
+  });
+});
 
 describe('signOut', () => {
   it('erases the protocol’s local database', async () => {

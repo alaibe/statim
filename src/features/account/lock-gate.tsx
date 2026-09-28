@@ -17,7 +17,7 @@ import {
   useThemeColors,
 } from '@/design';
 import { reportError } from '@/core/app/report-error';
-import { eraseAllAccounts } from '@/core/app/erase-account';
+import { eraseEverything } from '@/core/app/erase-account';
 import { useAccountStore } from '@/core/account/account-store';
 import { isKeyProtectionEnabled } from '@/core/account/key-protection';
 import { biometricCapability } from '@/core/account/biometrics';
@@ -309,7 +309,7 @@ function ForgotPin({ onCancel }: { onCancel: () => void }) {
   const [typed, setTyped] = useState('');
   const erase = useAction(
     async () => {
-      await eraseAllAccounts();
+      await eraseEverything();
       router.replace('/(onboarding)/welcome');
     },
     { failure: 'Could not erase this device' }

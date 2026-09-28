@@ -100,7 +100,9 @@ export const COMMANDS = [
     path: 'accounts erase',
     group: 'Accounts',
     summary: 'Erase an account and everything stored for it on this device',
-    args: [{ name: 'account', description: 'Account id, label or address' }],
+    args: [{ name: 'account', description: 'Account id, label or address', optional: true }],
+    flags: [{ name: 'all', description: 'Erase every account instead of one' }],
+    examples: ['status-original accounts erase --all'],
     approval: true,
   },
   {

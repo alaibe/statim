@@ -317,6 +317,39 @@ describe('approval', () => {
   });
 });
 
+describe('accounts erase', () => {
+  it('takes one account or --all', async () => {
+    expect((await run(['accounts', 'erase'])).code).toBe(2);
+    expect((await run(['accounts', 'erase', 'Main', '--all'])).code).toBe(2);
+    expect(useAccountStore.getState().accounts).toHaveLength(1);
+  });
+
+  it('asks once about every account with --all', async () => {
+    const [main] = useAccountStore.getState().accounts;
+    useAccountStore.setState({
+      accounts: [
+        main,
+        {
+          ...main,
+          id: 'work',
+          label: 'Work',
+          address: '0x3333333333333333333333333333333333333333',
+        },
+      ],
+    });
+    const io = fakeIo();
+    io.answer = false;
+
+    const { code } = await run(['accounts', 'erase', '--all'], io);
+
+    expect(code).toBe(5);
+    expect(io.approvals).toHaveLength(1);
+    expect(io.approvals[0]).toContain('Main');
+    expect(io.approvals[0]).toContain('Work');
+    expect(useAccountStore.getState().accounts).toHaveLength(2);
+  });
+});
+
 describe('every command that asks first', () => {
   const plugin: Plugin = {
     manifest: {

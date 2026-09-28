@@ -8,7 +8,7 @@ import {
   readMnemonic,
 } from './key-protection';
 import { useAccountStore } from './account-store';
-import { eraseAccount, eraseAllAccounts } from '../app/erase-account';
+import { eraseAccount, eraseEverything } from '../app/erase-account';
 import { accountMnemonicKey, VaultKey } from '@/storage/vault';
 
 const PHRASE_A = 'legal winner thank year wave sausage worth useful legal winner thank yellow';
@@ -169,7 +169,7 @@ describe('erasing', () => {
     const accounts = await withTwoAccounts();
     await enableKeyProtection(accounts.map((a) => a.id));
 
-    await eraseAllAccounts();
+    await eraseEverything();
 
     for (const account of accounts) {
       expect(await readMnemonic(account.id, false)).toEqual({ status: 'absent' });

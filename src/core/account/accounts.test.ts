@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 
 import { loadAccounts, loadActiveAccountId } from './accounts';
-import { eraseAccount, eraseAllAccounts } from '../app/erase-account';
+import { eraseAccount, eraseEverything } from '../app/erase-account';
 import { useAccountStore } from './account-store';
 import { scopePrefix } from '@/storage/scope';
 import { accountMnemonicKey, VaultKey } from '@/storage/vault';
@@ -98,7 +98,7 @@ describe('eraseAccount', () => {
     await AsyncStorage.setItem(scopePrefix(account.id) + 'chat.readAt', '{}');
     jest.spyOn(AsyncStorage, 'multiRemove').mockRejectedValueOnce(new Error('storage busy'));
 
-    await expect(eraseAllAccounts()).rejects.toThrow('async-storage');
+    await expect(eraseEverything()).rejects.toThrow('async-storage');
 
     expect((await loadAccounts()).map((entry) => entry.id)).toEqual([account.id]);
     expect(await SecureStore.getItemAsync(accountMnemonicKey(account.id))).not.toBeNull();

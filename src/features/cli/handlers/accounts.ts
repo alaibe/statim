@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 
-import { eraseAccount } from '@/core/app/erase-account';
+import { eraseAccount, eraseAllAccounts } from '@/core/app/erase-account';
 import { activeAccount, useAccountStore } from '@/core/account/account-store';
 import { createMnemonic } from '@/core/account/keyring';
 import { useChatStore } from '@/core/messaging/chat-store';
@@ -74,16 +74,24 @@ export const accountHandlers = {
     };
   },
 
-  async 'accounts erase'({ args }, { io }) {
+  async 'accounts erase'({ args, flags }, { io }) {
     await whenUnlocked();
-    const account = findAccount(args.account!);
+    if (Boolean(flags.all) === Boolean(args.account)) {
+      throw new CliError('Name one account, or pass --all.', 'usage');
+    }
+    const accounts = flags.all ? useAccountStore.getState().accounts : [findAccount(args.account!)];
+    if (!accounts.length) throw new CliError('There are no accounts to erase.', 'notFound');
     await approveOrThrow(
       io,
-      `Erase ${account.label} (${account.address}) from this device?\nWithout its recovery phrase it cannot be restored.`
+      `Erase ${accounts.map((a) => `${a.label} (${a.address})`).join(', ')} from this device?\nWithout its recovery phrase an account cannot be restored.`
     );
-    await eraseAccount(account.id);
+    if (flags.all) await eraseAllAccounts();
+    else await eraseAccount(accounts[0].id);
     router.replace(useAccountStore.getState().accounts.length ? '/chats' : '/(onboarding)/welcome');
-    return { data: { id: account.id, erased: true }, text: `Erased ${account.label}.` };
+    return {
+      data: { erased: accounts.map((a) => a.id) },
+      text: `Erased ${accounts.map((a) => a.label).join(', ')}.`,
+    };
   },
 
   async whoami() {

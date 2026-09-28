@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { act, createElement } from 'react';
 import { create, type ReactTestRenderer } from 'react-test-renderer';
 
-import { eraseAllAccounts } from '@/core/app/erase-account';
+import { eraseEverything } from '@/core/app/erase-account';
 import { useAccountStore } from '@/core/account/account-store';
 import { isKeyProtectionEnabled } from '@/core/account/key-protection';
 import { authenticate, type LockSetup } from '@/core/account/lock';
@@ -25,7 +25,7 @@ jest.mock('@/design', () => ({
   useThemeColors: () => ({}),
 }));
 jest.mock('@/core/app/report-error', () => ({ reportError: jest.fn() }));
-jest.mock('@/core/app/erase-account', () => ({ eraseAllAccounts: jest.fn(async () => {}) }));
+jest.mock('@/core/app/erase-account', () => ({ eraseEverything: jest.fn(async () => {}) }));
 jest.mock('@/core/account/key-protection', () => ({ isKeyProtectionEnabled: jest.fn() }));
 jest.mock('@/core/account/biometrics', () => ({
   biometricCapability: async () => ({ available: true, enrolled: true, label: 'Face ID' }),
@@ -185,7 +185,7 @@ describe('Forgot PIN?', () => {
 
     await press('Cancel');
     expect(pad()).toBeDefined();
-    expect(eraseAllAccounts).not.toHaveBeenCalled();
+    expect(eraseEverything).not.toHaveBeenCalled();
   });
 
   it('erases everything and starts over', async () => {
@@ -196,7 +196,7 @@ describe('Forgot PIN?', () => {
     await act(async () => tree.root.findByType('Field' as never).props.onChangeText('erase'));
     await press('Erase everything');
 
-    expect(eraseAllAccounts).toHaveBeenCalledTimes(1);
+    expect(eraseEverything).toHaveBeenCalledTimes(1);
     expect(router.replace).toHaveBeenCalledWith('/(onboarding)/welcome');
   });
 });

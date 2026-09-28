@@ -128,13 +128,18 @@ status-original accounts import --label Work < phrase.txt
 
 #### accounts erase
 
-`status-original accounts erase <account>`
+`status-original accounts erase [account] [--all]`
 
 Erase an account and everything stored for it on this device.
 
 Waits for the person at the app to approve it.
 
 - `account`: Account id, label or address
+- `--all`: Erase every account instead of one
+
+```sh
+status-original accounts erase --all
+```
 
 #### whoami
 
