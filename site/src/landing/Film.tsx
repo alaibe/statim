@@ -46,7 +46,7 @@ export function Film({ className }: { className?: string }) {
         preload="metadata"
         poster={`${basePath}/promo/film-poster-${cut}.jpg`}
         aria-label="Status Original in 37 seconds: your account is twelve words, five protocols share one chat list, and an AI agent pays a friend back while you approve on your phone."
-        className="aspect-9/16 w-full rounded-xl bg-gray-50 object-cover shadow-2xl ring-1 shadow-brand-950/40 ring-white/15 sm:aspect-video sm:rounded-2xl">
+        className="aspect-9/16 w-full rounded-xl bg-gray-50 object-cover shadow-[0_40px_120px_-30px_rgb(17_24_39/0.45)] ring-1 ring-gray-900/15 sm:aspect-video sm:rounded-2xl">
         <source media={phone} src={`${basePath}/promo/film-9x16.mp4`} type="video/mp4" />
         <source src={`${basePath}/promo/film-16x9.mp4`} type="video/mp4" />
       </video>

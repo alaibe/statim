@@ -58,17 +58,7 @@ export function Hero({ release }: { release: Release }) {
           ))}
           <span className="hidden sm:inline">and WhatsApp or Signal through a Matrix bridge</span>
         </div>
-        <div className="relative isolate mt-6 overflow-hidden rounded-[2rem] bg-brand-700 px-4 py-8 shadow-2xl ring-1 shadow-gray-900/30 ring-white/10 sm:p-10 lg:p-12">
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 -z-10 bg-[radial-gradient(80%_70%_at_15%_0%,var(--color-brand-500),transparent),radial-gradient(70%_70%_at_100%_100%,var(--color-brand-950),transparent)]"
-          />
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 -z-10 bg-[radial-gradient(rgb(255_255_255/0.16)_1px,transparent_1px)] mask-[radial-gradient(70%_80%_at_50%_40%,black,transparent)] bg-size-[22px_22px]"
-          />
-          <Film />
-        </div>
+        <Film className="mt-8 sm:mt-10" />
       </Container>
     </div>
   );
