@@ -10,7 +10,7 @@ them work around upstream bugs, and three work around the same one: Swift 6.2.4
 | `expo-observe+57.0.23` | `[String: Any]` is not `Sendable` and crosses an isolation boundary |
 | `expo-modules-core+57.0.18` | A `nonisolated(unsafe) weak let` emitter can no longer cross into an actor |
 | `@expo+metro-config+57.0.12` | A lazy `import()` of a `.cjs` entry loads its `.js` sibling instead |
-| `@xmtp+react-native-sdk+5.7.0` | `SwiftUI.Group` collides with `XMTPiOS.Group`; the Android module does not build or report install times |
+| `@xmtp+react-native-sdk+5.7.0` | `SwiftUI.Group` collides with `XMTPiOS.Group`; the Android module does not build; neither platform reports install times in milliseconds |
 | `react-native-tdlib+2.3.0` | No way to free the raw client without wiping the database |
 | `nativewind+4.2.6` | `NATIVEWIND_OS=web` treated as native, so `platformSelect()` reaches the browser |
 | `react-native-reanimated+4.5.1` | Entering elements pinned `position: absolute` after a custom animation |
@@ -195,15 +195,16 @@ moves. Exclude `bcprov-jdk15on` from `org.xmtp:android` and depend on
 `bcprov-jdk15to18` directly, so XMTP does not rely on `expo-updates` for its
 crypto. Divide the Android `createdAt` by 1,000,000.
 
-The iOS wrapper sends `createdAt` in seconds where the TypeScript expects
-milliseconds, so iOS shows a device added in January 1970. That is not patched.
+The iOS wrapper sends the same field in seconds where the TypeScript expects
+milliseconds, so Settings › Devices showed a device added in January 1970. It
+now multiplies by 1,000. Checked by compiling the `XMTPReactNative` pod.
 
 **Remove when** `@xmtp/react-native-sdk` publishes a build tested against Expo
 SDK 57 that compiles on Android. Regenerate with:
 
 ```bash
 npx patch-package @xmtp/react-native-sdk \
-  --include 'ios/XMTPModule\.swift$|^android/build\.gradle$|XMTPModule\.kt$|InboxStateWrapper\.kt$'
+  --include 'ios/XMTPModule\.swift$|^android/build\.gradle$|XMTPModule\.kt$|InboxStateWrapper\.(kt|swift)$'
 ``` This is the concrete form of the "untested on New Architecture" warning
 `npx expo-doctor` reports for the package.
 

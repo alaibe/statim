@@ -72,6 +72,19 @@ index 37ff8c9..35d9afa 100644
                                          )
                                  )
                              },
+diff --git a/node_modules/@xmtp/react-native-sdk/ios/Wrappers/InboxStateWrapper.swift b/node_modules/@xmtp/react-native-sdk/ios/Wrappers/InboxStateWrapper.swift
+index 2fd5799..b4195ee 100644
+--- a/node_modules/@xmtp/react-native-sdk/ios/Wrappers/InboxStateWrapper.swift
++++ b/node_modules/@xmtp/react-native-sdk/ios/Wrappers/InboxStateWrapper.swift
+@@ -60,7 +60,7 @@ struct Installation {
+     {
+         let obj: [String: Any] = [
+             "id": installation.id,
+-            "createdAt": installation.createdAt?.timeIntervalSince1970
++            "createdAt": installation.createdAt.map { $0.timeIntervalSince1970 * 1000 }
+                 ?? NSNull(),
+         ]
+         let data = try JSONSerialization.data(withJSONObject: obj)
 diff --git a/node_modules/@xmtp/react-native-sdk/ios/XMTPModule.swift b/node_modules/@xmtp/react-native-sdk/ios/XMTPModule.swift
 index bd7013b..36c8db7 100644
 --- a/node_modules/@xmtp/react-native-sdk/ios/XMTPModule.swift
