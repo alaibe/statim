@@ -44,11 +44,6 @@ const GROUP_MODEL: Record<ChatProtocolMeta['properties']['groupModel'], string> 
   topic: 'anyone with the topic can join',
 };
 
-export function protocolLabel(protocol: ProtocolId): string {
-  if (protocol === LOCAL_PROTOCOL) return 'On device';
-  return protocolById(protocol)?.label ?? protocol;
-}
-
 export function networkLabel(network: string): string {
   return protocolById(network)?.label ?? network;
 }

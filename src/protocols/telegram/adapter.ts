@@ -205,7 +205,7 @@ export class TelegramSession implements ChatSession {
         this.setLogin({
           step: 'code',
           title: 'Enter the code',
-          hint: describeCodeDelivery(state.code_info?.type['@type']),
+          hint: describeCodeDelivery(state.code_info.type['@type']),
         });
         return;
       case 'authorizationStateWaitPassword':
@@ -357,10 +357,7 @@ export class TelegramSession implements ChatSession {
         this.outbox.resolve(update.old_message_id, update.message);
         return this.emitMessage(update.message);
       case 'updateMessageSendFailed':
-        this.outbox.reject(
-          update.old_message_id,
-          new Error(update.error?.message ?? 'Telegram did not accept the message')
-        );
+        this.outbox.reject(update.old_message_id, new Error(update.error.message));
         return;
       case 'updateMessageContent':
       case 'updateMessageEdited':
@@ -817,9 +814,9 @@ export class TelegramSession implements ChatSession {
         : {}),
       canSend: this.td.canSend(chat),
       typing: this.typing.isTyping(chat.id),
-      online: participant?.status?.['@type'] === 'userStatusOnline',
+      online: participant?.status['@type'] === 'userStatusOnline',
       lastSeenAt:
-        participant?.status?.['@type'] === 'userStatusOffline' && participant.status.was_online
+        participant?.status['@type'] === 'userStatusOffline' && participant.status.was_online
           ? participant.status.was_online * 1000
           : undefined,
       consent: 'accepted',

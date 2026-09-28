@@ -3,7 +3,7 @@ import { connectionFor, useChatStore, xmtpSessionFor } from '@/core/messaging/ch
 import { loadProtocolConfig, missingFields, withDefaults } from '@/core/messaging/config';
 import type { ProtocolId } from '@/core/messaging/namespace';
 import type { LoginState } from '@/core/messaging/protocol';
-import { isConfigured } from '@/core/messaging/registry';
+import { isConfigured, type ProtocolDescriptor } from '@/core/messaging/registry';
 import { protocolById, connectableProtocols } from '@/protocols';
 import { accountRuntime } from '@/runtime';
 
@@ -27,11 +27,11 @@ export function requireProtocol(id: string) {
   return descriptor;
 }
 
-function sessionOf(id: ProtocolId) {
+function sessionOf({ id, label }: ProtocolDescriptor) {
   const session = useChatStore.getState().sessions[id];
   if (!session) {
     throw new CliError(
-      `${protocolById(id)?.label ?? id} is not connected. Check status-original protocols config ${id}.`,
+      `${label} is not connected. Check status-original protocols config ${id}.`,
       'unavailable'
     );
   }
@@ -54,21 +54,26 @@ function describeLogin(label: string, login: LoginState | null) {
   };
 }
 
-async function submitLogin(id: ProtocolId, answer: string): Promise<void> {
-  const session = sessionOf(id);
-  const before = loginOf(id);
+async function submitLogin(descriptor: ProtocolDescriptor, answer: string): Promise<void> {
+  const session = sessionOf(descriptor);
+  const before = loginOf(descriptor.id);
   await session.submitLogin!(answer);
-  await waitFor(useChatStore, (s) => connectionFor(s.protocols, id).login !== before, 60_000);
+  await waitFor(
+    useChatStore,
+    (s) => connectionFor(s.protocols, descriptor.id).login !== before,
+    60_000
+  );
 }
 
-async function interactiveLogin(id: ProtocolId, label: string, io: CliIo) {
+async function interactiveLogin(descriptor: ProtocolDescriptor, io: CliIo) {
+  const { id, label } = descriptor;
   for (let login = loginOf(id); login; login = loginOf(id)) {
     if (login.title) io.warn(login.title);
     if (login.hint) io.warn(login.hint);
     if (login.error) io.warn(`Error: ${login.error}`);
     const answer = await io.prompt(`${STEP_LABEL[login.step]}: `, login.step === 'password');
     if (!answer.trim()) throw new CliError('Sign-in cancelled.');
-    await submitLogin(id, answer);
+    await submitLogin(descriptor, answer);
   }
   return describeLogin(label, null);
 }
@@ -164,7 +169,7 @@ export const protocolHandlers = {
   async 'protocols login'({ args }, { io }) {
     await whenAccountReady();
     const descriptor = requireProtocol(args.protocol!);
-    const session = sessionOf(descriptor.id);
+    const session = sessionOf(descriptor);
     if (!session.subscribeLogin || !session.submitLogin) {
       throw new CliError(
         `${descriptor.label} does not sign in step by step. Use status-original protocols config ${descriptor.id}.`,
@@ -173,17 +178,17 @@ export const protocolHandlers = {
     }
     if (args.answer !== undefined) {
       if (!loginOf(descriptor.id)) return describeLogin(descriptor.label, null);
-      await submitLogin(descriptor.id, args.answer);
+      await submitLogin(descriptor, args.answer);
       return describeLogin(descriptor.label, loginOf(descriptor.id));
     }
     if (!io.stdinTty) return describeLogin(descriptor.label, loginOf(descriptor.id));
-    return interactiveLogin(descriptor.id, descriptor.label, io);
+    return interactiveLogin(descriptor, io);
   },
 
   async 'protocols logout'({ args }, { io }) {
     await whenAccountReady();
     const descriptor = requireProtocol(args.protocol!);
-    const session = sessionOf(descriptor.id);
+    const session = sessionOf(descriptor);
     if (!session.signOut) throw new CliError(`${descriptor.label} has no sign-out.`, 'unsupported');
     await approveOrThrow(io, `Sign out of ${descriptor.label}?`);
     await session.signOut();

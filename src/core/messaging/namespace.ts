@@ -3,6 +3,8 @@
  * what lets one chat list hold every protocol without anything downstream
  * filtering by protocol.
  */
+import { oneOf } from '@/lib/guards';
+
 import type {
   ChatMessage,
   Chat,
@@ -19,9 +21,7 @@ export const NATIVE_ID = /^[A-Za-z0-9_-]+$/;
 
 export const LOCAL_PROTOCOL = 'local' satisfies ProtocolId;
 
-export function isProtocolId(raw: string): raw is ProtocolId {
-  return (PROTOCOL_IDS as readonly string[]).includes(raw);
-}
+export const isProtocolId = oneOf(...PROTOCOL_IDS);
 
 export const protocolKeys = <T>(record: Partial<Record<ProtocolId, T>>) =>
   Object.keys(record) as ProtocolId[];

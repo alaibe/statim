@@ -12,7 +12,7 @@ import {
 } from 'viem/chains';
 import { createPublicClient, http, type PublicClient } from 'viem';
 
-export const KNOWN_CHAINS: readonly Chain[] = [
+const KNOWN_CHAINS: readonly Chain[] = [
   mainnet,
   base,
   optimism,

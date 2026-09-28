@@ -1,6 +1,6 @@
 import type { TdCodeType } from './types';
 
-export function describeCodeDelivery(type: TdCodeType | undefined): string {
+export function describeCodeDelivery(type: TdCodeType): string {
   switch (type) {
     case 'authenticationCodeTypeTelegramMessage':
       return 'Telegram sent the code to your other signed-in devices.';

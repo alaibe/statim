@@ -71,6 +71,7 @@ export function user(id: number, first: string, last = '', username?: string): T
     last_name: last,
     ...(username ? { usernames: { active_usernames: [username] } } : {}),
     phone_number: '',
+    status: { '@type': 'userStatusEmpty' },
     type: { '@type': 'userTypeRegular' },
   };
 }

@@ -171,6 +171,7 @@ export const withoutChain = (args: string[]) => withoutFlag(args, '--chain', CHA
 
 export const NO_CHAIN_ON = 'No chain is switched on. /chains turns one on.';
 const notSwitchedOn = (named: string) => `${named} is not switched on. See /chains.`;
+export const noChainCalled = (named: string) => `No chain called "${named}". /chains lists them.`;
 
 export function defaultChain<T extends ChainStrategy>(
   chains: T[],
@@ -238,7 +239,7 @@ export async function pickChain(
 
   if (named) {
     const chain = walletChainById(named);
-    if (!chain) return { error: `No chain called "${named}". /chains lists them.` };
+    if (!chain) return { error: noChainCalled(named) };
     const enabled = await enabledIds(context);
     if (!enabled.includes(chain.id)) {
       return { error: `${chain.name} is switched off. Turn it on with /chains ${chain.id}.` };
@@ -353,7 +354,7 @@ export function chainsCommand(context: PluginContext, views: { chains: PluginVie
       if (name) {
         const chain = walletChainById(name);
         if (!chain) {
-          return { type: 'error', message: `No chain called "${name}". /chains lists them.` };
+          return { type: 'error', message: noChainCalled(name) };
         }
 
         const enabled = await enabledIds(context);

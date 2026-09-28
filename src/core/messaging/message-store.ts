@@ -28,10 +28,6 @@ export type StoredSearchHit =
   | { message: ChatMessage; protocolId?: undefined }
   | { message: ProtocolMessage; protocolId: ProtocolId };
 
-function transportOf(protocolId: ProtocolId | undefined): ProtocolId | undefined {
-  return protocolId && protocolId !== LOCAL_PROTOCOL ? protocolId : undefined;
-}
-
 function appChatId(raw: string): ChatId {
   const id = parseChatId(raw);
   if (!id) throw new Error(`Stored chat id "${raw}" is not an app chat id.`);
@@ -39,11 +35,8 @@ function appChatId(raw: string): ChatId {
 }
 
 /** A transport's chats are stored under their protocol's ids; local chats and private notes under the app's. */
-export function storedChatId<Id extends AnyChatId>(
-  raw: string,
-  protocolId: ProtocolId | undefined
-): Id {
-  return (transportOf(protocolId) ? protocolChatId(raw) : appChatId(raw)) as Id;
+export function storedChatId<Id extends AnyChatId>(raw: string, protocolId: ProtocolId): Id {
+  return (protocolId === LOCAL_PROTOCOL ? appChatId(raw) : protocolChatId(raw)) as Id;
 }
 
 export function searchHit(
@@ -51,9 +44,8 @@ export function searchHit(
   protocolId: ProtocolId | undefined,
   message: <Id extends AnyChatId>(chatId: Id) => ChatMessage<Id>
 ): StoredSearchHit {
-  const transport = transportOf(protocolId);
-  if (transport) return { message: message(protocolChatId(raw)), protocolId: transport };
-  return { message: message(appChatId(raw)) };
+  if (!protocolId || protocolId === LOCAL_PROTOCOL) return { message: message(appChatId(raw)) };
+  return { message: message(protocolChatId(raw)), protocolId };
 }
 
 export interface MessageStore {

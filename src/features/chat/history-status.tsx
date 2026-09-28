@@ -3,7 +3,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { type ProtocolConnection, useChatStore } from '@/core/messaging/chat-store';
 import { protocolEntries, type ProtocolId } from '@/core/messaging/namespace';
 import { Pressable, Text, useThemeColors } from '@/design';
-import { protocolLabel } from '@/features/protocols/presentation';
+import { networkLabel } from '@/features/protocols/presentation';
 
 /** Shared by the chat list and the oldest end of a chat's transcript. */
 export function HistoryStatus({
@@ -37,12 +37,12 @@ export function HistoryStatus({
         <View
           className="flex-row items-center gap-2"
           accessible
-          accessibilityLabel={`${fetching.length ? 'Fetching history' : 'Connecting'}: ${active.map(([id]) => protocolLabel(id)).join(', ')}`}>
+          accessibilityLabel={`${fetching.length ? 'Fetching history' : 'Connecting'}: ${active.map(([id]) => networkLabel(id)).join(', ')}`}>
           <ActivityIndicator size="small" color={colors['content-subtle']} />
           <Text variant="caption" className="flex-1">
             {fetching.length ? 'Fetching history…' : 'Connecting…'}
             {' · '}
-            {active.map(([id]) => protocolLabel(id)).join(' · ')}
+            {active.map(([id]) => networkLabel(id)).join(' · ')}
           </Text>
         </View>
       ) : null}
@@ -77,11 +77,11 @@ export function HistoryStatus({
 }
 
 function summary(entries: [ProtocolId, unknown][]): string {
-  return `${entries.map(([id]) => protocolLabel(id)).join(', ')}: some history unavailable`;
+  return `${entries.map(([id]) => networkLabel(id)).join(', ')}: some history unavailable`;
 }
 
 function details(entries: [ProtocolId, ProtocolConnection][]): string {
   return entries
-    .map(([id, state]) => `${protocolLabel(id)}: ${state.history.error ?? 'History unavailable'}`)
+    .map(([id, state]) => `${networkLabel(id)}: ${state.history.error ?? 'History unavailable'}`)
     .join(' · ');
 }

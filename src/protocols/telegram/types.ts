@@ -12,7 +12,7 @@ export interface TdUser extends TdObject {
   last_name: string;
   usernames?: { active_usernames: string[] };
   phone_number: string;
-  status?: TdUserStatus;
+  status: TdUserStatus;
   type: { '@type': 'userTypeRegular' | 'userTypeBot' | 'userTypeDeleted' | 'userTypeUnknown' };
 }
 
@@ -166,7 +166,7 @@ export type TdCodeType =
 export type TdAuthorizationState =
   | {
       '@type': 'authorizationStateWaitCode';
-      code_info?: { type: { '@type': TdCodeType } };
+      code_info: { type: { '@type': TdCodeType } };
     }
   | { '@type': 'authorizationStateWaitPassword'; password_hint?: string }
   | {
@@ -231,7 +231,7 @@ export type TdUpdate =
   | {
       '@type': 'updateMessageSendFailed';
       old_message_id: number;
-      error?: { message?: string };
+      error: { message: string };
     }
   | {
       '@type':

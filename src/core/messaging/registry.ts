@@ -59,21 +59,6 @@ export interface ProtocolDescriptor {
   eraseLocalData?(params: ProtocolEraseParams): Promise<void>;
 }
 
-export function validateProtocols(protocols: readonly ProtocolDescriptor[]): void {
-  const ids = new Set<ProtocolId>();
-  for (const descriptor of protocols) {
-    if (ids.has(descriptor.id)) throw new Error(`Duplicate protocol id "${descriptor.id}"`);
-    ids.add(descriptor.id);
-  }
-}
-
-export function findProtocol(
-  protocols: readonly ProtocolDescriptor[],
-  id: ProtocolId
-): ProtocolDescriptor | undefined {
-  return protocols.find((protocol) => protocol.id === id);
-}
-
 export function connectableProtocols(
   protocols: readonly ProtocolDescriptor[]
 ): ProtocolDescriptor[] {

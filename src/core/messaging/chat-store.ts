@@ -1234,7 +1234,6 @@ function sortChats(chats: readonly Chat[]): Chat[] {
 }
 
 export function selfIdFor(state: Pick<ChatState, 'sessions'>, protocol: ProtocolId): string {
-  if (protocol === LOCAL_PROTOCOL) return '';
   return state.sessions[protocol]?.self.participantId ?? '';
 }
 

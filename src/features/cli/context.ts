@@ -171,7 +171,7 @@ export async function chatLabels(chats: readonly Chat[]): Promise<Map<ChatId, Ch
   const byProtocol = new Map<ProtocolId, Chat[]>();
   const out = new Map<ChatId, ChatLabel>();
   for (const chat of chats) {
-    if (chat.kind === 'dm' && !isLocalChat(chat.id) && chat.protocol) {
+    if (chat.kind === 'dm' && !isLocalChat(chat.id)) {
       byProtocol.set(chat.protocol, [...(byProtocol.get(chat.protocol) ?? []), chat]);
     } else {
       out.set(chat.id, { title: chat.title });
