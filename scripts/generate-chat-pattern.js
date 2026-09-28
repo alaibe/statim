@@ -26,7 +26,7 @@ const outPath = path.join(root, 'src', 'design', 'components', 'chat-pattern-til
  * extra density is invisible, and dropping it more than halves the bytes we
  * inline into the bundle.
  */
-const SIZE = 192;
+const SIZE = 256;
 const SCALE = 2;
 
 /**
@@ -124,94 +124,208 @@ function disc(buf, cx, cy, radius) {
 // ---------------------------------------------------------------------------
 // Glyphs
 //
-// Each draws into `buf` around (cx, cy) at radius `r`, rotated by `a`. They are
-// deliberately hand-drawn marks rather than geometric primitives: a grid of
-// circles reads as a grid, but a scatter of little marks reads as texture.
+// Each draws with a pen in local coordinates (-1..1), which the pen scales by
+// the glyph's radius and turns by its angle. The marks are what the app is
+// about: locks, keys, sealed letters, birds, a broken chain.
 // ---------------------------------------------------------------------------
 
-/** Local glyph coordinates (-1..1) to tile coordinates. */
-function place(cx, cy, r, a, lx, ly) {
+function pen(buf, cx, cy, r, a, w) {
   const c = Math.cos(a);
   const s = Math.sin(a);
-  return [cx + (lx * c - ly * s) * r, cy + (lx * s + ly * c) * r];
+  const at = ([x, y]) => [cx + (x * c - y * s) * r, cy + (x * s + y * c) * r];
+  const line = (...pts) => {
+    for (let i = 1; i < pts.length; i++) segment(buf, ...at(pts[i - 1]), ...at(pts[i]), w);
+  };
+  return {
+    line,
+    sub: (x, y, scale) => pen(buf, ...at([x, y]), r * scale, a, w),
+    arc: (x, y, radius, from, to) => arc(buf, ...at([x, y]), radius * r, a + from, a + to, w),
+    dot: (x, y, radius) => disc(buf, ...at([x, y]), Math.max(radius * r, w * 0.6)),
+    bar: (p0, p1, width) => segment(buf, ...at(p0), ...at(p1), width * r),
+    curve: (p0, p1, p2, steps = 10) =>
+      line(
+        ...Array.from({ length: steps + 1 }, (_, i) => {
+          const t = i / steps;
+          const u = 1 - t;
+          return [
+            u * u * p0[0] + 2 * u * t * p1[0] + t * t * p2[0],
+            u * u * p0[1] + 2 * u * t * p1[1] + t * t * p2[1],
+          ];
+        })
+      ),
+    ellipse: (x, y, rx, ry, steps = 24) =>
+      line(
+        ...Array.from({ length: steps + 1 }, (_, i) => {
+          const t = (i / steps) * Math.PI * 2;
+          return [x + Math.cos(t) * rx, y + Math.sin(t) * ry];
+        })
+      ),
+  };
+}
+
+/** Closed rounded rectangle, clockwise; `tail` is spliced into the bottom edge. */
+function roundRect(x0, y0, x1, y1, k, tail = []) {
+  const pts = [];
+  const corner = (cx, cy, from) => {
+    for (let i = 0; i <= 5; i++) {
+      const t = from + (i / 5) * (Math.PI / 2);
+      pts.push([cx + Math.cos(t) * k, cy + Math.sin(t) * k]);
+    }
+  };
+  corner(x0 + k, y0 + k, Math.PI);
+  corner(x1 - k, y0 + k, Math.PI * 1.5);
+  corner(x1 - k, y1 - k, 0);
+  pts.push(...tail);
+  corner(x0 + k, y1 - k, Math.PI / 2);
+  pts.push(pts[0]);
+  return pts;
+}
+
+function gull(p, x, y, s) {
+  p.curve([x - s, y + 0.3 * s], [x - 0.5 * s, y - 0.75 * s], [x, y + 0.2 * s]);
+  p.curve([x, y + 0.2 * s], [x + 0.5 * s, y - 0.75 * s], [x + s, y + 0.3 * s]);
+}
+
+function keyhole(p, x, y, s) {
+  p.dot(x, y - 0.1 * s, 0.2 * s);
+  p.bar([x, y - 0.05 * s], [x, y + 0.34 * s], 0.16 * s);
+}
+
+function speech(p, flip) {
+  const body = roundRect(-0.92, -0.66, 0.92, 0.4, 0.34, [
+    [-0.3, 0.4],
+    [-0.78, 0.82],
+  ]);
+  p.line(...(flip ? body.map(([x, y]) => [-x, y]) : body));
 }
 
 const GLYPHS = {
-  ring: (buf, cx, cy, r, _a, w) => arc(buf, cx, cy, r * 0.78, 0, Math.PI * 2, w),
-
-  crescent: (buf, cx, cy, r, a, w) => arc(buf, cx, cy, r * 0.85, a + 0.5, a + 4.4, w),
-
-  // Two opposed arcs meeting at a point: a leaf, or a lens.
-  leaf: (buf, cx, cy, r, a, w) => {
-    const nx = Math.cos(a + Math.PI / 2);
-    const ny = Math.sin(a + Math.PI / 2);
-    const off = r * 0.85;
-    arc(buf, cx - nx * off, cy - ny * off, r * 1.15, a - 0.72, a + 0.72, w);
-    arc(buf, cx + nx * off, cy + ny * off, r * 1.15, a + Math.PI - 0.72, a + Math.PI + 0.72, w);
+  lock: (p) => {
+    p.line(...roundRect(-0.62, -0.1, 0.62, 0.84, 0.16));
+    p.line([-0.36, -0.1], [-0.36, -0.38]);
+    p.line([0.36, -0.1], [0.36, -0.38]);
+    p.arc(0, -0.38, 0.36, Math.PI, Math.PI * 2);
+    keyhole(p, 0, 0.36, 0.7);
   },
 
-  // Four strokes from a centre: a spark, the busiest mark in the set.
-  spark: (buf, cx, cy, r, a, w) => {
-    for (let i = 0; i < 4; i++) {
-      const t = a + (i * Math.PI) / 2;
-      segment(buf, cx, cy, cx + Math.cos(t) * r, cy + Math.sin(t) * r, w);
+  key: (p) => {
+    p.arc(-0.56, 0, 0.3, 0, Math.PI * 2);
+    p.line([-0.26, 0], [0.92, 0]);
+    p.line([0.62, 0], [0.62, 0.28]);
+    p.line([0.86, 0], [0.86, 0.32]);
+  },
+
+  keyhole: (p) => {
+    p.arc(0, 0, 0.84, 0, Math.PI * 2);
+    keyhole(p, 0, 0, 1.3);
+  },
+
+  shield: (p) => {
+    p.line([0, -0.9], [0.72, -0.64], [0.72, 0]);
+    p.curve([0.72, 0], [0.7, 0.62], [0, 0.92]);
+    p.curve([0, 0.92], [-0.7, 0.62], [-0.72, 0]);
+    p.line([-0.72, 0], [-0.72, -0.64], [0, -0.9]);
+    p.line([-0.3, 0.02], [-0.07, 0.26], [0.32, -0.22]);
+  },
+
+  envelope: (p) => {
+    p.line(...roundRect(-0.9, -0.6, 0.9, 0.6, 0.12));
+    p.line([-0.84, -0.52], [0, 0.1], [0.84, -0.52]);
+  },
+
+  plane: (p) => {
+    const tip = [0.9, -0.9];
+    const fold = [-0.09, 0.09];
+    p.line(tip, [0.27, 0.9], fold, [-0.9, -0.27], tip);
+    p.line(tip, fold);
+  },
+
+  birds: (p) => {
+    gull(p, -0.15, 0.3, 0.9);
+    gull(p, 0.62, -0.55, 0.5);
+  },
+
+  signal: (p) => {
+    p.dot(0, 0, 0.14);
+    for (const radius of [0.46, 0.84]) {
+      p.arc(0, 0, radius, -0.62, 0.62);
+      p.arc(0, 0, radius, Math.PI - 0.62, Math.PI + 0.62);
     }
   },
 
-  // Three alternating half-arcs: a wave.
-  squiggle: (buf, cx, cy, r, a, w) => {
-    const step = r * 0.62;
-    for (let i = 0; i < 3; i++) {
-      const [px, py] = place(cx, cy, r, a, -0.62 + i * 0.62, 0);
-      const up = i % 2 === 0;
-      arc(buf, px, py, step * 0.5, a + (up ? Math.PI : 0), a + (up ? Math.PI * 2 : Math.PI), w);
-    }
+  globe: (p) => {
+    p.arc(0, 0, 0.86, 0, Math.PI * 2);
+    p.ellipse(0, 0, 0.38, 0.86);
+    p.line([-0.86, 0], [0.86, 0]);
   },
 
-  triangle: (buf, cx, cy, r, a, w) => {
-    const pts = [0, 1, 2].map((i) => {
-      const t = a + (i * Math.PI * 2) / 3 - Math.PI / 2;
-      return [cx + Math.cos(t) * r * 0.9, cy + Math.sin(t) * r * 0.9];
-    });
-    for (let i = 0; i < 3; i++) {
-      const [x0, y0] = pts[i];
-      const [x1, y1] = pts[(i + 1) % 3];
-      segment(buf, x0, y0, x1, y1, w);
-    }
-  },
-
-  chevron: (buf, cx, cy, r, a, w) => {
+  chain: (p) => {
+    p.line(...roundRect(-1.1, -0.36, -0.16, 0.36, 0.36));
+    p.line(...roundRect(0.16, -0.36, 1.1, 0.36, 0.36));
     for (const k of [-1, 1]) {
-      const [ax, ay] = place(cx, cy, r, a, -0.55, 0);
-      const [bx, by] = place(cx, cy, r, a, 0.55, k * 0.8);
-      segment(buf, ax, ay, bx, by, w);
+      p.line([0, k * 0.5], [0, k * 0.8]);
+      p.line([-0.2 * k, k * 0.48], [-0.38 * k, k * 0.72]);
     }
   },
 
-  // Three dots in a loose triangle, the quiet mark that gives the scatter air.
-  seeds: (buf, cx, cy, r, a, w) => {
+  feather: (p) => {
+    p.curve([-0.6, 0.6], [-0.62, -0.5], [0.82, -0.82]);
+    p.curve([-0.6, 0.6], [0.5, 0.62], [0.82, -0.82]);
+    p.line([-0.95, 0.95], [0.4, -0.4]);
+  },
+
+  sparkle: (p) => {
+    const tips = [
+      [0, -1],
+      [1, 0],
+      [0, 1],
+      [-1, 0],
+    ];
+    for (let i = 0; i < 4; i++) p.curve(tips[i], [0, 0], tips[(i + 1) % 4], 8);
+  },
+
+  dots: (p) => {
+    for (const x of [-0.7, 0, 0.7]) p.dot(x, 0, 0.24);
+  },
+
+  seeds: (p) => {
     for (let i = 0; i < 3; i++) {
-      const t = a + (i * Math.PI * 2) / 3;
-      disc(buf, cx + Math.cos(t) * r * 0.5, cy + Math.sin(t) * r * 0.5, w * 0.72);
+      const t = (i * Math.PI * 2) / 3;
+      p.dot(Math.cos(t) * 0.5, Math.sin(t) * 0.5, 0.18);
     }
   },
 
-  spiral: (buf, cx, cy, r, a, w) => {
-    const turns = 1.7;
-    const steps = 26;
-    let px = cx;
-    let py = cy;
-    for (let i = 1; i <= steps; i++) {
-      const t = (i / steps) * turns * Math.PI * 2;
-      const rr = (i / steps) * r * 0.9;
-      const nx = cx + Math.cos(t + a) * rr;
-      const ny = cy + Math.sin(t + a) * rr;
-      segment(buf, px, py, nx, ny, w);
-      px = nx;
-      py = ny;
-    }
+  ring: (p) => p.arc(0, 0, 0.78, 0, Math.PI * 2),
+
+  bird: (p) => gull(p, 0, 0, 1),
+
+  chat: (p) => speech(p, false),
+
+  chatDots: (p) => {
+    speech(p, true);
+    for (const x of [-0.4, 0, 0.4]) p.dot(x, -0.13, 0.1);
+  },
+
+  chatKeyhole: (p) => {
+    speech(p, false);
+    keyhole(p, 0, -0.1, 0.9);
+  },
+
+  chatLock: (p) => {
+    speech(p, true);
+    GLYPHS.lock(p.sub(0, -0.14, 0.36));
   },
 };
+
+/** [base angle, spread either side]. Upright marks only lean; loose ones turn freely. */
+const TILT = {
+  key: [-Math.PI / 4, 0.7],
+  chain: [-Math.PI / 4, 0.4],
+  feather: [0, 0.5],
+  sparkle: [0, Math.PI],
+  seeds: [0, Math.PI],
+};
+const DEFAULT_TILT = [0, 0.3];
 
 // ---------------------------------------------------------------------------
 // Patterns
@@ -226,66 +340,92 @@ function rng(seed) {
   };
 }
 
+function wrapDistance(a, b) {
+  const dx = Math.abs(a - b) % SIZE;
+  return Math.min(dx, SIZE - dx);
+}
+
 /**
- * Scatters glyphs over a jittered grid. A pure random scatter clumps and leaves
- * holes at this density; a plain grid reads as a grid. One glyph per cell with
- * jitter keeps the spacing even while breaking the alignment.
+ * Dart-throwing scatter: a mark lands only where it clears every mark already
+ * placed, measured across the tile's wrap so the seams stay invisible. Names
+ * are dealt from a shuffled deck so each mark turns up about equally often.
  */
-function scatter(buf, { seed, cells, radius, width, names, jitter = 0.45 }) {
+function scatter(buf, placed, { seed, count, radius, gap, width, names }) {
   const rand = rng(seed);
-  const cell = SIZE / cells;
-  for (let row = 0; row < cells; row++) {
-    for (let col = 0; col < cells; col++) {
-      const name = names[Math.floor(rand() * names.length) % names.length];
-      // Half-cell stagger on alternate rows. Without it the rows line up and
-      // the eye picks out horizontal banding long before it sees the motif.
-      const stagger = row % 2 ? 0.5 : 0;
-      const cx = (col + 0.5 + stagger + (rand() - 0.5) * 2 * jitter) * cell;
-      const cy = (row + 0.5 + (rand() - 0.5) * 2 * jitter) * cell;
-      const r = radius * (0.78 + rand() * 0.5);
-      GLYPHS[name](buf, cx, cy, r, rand() * Math.PI * 2, width);
-    }
+  const deck = Array.from({ length: count }, (_, i) => names[i % names.length]);
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
   }
+
+  let n = 0;
+  for (let tries = 0; tries < 20000 && n < count; tries++) {
+    const x = rand() * SIZE;
+    const y = rand() * SIZE;
+    const r = radius * (0.88 + rand() * 0.24);
+    const clear = placed.every(
+      (q) => Math.hypot(wrapDistance(q.x, x), wrapDistance(q.y, y)) >= q.r + r + gap
+    );
+    if (!clear) continue;
+    placed.push({ x, y, r });
+    const name = deck[n++];
+    const [base, spread] = TILT[name] ?? DEFAULT_TILT;
+    GLYPHS[name](pen(buf, x, y, r, base + (rand() - 0.5) * 2 * spread, width));
+  }
+  if (n < count) throw new Error(`scatter ${seed.toString(16)}: placed ${n} of ${count}`);
 }
 
 const PATTERNS = {
-  // Small enough to remain a texture behind message bubbles.
   doodles(buf) {
-    scatter(buf, {
+    const placed = [];
+    scatter(buf, placed, {
       seed: 0x5eed01,
-      cells: 6,
-      radius: 11,
-      width: 2.0,
-      names: ['ring', 'crescent', 'leaf', 'spark', 'squiggle', 'triangle', 'chevron', 'spiral'],
+      count: 30,
+      radius: 15,
+      gap: 7,
+      width: 2,
+      names: [
+        'lock',
+        'key',
+        'keyhole',
+        'shield',
+        'envelope',
+        'plane',
+        'birds',
+        'signal',
+        'globe',
+        'chain',
+        'feather',
+        'sparkle',
+      ],
     });
-    // A second, smaller layer fills the gaps the first one leaves.
-    scatter(buf, {
+    scatter(buf, placed, {
       seed: 0x5eed02,
-      cells: 6,
+      count: 40,
       radius: 5.5,
+      gap: 5,
       width: 1.7,
-      names: ['seeds', 'spark', 'ring', 'chevron', 'crescent'],
-      jitter: 0.5,
+      names: ['dots', 'sparkle', 'seeds', 'ring', 'bird'],
     });
   },
 
-  /** Quieter alternative: outlines only, closer to a watermark. */
   bubbles(buf) {
-    scatter(buf, {
+    const placed = [];
+    scatter(buf, placed, {
       seed: 0xb0bb1e,
-      cells: 4,
-      radius: 17,
-      width: 2.0,
-      names: ['ring', 'crescent'],
-      jitter: 0.5,
+      count: 12,
+      radius: 22,
+      gap: 12,
+      width: 2,
+      names: ['chat', 'chatDots', 'chatKeyhole', 'chatLock'],
     });
-    scatter(buf, {
+    scatter(buf, placed, {
       seed: 0xb0bb2e,
-      cells: 6,
-      radius: 6.5,
+      count: 24,
+      radius: 5.5,
+      gap: 7,
       width: 1.7,
-      names: ['ring', 'seeds'],
-      jitter: 0.5,
+      names: ['ring', 'seeds', 'bird'],
     });
   },
 };
@@ -416,20 +556,8 @@ const body = entries
   .map(([name, png]) => `  ${name}: 'data:image/png;base64,${png.toString('base64')}',`)
   .join('\n');
 
-const ts = `/**
- * GENERATED FILE. Do not edit by hand.
- * Source: scripts/generate-chat-pattern.js   Regenerate: npm run pattern:build
- *
- * Alpha-only PNG tiles for the chat backdrop, inlined as data URIs.
- * Inlined rather than shipped as image assets so there is one copy of each
- * motif instead of one per screen density, and so the colour stays a runtime
- * decision: the tiles carry no hue at all, only coverage.
- */
+const ts = `export const CHAT_PATTERN_SCALE = ${SCALE};
 
-/** Pixels per point in the tiles, so each repeats every ${SIZE / SCALE}pt. */
-export const CHAT_PATTERN_SCALE = ${SCALE};
-
-/** Tile edge, in pixels. */
 export const CHAT_PATTERN_SIZE = ${SIZE};
 
 export const CHAT_PATTERNS = {
