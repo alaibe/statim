@@ -63,10 +63,11 @@ describe('splitting a bill', () => {
 });
 
 describe('/split --chain', () => {
-  async function split(args: string[]) {
+  async function split(args: string[], stored: Record<string, unknown> = {}) {
     const sent: SplitRequest[] = [];
     const context = {
       account: { address: '0x0000000000000000000000000000000000000001' },
+      storage: { get: async (key: string) => stored[key] ?? null },
       chat: {
         members: async () => ['me', 'them'],
         sendCustom: async (_chat: unknown, _type: unknown, payload: SplitRequest) => {
@@ -89,7 +90,17 @@ describe('/split --chain', () => {
   it('takes the chain ids /chains lists', async () => {
     expect((await split(['1', '--chain', 'optimism'])).sent[0]?.chainId).toBe(10);
     expect((await split(['1', '--chain', 'arbitrum'])).sent[0]?.chainId).toBe(42161);
-    expect((await split(['1'])).sent[0]?.chainId).toBe(8453);
+  });
+
+  it('uses the wallet default without one, or Base when a split cannot use it', async () => {
+    const withDefault = (active: string) => ({
+      chains: ['ethereum', active],
+      'active-chain': active,
+    });
+    expect((await split(['1'])).sent[0]?.chainId).toBe(1);
+    expect((await split(['1'], withDefault('optimism'))).sent[0]?.chainId).toBe(10);
+    expect((await split(['1'], withDefault('bitcoin'))).sent[0]?.chainId).toBe(8453);
+    expect((await split(['1'], withDefault('sepolia'))).sent[0]?.chainId).toBe(8453);
   });
 
   it('refuses a chain it cannot split on instead of using Base', async () => {

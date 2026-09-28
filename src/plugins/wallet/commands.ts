@@ -29,6 +29,7 @@ import {
 } from './chains/strategy';
 import { EVM_CHAINS, type ChainSpec } from './chains/evm';
 import {
+  activeChain,
   chainFlag,
   NO_CHAIN_ON,
   pickSendable,
@@ -42,14 +43,19 @@ import { commitTransfer } from './transfer';
 type Respond = CommandInvocation['respond'];
 
 const SPLIT_CHAINS = EVM_CHAINS.filter((spec) => !spec.testnet);
-const SPLIT_DEFAULT: ChainId = 'base';
+const SPLIT_FALLBACK: ChainId = 'base';
 
-function splitChain(named: string | undefined): ChainSpec | { error: string } {
-  const id = named ? walletChainById(named)?.id : SPLIT_DEFAULT;
-  if (!id) return { error: `No chain called "${named}". /chains lists them.` };
+/** The chain `--chain` names, or else the wallet's default when a split can use it. */
+async function splitChain(
+  context: PluginContext,
+  named: string | undefined
+): Promise<ChainSpec | { error: string }> {
+  const wanted = named ? walletChainById(named)?.id : (await activeChain(context))?.id;
+  if (named && !wanted) return { error: `No chain called "${named}". /chains lists them.` };
+  const usable = (id: ChainId | undefined) => SPLIT_CHAINS.find((spec) => spec.id === id);
   const names = SPLIT_CHAINS.map((spec) => spec.name);
   return (
-    SPLIT_CHAINS.find((spec) => spec.id === id) ?? {
+    (named ? usable(wanted) : (usable(wanted) ?? usable(SPLIT_FALLBACK))) ?? {
       error: `/split works on ${names.slice(0, -1).join(', ')} and ${names.at(-1)}.`,
     }
   );
@@ -469,7 +475,7 @@ export const walletCommands: SlashCommand[] = [
     usage: '/split <total> [--chain base] [note…]',
     showIn: ['group'],
     async run({ args, chatId, context, respond }) {
-      const picked = splitChain(chainFlag(args));
+      const picked = await splitChain(context, chainFlag(args));
       if ('error' in picked) return { type: 'error', message: picked.error };
       const { chain } = picked;
       const [total, ...noteParts] = withoutChain(args);
