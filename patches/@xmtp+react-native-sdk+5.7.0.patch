@@ -1,3 +1,77 @@
+diff --git a/node_modules/@xmtp/react-native-sdk/android/build.gradle b/node_modules/@xmtp/react-native-sdk/android/build.gradle
+index 5a9df29..283afa8 100644
+--- a/node_modules/@xmtp/react-native-sdk/android/build.gradle
++++ b/node_modules/@xmtp/react-native-sdk/android/build.gradle
+@@ -95,7 +95,10 @@ repositories {
+ dependencies {
+   implementation project(':expo-modules-core')
+   implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:${getKotlinVersion()}"
+-  implementation "org.xmtp:android:4.10.0-rc2"
++  implementation("org.xmtp:android:4.10.0-rc2") {
++    exclude group: 'org.bouncycastle', module: 'bcprov-jdk15on'
++  }
++  implementation "org.bouncycastle:bcprov-jdk15to18:1.81"
+   implementation 'com.google.code.gson:gson:2.10.1'
+   implementation 'com.facebook.react:react-native:0.71.3'
+   implementation "com.daveanthonythomas.moshipack:moshipack:1.0.1"
+diff --git a/node_modules/@xmtp/react-native-sdk/android/src/main/java/expo/modules/xmtpreactnativesdk/XMTPModule.kt b/node_modules/@xmtp/react-native-sdk/android/src/main/java/expo/modules/xmtpreactnativesdk/XMTPModule.kt
+index 53a9353..27835a9 100644
+--- a/node_modules/@xmtp/react-native-sdk/android/src/main/java/expo/modules/xmtpreactnativesdk/XMTPModule.kt
++++ b/node_modules/@xmtp/react-native-sdk/android/src/main/java/expo/modules/xmtpreactnativesdk/XMTPModule.kt
+@@ -12,6 +12,7 @@ import expo.modules.kotlin.exception.Exceptions
+ import expo.modules.kotlin.functions.Coroutine
+ import expo.modules.kotlin.modules.Module
+ import expo.modules.kotlin.modules.ModuleDefinition
++import expo.modules.kotlin.modules.ModuleDefinitionBuilder
+ import expo.modules.xmtpreactnativesdk.wrappers.ArchiveMetadataWrapper
+ import expo.modules.xmtpreactnativesdk.wrappers.AvailableArchiveWrapper
+ import expo.modules.xmtpreactnativesdk.wrappers.AuthParamsWrapper
+@@ -786,6 +787,12 @@ class XMTPModule : Module() {
+             }
+         }
+ 
++        definitionPart2()
++        definitionPart3()
++        definitionPart4()
++    }
++
++    private fun ModuleDefinitionBuilder.definitionPart2() {
+         Function("staticActivatePersistentLibXMTPLogWriter") { logLevel: Int, logRotation: Int, maxFiles: Int ->
+             logV("activateLogs")
+             val ffiLogLevel = getFfiLogLevel(logLevel)
+@@ -1400,7 +1407,9 @@ class XMTPModule : Module() {
+                 conversation.members().map { it.inboxId }
+             }
+         }
++    }
+ 
++    private fun ModuleDefinitionBuilder.definitionPart3() {
+         AsyncFunction("dmPeerInboxId") Coroutine { installationId: String, dmId: String ->
+             withContext(Dispatchers.IO) {
+                 logV("dmPeerInboxId")
+@@ -1807,7 +1816,9 @@ class XMTPModule : Module() {
+                 group.updateDescriptionPermission(getPermissionOption(newPermission))
+             }
+         }
++    }
+ 
++    private fun ModuleDefinitionBuilder.definitionPart4() {
+         AsyncFunction("permissionPolicySet") Coroutine { installationId: String, groupId: String ->
+             withContext(Dispatchers.IO) {
+                 logV("permissionPolicySet")
+diff --git a/node_modules/@xmtp/react-native-sdk/android/src/main/java/expo/modules/xmtpreactnativesdk/wrappers/InboxStateWrapper.kt b/node_modules/@xmtp/react-native-sdk/android/src/main/java/expo/modules/xmtpreactnativesdk/wrappers/InboxStateWrapper.kt
+index 37ff8c9..35d9afa 100644
+--- a/node_modules/@xmtp/react-native-sdk/android/src/main/java/expo/modules/xmtpreactnativesdk/wrappers/InboxStateWrapper.kt
++++ b/node_modules/@xmtp/react-native-sdk/android/src/main/java/expo/modules/xmtpreactnativesdk/wrappers/InboxStateWrapper.kt
+@@ -28,7 +28,7 @@ class InboxStateWrapper {
+                                 gson.toJson(
+                                         mapOf(
+                                                 "id" to it.installationId,
+-                                                "createdAt" to it.createdAt?.time
++                                                "createdAt" to it.createdAt?.time?.div(1_000_000)
+                                         )
+                                 )
+                             },
 diff --git a/node_modules/@xmtp/react-native-sdk/ios/XMTPModule.swift b/node_modules/@xmtp/react-native-sdk/ios/XMTPModule.swift
 index bd7013b..36c8db7 100644
 --- a/node_modules/@xmtp/react-native-sdk/ios/XMTPModule.swift

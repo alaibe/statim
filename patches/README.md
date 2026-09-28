@@ -9,7 +9,7 @@ them work around upstream bugs, and three work around the same one: Swift 6.2.4
 | `expo-modules-jsi+57.0.7` | Swift 6.2.4 rejects `SWIFT_RETURNS_RETAINED` on a shared-reference constructor |
 | `expo-observe+57.0.23` | `[String: Any]` is not `Sendable` and crosses an isolation boundary |
 | `expo-modules-core+57.0.18` | A `nonisolated(unsafe) weak let` emitter can no longer cross into an actor |
-| `@xmtp+react-native-sdk+5.7.0` | `SwiftUI.Group` collides with `XMTPiOS.Group` |
+| `@xmtp+react-native-sdk+5.7.0` | `SwiftUI.Group` collides with `XMTPiOS.Group`; the Android module does not build or report install times |
 | `react-native-tdlib+2.3.0` | No way to free the raw client without wiping the database |
 | `nativewind+4.2.6` | `NATIVEWIND_OS=web` treated as native, so `platformSelect()` reaches the browser |
 | `react-native-reanimated+4.5.1` | Entering elements pinned `position: absolute` after a custom animation |
@@ -31,7 +31,9 @@ loudly when a patch stops applying, so a version bump will tell you.
 Every patch below was checked on 2026-09-20 by reverting it in `node_modules`
 and compiling the pod it targets with Xcode 26.3: each error reappears without
 its patch and disappears with it. The newer upstream versions named in each
-section were installed in a throwaway checkout and compiled the same way.
+section were installed in a throwaway checkout and compiled the same way. The
+Android hunks of the XMTP patch were checked on 2026-09-28 by building the APK
+and opening the affected screen on an emulator.
 
 ---
 
@@ -163,11 +165,45 @@ Fix: Qualify the type as `XMTP.Group`. The Swift module is `XMTP`;
 `XMTPiOS` is only a directory name. One line, and it resolves both errors.
 
 The same file compiles unpatched against the source-built `ExpoModulesCore` this
-project uses, so the patch is applied but not currently exercised. It stays
+project uses, so this hunk is applied but not currently exercised. It stays
 because it is one line and the precompiled configuration is one setting away.
 
+The Android hunks are all exercised. Three problems, found on the first Android
+build on 2026-09-28:
+
+```
+MethodTooLargeException: Method too large: expo/modules/xmtpreactnativesdk/XMTPModule.definition ()
+Duplicate class org.bouncycastle.asn1.ASN1Exception found in modules bcprov-jdk15on-1.68.jar and bcprov-jdk15to18-1.81.jar
+RangeError: Invalid time value   (Settings › Devices)
+```
+
+Cause: SDK 57's `AsyncFunction`, `Function` and `Coroutine` are `inline` with
+reified types, so all 159 registrations expand into `definition()` and push it
+past the JVM's 64 KB limit per method
+([xmtp/xmtp-react-native#777](https://github.com/xmtp/xmtp-react-native/issues/777),
+open, no fix on `main`). Separately, `org.xmtp:android` reaches
+`bcprov-jdk15on` 1.68 through `org.web3j:crypto`, and `expo-updates` brings
+`bcprov-jdk15to18` 1.81, which contains the same classes. And xmtp-android
+builds an installation's `Date` from `clientTimestampNs` as if it were
+milliseconds, so the wrapper sends a value about a million times too large and
+`Intl` rejects it.
+
+Fix: Split `definition()` into itself plus three `ModuleDefinitionBuilder`
+extension functions at the 41st, 81st and 121st registration; no registration
+moves. Exclude `bcprov-jdk15on` from `org.xmtp:android` and depend on
+`bcprov-jdk15to18` directly, so XMTP does not rely on `expo-updates` for its
+crypto. Divide the Android `createdAt` by 1,000,000.
+
+The iOS wrapper sends `createdAt` in seconds where the TypeScript expects
+milliseconds, so iOS shows a device added in January 1970. That is not patched.
+
 **Remove when** `@xmtp/react-native-sdk` publishes a build tested against Expo
-SDK 57. This is the concrete form of the "untested on New Architecture" warning
+SDK 57 that compiles on Android. Regenerate with:
+
+```bash
+npx patch-package @xmtp/react-native-sdk \
+  --include 'ios/XMTPModule\.swift$|^android/build\.gradle$|XMTPModule\.kt$|InboxStateWrapper\.kt$'
+``` This is the concrete form of the "untested on New Architecture" warning
 `npx expo-doctor` reports for the package.
 
 ---
