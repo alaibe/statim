@@ -1,6 +1,7 @@
 import { useAccountStore } from '@/core/account/account-store';
 import { connectionFor, useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
 import { loadProtocolConfig, missingFields, withDefaults } from '@/core/messaging/config';
+import type { ProtocolId } from '@/core/messaging/namespace';
 import type { LoginState } from '@/core/messaging/protocol';
 import { isConfigured } from '@/core/messaging/registry';
 import { protocolById, connectableProtocols } from '@/protocols';
@@ -26,7 +27,7 @@ export function requireProtocol(id: string) {
   return descriptor;
 }
 
-function sessionOf(id: string) {
+function sessionOf(id: ProtocolId) {
   const session = useChatStore.getState().sessions[id];
   if (!session) {
     throw new CliError(
@@ -37,7 +38,7 @@ function sessionOf(id: string) {
   return session;
 }
 
-function loginOf(id: string): LoginState | null {
+function loginOf(id: ProtocolId): LoginState | null {
   return connectionFor(useChatStore.getState().protocols, id).login;
 }
 
@@ -53,14 +54,14 @@ function describeLogin(label: string, login: LoginState | null) {
   };
 }
 
-async function submitLogin(id: string, answer: string): Promise<void> {
+async function submitLogin(id: ProtocolId, answer: string): Promise<void> {
   const session = sessionOf(id);
   const before = loginOf(id);
   await session.submitLogin!(answer);
   await waitFor(useChatStore, (s) => connectionFor(s.protocols, id).login !== before, 60_000);
 }
 
-async function interactiveLogin(id: string, label: string, io: CliIo) {
+async function interactiveLogin(id: ProtocolId, label: string, io: CliIo) {
   for (let login = loginOf(id); login; login = loginOf(id)) {
     if (login.title) io.warn(login.title);
     if (login.hint) io.warn(login.hint);

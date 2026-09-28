@@ -1,5 +1,7 @@
 import type { Widget } from '@/design/widgets';
 
+import type { ProtocolId } from './namespace';
+
 declare const chatIdBrand: unique symbol;
 export type ChatId = string & { readonly [chatIdBrand]: true };
 declare const protocolChatIdBrand: unique symbol;
@@ -149,7 +151,7 @@ export interface Chat<Id extends AnyChatId = ChatId> {
   readonly online?: boolean;
   readonly lastSeenAt?: number;
   readonly consent: Consent;
-  readonly protocol?: string;
+  readonly protocol?: ProtocolId;
   /** Where the chat really lives when a bridge carries it: "Slack", "Discord". */
   readonly network?: string;
   readonly selfRole?: GroupRole;

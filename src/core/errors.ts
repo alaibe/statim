@@ -1,3 +1,5 @@
+import type { ProtocolId } from './messaging/namespace';
+
 export class HttpError extends Error {
   constructor(
     readonly status: number,
@@ -17,7 +19,7 @@ export class UnsupportedError extends Error {
 
 export class NotConnectedError extends Error {
   constructor(
-    readonly protocol: string,
+    readonly protocol: ProtocolId,
     message = `${protocol} is not connected.`
   ) {
     super(message);

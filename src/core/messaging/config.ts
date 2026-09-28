@@ -1,5 +1,5 @@
 import { accountProtocolConfigsKey, vaultDelete, vaultGet, vaultSet } from '@/storage/vault';
-import type { ProtocolId } from './namespace';
+import { isProtocolId, type ProtocolId } from './namespace';
 
 export type ProtocolConfig = Record<string, string>;
 
@@ -53,16 +53,22 @@ export async function loadProtocolConfig(
 
 export async function loadProtocolConfigs(
   accountId: string
-): Promise<Record<ProtocolId, ProtocolConfig>> {
+): Promise<Partial<Record<ProtocolId, ProtocolConfig>>> {
   try {
     const raw = await vaultGet(accountProtocolConfigsKey(accountId));
     if (!raw) return {};
     const all: unknown = JSON.parse(raw);
     if (!all || typeof all !== 'object' || Array.isArray(all)) return {};
 
-    const out: Record<ProtocolId, ProtocolConfig> = {};
+    const out: Partial<Record<ProtocolId, ProtocolConfig>> = {};
     for (const [protocolId, parsed] of Object.entries(all as Record<string, unknown>)) {
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) continue;
+      if (
+        !isProtocolId(protocolId) ||
+        !parsed ||
+        typeof parsed !== 'object' ||
+        Array.isArray(parsed)
+      )
+        continue;
       const config: ProtocolConfig = {};
       for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
         if (typeof value === 'string') config[key] = value;
@@ -88,11 +94,11 @@ export async function saveProtocolConfig(
 
   const key = accountProtocolConfigsKey(accountId);
   const raw = await vaultGet(key);
-  let all: Record<string, ProtocolConfig> = {};
+  let all: Partial<Record<ProtocolId, ProtocolConfig>> = {};
   try {
     const parsed: unknown = raw ? JSON.parse(raw) : {};
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      all = parsed as Record<string, ProtocolConfig>;
+      all = parsed as Partial<Record<ProtocolId, ProtocolConfig>>;
     }
   } catch {}
 

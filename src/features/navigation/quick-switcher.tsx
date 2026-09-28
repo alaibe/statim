@@ -16,7 +16,7 @@ import { useLockStore } from '@/core/account/lock-store';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { orderChats } from '@/core/messaging/chat-prefs';
 import { isUnreadHere, networkOf, splitRequests } from '@/core/messaging/folders';
-import { protocolLabel } from '@/features/protocols/presentation';
+import { networkLabel } from '@/features/protocols/presentation';
 import type { Chat } from '@/core/messaging/types';
 import { useChatTitles } from '@/features/chat/use-display-names';
 import { openChat, openTab } from '@/features/navigation/open';
@@ -100,7 +100,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
         kind: 'chat',
         id: chat.id,
         title: titleOf(chat),
-        subtitle: network ? protocolLabel(network) : undefined,
+        subtitle: network ? networkLabel(network) : undefined,
         chat,
         selfId: selfIdOf(chat),
         run: () => openChat(chat.id),

@@ -1,4 +1,5 @@
 import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
+import { protocolKeys } from '@/core/messaging/namespace';
 import type { Chat } from '@/core/messaging/types';
 
 import { displayNames, readyChat, whenAccountReady, type CliHandler } from '../context';
@@ -141,7 +142,7 @@ export const groupHandlers = {
     const protocols =
       typeof flags.protocol === 'string'
         ? [requireProtocol(flags.protocol).id]
-        : Object.keys(store.sessions);
+        : protocolKeys(store.sessions);
     let lastError: unknown;
     for (const protocol of protocols) {
       const session = store.sessions[protocol];

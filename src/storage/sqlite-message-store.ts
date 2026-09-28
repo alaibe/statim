@@ -1,5 +1,5 @@
 import { HYDRATE_LIMIT } from '@/core/messaging/message-store';
-import { parseChatId } from '@/core/messaging/namespace';
+import { parseChatId, type ProtocolId } from '@/core/messaging/namespace';
 import { matchesSearch, SEARCH_LIMIT } from '@/core/messaging/search';
 import {
   searchHit,
@@ -13,6 +13,7 @@ import type {
   ChatMessage,
   Chat,
   ChatId,
+  DeliveryStatus,
   MessageContent,
   MessageId,
 } from '@/core/messaging/types';
@@ -27,7 +28,7 @@ type Database = Awaited<ReturnType<typeof openAccountDatabase>>;
 
 interface ChatRow {
   id: string;
-  protocol_id: string;
+  protocol_id: ProtocolId;
   participants: string;
   title: string | null;
   created_at: number;
@@ -41,7 +42,7 @@ interface MessageRow {
   sender_id: string;
   sent_at: number;
   from_me: number;
-  status: string;
+  status: DeliveryStatus;
   content: string;
   reply_to: string | null;
 }
@@ -53,7 +54,7 @@ export class SqliteMessageStore implements MessageStore {
     this.generation = accountDatabaseGeneration(accountId);
   }
 
-  async loadChats<Id extends AnyChatId>(protocolId: string): Promise<StoredChat<Id>[]> {
+  async loadChats<Id extends AnyChatId>(protocolId: ProtocolId): Promise<StoredChat<Id>[]> {
     const rows = await this.operation((db) =>
       db.getAllAsync<ChatRow>('SELECT * FROM chats WHERE protocol_id = ?', protocolId)
     );
@@ -90,10 +91,10 @@ export class SqliteMessageStore implements MessageStore {
   async searchMessages(
     query: string,
     chatId?: AnyChatId,
-    protocolId?: string
+    protocolId?: ProtocolId
   ): Promise<StoredSearchHit[]> {
     const rows = await this.operation((db) =>
-      db.getAllAsync<MessageRow & { protocol_id: string | null }>(
+      db.getAllAsync<MessageRow & { protocol_id: ProtocolId | null }>(
         `SELECT m.*, c.protocol_id FROM messages m
          LEFT JOIN chats c ON c.id = m.chat_id
          WHERE instr(lower(m.content), lower(?)) > 0
@@ -160,7 +161,7 @@ export class SqliteMessageStore implements MessageStore {
   }
 
   async latestMessages<Id extends AnyChatId>(
-    protocolId: string
+    protocolId: ProtocolId
   ): Promise<Map<Id, ChatMessage<Id>>> {
     const rows = await this.operation((db) =>
       db.getAllAsync<MessageRow>(
@@ -183,7 +184,7 @@ export class SqliteMessageStore implements MessageStore {
   }
 
   async newestTransportTimestamp(
-    protocolId: string,
+    protocolId: ProtocolId,
     notAfter: number,
     chatId?: AnyChatId
   ): Promise<number | undefined> {
@@ -202,7 +203,7 @@ export class SqliteMessageStore implements MessageStore {
     return row?.timestamp;
   }
 
-  async clear(protocolId: string): Promise<void> {
+  async clear(protocolId: ProtocolId): Promise<void> {
     await this.transaction(async (db) => {
       await db.runAsync(
         `DELETE FROM messages WHERE chat_id IN
@@ -329,7 +330,7 @@ function toMessage<Id extends AnyChatId>(row: MessageRow, chatId: Id): ChatMessa
     sentAt: row.sent_at,
     content: parseContent(row.content),
     fromMe: row.from_me === 1,
-    status: row.status as ChatMessage['status'],
+    status: row.status,
     replyTo: row.reply_to ?? undefined,
     privateToMe: (row.sender_id === 'local' && row.id.startsWith('private:')) || undefined,
   };

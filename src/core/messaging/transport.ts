@@ -6,6 +6,7 @@ import type {
   SelfParticipant,
 } from './types';
 import type { TransportChat } from './message-store';
+import type { ProtocolId } from './namespace';
 
 export interface TransportSink {
   deliverToRoutingKey(routingKey: string, message: IncomingMessage): Promise<void>;
@@ -36,7 +37,7 @@ export interface SendResult {
 }
 
 export interface ChatTransport {
-  readonly protocolId: string;
+  readonly protocolId: ProtocolId;
   readonly self: SelfParticipant;
   cursorUpperBound?(): number;
 

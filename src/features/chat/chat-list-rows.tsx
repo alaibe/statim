@@ -19,7 +19,7 @@ import {
   Text,
 } from '@/design';
 import { openChat } from '@/features/navigation/open';
-import { protocolLabel } from '@/features/protocols/presentation';
+import { networkLabel } from '@/features/protocols/presentation';
 import { ChatAvatar } from './chat-avatar';
 import { DeliveryIcon } from './delivery-icon';
 
@@ -103,7 +103,7 @@ export function ChatRow({
             chat={chat}
             selfId={selfId}
             size="md"
-            network={network ? protocolLabel(network) : undefined}
+            network={network ? networkLabel(network) : undefined}
           />
         }
         meta={
@@ -131,7 +131,7 @@ export function ChatRow({
 const chatCount = (n: number) => `${n} ${n === 1 ? 'chat' : 'chats'}`;
 
 function folderLabel(folder: Folder): string {
-  return folder === 'archive' ? 'Archive' : protocolLabel(folder.slice('network:'.length));
+  return folder === 'archive' ? 'Archive' : networkLabel(folder.slice('network:'.length));
 }
 
 function FolderIcon({ folder, size }: { folder: Folder; size: number }) {

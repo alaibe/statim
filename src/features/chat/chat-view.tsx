@@ -20,7 +20,7 @@ import {
   selfIdFor,
   useChatStore,
 } from '@/core/messaging/chat-store';
-import { protocolOf } from '@/core/messaging/namespace';
+import { protocolOf, type ProtocolId } from '@/core/messaging/namespace';
 import { chatPermissions, NO_PERMISSIONS } from '@/core/messaging/permissions';
 import type { ChatMessage, Chat, ChatId, MessageContent, MessageId } from '@/core/messaging/types';
 import { useAppearanceStore } from '@/core/app/appearance';
@@ -269,7 +269,13 @@ function chatPeople(
   return [...members, ...[...writers].map((id) => ({ id, protocol: chat.protocol }))];
 }
 
-function EmptyTranscript({ protocol, isBot }: { protocol: string | undefined; isBot: boolean }) {
+function EmptyTranscript({
+  protocol,
+  isBot,
+}: {
+  protocol: ProtocolId | undefined;
+  isBot: boolean;
+}) {
   const fetchingHistory = useChatStore(
     (s) => !!protocol && connectionFor(s.protocols, protocol).history.status === 'fetching'
   );

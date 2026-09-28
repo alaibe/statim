@@ -1,4 +1,5 @@
 import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
+import type { ProtocolId } from '@/core/messaging/namespace';
 import type { ParticipantId } from '@/core/messaging/types';
 import { contactsOf } from '@/features/contacts/contacts';
 import { connectableProtocols } from '@/protocols';
@@ -26,7 +27,7 @@ function connectedProtocols(flag: string | true | undefined) {
 export async function resolveOn(
   flag: string | true | undefined,
   address: string
-): Promise<{ protocol: string; id: ParticipantId }> {
+): Promise<{ protocol: ProtocolId; id: ParticipantId }> {
   const protocols = connectedProtocols(flag);
   const store = useChatStore.getState();
   for (const protocol of protocols) {
@@ -41,7 +42,7 @@ export async function resolveOn(
 }
 
 export async function resolveAllOn(
-  protocol: string,
+  protocol: ProtocolId,
   addresses: string[]
 ): Promise<ParticipantId[]> {
   const store = useChatStore.getState();

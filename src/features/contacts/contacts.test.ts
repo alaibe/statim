@@ -1,6 +1,6 @@
 import type { Chat } from '@/core/messaging/types';
 
-import { fromContactKey, contactKey, contactsOf } from './contacts';
+import { fromContactKey, contactKey, contactsOf, type Contact } from './contacts';
 import { botChatId } from '@/core/messaging/bots';
 import { testChat } from '@/core/messaging/testing/chats';
 import { asChatId } from '@/core/messaging/testing/ids';
@@ -91,7 +91,7 @@ describe('the people behind a list of chats', () => {
 
 describe('contactKey', () => {
   it('round-trips a contact, with or without a protocol', () => {
-    const withProtocol = { id: 'bob', protocol: 'xmtp', chatId: 'xmtp-1' };
+    const withProtocol: Contact = { id: 'bob', protocol: 'xmtp', chatId: 'xmtp-1' };
     const without = { id: 'bob', protocol: undefined, chatId: 'c1' };
     expect(fromContactKey(contactKey(withProtocol))).toEqual(withProtocol);
     expect(fromContactKey(contactKey(without))).toEqual(without);

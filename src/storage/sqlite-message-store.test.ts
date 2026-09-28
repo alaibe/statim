@@ -1,7 +1,7 @@
 import { deleteAccountDatabase, openAccountDatabase } from './database';
 import { SqliteMessageStore } from './sqlite-message-store';
 import { botChatId } from '@/core/messaging/bots';
-import { LOCAL_PROTOCOL, protocolChatId } from '@/core/messaging/namespace';
+import { LOCAL_PROTOCOL, protocolChatId, type ProtocolId } from '@/core/messaging/namespace';
 import { testChat } from '@/core/messaging/testing/chats';
 import { asChatId } from '@/core/messaging/testing/ids';
 import type { ProtocolMessage } from '@/core/messaging/types';
@@ -45,7 +45,7 @@ function message(
   };
 }
 
-function chat(id: string, protocolId = WAKU, over: Record<string, unknown> = {}) {
+function chat(id: string, protocolId: ProtocolId = WAKU, over: Record<string, unknown> = {}) {
   return {
     id: protocolChatId(id),
     protocolId,

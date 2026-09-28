@@ -12,21 +12,28 @@ import type {
   ProtocolChat,
 } from './types';
 
-export type ProtocolId = string;
+export const PROTOCOL_IDS = ['xmtp', 'nostr', 'waku', 'telegram', 'matrix', 'local'] as const;
+export type ProtocolId = (typeof PROTOCOL_IDS)[number];
 
-export const PROTOCOL_ID = /^[a-z][a-z0-9]*$/;
 export const NATIVE_ID = /^[A-Za-z0-9_-]+$/;
 
-export const LOCAL_PROTOCOL: ProtocolId = 'local';
+export const LOCAL_PROTOCOL = 'local' satisfies ProtocolId;
+
+export function isProtocolId(raw: string): raw is ProtocolId {
+  return (PROTOCOL_IDS as readonly string[]).includes(raw);
+}
+
+export const protocolKeys = <T>(record: Partial<Record<ProtocolId, T>>) =>
+  Object.keys(record) as ProtocolId[];
+
+export const protocolEntries = <T>(record: Partial<Record<ProtocolId, T>>) =>
+  Object.entries(record) as [ProtocolId, T][];
 
 export function protocolChatId(raw: string): ProtocolChatId {
   return raw as ProtocolChatId;
 }
 
 export function namespacedId(protocol: ProtocolId, nativeId: ProtocolChatId): ChatId {
-  if (!PROTOCOL_ID.test(protocol)) {
-    throw new Error(`Protocol id "${protocol}" must be lowercase alphanumeric with no hyphen`);
-  }
   if (!NATIVE_ID.test(nativeId)) {
     throw new Error(
       `Chat id "${nativeId}" is not URL-safe. ` +
@@ -60,7 +67,7 @@ function split(raw: string): SplitId | null {
 
   const protocol = raw.slice(0, at);
   const nativeId = raw.slice(at + 1);
-  if (!PROTOCOL_ID.test(protocol) || nativeId.length === 0) return null;
+  if (!isProtocolId(protocol) || nativeId.length === 0) return null;
   return { protocol, nativeId: protocolChatId(nativeId) };
 }
 

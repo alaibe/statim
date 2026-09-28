@@ -5,8 +5,8 @@ import { Chevron, ConfirmSheet, ListItem, RowIcon, Section } from '@/design';
 import { useAccountStore } from '@/core/account/account-store';
 import { readCredentials, type Credentials } from '@/core/account/credentials';
 import {
+  type ChatState,
   connectionFor,
-  type ProtocolConnection,
   useChatStore,
   xmtpSessionFor,
 } from '@/core/messaging/chat-store';
@@ -248,7 +248,7 @@ export function SettingsSections({
   );
 }
 
-function describeConnections(connections: Record<string, ProtocolConnection>): string {
+function describeConnections(connections: ChatState['protocols']): string {
   const connected = connectableProtocols().filter((p) => {
     const { status, login } = connectionFor(connections, p.id);
     return status === 'ready' && !login;

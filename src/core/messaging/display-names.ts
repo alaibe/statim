@@ -2,11 +2,12 @@ import { shortAddress } from '@/core/account/keyring';
 
 import { isLocalChat } from './bots';
 import { useChatStore } from './chat-store';
+import type { ProtocolId } from './namespace';
 import type { Chat, ParticipantId } from './types';
 
 export interface DisplayParticipant {
   id: ParticipantId;
-  protocol?: string;
+  protocol?: ProtocolId;
 }
 
 export interface ResolvedParticipants {
@@ -16,7 +17,7 @@ export interface ResolvedParticipants {
 
 /** What a protocol knows about these participants; a lookup that fails leaves them out. */
 export async function resolveParticipants(
-  protocol: string | null | undefined,
+  protocol: ProtocolId | null | undefined,
   ids: ParticipantId[]
 ): Promise<ResolvedParticipants> {
   const session = protocol ? useChatStore.getState().sessions[protocol] : undefined;

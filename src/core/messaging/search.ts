@@ -1,6 +1,6 @@
 import { isLocalChat } from './bots';
 import type { MessageStore } from './message-store';
-import { namespaceMessage, splitChatId } from './namespace';
+import { namespaceMessage, protocolKeys, splitChatId, type ProtocolId } from './namespace';
 import { contentPreview } from './preview';
 import type { ChatSession } from './protocol';
 import type { AnyChatId, ChatMessage, ChatId } from './types';
@@ -14,7 +14,7 @@ export function matchesSearch(message: ChatMessage<AnyChatId>, needle: string): 
 interface Searchable {
   messageStore: MessageStore | null;
   messages: Record<ChatId, readonly ChatMessage[]>;
-  sessions: Record<string, ChatSession>;
+  sessions: Partial<Record<ProtocolId, ChatSession>>;
 }
 
 export async function searchMessages(
@@ -38,7 +38,7 @@ export async function searchMessages(
     .filter(([chatId]) => !id || chatId === id)
     .flatMap(([, messages]) => messages)
     .filter((message) => matchesSearch(message, needle));
-  const protocols = id ? (split ? [split.protocol] : []) : Object.keys(state.sessions);
+  const protocols = id ? (split ? [split.protocol] : []) : protocolKeys(state.sessions);
   const remote = protocols.map(async (protocol) => {
     const session = state.sessions[protocol];
     if (!session?.searchMessages) return [];

@@ -8,6 +8,7 @@ import {
   namespaceChat,
   namespaceMessage,
   namespacedId,
+  protocolEntries,
   splitChatId,
   type ProtocolId,
 } from './namespace';
@@ -66,7 +67,7 @@ export const NO_CONNECTION: Readonly<ProtocolConnection> = Object.freeze({
 });
 
 export function connectionFor(
-  protocols: Record<ProtocolId, ProtocolConnection>,
+  protocols: Partial<Record<ProtocolId, ProtocolConnection>>,
   id: ProtocolId
 ): Readonly<ProtocolConnection> {
   return protocols[id] ?? NO_CONNECTION;
@@ -75,8 +76,8 @@ export function connectionFor(
 export interface ChatState {
   status: ConnectionStatus;
   error: string | null;
-  sessions: Record<ProtocolId, ChatSession>;
-  protocols: Record<ProtocolId, ProtocolConnection>;
+  sessions: Partial<Record<ProtocolId, ChatSession>>;
+  protocols: Partial<Record<ProtocolId, ProtocolConnection>>;
   accountId: string | null;
 
   chats: readonly Chat[];
@@ -200,7 +201,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   async refreshChats() {
     const accountId = get().accountId;
-    const entries = Object.entries(get().sessions);
+    const entries = protocolEntries(get().sessions);
     if (entries.length === 0) return;
 
     const results = await Promise.allSettled(
@@ -530,7 +531,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   async sync() {
-    const sessions = Object.entries(get().sessions);
+    const sessions = protocolEntries(get().sessions);
     if (sessions.length === 0 || get().syncing) return;
     const accountId = get().accountId;
     set({ syncing: true });
@@ -553,7 +554,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const accountId = get().accountId;
     const current = () => get().accountId === accountId && get().sessions[protocolId] === session;
     const report = (history: import('./history').HistoryState) => {
-      if (current()) setProtocol(set, protocolId, { ...get().protocols[protocolId], history });
+      if (current())
+        setProtocol(set, protocolId, { ...connectionFor(get().protocols, protocolId), history });
     };
     report({ status: 'fetching' });
     try {
@@ -1093,7 +1095,7 @@ function sameSession(
 function sameSessions(
   state: ChatState,
   accountId: string | null,
-  entries: [string, ChatSession][]
+  entries: [ProtocolId, ChatSession][]
 ): boolean {
   return (
     state.accountId === accountId &&
@@ -1233,7 +1235,7 @@ function sortChats(chats: readonly Chat[]): Chat[] {
 
 export function selfIdFor(
   state: Pick<ChatState, 'sessions'>,
-  protocol: string | undefined
+  protocol: ProtocolId | undefined
 ): string {
   if (!protocol || protocol === LOCAL_PROTOCOL) return '';
   return state.sessions[protocol]?.self.participantId ?? '';

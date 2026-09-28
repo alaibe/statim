@@ -7,7 +7,7 @@ import {
   type ProtocolConfig,
   type ProtocolConfigSchema,
 } from './config';
-import { PROTOCOL_ID, type ProtocolId } from './namespace';
+import type { ProtocolId } from './namespace';
 import type { ChatProtocolMeta, ChatSession, CustomContentType } from './protocol';
 import type { AccountStorage } from '@/storage/account';
 
@@ -60,13 +60,8 @@ export interface ProtocolDescriptor {
 }
 
 export function validateProtocols(protocols: readonly ProtocolDescriptor[]): void {
-  const ids = new Set<string>();
+  const ids = new Set<ProtocolId>();
   for (const descriptor of protocols) {
-    if (!PROTOCOL_ID.test(descriptor.id)) {
-      throw new Error(
-        `Protocol id "${descriptor.id}" must be lowercase alphanumeric with no hyphen`
-      );
-    }
     if (ids.has(descriptor.id)) throw new Error(`Duplicate protocol id "${descriptor.id}"`);
     ids.add(descriptor.id);
   }

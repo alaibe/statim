@@ -3,6 +3,7 @@ import {
   connectableProtocols as connectableOf,
   validateProtocols,
 } from '@/core/messaging/registry';
+import { isProtocolId } from '@/core/messaging/namespace';
 import { MATRIX_PROTOCOL } from './matrix/descriptor';
 import { NOSTR_PROTOCOL } from './nostr/descriptor';
 import { TELEGRAM_PROTOCOL } from './telegram/descriptor';
@@ -17,12 +18,10 @@ export const PROTOCOLS = [
   MATRIX_PROTOCOL,
 ] as const;
 
-export type KnownProtocolId = (typeof PROTOCOLS)[number]['id'];
-
 validateProtocols(PROTOCOLS);
 
 export function protocolById(id: string) {
-  return findProtocol(PROTOCOLS, id);
+  return isProtocolId(id) ? findProtocol(PROTOCOLS, id) : undefined;
 }
 
 export function connectableProtocols() {

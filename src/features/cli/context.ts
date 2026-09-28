@@ -4,6 +4,7 @@ import type { AccountRecord } from '@/core/account/accounts';
 import { isLocalChat } from '@/core/messaging/bots';
 import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
 import { contentPreview } from '@/core/messaging/preview';
+import type { ProtocolId } from '@/core/messaging/namespace';
 import type { ChatMessage, Chat, ChatId, ParticipantId } from '@/core/messaging/types';
 import {
   chatParticipants,
@@ -146,7 +147,7 @@ export function nameWith(registry: PluginRegistry): void {
   namingRegistry = registry;
 }
 
-async function participants(protocol: string, ids: ParticipantId[]) {
+async function participants(protocol: ProtocolId, ids: ParticipantId[]) {
   const key = (id: ParticipantId) => `${protocol}:${id}`;
   const missing = [...new Set(ids)].filter((id) => !participantCache.has(key(id)));
   if (missing.length && useChatStore.getState().sessions[protocol]) {
@@ -167,7 +168,7 @@ async function participants(protocol: string, ids: ParticipantId[]) {
 /** Titles as the app shows them: a DM is named after the other person. */
 export async function chatLabels(chats: readonly Chat[]): Promise<Map<ChatId, ChatLabel>> {
   const { sessions } = useChatStore.getState();
-  const byProtocol = new Map<string, Chat[]>();
+  const byProtocol = new Map<ProtocolId, Chat[]>();
   const out = new Map<ChatId, ChatLabel>();
   for (const chat of chats) {
     if (chat.kind === 'dm' && !isLocalChat(chat.id) && chat.protocol) {
@@ -267,7 +268,7 @@ function uniquePrefix(messages: readonly ChatMessage[], ref: string): ChatMessag
 }
 
 export async function displayNames(
-  protocol: string | null | undefined,
+  protocol: ProtocolId | null | undefined,
   ids: ParticipantId[]
 ): Promise<Record<ParticipantId, string>> {
   if (!protocol || ids.length === 0) return {};

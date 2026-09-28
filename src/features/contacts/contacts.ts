@@ -1,5 +1,6 @@
 import { isLocalChat } from '@/core/messaging/bots';
 import { splitRequests } from '@/core/messaging/folders';
+import type { ProtocolId } from '@/core/messaging/namespace';
 import type { Chat, ParticipantId } from '@/core/messaging/types';
 
 export interface Contact {
@@ -39,6 +40,6 @@ export function contactKey({ protocol, id, chatId }: Contact): string {
 }
 
 export function fromContactKey(key: string): Contact {
-  const [protocol, id, chatId] = JSON.parse(key) as [string | null, string, string];
+  const [protocol, id, chatId] = JSON.parse(key) as [ProtocolId | null, string, string];
   return { id, protocol: protocol ?? undefined, chatId };
 }

@@ -1,5 +1,6 @@
 import { dropChats } from './chat-store';
 import type { MessageStore } from './message-store';
+import type { ProtocolId } from './namespace';
 import type { Chat, ChatId } from './types';
 
 const SAVE_DELAY_MS = 2_000;
@@ -20,7 +21,10 @@ function lasting({
  * listed everything, and a restored chat its full listing lacks is dropped.
  */
 export class ChatCache {
-  private readonly written = new Map<ChatId, { protocol: string; source: Chat; json?: string }>();
+  private readonly written = new Map<
+    ChatId,
+    { protocol: ProtocolId; source: Chat; json?: string }
+  >();
   private readonly restored = new Map<ChatId, string>();
   private readonly complete = new Set<string>();
   private pending: readonly Chat[] | null = null;
@@ -39,13 +43,13 @@ export class ChatCache {
     });
   }
 
-  listed(protocol: string, chats: Chat[]): void {
+  listed(protocol: ProtocolId, chats: Chat[]): void {
     this.complete.add(protocol);
     const present = new Set(chats.map((chat) => chat.id));
     this.release(protocol, (id) => !present.has(id));
   }
 
-  forget(protocol: string): void {
+  forget(protocol: ProtocolId): void {
     this.complete.delete(protocol);
     const drop = [...this.written].filter(([, row]) => row.protocol === protocol).map(([id]) => id);
     for (const id of drop) this.written.delete(id);
@@ -57,7 +61,7 @@ export class ChatCache {
     this.release(protocol, () => true);
   }
 
-  pause(protocol: string): void {
+  pause(protocol: ProtocolId): void {
     this.complete.delete(protocol);
   }
 
@@ -98,7 +102,7 @@ export class ChatCache {
     }
   }
 
-  private release(protocol: string, stale: (id: ChatId) => boolean): void {
+  private release(protocol: ProtocolId, stale: (id: ChatId) => boolean): void {
     const dropped: ChatId[] = [];
     for (const [id, owner] of [...this.restored]) {
       if (owner !== protocol) continue;

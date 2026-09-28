@@ -155,8 +155,8 @@ describe('independent failure', () => {
       history: { status: 'idle' },
       login: null,
     });
-    expect(state.protocols.nostr.status).toBe('error');
-    expect(state.protocols.nostr.error).toBe('every relay refused');
+    expect(state.protocols.nostr?.status).toBe('error');
+    expect(state.protocols.nostr?.error).toBe('every relay refused');
     expect(state.chats.filter((c) => c.protocol !== 'local').map((c) => c.id)).toEqual([ns('c1')]);
   });
 
@@ -192,7 +192,7 @@ describe('independent failure', () => {
     await expect(useChatStore.getState().sync()).resolves.toBeUndefined();
     expect(xmtp.syncCount).toBeGreaterThan(0);
     expect(useChatStore.getState().syncing).toBe(false);
-    expect(useChatStore.getState().protocols.nostr.history?.status).toBe('error');
+    expect(useChatStore.getState().protocols.nostr?.history.status).toBe('error');
   });
 
   it('shows cached chats during catch-up and lets each protocol finish independently', async () => {
@@ -207,19 +207,19 @@ describe('independent failure', () => {
     for (
       let i = 0;
       i < 1_000 &&
-      (xmtp.syncCount === 0 || useChatStore.getState().protocols.xmtp.history.status !== 'idle');
+      (xmtp.syncCount === 0 || useChatStore.getState().protocols.xmtp?.history.status !== 'idle');
       i++
     ) {
       await Promise.resolve();
     }
 
     expect(useChatStore.getState().chats.some((c) => c.id === ns('cached', 'nostr'))).toBe(true);
-    expect(useChatStore.getState().protocols.nostr.history?.status).toBe('fetching');
-    expect(useChatStore.getState().protocols.xmtp.history?.status).toBe('idle');
+    expect(useChatStore.getState().protocols.nostr?.history.status).toBe('fetching');
+    expect(useChatStore.getState().protocols.xmtp?.history.status).toBe('idle');
     expect(xmtp.syncCount).toBe(1);
     finish();
     await connecting;
-    expect(useChatStore.getState().protocols.nostr.history?.status).toBe('idle');
+    expect(useChatStore.getState().protocols.nostr?.history.status).toBe('idle');
   });
 
   it('does not restore a completed sync status after disconnect', async () => {

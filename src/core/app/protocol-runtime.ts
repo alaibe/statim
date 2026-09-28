@@ -2,13 +2,20 @@ import type { LocalAccount } from 'viem';
 
 import { errorMessage } from '../errors';
 import type { DerivedKey, Keyring } from '../account/keyring';
-import { NO_CONNECTION, useChatStore, type ProtocolConnection } from '../messaging/chat-store';
+import {
+  connectionFor,
+  NO_CONNECTION,
+  useChatStore,
+  type ProtocolConnection,
+} from '../messaging/chat-store';
 import type { ChatCache } from '../messaging/chat-cache';
 import { loadProtocolConfigs } from '../messaging/config';
 import {
+  LOCAL_PROTOCOL,
   namespacedId,
   namespaceChat,
   namespaceMessage,
+  protocolOf,
   type ProtocolId,
 } from '../messaging/namespace';
 import type { ChatSession, CustomContentType } from '../messaging/protocol';
@@ -115,7 +122,7 @@ export class ProtocolRuntime {
               session.subscribeHistory((history) => {
                 if (!live()) return;
                 this.setProtocol(protocolId, {
-                  ...useChatStore.getState().protocols[protocolId],
+                  ...connectionFor(useChatStore.getState().protocols, protocolId),
                   history,
                 });
               })
@@ -127,7 +134,7 @@ export class ProtocolRuntime {
                 if (!live()) return;
                 if (login) this.cache?.forget(protocolId);
                 this.setProtocol(protocolId, {
-                  ...useChatStore.getState().protocols[protocolId],
+                  ...connectionFor(useChatStore.getState().protocols, protocolId),
                   login,
                 });
               })
@@ -197,20 +204,26 @@ export class ProtocolRuntime {
     for (const protocol of only ?? this.sessions.keys()) this.cache?.pause(protocol);
     await this.disconnect(only);
     const state = useChatStore.getState();
-    const dropped = (protocol: string) => (only ? only.includes(protocol) : protocol !== 'local');
-    const keep = <T>(record: Record<string, T>, protocolOf = (key: string) => key) =>
-      Object.fromEntries(Object.entries(record).filter(([key]) => !dropped(protocolOf(key))));
-    const chatProtocol = (id: string) => id.slice(0, id.indexOf('-'));
+    const dropped = (protocol: ProtocolId | null | undefined) =>
+      only ? !!protocol && only.includes(protocol) : protocol !== LOCAL_PROTOCOL;
+    const keep = <K extends string, T>(
+      record: Partial<Record<K, T>>,
+      ownerOf: (key: K) => ProtocolId | null
+    ) =>
+      Object.fromEntries(
+        (Object.entries(record) as [K, T][]).filter(([key]) => !dropped(ownerOf(key)))
+      );
+    const ownProtocol = (key: ProtocolId) => key;
     useChatStore.setState({
       status: only ? state.status : 'idle',
       error: only ? state.error : null,
-      sessions: keep(state.sessions),
-      protocols: keep(state.protocols),
+      sessions: keep(state.sessions, ownProtocol),
+      protocols: keep(state.protocols, ownProtocol),
       syncing: only ? state.syncing : false,
-      chats: state.chats.filter((chat) => !dropped(chat.protocol ?? '')),
-      messages: keep(state.messages, chatProtocol),
-      rawMessages: keep(state.rawMessages, chatProtocol),
-      messageHistory: keep(state.messageHistory, chatProtocol),
+      chats: state.chats.filter((chat) => !dropped(chat.protocol)),
+      messages: keep(state.messages, protocolOf),
+      rawMessages: keep(state.rawMessages, protocolOf),
+      messageHistory: keep(state.messageHistory, protocolOf),
     });
   }
 

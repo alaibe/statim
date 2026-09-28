@@ -7,6 +7,7 @@ import {
   namespaceMessage,
   parseChatId,
   parseChatRoute,
+  PROTOCOL_IDS,
   protocolChatId,
   protocolOf,
   splitChatId,
@@ -37,9 +38,11 @@ describe('namespacedId', () => {
     expect(() => namespacedId('waku', protocolChatId('/waku/2/rs/1/0'))).toThrow(/URL-safe/);
     expect(() => namespacedId('nostr', protocolChatId('a:b'))).toThrow(/URL-safe/);
   });
+});
 
-  it('refuses a protocol id containing a hyphen, which would be ambiguous', () => {
-    expect(() => namespacedId('my-protocol', protocolChatId('abc'))).toThrow(/no hyphen/);
+describe('PROTOCOL_IDS', () => {
+  it('has no hyphen in any id, since a chat id splits at the first one', () => {
+    expect(PROTOCOL_IDS.filter((id) => id.includes('-'))).toEqual([]);
   });
 });
 
@@ -47,6 +50,11 @@ describe('parseChatId', () => {
   it('takes an app id as a route, a notification or the CLI hands it over', () => {
     expect(parseChatId('xmtp-abc')).toBe('xmtp-abc');
     expect(parseChatId('xmtp-dm-abc')).toBe('xmtp-dm-abc');
+  });
+
+  it('refuses an id whose protocol the app does not speak', () => {
+    expect(parseChatId('stub-abc')).toBeNull();
+    expect(parseChatId('XMTP-abc')).toBeNull();
   });
 
   it('refuses a string with no recognisable prefix', () => {

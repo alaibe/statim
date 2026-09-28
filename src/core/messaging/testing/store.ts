@@ -18,7 +18,7 @@ export const STORE_TEST_SELF = 'me';
 export const STORE_TEST_PARTICIPANT = 'them';
 
 export class StoreBackedTestTransport implements ChatTransport {
-  readonly protocolId = 'stub';
+  readonly protocolId: ProtocolId = 'waku';
   readonly self = { participantId: STORE_TEST_SELF, address: 'me@stub' };
   readonly rosterIsFixed = { onAdd: 'no', onRemove: 'no' };
 

@@ -10,6 +10,7 @@ import {
   type DisplayParticipant,
   type ResolvedParticipants,
 } from '@/core/messaging/display-names';
+import { isProtocolId, type ProtocolId } from '@/core/messaging/namespace';
 import type { Chat, ParticipantId } from '@/core/messaging/types';
 import { usePluginRegistry } from '@/core/plugins/host';
 import { useLiveViews } from '@/core/plugins/live';
@@ -75,12 +76,12 @@ export function useDisplayNames(participants: DisplayParticipant[]) {
     if (!key || !accountId) return;
     let cancelled = false;
 
-    const byProtocol = new Map<string, ParticipantId[]>();
+    const byProtocol = new Map<ProtocolId, ParticipantId[]>();
     for (const entry of key.split(',')) {
       const at = entry.indexOf(':');
       const protocol = entry.slice(0, at);
       const id = entry.slice(at + 1);
-      if (!protocol || !id) continue;
+      if (!isProtocolId(protocol) || !id) continue;
       byProtocol.set(protocol, [...(byProtocol.get(protocol) ?? []), id]);
     }
 
