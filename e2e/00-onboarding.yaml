@@ -2,6 +2,9 @@
 appId: com.statusoriginal.app
 ---
 - launchApp
+- extendedWaitUntil:
+    visible: "Talk freely.|Chats"
+    timeout: 60000
 
 - runFlow:
     when:

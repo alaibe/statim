@@ -1,7 +1,7 @@
 # Launches and checks the Status chat navigation used by later flows.
 appId: com.statusoriginal.app
 ---
-- launchApp
+- runFlow: lib/launch.yaml
 - assertVisible:
     id: "chat-local-status"
 - assertVisible:

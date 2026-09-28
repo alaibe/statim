@@ -1,5 +1,7 @@
 # Opens a bookmark in the system browser and comes back with the composer free again.
 appId: com.statusoriginal.app
+tags:
+  - ios-only
 ---
 - launchApp
 - extendedWaitUntil:

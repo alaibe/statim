@@ -1,0 +1,14 @@
+# Leaves a native stack screen. Only iOS gives the header's back button the BackButton id.
+appId: com.statusoriginal.app
+---
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - tapOn:
+          id: "BackButton"
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - pressKey: Back

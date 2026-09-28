@@ -1,0 +1,12 @@
+# Loads the development build from Metro and waits for its first screen, so the dev client reopens it on every later launchApp.
+appId: com.statusoriginal.app
+---
+- openLink: ${DEV_CLIENT_URL}
+- extendedWaitUntil:
+    visible: "Talk freely.|Chats|Go home"
+    timeout: 120000
+- runFlow:
+    when:
+      visible: "Go home"
+    commands:
+      - pressKey: Back

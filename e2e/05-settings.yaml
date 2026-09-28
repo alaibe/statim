@@ -1,14 +1,13 @@
 # Opens settings screens and verifies account erasure requires confirmation.
 appId: com.statusoriginal.app
 ---
-- launchApp
+- runFlow: lib/launch.yaml
 - tapOn: "Settings"
 
 - tapOn:
     id: "settings-accounts"
 - assertVisible: "Create a new account"
-- tapOn:
-    id: "BackButton"
+- runFlow: lib/back.yaml
 
 - scrollUntilVisible:
     element:
@@ -19,8 +18,7 @@ appId: com.statusoriginal.app
     id: "settings-plugins"
 - assertVisible:
     id: "plugin-wallet"
-- tapOn:
-    id: "BackButton"
+- runFlow: lib/back.yaml
 
 - scrollUntilVisible:
     element:
