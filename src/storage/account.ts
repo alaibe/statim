@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { PluginStorage } from '@/core/plugins/types';
 import type { MessageStore } from '@/core/messaging/message-store';
+import type { ProtocolId } from '@/core/messaging/namespace';
+import { sqliteProtocolState, type ProtocolState } from './protocol-state';
 import { SqliteMessageStore } from './sqlite-message-store';
 import { scopePrefix } from './scope';
 
@@ -13,6 +15,7 @@ export interface AccountStorage {
   remove(name: string): Promise<void>;
   plugin(pluginId: string): PluginStorage;
   readonly messages: MessageStore;
+  protocolState(protocolId: ProtocolId): ProtocolState;
 }
 
 export function createAccountStorage(accountId: string): AccountStorage {
@@ -46,6 +49,7 @@ export function createAccountStorage(accountId: string): AccountStorage {
       };
     },
     messages: new SqliteMessageStore(accountId),
+    protocolState: (protocolId) => sqliteProtocolState(accountId, protocolId),
   };
   return storage;
 }

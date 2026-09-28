@@ -8,7 +8,7 @@ import type { Release } from '@/lib/release';
 const protocols = [
   ['XMTP', 'bg-[#f0533a]'],
   ['Nostr', 'bg-[#9b5de5]'],
-  ['Waku', 'bg-[#11b5a4]'],
+  ['Status', 'bg-[#11b5a4]'],
   ['Telegram', 'bg-[#2aabee]'],
   ['Matrix', 'bg-gray-900'],
 ];

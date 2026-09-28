@@ -6,7 +6,7 @@ const features = [
   {
     name: 'Encrypted, end to end',
     description:
-      'DMs and group chats over XMTP, Nostr or Waku. You pick the protocol per chat, and each one says what it protects.',
+      'DMs and group chats over XMTP, Nostr or Status. You pick the protocol per chat, and each one says what it protects.',
     icon: DeviceLockIcon,
   },
   {

@@ -101,6 +101,7 @@ async function createSchema(db: AccountDatabase): Promise<void> {
       status          TEXT NOT NULL DEFAULT 'sent',
       content         TEXT NOT NULL,
       reply_to        TEXT,
+      edited          INTEGER NOT NULL DEFAULT 0,
       PRIMARY KEY (chat_id, id)
     );
 
@@ -118,6 +119,13 @@ async function createSchema(db: AccountDatabase): Promise<void> {
     CREATE TABLE IF NOT EXISTS chat_cache (
       id   TEXT PRIMARY KEY NOT NULL,
       data TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS protocol_state (
+      protocol_id TEXT NOT NULL,
+      key         TEXT NOT NULL,
+      value       TEXT NOT NULL,
+      PRIMARY KEY (protocol_id, key)
     );
 
     PRAGMA user_version = ${SCHEMA_VERSION};

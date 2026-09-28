@@ -57,10 +57,10 @@ Use these words in code, UI text, the CLI and the guide. Code in `src/protocols/
 
 ### Messaging
 
-**Protocol**: A messaging system the app speaks itself: XMTP, Matrix, Telegram, Nostr or Waku.
+**Protocol**: A messaging system the app speaks itself: XMTP, Matrix, Telegram, Nostr or Status.
 _Avoid_: network, transport, service
 
-**Transport**: The part of a protocol that only moves messages, where the app keeps the chats and their history itself, as for Nostr and Waku.
+**Transport**: The part of a protocol that only moves messages, where the app keeps the chats and their history itself, as for Nostr and Status.
 
 **Network**: The service a chat lives on. It is the chat's protocol, or for a bridged chat, the service at the far end of the bridge, such as Slack or WhatsApp.
 _Avoid_: platform, service

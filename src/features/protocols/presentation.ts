@@ -42,7 +42,6 @@ export function describeProtocol(meta: ChatProtocolMeta): string {
 const GROUP_MODEL: Record<ChatProtocolMeta['properties']['groupModel'], string> = {
   enforced: 'enforced membership',
   'participant-set': 'membership is just who you address',
-  topic: 'anyone with the topic can join',
 };
 
 export function networkLabel(network: NetworkId): string {

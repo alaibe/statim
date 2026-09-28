@@ -13,7 +13,7 @@ whoever gives it.
 | --- | --- | --- |
 | MLS group messaging (XMTP) | `@xmtp/react-native-sdk` | **No**, confidentiality of user content |
 | NIP-44 / NIP-17 sealed DMs (Nostr) | `src/protocols/nostr` | **No**, same |
-| Encrypted Waku payloads | `src/protocols/waku` | **No**, same |
+| Status chat protocol: ECIES, AES-GCM, X3DH and Double Ratchet | `src/protocols/status` | **No**, same |
 | Olm / Megolm (Matrix) | `@unomed/react-native-matrix-sdk`, `matrix-sdk` | **No**, same |
 | SQLCipher local databases | `expo-sqlite`, the XMTP, TDLib and Matrix SDKs | **No**, confidentiality of stored user content |
 | AES-256-GCM desktop vault | `src-tauri/src/vault.rs` | **No**, same |

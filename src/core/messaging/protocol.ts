@@ -150,7 +150,7 @@ export interface XmtpCapabilities {
   revokeInstallations?(ids: string[]): Promise<void>;
 }
 
-export type GroupModel = 'enforced' | 'participant-set' | 'topic';
+export type GroupModel = 'enforced' | 'participant-set';
 
 export interface ChatProtocolMeta {
   trustModel: string;

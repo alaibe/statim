@@ -11,7 +11,7 @@ TO REVIEW THE APP
 Open the app and tap "Create an account", then "Reveal recovery phrase" and
 "I've written it down". The local Statim room provides help and commands and
 works without a second party. Sending a message to someone requires another
-XMTP, Nostr or Waku user.
+XMTP, Nostr or Status user.
 
 PLUGINS
 

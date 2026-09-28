@@ -7,8 +7,8 @@ tap **I already have a recovery phrase**, and your account, addresses and wallet
 are back.
 
 Chat history is a separate matter: XMTP restores from its nodes, Telegram and
-Matrix from their servers, Nostr only what your relays still hold, Waku
-nothing. See [Protocols](./guide/networks).
+Matrix from their servers, Nostr and Status only what their relays and store
+nodes still hold. See [Protocols](./guide/networks).
 
 ## I lost the twelve words.
 
@@ -73,7 +73,7 @@ account or turns on a plugin still waits for you to approve it in the app. See
 ## Who can see my messages?
 
 It depends on the protocol, and the app says so on every chat. Briefly:
-on XMTP, Nostr and Waku, only the people in the chat; on Matrix, the chat's
+on XMTP, Nostr and Status, only the people in the chat; on Matrix, the chat's
 members, in chats with encryption on; on Telegram, Telegram. The
 [Privacy](./privacy) page lists everything that leaves your device.
 
@@ -128,8 +128,9 @@ iPhone app is on its way to the App Store.
 ## Is this Status?
 
 No. Statim takes its logo from the 2018 Status app. It is not affiliated with
-or endorsed by Status. It cannot message Status users either: Status builds its
-own protocol on top of Waku, and Statim uses Waku with a format of its own.
+or endorsed by Status. It speaks Status's chat protocol, though, so you can have
+DMs and groups with Status users. Communities are not supported. See
+[Protocols](./guide/networks#status).
 
 ## Where do I report a bug?
 

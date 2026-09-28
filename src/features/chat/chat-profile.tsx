@@ -109,7 +109,9 @@ function LoadedChatProfile({
             seed={focusId ?? chat.id}
             size="xl"
             label={!member && chat.kind !== 'dm' ? chat.title : undefined}
-            image={groupInfo?.avatarUri ?? shownEns?.avatar ?? undefined}
+            image={
+              groupInfo?.avatarUri ?? shownEns?.avatar ?? (member ? undefined : chat.avatarUri)
+            }
           />
 
           <View className="items-center gap-1">

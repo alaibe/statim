@@ -20,15 +20,15 @@ const SCHEMA: ProtocolConfigSchema = {
 
 describe('storage', () => {
   it('round-trips per account, so two accounts do not share credentials', async () => {
-    await saveProtocolConfig('acct-a', 'waku', { nodeUrl: 'http://a' });
-    await saveProtocolConfig('acct-b', 'waku', { nodeUrl: 'http://b' });
+    await saveProtocolConfig('acct-a', 'status', { nodeUrl: 'http://a' });
+    await saveProtocolConfig('acct-b', 'status', { nodeUrl: 'http://b' });
 
-    expect(await loadProtocolConfig('acct-a', 'waku')).toEqual({ nodeUrl: 'http://a' });
-    expect(await loadProtocolConfig('acct-b', 'waku')).toEqual({ nodeUrl: 'http://b' });
+    expect(await loadProtocolConfig('acct-a', 'status')).toEqual({ nodeUrl: 'http://a' });
+    expect(await loadProtocolConfig('acct-b', 'status')).toEqual({ nodeUrl: 'http://b' });
   });
 
   it('lives in the keychain, not AsyncStorage, because these are real credentials', async () => {
-    await saveProtocolConfig('acct-a', 'waku', { nodeUrl: 'secret-value' });
+    await saveProtocolConfig('acct-a', 'status', { nodeUrl: 'secret-value' });
     expect(await vaultGet(accountProtocolConfigsKey('acct-a'))).toContain('secret-value');
   });
 
@@ -38,14 +38,14 @@ describe('storage', () => {
   });
 
   it('drops blank values instead of storing them', async () => {
-    await saveProtocolConfig('acct-a', 'waku', { nodeUrl: '  ', pubsubTopic: '/x' });
-    expect(await loadProtocolConfig('acct-a', 'waku')).toEqual({ pubsubTopic: '/x' });
+    await saveProtocolConfig('acct-a', 'status', { nodeUrl: '  ', pubsubTopic: '/x' });
+    expect(await loadProtocolConfig('acct-a', 'status')).toEqual({ pubsubTopic: '/x' });
   });
 
   it('deletes the entry when everything is cleared', async () => {
-    await saveProtocolConfig('acct-a', 'waku', { nodeUrl: 'http://x' });
-    await saveProtocolConfig('acct-a', 'waku', { nodeUrl: '' });
-    expect(await loadProtocolConfig('acct-a', 'waku')).toEqual({});
+    await saveProtocolConfig('acct-a', 'status', { nodeUrl: 'http://x' });
+    await saveProtocolConfig('acct-a', 'status', { nodeUrl: '' });
+    expect(await loadProtocolConfig('acct-a', 'status')).toEqual({});
   });
 
   it('returns an empty config rather than throwing on corrupt data', async () => {
@@ -85,16 +85,16 @@ describe('the registry', () => {
     expect(isConfigured(nostr, effectiveConfig(nostr, {}))).toBe(true);
   });
 
-  it('ships no Waku node, so Waku sits idle until the user supplies one', () => {
-    const waku = protocolById('waku')!;
-    expect(effectiveConfig(waku, {}).nodeUrl).toBeUndefined();
-    expect(isConfigured(waku, effectiveConfig(waku, {}))).toBe(false);
-    expect(isConfigured(waku, { nodeUrl: 'http://127.0.0.1:8645' })).toBe(true);
+  it("needs no node for Status, which goes through Status's own unless given one", () => {
+    const status = protocolById('status')!;
+    expect(effectiveConfig(status, {}).nodeUrl).toBeUndefined();
+    expect(isConfigured(status, effectiveConfig(status, {}))).toBe(true);
+    expect(isConfigured(status, { nodeUrl: 'http://127.0.0.1:8645' })).toBe(true);
   });
 
-  it('distinguishes the three group models honestly', () => {
+  it('distinguishes the group models honestly', () => {
     expect(protocolById('xmtp')!.meta.properties.groupModel).toBe('enforced');
     expect(protocolById('nostr')!.meta.properties.groupModel).toBe('participant-set');
-    expect(protocolById('waku')!.meta.properties.groupModel).toBe('topic');
+    expect(protocolById('status')!.meta.properties.groupModel).toBe('enforced');
   });
 });

@@ -6,7 +6,7 @@ import { testChat } from '@/core/messaging/testing/chats';
 import { asChatId } from '@/core/messaging/testing/ids';
 import type { ProtocolMessage } from '@/core/messaging/types';
 
-const WAKU = 'waku';
+const STATUS = 'status';
 const NOSTR = 'nostr';
 const C1 = protocolChatId('c1');
 const C2 = protocolChatId('c2');
@@ -45,7 +45,7 @@ function message(
   };
 }
 
-function chat(id: string, protocolId: ProtocolId = WAKU, over: Record<string, unknown> = {}) {
+function chat(id: string, protocolId: ProtocolId = STATUS, over: Record<string, unknown> = {}) {
   return {
     id: protocolChatId(id),
     protocolId,
@@ -91,7 +91,7 @@ describe('the schema', () => {
     await store.upsertChat(chat('c1'));
 
     const reopened = new SqliteMessageStore(id);
-    expect(await reopened.loadChats(WAKU)).toHaveLength(1);
+    expect(await reopened.loadChats(STATUS)).toHaveLength(1);
   });
 });
 
@@ -114,7 +114,7 @@ describe('chats', () => {
     const store = new SqliteMessageStore(id);
 
     await store.upsertChat(
-      chat('c1', WAKU, {
+      chat('c1', STATUS, {
         title: 'Duo',
         routingKey: '/app/1/chat/proto',
         participants: ['a', 'b', 'c'],
@@ -122,10 +122,10 @@ describe('chats', () => {
       })
     );
 
-    const [loaded] = await store.loadChats(WAKU);
+    const [loaded] = await store.loadChats(STATUS);
     expect(loaded).toEqual({
       id: 'c1',
-      protocolId: WAKU,
+      protocolId: STATUS,
       participants: ['a', 'b', 'c'],
       title: 'Duo',
       createdAt: 5000,
@@ -138,10 +138,10 @@ describe('chats', () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
 
-    await store.upsertChat(chat('c1', WAKU, { title: 'First' }));
-    await store.upsertChat(chat('c1', WAKU, { title: 'Renamed', hidden: true }));
+    await store.upsertChat(chat('c1', STATUS, { title: 'First' }));
+    await store.upsertChat(chat('c1', STATUS, { title: 'Renamed', hidden: true }));
 
-    const loaded = await store.loadChats(WAKU);
+    const loaded = await store.loadChats(STATUS);
     expect(loaded).toHaveLength(1);
     expect(loaded[0].title).toBe('Renamed');
     expect(loaded[0].hidden).toBe(true);
@@ -151,10 +151,10 @@ describe('chats', () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
 
-    await store.upsertChat(chat('c1', WAKU));
+    await store.upsertChat(chat('c1', STATUS));
     await store.upsertChat(chat('c2', NOSTR));
 
-    expect((await store.loadChats(WAKU)).map((c) => c.id)).toEqual(['c1']);
+    expect((await store.loadChats(STATUS)).map((c) => c.id)).toEqual(['c1']);
     expect((await store.loadChats(NOSTR)).map((c) => c.id)).toEqual(['c2']);
   });
 });
@@ -162,7 +162,7 @@ describe('chats', () => {
 describe('messages', () => {
   it('searches stored message text across chats and within one chat', async () => {
     const store = new SqliteMessageStore(freshAccount());
-    await store.upsertChat(chat('c1', WAKU));
+    await store.upsertChat(chat('c1', STATUS));
     await store.upsertChat(chat('c2', NOSTR));
     await store.insertMessage(
       message({ id: 'm1', chatId: 'c1', content: { kind: 'text', text: 'Blue moon' } })
@@ -186,13 +186,13 @@ describe('messages', () => {
     const store = new SqliteMessageStore(freshAccount());
     const saved = botChatId('saved');
     await store.upsertChat({ ...chat('saved', LOCAL_PROTOCOL), id: saved });
-    await store.upsertChat(chat('c1', WAKU));
+    await store.upsertChat(chat('c1', STATUS));
     await store.insertMessage({ ...message({ id: 'note', chatId: 'saved' }), chatId: saved });
     await store.insertMessage(message({ id: 'wire', chatId: 'c1', sentAt: 2000 }));
 
     const hits = await store.searchMessages('hello');
     expect(hits.map(({ message, protocolId }) => [message.chatId, protocolId])).toEqual([
-      [C1, WAKU],
+      [C1, STATUS],
       [saved, undefined],
     ]);
   });
@@ -227,7 +227,7 @@ describe('messages', () => {
       store.insertMessage(message({ id: 'm1', chatId: 'c1' }), chat('c1'))
     ).rejects.toThrow('disk full');
 
-    expect(await store.loadChats(WAKU)).toEqual([]);
+    expect(await store.loadChats(STATUS)).toEqual([]);
     expect(await store.loadMessages(C1)).toEqual([]);
   });
 
@@ -254,7 +254,7 @@ describe('messages', () => {
     const ingesting = store.insertMessage(message({ id: 'm1', chatId: 'c1' }), chat('c1'));
     await paused;
     let readFinished = false;
-    const reading = store.loadChats(WAKU).then((rows) => {
+    const reading = store.loadChats(STATUS).then((rows) => {
       readFinished = true;
       return rows;
     });
@@ -276,10 +276,10 @@ describe('messages', () => {
       2_000
     );
 
-    expect((await store.latestMessages(WAKU)).get(C1)?.sentAt).toBe(99_000);
-    await expect(store.newestTransportTimestamp(WAKU, Number.POSITIVE_INFINITY, C1)).resolves.toBe(
-      2_000
-    );
+    expect((await store.latestMessages(STATUS)).get(C1)?.sentAt).toBe(99_000);
+    await expect(
+      store.newestTransportTimestamp(STATUS, Number.POSITIVE_INFINITY, C1)
+    ).resolves.toBe(2_000);
   });
 
   it('returns them oldest first, the order the transcript renders', async () => {
@@ -352,7 +352,7 @@ describe('messages', () => {
     await store.insertMessage(message({ id: 'two', chatId: 'c2', sentAt: 2_000 }));
     await store.insertMessage(message({ id: 'n', chatId: 'other', sentAt: 9_000 }));
 
-    const latest = await store.latestMessages(WAKU);
+    const latest = await store.latestMessages(STATUS);
 
     expect([...latest.keys()].sort()).toEqual(['c1', 'c2']);
     // The same tie-break as loadMessages, so the two agree on the newest row.
@@ -451,14 +451,14 @@ describe('clearing', () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
 
-    await store.upsertChat(chat('c1', WAKU));
+    await store.upsertChat(chat('c1', STATUS));
     await store.upsertChat(chat('c2', NOSTR));
     await store.insertMessage(message({ id: 'm1', chatId: 'c1' }));
     await store.insertMessage(message({ id: 'm2', chatId: 'c2' }));
 
-    await store.clear(WAKU);
+    await store.clear(STATUS);
 
-    expect(await store.loadChats(WAKU)).toEqual([]);
+    expect(await store.loadChats(STATUS)).toEqual([]);
     expect(await store.loadMessages(C1)).toEqual([]);
     expect(await store.loadChats(NOSTR)).toHaveLength(1);
     expect(await store.loadMessages(C2)).toHaveLength(1);
@@ -473,7 +473,7 @@ describe('clearing', () => {
     await deleteTestDatabase(id);
 
     const after = new SqliteMessageStore(id);
-    expect(await after.loadChats(WAKU)).toEqual([]);
+    expect(await after.loadChats(STATUS)).toEqual([]);
   });
 
   it('blocks new writes and waits for the account queue before deletion', async () => {
@@ -522,6 +522,32 @@ describe('clearing', () => {
 
     await deleteTestDatabase(a);
 
-    expect((await new SqliteMessageStore(b).loadChats(WAKU)).map((c) => c.id)).toEqual(['c2']);
+    expect((await new SqliteMessageStore(b).loadChats(STATUS)).map((c) => c.id)).toEqual(['c2']);
+  });
+});
+
+describe('editing and deleting', () => {
+  it('replaces the content, keeps the edited mark and forgets deleted messages', async () => {
+    const store = new SqliteMessageStore(freshAccount());
+    await store.insertMessage(message({ id: 'm1', chatId: 'c1', sentAt: 10 }), chat('c1'));
+    await store.insertMessage(message({ id: 'm2', chatId: 'c1', sentAt: 20 }));
+
+    const original = (await store.getMessage(C1, 'm1'))!;
+    expect(original.edited).toBeUndefined();
+    await store.updateMessage({
+      ...original,
+      content: { kind: 'text', text: 'fixed' },
+      edited: true,
+    });
+    expect(await store.getMessage(C1, 'm1')).toMatchObject({
+      content: { kind: 'text', text: 'fixed' },
+      edited: true,
+      sentAt: 10,
+    });
+
+    await store.deleteMessages(C1, ['m2', 'missing']);
+    expect((await store.loadMessages(C1)).map((m) => m.id)).toEqual(['m1']);
+    expect(await store.getMessage(C1, 'm2')).toBeNull();
+    expect(await store.getMessage(C2, 'm1')).toBeNull();
   });
 });

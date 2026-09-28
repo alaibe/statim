@@ -29,7 +29,7 @@ start() {
   "$NWAKU" --listen-address=0.0.0.0 --nat=none \
     --rest=true --rest-address=0.0.0.0 --rest-port=8645 --rest-allow-origin='*' \
     --relay=true --store=true \
-    --cluster-id=$CLUSTER --num-shards-in-network=$SHARDS \
+    --cluster-id=$CLUSTER --shard=$SHARD --max-msg-size=1024KiB \
     --discv5-discovery=false --dns-discovery=false --peer-exchange=false \
     >"$RUN/waku.log" 2>&1 &
   echo $! > "$RUN/waku.pid"
@@ -50,7 +50,7 @@ start() {
   "$NWAKU" --listen-address=0.0.0.0 --nat=none --tcp-port=60001 \
     --rest=true --rest-address=127.0.0.1 --rest-port=8646 \
     --relay=true \
-    --cluster-id=$CLUSTER --num-shards-in-network=$SHARDS \
+    --cluster-id=$CLUSTER --shard=$SHARD --max-msg-size=1024KiB \
     --discv5-discovery=false --dns-discovery=false --peer-exchange=false \
     --staticnode="$addr" \
     >"$RUN/waku-peer.log" 2>&1 &
@@ -76,13 +76,13 @@ status() {
   say "Settings → Protocols"
   printf '  %-8s %-16s %s\n' XMTP  "Network"        "dev"
   printf '  %-8s %-16s %s\n' Nostr "Relays"         "ws://$ip:7777"
-  printf '  %-8s %-16s %s\n' Waku  "nwaku node URL" "http://$ip:8645"
+  printf '  %-8s %-16s %s\n' Status "nwaku node URL" "http://$ip:8645"
   echo
   echo "  XMTP needs no local node: its public 'dev' network is separate from"
   echo "  production, so two simulators there reach each other and nobody else."
   echo
   curl -s -m 2 http://127.0.0.1:8645/debug/v1/info >/dev/null 2>&1 \
-    && echo "  waku  ✓ answering on 8645" || warn "  waku  ✗ not answering; see $RUN/waku.log"
+    && echo "  nwaku ✓ answering on 8645" || warn "  nwaku ✗ not answering; see $RUN/waku.log"
   nc -z 127.0.0.1 7777 2>/dev/null \
     && echo "  nostr ✓ listening on 7777" || warn "  nostr ✗ not listening; see $RUN/nostr.log"
 }

@@ -30,7 +30,8 @@ const NODE_SHIMS = {
  * These ship a `browser` field that points at files their `exports` map does
  * not list. Metro applies the redirect, then warns that the redirected path is
  * not exported, then falls back to that very file. Resolving them without
- * package exports lands on the same file without the warning.
+ * package exports lands on the same file without the warning. Their newer
+ * majors, which libp2p uses, have no `main` and resolve only through exports.
  */
 const BROWSER_FIELD_OVER_EXPORTS = /^(uint8arrays|multiformats|@noble\/hashes)(\/|$)/;
 
@@ -66,12 +67,14 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   ) {
     moduleName = 'react-native-css-interop/jsx-runtime';
   }
+  const resolve = (ctx) =>
+    upstream ? upstream(ctx, moduleName, platform) : ctx.resolveRequest(ctx, moduleName, platform);
   if (BROWSER_FIELD_OVER_EXPORTS.test(moduleName)) {
-    context = { ...context, unstable_enablePackageExports: false };
+    try {
+      return resolve({ ...context, unstable_enablePackageExports: false });
+    } catch {}
   }
-  return upstream
-    ? upstream(context, moduleName, platform)
-    : context.resolveRequest(context, moduleName, platform);
+  return resolve(context);
 };
 
 module.exports = withNativeWind(config, { input: './src/global.css' });

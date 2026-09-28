@@ -27,11 +27,12 @@ device with anyone. Notifications are generated locally.
 
 ### Messages
 
-**XMTP, Nostr and Waku** carry end-to-end encrypted messages. Relay operators
+**XMTP, Nostr and Status** carry end-to-end encrypted messages. Relay operators
 see ciphertext and routing metadata: that two parties are communicating,
 roughly when, and from which network address. Nostr relays additionally never
-learn who sent a message, only who receives it. You choose the relays and the
-Waku node under Settings → Protocols.
+learn who sent a message, only who receives it. You choose the relays under
+Settings → Protocols. Status goes through Status's own nodes unless you give it
+an nwaku node of yours there.
 
 **Telegram** is different, and only active if you sign in. Telegram chats are
 not end-to-end encrypted: Telegram's servers hold and can read them, exactly as

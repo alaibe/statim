@@ -23,7 +23,7 @@ function greeting(): ReturnType<Bot['greeting']> {
     {
       kind: 'widget',
       fallback:
-        'Get started: /commands for slash commands, /plugins for plugins. Messaging protocols: XMTP, Nostr and Waku.',
+        'Get started: /commands for slash commands, /plugins for plugins. Messaging protocols: XMTP, Nostr and Status.',
       widget: W.card(
         [
           W.actions([
@@ -33,7 +33,7 @@ function greeting(): ReturnType<Bot['greeting']> {
           W.text('Learn about the messaging protocols:'),
           W.link('XMTP', 'https://xmtp.org'),
           W.link('Nostr', 'https://nostr.com'),
-          W.link('Waku', 'https://waku.org'),
+          W.link('Status', 'https://status.app'),
         ],
         { title: 'Get started', icon: 'sparkles-outline' }
       ),

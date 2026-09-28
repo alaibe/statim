@@ -119,8 +119,8 @@ describe('routing by id', () => {
     const { connect } = twoProtocols();
     await connect();
 
-    await expect(useChatStore.getState().getMembers(asChatId('waku-abc'))).rejects.toThrow(
-      /waku is not connected/
+    await expect(useChatStore.getState().getMembers(asChatId('status-abc'))).rejects.toThrow(
+      /status is not connected/
     );
   });
 });

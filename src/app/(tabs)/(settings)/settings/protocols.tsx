@@ -53,7 +53,7 @@ export default function ProtocolsScreen() {
 const TONE: Record<string, RowIconTone> = {
   xmtp: 'blue',
   nostr: 'purple',
-  waku: 'teal',
+  status: 'teal',
   telegram: 'blue',
   matrix: 'green',
 };
@@ -61,7 +61,7 @@ const TONE: Record<string, RowIconTone> = {
 const ICON: Record<string, IconName> = {
   xmtp: 'shield-checkmark-outline',
   nostr: 'flash-outline',
-  waku: 'radio-outline',
+  status: 'radio-outline',
   telegram: 'paper-plane-outline',
   matrix: 'grid-outline',
 };

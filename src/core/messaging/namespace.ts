@@ -14,7 +14,7 @@ import type {
   ProtocolChat,
 } from './types';
 
-export const PROTOCOL_IDS = ['xmtp', 'nostr', 'waku', 'telegram', 'matrix', 'local'] as const;
+export const PROTOCOL_IDS = ['xmtp', 'nostr', 'status', 'telegram', 'matrix', 'local'] as const;
 export type ProtocolId = (typeof PROTOCOL_IDS)[number];
 
 export const NATIVE_ID = /^[A-Za-z0-9_-]+$/;

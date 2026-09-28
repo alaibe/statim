@@ -2,7 +2,7 @@
 
 Your account is a recovery phrase: twelve words the app generates on your
 device the first time you open it. Everything follows from those words: your
-keys on XMTP, Nostr and Waku, and the Ethereum, Bitcoin and Solana addresses
+keys on XMTP, Nostr and Status, and the Ethereum, Bitcoin and Solana addresses
 the wallet uses. There is no password to forget, and no server that
 knows you exist.
 
@@ -34,7 +34,7 @@ addresses come back exactly as they were.
 
 Chat history does not travel with the phrase. What comes back depends on the
 protocol: XMTP restores from its nodes, Telegram and Matrix from their
-servers, Nostr only what your relays still hold, Waku nothing.
+servers, Nostr and Status only what their relays and store nodes still hold.
 [Protocols](./networks) has the detail.
 
 ## Use a hardware wallet

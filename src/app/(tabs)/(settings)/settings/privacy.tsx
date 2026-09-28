@@ -65,7 +65,7 @@ export default function PrivacyScreen() {
       <Section title="Not collected" surface="card" className="mb-4">
         <ListItem
           title="No last seen of our own"
-          subtitle="XMTP, Nostr and Waku carry no presence. Telegram shows when you were last online, as the Telegram apps do, and Matrix does when your homeserver shares presence; this app adds nothing on top."
+          subtitle="XMTP, Nostr and Status carry no presence. Telegram shows when you were last online, as the Telegram apps do, and Matrix does when your homeserver shares presence; this app adds nothing on top."
           numberOfLinesSubtitle={4}
           leading={<Icon name="eye-off-outline" size={20} tone="muted" />}
         />

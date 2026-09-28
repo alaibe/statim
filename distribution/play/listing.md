@@ -29,7 +29,7 @@ A messenger with no company in the middle.
 Your account is a twelve-word recovery phrase held on your device. There is no sign-up, no phone number, no email address, and no account on a server that could be seized, sold or breached.
 
 WHAT IT DOES
-• End-to-end encrypted one-to-one and group chats over XMTP, Nostr or Waku. You choose per conversation, and the app says what each network protects.
+• End-to-end encrypted one-to-one and group chats over XMTP, Nostr or Status. You choose per conversation, and the app says what each network protects.
 • Your own Telegram and Matrix accounts in the same inbox, signed in with your credentials. A Matrix server running a bridge brings WhatsApp, Signal, Slack or iMessage along with it.
 • Replies, reactions, forwarding, photos, files, GIFs and voice notes.
 • An on-device Statim room for help and plugin commands.

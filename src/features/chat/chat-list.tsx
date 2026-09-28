@@ -181,7 +181,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
         <EmptyState
           icon="chatbubbles-outline"
           title="No chats yet"
-          description="Start one with an Ethereum address on XMTP, or a public key on Nostr or Waku."
+          description="Start one with an Ethereum address on XMTP, a public key on Nostr, or a chat key on Status."
           actionLabel="New chat"
           onAction={() => router.push('/new-chat')}
         />

@@ -23,8 +23,9 @@ Tap the compose button at the top right of Chats.
 1. Pick a protocol. Only connected protocols are offered;
    [Protocols](./networks) covers connecting each one.
 2. Paste their address. What that is depends on the protocol: an Ethereum address or
-   ENS name for XMTP, a public key for Nostr or Waku, a `@username` or phone
-   number for Telegram, a `@user:server` ID or a `matrix.to` link for Matrix.
+   ENS name for XMTP, a public key for Nostr, a `zQ3sh…` chat key or a
+   `status.app` link for Status, a `@username` or phone number for Telegram, a
+   `@user:server` ID or a `matrix.to` link for Matrix.
 3. Add more people and a title to make a group, where the protocol allows
    it.
 
@@ -92,5 +93,5 @@ A group's details show its description, link and member count. Admins also see:
 
 What each of those means underneath depends on the protocol. XMTP enforces
 membership cryptographically; a Nostr group is simply the set of participants;
-Matrix has power levels; Waku groups are a shared topic. The app only
-offers what the protocol can actually do.
+Matrix has power levels; a Status group is a signed list of membership changes
+every member checks. The app only offers what the protocol can actually do.

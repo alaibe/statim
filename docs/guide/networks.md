@@ -15,16 +15,16 @@ Protocols**, where each one is set up.
 | --- | --- | --- | --- |
 | **XMTP** | Only the people in the chat. Relays see that two inboxes talk, not what they say. | An Ethereum address or ENS name that has opened an XMTP app | Comes back from its nodes |
 | **Nostr** | Only the participants. Relays see who receives a message and when, never who sent it. | A public key (`npub…`) | Only what your relays still hold |
-| **Waku** | Only the participants. The node you use sees which topics you read, not the content. | A public key | No |
+| **Status** | Only the participants. The nodes you go through see which topics you read, not the content. | A chat key (`zQ3sh…`) or a `status.app` link | Only what the store nodes still hold |
 | **Telegram** | Telegram. Not end-to-end encrypted, same as the official app. | A `@username`, a `t.me` link, or a phone number in your contacts | Yes, from Telegram |
 | **Matrix** | Only the chat's members, in chats with encryption on. The homeserver sees who talks to whom and when. | `@user:server` or a `matrix.to` link | Yes, from the homeserver; encrypted chats also need the keys |
 
-XMTP, Nostr and Waku work the moment your account exists, because your recovery
-phrase holds your keys for all three. Telegram and Matrix are accounts you
+XMTP, Nostr and Status work the moment your account exists, because your
+recovery phrase holds your keys for them. Telegram and Matrix are accounts you
 already have elsewhere, so you sign in to them.
 
 Unread badges use each protocol's available history: Telegram and Matrix report
-their counts, while XMTP, Waku and Nostr count locally available messages since
+their counts, while XMTP, Status and Nostr count locally available messages since
 you last read the chat.
 
 ## XMTP
@@ -63,16 +63,69 @@ no public group identifier or admin moderation. NIP-29 relay groups are a
 different protocol and are not connected here. NIP-17 permits advisory deletion
 events, but this adapter does not yet send or apply them.
 
-## Waku
+## Status
 
-Store-and-forward messaging through a single nwaku node that you name in its
-settings. No node is provided. That node sees which topics this device reads
-and writes and can withhold messages; it cannot read them. Groups are a shared
-topic.
+DMs and groups with people who use the [Status](https://status.app) app, over
+the Status network. Statim speaks Status's own chat protocol for these;
+communities are not part of it.
 
-Waku carries encrypted payloads. It does not define native polls, edits,
-deletions, pins, presence, or posting rights for this app's chats. Those would
-need an app-level message format understood by every participating client.
+Your Status identity comes from your recovery phrase the same way the Status app
+derives it, so importing the phrase you use in Status makes you the same person
+in both apps. **Settings → Protocols → Status** shows your address, the
+`zQ3sh…` chat key Status users add you by.
+
+Statim reaches the Status network through Status's own nodes, as the Status app
+does. It asks them for the messages addressed to you, hands them yours to pass
+on, and fetches what arrived while it was closed. Those nodes see your network
+address and which topics you follow, never what the messages say.
+
+Under **Settings → Protocols → Status** you can set the **Display name** Status
+users see instead of your chat key. Status drops every message whose sender name
+breaks its rules (5 to 24 letters, digits, spaces, `_` or `-`), so the app will
+not connect with such a name. Tap **Save and reconnect**.
+
+To go through a node you run instead, start nwaku on the Status network
+somewhere your phone can reach, and enter its REST address
+(`http://your-host:8645`) as the **nwaku node URL**:
+
+```bash
+wakunode2 --cluster-id=16 --shard=32 --relay=true \
+  --dns-discovery=true --discv5-discovery=true \
+  --dns-discovery-url=enrtree://AMOJVZX4V6EXP7NTJPMAYJYST2QP6AJXYW76IU6VGJS7UVSNDYZG4@boot.prod.status.nodes.status.im \
+  --storenode=/dns4/store-01.do-ams3.status.prod.status.im/tcp/30303/p2p/16Uiu2HAmAUdrQ3uwzuE4Gy4D56hX6uLKEeerJAnhKEHZ3DxF1EfT \
+  --max-msg-size=1024KiB --rest=true --rest-address=0.0.0.0 \
+  --rest-relay-cache-capacity=1000
+```
+
+That node relays every Status DM and group on its shard, a few messages a
+second, and hands the app what is addressed to you. `--max-msg-size` matters:
+Status sends photos inline, up to 1 MiB, and nwaku drops anything over 150 KiB
+by default.
+
+Starting a chat sends your first message as a Status contact request, which is
+how the Status app decides to show a chat at all: until they accept, it waits
+in their notifications. A contact request from a Status user arrives under
+[Requests](./chats#requests), and accepting it adds them back.
+
+Groups are Status groups, kept as a signed log of membership changes that every
+member checks. Status only lets you add people who accepted your contact
+request. The creator is the group's owner and adds or
+removes people; any member can rename it, and anyone can leave. An invitation
+from someone you have not added waits under Requests.
+
+Replies, mentions, reactions, photos, voice notes, edits and deletions work
+both ways. You can edit your own text and captions, delete your own messages for
+everyone, and delete any message for yourself only. Group admins can delete
+other people's messages. Profile pictures and group pictures set in Status show
+here too. Stickers from Status show as a line saying what they were, and there
+are no polls, pins or presence.
+
+Messages you send are encrypted to the other person's chat key with a one-off
+key per message, so there is no forward secrecy. Once you have written to
+someone, their Status app encrypts to this device with a Double Ratchet, and
+Statim follows it. If the same recovery phrase is also in the Status app, a
+contact's messages reach Statim only after Statim has written to them, and the
+two apps do not share history.
 
 ## Telegram
 

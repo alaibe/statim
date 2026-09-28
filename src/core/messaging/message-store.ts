@@ -77,6 +77,10 @@ export interface MessageStore {
   clear(protocolId: ProtocolId): Promise<void>;
   cachedChats(): Promise<Chat[]>;
   cacheChats(keep: Chat[], drop: ChatId[]): Promise<void>;
+  getMessage<Id extends AnyChatId>(chatId: Id, id: MessageId): Promise<ChatMessage<Id> | null>;
+  /** Replaces a stored message's content and edited mark; the rest stays as inserted. */
+  updateMessage(message: ChatMessage<AnyChatId>): Promise<void>;
+  deleteMessages(chatId: AnyChatId, ids: MessageId[]): Promise<void>;
 }
 
 export const HYDRATE_LIMIT = 500;
@@ -204,6 +208,26 @@ export class InMemoryMessageStore implements MessageStore {
       if (newest) latest.set(id, newest);
     }
     return latest;
+  }
+
+  async getMessage<Id extends AnyChatId>(
+    chatId: Id,
+    id: MessageId
+  ): Promise<ChatMessage<Id> | null> {
+    return (this.messages.get(chatId)?.get(id) as ChatMessage<Id> | undefined) ?? null;
+  }
+
+  async updateMessage(message: ChatMessage<AnyChatId>): Promise<void> {
+    const stored = this.messages.get(message.chatId)?.get(message.id);
+    if (stored) {
+      this.messages
+        .get(message.chatId)!
+        .set(message.id, { ...stored, content: message.content, edited: message.edited });
+    }
+  }
+
+  async deleteMessages(chatId: AnyChatId, ids: MessageId[]): Promise<void> {
+    for (const id of ids) this.messages.get(chatId)?.delete(id);
   }
 
   private readonly cached = new Map<ChatId, Chat>();

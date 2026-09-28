@@ -28,7 +28,7 @@ Anything in this repository, and the way it uses its dependencies:
 
 ## What is not
 
-The networks themselves. XMTP, Nostr, Waku, Telegram, Matrix, LI.FI, the
+The networks themselves. XMTP, Nostr, Status, Telegram, Matrix, LI.FI, the
 blockchain endpoints and any bridge a homeserver runs have their own reporting
 channels. In scope here is this app trusting one of them more than it should,
 or describing its guarantees inaccurately in the interface.
@@ -43,7 +43,7 @@ finding.
 
 The account is the phrase. Twelve BIP-39 words generated on the device by
 viem. Every key follows from it: the messaging keys on XMTP, Nostr and
-Waku, and the Ethereum, Bitcoin and Solana addresses. There is no server-side
+Status, and the Ethereum, Bitcoin and Solana addresses. There is no server-side
 account, so there is nothing to reset, nothing to take over, and no recovery if
 the phrase is lost.
 
@@ -110,9 +110,13 @@ where it matters:
   chats, as with the official client. Secret Chats are not implemented.
 - **Matrix metadata is visible to the homeserver**, and a bridge decrypts
   whatever it relays on the machine where it runs.
+- **Status messages you send have no forward secrecy.** Each one is encrypted
+  to the recipient's chat key with a one-off key, as status-go does for a device
+  it has no bundle for. Messages Status users send back use their Double
+  Ratchet.
 - Relays see routing metadata. Nostr relays learn who receives a sealed
-  message and when, never the sender. An nwaku node sees which topics a device
-  reads and writes and can withhold messages. XMTP relays see that two inboxes
+  message and when, never the sender. Status's nodes, or an nwaku node you
+  run, see which topics a device reads and writes and can withhold messages. XMTP relays see that two inboxes
   are talking.
 - **Link previews are fetched by your device**, so the linked site learns your
   network address as soon as the message arrives. On by default, with a switch

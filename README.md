@@ -36,7 +36,7 @@ protects, because the honest answers differ:
 | --- | --- | --- | --- |
 | **XMTP** | MLS, forward secret | Ethereum address or ENS name | Your recovery phrase |
 | **Nostr** | NIP-17 sealed DMs; relays never learn the sender | `npub…` public key | Your recovery phrase |
-| **Waku** | Encrypted payloads through an nwaku node you name | Public key | Your recovery phrase |
+| **Status** | Status's chat protocol, through Status's nodes or an nwaku node you run | `zQ3sh…` chat key | Your recovery phrase |
 | **Telegram** | None. Telegram holds and can read it | `@username`, `t.me` link, phone number | Your Telegram account, over TDLib |
 | **Matrix** | Olm/Megolm in chats with encryption on | `@user:server` | Your Matrix account, over matrix-rust-sdk |
 
@@ -134,7 +134,7 @@ refresh them.
 | Why each dependency is patched | [`patches/README.md`](patches/README.md) |
 | End-to-end tests | [`e2e/README.md`](e2e/README.md) |
 | The promo film | [`marketing/`](marketing/README.md) |
-| Running Nostr and Waku locally | [`local-net/README.md`](local-net/README.md) |
+| Running Nostr and Status locally | [`local-net/README.md`](local-net/README.md) |
 | Running your own bots | [Your own bots](https://alaibe.github.io/statim/guide/bots) |
 
 ## License

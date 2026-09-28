@@ -35,7 +35,7 @@ describe('namespacedId', () => {
   it('refuses a native id that would not survive a URL path segment', () => {
     // This is the bug the whole module exists to prevent: a chat id
     // becomes `/chat/<id>`, and a slash or colon silently fails to route.
-    expect(() => namespacedId('waku', protocolChatId('/waku/2/rs/1/0'))).toThrow(/URL-safe/);
+    expect(() => namespacedId('status', protocolChatId('/waku/2/rs/1/0'))).toThrow(/URL-safe/);
     expect(() => namespacedId('nostr', protocolChatId('a:b'))).toThrow(/URL-safe/);
   });
 });
@@ -118,10 +118,10 @@ describe('projection', () => {
       lastMessage: message,
     };
 
-    const namespaced = namespaceChat('waku', chat);
-    expect(namespaced.id).toBe('waku-c1');
-    expect(namespaced.protocol).toBe('waku');
+    const namespaced = namespaceChat('status', chat);
+    expect(namespaced.id).toBe('status-c1');
+    expect(namespaced.protocol).toBe('status');
     // The preview has to be rewritten too; the chat list keys rows off it.
-    expect(namespaced.lastMessage?.chatId).toBe('waku-c1');
+    expect(namespaced.lastMessage?.chatId).toBe('status-c1');
   });
 });

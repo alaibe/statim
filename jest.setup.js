@@ -101,7 +101,7 @@ jest.mock('expo-router', () => ({
  * SQLite, on Node's own engine.
  *
  * `expo-sqlite` is a native module, so without this the message store, which
- * holds every Waku and Nostr message, could not be tested at all. See
+ * holds every Nostr and Status message, could not be tested at all. See
  * src/storage/testing/expo-sqlite-mock.js for what this does and does
  * not cover (it is a real SQLite; it is not SQLCipher).
  */

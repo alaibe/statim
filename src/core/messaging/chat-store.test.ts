@@ -989,7 +989,7 @@ describe('consent', () => {
 
   it('says so when the protocol has no notion of consent', async () => {
     const session = await withRequest();
-    // Nostr and Waku have no roster and no stranger, so they omit the method
+    // Nostr has no roster and no stranger, so it omits the method
     // rather than pretending to honour it. Assigned rather than deleted: it
     // lives on the prototype, which `delete` on the instance does not touch.
     (session as { setConsent?: unknown }).setConsent = undefined;

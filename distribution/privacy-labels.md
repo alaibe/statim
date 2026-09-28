@@ -52,7 +52,7 @@ will want to know.
 
 | What | Where it goes | Code |
 | --- | --- | --- |
-| Messages | End-to-end encrypted to the network the conversation is on (XMTP, Nostr, Waku). Relays see ciphertext and routing metadata. | `src/protocols/*/adapter.ts` |
+| Messages | End-to-end encrypted to the network the conversation is on (XMTP, Nostr, Status). Relays see ciphertext and routing metadata. | `src/protocols/*/adapter.ts` |
 | Telegram | Only if the user signs in. Plaintext to Telegram's servers, as with the official client; the phone number is the sign-in. The user supplies their own API ID and hash. | `src/protocols/telegram/adapter.ts` |
 | Matrix | Only if the user signs in. To the homeserver the user names. Encrypted rooms are end-to-end encrypted; the homeserver sees metadata; a bridge it runs sees plaintext. The session token stays in the keychain. | `src/protocols/matrix/adapter.ts` |
 | Recovery phrase and keys | iOS Keychain, `WHEN_UNLOCKED_THIS_DEVICE_ONLY`, optionally sealed behind Face ID. Never transmitted. | `src/storage/vault.ts`, `src/storage/secure-store.ts` |

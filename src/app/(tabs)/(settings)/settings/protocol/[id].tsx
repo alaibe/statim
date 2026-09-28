@@ -7,6 +7,7 @@ import { connectionFor, useChatStore } from '@/core/messaging/chat-store';
 import { protocolById } from '@/protocols';
 import { LoginStep, SignedIn } from '@/features/protocols/login';
 import { MatrixBridges } from '@/features/protocols/matrix-bridges';
+import { OwnAddress } from '@/features/protocols/own-address';
 import type { ChatSession } from '@/core/messaging/protocol';
 import type { ProtocolDescriptor } from '@/core/messaging/registry';
 import type { MatrixCapabilities } from '@/protocols/matrix/provisioning';
@@ -75,7 +76,9 @@ function ProtocolSettings({ descriptor }: { descriptor: ProtocolDescriptor }) {
           <>
             {session.subscribeLogin ? (
               <SignedIn session={session} label={descriptor.label} />
-            ) : null}
+            ) : (
+              <OwnAddress label={descriptor.label} address={session.self.address} />
+            )}
             {descriptor.id === 'matrix' ? (
               <MatrixBridges session={session as ChatSession & Partial<MatrixCapabilities>} />
             ) : null}

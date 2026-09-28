@@ -9,13 +9,10 @@ NWAKU="$RUN/build/wakunode2"
 # you need the same node twice.
 NWAKU_URL="https://github.com/waku-org/nwaku/releases/download/nightly/nwaku-arm64-macos-nightly.tar.gz"
 
-# Cluster 16 rather than 1. Cluster 1 is The Waku Network preset, which
-# mandates RLN (rate limiting backed by an Ethereum contract) and nwaku
-# refuses to relay without it. 16 is outside the preset, and
-# `--num-shards-in-network` is what turns autosharding on there, which the
-# app's `/relay/v1/auto/*` calls require.
+# The Status network's cluster, and the shard its DMs and groups use. Status
+# shards statically, so the nodes are told the shard rather than deriving one.
 CLUSTER=16
-SHARDS=8
+SHARD=32
 
 LIBPQ=/opt/homebrew/opt/libpq/lib/libpq.dylib
 

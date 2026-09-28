@@ -243,10 +243,4 @@ const GROUP_BADGE = {
     detail:
       'The group is whoever a message is addressed to. Nobody can be added or removed afterwards, and leaving is only local to your device.',
   },
-  topic: {
-    label: 'Open topic',
-    tone: 'warning' as const,
-    detail:
-      'Anyone who learns the topic can post to it. Messages are still encrypted to the people you list, but membership is not enforced.',
-  },
 };

@@ -78,7 +78,7 @@ Three switches:
   [Messages](./messages#links-and-everything-tappable) has the detail.
 
 Below the switches the screen lists what the app does *not* do. It adds no
-last seen of its own: XMTP, Nostr and Waku carry no presence, Telegram shows
+last seen of its own: XMTP, Nostr and Status carry no presence, Telegram shows
 when you were last online the way the Telegram apps do, and Matrix does when
 your homeserver shares presence. It uploads no
 contacts: your address book is read on the device to suggest who to invite, and

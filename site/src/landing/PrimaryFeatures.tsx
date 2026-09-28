@@ -27,7 +27,7 @@ const features = [
   {
     name: 'Every protocol in one chat list',
     description:
-      'XMTP, Nostr and Waku work the moment your account exists. Sign in to Telegram and Matrix and those chats land in the same list, each saying what its protocol protects.',
+      'XMTP, Nostr and Status work the moment your account exists. Sign in to Telegram and Matrix and those chats land in the same list, each saying what its protocol protects.',
     icon: DeviceNotificationIcon,
     screen: 'protocols',
     alt: 'Settings → Protocols: the five protocols and their state',

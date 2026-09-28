@@ -45,6 +45,7 @@ interface MessageRow {
   status: DeliveryStatus;
   content: string;
   reply_to: string | null;
+  edited: number;
 }
 
 export class SqliteMessageStore implements MessageStore {
@@ -128,6 +129,43 @@ export class SqliteMessageStore implements MessageStore {
       )
     );
     return row?.count ?? 0;
+  }
+
+  async getMessage<Id extends AnyChatId>(
+    chatId: Id,
+    id: MessageId
+  ): Promise<ChatMessage<Id> | null> {
+    const row = await this.operation((db) =>
+      db.getFirstAsync<MessageRow>(
+        'SELECT * FROM messages WHERE chat_id = ? AND id = ?',
+        chatId,
+        id
+      )
+    );
+    return row ? toMessage(row, chatId) : null;
+  }
+
+  async updateMessage(message: ChatMessage<AnyChatId>): Promise<void> {
+    await this.write((db) =>
+      db.runAsync(
+        'UPDATE messages SET content = ?, edited = ? WHERE chat_id = ? AND id = ?',
+        JSON.stringify(message.content),
+        message.edited ? 1 : 0,
+        message.chatId,
+        message.id
+      )
+    );
+  }
+
+  async deleteMessages(chatId: AnyChatId, ids: MessageId[]): Promise<void> {
+    if (ids.length === 0) return;
+    await this.write((db) =>
+      db.runAsync(
+        `DELETE FROM messages WHERE chat_id = ? AND id IN (${ids.map(() => '?').join(', ')})`,
+        chatId,
+        ...ids
+      )
+    );
   }
 
   async upsertChat(chat: StoredChat): Promise<void> {
@@ -291,8 +329,8 @@ async function upsertChat(db: Database, chat: StoredChat): Promise<void> {
 async function insertMessage(db: Database, message: ChatMessage<AnyChatId>): Promise<boolean> {
   const result = await db.runAsync(
     `INSERT INTO messages
-         (id, chat_id, sender_id, sent_at, from_me, status, content, reply_to)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         (id, chat_id, sender_id, sent_at, from_me, status, content, reply_to, edited)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(chat_id, id) DO NOTHING`,
     message.id,
     message.chatId,
@@ -301,7 +339,8 @@ async function insertMessage(db: Database, message: ChatMessage<AnyChatId>): Pro
     message.fromMe ? 1 : 0,
     message.status,
     JSON.stringify(message.content),
-    message.replyTo ?? null
+    message.replyTo ?? null,
+    message.edited ? 1 : 0
   );
   return result.changes === 1;
 }
@@ -333,6 +372,7 @@ function toMessage<Id extends AnyChatId>(row: MessageRow, chatId: Id): ChatMessa
     status: row.status,
     replyTo: row.reply_to ?? undefined,
     privateToMe: (row.sender_id === 'local' && row.id.startsWith('private:')) || undefined,
+    edited: row.edited === 1 || undefined,
   };
 }
 

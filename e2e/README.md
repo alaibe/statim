@@ -79,7 +79,7 @@ peer. Deterministic adapter coverage is in Jest instead, running two
 independently keyed sessions against a fake relay:
 
 ```bash
-npm test -- --runInBand src/protocols/nostr/adapter.test.ts src/protocols/waku/adapter.test.ts
+npm test -- --runInBand src/protocols/nostr/adapter.test.ts src/protocols/status/adapter.test.ts
 ```
 
 Those tests do not exercise public infrastructure, XMTP native delivery, or

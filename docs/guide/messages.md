@@ -42,8 +42,8 @@ protocol can do and what you are allowed to do in that chat:
   where you may pin.
 - **Delete for everyone** removes your message for the whole chat. Group admins
   can remove anyone's message this way.
-- **Delete for me** (Telegram) removes a message from your account only. Everyone
-  else keeps it.
+- **Delete for me** (Telegram and Status) removes a message from your account
+  only. Everyone else keeps it.
 
 A mention of you, or of anyone, is highlighted in the message. Tap it to open
 that person's profile.
@@ -79,7 +79,7 @@ Privacy.
 
 A DM shows **online** or **last seen** under the name. Telegram
 reports it as the Telegram apps do. Matrix does when your homeserver shares
-presence, and many homeservers do not. XMTP, Nostr and Waku have no presence.
+presence, and many homeservers do not. XMTP, Nostr and Status have no presence.
 
 ## Cards from plugins
 
