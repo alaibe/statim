@@ -55,11 +55,14 @@ function RootLayout() {
   const system = useSystemColorScheme();
   const choice = useAppearanceStore((s) => s.theme);
 
-  // One resolved scheme for both theming systems, so NativeWind and React Navigation cannot disagree.
   const scheme = choice === 'system' ? system : choice;
+  // On a phone NativeWind's `set` also overrides React Native's Appearance, so handed the
+  // resolved scheme it would pin it and stop following the device. The desktop draws dark
+  // mode from a class, which only a resolved scheme sets.
+  const applied = process.env.EXPO_OS === 'web' ? (scheme === 'dark' ? 'dark' : 'light') : choice;
   useEffect(() => {
-    nativewindColorScheme.set(scheme === 'dark' ? 'dark' : 'light');
-  }, [scheme]);
+    nativewindColorScheme.set(applied);
+  }, [applied]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
