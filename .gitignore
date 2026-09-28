@@ -41,6 +41,7 @@ example
 # generated native folders
 /ios
 /android
+/modules/*/android/build
 /secrets
 local-net/.run/
 
