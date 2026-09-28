@@ -27,9 +27,11 @@ jest.mock('@/design', () => ({
 jest.mock('@/core/app/report-error', () => ({ reportError: jest.fn() }));
 jest.mock('@/core/app/erase-account', () => ({ eraseAllAccounts: jest.fn(async () => {}) }));
 jest.mock('@/core/account/key-protection', () => ({ isKeyProtectionEnabled: jest.fn() }));
+jest.mock('@/core/account/biometrics', () => ({
+  biometricCapability: async () => ({ available: true, enrolled: true, label: 'Face ID' }),
+}));
 jest.mock('@/core/account/lock', () => ({
   ...jest.requireActual('@/core/account/lock'),
-  biometricCapability: async () => ({ available: true, enrolled: true, label: 'Face ID' }),
   authenticate: jest.fn(),
 }));
 

@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { projectTestAccount, resetChatStore } from '@/core/messaging/testing/store';
 import { deleteAccountDatabase } from '@/storage/database';
-import { lockCard, makeStatusBot } from './bot';
+import { lockCard, makeStatusBot, thisDevice } from './bot';
 import { STATUS_LOCAL_ID } from '@/core/messaging/bots';
 
 beforeEach(async () => {
@@ -43,25 +43,35 @@ it('keeps ordinary notes quiet and pages Status history from account SQLite', as
 });
 
 describe('the lock card in the greeting', () => {
-  const actionsOf = (os: string) => {
-    const { widget } = lockCard(os);
+  const actionsOf = (device: Parameters<typeof lockCard>[0]) => {
+    const { widget } = lockCard(device);
     if (widget.kind !== 'card') throw new Error('expected a card');
     return widget.children.flatMap((child) => (child.kind === 'actions' ? child.actions : []));
   };
 
+  it('names the biometrics each platform has', () => {
+    expect(thisDevice('ios')).toEqual({ kind: 'phone', biometrics: 'Face ID or Touch ID' });
+    expect(thisDevice('android')).toEqual({
+      kind: 'phone',
+      biometrics: 'fingerprint or face unlock',
+    });
+  });
+
   it('offers a PIN and the biometric lock on a phone', () => {
-    expect(actionsOf('ios')).toEqual([
+    expect(actionsOf(thisDevice('ios'))).toEqual([
       { label: 'Set a PIN', command: '/security pin' },
       { label: 'Turn on Face ID or Touch ID', command: '/security', tone: 'neutral' },
     ]);
-    expect(actionsOf('android').map((a) => a.label)).toEqual([
-      'Set a PIN',
-      'Turn on fingerprint or face unlock',
-    ]);
   });
 
-  it('offers only a PIN on the desktop', () => {
-    expect(actionsOf('web')).toEqual([{ label: 'Set a PIN', command: '/security pin' }]);
+  it('offers Touch ID on a Mac, and only a PIN on another computer', () => {
+    expect(actionsOf({ kind: 'computer', biometrics: 'Touch ID' }).map((a) => a.label)).toEqual([
+      'Set a PIN',
+      'Turn on Touch ID',
+    ]);
+    expect(actionsOf({ kind: 'computer', biometrics: null })).toEqual([
+      { label: 'Set a PIN', command: '/security pin' },
+    ]);
   });
 
   it('is part of the Status greeting', () => {

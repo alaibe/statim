@@ -57,6 +57,7 @@ block2 = "0.6"
 objc2 = "0.6"
 objc2-contacts = "0.3"
 objc2-foundation = { version = "0.3", features = ["NSArray", "NSEnumerator", "NSError", "NSObject", "NSString"] }
+objc2-local-authentication = { version = "0.3", features = ["LAContext", "LAError", "block2"] }
 rusqlite = { version = "0.40", features = ["bundled-sqlcipher"] }
 
 [target.'cfg(not(target_os = "macos"))'.dependencies]

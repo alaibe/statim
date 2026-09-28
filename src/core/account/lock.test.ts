@@ -1,4 +1,5 @@
-import { promptOptions, promptOutcome, unlockMethod } from './lock';
+import { promptOptions, promptOutcome } from './biometric-prompt';
+import { unlockMethod } from './lock';
 
 describe('which way the lock screen unlocks', () => {
   it('asks for the PIN when only a PIN is set', () => {

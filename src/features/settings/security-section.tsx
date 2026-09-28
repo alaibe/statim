@@ -8,7 +8,7 @@ import {
   enableKeyProtection,
   isKeyProtectionEnabled,
 } from '@/core/account/key-protection';
-import { type BiometricCapability, biometricCapability } from '@/core/account/lock';
+import { type BiometricCapability, biometricCapability } from '@/core/account/biometrics';
 import { useLockStore } from '@/core/account/lock-store';
 import { openTab } from '@/features/navigation/open';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
@@ -36,6 +36,9 @@ async function readBiometrics(): Promise<Biometrics> {
     return NO_BIOMETRICS;
   }
 }
+
+/** The desktop vault cannot tie an item to Touch ID, so keys there are protected by the vault alone. */
+const SEALS_KEYS = process.env.EXPO_OS !== 'web';
 
 export function SecuritySection({
   compact,
@@ -135,7 +138,7 @@ function BiometricRows({
       }
       setProtectedKeys(false);
     }
-    return setBiometricLock(next, label);
+    return setBiometricLock(next);
   }
 
   async function applyProtection(next: boolean) {
@@ -179,7 +182,7 @@ function BiometricRows({
         }
       />
 
-      {lockOn ? (
+      {lockOn && SEALS_KEYS ? (
         <ListItem
           title="Also protect keys"
           subtitle={hint(

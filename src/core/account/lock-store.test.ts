@@ -125,8 +125,8 @@ describe('the PIN', () => {
   });
 
   it('keeps the app locked by the PIN when the biometric lock is turned off', async () => {
-    await useLockStore.getState().setBiometricLock(true, 'Face ID');
-    await useLockStore.getState().setBiometricLock(false, 'Face ID');
+    await useLockStore.getState().setBiometricLock(true);
+    await useLockStore.getState().setBiometricLock(false);
 
     expect(useLockStore.getState().setup).toEqual({ biometric: false, pin: true });
     await useLockStore.getState().evaluate();

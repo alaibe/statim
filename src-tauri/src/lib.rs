@@ -1,5 +1,6 @@
 #![recursion_limit = "256"]
 
+mod biometrics;
 pub mod cli;
 mod contacts;
 mod db;
@@ -106,6 +107,8 @@ pub fn run() {
             media::media_write,
             media::media_stat,
             media::media_erase,
+            biometrics::biometric_capability,
+            biometrics::biometric_authenticate,
             contacts::contacts_access,
             contacts::contacts_request,
             contacts::contacts_read,

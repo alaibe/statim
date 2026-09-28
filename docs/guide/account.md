@@ -63,9 +63,9 @@ Nothing is shared between them, including which protocols are connected.
 
 **Settings → Security** holds the lock:
 
-- **Require Face ID** to open the app at all.
+- **Require Face ID** to open the app at all, or Touch ID on a Mac.
 - **Set PIN** for a 6-digit PIN of its own, separate from the phone's
-  passcode. It is the lock on the Mac.
+  passcode or the Mac's password.
 - **Also protect keys**, which seals the phrase in the keychain so that nothing
   can read it, or sign with it, without Face ID first.
 

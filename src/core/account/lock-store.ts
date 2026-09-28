@@ -1,14 +1,8 @@
 import { create } from 'zustand';
 
 import { reportError } from '../app/report-error';
-import {
-  authenticate,
-  type LockSetup,
-  type PromptOutcome,
-  readLockSetup,
-  setLockEnabled,
-  unlockMethod,
-} from './lock';
+import type { PromptOutcome } from './biometric-prompt';
+import { authenticate, type LockSetup, readLockSetup, setLockEnabled, unlockMethod } from './lock';
 import { checkPin, deletePin, type PinCheck, savePin } from './pin';
 
 export type LockStatus = 'checking' | 'locked' | 'open';
@@ -25,7 +19,7 @@ export interface LockState {
   verifyPin(pin: string): Promise<PinCheck>;
   setPin(pin: string): Promise<void>;
   removePin(): Promise<void>;
-  setBiometricLock(enabled: boolean, label: string): Promise<boolean>;
+  setBiometricLock(enabled: boolean): Promise<boolean>;
 }
 
 export const useLockStore = create<LockState>((set, get) => ({
@@ -47,7 +41,7 @@ export const useLockStore = create<LockState>((set, get) => ({
 
     set({ prompting: true });
     try {
-      const outcome = await authenticate('Unlock Status Original');
+      const outcome = await authenticate('unlock');
       if (outcome === 'passed') set({ status: 'open' });
       return outcome;
     } finally {
@@ -73,8 +67,8 @@ export const useLockStore = create<LockState>((set, get) => ({
     set({ setup: await readLockSetup() });
   },
 
-  async setBiometricLock(enabled, label) {
-    const applied = await setLockEnabled(enabled, label);
+  async setBiometricLock(enabled) {
+    const applied = await setLockEnabled(enabled);
     if (applied) set({ setup: await readLockSetup() });
     return applied;
   },

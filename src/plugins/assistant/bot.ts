@@ -41,30 +41,41 @@ function greeting(): ReturnType<Bot['greeting']> {
   ];
 }
 
-const BIOMETRICS: Partial<Record<string, string>> = {
-  ios: 'Face ID or Touch ID',
-  android: 'fingerprint or face unlock',
-};
+export interface LockDevice {
+  kind: 'phone' | 'computer';
+  /** What unlocks it besides a PIN, if anything. */
+  biometrics: string | null;
+}
 
 /**
  * A greeting is built synchronously, before the device can say which
- * biometrics it has, so they are named by platform.
+ * biometrics it has, so they are named by platform. A Mac is told about
+ * Touch ID, since most have it.
  */
-export function lockCard(os = process.env.EXPO_OS): Omit<WidgetContent, 'live'> {
-  const biometrics = BIOMETRICS[os ?? ''];
+export function thisDevice(os = process.env.EXPO_OS): LockDevice {
+  if (os === 'ios') return { kind: 'phone', biometrics: 'Face ID or Touch ID' };
+  if (os === 'android') return { kind: 'phone', biometrics: 'fingerprint or face unlock' };
+  const mac = /Mac/.test(globalThis.navigator?.userAgent ?? '');
+  return { kind: 'computer', biometrics: mac ? 'Touch ID' : null };
+}
+
+export function lockCard(
+  { kind, biometrics }: LockDevice = thisDevice()
+): Omit<WidgetContent, 'live'> {
+  const who =
+    kind === 'phone'
+      ? 'Anyone holding your phone can open your chats.'
+      : 'Anyone who uses this computer can open your chats.';
   const pin = { label: 'Set a PIN', command: '/security pin' };
 
   if (!biometrics) {
     return {
       kind: 'widget',
       fallback: 'Lock the app: set a PIN in Settings, under Security.',
-      widget: W.card(
-        [
-          W.text('Anyone who uses this computer can open your chats. Lock the app with a PIN.'),
-          W.actions([pin]),
-        ],
-        { title: 'Lock the app', icon: 'lock-closed-outline' }
-      ),
+      widget: W.card([W.text(`${who} Lock the app with a PIN.`), W.actions([pin])], {
+        title: 'Lock the app',
+        icon: 'lock-closed-outline',
+      }),
     };
   }
 
@@ -73,9 +84,7 @@ export function lockCard(os = process.env.EXPO_OS): Omit<WidgetContent, 'live'> 
     fallback: `Lock the app: set a PIN, or turn on ${biometrics}, in Settings, under Security.`,
     widget: W.card(
       [
-        W.text(
-          `Anyone holding your phone can open your chats. Lock the app with ${biometrics}, or with a PIN of its own.`
-        ),
+        W.text(`${who} Lock the app with ${biometrics}, or with a PIN of its own.`),
         W.actions([pin, { label: `Turn on ${biometrics}`, command: '/security', tone: 'neutral' }]),
       ],
       { title: 'Lock the app', icon: 'lock-closed-outline' }

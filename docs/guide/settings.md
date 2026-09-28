@@ -17,21 +17,22 @@
 
 ## Security
 
-- **Require Face ID** (phones only) asks for Face ID before the app shows
-  anything when it opens. On Android the switch is named for your fingerprint
-  or face unlock.
-- **Also protect keys** seals the recovery phrase in the keychain so nothing
-  reads it or signs with it without Face ID first.
-- **Set PIN** locks the app with a 6-digit PIN of its own. On the Mac it is
-  the only lock. Once a PIN is set, the row becomes **Change PIN** and
-  **Turn off PIN**, and both ask for the current PIN.
+- **Require Face ID** asks for Face ID before the app shows anything when it
+  opens. On Android the switch is named for your fingerprint or face unlock,
+  and on a Mac with Touch ID it is **Require Touch ID**.
+- **Also protect keys** (phones only) seals the recovery phrase in the keychain
+  so nothing reads it or signs with it without Face ID first.
+- **Set PIN** locks the app with a 6-digit PIN of its own. Once a PIN is set,
+  the row becomes **Change PIN** and **Turn off PIN**, and both ask for the
+  current PIN.
 
 ### The PIN
 
 The app asks for the PIN whenever it opens. The PIN is separate from your
 phone's passcode: once it is set, the Face ID prompt stops offering the
-passcode, so someone who knows the passcode still cannot open the app. The PIN
-itself is never stored. The app keeps a one-way fingerprint of it in the
+passcode, so someone who knows the passcode still cannot open the app. On a
+Mac, the Touch ID prompt stops offering your Mac's password the same way. The
+PIN itself is never stored. The app keeps a one-way fingerprint of it in the
 keychain, which can check a PIN but cannot be turned back into one.
 
 With Face ID and a PIN both on, the app asks for Face ID, and **Use PIN** is
