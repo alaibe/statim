@@ -12,9 +12,20 @@ export interface TdUser extends TdObject {
   last_name: string;
   usernames?: { active_usernames: string[] };
   phone_number: string;
-  status?: { '@type': string; was_online?: number };
+  status?: TdUserStatus;
   type: { '@type': 'userTypeRegular' | 'userTypeBot' | 'userTypeDeleted' | 'userTypeUnknown' };
 }
+
+export type TdUserStatus =
+  | { '@type': 'userStatusOffline'; was_online: number }
+  | {
+      '@type':
+        | 'userStatusEmpty'
+        | 'userStatusOnline'
+        | 'userStatusRecently'
+        | 'userStatusLastWeek'
+        | 'userStatusLastMonth';
+    };
 
 export type TdChatType =
   | { '@type': 'chatTypePrivate'; user_id: number }
@@ -140,13 +151,105 @@ export interface TdReaction {
   recent_sender_ids: TdSender[];
 }
 
-export interface TdAuthorizationState extends TdObject {
-  code_info?: {
-    type: { '@type': string };
-    next_type?: { '@type': string } | null;
-  };
-  password_hint?: string;
-}
+export type TdCodeType =
+  | 'authenticationCodeTypeTelegramMessage'
+  | 'authenticationCodeTypeSms'
+  | 'authenticationCodeTypeSmsWord'
+  | 'authenticationCodeTypeSmsPhrase'
+  | 'authenticationCodeTypeCall'
+  | 'authenticationCodeTypeFlashCall'
+  | 'authenticationCodeTypeMissedCall'
+  | 'authenticationCodeTypeFragment'
+  | 'authenticationCodeTypeFirebaseAndroid'
+  | 'authenticationCodeTypeFirebaseIos';
+
+export type TdAuthorizationState =
+  | {
+      '@type': 'authorizationStateWaitCode';
+      code_info?: { type: { '@type': TdCodeType } };
+    }
+  | { '@type': 'authorizationStateWaitPassword'; password_hint?: string }
+  | {
+      '@type':
+        | 'authorizationStateWaitTdlibParameters'
+        | 'authorizationStateWaitPhoneNumber'
+        | 'authorizationStateWaitPremiumPurchase'
+        | 'authorizationStateWaitEmailAddress'
+        | 'authorizationStateWaitEmailCode'
+        | 'authorizationStateWaitOtherDeviceConfirmation'
+        | 'authorizationStateWaitRegistration'
+        | 'authorizationStateReady'
+        | 'authorizationStateLoggingOut'
+        | 'authorizationStateClosing'
+        | 'authorizationStateClosed';
+    };
+
+export type TdChatUpdate =
+  | { '@type': 'updateChatPosition'; chat_id: number; position: TdChatPosition }
+  | { '@type': 'updateChatTitle'; chat_id: number; title: string }
+  | { '@type': 'updateChatPhoto'; chat_id: number; photo: TdChat['photo'] }
+  | {
+      '@type': 'updateChatLastMessage';
+      chat_id: number;
+      last_message: TdMessage | null;
+      positions: TdChatPosition[];
+    }
+  | { '@type': 'updateChatReadInbox'; chat_id: number; unread_count: number }
+  | { '@type': 'updateChatUnreadMentionCount'; chat_id: number; unread_mention_count: number }
+  | {
+      '@type': 'updateChatPendingJoinRequests';
+      chat_id: number;
+      pending_join_requests: TdChat['pending_join_requests'];
+    }
+  | {
+      '@type': 'updateChatDraftMessage';
+      chat_id: number;
+      draft_message: TdChat['draft_message'];
+      positions: TdChatPosition[];
+    }
+  | { '@type': 'updateChatIsMarkedAsUnread'; chat_id: number; is_marked_as_unread: boolean }
+  | { '@type': 'updateChatPermissions'; chat_id: number; permissions: TdChat['permissions'] };
+
+export type TdUpdate =
+  | TdChatUpdate
+  | { '@type': 'updateAuthorizationState'; authorization_state: TdAuthorizationState }
+  | { '@type': 'updateUser'; user: TdUser }
+  | { '@type': 'updateUserStatus'; user_id: number; status: TdUserStatus }
+  | {
+      '@type': 'updateChatAction';
+      chat_id: number;
+      sender_id: TdSender;
+      action: { '@type': string };
+    }
+  | { '@type': 'updateBasicGroup'; basic_group: TdBasicGroup }
+  | { '@type': 'updateSupergroup'; supergroup: TdSupergroup }
+  | { '@type': 'updateNewChat'; chat: TdChat }
+  | { '@type': 'updateBasicGroupFullInfo'; basic_group_id: number }
+  | { '@type': 'updateSupergroupFullInfo'; supergroup_id: number }
+  | { '@type': 'updateNewMessage'; message: TdMessage }
+  | { '@type': 'updateMessageSendSucceeded'; message: TdMessage; old_message_id: number }
+  | {
+      '@type': 'updateMessageSendFailed';
+      old_message_id: number;
+      error?: { message?: string };
+    }
+  | {
+      '@type':
+        | 'updateMessageContent'
+        | 'updateMessageEdited'
+        | 'updateMessageInteractionInfo'
+        | 'updateMessageIsPinned';
+      chat_id: number;
+      message_id: number;
+    }
+  | {
+      '@type': 'updateDeleteMessages';
+      chat_id: number;
+      message_ids: number[];
+      is_permanent: boolean;
+      from_cache: boolean;
+    }
+  | { '@type': 'updateFile'; file: TdFile };
 
 export interface TdMessages extends TdObject {
   '@type': 'messages';

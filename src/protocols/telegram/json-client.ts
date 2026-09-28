@@ -1,4 +1,5 @@
 import { TdRequestError, type TdApi, type TdError, type TdObject } from './api';
+import type { TdUpdate } from './types';
 
 /** The calls a platform makes into `td_json_client`; everything above them is shared. */
 export interface TdDriver {
@@ -135,9 +136,10 @@ export class TdJsonClient implements TdApi {
   }
 }
 
-function isClosedState(update: TdObject): boolean {
+function isClosedState(raw: TdObject): boolean {
+  const update = raw as TdUpdate;
   return (
     update['@type'] === 'updateAuthorizationState' &&
-    (update.authorization_state as TdObject | undefined)?.['@type'] === 'authorizationStateClosed'
+    update.authorization_state['@type'] === 'authorizationStateClosed'
   );
 }

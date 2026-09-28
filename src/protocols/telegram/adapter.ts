@@ -28,7 +28,7 @@ import { TelegramGroups } from './groups';
 import type { TelegramHost } from './service-host';
 import { TelegramJoining } from './joining';
 import { TelegramMessages } from './messages';
-import { CHAT_PATCHES, TypingTracker } from './updates';
+import { patchChat, TypingTracker } from './updates';
 import { Outbox } from './outbox';
 import { type MappingContext, toMessage } from './mapping';
 import { addressOf, nameOf } from './users';
@@ -36,14 +36,12 @@ import { UnsupportedError } from '@/core/errors';
 import { localFileUri } from '@/storage/media';
 import type {
   TdAuthorizationState,
-  TdBasicGroup,
   TdChat,
   TdChats,
   TdFile,
   TdMessage,
   TdMessages,
-  TdSender,
-  TdSupergroup,
+  TdUpdate,
   TdUser,
 } from './types';
 
@@ -285,98 +283,99 @@ export class TelegramSession implements ChatSession {
 
   // ---- updates ----
 
-  private async handleUpdate(update: TdObject): Promise<void> {
-    const patch = CHAT_PATCHES[update['@type']];
-    if (patch) {
-      const chat = this.td.chats.get(update.chat_id as number);
-      if (!chat) return;
-      patch(chat, update);
-      return this.announce(chat);
-    }
+  private async handleUpdate(raw: TdObject): Promise<void> {
+    const update = raw as TdUpdate;
     switch (update['@type']) {
+      case 'updateChatPosition':
+      case 'updateChatTitle':
+      case 'updateChatPhoto':
+      case 'updateChatLastMessage':
+      case 'updateChatReadInbox':
+      case 'updateChatUnreadMentionCount':
+      case 'updateChatPendingJoinRequests':
+      case 'updateChatDraftMessage':
+      case 'updateChatIsMarkedAsUnread':
+      case 'updateChatPermissions': {
+        const chat = this.td.chats.get(update.chat_id);
+        if (!chat) return;
+        patchChat(chat, update);
+        return this.announce(chat);
+      }
       case 'updateAuthorizationState':
-        return this.onAuthorizationState(update.authorization_state as TdAuthorizationState);
+        return this.onAuthorizationState(update.authorization_state);
       case 'updateUser': {
-        const user = update.user as TdUser;
+        const { user } = update;
         this.td.users.set(user.id, user);
         return this.announceUserChats(user.id);
       }
       case 'updateUserStatus': {
-        const id = update.user_id as number;
-        const user = this.td.users.get(id);
+        const user = this.td.users.get(update.user_id);
         if (!user) return;
-        user.status = update.status as TdUser['status'];
-        return this.announceUserChats(id);
+        user.status = update.status;
+        return this.announceUserChats(update.user_id);
       }
       case 'updateChatAction': {
-        const sender = update.sender_id as TdSender;
+        const sender = update.sender_id;
         if (sender['@type'] === 'messageSenderUser' && sender.user_id === this.me?.id) return;
-        const chatId = update.chat_id as number;
-        this.typing.set(chatId, (update.action as TdObject)['@type'] === 'chatActionTyping');
-        const chat = this.td.chats.get(chatId);
+        this.typing.set(update.chat_id, update.action['@type'] === 'chatActionTyping');
+        const chat = this.td.chats.get(update.chat_id);
         if (chat) this.announce(chat);
         return;
       }
       case 'updateBasicGroup': {
-        const group = update.basic_group as TdBasicGroup;
+        const group = update.basic_group;
         this.td.basicGroups.set(group.id, group);
         const chat = this.td.chats.get(-group.id);
         if (chat) return this.announce(chat);
         return;
       }
       case 'updateSupergroup': {
-        const group = update.supergroup as TdSupergroup;
+        const group = update.supergroup;
         this.td.supergroups.set(group.id, group);
         const chat = this.td.chats.get(supergroupChatId(group.id));
         if (chat) return this.announce(chat);
         return;
       }
       case 'updateNewChat': {
-        const chat = update.chat as TdChat;
+        const { chat } = update;
         this.td.chats.set(chat.id, chat);
         return this.announce(chat);
       }
       case 'updateBasicGroupFullInfo':
-        this.td.members.delete(-(update.basic_group_id as number));
+        this.td.members.delete(-update.basic_group_id);
         return;
       case 'updateSupergroupFullInfo':
-        this.td.members.delete(supergroupChatId(update.supergroup_id as number));
+        this.td.members.delete(supergroupChatId(update.supergroup_id));
         return;
       case 'updateNewMessage': {
-        const message = update.message as TdMessage;
+        const { message } = update;
         // Our own sends surface through updateMessageSendSucceeded instead.
         if (message.sending_state) return;
         return this.emitMessage(message);
       }
-      case 'updateMessageSendSucceeded': {
-        const message = update.message as TdMessage;
-        const oldId = update.old_message_id as number;
-        this.outbox.resolve(oldId, message);
-        return this.emitMessage(message);
-      }
-      case 'updateMessageSendFailed': {
-        const oldId = update.old_message_id as number;
-        const error = update.error as { message?: string } | undefined;
+      case 'updateMessageSendSucceeded':
+        this.outbox.resolve(update.old_message_id, update.message);
+        return this.emitMessage(update.message);
+      case 'updateMessageSendFailed':
         this.outbox.reject(
-          oldId,
-          new Error(error?.message ?? 'Telegram did not accept the message')
+          update.old_message_id,
+          new Error(update.error?.message ?? 'Telegram did not accept the message')
         );
         return;
-      }
       case 'updateMessageContent':
       case 'updateMessageEdited':
       case 'updateMessageInteractionInfo':
       case 'updateMessageIsPinned':
-        return this.refetch(update.chat_id as number, update.message_id as number);
+        return this.refetch(update.chat_id, update.message_id);
       case 'updateDeleteMessages': {
         if (!update.is_permanent || update.from_cache) return;
-        const chatId = update.chat_id as number;
-        const ids = (update.message_ids as number[]).map((id) => messageIdOf(chatId, id));
+        const chatId = update.chat_id;
+        const ids = update.message_ids.map((id) => messageIdOf(chatId, id));
         for (const listener of this.deletedListeners) listener(chatIdOf(chatId), ids);
         return;
       }
       case 'updateFile': {
-        const file = update.file as TdFile;
+        const { file } = update;
         if (!file.local.is_downloading_completed) return;
         const awaited = this.awaitedFiles.get(file.id);
         if (!awaited) return;

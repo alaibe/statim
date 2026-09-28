@@ -1,5 +1,5 @@
 import { TdRequestError, type TdApi, type TdObject } from '../api';
-import type { TdChat, TdChatPosition, TdMessage, TdUser } from '../types';
+import type { TdAuthorizationState, TdChat, TdChatPosition, TdMessage, TdUser } from '../types';
 
 type Handler = (request: TdObject) => TdObject;
 
@@ -56,7 +56,10 @@ export function tdError(code: number, message: string): TdObject {
   return { '@type': 'error', code, message };
 }
 
-export function authState(type: string, extra: Record<string, unknown> = {}): TdObject {
+export function authState(
+  type: TdAuthorizationState['@type'],
+  extra: Record<string, unknown> = {}
+): TdObject {
   return { '@type': 'updateAuthorizationState', authorization_state: { '@type': type, ...extra } };
 }
 

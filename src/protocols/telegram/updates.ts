@@ -1,41 +1,42 @@
-import type { TdObject } from './api';
 import { withPosition } from './chats';
-import type { TdChat, TdChatPosition, TdMessage } from './types';
+import type { TdChat, TdChatUpdate } from './types';
 
-export const CHAT_PATCHES: Record<string, (chat: TdChat, update: TdObject) => void> = {
-  updateChatPosition: (chat, update) => {
-    chat.positions = withPosition(chat.positions, update.position as TdChatPosition);
-  },
-  updateChatTitle: (chat, update) => {
-    chat.title = update.title as string;
-  },
-  updateChatPhoto: (chat, update) => {
-    chat.photo = update.photo as TdChat['photo'];
-  },
-  updateChatLastMessage: (chat, update) => {
-    chat.last_message = (update.last_message as TdMessage | null) ?? undefined;
-    chat.positions = update.positions as TdChatPosition[];
-  },
-  updateChatReadInbox: (chat, update) => {
-    chat.unread_count = update.unread_count as number;
-  },
-  updateChatUnreadMentionCount: (chat, update) => {
-    chat.unread_mention_count = update.unread_mention_count as number;
-  },
-  updateChatPendingJoinRequests: (chat, update) => {
-    chat.pending_join_requests = update.pending_join_requests as TdChat['pending_join_requests'];
-  },
-  updateChatDraftMessage: (chat, update) => {
-    chat.draft_message = update.draft_message as TdChat['draft_message'];
-    chat.positions = update.positions as TdChatPosition[];
-  },
-  updateChatIsMarkedAsUnread: (chat, update) => {
-    chat.is_marked_as_unread = update.is_marked_as_unread as boolean;
-  },
-  updateChatPermissions: (chat, update) => {
-    chat.permissions = update.permissions as TdChat['permissions'];
-  },
-};
+export function patchChat(chat: TdChat, update: TdChatUpdate): void {
+  switch (update['@type']) {
+    case 'updateChatPosition':
+      chat.positions = withPosition(chat.positions, update.position);
+      return;
+    case 'updateChatTitle':
+      chat.title = update.title;
+      return;
+    case 'updateChatPhoto':
+      chat.photo = update.photo;
+      return;
+    case 'updateChatLastMessage':
+      chat.last_message = update.last_message ?? undefined;
+      chat.positions = update.positions;
+      return;
+    case 'updateChatReadInbox':
+      chat.unread_count = update.unread_count;
+      return;
+    case 'updateChatUnreadMentionCount':
+      chat.unread_mention_count = update.unread_mention_count;
+      return;
+    case 'updateChatPendingJoinRequests':
+      chat.pending_join_requests = update.pending_join_requests;
+      return;
+    case 'updateChatDraftMessage':
+      chat.draft_message = update.draft_message;
+      chat.positions = update.positions;
+      return;
+    case 'updateChatIsMarkedAsUnread':
+      chat.is_marked_as_unread = update.is_marked_as_unread;
+      return;
+    case 'updateChatPermissions':
+      chat.permissions = update.permissions;
+      return;
+  }
+}
 
 const TYPING_TIMEOUT_MS = 6_000;
 
