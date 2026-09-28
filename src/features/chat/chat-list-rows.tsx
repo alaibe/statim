@@ -5,6 +5,7 @@ import type { ChatPrefs } from '@/core/messaging/chat-prefs';
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { Folder, ChatListRow } from '@/core/messaging/folders';
 import { formatTimestamp, messagePreview } from '@/core/messaging/preview';
+import type { NetworkId } from '@/core/messaging/networks';
 import type { Chat, ChatId } from '@/core/messaging/types';
 import { unreadBadge } from '@/core/messaging/unread';
 import {
@@ -38,7 +39,7 @@ export function ChatRow({
   title: string;
   selfId: string;
   unread: boolean;
-  network?: string;
+  network?: NetworkId;
   prefs: Readonly<ChatPrefs>;
   selected?: boolean;
   onMenu: (chat: Chat, anchor: MenuAnchor | null) => void;
@@ -98,14 +99,7 @@ export function ChatRow({
         onContextMenu={(anchor) => onMenu(chat, anchor)}
         selected={selected}
         unread={unread && !muted}
-        leading={
-          <ChatAvatar
-            chat={chat}
-            selfId={selfId}
-            size="md"
-            network={network ? networkLabel(network) : undefined}
-          />
-        }
+        leading={<ChatAvatar chat={chat} selfId={selfId} size="md" network={network} />}
         meta={
           last ? (
             <View className="flex-row items-center gap-1">
@@ -131,12 +125,12 @@ export function ChatRow({
 const chatCount = (n: number) => `${n} ${n === 1 ? 'chat' : 'chats'}`;
 
 function folderLabel(folder: Folder): string {
-  return folder === 'archive' ? 'Archive' : networkLabel(folder.slice('network:'.length));
+  return folder === 'archive' ? 'Archive' : networkLabel(folder);
 }
 
 function FolderIcon({ folder, size }: { folder: Folder; size: number }) {
   if (folder !== 'archive') {
-    return <NetworkMark network={folderLabel(folder)} size={size} />;
+    return <NetworkMark network={folder} label={folderLabel(folder)} size={size} />;
   }
   return (
     <View

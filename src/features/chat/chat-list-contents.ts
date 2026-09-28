@@ -11,11 +11,12 @@ import {
   splitRequests,
 } from '@/core/messaging/folders';
 import { messagePreview } from '@/core/messaging/preview';
+import type { NetworkId } from '@/core/messaging/networks';
 import type { Chat, ChatId } from '@/core/messaging/types';
 import { hasUnreadMentions } from '@/core/messaging/unread';
 import { protocolById } from '@/protocols';
 
-export const isFolded = (network: string) => protocolById(network)?.external ?? true;
+export const isFolded = (network: NetworkId) => protocolById(network)?.external ?? true;
 
 export function chatListContents({
   chats,
@@ -51,7 +52,7 @@ export function chatListContents({
       messagePreview(c.lastMessage).toLowerCase().includes(q)) &&
     (matchesFilter(c, filter, context) || (filter === 'unread' && held.has(c.id)));
   const nativeNetworks = new Set(
-    scope.map(networkOf).filter((n): n is string => n !== undefined && !isFolded(n))
+    scope.map(networkOf).filter((n): n is NetworkId => n !== undefined && !isFolded(n))
   );
 
   return {

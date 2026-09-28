@@ -1,6 +1,7 @@
 import type { Widget } from '@/design/widgets';
 
 import type { ProtocolId } from './namespace';
+import type { BridgedNetwork } from './networks';
 
 declare const chatIdBrand: unique symbol;
 export type ChatId = string & { readonly [chatIdBrand]: true };
@@ -151,8 +152,8 @@ interface ChatFields<Id extends AnyChatId> {
   readonly online?: boolean;
   readonly lastSeenAt?: number;
   readonly consent: Consent;
-  /** Where the chat really lives when a bridge carries it: "Slack", "Discord". */
-  readonly network?: string;
+  /** Where the chat really lives when a bridge carries it. */
+  readonly network?: BridgedNetwork;
   readonly selfRole?: GroupRole;
   /** Unset where the protocol does not say; pinning is then offered and deleting others' messages is not. */
   readonly canPin?: boolean;

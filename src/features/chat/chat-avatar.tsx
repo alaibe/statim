@@ -2,7 +2,9 @@ import { View } from 'react-native';
 
 import { Avatar, type AvatarProps, NetworkMark } from '@/design';
 import { isLocalChat } from '@/core/messaging/bots';
+import type { NetworkId } from '@/core/messaging/networks';
 import type { Chat, ParticipantId } from '@/core/messaging/types';
+import { networkLabel } from '@/features/protocols/presentation';
 import { useBotAvatar } from './use-bot-avatar';
 
 export function ChatAvatar({
@@ -14,7 +16,7 @@ export function ChatAvatar({
   chat: Chat;
   selfId: ParticipantId;
   size?: AvatarProps['size'];
-  network?: string;
+  network?: NetworkId;
 }) {
   const isBot = isLocalChat(chat.id);
   const bot = useBotAvatar(chat.id);
@@ -35,7 +37,7 @@ export function ChatAvatar({
     <View>
       {avatar}
       <View className="absolute -bottom-0.5 -right-0.5 rounded-pill border-2 border-surface">
-        <NetworkMark network={network} />
+        <NetworkMark network={network} label={networkLabel(network)} />
       </View>
     </View>
   );

@@ -163,14 +163,22 @@ describe('network and protocol', () => {
       id: 'bridged',
       title: 'Slack chat',
       kind: 'group',
-      network: 'Slack',
+      network: 'slack',
     });
     await useChatStore.getState().refreshChats();
 
     expect(await ids(['chats', '--network', 'slack'])).toEqual([ns('bridged')]);
+    expect(await ids(['chats', '--network', 'Slack'])).toEqual([ns('bridged')]);
     const xmtp = await ids(['chats', '--network', 'XMTP']);
     expect(xmtp).toEqual(expect.arrayContaining([ns('alice'), ns('team')]));
     expect(xmtp).not.toContain(ns('bridged'));
+  });
+
+  it('names the known networks when --network matches none', async () => {
+    const { code, err } = await run(['chats', '--network', 'icq']);
+
+    expect(code).not.toBe(0);
+    expect(err).toContain('No network "icq". Known:');
   });
 
   it('takes a protocol id with --protocol', async () => {

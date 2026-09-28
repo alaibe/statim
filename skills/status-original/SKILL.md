@@ -230,7 +230,7 @@ List chats, newest first.
 - `--groups`: Only groups and channels
 - `--archived`: Only archived chats
 - `--requests`: Only requests
-- `--network <name>`: Only chats on this network, such as telegram or Slack
+- `--network <name>`: Only chats on this network, such as telegram or slack
 - `--limit <n>`: How many to show
 
 #### chat

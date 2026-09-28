@@ -180,7 +180,7 @@ export const COMMANDS = [
       {
         name: 'network',
         value: 'name',
-        description: 'Only chats on this network, such as telegram or Slack',
+        description: 'Only chats on this network, such as telegram or slack',
       },
       limit,
     ],

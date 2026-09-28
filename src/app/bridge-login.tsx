@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 
 import { Button, Card, ModalHeader, Note, Screen, Text } from '@/design';
 import { useChatStore } from '@/core/messaging/chat-store';
+import { BRIDGED_NETWORKS } from '@/core/messaging/networks';
 import type { ChatSession } from '@/core/messaging/protocol';
 import { connectByChat } from '@/features/bridge-login/connect-by-chat';
 import { FlowPicker, InputStep, WaitStep } from '@/features/bridge-login/steps';
@@ -44,10 +45,11 @@ function BridgeLogin({ bridge, goBack }: { bridge: KnownBridge; goBack: () => vo
 
   const login = useBridgeLogin(provisioning);
   const { phase, step } = login;
+  const label = BRIDGED_NETWORKS[bridge.network];
 
   return (
     <Screen className="px-gutter" edges={['top', 'bottom']}>
-      <ModalHeader title={`Connect ${bridge.network}`} onClose={goBack} />
+      <ModalHeader title={`Connect ${label}`} onClose={goBack} />
 
       <KeyboardAvoidingView
         behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
@@ -58,8 +60,8 @@ function BridgeLogin({ bridge, goBack }: { bridge: KnownBridge; goBack: () => vo
           {phase === 'unavailable' ? (
             <Card className="gap-3">
               <Text variant="footnote">
-                This homeserver does not let the app sign in to {bridge.network} directly. You can
-                still connect by chatting with the bridge’s bot.
+                This homeserver does not let the app sign in to {label} directly. You can still
+                connect by chatting with the bridge’s bot.
               </Text>
               <Button
                 label="Connect in a chat"
@@ -76,7 +78,7 @@ function BridgeLogin({ bridge, goBack }: { bridge: KnownBridge; goBack: () => vo
           {phase === 'flows' ? (
             <FlowPicker
               whoami={login.whoami}
-              network={bridge.network}
+              network={label}
               preferred={bridge.preferredFlow}
               onPick={login.start}
             />
@@ -100,7 +102,7 @@ function BridgeLogin({ bridge, goBack }: { bridge: KnownBridge; goBack: () => vo
                 <WebLogin
                   key={`${step.login_id}/${step.step_id}`}
                   params={step.cookies}
-                  network={bridge.network}
+                  network={label}
                   onValues={login.submit}
                   onCancel={login.restart}
                 />
@@ -121,7 +123,7 @@ function BridgeLogin({ bridge, goBack }: { bridge: KnownBridge; goBack: () => vo
 
           {phase === 'done' ? (
             <Card className="gap-3">
-              <Text className="font-semibold">{bridge.network} is connected</Text>
+              <Text className="font-semibold">{label} is connected</Text>
               <Text variant="footnote">
                 Your chats appear in the chat list as the bridge catches up. Older history can take
                 a few minutes.

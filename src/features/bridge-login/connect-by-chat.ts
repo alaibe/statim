@@ -1,6 +1,7 @@
 import { toast } from '@/design';
 import { errorMessage } from '@/core/errors';
 import { useChatStore } from '@/core/messaging/chat-store';
+import { BRIDGED_NETWORKS } from '@/core/messaging/networks';
 import type { Chat, ChatId } from '@/core/messaging/types';
 import { openChat } from '@/features/navigation/open';
 import type { KnownBridge } from '@/protocols/matrix/bridges';
@@ -28,11 +29,11 @@ export async function connectByChat(bridge: KnownBridge, botId: string): Promise
       await sendMessage(chat.id, { kind: 'text', text: bridge.firstCommand });
     } else {
       toast.error(
-        `The ${bridge.network} bridge did not answer. Send it “${bridge.firstCommand}” once it joins.`
+        `The ${BRIDGED_NETWORKS[bridge.network]} bridge did not answer. Send it “${bridge.firstCommand}” once it joins.`
       );
     }
   } catch (e) {
-    toast.error(errorMessage(e, `Could not reach the ${bridge.network} bridge`));
+    toast.error(errorMessage(e, `Could not reach the ${BRIDGED_NETWORKS[bridge.network]} bridge`));
   }
 }
 

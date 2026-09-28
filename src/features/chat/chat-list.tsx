@@ -132,7 +132,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
     const home: Folder | null = prefs.archived
       ? 'archive'
       : network && isFolded(network) && !prefs.pinned
-        ? `network:${network}`
+        ? network
         : null;
     if (home !== folder) setFolder(home);
   });

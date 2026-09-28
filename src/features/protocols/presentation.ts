@@ -1,4 +1,5 @@
 import { LOCAL_PROTOCOL, type ProtocolId } from '@/core/messaging/namespace';
+import { BRIDGED_NETWORKS, isBridgedNetwork, type NetworkId } from '@/core/messaging/networks';
 import type { ChatProtocolMeta } from '@/core/messaging/protocol';
 import { protocolById } from '@/protocols';
 
@@ -44,6 +45,7 @@ const GROUP_MODEL: Record<ChatProtocolMeta['properties']['groupModel'], string> 
   topic: 'anyone with the topic can join',
 };
 
-export function networkLabel(network: string): string {
+export function networkLabel(network: NetworkId): string {
+  if (isBridgedNetwork(network)) return BRIDGED_NETWORKS[network];
   return protocolById(network)?.label ?? network;
 }

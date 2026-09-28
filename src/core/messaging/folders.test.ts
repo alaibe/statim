@@ -79,12 +79,12 @@ describe('matchesFilter', () => {
 
 describe('inFolder', () => {
   it('holds a network’s chats, bridged or native, and the archive holds only archived ones', () => {
-    const slack = chat({ id: 's', protocol: 'matrix', network: 'Slack' });
-    expect(inFolder(slack, 'network:Slack', empty)).toBe(true);
-    expect(inFolder(slack, 'network:matrix', empty)).toBe(false);
+    const slack = chat({ id: 's', protocol: 'matrix', network: 'slack' });
+    expect(inFolder(slack, 'slack', empty)).toBe(true);
+    expect(inFolder(slack, 'matrix', empty)).toBe(false);
 
     const archived = { prefs: { 'matrix-s': { archived: true } }, readAt: {} };
-    expect(inFolder(slack, 'network:Slack', archived)).toBe(false);
+    expect(inFolder(slack, 'slack', archived)).toBe(false);
     expect(inFolder(slack, 'archive', archived)).toBe(true);
   });
 });
@@ -95,16 +95,16 @@ describe('chatListRows', () => {
 
   it('folds other networks into one row where their latest chat sits', () => {
     const ordered = [
-      chat({ id: 's1', protocol: 'matrix', network: 'Slack' }),
+      chat({ id: 's1', protocol: 'matrix', network: 'slack' }),
       chat({ id: 'n1', protocol: 'nostr' }),
       chat({ id: 't1', protocol: 'telegram' }),
-      chat({ id: 's2', protocol: 'matrix', network: 'Slack' }),
+      chat({ id: 's2', protocol: 'matrix', network: 'slack' }),
       chat({ id: 'bot', protocol: 'local' }),
     ];
     expect(shape(chatListRows(ordered, all, folded, empty))).toEqual([
-      'network:Slack[s1,s2]',
+      'slack[s1,s2]',
       'n1',
-      'network:telegram[t1]',
+      'telegram[t1]',
       'bot',
     ]);
   });
@@ -112,7 +112,7 @@ describe('chatListRows', () => {
   it('puts Archive first and keeps archived chats out of the rest', () => {
     const ordered = [
       chat({ id: 'n1', protocol: 'nostr' }),
-      chat({ id: 's1', protocol: 'matrix', network: 'Slack' }),
+      chat({ id: 's1', protocol: 'matrix', network: 'slack' }),
     ];
     const context = { prefs: { 'matrix-s1': { archived: true } }, readAt: {} };
     expect(shape(chatListRows(ordered, all, folded, context))).toEqual(['archive[s1]', 'n1']);
@@ -120,19 +120,19 @@ describe('chatListRows', () => {
 
   it('leaves a pinned chat out of its folder', () => {
     const ordered = [
-      chat({ id: 's1', protocol: 'matrix', network: 'Slack' }),
-      chat({ id: 's2', protocol: 'matrix', network: 'Slack' }),
+      chat({ id: 's1', protocol: 'matrix', network: 'slack' }),
+      chat({ id: 's2', protocol: 'matrix', network: 'slack' }),
     ];
     const context = { prefs: { 'matrix-s1': { pinned: true } }, readAt: {} };
-    expect(shape(chatListRows(ordered, all, folded, context))).toEqual(['s1', 'network:Slack[s2]']);
+    expect(shape(chatListRows(ordered, all, folded, context))).toEqual(['s1', 'slack[s2]']);
   });
 
   it('shows a folder only when something in it passes the filter', () => {
     const ordered = [
-      chat({ id: 's1', protocol: 'matrix', network: 'Slack', kind: 'group' }),
+      chat({ id: 's1', protocol: 'matrix', network: 'slack', kind: 'group' }),
       chat({ id: 't1', protocol: 'telegram' }),
     ];
     const dms = (c: Chat) => matchesFilter(c, 'dms', empty);
-    expect(shape(chatListRows(ordered, dms, folded, empty))).toEqual(['network:telegram[t1]']);
+    expect(shape(chatListRows(ordered, dms, folded, empty))).toEqual(['telegram[t1]']);
   });
 });

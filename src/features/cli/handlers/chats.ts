@@ -4,6 +4,8 @@ import { draftKey } from '@/core/messaging/drafts';
 import { matchesFilter, networkOf, splitRequests, type ChatFilter } from '@/core/messaging/folders';
 import { chatPermissions } from '@/core/messaging/permissions';
 import { messagePreview } from '@/core/messaging/preview';
+import { LOCAL_PROTOCOL } from '@/core/messaging/namespace';
+import { NETWORK_IDS, type NetworkId } from '@/core/messaging/networks';
 import type { Chat } from '@/core/messaging/types';
 import { MARKED_UNREAD, unreadBadge } from '@/core/messaging/unread';
 
@@ -21,12 +23,16 @@ import {
   type ChatLabel,
   type CliHandler,
 } from '../context';
+import { networkLabel } from '@/features/protocols/presentation';
+
 import { CliError } from '../errors';
 import type { ParsedArgs } from '../args';
 
 function draftOf(chat: Chat): string | undefined {
   return useChatStore.getState().drafts[draftKey(chat.id)] ?? chat.draft;
 }
+
+const networkIn = (chat: Chat): NetworkId => networkOf(chat) ?? LOCAL_PROTOCOL;
 
 function chatJson(c: Chat, label: ChatLabel = { title: c.title }) {
   const state = useChatStore.getState();
@@ -38,7 +44,7 @@ function chatJson(c: Chat, label: ChatLabel = { title: c.title }) {
     title: label.title,
     ...(label.participant ? { participant: label.participant, address: label.address } : {}),
     kind: c.kind,
-    network: networkOf(c) ?? 'local',
+    network: networkIn(c),
     unread: unreadBadge(c, readAt[c.id] ?? 0),
     markedUnread: readAt[c.id] === MARKED_UNREAD || Boolean(c.markedUnread),
     mentions: c.mentionCount ?? 0,
@@ -107,6 +113,17 @@ async function readChat({ args, flags }: ParsedArgs) {
 
 const FILTERS: ChatFilter[] = ['unread', 'mentions'];
 
+function requireNetwork(named: string): NetworkId {
+  const wanted = named.toLowerCase();
+  const network = NETWORK_IDS.find(
+    (id) => id === wanted || networkLabel(id).toLowerCase() === wanted
+  );
+  if (!network) {
+    throw new CliError(`No network "${named}". Known: ${NETWORK_IDS.join(', ')}.`, 'notFound');
+  }
+  return network;
+}
+
 export const chatHandlers = {
   async chats({ flags }) {
     await whenAccountReady();
@@ -114,15 +131,12 @@ export const chatHandlers = {
     const context = { prefs: chatPrefs, readAt };
     const limit = flags.limit === undefined ? Infinity : Number(flags.limit);
     const { accepted, requests } = splitRequests(chats);
+    const network = typeof flags.network === 'string' ? requireNetwork(flags.network) : undefined;
     const picked = (flags.requests ? requests : accepted).filter((c) => {
       if (Boolean(flags.archived) !== Boolean(prefsFor(chatPrefs, c.id).archived)) return false;
       if (flags.dms && !matchesFilter(c, 'dms', context)) return false;
       if (flags.groups && !matchesFilter(c, 'groups', context)) return false;
-      if (
-        typeof flags.network === 'string' &&
-        networkOf(c)?.toLowerCase() !== flags.network.toLowerCase()
-      )
-        return false;
+      if (network && networkIn(c) !== network) return false;
       return FILTERS.every((f) => !flags[f] || matchesFilter(c, f, context));
     });
     const ordered = orderChats(picked, chatPrefs, { includeArchived: true }).slice(0, limit);

@@ -1,10 +1,11 @@
 import { isLocalChat } from './bots';
 import { type ChatPrefsMap, prefsFor } from './chat-prefs';
 import { LOCAL_PROTOCOL } from './namespace';
+import type { NetworkId } from './networks';
 import { hasUnreadMentions, isUnread } from './unread';
 import type { Chat, ChatId } from './types';
 
-export type Folder = 'archive' | `network:${string}`;
+export type Folder = 'archive' | NetworkId;
 
 export type ChatFilter = 'all' | 'unread' | 'mentions' | 'dms' | 'groups';
 
@@ -29,7 +30,7 @@ export function splitRequests(chats: readonly Chat[]): {
   return split;
 }
 
-export function networkOf(chat: Chat): string | undefined {
+export function networkOf(chat: Chat): NetworkId | undefined {
   if (chat.protocol === LOCAL_PROTOCOL) return undefined;
   return chat.network ?? chat.protocol;
 }
@@ -67,18 +68,18 @@ export function matchesFilter(chat: Chat, filter: ChatFilter, context: FilterCon
 export function inFolder(chat: Chat, folder: Folder, context: FilterContext): boolean {
   const archived = Boolean(prefsFor(context.prefs, chat.id).archived);
   if (folder === 'archive') return archived;
-  return !archived && networkOf(chat) === folder.slice('network:'.length);
+  return !archived && networkOf(chat) === folder;
 }
 
 /** A pinned chat stays out of its folder, since pinning asks to see it. */
 export function chatListRows(
   ordered: Chat[],
   include: (chat: Chat) => boolean,
-  folded: (network: string) => boolean,
+  folded: (network: NetworkId) => boolean,
   context: FilterContext
 ): ChatListRow[] {
   const rows: ChatListRow[] = [];
-  const folders = new Map<string, Extract<ChatListRow, { kind: 'folder' }>>();
+  const folders = new Map<NetworkId, Extract<ChatListRow, { kind: 'folder' }>>();
 
   const archived = ordered.filter((c) => prefsFor(context.prefs, c.id).archived && include(c));
   if (archived.length > 0) {
@@ -100,7 +101,7 @@ export function chatListRows(
     }
     const row: Extract<ChatListRow, { kind: 'folder' }> = {
       kind: 'folder',
-      folder: `network:${network}`,
+      folder: network,
       latest: chat,
       chats: [chat],
     };

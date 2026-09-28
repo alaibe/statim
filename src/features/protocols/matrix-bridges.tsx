@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 
 import { Button, Card, ListItem, Text } from '@/design';
 import { useChatStore } from '@/core/messaging/chat-store';
+import { BRIDGED_NETWORKS } from '@/core/messaging/networks';
 import type { ChatSession } from '@/core/messaging/protocol';
 import { guideUrl } from '@/lib/guide';
 import { openExternal } from '@/lib/open-url';
@@ -97,7 +98,7 @@ export function MatrixBridges({ session }: { session: ChatSession & Partial<Matr
               <ListItem
                 key={item.botId}
                 testID={`matrix-bridge-${item.bridge.localpart}`}
-                title={item.bridge.network}
+                title={BRIDGED_NETWORKS[item.bridge.network]}
                 subtitle={connected ? `Signed in as ${item.accounts!.join(', ')}` : item.botId}
                 trailing={
                   <Button

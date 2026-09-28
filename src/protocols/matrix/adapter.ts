@@ -31,6 +31,7 @@ import type {
   MxStartParams,
   MxUpdate,
 } from './api';
+import type { BridgedNetwork } from '@/core/messaging/networks';
 import { bridgedNetwork } from './bridges';
 import { toContent } from './content';
 import { outgoing, textOutgoing } from './outgoing';
@@ -82,7 +83,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   private readonly pendingMembers = new Map<string, Promise<MxMember[]>>();
   private readonly names = new Map<string, string>();
   /** Once a room shows its bridge it keeps it, even after the bridged users fall out of the summary. */
-  private readonly networks = new Map<string, string>();
+  private readonly networks = new Map<string, BridgedNetwork>();
   private readonly mediaPaths = new Map<string, string>();
   private readonly awaitedMedia = new Map<string, MxEvent>();
   private readonly unfetched = new Map<MessageId, { raw: MxEvent; media: MxMedia }>();
