@@ -2,6 +2,8 @@ import type { MessageContent } from '@/core/messaging/types';
 import type { IconName } from '@/design';
 import { W } from '@/design/widgets';
 
+import type { ChainId } from './strategy';
+
 export function balanceChangeCard({
   fallback,
   title,
@@ -23,7 +25,7 @@ export function balanceChangeCard({
   tone: 'success' | 'warning';
   address: string;
   /** The `--chain` value the card's buttons pass back. */
-  chain: string;
+  chain: ChainId;
   short: (address: string) => string;
 }): MessageContent {
   return {

@@ -27,10 +27,10 @@ import { estimateTransfer, sendNative, walletClientFor } from '@/lib/evm/wallet'
 
 import { checkRpcUrl, saveRpcOverride } from './rpc';
 import { readCustomTokens } from './token-storage';
-import type { ChainStrategy } from './strategy';
+import type { ChainStrategy, EvmChainId } from './strategy';
 
 export interface ChainSpec {
-  id: string;
+  id: EvmChainId;
   name: string;
   chain: Chain;
   icon: IconName;

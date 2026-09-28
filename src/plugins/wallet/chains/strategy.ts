@@ -6,6 +6,18 @@ import type { CommandResult, PluginContext } from '@/core/plugins/types';
 import type { IconName } from '@/design';
 import type { Widget, WidgetRow } from '@/design/widgets';
 
+export type EvmChainId =
+  | 'ethereum'
+  | 'base'
+  | 'optimism'
+  | 'arbitrum'
+  | 'polygon'
+  | 'sepolia'
+  | 'optimism-sepolia'
+  | 'base-sepolia'
+  | 'arbitrum-sepolia';
+export type ChainId = EvmChainId | 'bitcoin' | 'solana';
+
 export type Say = BotContext['say'];
 
 export type RpcCheck = { ok: true } | { ok: false; reason: string };
@@ -38,7 +50,7 @@ export interface ChainFees {
 }
 
 export interface ChainStrategy {
-  id: string;
+  id: ChainId;
   name: string;
   icon: IconName;
   evm?: Chain;
@@ -80,7 +92,7 @@ export interface ChainStrategy {
   };
 }
 
-const registered = new Map<string, ChainStrategy>();
+const registered = new Map<ChainId, ChainStrategy>();
 
 export function registerChainStrategy(strategy: ChainStrategy): () => void {
   registered.set(strategy.id, strategy);
@@ -107,7 +119,7 @@ export function holdingsOf(chain: ChainStrategy, context: PluginContext): Promis
 }
 
 /** A token the chain cannot send carries no action rather than one that would fail. */
-export function holdingRows(chainId: string, holdings: Holding[], indent = false): WidgetRow[] {
+export function holdingRows(chainId: ChainId, holdings: Holding[], indent = false): WidgetRow[] {
   return holdings.map((token) => ({
     label: indent ? `  ${token.symbol}` : token.symbol,
     value: token.amount,

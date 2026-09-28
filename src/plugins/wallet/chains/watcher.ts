@@ -1,11 +1,12 @@
-import { formatEther, type Address, type Chain } from 'viem';
+import { formatEther, type Address } from 'viem';
 
 import { shortAddress } from '@/core/account/keyring';
 import type { MessageContent } from '@/core/messaging/types';
 import type { PluginContext } from '@/core/plugins/types';
-import { chainSlug, publicClientFor } from '@/lib/evm/chains';
+import { publicClientFor } from '@/lib/evm/chains';
 
 import { balanceChangeCard } from './balance-change';
+import type { ChainSpec } from './evm';
 import type { Say } from './strategy';
 import { readSeenBalances, readWatched, writeSeenBalances } from './watch-storage';
 
@@ -14,7 +15,12 @@ interface Target {
   label: string;
 }
 
-export async function checkBalances(chain: Chain, context: PluginContext, say: Say): Promise<void> {
+export async function checkBalances(
+  spec: ChainSpec,
+  context: PluginContext,
+  say: Say
+): Promise<void> {
+  const { chain } = spec;
   const targets = watchTargetsOf(context, await readWatched(context, chain.id));
   if (targets.length === 0) return;
 
@@ -45,7 +51,7 @@ export async function checkBalances(chain: Chain, context: PluginContext, say: S
   if (Object.entries(next).some(([key, value]) => seen[key] !== value)) {
     await writeSeenBalances(context, { ...seen, ...next });
   }
-  for (const change of changes) await say(balanceChangeMessage({ chain, ...change }));
+  for (const change of changes) await say(balanceChangeMessage({ spec, ...change }));
 }
 
 function watchTargetsOf(
@@ -76,16 +82,17 @@ function balanceKey(chainId: number, address: Address): string {
 }
 
 export function balanceChangeMessage({
-  chain,
+  spec,
   target,
   previous,
   current,
 }: {
-  chain: Chain;
+  spec: ChainSpec;
   target: Target;
   previous: bigint;
   current: bigint;
 }): MessageContent {
+  const { chain } = spec;
   const delta = current - previous;
   const received = delta > 0n;
   const symbol = chain.nativeCurrency.symbol;
@@ -100,7 +107,7 @@ export function balanceChangeMessage({
     caption: `Now ${formatAmount(current)} ${symbol} on ${chain.name}`,
     tone: received ? 'success' : 'warning',
     address: target.address,
-    chain: chainSlug(chain.name),
+    chain: spec.id,
     short: (address) => shortAddress(address),
   });
 }

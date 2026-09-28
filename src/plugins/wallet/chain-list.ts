@@ -14,6 +14,7 @@ import { hydrateRpcOverrides } from './chains/rpc';
 import {
   registerChainStrategy,
   sendableChains,
+  type ChainId,
   type ChainStrategy,
   type Say,
 } from './chains/strategy';
@@ -22,7 +23,7 @@ import { solanaStrategy } from './solana';
 import { hydrateRpcUrl as hydrateSolanaRpc } from './solana/rpc';
 
 export interface WalletChain {
-  id: string;
+  id: ChainId;
   name: string;
   icon: IconName;
   description: string;
@@ -44,7 +45,7 @@ export const CHAINS: WalletChain[] = [
       evm: spec.chain,
       testnet: spec.testnet,
       strategy: () => evmStrategy(spec),
-      poll: (context, say) => checkBalances(spec.chain, context, say),
+      poll: (context, say) => checkBalances(spec, context, say),
     })
   ),
   {
@@ -75,13 +76,13 @@ export function walletChainById(id: string | undefined): WalletChain | undefined
 const STORAGE_ENABLED = 'chains';
 const STORAGE_ACTIVE = 'active-chain';
 
-const DEFAULT_ENABLED = ['ethereum'];
+const DEFAULT_ENABLED: ChainId[] = ['ethereum'];
 
-export async function enabledIds(context: PluginContext): Promise<string[]> {
-  return (await context.storage.get<string[]>(STORAGE_ENABLED)) ?? DEFAULT_ENABLED;
+export async function enabledIds(context: PluginContext): Promise<ChainId[]> {
+  return (await context.storage.get<ChainId[]>(STORAGE_ENABLED)) ?? DEFAULT_ENABLED;
 }
 
-const chainsOf = (ids: string[]) => CHAINS.filter((n) => ids.includes(n.id));
+const chainsOf = (ids: ChainId[]) => CHAINS.filter((n) => ids.includes(n.id));
 
 export async function enabledChains(context: PluginContext): Promise<WalletChain[]> {
   return chainsOf(await enabledIds(context));
@@ -90,7 +91,7 @@ export async function enabledChains(context: PluginContext): Promise<WalletChain
 /** Pass `enabled` when the caller has already read the enabled ids. */
 export async function activeChain(
   context: PluginContext,
-  enabled?: string[]
+  enabled?: ChainId[]
 ): Promise<WalletChain | null> {
   const [ids, saved] = await Promise.all([
     enabled ?? enabledIds(context),
@@ -101,9 +102,9 @@ export async function activeChain(
   return on.find((n) => n.id === saved) ?? on[0];
 }
 
-const registered = new Map<string, () => void>();
+const registered = new Map<ChainId, () => void>();
 
-export async function syncStrategies(context: PluginContext, enabled?: string[]): Promise<void> {
+export async function syncStrategies(context: PluginContext, enabled?: ChainId[]): Promise<void> {
   const wanted = chainsOf(enabled ?? (await enabledIds(context)));
   const wantedIds = new Set(wanted.map((n) => n.id));
 
@@ -128,9 +129,9 @@ export function disposeStrategies(): void {
 
 export async function setEnabled(
   context: PluginContext,
-  id: string,
+  id: ChainId,
   on: boolean,
-  enabled?: string[]
+  enabled?: ChainId[]
 ): Promise<void> {
   const current = enabled ?? (await enabledIds(context));
   const ids = new Set(current);
@@ -153,8 +154,8 @@ export async function setEnabled(
 
 export async function setActive(
   context: PluginContext,
-  id: string,
-  enabled?: string[]
+  id: ChainId,
+  enabled?: ChainId[]
 ): Promise<void> {
   const on = chainsOf(enabled ?? (await enabledIds(context)));
   if (!on.some((chain) => chain.id === id)) {
