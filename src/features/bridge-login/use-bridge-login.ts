@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { errorMessage } from '@/core/errors';
 import type { BridgeProvisioning, LoginStep, Whoami } from '@/protocols/matrix/provisioning';
 
+export type BridgeLoginPhase = 'loading' | 'unavailable' | 'flows' | 'step' | 'done';
+
 /** A bridge's sign-in, one provisioning step at a time; an open step is cancelled on leaving or starting over. */
 export function useBridgeLogin(provisioning: BridgeProvisioning | null) {
   const [whoami, setWhoami] = useState<Whoami | null>(null);
@@ -66,17 +68,19 @@ export function useBridgeLogin(provisioning: BridgeProvisioning | null) {
     };
   }, [provisioning, step]);
 
+  const phase: BridgeLoginPhase =
+    !provisioning || unavailable
+      ? 'unavailable'
+      : !whoami
+        ? 'loading'
+        : !step
+          ? 'flows'
+          : step.type === 'complete'
+            ? 'done'
+            : 'step';
+
   return {
-    phase:
-      !provisioning || unavailable
-        ? 'unavailable'
-        : !whoami
-          ? 'loading'
-          : !step
-            ? 'flows'
-            : step.type === 'complete'
-              ? 'done'
-              : 'step',
+    phase,
     whoami,
     step,
     error,
