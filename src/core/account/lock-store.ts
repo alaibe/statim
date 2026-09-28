@@ -13,14 +13,11 @@ import { checkPin, deletePin, type PinCheck, savePin } from './pin';
 
 export type LockStatus = 'checking' | 'locked' | 'open';
 
-export const RELOCK_AFTER_MS = 60_000;
-
 export interface LockState {
   status: LockStatus;
   /** Null until read, and after a read fails; the app stays locked until one succeeds. */
   setup: LockSetup | null;
   prompting: boolean;
-  backgroundedAt: number | null;
 
   evaluate(): Promise<void>;
   noteJustAuthenticated(): void;
@@ -29,15 +26,12 @@ export interface LockState {
   setPin(pin: string): Promise<void>;
   removePin(): Promise<void>;
   setBiometricLock(enabled: boolean, label: string): Promise<boolean>;
-  noteBackgrounded(): void;
-  noteForegrounded(): Promise<void>;
 }
 
 export const useLockStore = create<LockState>((set, get) => ({
   status: 'checking',
   setup: null,
   prompting: false,
-  backgroundedAt: null,
 
   async evaluate() {
     const setup = await readSetup();
@@ -45,7 +39,7 @@ export const useLockStore = create<LockState>((set, get) => ({
   },
 
   noteJustAuthenticated() {
-    set({ status: 'open', backgroundedAt: null });
+    set({ status: 'open' });
   },
 
   async unlock() {
@@ -54,7 +48,7 @@ export const useLockStore = create<LockState>((set, get) => ({
     set({ prompting: true });
     try {
       const outcome = await authenticate('Unlock Status Original');
-      if (outcome === 'passed') set({ status: 'open', backgroundedAt: null });
+      if (outcome === 'passed') set({ status: 'open' });
       return outcome;
     } finally {
       set({ prompting: false });
@@ -64,7 +58,7 @@ export const useLockStore = create<LockState>((set, get) => ({
   async verifyPin(pin) {
     const check = await checkPin(pin);
     if (check.result === 'correct' && get().status === 'locked') {
-      set({ status: 'open', backgroundedAt: null });
+      set({ status: 'open' });
     }
     return check;
   },
@@ -81,23 +75,8 @@ export const useLockStore = create<LockState>((set, get) => ({
 
   async setBiometricLock(enabled, label) {
     const applied = await setLockEnabled(enabled, label);
-    if (applied) set({ setup: await readLockSetup(), backgroundedAt: null });
+    if (applied) set({ setup: await readLockSetup() });
     return applied;
-  },
-
-  noteBackgrounded() {
-    if (get().status === 'open') set({ backgroundedAt: Date.now() });
-  },
-
-  async noteForegrounded() {
-    const { backgroundedAt, status } = get();
-    if (status !== 'open' || backgroundedAt === null) return;
-
-    set({ backgroundedAt: null });
-    if (Date.now() - backgroundedAt < RELOCK_AFTER_MS) return;
-
-    const setup = await readSetup();
-    set(setup && unlockMethod(setup) === null ? { setup } : { setup, status: 'locked' });
   },
 }));
 

@@ -67,7 +67,7 @@ export function SecuritySection({
             subtitle={hint(
               setup.biometric && biometrics.available
                 ? `Asked for when ${biometrics.label} does not work`
-                : 'Asked for when the app opens, and after a minute away'
+                : 'Asked for when the app opens'
             )}
             numberOfLinesSubtitle={2}
             leading={<RowIcon name="keypad-outline" tone="blue" />}
@@ -157,9 +157,7 @@ function BiometricRows({
       <ListItem
         title={`Require ${label}`}
         subtitle={hint(
-          enrolled
-            ? 'Asks before showing your accounts, and again after a minute in the background'
-            : `Set up ${label} on this device first`
+          enrolled ? 'Asks before showing your accounts' : `Set up ${label} on this device first`
         )}
         numberOfLinesSubtitle={2}
         leading={<RowIcon name="finger-print-outline" tone="green" />}

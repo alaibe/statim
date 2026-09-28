@@ -3,7 +3,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 
 import * as lock from './lock';
 import { isLockEnabled, setLockEnabled } from './lock';
-import { RELOCK_AFTER_MS, useLockStore } from './lock-store';
+import { useLockStore } from './lock-store';
 import { savePin } from './pin';
 import { VaultKey } from '@/storage/vault';
 import { reportError } from '../app/report-error';
@@ -18,12 +18,7 @@ beforeEach(() => {
   (SecureStore as unknown as { __reset(): void }).__reset();
   authenticateAsync.mockReset();
   authenticateAsync.mockResolvedValue({ success: true } as never);
-  useLockStore.setState({
-    status: 'checking',
-    setup: null,
-    prompting: false,
-    backgroundedAt: null,
-  });
+  useLockStore.setState({ status: 'checking', setup: null, prompting: false });
 });
 
 describe('arming the lock', () => {
@@ -146,16 +141,6 @@ describe('the PIN', () => {
     await useLockStore.getState().evaluate();
     expect(useLockStore.getState().status).toBe('open');
   });
-
-  it('re-locks after a long spell away', async () => {
-    await useLockStore.getState().verifyPin('123456');
-
-    useLockStore.getState().noteBackgrounded();
-    useLockStore.setState({ backgroundedAt: Date.now() - RELOCK_AFTER_MS - 1 });
-    await useLockStore.getState().noteForegrounded();
-
-    expect(useLockStore.getState().status).toBe('locked');
-  });
 });
 
 describe('unlock', () => {
@@ -186,39 +171,6 @@ describe('unlock', () => {
   });
 });
 
-describe('backgrounding', () => {
-  it('re-locks after a long spell away', async () => {
-    await SecureStore.setItemAsync(VaultKey.biometricLock, '1');
-    useLockStore.setState({ status: 'open' });
-
-    useLockStore.getState().noteBackgrounded();
-    useLockStore.setState({ backgroundedAt: Date.now() - RELOCK_AFTER_MS - 1 });
-    await useLockStore.getState().noteForegrounded();
-
-    expect(useLockStore.getState().status).toBe('locked');
-  });
-
-  it('stays open after a brief switch away', async () => {
-    await SecureStore.setItemAsync(VaultKey.biometricLock, '1');
-    useLockStore.setState({ status: 'open' });
-
-    useLockStore.getState().noteBackgrounded();
-    await useLockStore.getState().noteForegrounded();
-
-    expect(useLockStore.getState().status).toBe('open');
-  });
-
-  it('never re-locks when the lock is disarmed', async () => {
-    useLockStore.setState({ status: 'open' });
-    useLockStore.getState().noteBackgrounded();
-    useLockStore.setState({ backgroundedAt: Date.now() - RELOCK_AFTER_MS - 1 });
-
-    await useLockStore.getState().noteForegrounded();
-
-    expect(useLockStore.getState().status).toBe('open');
-  });
-});
-
 describe('when the lock setting cannot be read', () => {
   const unreadable = () =>
     jest.spyOn(lock, 'readLockSetup').mockRejectedValueOnce(new Error('keychain'));
@@ -228,13 +180,6 @@ describe('when the lock setting cannot be read', () => {
     await useLockStore.getState().evaluate();
     expect(useLockStore.getState()).toMatchObject({ status: 'locked', setup: null });
     expect(reportError).toHaveBeenCalled();
-  });
-
-  it('locks again after a long spell away', async () => {
-    useLockStore.setState({ status: 'open', backgroundedAt: Date.now() - RELOCK_AFTER_MS - 1 });
-    unreadable();
-    await useLockStore.getState().noteForegrounded();
-    expect(useLockStore.getState().status).toBe('locked');
   });
 });
 

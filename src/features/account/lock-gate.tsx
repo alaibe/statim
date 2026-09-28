@@ -49,7 +49,6 @@ export function LockGate() {
 function LockScreen() {
   const setup = useLockStore((s) => s.setup);
   const evaluate = useLockStore((s) => s.evaluate);
-  const [keysSealed] = useState(() => useAccountStore.getState().status !== 'ready');
 
   const [label, setLabel] = useState('Face ID');
   const [checks, setChecks] = useState(0);
@@ -78,7 +77,7 @@ function LockScreen() {
     );
   }
   if (protection.value === undefined) return <LockFrame icon="lock-closed-outline" />;
-  if (protection.value && keysSealed) return <ProtectedKeysUnlock label={label} />;
+  if (protection.value) return <ProtectedKeysUnlock label={label} />;
   return <Unlock setup={setup} label={label} />;
 }
 
@@ -170,10 +169,7 @@ function BiometricUnlock({ label, toPin }: { label: string; toPin: (() => void) 
   );
 }
 
-/**
- * Keys sealed behind biometrics are read by the account store, and a PIN
- * cannot unseal them, so until they are read this path is biometrics only.
- */
+/** Keys sealed behind biometrics are read by the account store, and a PIN cannot unseal them. */
 function ProtectedKeysUnlock({ label }: { label: string }) {
   const prompting = useLockStore((s) => s.prompting);
   const open = useLockStore((s) => s.noteJustAuthenticated);

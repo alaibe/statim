@@ -158,7 +158,7 @@ it('offers no PIN when none is set', async () => {
   expect(buttons()).toEqual(['Try again']);
 });
 
-it('keeps to biometrics while protected keys are still sealed, PIN or not', async () => {
+it('keeps to biometrics when keys are protected, PIN or not', async () => {
   jest.mocked(isKeyProtectionEnabled).mockResolvedValue(true);
   useAccountStore.setState({ status: 'blocked' });
   await render({ biometric: true, pin: true });
@@ -166,15 +166,6 @@ it('keeps to biometrics while protected keys are still sealed, PIN or not', asyn
   expect(authenticate).not.toHaveBeenCalled();
   expect(buttons()).toEqual(['Try again']);
   expect(tree.root.findAllByType('PinPad' as never)).toHaveLength(0);
-});
-
-it('treats a relock as the ordinary lock once protected keys have been read', async () => {
-  jest.mocked(isKeyProtectionEnabled).mockResolvedValue(true);
-  useAccountStore.setState({ status: 'ready' });
-  await render({ biometric: true, pin: false });
-
-  expect(authenticate).toHaveBeenCalledTimes(1);
-  expect(useLockStore.getState().status).toBe('open');
 });
 
 describe('Forgot PIN?', () => {

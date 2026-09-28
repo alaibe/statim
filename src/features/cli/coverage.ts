@@ -93,8 +93,6 @@ export const LOCK_STORE: Record<Actions<LockState>, Covered> = {
   setPin: APP_ONLY_LOCK,
   removePin: APP_ONLY_LOCK,
   setBiometricLock: APP_ONLY_LOCK,
-  noteBackgrounded: 'internal',
-  noteForegrounded: 'internal',
 };
 
 export const APPEARANCE_STORE: Record<Actions<AppearanceState>, Covered> = {

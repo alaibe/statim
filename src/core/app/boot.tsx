@@ -1,6 +1,5 @@
 import * as Linking from 'expo-linking';
 import { useEffect } from 'react';
-import { AppState } from 'react-native';
 
 import { useAccountStore } from '../account/account-store';
 import { registerHardwareVendors } from '../account/vendors';
@@ -64,15 +63,6 @@ export function useAppLock() {
   useEffect(() => {
     if (status === 'checking') evaluate().catch(reportError);
   }, [status, evaluate]);
-
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (next) => {
-      const lock = useLockStore.getState();
-      if (next === 'active') lock.noteForegrounded().catch(reportError);
-      else lock.noteBackgrounded();
-    });
-    return () => subscription.remove();
-  }, []);
 
   return status;
 }
