@@ -25,7 +25,6 @@ export const KNOWN_BRIDGES: readonly KnownBridge[] = [
   },
   { network: 'Slack', localpart: 'slackbot', firstCommand: 'login token', preferredFlow: 'token' },
   { network: 'Discord', localpart: 'discordbot', firstCommand: 'login-qr' },
-  { network: 'Telegram', localpart: 'telegrambot', firstCommand: 'login' },
   { network: 'Google Messages', localpart: 'gmessagesbot', firstCommand: 'login' },
   { network: 'iMessage', localpart: 'imessagebot', firstCommand: 'login' },
   { network: 'X', localpart: 'twitterbot', firstCommand: 'login' },
