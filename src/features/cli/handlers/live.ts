@@ -53,7 +53,7 @@ export const liveHandlers = {
 
       printing = printing.then(async () => {
         const chats = new Map(state.chats.map((c) => [c.id, c]));
-        const protocols = [...new Set(fresh.map((m) => chats.get(m.chatId)?.protocol))];
+        const protocols = [...new Set(fresh.flatMap((m) => chats.get(m.chatId)?.protocol ?? []))];
         const [labels, ...names] = await Promise.all([
           chatLabels([...new Set(fresh.flatMap((m) => chats.get(m.chatId) ?? []))]),
           ...protocols.map((p) =>

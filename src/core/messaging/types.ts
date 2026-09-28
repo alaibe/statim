@@ -130,7 +130,7 @@ export interface GroupMember {
   readonly muted?: boolean;
 }
 
-export interface Chat<Id extends AnyChatId = ChatId> {
+interface ChatFields<Id extends AnyChatId> {
   readonly id: Id;
   readonly kind: ChatKind;
   readonly title: string;
@@ -151,7 +151,6 @@ export interface Chat<Id extends AnyChatId = ChatId> {
   readonly online?: boolean;
   readonly lastSeenAt?: number;
   readonly consent: Consent;
-  readonly protocol?: ProtocolId;
   /** Where the chat really lives when a bridge carries it: "Slack", "Discord". */
   readonly network?: string;
   readonly selfRole?: GroupRole;
@@ -160,7 +159,11 @@ export interface Chat<Id extends AnyChatId = ChatId> {
   readonly canDeleteOthers?: boolean;
 }
 
-export type ProtocolChat = Chat<ProtocolChatId>;
+export type ProtocolChat = ChatFields<ProtocolChatId>;
+
+export interface Chat extends ChatFields<ChatId> {
+  readonly protocol: ProtocolId;
+}
 
 export interface SelfParticipant {
   readonly participantId: ParticipantId;

@@ -268,10 +268,10 @@ function uniquePrefix(messages: readonly ChatMessage[], ref: string): ChatMessag
 }
 
 export async function displayNames(
-  protocol: ProtocolId | null | undefined,
+  protocol: ProtocolId,
   ids: ParticipantId[]
 ): Promise<Record<ParticipantId, string>> {
-  if (!protocol || ids.length === 0) return {};
+  if (ids.length === 0) return {};
   const lookup = await participants(protocol, [...new Set(ids)]);
   return Object.fromEntries(ids.map((id) => [id, lookup(id).name]));
 }

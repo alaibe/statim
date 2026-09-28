@@ -90,10 +90,8 @@ describe('the people behind a list of chats', () => {
 });
 
 describe('contactKey', () => {
-  it('round-trips a contact, with or without a protocol', () => {
-    const withProtocol: Contact = { id: 'bob', protocol: 'xmtp', chatId: 'xmtp-1' };
-    const without = { id: 'bob', protocol: undefined, chatId: 'c1' };
-    expect(fromContactKey(contactKey(withProtocol))).toEqual(withProtocol);
-    expect(fromContactKey(contactKey(without))).toEqual(without);
+  it('round-trips a contact', () => {
+    const contact: Contact = { id: 'bob', protocol: 'xmtp', chatId: 'xmtp-1' };
+    expect(fromContactKey(contactKey(contact))).toEqual(contact);
   });
 });

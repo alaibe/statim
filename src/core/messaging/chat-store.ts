@@ -1233,11 +1233,8 @@ function sortChats(chats: readonly Chat[]): Chat[] {
   return [...chats].sort((a, b) => recency(b) - recency(a));
 }
 
-export function selfIdFor(
-  state: Pick<ChatState, 'sessions'>,
-  protocol: ProtocolId | undefined
-): string {
-  if (!protocol || protocol === LOCAL_PROTOCOL) return '';
+export function selfIdFor(state: Pick<ChatState, 'sessions'>, protocol: ProtocolId): string {
+  if (protocol === LOCAL_PROTOCOL) return '';
   return state.sessions[protocol]?.self.participantId ?? '';
 }
 

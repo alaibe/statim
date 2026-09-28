@@ -68,7 +68,7 @@ export const groupHandlers = {
 
   async 'group add'({ args, rest }) {
     const chat = await group(args.chat!);
-    const members = await resolveAllOn(chat.protocol!, rest);
+    const members = await resolveAllOn(chat.protocol, rest);
     await useChatStore.getState().addMembers(chat.id, members);
     return { data: { chat: chat.id, added: members }, text: `Added ${members.length}.` };
   },

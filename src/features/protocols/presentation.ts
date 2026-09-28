@@ -12,8 +12,8 @@ export function toneFor(meta: ChatProtocolMeta): ProtocolTone {
   return 'warning';
 }
 
-export function protocolSubtitle(protocol: ProtocolId | undefined): string {
-  if (!protocol || protocol === LOCAL_PROTOCOL) return 'On this device only';
+export function protocolSubtitle(protocol: ProtocolId): string {
+  if (protocol === LOCAL_PROTOCOL) return 'On this device only';
 
   const descriptor = protocolById(protocol);
   if (!descriptor) return 'Unknown protocol';
@@ -44,8 +44,8 @@ const GROUP_MODEL: Record<ChatProtocolMeta['properties']['groupModel'], string> 
   topic: 'anyone with the topic can join',
 };
 
-export function protocolLabel(protocol: ProtocolId | undefined): string {
-  if (!protocol || protocol === LOCAL_PROTOCOL) return 'On device';
+export function protocolLabel(protocol: ProtocolId): string {
+  if (protocol === LOCAL_PROTOCOL) return 'On device';
   return protocolById(protocol)?.label ?? protocol;
 }
 

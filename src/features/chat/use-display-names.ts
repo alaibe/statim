@@ -70,7 +70,7 @@ export function useDisplayNames(participants: DisplayParticipant[]) {
     };
   }, [registry, accountId, pluginVersions]);
 
-  const key = [...new Set(participants.map((p) => `${p.protocol ?? ''}:${p.id}`))].sort().join(',');
+  const key = [...new Set(participants.map((p) => `${p.protocol}:${p.id}`))].sort().join(',');
 
   useEffect(() => {
     if (!key || !accountId) return;

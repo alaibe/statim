@@ -5,13 +5,13 @@ import type { Chat, ParticipantId } from '@/core/messaging/types';
 
 export interface Contact {
   id: ParticipantId;
-  protocol: Chat['protocol'];
+  protocol: ProtocolId;
   chatId: string;
 }
 
 export function contactsOf(
   chats: readonly Chat[],
-  selfFor: (protocol: Chat['protocol']) => ParticipantId | undefined
+  selfFor: (protocol: ProtocolId) => ParticipantId | undefined
 ): Contact[] {
   // Keyed by protocol *and* id: the same person on Nostr and on XMTP is two
   // participants with two different keys, and merging them would claim a link
@@ -36,10 +36,10 @@ export function contactsOf(
 }
 
 export function contactKey({ protocol, id, chatId }: Contact): string {
-  return JSON.stringify([protocol ?? null, id, chatId]);
+  return JSON.stringify([protocol, id, chatId]);
 }
 
 export function fromContactKey(key: string): Contact {
-  const [protocol, id, chatId] = JSON.parse(key) as [ProtocolId | null, string, string];
-  return { id, protocol: protocol ?? undefined, chatId };
+  const [protocol, id, chatId] = JSON.parse(key) as [ProtocolId, string, string];
+  return { id, protocol, chatId };
 }

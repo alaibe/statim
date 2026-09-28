@@ -121,7 +121,7 @@ export function ContactList({
             <ListItem
               key={`${contact.protocol}-${contact.id}`}
               title={nameFor(contact.id)}
-              subtitle={contact.protocol?.toUpperCase()}
+              subtitle={contact.protocol.toUpperCase()}
               leading={<Avatar seed={nameFor(contact.id)} size="md" />}
               selected={contact.chatId === selectedChatId}
               onPress={() => openChat(contact.chatId)}

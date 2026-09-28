@@ -7,7 +7,7 @@ import type { Chat, ParticipantId } from './types';
 
 export interface DisplayParticipant {
   id: ParticipantId;
-  protocol?: ProtocolId;
+  protocol: ProtocolId;
 }
 
 export interface ResolvedParticipants {
@@ -17,10 +17,10 @@ export interface ResolvedParticipants {
 
 /** What a protocol knows about these participants; a lookup that fails leaves them out. */
 export async function resolveParticipants(
-  protocol: ProtocolId | null | undefined,
+  protocol: ProtocolId,
   ids: ParticipantId[]
 ): Promise<ResolvedParticipants> {
-  const session = protocol ? useChatStore.getState().sessions[protocol] : undefined;
+  const session = useChatStore.getState().sessions[protocol];
   if (!session || ids.length === 0) return { names: {}, addresses: {} };
   const none: Record<ParticipantId, string> = {};
   const [addresses, names] = await Promise.all([

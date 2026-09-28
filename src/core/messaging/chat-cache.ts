@@ -21,12 +21,9 @@ function lasting({
  * listed everything, and a restored chat its full listing lacks is dropped.
  */
 export class ChatCache {
-  private readonly written = new Map<
-    ChatId,
-    { protocol: ProtocolId; source: Chat; json?: string }
-  >();
-  private readonly restored = new Map<ChatId, string>();
-  private readonly complete = new Set<string>();
+  private readonly written = new Map<ChatId, { source: Chat; json?: string }>();
+  private readonly restored = new Map<ChatId, ProtocolId>();
+  private readonly complete = new Set<ProtocolId>();
   private pending: readonly Chat[] | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -34,13 +31,11 @@ export class ChatCache {
 
   async restore(): Promise<Chat[]> {
     const cached = await this.store.cachedChats().catch(() => []);
-    return cached.filter((chat) => {
-      const protocol = chat.protocol;
-      if (!protocol) return false;
-      this.written.set(chat.id, { protocol, source: chat });
-      this.restored.set(chat.id, protocol);
-      return true;
-    });
+    for (const chat of cached) {
+      this.written.set(chat.id, { source: chat });
+      this.restored.set(chat.id, chat.protocol);
+    }
+    return cached;
   }
 
   listed(protocol: ProtocolId, chats: Chat[]): void {
@@ -51,7 +46,9 @@ export class ChatCache {
 
   forget(protocol: ProtocolId): void {
     this.complete.delete(protocol);
-    const drop = [...this.written].filter(([, row]) => row.protocol === protocol).map(([id]) => id);
+    const drop = [...this.written]
+      .filter(([, row]) => row.source.protocol === protocol)
+      .map(([id]) => id);
     for (const id of drop) this.written.delete(id);
     if (drop.length > 0) {
       this.store
@@ -87,12 +84,12 @@ export class ChatCache {
         if (written?.source === chat) continue;
         const row = lasting(chat);
         const json = JSON.stringify(row);
-        this.written.set(chat.id, { protocol, source: chat, json });
+        this.written.set(chat.id, { source: chat, json });
         if (written && (written.json ?? JSON.stringify(written.source)) === json) continue;
         keep.push(row);
       }
       const drop = [...this.written]
-        .filter(([id, row]) => row.protocol === protocol && !present.has(id))
+        .filter(([id, row]) => row.source.protocol === protocol && !present.has(id))
         .map(([id]) => id);
       for (const id of drop) this.written.delete(id);
       if (keep.length === 0 && drop.length === 0) continue;

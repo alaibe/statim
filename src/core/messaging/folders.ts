@@ -30,7 +30,7 @@ export function splitRequests(chats: readonly Chat[]): {
 }
 
 export function networkOf(chat: Chat): string | undefined {
-  if (!chat.protocol || chat.protocol === LOCAL_PROTOCOL) return undefined;
+  if (chat.protocol === LOCAL_PROTOCOL) return undefined;
   return chat.network ?? chat.protocol;
 }
 

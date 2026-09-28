@@ -24,7 +24,7 @@ async function resolveOn(
 ): Promise<{ ok: true; participantId: string | null } | { ok: false; message: string }> {
   const state = useChatStore.getState();
   const { protocol } = chat;
-  if (!protocol || !state.sessions[protocol]) return { ok: false, message: 'Not connected yet.' };
+  if (!state.sessions[protocol]) return { ok: false, message: 'Not connected yet.' };
   return { ok: true, participantId: await state.resolveParticipant(protocol, who) };
 }
 
