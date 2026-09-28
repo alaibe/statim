@@ -59,6 +59,9 @@ xcrun simctl install "$DEVICE" "$APP"
 # blank host produces "Invalid URL: http://:8081" inside the app.
 if [ -f "$APP/EXDevLauncher.bundle/Info.plist" ] || [ -d "$APP/Frameworks/EXDevLauncher.framework" ] || [ -z "${2:-}" ]; then
   curl -sf "http://localhost:$PORT/status" >/dev/null || { echo "Metro is not listening on :$PORT; start it with npm start." >&2; exit 1; }
+  xcrun simctl spawn "$DEVICE" defaults write im.statim.app EXDevMenuShowsAtLaunch -bool NO
+  xcrun simctl spawn "$DEVICE" defaults write im.statim.app EXDevMenuIsOnboardingFinished -bool YES
+  xcrun simctl spawn "$DEVICE" defaults write im.statim.app EXDevMenuShowFloatingActionButton -bool NO
   HOST=$(ipconfig getifaddr "$(route -n get default | awk '/interface:/{print $2}')")
   xcrun simctl openurl "$DEVICE" "im.statim.app://expo-development-client/?url=http%3A%2F%2F${HOST}%3A${PORT}"
   sleep 20

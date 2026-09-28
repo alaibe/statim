@@ -69,8 +69,15 @@ appId: im.statim.app
 - inputText: "Remember to book the train tomorrow"
 - tapOn:
     id: "composer-send"
+# iOS introduces its keyboard languages the first time the keyboard opens.
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd
 - tapOn:
-    point: "50%,25%"
+    point: "95%,40%"
 - waitForAnimationToEnd
 - takeScreenshot: 04-note
 
