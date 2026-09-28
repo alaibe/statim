@@ -4,7 +4,7 @@ import { buttonCommand } from '@/core/commands/button';
 import { parseCommand } from '@/core/commands/parser';
 import { toast } from '@/design';
 import { isLocalChat, toContent } from '@/core/messaging/bots';
-import type { ChatScope } from '@/core/messaging/chat-scope';
+import { inScope, type ChatScope } from '@/core/messaging/chat-scope';
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { ChatId, MessageContent } from '@/core/messaging/types';
 import { usePluginHost } from '@/core/plugins/host';
@@ -18,6 +18,21 @@ async function respondIn(chatId: ChatId, content: MessageContent | string) {
   const chat = useChatStore.getState();
   if (isLocalChat(chatId)) await chat.postLocalMessage(chatId, body, 'bot');
   else await chat.postPrivateMessage(chatId, body);
+}
+
+const CONVERSATIONS: Record<Exclude<ChatScope, 'channel'>, string> = { dm: 'DMs', group: 'groups' };
+
+/** Why a command that `home` contributes does not run in this chat. */
+export function elsewhereMessage(
+  name: string,
+  showIn: readonly ChatScope[] | undefined,
+  scope: ChatScope,
+  home: string
+): string {
+  const places = (showIn ?? []).flatMap((s) => (s === 'channel' ? [] : [CONVERSATIONS[s]]));
+  return !inScope(showIn, scope) && places.length > 0
+    ? `/${name} works in ${places.join(' and ')}.`
+    : `/${name} belongs to ${home}. Open that chat to use it.`;
 }
 
 export interface CommandDispatchOptions {
@@ -76,8 +91,8 @@ export function useCommandDispatch({
         const elsewhere = registry.commands().get(parsed.name);
         const home = elsewhere ? registry.get(elsewhere.pluginId)?.manifest.name : undefined;
         setError(
-          home
-            ? `/${parsed.name} belongs to ${home}. Open that chat to use it.`
+          elsewhere && home
+            ? elsewhereMessage(parsed.name, elsewhere.command.showIn, scope, home)
             : `Unknown slash command /${parsed.name}. Type / to see what's available.`
         );
         return;

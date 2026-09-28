@@ -3,7 +3,7 @@ import { create, type ReactTestRenderer } from 'react-test-renderer';
 
 import type { ChatScope } from '@/core/messaging/chat-scope';
 
-import { useCommandDispatch } from './use-command-dispatch';
+import { elsewhereMessage, useCommandDispatch } from './use-command-dispatch';
 import { asChatId } from '@/core/messaging/testing/ids';
 
 const mockNoCommands: never[] = [];
@@ -67,5 +67,25 @@ describe('a /reply button', () => {
     await act(async () => press('/reply /week Decize'));
     await settle();
     expect(send).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('a command this chat does not offer', () => {
+  it('names the kinds of chat it works in when this is not one of them', () => {
+    expect(elsewhereMessage('split', ['group'], 'channel', 'Wallet')).toBe(
+      '/split works in groups.'
+    );
+    expect(elsewhereMessage('request', ['dm', 'group'], 'channel', 'Wallet')).toBe(
+      '/request works in DMs and groups.'
+    );
+  });
+
+  it("sends you to its plugin's chat when it works only there", () => {
+    expect(elsewhereMessage('chains', ['channel'], 'dm', 'Wallet')).toBe(
+      '/chains belongs to Wallet. Open that chat to use it.'
+    );
+    expect(elsewhereMessage('price', ['channel'], 'channel', 'Markets')).toBe(
+      '/price belongs to Markets. Open that chat to use it.'
+    );
   });
 });
