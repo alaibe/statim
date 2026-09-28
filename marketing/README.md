@@ -17,7 +17,7 @@ This renders both cuts frame by frame in headless Chrome and writes them to
 | --- | --- |
 | `film-16x9.mp4` | the website, and the README link |
 | `film-9x16.mp4` | the website on phones, and posting to Reels, Shorts or TikTok |
-| `film-poster.jpg` | the website, until the video loads |
+| `film-poster-16x9.jpg`, `film-poster-9x16.jpg` | the website, until the video loads |
 | `film.webp` | the README, since GitHub does not autoplay video |
 
 It needs ffmpeg and img2webp (`brew install ffmpeg webp`), a network connection

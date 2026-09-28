@@ -193,18 +193,22 @@ await Promise.all([
   render('portrait', 9334, join(out, 'film-9x16.mp4')),
 ]);
 
-execFileSync('ffmpeg', [
-  '-y',
-  '-loglevel',
-  'error',
-  '-i',
-  wide,
-  '-frames:v',
-  '1',
-  '-q:v',
-  '3',
-  join(out, 'film-poster.jpg'),
-]);
+for (const cut of ['16x9', '9x16']) {
+  execFileSync('ffmpeg', [
+    '-y',
+    '-loglevel',
+    'error',
+    '-ss',
+    '8.5',
+    '-i',
+    join(out, `film-${cut}.mp4`),
+    '-frames:v',
+    '1',
+    '-q:v',
+    '3',
+    join(out, `film-poster-${cut}.jpg`),
+  ]);
+}
 const stills = join(work, 'webp');
 mkdirSync(stills);
 execFileSync('ffmpeg', [

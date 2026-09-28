@@ -1,7 +1,6 @@
 import { AiReady } from '@/landing/AiReady';
 import { Download } from '@/landing/Download';
 import { Faqs } from '@/landing/Faqs';
-import { Film } from '@/landing/Film';
 import { Hero } from '@/landing/Hero';
 import { PrimaryFeatures } from '@/landing/PrimaryFeatures';
 import { Screens } from '@/landing/Screens';
@@ -14,7 +13,6 @@ export default async function Home() {
   return (
     <>
       <Hero release={release} />
-      <Film />
       <PrimaryFeatures />
       <SecondaryFeatures />
       <AiReady />
