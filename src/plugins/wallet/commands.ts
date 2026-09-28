@@ -10,7 +10,7 @@ import type {
 } from '@/core/plugins/types';
 import { W, type WidgetOption } from '@/design/widgets';
 
-import { chainFromArgs, chainSlug, SUPPORTED_CHAINS, trimDecimals } from '@/lib/evm/chains';
+import { trimDecimals } from '@/lib/evm/chains';
 import {
   CONTENT_TYPE_PAYMENT_SPLIT,
   CONTENT_TYPE_PAYMENT_REQUEST,
@@ -24,13 +24,36 @@ import {
   selfAddressOf,
   targetAddress,
   type AddressLookup,
+  type ChainId,
   type ChainStrategy,
 } from './chains/strategy';
-import { chainFlag, NO_CHAIN_ON, pickSendable, pickStrategy, withoutChain } from './chain-list';
+import { EVM_CHAINS, type ChainSpec } from './chains/evm';
+import {
+  chainFlag,
+  NO_CHAIN_ON,
+  pickSendable,
+  pickStrategy,
+  walletChainById,
+  withoutChain,
+} from './chain-list';
 import { walletErrorMessage } from './errors';
 import { commitTransfer } from './transfer';
 
 type Respond = CommandInvocation['respond'];
+
+const SPLIT_CHAINS = EVM_CHAINS.filter((spec) => !spec.testnet);
+const SPLIT_DEFAULT: ChainId = 'base';
+
+function splitChain(named: string | undefined): ChainSpec | { error: string } {
+  const id = named ? walletChainById(named)?.id : SPLIT_DEFAULT;
+  if (!id) return { error: `No chain called "${named}". /chains lists them.` };
+  const names = SPLIT_CHAINS.map((spec) => spec.name);
+  return (
+    SPLIT_CHAINS.find((spec) => spec.id === id) ?? {
+      error: `/split works on ${names.slice(0, -1).join(', ')} and ${names.at(-1)}.`,
+    }
+  );
+}
 
 function chainOptions(chains: ChainStrategy[]) {
   return chains.map((c) => ({ label: c.name, value: c.id }));
@@ -446,13 +469,15 @@ export const walletCommands: SlashCommand[] = [
     usage: '/split <total> [--chain base] [note…]',
     showIn: ['group'],
     async run({ args, chatId, context, respond }) {
-      const { chain, rest } = chainFromArgs(args);
-      const [total, ...noteParts] = rest;
+      const picked = splitChain(chainFlag(args));
+      if ('error' in picked) return { type: 'error', message: picked.error };
+      const { chain } = picked;
+      const [total, ...noteParts] = withoutChain(args);
 
       if (!total) {
         await respond({
           kind: 'widget',
-          fallback: `Split a bill on ${chain.name}`,
+          fallback: `Split a bill on ${picked.name}`,
           widget: W.card(
             [
               W.form(
@@ -460,20 +485,17 @@ export const walletCommands: SlashCommand[] = [
                   {
                     id: 'chain',
                     label: 'Chain',
-                    value: chainSlug(chain.name),
-                    options: SUPPORTED_CHAINS.map((c) => ({
-                      label: c.name,
-                      value: chainSlug(c.name),
-                    })),
+                    value: picked.id,
+                    options: SPLIT_CHAINS.map((spec) => ({ label: spec.name, value: spec.id })),
                   },
                   {
                     id: 'token',
                     label: 'Token',
                     value: chain.nativeCurrency.symbol,
-                    options: SUPPORTED_CHAINS.map((c) => ({
-                      label: c.nativeCurrency.symbol,
-                      value: c.nativeCurrency.symbol,
-                      when: { chain: chainSlug(c.name) },
+                    options: SPLIT_CHAINS.map((spec) => ({
+                      label: spec.chain.nativeCurrency.symbol,
+                      value: spec.chain.nativeCurrency.symbol,
+                      when: { chain: spec.id },
                     })),
                   },
                   {
