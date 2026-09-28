@@ -4,5 +4,5 @@ appId: im.statim.app
 - launchApp
 - extendedWaitUntil:
     visible:
-      id: "chat-local-status"
+      id: "chat-local-statim"
     timeout: 90000

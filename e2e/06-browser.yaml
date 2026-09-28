@@ -1,6 +1,6 @@
 appId: im.statim.app
 ---
-- runFlow: lib/open-status-chat.yaml
+- runFlow: lib/open-statim-chat.yaml
 - runFlow:
     file: lib/send-command.yaml
     env:

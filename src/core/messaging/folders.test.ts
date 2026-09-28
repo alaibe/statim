@@ -50,7 +50,7 @@ describe('matchesFilter', () => {
     expect(matchesFilter(chat({ id: 'dm' }), 'dms', empty)).toBe(true);
     expect(matchesFilter(chat({ id: 'g', kind: 'group' }), 'groups', empty)).toBe(true);
     expect(matchesFilter(chat({ id: 'c', kind: 'channel' }), 'groups', empty)).toBe(true);
-    expect(matchesFilter(chat({ id: 'status', protocol: 'local' }), 'dms', empty)).toBe(false);
+    expect(matchesFilter(chat({ id: 'statim', protocol: 'local' }), 'dms', empty)).toBe(false);
   });
 
   it('counts unread, but not muted or already read', () => {

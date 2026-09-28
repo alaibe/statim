@@ -1,7 +1,7 @@
 # Messages
 
 <div class="phones">
-  <figure><img src="/screenshots/status-chat.png" alt="A chat with slash command chips above the composer"><figcaption>The composer, with the chips a chat offers</figcaption></figure>
+  <figure><img src="/screenshots/statim-chat.png" alt="A chat with slash command chips above the composer"><figcaption>The composer, with the chips a chat offers</figcaption></figure>
   <figure><img src="/screenshots/message-actions.png" alt="Long-pressing a message: reactions, reply, copy, forward"><figcaption>Long-press a message for its actions</figcaption></figure>
 </div>
 

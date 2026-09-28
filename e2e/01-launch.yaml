@@ -3,11 +3,11 @@ appId: im.statim.app
 ---
 - runFlow: lib/launch.yaml
 - assertVisible:
-    id: "chat-local-status"
+    id: "chat-local-statim"
 - assertVisible:
     id: "header-new-chat"
 
-- openLink: "statim://chat/local-status"
+- openLink: "statim://chat/local-statim"
 # A freshly erased simulator asks before opening a custom scheme the first time.
 - runFlow:
     when:
@@ -15,9 +15,9 @@ appId: im.statim.app
     commands:
       - tapOn: "Open"
 - assertVisible:
-    id: "chat-header-local-status"
+    id: "chat-header-local-statim"
 - assertVisible:
     id: "composer-input"
 - tapOn: "Back"
 - assertVisible:
-    id: "chat-local-status"
+    id: "chat-local-statim"

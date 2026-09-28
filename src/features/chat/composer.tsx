@@ -15,7 +15,7 @@ import {
   Text,
   useThemeColors,
 } from '@/design';
-import { isLocalChat, SAVED_LOCAL_ID, STATUS_LOCAL_ID } from '@/core/messaging/bots';
+import { isLocalChat, SAVED_LOCAL_ID, STATIM_LOCAL_ID } from '@/core/messaging/bots';
 import { chatScope } from '@/core/messaging/chat-scope';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { draftKey } from '@/core/messaging/drafts';
@@ -114,7 +114,7 @@ export function Composer({
   };
 
   const canAttach =
-    !editing && (!isLocalChat(chatId) || chatId === STATUS_LOCAL_ID || chatId === SAVED_LOCAL_ID);
+    !editing && (!isLocalChat(chatId) || chatId === STATIM_LOCAL_ID || chatId === SAVED_LOCAL_ID);
 
   const attach = async (pick: () => Promise<MessageContent | null>) => {
     try {

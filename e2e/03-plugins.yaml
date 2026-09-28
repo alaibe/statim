@@ -1,7 +1,7 @@
 # Enables a plugin, uses its chat, and disables it again.
 appId: im.statim.app
 ---
-- runFlow: lib/open-status-chat.yaml
+- runFlow: lib/open-statim-chat.yaml
 
 - runFlow:
     file: lib/send-command.yaml
@@ -25,7 +25,7 @@ appId: im.statim.app
     timeout: 15000
 
 - tapOn: "Back"
-- openLink: "statim://chat/local-status"
+- openLink: "statim://chat/local-statim"
 - runFlow:
     file: lib/send-command.yaml
     env:

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppearanceStore } from '../app/appearance';
-import { SAVED_LOCAL_ID, STATUS_LOCAL_ID } from './bots';
+import { SAVED_LOCAL_ID, STATIM_LOCAL_ID } from './bots';
 import { mergeChats, useChatStore } from './chat-store';
 import { draftKey } from './drafts';
 import { InMemoryChatSession } from './in-memory-session';
@@ -619,7 +619,7 @@ describe('stored history pagination', () => {
     for (let index = 1; index <= 600; index++) {
       await store.insertMessage({
         id: `local-${String(index).padStart(3, '0')}`,
-        chatId: STATUS_LOCAL_ID,
+        chatId: STATIM_LOCAL_ID,
         senderId: 'me',
         sentAt: index,
         content: { kind: 'text', text: String(index) },
@@ -628,11 +628,11 @@ describe('stored history pagination', () => {
       });
     }
 
-    await useChatStore.getState().loadMessages(STATUS_LOCAL_ID);
-    expect(useChatStore.getState().messages[STATUS_LOCAL_ID]).toHaveLength(500);
-    await useChatStore.getState().loadOlderMessages(STATUS_LOCAL_ID);
-    expect(useChatStore.getState().messages[STATUS_LOCAL_ID]).toHaveLength(600);
-    expect(useChatStore.getState().messages[STATUS_LOCAL_ID][0].id).toBe('local-001');
+    await useChatStore.getState().loadMessages(STATIM_LOCAL_ID);
+    expect(useChatStore.getState().messages[STATIM_LOCAL_ID]).toHaveLength(500);
+    await useChatStore.getState().loadOlderMessages(STATIM_LOCAL_ID);
+    expect(useChatStore.getState().messages[STATIM_LOCAL_ID]).toHaveLength(600);
+    expect(useChatStore.getState().messages[STATIM_LOCAL_ID][0].id).toBe('local-001');
   });
 
   it('folds a newer reaction when its target arrives from an older page', async () => {
@@ -641,7 +641,7 @@ describe('stored history pagination', () => {
     for (let index = 1; index <= 500; index++) {
       await store.insertMessage({
         id: `m${String(index).padStart(3, '0')}`,
-        chatId: STATUS_LOCAL_ID,
+        chatId: STATIM_LOCAL_ID,
         senderId: 'me',
         sentAt: index,
         content: { kind: 'text', text: String(index) },
@@ -651,7 +651,7 @@ describe('stored history pagination', () => {
     }
     await store.insertMessage({
       id: 'reaction-newer',
-      chatId: STATUS_LOCAL_ID,
+      chatId: STATIM_LOCAL_ID,
       senderId: 'me',
       sentAt: 501,
       content: { kind: 'reaction', targetId: 'm001', emoji: '👍', action: 'added' },
@@ -659,14 +659,14 @@ describe('stored history pagination', () => {
       status: 'sent',
     });
 
-    await useChatStore.getState().loadMessages(STATUS_LOCAL_ID);
+    await useChatStore.getState().loadMessages(STATIM_LOCAL_ID);
     expect(
-      useChatStore.getState().messages[STATUS_LOCAL_ID].some((entry) => entry.id === 'm001')
+      useChatStore.getState().messages[STATIM_LOCAL_ID].some((entry) => entry.id === 'm001')
     ).toBe(false);
-    await useChatStore.getState().loadOlderMessages(STATUS_LOCAL_ID);
+    await useChatStore.getState().loadOlderMessages(STATIM_LOCAL_ID);
 
     expect(
-      useChatStore.getState().messages[STATUS_LOCAL_ID].find((entry) => entry.id === 'm001')
+      useChatStore.getState().messages[STATIM_LOCAL_ID].find((entry) => entry.id === 'm001')
         ?.reactions
     ).toEqual({ '👍': ['me'] });
   });
@@ -756,7 +756,7 @@ describe('local persistence failures', () => {
       projectTestAccount('test-account', new FailingStore());
       const target = {
         id: 'target',
-        chatId: STATUS_LOCAL_ID,
+        chatId: STATIM_LOCAL_ID,
         senderId: 'me',
         sentAt: 1,
         content: { kind: 'text' as const, text: 'target' },
@@ -764,24 +764,24 @@ describe('local persistence failures', () => {
         status: 'sent' as const,
       };
       useChatStore.setState({
-        chats: [testChat({ id: STATUS_LOCAL_ID })],
-        messages: { [STATUS_LOCAL_ID]: [target] },
-        rawMessages: { [STATUS_LOCAL_ID]: [target] },
+        chats: [testChat({ id: STATIM_LOCAL_ID })],
+        messages: { [STATIM_LOCAL_ID]: [target] },
+        rawMessages: { [STATIM_LOCAL_ID]: [target] },
       });
 
       const action =
         kind === 'message'
           ? useChatStore
               .getState()
-              .postLocalMessage(STATUS_LOCAL_ID, { kind: 'text', text: 'new' }, 'me')
+              .postLocalMessage(STATIM_LOCAL_ID, { kind: 'text', text: 'new' }, 'me')
           : kind === 'private message'
             ? useChatStore
                 .getState()
-                .postPrivateMessage(STATUS_LOCAL_ID, { kind: 'text', text: 'private' })
-            : useChatStore.getState().react(STATUS_LOCAL_ID, 'target', '👍');
+                .postPrivateMessage(STATIM_LOCAL_ID, { kind: 'text', text: 'private' })
+            : useChatStore.getState().react(STATIM_LOCAL_ID, 'target', '👍');
       await expect(action).rejects.toThrow('disk full');
 
-      expect(useChatStore.getState().messages[STATUS_LOCAL_ID]).toEqual([target]);
+      expect(useChatStore.getState().messages[STATIM_LOCAL_ID]).toEqual([target]);
     }
   );
 });

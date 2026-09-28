@@ -3,7 +3,7 @@ import type { Widget, WidgetRow } from '@/design/widgets';
 
 import { registerChainStrategy, type ChainStrategy, type Holding } from './chains/strategy';
 import { walletCommands } from './commands';
-import { STATUS_LOCAL_ID } from '@/core/messaging/bots';
+import { STATIM_LOCAL_ID } from '@/core/messaging/bots';
 
 jest.mock('./bitcoin/bot', () => ({ checkAddress: jest.fn() }));
 jest.mock('./bitcoin', () => ({ bitcoinStrategy: jest.fn() }));
@@ -62,7 +62,7 @@ async function overview(): Promise<WidgetRow[]> {
       args: [],
       rest: '',
       context,
-      chatId: STATUS_LOCAL_ID,
+      chatId: STATIM_LOCAL_ID,
       respond: async (content) => {
         if (typeof content !== 'string' && content.kind === 'widget') widget = content.widget;
       },

@@ -143,7 +143,7 @@ render('icon-desktop', svg({ plate: PLATE, shape: 'desktop', scale: DESKTOP_TILE
 
 // The Statim room's avatar in the chat list, header and pickers: a circle,
 // since that is what every other avatar is. 96pt at 3x.
-render('status-avatar', svg({ plate: PLATE, shape: 'circle' }), 288);
+render('statim-avatar', svg({ plate: PLATE, shape: 'circle' }), 288);
 
 // Google Play's listing: a 512 icon it masks itself, and the 1024×500 feature
 // graphic it will not publish without. Both opaque, as Play requires.

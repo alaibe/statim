@@ -45,13 +45,13 @@ account.
 | `01-launch` | Launches, opens the Statim chat, returns to Chats. |
 | `02-commands` | Runs a command from a chip and from the composer. |
 | `03-plugins` | Enables and disables a plugin, and its chat. |
-| `04-status` | Persists a unique message in the local Statim chat. |
+| `04-statim` | Persists a unique message in the local Statim chat. |
 | `05-settings` | Opens the settings screens and cancels account erasure. |
 | `06-browser` | `/commands` discovery and its chat-specific list, scrolls the full slash picker to Scan, opens Scan from each entry point, and keeps the swap providers in the Browser chat. |
 | `07-open` | Opens a bookmark with `/open` in Safari, comes back, checks the composer is free again. |
 
 Shared steps live in `e2e/lib/`: `launch` launches and waits for the chat list,
-`open-status-chat` launches into the Statim chat, `send-command` sends its
+`open-statim-chat` launches into the Statim chat, `send-command` sends its
 `TEXT` parameter from the composer, and `back` leaves a native stack screen. Maestro only
 enumerates the top level of `e2e/`, so those never run as flows of their own.
 
@@ -66,7 +66,7 @@ stack screens.
 Do not call `hideKeyboard`. Maestro cannot dismiss this app's keyboard with
 it; the flows tap a non-interactive area instead.
 
-Generate unique text where a flow asserts persistence. `04-status` uses
+Generate unique text where a flow asserts persistence. `04-statim` uses
 `evalScript` so that output left over from an earlier run cannot satisfy its
 assertions.
 

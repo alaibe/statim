@@ -4,4 +4,4 @@ appId: im.statim.app
 - runFlow: launch.yaml
 - waitForAnimationToEnd:
     timeout: 5000
-- openLink: "statim://chat/local-status"
+- openLink: "statim://chat/local-statim"

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { STATUS_LOCAL_ID } from './bots';
+import { STATIM_LOCAL_ID } from './bots';
 import { useChatStore } from './chat-store';
 import { InMemoryChatSession } from './in-memory-session';
 import { InMemoryMessageStore } from './message-store';
@@ -69,12 +69,12 @@ describe('react', () => {
     await connectFake(session);
     await useChatStore
       .getState()
-      .postLocalMessage(STATUS_LOCAL_ID, { kind: 'text', text: 'remember this' }, 'me');
-    const messageId = useChatStore.getState().messages[STATUS_LOCAL_ID][0].id;
+      .postLocalMessage(STATIM_LOCAL_ID, { kind: 'text', text: 'remember this' }, 'me');
+    const messageId = useChatStore.getState().messages[STATIM_LOCAL_ID][0].id;
 
-    await useChatStore.getState().react(STATUS_LOCAL_ID, messageId, '👍');
+    await useChatStore.getState().react(STATIM_LOCAL_ID, messageId, '👍');
 
-    expect(reactionsOn(STATUS_LOCAL_ID, messageId)).toEqual(['👍']);
+    expect(reactionsOn(STATIM_LOCAL_ID, messageId)).toEqual(['👍']);
   });
 
   it('toggles off when you tap the same emoji again', async () => {
@@ -82,13 +82,13 @@ describe('react', () => {
     await connectFake(session);
     await useChatStore
       .getState()
-      .postLocalMessage(STATUS_LOCAL_ID, { kind: 'text', text: 'remember this' }, 'me');
-    const messageId = useChatStore.getState().messages[STATUS_LOCAL_ID][0].id;
+      .postLocalMessage(STATIM_LOCAL_ID, { kind: 'text', text: 'remember this' }, 'me');
+    const messageId = useChatStore.getState().messages[STATIM_LOCAL_ID][0].id;
 
-    await useChatStore.getState().react(STATUS_LOCAL_ID, messageId, '👍');
-    await useChatStore.getState().react(STATUS_LOCAL_ID, messageId, '👍');
+    await useChatStore.getState().react(STATIM_LOCAL_ID, messageId, '👍');
+    await useChatStore.getState().react(STATIM_LOCAL_ID, messageId, '👍');
 
-    expect(reactionsOn(STATUS_LOCAL_ID, messageId)).toEqual([]);
+    expect(reactionsOn(STATIM_LOCAL_ID, messageId)).toEqual([]);
   });
 
   it('restores a local reaction from message history', async () => {
@@ -96,13 +96,13 @@ describe('react', () => {
     projectTestAccount('reaction-test', store);
     await useChatStore
       .getState()
-      .postLocalMessage(STATUS_LOCAL_ID, { kind: 'text', text: 'remember this' }, 'me');
-    const messageId = useChatStore.getState().messages[STATUS_LOCAL_ID][0].id;
-    await useChatStore.getState().react(STATUS_LOCAL_ID, messageId, '👍');
+      .postLocalMessage(STATIM_LOCAL_ID, { kind: 'text', text: 'remember this' }, 'me');
+    const messageId = useChatStore.getState().messages[STATIM_LOCAL_ID][0].id;
+    await useChatStore.getState().react(STATIM_LOCAL_ID, messageId, '👍');
 
     useChatStore.setState({ messages: {} });
-    await useChatStore.getState().loadMessages(STATUS_LOCAL_ID);
+    await useChatStore.getState().loadMessages(STATIM_LOCAL_ID);
 
-    expect(reactionsOn(STATUS_LOCAL_ID, messageId)).toEqual(['👍']);
+    expect(reactionsOn(STATIM_LOCAL_ID, messageId)).toEqual(['👍']);
   });
 });

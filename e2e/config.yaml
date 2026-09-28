@@ -5,6 +5,6 @@ executionOrder:
     - 01-launch
     - 02-commands
     - 03-plugins
-    - 04-status
+    - 04-statim
     - 05-settings
     - 06-browser

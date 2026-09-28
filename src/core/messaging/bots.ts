@@ -19,7 +19,7 @@ export function botIdFromChat(id: ChatId): string {
   return id.slice(LOCAL_PREFIX.length);
 }
 
-export const STATUS_LOCAL_ID = botChatId('status');
+export const STATIM_LOCAL_ID = botChatId('statim');
 export const SAVED_LOCAL_ID = botChatId('saved');
 
 export const SAVED_MESSAGES: Bot = {

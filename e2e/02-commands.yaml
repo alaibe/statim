@@ -1,7 +1,7 @@
 # Runs commands from a quick action and from the composer.
 appId: im.statim.app
 ---
-- runFlow: lib/open-status-chat.yaml
+- runFlow: lib/open-statim-chat.yaml
 
 - tapOn:
     id: "quick-plugins"

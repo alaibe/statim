@@ -2,14 +2,14 @@ import type { Bot } from '@/core/messaging/bots';
 import type { WidgetContent } from '@/core/messaging/types';
 import { W } from '@/design/widgets';
 
-export const STATUS_BOT_ID = 'status';
+export const STATIM_BOT_ID = 'statim';
 
-export function makeStatusBot(): Bot {
+export function makeStatimBot(): Bot {
   return {
-    id: STATUS_BOT_ID,
+    id: STATIM_BOT_ID,
     name: 'Statim',
     tagline: 'Notebook & slash commands · on-device',
-    avatar: require('@/assets/images/status-avatar.png') as number,
+    avatar: require('@/assets/images/statim-avatar.png') as number,
 
     greeting,
   };

@@ -18,13 +18,13 @@ jest.mock('../account/keyring', () => ({
   loadOrCreateDbEncryptionKey: async () => new Uint8Array(32),
 }));
 
-const BOT_ID = 'status';
+const BOT_ID = 'statim';
 const CHAT = botChatId(BOT_ID);
 
 function makeBot(overrides: Partial<Bot> = {}): Bot {
   return {
     id: BOT_ID,
-    name: 'Status',
+    name: 'Statim',
     tagline: 'on-device',
     greeting: () => ['Welcome.'],
     async onMessage(text, ctx) {

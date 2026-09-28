@@ -3,7 +3,7 @@ import type { Plugin } from '@/core/plugins/types';
 import { liveViews } from '@/core/plugins/live';
 
 import { assistantCommands, pluginsCard } from './commands';
-import { makeStatusBot } from './bot';
+import { makeStatimBot } from './bot';
 
 export const assistantPlugin: Plugin = {
   manifest: {
@@ -18,7 +18,7 @@ export const assistantPlugin: Plugin = {
   setup(context) {
     const views = liveViews(context, { plugins: () => pluginsCard(context) });
     return {
-      bots: [makeStatusBot()],
+      bots: [makeStatimBot()],
       commands: assistantCommands(views),
       views,
 

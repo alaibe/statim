@@ -1,4 +1,4 @@
-import { botChatId, isLocalChat, STATUS_LOCAL_ID } from './bots';
+import { botChatId, isLocalChat, STATIM_LOCAL_ID } from './bots';
 import {
   LOCAL_PROTOCOL,
   NATIVE_ID,
@@ -83,12 +83,12 @@ describe('local chats', () => {
     // bots.ts chose `local-` for the same URL-safety reason; this keeps the
     // two consistent rather than making every caller test for both.
     expect(LOCAL_PROTOCOL).toBe('local');
-    expect(protocolOf(STATUS_LOCAL_ID)).toBe('local');
-    expect(isLocalChat(botChatId('status'))).toBe(true);
+    expect(protocolOf(STATIM_LOCAL_ID)).toBe('local');
+    expect(isLocalChat(botChatId('statim'))).toBe(true);
   });
 
   it('produces bot ids that are themselves valid native ids', () => {
-    expect(NATIVE_ID.test('status')).toBe(true);
+    expect(NATIVE_ID.test('statim')).toBe(true);
   });
 });
 

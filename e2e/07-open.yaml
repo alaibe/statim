@@ -6,7 +6,7 @@ tags:
 - launchApp
 - extendedWaitUntil:
     visible:
-      id: "chat-local-status"
+      id: "chat-local-statim"
     timeout: 15000
 - waitForAnimationToEnd:
     timeout: 5000

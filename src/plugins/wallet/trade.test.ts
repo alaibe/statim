@@ -17,7 +17,7 @@ import {
 import { EVM_CHAINS, evmStrategy } from './chains/evm';
 import { registerChainStrategy } from './chains/strategy';
 import { tradeCommand } from './trade';
-import { STATUS_LOCAL_ID } from '@/core/messaging/bots';
+import { STATIM_LOCAL_ID } from '@/core/messaging/bots';
 
 jest.mock('./bitcoin/bot', () => ({ checkAddress: jest.fn() }));
 jest.mock('./bitcoin', () => ({ bitcoinStrategy: jest.fn() }));
@@ -110,7 +110,7 @@ async function run(args: string[]) {
   const result = await tradeCommand.run({
     args,
     rest: args.join(' '),
-    chatId: STATUS_LOCAL_ID,
+    chatId: STATIM_LOCAL_ID,
     context,
     respond: async (content) => {
       if (typeof content !== 'string' && content.kind === 'widget') widgets.push(content.widget);
@@ -553,7 +553,7 @@ describe('/trade', () => {
     const result = await tradeCommand.run({
       args,
       rest: args.join(' '),
-      chatId: STATUS_LOCAL_ID,
+      chatId: STATIM_LOCAL_ID,
       context,
       respond: async () => {
         throw new Error('Network request failed');

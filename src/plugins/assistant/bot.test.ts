@@ -3,33 +3,33 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { projectTestAccount, resetChatStore } from '@/core/messaging/testing/store';
 import { deleteAccountDatabase } from '@/storage/database';
-import { lockCard, makeStatusBot, thisDevice } from './bot';
-import { STATUS_LOCAL_ID } from '@/core/messaging/bots';
+import { lockCard, makeStatimBot, thisDevice } from './bot';
+import { STATIM_LOCAL_ID } from '@/core/messaging/bots';
 
 beforeEach(async () => {
   await AsyncStorage.clear();
   resetChatStore();
-  await deleteAccountDatabase('status-test');
-  projectTestAccount('status-test');
+  await deleteAccountDatabase('statim-test');
+  projectTestAccount('statim-test');
 });
 
 it('keeps ordinary notes quiet and pages Statim history from account SQLite', async () => {
-  const bot = makeStatusBot();
+  const bot = makeStatimBot();
   await useChatStore.getState().registerBots([bot]);
-  const welcomeLength = useChatStore.getState().messages[STATUS_LOCAL_ID].length;
+  const welcomeLength = useChatStore.getState().messages[STATIM_LOCAL_ID].length;
 
   for (let index = 0; index < 205; index++) {
-    await useChatStore.getState().sendMessage(STATUS_LOCAL_ID, {
+    await useChatStore.getState().sendMessage(STATIM_LOCAL_ID, {
       kind: 'text',
       text: `Remember how to help with item ${index}`,
     });
   }
-  expect(useChatStore.getState().messages[STATUS_LOCAL_ID]).toHaveLength(welcomeLength + 205);
+  expect(useChatStore.getState().messages[STATIM_LOCAL_ID]).toHaveLength(welcomeLength + 205);
 
   resetChatStore();
-  projectTestAccount('status-test');
-  await useChatStore.getState().registerBots([makeStatusBot()]);
-  const restored = useChatStore.getState().messages[STATUS_LOCAL_ID];
+  projectTestAccount('statim-test');
+  await useChatStore.getState().registerBots([makeStatimBot()]);
+  const restored = useChatStore.getState().messages[STATIM_LOCAL_ID];
   expect(restored).toHaveLength(welcomeLength + 205);
   expect(restored[welcomeLength].content).toEqual({
     kind: 'text',
@@ -39,7 +39,7 @@ it('keeps ordinary notes quiet and pages Statim history from account SQLite', as
     kind: 'text',
     text: 'Remember how to help with item 204',
   });
-  await deleteAccountDatabase('status-test');
+  await deleteAccountDatabase('statim-test');
 });
 
 describe('the lock card in the greeting', () => {
@@ -75,6 +75,6 @@ describe('the lock card in the greeting', () => {
   });
 
   it('is part of the Statim greeting', () => {
-    expect(makeStatusBot().greeting()).toContainEqual(lockCard());
+    expect(makeStatimBot().greeting()).toContainEqual(lockCard());
   });
 });

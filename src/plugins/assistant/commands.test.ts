@@ -2,7 +2,7 @@ import { liveViews } from '@/core/plugins/live';
 import type { PluginContext, PluginSummary, SlashCommand } from '@/core/plugins/types';
 
 import { assistantCommands, pluginsCard } from './commands';
-import { STATUS_LOCAL_ID } from '@/core/messaging/bots';
+import { STATIM_LOCAL_ID } from '@/core/messaging/bots';
 
 const AVAILABLE_COMMANDS = [
   {
@@ -51,7 +51,7 @@ const run = async (name: string, args: string[], context: PluginContext) => {
   const result = await find(name, context).run({
     rest: args.join(' '),
     args,
-    chatId: STATUS_LOCAL_ID,
+    chatId: STATIM_LOCAL_ID,
     context,
     respond: async (content) => {
       if (typeof content === 'string') said.push(content);

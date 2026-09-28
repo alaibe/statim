@@ -9,7 +9,7 @@ import { basePath } from '@/lib/site';
 
 const screens = [
   ['chats', 'The chat list'],
-  ['status-chat', 'The Statim chat'],
+  ['statim-chat', 'The Statim chat'],
   ['wallet', 'The Wallet chat'],
   ['protocols', 'Settings → Protocols'],
   ['message-actions', 'Reactions, reply, copy, forward'],

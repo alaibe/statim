@@ -2,9 +2,9 @@
 appId: im.statim.app
 ---
 - evalScript: ${output.note = 'ridge-trip-' + new Date().getTime().toString()}
-- runFlow: lib/open-status-chat.yaml
+- runFlow: lib/open-statim-chat.yaml
 - assertVisible:
-    id: "chat-header-local-status"
+    id: "chat-header-local-statim"
 - assertNotVisible: ${output.note}
 
 - runFlow:
@@ -18,16 +18,16 @@ appId: im.statim.app
 - tapOn: "Back"
 - waitForAnimationToEnd:
     timeout: 5000
-- openLink: "statim://chat/local-status"
+- openLink: "statim://chat/local-statim"
 - assertVisible:
-    id: "chat-header-local-status"
+    id: "chat-header-local-statim"
 - extendedWaitUntil:
     visible: ${output.note}
     timeout: 10000
 
-- runFlow: lib/open-status-chat.yaml
+- runFlow: lib/open-statim-chat.yaml
 - assertVisible:
-    id: "chat-header-local-status"
+    id: "chat-header-local-statim"
 - extendedWaitUntil:
     visible: ${output.note}
     timeout: 15000

@@ -68,8 +68,8 @@ describe('the merged list', () => {
 
   it('keeps local bot chats alongside both', async () => {
     const bot: Bot = {
-      id: 'status',
-      name: 'Status',
+      id: 'statim',
+      name: 'Statim',
       tagline: 'on-device',
       greeting: () => ['hi'],
     };
@@ -80,9 +80,9 @@ describe('the merged list', () => {
     await useChatStore.getState().registerBots([bot]);
 
     const ids = useChatStore.getState().chats.map((c) => c.id);
-    expect(ids).toContain(botChatId('status'));
+    expect(ids).toContain(botChatId('statim'));
     expect(ids).toContain(ns('c1'));
-    expect(useChatStore.getState().chats.find((c) => c.id === botChatId('status'))?.protocol).toBe(
+    expect(useChatStore.getState().chats.find((c) => c.id === botChatId('statim'))?.protocol).toBe(
       'local'
     );
   });

@@ -1,6 +1,6 @@
 import { formatEther, parseEther } from 'viem';
 
-import { STATUS_LOCAL_ID } from '@/core/messaging/bots';
+import { STATIM_LOCAL_ID } from '@/core/messaging/bots';
 import type { PluginContext } from '@/core/plugins/types';
 import { trimDecimals } from '@/lib/evm/chains';
 
@@ -81,7 +81,7 @@ describe('/split --chain', () => {
         args,
         rest: args.join(' '),
         context,
-        chatId: STATUS_LOCAL_ID,
+        chatId: STATIM_LOCAL_ID,
         respond: async () => {},
       });
     return { result, sent };

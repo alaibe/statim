@@ -4,7 +4,7 @@ import { headerSubtitle } from './header-subtitle';
 import { testChat } from '@/core/messaging/testing/chats';
 
 jest.mock('@/features/protocols/presentation', () => ({
-  protocolSubtitle: (protocol?: string) => (protocol === 'telegram' ? 'Telegram' : 'Status'),
+  protocolSubtitle: (protocol?: string) => (protocol === 'telegram' ? 'Telegram' : 'Statim'),
 }));
 
 const chat = (over: Partial<Chat>): Chat =>

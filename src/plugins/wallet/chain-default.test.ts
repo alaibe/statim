@@ -4,7 +4,7 @@ import type { Widget } from '@/design/widgets';
 import { registerChainStrategy, type ChainStrategy } from './chains/strategy';
 import { walletCommands } from './commands';
 import { defaultChain } from './chain-list';
-import { STATUS_LOCAL_ID } from '@/core/messaging/bots';
+import { STATIM_LOCAL_ID } from '@/core/messaging/bots';
 
 jest.mock('./bitcoin/bot', () => ({ checkAddress: jest.fn() }));
 jest.mock('./bitcoin', () => ({ bitcoinStrategy: jest.fn() }));
@@ -47,7 +47,7 @@ async function openForm(name: string, args: string[], context: PluginContext) {
       args,
       rest: args.join(' '),
       context,
-      chatId: STATUS_LOCAL_ID,
+      chatId: STATIM_LOCAL_ID,
       respond: async (content) => {
         if (typeof content !== 'string' && content.kind === 'widget') widget = content.widget;
       },

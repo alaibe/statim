@@ -37,7 +37,7 @@ const features = [
     description:
       'Type / to see what a chat can do. The Statim chat holds notes, reminders and help, all saved on this device, and plugins add their own slash commands where they belong.',
     icon: DeviceTouchIcon,
-    screen: 'status-chat',
+    screen: 'statim-chat',
     alt: 'The Statim chat with slash command chips above the composer',
   },
   {

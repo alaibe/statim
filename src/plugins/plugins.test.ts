@@ -3,7 +3,7 @@ import { parseCommand } from '@/core/commands/parser';
 import { PluginRegistry } from '@/core/plugins/registry';
 
 import { ALL_PLUGINS, DEFAULT_ENABLED_PLUGINS } from './index';
-import { STATUS_BOT_ID } from './assistant/bot';
+import { STATIM_BOT_ID } from './assistant/bot';
 import { CHAINS, walletChainById } from './wallet/chain-list';
 import { botChatId } from '@/core/messaging/bots';
 import { asChatId } from '@/core/messaging/testing/ids';
@@ -456,7 +456,7 @@ describe('every bot', () => {
 
   it('either speaks first or answers back', () => {
     for (const { bot } of allBots) {
-      if (bot.id === STATUS_BOT_ID) continue;
+      if (bot.id === STATIM_BOT_ID) continue;
       expect(Boolean(bot.activate) || Boolean(bot.onMessage)).toBe(true);
     }
   });

@@ -38,13 +38,13 @@ appId: im.statim.app
 
 - extendedWaitUntil:
     visible:
-      id: "chat-local-status"
+      id: "chat-local-statim"
     timeout: 30000
 - waitForAnimationToEnd
 - takeScreenshot: 02-chats
 
 - tapOn:
-    id: "chat-local-status"
+    id: "chat-local-statim"
 - extendedWaitUntil:
     visible:
       id: "composer-input"
@@ -56,7 +56,7 @@ appId: im.statim.app
         id: "composer-input"
     commands:
       - tapOn:
-          id: "chat-local-status"
+          id: "chat-local-statim"
 - extendedWaitUntil:
     visible:
       id: "composer-input"

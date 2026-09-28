@@ -34,7 +34,7 @@ export function worksOn(command: SlashCommand, session: ChatSession | undefined)
   return !command.requires || supports(session, command.requires);
 }
 
-export const CORE_ID = 'status';
+export const CORE_ID = 'statim';
 
 const CORE_CONTEXT = new Proxy({} as PluginContext, {
   get(_target, property) {

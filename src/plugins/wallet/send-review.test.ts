@@ -9,7 +9,7 @@ import { estimateTransfer } from '@/lib/evm/wallet';
 import { EVM_CHAINS, evmStrategy } from './chains/evm';
 import { registerChainStrategy, type ChainStrategy } from './chains/strategy';
 import { walletCommands } from './commands';
-import { STATUS_LOCAL_ID } from '@/core/messaging/bots';
+import { STATIM_LOCAL_ID } from '@/core/messaging/bots';
 
 jest.mock('./bitcoin/bot', () => ({ checkAddress: jest.fn() }));
 jest.mock('./bitcoin', () => ({ bitcoinStrategy: jest.fn() }));
@@ -60,7 +60,7 @@ async function runSend(
     .run({
       args,
       rest: args.join(' '),
-      chatId: STATUS_LOCAL_ID,
+      chatId: STATIM_LOCAL_ID,
       context: {
         account: { address: sender, signer: () => ({ address: sender }) },
       } as unknown as PluginContext,
@@ -106,7 +106,7 @@ describe('/send errors and confirmation', () => {
       .run({
         args,
         rest: args.join(' '),
-        chatId: STATUS_LOCAL_ID,
+        chatId: STATIM_LOCAL_ID,
         context: {
           account: { address: sender, signer: () => ({ address: sender }) },
         } as unknown as PluginContext,
@@ -161,7 +161,7 @@ describe('/send errors and confirmation', () => {
       .run({
         args: [recipient],
         rest: recipient,
-        chatId: STATUS_LOCAL_ID,
+        chatId: STATIM_LOCAL_ID,
         context,
         respond: async (content) => {
           if (typeof content !== 'string' && content.kind === 'widget') widget = content.widget;
