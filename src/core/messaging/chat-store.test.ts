@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppearanceStore } from '../app/appearance';
-import { STATUS_LOCAL_ID } from './bots';
+import { SAVED_LOCAL_ID, STATUS_LOCAL_ID } from './bots';
 import { mergeChats, useChatStore } from './chat-store';
 import { draftKey } from './drafts';
 import { InMemoryChatSession } from './in-memory-session';
@@ -1075,6 +1075,18 @@ describe('local messages', () => {
     expect(useChatStore.getState().messages[notes].map((m) => m.sentAt)).toEqual([
       5_000, 5_001, 5_002,
     ]);
+  });
+
+  it('keep the message a reply answers', async () => {
+    projectTestAccount('test-account', new InMemoryMessageStore());
+    const store = useChatStore.getState();
+    await store.postLocalMessage(SAVED_LOCAL_ID, { kind: 'text', text: 'question' }, 'me');
+    const [question] = useChatStore.getState().messages[SAVED_LOCAL_ID];
+
+    await store.sendMessage(SAVED_LOCAL_ID, { kind: 'text', text: 'answer' }, question.id);
+
+    const answer = useChatStore.getState().messages[SAVED_LOCAL_ID].at(-1);
+    expect(answer?.replyTo).toBe(question.id);
   });
 });
 

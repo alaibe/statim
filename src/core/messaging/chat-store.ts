@@ -95,7 +95,12 @@ export interface ChatState {
   accountStorage: AccountStorage | null;
 
   registerBots(bots: Bot[]): Promise<void>;
-  postLocalMessage(id: ChatId, content: MessageContent, from: 'me' | 'bot'): Promise<void>;
+  postLocalMessage(
+    id: ChatId,
+    content: MessageContent,
+    from: 'me' | 'bot',
+    replyTo?: MessageId
+  ): Promise<void>;
 
   postPrivateMessage(id: ChatId, content: MessageContent): Promise<void>;
 
@@ -314,7 +319,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   async sendMessage(id, picked, replyTo, threadRoot) {
     requireSendable(get(), id);
     if (isLocalChat(id)) {
-      await get().postLocalMessage(id, picked, 'me');
+      await get().postLocalMessage(id, picked, 'me', replyTo);
 
       const bot = get().bots[botIdFromChat(id)];
       if (bot?.onMessage && picked.kind === 'text') {
@@ -656,7 +661,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }));
   },
 
-  async postLocalMessage(id, content, from) {
+  async postLocalMessage(id, content, from, replyTo) {
     const accountId = get().accountId;
     const store = requireMessageStore(get());
     const messageId = `${id}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
@@ -671,6 +676,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       content: storedContent,
       fromMe: from === 'me',
       status: 'sent',
+      replyTo,
     };
 
     await store.insertMessage(message);
