@@ -1,26 +1,26 @@
 import { Directory, File, Paths } from 'expo-file-system';
 
 import { pathOfFileUri } from './file-uri';
-import { OWNED_DIRECTORIES } from './inventory';
+import { OWNED_DIRECTORIES, type FileArea } from './inventory';
 
 export { pathOfFileUri } from './file-uri';
 
-export function mediaDirectory(area: string, accountId: string): Directory {
+export function mediaDirectory(area: FileArea, accountId: string): Directory {
   const dir = new Directory(Paths.document, area, accountId);
   if (!dir.exists) dir.create({ intermediates: true });
   return dir;
 }
 
-export function mediaFile(area: string, name: string, accountId: string): File {
+export function mediaFile(area: FileArea, name: string, accountId: string): File {
   return new File(mediaDirectory(area, accountId), name);
 }
 
 /** A protocol's own data directory (an `OWNED_DIRECTORIES` area), as a plain path for a native SDK. */
-export async function accountDirectory(area: string, accountId: string): Promise<string> {
+export async function accountDirectory(area: FileArea, accountId: string): Promise<string> {
   return pathOfFileUri(mediaDirectory(area, accountId).uri);
 }
 
-export async function eraseAccountDirectory(area: string, accountId: string): Promise<void> {
+export async function eraseAccountDirectory(area: FileArea, accountId: string): Promise<void> {
   const dir = new Directory(Paths.document, area, accountId);
   if (dir.exists) dir.delete();
 }

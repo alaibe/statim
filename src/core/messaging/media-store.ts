@@ -1,5 +1,6 @@
 import { File, Paths } from 'expo-file-system';
 
+import type { FileArea } from '@/storage/inventory';
 import { mediaDirectory, mediaFile } from '@/storage/media';
 
 export interface StoredMedia {
@@ -15,7 +16,7 @@ export async function readMediaBase64(uri: string): Promise<{ data: string; size
 
 /** Keeps `base64` under the account's media unless that name is already there. */
 export async function storeMedia(
-  area: string,
+  area: FileArea,
   name: string,
   accountId: string,
   base64: string
@@ -30,7 +31,7 @@ export async function storeMedia(
 
 /** Copies a file the system handed over (a picker, a recording) into the account's media. */
 export async function adoptMedia(
-  area: string,
+  area: FileArea,
   name: string,
   accountId: string,
   sourceUri: string
@@ -51,7 +52,7 @@ export function basenameOf(uri: string): string | undefined {
 }
 
 export async function downloadMedia(
-  area: string,
+  area: FileArea,
   name: string,
   accountId: string,
   url: string

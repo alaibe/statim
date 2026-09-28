@@ -1,6 +1,7 @@
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 
 import { bytesToBase64 } from '@/lib/bytes';
+import type { FileArea } from '@/storage/inventory';
 
 import type { StoredMedia } from './media-store';
 
@@ -10,10 +11,11 @@ export type { StoredMedia } from './media-store';
 // is converted again (every chat open lists its attachments) skips the copy.
 const stored = new Map<string, string>();
 
-const storedKey = (area: string, name: string, accountId: string) => `${accountId}/${area}/${name}`;
+const storedKey = (area: FileArea, name: string, accountId: string) =>
+  `${accountId}/${area}/${name}`;
 
 async function statMedia(
-  area: string,
+  area: FileArea,
   name: string,
   accountId: string
 ): Promise<StoredMedia | null> {
@@ -30,7 +32,7 @@ export async function readMediaBase64(uri: string): Promise<{ data: string; size
 }
 
 export async function storeMedia(
-  area: string,
+  area: FileArea,
   name: string,
   accountId: string,
   base64: string
@@ -45,7 +47,7 @@ export async function storeMedia(
 }
 
 export async function adoptMedia(
-  area: string,
+  area: FileArea,
   name: string,
   accountId: string,
   sourceUri: string
@@ -70,7 +72,7 @@ export function basenameOf(uri: string): string | undefined {
 }
 
 export async function downloadMedia(
-  area: string,
+  area: FileArea,
   name: string,
   accountId: string,
   url: string

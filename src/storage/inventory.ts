@@ -25,3 +25,4 @@ export const STORAGE_INVENTORY = {
 } as const satisfies Record<Medium, RetentionAreas>;
 
 export const OWNED_DIRECTORIES = STORAGE_INVENTORY.files.account;
+export type FileArea = (typeof OWNED_DIRECTORIES)[number];
