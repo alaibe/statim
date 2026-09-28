@@ -10,6 +10,10 @@ codebase. The desktop app is the web export of that codebase running in a Tauri
 window.
 
 <p align="center">
+  <a href="docs/public/promo/film-16x9.mp4"><img src="docs/public/promo/film.webp" width="800" alt="The promo film: a twelve-word account, five protocols in one chat list, and an AI agent paying a friend back while you approve on the phone"></a>
+</p>
+
+<p align="center">
   <img src="distribution/ios/screenshots/6.9/01-welcome.png" width="196" alt="Welcome screen: create an account, restore a phrase or connect a hardware wallet">
   <img src="distribution/ios/screenshots/6.9/03-conversation.png" width="196" alt="The Status chat, with slash command chips above the composer">
   <img src="distribution/ios/screenshots/6.9/05-message-actions.png" width="196" alt="Long-pressing a message: reactions, reply, copy and forward">
@@ -126,6 +130,7 @@ refresh them.
 | Releasing, and what the stores ask for | [`distribution/`](distribution/README.md) |
 | Why each dependency is patched | [`patches/README.md`](patches/README.md) |
 | End-to-end tests | [`e2e/README.md`](e2e/README.md) |
+| The promo film | [`marketing/`](marketing/README.md) |
 | Running Nostr and Waku locally | [`local-net/README.md`](local-net/README.md) |
 | Running your own bots | [Your own bots](https://alaibe.github.io/status-original/guide/bots) |
 

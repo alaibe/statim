@@ -28,7 +28,8 @@ Biome formats TypeScript and JSON, rustfmt formats `src-tauri`. Neither lints;
   (`npm run brand:build`); `ios/` and `android/` from `app.json`
   (`npx expo prebuild`); `skills/status-original/SKILL.md` and
   `src-tauri/cli/help.txt` from `src/features/cli/commands.ts`
-  (`npm run cli:docs`). Editing the output is undone on the next build.
+  (`npm run cli:docs`); `docs/public/promo/` from `marketing/film.html`
+  (`npm run promo:build`). Editing the output is undone on the next build.
 - `.web.ts` / `.web.tsx` is the desktop. There is no browser deployment.
   A platform file must have a non-platform neighbour, and Expo Router needs a
   non-platform file for every route.
