@@ -6,6 +6,7 @@ import type { ChatMessage, MessageId } from '@/core/messaging/types';
 import { DateSeparator } from './date-separator';
 import type { MessageAction } from './message-actions';
 import { MessageBubble, type ReplyPreview } from './message-bubble';
+import type { Reactors } from './reaction-row';
 
 const GROUP_WINDOW_MS = 60_000;
 
@@ -21,9 +22,11 @@ export function replyPreview(target: ChatMessage, nameFor: (id: string) => strin
 export function MessageRow({
   message,
   previous,
+  next,
   highlighted,
   replyTarget,
   nameFor,
+  reactors,
   senderName,
   isGroup,
   onCommand,
@@ -35,9 +38,11 @@ export function MessageRow({
 }: {
   message: ChatMessage;
   previous: ChatMessage | undefined;
+  next: ChatMessage | undefined;
   highlighted: boolean;
   replyTarget: ChatMessage | undefined;
   nameFor: (id: string) => string;
+  reactors?: Reactors;
   senderName: string;
   isGroup: boolean;
   onCommand: (command: string) => void;
@@ -47,13 +52,9 @@ export function MessageRow({
   replies: number;
   onOpenThread?: (root: MessageId) => void;
 }) {
-  const grouped =
-    !!previous &&
-    previous.senderId === message.senderId &&
-    message.sentAt - previous.sentAt < GROUP_WINDOW_MS &&
-    previous.content.kind !== 'system';
-
   const startsNewDay = isNewDay(previous?.sentAt, message.sentAt);
+  const grouped = !!previous && sameRun(previous, message) && !startsNewDay;
+  const tail = !next || !sameRun(message, next) || isNewDay(message.sentAt, next.sentAt);
 
   return (
     <>
@@ -61,7 +62,9 @@ export function MessageRow({
       <View className={highlighted ? 'bg-brand/15' : undefined}>
         <MessageBubble
           message={message}
-          grouped={grouped && !startsNewDay}
+          grouped={grouped}
+          tail={tail}
+          reactors={reactors}
           senderName={senderName}
           showSender={isGroup && !grouped && !message.privateToMe}
           onCommand={onCommand}
@@ -83,5 +86,14 @@ export function MessageRow({
         />
       </View>
     </>
+  );
+}
+
+function sameRun(earlier: ChatMessage, later: ChatMessage): boolean {
+  return (
+    earlier.senderId === later.senderId &&
+    later.sentAt - earlier.sentAt < GROUP_WINDOW_MS &&
+    earlier.content.kind !== 'system' &&
+    later.content.kind !== 'system'
   );
 }

@@ -27,5 +27,4 @@ it('is the colour the UI calls brand', () => {
   const plate = /data-plate="#([0-9A-F]{6})"/.exec(trace().markup)?.[1] ?? '';
   const rgb = [0, 2, 4].map((at) => parseInt(plate.slice(at, at + 2), 16)).join(' ');
   expect(Palette.light.brand).toBe(rgb);
-  expect(Palette.light['bubble-out']).toBe(rgb);
 });

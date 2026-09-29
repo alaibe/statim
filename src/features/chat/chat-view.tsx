@@ -88,9 +88,9 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
     loadEarlier,
     highlighted,
   } = useChatTimeline(id, thread, session, Boolean(onOpenThread));
-  const { nameFor } = useDisplayNames(
-    chat ? chatPeople(chat, selfIdFor({ sessions }, chat.protocol), allMessages) : []
-  );
+  const selfId = chat ? selfIdFor({ sessions }, chat.protocol) : '';
+  const { nameFor } = useDisplayNames(chat ? chatPeople(chat, selfId, allMessages) : []);
+  const reactors = { nameOf: nameFor, selfId };
   const pinnedMessages = usePinnedMessages(
     id,
     allMessages,
@@ -145,9 +145,11 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
     <MessageRow
       message={item}
       previous={messages[index - 1]}
+      next={messages[index + 1]}
       highlighted={item.id === highlighted}
       replyTarget={item.replyTo ? byId.get(item.replyTo) : undefined}
       nameFor={nameFor}
+      reactors={reactors}
       senderName={isBot ? botName : nameFor(item.senderId)}
       isGroup={isGroup}
       onCommand={runCommand}

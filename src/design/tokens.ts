@@ -18,9 +18,9 @@ export const Palette = {
     line: '228 229 234',
     'line-strong': '208 210 218',
 
-    'bubble-out': '74 87 173',
-    'bubble-out-on': '255 255 255',
-    'bubble-in': '240 240 245',
+    'bubble-out': '224 228 250',
+    'bubble-out-on': '16 17 22',
+    'bubble-in': '255 255 255',
     'bubble-in-on': '16 17 22',
 
     success: '22 163 74',
@@ -45,9 +45,9 @@ export const Palette = {
     line: '38 39 49',
     'line-strong': '55 57 69',
 
-    'bubble-out': '66 77 148',
+    'bubble-out': '50 59 112',
     'bubble-out-on': '235 239 254',
-    'bubble-in': '32 32 42',
+    'bubble-in': '24 37 51',
     'bubble-in-on': '244 244 248',
 
     success: '74 222 128',

@@ -7,6 +7,7 @@ import { sessionFor, useChatStore } from '@/core/messaging/chat-store';
 import type { ChatMessage, MessageId, WidgetContent } from '@/core/messaging/types';
 import type { MessageAction } from './message-actions';
 import { BubbleShell, type ReplyPreview, type ThreadChip } from './bubble-shell';
+import type { Reactors } from './reaction-row';
 import { findTransactionHash } from '@/lib/evm/transactions';
 import { segmentText, type LinkSegment } from '@/core/messaging/links';
 import { labelledLinks, plainText } from '@/core/messaging/markdown';
@@ -32,8 +33,10 @@ export type { ReplyPreview } from './bubble-shell';
 export interface MessageBubbleProps {
   message: ChatMessage;
   grouped: boolean;
+  tail?: boolean;
   senderName: string;
   showSender: boolean;
+  reactors?: Reactors;
   onCommand?: (command: string) => void;
   onReact?: (emoji: string) => void;
   onVote?: (optionIds: number[]) => Promise<void>;
@@ -45,8 +48,10 @@ export interface MessageBubbleProps {
 export function MessageBubble({
   message,
   grouped,
+  tail,
   senderName,
   showSender,
+  reactors,
   onCommand,
   onReact,
   onVote,
@@ -192,9 +197,11 @@ export function MessageBubble({
     <BubbleShell
       fromMe={fromMe}
       grouped={grouped}
+      tail={tail}
       senderName={senderName}
       showSender={showSender}
       reactions={message.reactions}
+      reactors={reactors}
       privateToMe={message.privateToMe}
       onReact={onReact}
       actions={actions}

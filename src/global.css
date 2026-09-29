@@ -28,9 +28,9 @@
     --color-content-subtle: 142 146 156;
     --color-line: 228 229 234;
     --color-line-strong: 208 210 218;
-    --color-bubble-out: 74 87 173;
-    --color-bubble-out-on: 255 255 255;
-    --color-bubble-in: 240 240 245;
+    --color-bubble-out: 224 228 250;
+    --color-bubble-out-on: 16 17 22;
+    --color-bubble-in: 255 255 255;
     --color-bubble-in-on: 16 17 22;
     --color-success: 22 163 74;
     --color-warning: 217 138 12;
@@ -51,9 +51,9 @@
     --color-content-subtle: 112 116 128;
     --color-line: 38 39 49;
     --color-line-strong: 55 57 69;
-    --color-bubble-out: 66 77 148;
+    --color-bubble-out: 50 59 112;
     --color-bubble-out-on: 235 239 254;
-    --color-bubble-in: 32 32 42;
+    --color-bubble-in: 24 37 51;
     --color-bubble-in-on: 244 244 248;
     --color-success: 74 222 128;
     --color-warning: 240 170 45;

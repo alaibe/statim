@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react';
 import { Pressable as RNPressable, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
-import { cn, Icon, Text } from '@/design';
+import { cn, Icon, Text, useThemeColors } from '@/design';
 import { MessageActions, type MessageAction, type MessageAnchor } from './message-actions';
+import { ReactionRow, type Reactors } from './reaction-row';
 
 export interface ReplyPreview {
   author: string;
@@ -17,11 +19,13 @@ export interface ThreadChip {
 export function BubbleShell({
   fromMe,
   grouped,
+  tail = false,
   senderName,
   showSender,
   bare = false,
   privateToMe = false,
   reactions,
+  reactors,
   onReact,
   actions,
   replyPreview,
@@ -30,11 +34,14 @@ export function BubbleShell({
 }: {
   fromMe: boolean;
   grouped: boolean;
+  /** The last bubble of a run from one sender, which points at them. */
+  tail?: boolean;
   senderName: string;
   showSender: boolean;
   bare?: boolean;
   privateToMe?: boolean;
   reactions?: Readonly<Record<string, readonly string[]>>;
+  reactors?: Reactors;
   onReact?: (emoji: string) => void;
   actions: () => MessageAction[];
   replyPreview?: ReplyPreview;
@@ -55,6 +62,9 @@ export function BubbleShell({
       setPicking(true);
     });
   };
+
+  const reacted = reactions && Object.keys(reactions).length > 0 ? reactions : undefined;
+  const pointed = tail && !bare;
 
   const body = (held: boolean) => (
     <RNPressable
@@ -79,9 +89,15 @@ export function BubbleShell({
         bare
           ? ''
           : cn(
-              'rounded-bubble px-3.5 py-2',
+              'rounded-bubble px-3.5 py-2 shadow-sm',
               fromMe ? 'bg-bubble-out' : 'bg-bubble-in',
-              fromMe ? 'rounded-br-md' : 'rounded-bl-md',
+              fromMe
+                ? pointed
+                  ? 'rounded-br-none'
+                  : 'rounded-br-md'
+                : pointed
+                  ? 'rounded-bl-none'
+                  : 'rounded-bl-md',
               grouped && (fromMe ? 'rounded-tr-md' : 'rounded-tl-md')
             )
       )}>
@@ -110,6 +126,16 @@ export function BubbleShell({
         </View>
       ) : null}
       {children}
+      {reacted && !bare ? (
+        <ReactionRow
+          reactions={reacted}
+          fromMe={fromMe}
+          inBubble
+          reactors={reactors}
+          onReact={onReact}
+        />
+      ) : null}
+      {pointed ? <Tail fromMe={fromMe} /> : null}
     </RNPressable>
   );
 
@@ -136,24 +162,14 @@ export function BubbleShell({
           </View>
         ) : null}
 
-        {reactions && Object.keys(reactions).length > 0 ? (
-          <View className={cn('mt-1 flex-row flex-wrap gap-1', fromMe && 'justify-end')}>
-            {Object.entries(reactions).map(([emoji, people]) => (
-              <RNPressable
-                key={emoji}
-                accessibilityRole="button"
-                accessibilityLabel={`React with ${emoji}`}
-                onPress={() => onReact?.(emoji)}
-                className="flex-row items-center gap-1 rounded-pill bg-surface-sunken px-2 py-0.5">
-                <Text variant="caption">{emoji}</Text>
-                {people.length > 1 ? (
-                  <Text variant="micro" className="tabular-nums">
-                    {people.length}
-                  </Text>
-                ) : null}
-              </RNPressable>
-            ))}
-          </View>
+        {reacted && bare ? (
+          <ReactionRow
+            reactions={reacted}
+            fromMe={fromMe}
+            inBubble={false}
+            reactors={reactors}
+            onReact={onReact}
+          />
         ) : null}
 
         {thread ? (
@@ -186,4 +202,21 @@ export function BubbleShell({
 
 function repliesLabel(count: number): string {
   return count === 1 ? '1 reply' : `${count} replies`;
+}
+
+/** Telegram's hook at the bubble's bottom corner, on the sender's side. */
+function Tail({ fromMe }: { fromMe: boolean }) {
+  const colors = useThemeColors();
+  return (
+    <Svg
+      width={8}
+      height={14}
+      viewBox="0 0 8 14"
+      style={{ position: 'absolute', bottom: 0, [fromMe ? 'right' : 'left']: -7 }}>
+      <Path
+        d={fromMe ? 'M0 0V14H8C4.5 13.5 1 11 0 6Z' : 'M8 0V14H0C3.5 13.5 7 11 8 6Z'}
+        fill={fromMe ? colors['bubble-out'] : colors['bubble-in']}
+      />
+    </Svg>
+  );
 }
