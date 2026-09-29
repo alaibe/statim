@@ -14,7 +14,9 @@ mod tdlib;
 mod vault;
 mod web_login;
 
-use tauri::{AppHandle, Manager, RunEvent, WindowEvent};
+#[cfg(target_os = "macos")]
+use tauri::RunEvent;
+use tauri::{AppHandle, Manager, WindowEvent};
 use tauri_plugin_window_state::StateFlags;
 
 /// The unread count on the Dock icon; zero clears it.
@@ -200,9 +202,10 @@ pub fn run() {
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|app, event| {
-            if let RunEvent::Reopen { .. } = event {
-                cli::show_main(app);
+        .run(|_app, _event| {
+            #[cfg(target_os = "macos")]
+            if let RunEvent::Reopen { .. } = _event {
+                cli::show_main(_app);
             }
         });
 }
