@@ -45,7 +45,8 @@ Biome formats TypeScript and JSON, rustfmt formats `src-tauri`. Neither lints;
   writes. A shipped migration stays as it is; the next change is a new one.
   SQL drizzle-kit cannot write, such as moving data, goes in a
   `npm run db:generate -- --custom` migration; run `npm run db:bundle` once
-  its SQL is in.
+  its SQL is in. A change to what a vault entry holds is a step appended to
+  `VAULT_MIGRATIONS` in `src/storage/vault-migrations.ts`.
 - User-typed `/commands` are `SlashCommand`s contributed by a plugin, or
   core commands in `src/core/commands`. Core commands get no plugin context.
 - Chat widgets are data, not components (`src/design/widgets/schema.ts`),
