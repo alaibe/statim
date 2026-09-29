@@ -5,6 +5,7 @@ const pub = new URL('../public/', import.meta.url);
 
 fs.rmSync(pub, { recursive: true, force: true });
 fs.cpSync(new URL('docs/public/', root), pub, { recursive: true });
+fs.cpSync(new URL('skills/', root), new URL('skills/', pub), { recursive: true });
 
 const mark = fs.readFileSync(new URL('assets/brand/mark.svg', root), 'utf8');
 const plate = mark.match(/data-plate="([^"]+)"/)[1];

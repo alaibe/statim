@@ -2,6 +2,8 @@ export const repo = 'alaibe/statim';
 export const repoUrl = `https://github.com/${repo}`;
 export const releasesUrl = `${repoUrl}/releases`;
 export const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+export const origin = 'https://alaibe.github.io';
+export const siteUrl = `${origin}${basePath}`;
 
 export interface NavGroup {
   title: string;

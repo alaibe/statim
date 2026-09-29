@@ -11,7 +11,7 @@ import remarkRehype from 'remark-rehype';
 import { unified } from 'unified';
 import { visit } from 'unist-util-visit';
 
-import { basePath, navigation, repoUrl } from '@/lib/site';
+import { basePath, navigation, repoUrl, siteUrl } from '@/lib/site';
 
 const docsDir = path.join(process.cwd(), '..', 'docs');
 
@@ -29,17 +29,23 @@ export interface DocPage {
   sections: Array<Section>;
 }
 
-function preprocess(source: string, file: string) {
-  return source
+function readSource(file: string) {
+  return fs
+    .readFileSync(file, 'utf8')
     .replace(/^---\n[\s\S]*?\n---\n/, '')
     .replace(/<!--@include:\s*(.+?)\s*-->/g, (_, include: string) =>
       fs.readFileSync(path.resolve(path.dirname(file), include), 'utf8')
-    )
-    .replace(
-      /^::: (\w+)(?: (.*))?\n([\s\S]*?)^:::$/gm,
-      (_, type: string, title = '', body: string) =>
-        `<div class="callout" data-type="${type}" data-title="${title}">\n\n${body}\n</div>`
     );
+}
+
+const callout = /^::: (\w+)(?: (.*))?\n([\s\S]*?)^:::$/gm;
+
+function preprocess(source: string) {
+  return source.replace(
+    callout,
+    (_, type: string, title = '', body: string) =>
+      `<div class="callout" data-type="${type}" data-title="${title}">\n\n${body}\n</div>`
+  );
 }
 
 function resolveHref(href: string, pageHref: string) {
@@ -88,7 +94,7 @@ export function getPage(slug: string): DocPage {
 
   let file = slugToFile(slug);
   let href = `/${slug}`;
-  let source = preprocess(fs.readFileSync(file, 'utf8'), file);
+  let source = preprocess(readSource(file));
   let processor = unified()
     .use(remarkParse)
     .use(remarkGfm)
@@ -109,7 +115,10 @@ export function getPage(slug: string): DocPage {
     slug,
     href,
     title: h1 ? toString(h1) : slug,
-    description: description.length > 180 ? `${description.slice(0, 177).trimEnd()}…` : description,
+    description:
+      description.length > 180
+        ? `${description.slice(0, 178).replace(/\W*\s\S*$/, '')}…`
+        : description,
     tree,
     sections,
   };
@@ -126,6 +135,28 @@ export function allSlugs() {
 
 export function allPages() {
   return allSlugs().map(getPage);
+}
+
+export function markdownUrl(href: string) {
+  let [pathname, hash] = href.split('#');
+  return `${siteUrl}${pathname}.md${hash ? `#${hash}` : ''}`;
+}
+
+export function pageMarkdown(slug: string) {
+  let href = `/${slug}`;
+  return readSource(slugToFile(slug))
+    .replace(callout, (_, _type: string, title: string | undefined, body: string) =>
+      [title && `**${title}**`, body.trim()]
+        .filter(Boolean)
+        .join('\n\n')
+        .replace(/^(.)/gm, '> $1')
+        .replace(/^$/gm, '>')
+    )
+    .replace(/\]\(([^)\s]+)\)/g, (_, link: string) => {
+      let resolved = resolveHref(link, href);
+      return `](${resolved.startsWith('/') ? markdownUrl(resolved) : resolved})`;
+    })
+    .replace(/src="(\/[^"]+)"/g, (_, src: string) => `src="${siteUrl}${src}"`);
 }
 
 function isHeading(node: RootContent, tag: 'h1' | 'h2') {

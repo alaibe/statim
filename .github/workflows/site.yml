@@ -6,6 +6,7 @@ on:
     paths:
       - 'site/**'
       - 'docs/**'
+      - 'skills/**'
       - 'PRIVACY.md'
       - 'DISCLAIMER.md'
       - 'assets/brand/mark.svg'
