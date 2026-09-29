@@ -20,7 +20,7 @@ export const STATUS_PROTOCOL = {
   },
   meta: {
     trustModel:
-      "Runs through Status's own nodes, or through an nwaku node you choose. Those nodes see " +
+      "Runs through Status's own nodes, or through a Status node you run. Those nodes see " +
       'which topics this device reads and writes, and can withhold messages; they cannot read them.',
     properties: {
       endToEndEncrypted: true,
@@ -35,12 +35,12 @@ export const STATUS_PROTOCOL = {
     fields: [
       {
         key: 'nodeUrl',
-        label: 'nwaku node URL',
+        label: 'Status node URL',
         kind: 'text',
         placeholder: 'http://127.0.0.1:8645',
         help:
-          "Leave empty to go through Status's own nodes. To use a node you run instead, give the " +
-          'REST endpoint of an nwaku node on the Status network (cluster 16, shard 32).',
+          "Leave empty to go through Status's own nodes. To use a node you run instead, give its " +
+          'REST address: an nwaku node on the Status network (cluster 16, shard 32).',
       },
       {
         key: 'displayName',

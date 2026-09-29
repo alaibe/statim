@@ -32,7 +32,7 @@ see ciphertext and routing metadata: that two parties are communicating,
 roughly when, and from which network address. Nostr relays additionally never
 learn who sent a message, only who receives it. You choose the relays under
 Settings → Protocols. Status goes through Status's own nodes unless you give it
-an nwaku node of yours there.
+a Status node of your own there.
 
 **Telegram** is different, and only active if you sign in. Telegram chats are
 not end-to-end encrypted: Telegram's servers hold and can read them, exactly as

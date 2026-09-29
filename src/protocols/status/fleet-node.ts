@@ -84,7 +84,7 @@ export class FleetNode implements WakuNode {
       );
     } catch {
       await node.stop();
-      throw new Error('No Status node answered. Check the connection, or set an nwaku node URL.');
+      throw new Error('No Status node answered. Check the connection, or set a Status node URL.');
     }
     return new FleetNode(node);
   }

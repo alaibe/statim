@@ -66,7 +66,7 @@ export class StatusNode implements WakuNode {
   constructor(options: NodeOptions) {
     this.base = options.nodeUrl.trim().replace(/\/+$/, '');
     if (!/^https?:\/\//i.test(this.base)) {
-      throw new Error('The nwaku node URL must start with http:// or https://');
+      throw new Error('The Status node URL must start with http:// or https://');
     }
     this.fetchImpl = options.fetchImpl ?? fetch;
   }
@@ -140,7 +140,7 @@ export class StatusNode implements WakuNode {
         const detail = String((await response.text().catch(() => '')) ?? '').trim();
         throw new HttpError(
           response.status,
-          `nwaku node returned ${response.status} for ${method} ${path.split('?')[0]}` +
+          `Your Status node returned ${response.status} for ${method} ${path.split('?')[0]}` +
             (detail ? `: ${detail.slice(0, 200)}` : '')
         );
       }
@@ -153,7 +153,7 @@ export class StatusNode implements WakuNode {
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error(`nwaku node did not respond within ${TIMEOUT_MS}ms`);
+        throw new Error(`Your Status node did not respond within ${TIMEOUT_MS}ms`);
       }
       throw error;
     } finally {

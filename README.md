@@ -36,7 +36,7 @@ protects, because the honest answers differ:
 | --- | --- | --- | --- |
 | **XMTP** | MLS, forward secret | Ethereum address or ENS name | Your recovery phrase |
 | **Nostr** | NIP-17 sealed DMs; relays never learn the sender | `npub…` public key | Your recovery phrase |
-| **Status** | Status's chat protocol, through Status's nodes or an nwaku node you run | `zQ3sh…` chat key | Your recovery phrase |
+| **Status** | Status's chat protocol, through Status's nodes or a Status node you run | `zQ3sh…` chat key | Your recovery phrase |
 | **Telegram** | None. Telegram holds and can read it | `@username`, `t.me` link, phone number | Your Telegram account, over TDLib |
 | **Matrix** | Olm/Megolm in chats with encryption on | `@user:server` | Your Matrix account, over matrix-rust-sdk |
 
