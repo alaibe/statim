@@ -1,5 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { useChatStore } from '@/core/messaging/chat-store';
 import { projectTestAccount, resetChatStore } from '@/core/messaging/testing/store';
 import { deleteAccountDatabase } from '@/storage/database';
@@ -7,7 +5,6 @@ import { lockCard, makeStatimBot, thisDevice } from './bot';
 import { STATIM_LOCAL_ID } from '@/core/messaging/bots';
 
 beforeEach(async () => {
-  await AsyncStorage.clear();
   resetChatStore();
   await deleteAccountDatabase('statim-test');
   projectTestAccount('statim-test');

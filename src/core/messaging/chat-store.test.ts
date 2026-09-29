@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppearanceStore } from '../app/appearance';
 import { SAVED_LOCAL_ID, STATIM_LOCAL_ID } from './bots';
 import { mergeChats, useChatStore } from './chat-store';
@@ -28,7 +27,6 @@ jest.mock('../account/keyring', () => ({
 const connect = (session: InMemoryChatSession) => connectFake(session);
 
 beforeEach(async () => {
-  await AsyncStorage.clear();
   resetChatStore();
 });
 

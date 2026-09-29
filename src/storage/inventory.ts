@@ -3,14 +3,9 @@ type RetentionAreas = {
   device: readonly string[];
 };
 
-export type Medium = 'async-storage' | 'vault' | 'files' | 'database';
+export type Medium = 'vault' | 'files' | 'database';
 
 export const STORAGE_INVENTORY = {
-  // Written before these settings moved into the account database; kept until imported or erased.
-  'async-storage': {
-    account: ['chat.', 'plugins.', 'plugin:', 'appearance'],
-    device: [],
-  },
   vault: {
     account: ['account.'],
     device: ['accounts.', 'security.'],

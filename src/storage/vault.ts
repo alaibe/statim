@@ -76,8 +76,6 @@ export function accountScopedKeys(accountId: string): VaultKeyName[] {
   ];
 }
 
-export { isSecureStorageAvailable } from './secure-store';
-
 export type ProtectedRead =
   | { status: 'ok'; value: string }
   | { status: 'absent' }

@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { saveAccounts } from '../account/accounts';
 import { useChatStore } from '../messaging/chat-store';
 import { InMemoryChatSession } from '../messaging/in-memory-session';
@@ -6,6 +5,7 @@ import { connectFake } from '../messaging/testing/store';
 import { useAccountStore } from '../account/account-store';
 import { eraseAccount, eraseAllAccounts } from './erase-account';
 import { accountRuntime } from '@/runtime';
+import { createAccountStorage } from '@/storage/account';
 import { VaultKey, vaultGet, vaultSet } from '@/storage/vault';
 
 jest.mock('../account/keyring', () => ({
@@ -15,7 +15,6 @@ jest.mock('../account/keyring', () => ({
 
 beforeEach(async () => {
   await accountRuntime.synchronize(null);
-  await AsyncStorage.clear();
   useAccountStore.setState({
     status: 'absent',
     accounts: [],
@@ -90,26 +89,16 @@ describe('signOut', () => {
     expect(session.disconnected).toBe(true);
   });
 
-  it('clears every key the app owns', async () => {
-    await AsyncStorage.multiSet([
-      ['a.test-account.chat.readAt', '{}'],
-      ['a.test-account.plugins.prefs', '{}'],
-      ['a.test-account.plugin:ethereum:watched', '[]'],
-    ]);
+  it('clears the account settings', async () => {
+    await createAccountStorage('test-account').set('chat.readAt', {});
+    await createAccountStorage('test-account').plugin('ethereum').set('watched', []);
     await connected();
 
     await eraseAccount();
 
-    expect(await AsyncStorage.getAllKeys()).toEqual([]);
-  });
-
-  it('leaves storage it does not own alone', async () => {
-    await AsyncStorage.setItem('some-library:cache', 'keep me');
-    await connected();
-
-    await eraseAccount();
-
-    expect(await AsyncStorage.getItem('some-library:cache')).toBe('keep me');
+    const storage = createAccountStorage('test-account');
+    expect(await storage.get('chat.readAt')).toBeNull();
+    expect(await storage.plugin('ethereum').get('watched')).toBeNull();
   });
 
   it('resets in-memory state and the account', async () => {

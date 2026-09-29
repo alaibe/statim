@@ -1,5 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { STATIM_LOCAL_ID } from './bots';
 import { useChatStore } from './chat-store';
 import { InMemoryChatSession } from './in-memory-session';
@@ -21,7 +19,6 @@ function reactionsOn(chatId: ChatId, messageId: string): string[] {
 }
 
 beforeEach(async () => {
-  await AsyncStorage.clear();
   resetChatStore();
 });
 

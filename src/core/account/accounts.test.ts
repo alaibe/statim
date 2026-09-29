@@ -1,10 +1,10 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 
 import { loadAccounts, loadActiveAccountId } from './accounts';
 import { eraseAccount, eraseEverything } from '../app/erase-account';
 import { useAccountStore } from './account-store';
-import { scopePrefix } from '@/storage/scope';
+import { createAccountStorage } from '@/storage/account';
+import * as engine from '@/storage/sqlite-engine';
 import { accountMnemonicKey, VaultKey } from '@/storage/vault';
 
 /** Two valid BIP-39 phrases, so "same device, two accounts" is real. */
@@ -13,7 +13,6 @@ const PHRASE_B = 'zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong';
 
 beforeEach(async () => {
   (SecureStore as unknown as { __reset(): void }).__reset();
-  await AsyncStorage.clear();
   useAccountStore.setState({
     status: 'loading',
     accounts: [],
@@ -66,12 +65,12 @@ describe('multiple accounts', () => {
 
     await useAccountStore.getState().adoptAccount(PHRASE_B);
     const second = useAccountStore.getState().accounts[1];
-    await AsyncStorage.setItem(scopePrefix(second.id) + 'chat.readAt', '{"x":1}');
+    await createAccountStorage(second.id).set('chat.readAt', { x: 1 });
 
     await useAccountStore.getState().selectAccount(first.id);
 
     // The second account's data is untouched but out of scope.
-    expect(await AsyncStorage.getItem(scopePrefix(second.id) + 'chat.readAt')).toBe('{"x":1}');
+    expect(await createAccountStorage(second.id).get('chat.readAt')).toEqual({ x: 1 });
     expect(useAccountStore.getState().activeAccountId).toBe(first.id);
   });
 });
@@ -82,10 +81,9 @@ describe('eraseAccount', () => {
     await store.adoptAccount(PHRASE_A);
     await store.adoptAccount(PHRASE_B);
     const [inactive] = useAccountStore.getState().accounts;
-    await AsyncStorage.setItem(scopePrefix(inactive.id) + 'chat.readAt', '{}');
-    jest.spyOn(AsyncStorage, 'multiRemove').mockRejectedValueOnce(new Error('storage busy'));
+    jest.spyOn(engine, 'deleteDatabase').mockRejectedValueOnce(new Error('disk busy'));
 
-    await expect(eraseAccount(inactive.id)).rejects.toThrow('async-storage');
+    await expect(eraseAccount(inactive.id)).rejects.toThrow('database');
 
     expect(useAccountStore.getState().accounts.map((account) => account.id)).toContain(inactive.id);
     expect(await SecureStore.getItemAsync(accountMnemonicKey(inactive.id))).not.toBeNull();
@@ -95,10 +93,9 @@ describe('eraseAccount', () => {
     const store = useAccountStore.getState();
     await store.adoptAccount(PHRASE_A);
     const [account] = useAccountStore.getState().accounts;
-    await AsyncStorage.setItem(scopePrefix(account.id) + 'chat.readAt', '{}');
-    jest.spyOn(AsyncStorage, 'multiRemove').mockRejectedValueOnce(new Error('storage busy'));
+    jest.spyOn(engine, 'deleteDatabase').mockRejectedValueOnce(new Error('disk busy'));
 
-    await expect(eraseEverything()).rejects.toThrow('async-storage');
+    await expect(eraseEverything()).rejects.toThrow('database');
 
     expect((await loadAccounts()).map((entry) => entry.id)).toEqual([account.id]);
     expect(await SecureStore.getItemAsync(accountMnemonicKey(account.id))).not.toBeNull();
@@ -135,13 +132,13 @@ describe('eraseAccount', () => {
     await store.adoptAccount(PHRASE_B);
     const [a, b] = useAccountStore.getState().accounts;
 
-    await AsyncStorage.setItem(scopePrefix(a.id) + 'chat.readAt', '{}');
-    await AsyncStorage.setItem(scopePrefix(b.id) + 'chat.readAt', '{"keep":1}');
+    await createAccountStorage(a.id).set('chat.readAt', {});
+    await createAccountStorage(b.id).set('chat.readAt', { keep: 1 });
 
     await eraseAccount(a.id);
 
-    expect(await AsyncStorage.getItem(scopePrefix(a.id) + 'chat.readAt')).toBeNull();
-    expect(await AsyncStorage.getItem(scopePrefix(b.id) + 'chat.readAt')).toBe('{"keep":1}');
+    expect(await createAccountStorage(a.id).get('chat.readAt')).toBeNull();
+    expect(await createAccountStorage(b.id).get('chat.readAt')).toEqual({ keep: 1 });
   });
 
   it('returns to onboarding when the last account goes', async () => {

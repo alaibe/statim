@@ -1,5 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { botChatId, type Bot } from './bots';
 import { useChatStore, xmtpSessionFor } from './chat-store';
 import { InMemoryChatSession } from './in-memory-session';
@@ -29,7 +27,6 @@ function twoProtocols() {
 }
 
 beforeEach(async () => {
-  await AsyncStorage.clear();
   resetChatStore();
 });
 

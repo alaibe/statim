@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { eq } from 'drizzle-orm';
 
 import type { PluginStorage } from '@/core/plugins/types';
@@ -8,7 +7,6 @@ import { accountDatabaseGeneration, runAccountDatabaseOperation, type Database }
 import { sqliteProtocolState, type ProtocolState } from './protocol-state';
 import { accountState } from './schema';
 import { SqliteMessageStore } from './sqlite-message-store';
-import { scopedKeysFor, scopePrefix } from './scope';
 
 export interface AccountStorage {
   readonly accountId: string;
@@ -20,49 +18,10 @@ export interface AccountStorage {
   protocolState(protocolId: ProtocolId): ProtocolState;
 }
 
-function parse(raw: string | null): unknown {
-  if (raw === null) return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
-/**
- * These settings used to live in AsyncStorage, which on the desktop is the web
- * view's storage and so differs between the dev build and the release. A key
- * the database already holds keeps its value.
- */
-async function importAsyncStorage(accountId: string, generation: number): Promise<void> {
-  const keys = await scopedKeysFor(accountId);
-  if (keys.length === 0) return;
-
-  const prefix = scopePrefix(accountId);
-  const rows = (await AsyncStorage.multiGet(keys)).flatMap(([key, raw]) => {
-    const value = parse(raw);
-    return value === null ? [] : [{ key: key.slice(prefix.length), value }];
-  });
-  if (rows.length > 0) {
-    await runAccountDatabaseOperation(accountId, generation, (db) =>
-      db.insert(accountState).values(rows).onConflictDoNothing()
-    );
-  }
-  await AsyncStorage.multiRemove(keys);
-}
-
 export function createAccountStorage(accountId: string): AccountStorage {
   const generation = accountDatabaseGeneration(accountId);
-  let imported: Promise<void> | undefined;
-
-  const run = async <T>(work: (db: Database) => Promise<T>) => {
-    imported ??= importAsyncStorage(accountId, generation).catch((error: unknown) => {
-      imported = undefined;
-      throw error;
-    });
-    await imported;
-    return runAccountDatabaseOperation(accountId, generation, work);
-  };
+  const run = <T>(work: (db: Database) => Promise<T>) =>
+    runAccountDatabaseOperation(accountId, generation, work);
 
   const storage: AccountStorage = {
     accountId,

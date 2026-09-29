@@ -1,5 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { useAccountStore } from '@/core/account/account-store';
 import { useLockStore } from '@/core/account/lock-store';
 import { useChatStore } from '@/core/messaging/chat-store';
@@ -75,7 +73,6 @@ async function run(argv: string[], io = fakeIo(), plugins?: PluginRegistry) {
 let session: InMemoryChatSession;
 
 beforeEach(async () => {
-  await AsyncStorage.clear();
   resetChatStore();
   session = new InMemoryChatSession();
   session.seedChat({ id: 'alice', title: 'Alice' });

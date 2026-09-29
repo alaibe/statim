@@ -9,9 +9,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { Button, Enter, Glow, Note, Screen, stagger, Text, useThemeColors } from '@/design';
+import { Button, Enter, Glow, Screen, stagger, Text, useThemeColors } from '@/design';
 import { hardwareVendors } from '@/core/account/hardware';
-import { isSecureStorageAvailable } from '@/storage/vault';
 import { ConnectHardware } from '@/features/account/connect-hardware';
 
 function AuroraBackdrop() {
@@ -78,13 +77,6 @@ export default function Welcome() {
       </View>
 
       <Animated.View entering={Enter.content(stagger(3, 70))} className="gap-3 pb-8">
-        {!isSecureStorageAvailable ? (
-          <Note tone="warning">
-            On web, keys are stored in localStorage and are not protected against other scripts. Use
-            a device build for a real account.
-          </Note>
-        ) : null}
-
         <Button
           label="Create an account"
           size="md"

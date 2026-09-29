@@ -5,8 +5,6 @@ import { invoke } from '@tauri-apps/api/core';
  * Manager on Windows, Secret Service on Linux), reached through the Rust side.
  * Desktop has no biometric prompt, so protected items are ordinary items.
  */
-export const isSecureStorageAvailable = true;
-
 export function get(key: string): Promise<string | null> {
   return invoke<string | null>('vault_get', { key });
 }

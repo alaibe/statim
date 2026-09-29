@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 
 import {
@@ -23,7 +22,6 @@ const keychain = SecureStore as unknown as Harness;
 
 beforeEach(async () => {
   keychain.__reset();
-  await AsyncStorage.clear();
   useAccountStore.setState({
     status: 'loading',
     accounts: [],

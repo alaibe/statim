@@ -2,8 +2,6 @@ import * as SecureStore from 'expo-secure-store';
 
 const PROTECTED_SERVICE = 'im.statim.protected';
 
-export const isSecureStorageAvailable = true;
-
 function protectedOptions(prompt: string): SecureStore.SecureStoreOptions {
   return {
     keychainService: PROTECTED_SERVICE,

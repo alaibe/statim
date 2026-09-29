@@ -1,5 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { botChatId, isLocalChat, type Bot } from './bots';
 import { useChatStore } from './chat-store';
 import { InMemoryChatSession } from './in-memory-session';
@@ -37,7 +35,6 @@ function makeBot(overrides: Partial<Bot> = {}): Bot {
 const reset = resetChatStore;
 
 beforeEach(async () => {
-  await AsyncStorage.clear();
   await deleteAccountDatabase('bots-test');
   reset();
   projectTestAccount('bots-test');

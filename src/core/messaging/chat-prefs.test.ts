@@ -1,8 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { createAccountStorage, type AccountStorage } from '@/storage/account';
 import { deleteAccountDatabase } from '@/storage/database';
-import { scopePrefix } from '@/storage/scope';
 import {
   loadChatPrefs,
   orderChats,
@@ -34,7 +31,6 @@ function chat(raw: string, sentAt: number): Chat {
 }
 
 beforeEach(async () => {
-  await AsyncStorage.clear();
   for (const id of ['prefs-test', 'acct-a', 'acct-b']) await deleteAccountDatabase(id);
 });
 
@@ -107,11 +103,6 @@ describe('persistence', () => {
   });
 
   it('returns an empty map when nothing is stored', async () => {
-    expect(await loadChatPrefs(storage)).toEqual({});
-  });
-
-  it('drops an unreadable value left in AsyncStorage', async () => {
-    await AsyncStorage.setItem(`${scopePrefix('prefs-test')}chat.prefs`, 'not json');
     expect(await loadChatPrefs(storage)).toEqual({});
   });
 

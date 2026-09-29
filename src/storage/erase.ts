@@ -1,7 +1,6 @@
 import { deleteAccountDatabase } from './database';
 import type { Medium } from './inventory';
 import { eraseMedia } from './media';
-import { clearScope } from './scope';
 import { accountScopedKeys, vaultDelete, vaultDeleteProtected, accountMnemonicKey } from './vault';
 
 export interface EraseReport {
@@ -19,7 +18,6 @@ export class AccountEraseError extends Error {
 type AccountEraser = (accountId: string) => Promise<void> | void;
 
 const ACCOUNT_ERASE_DISPATCH: Record<Medium, AccountEraser> = {
-  'async-storage': clearScope,
   files: eraseMedia,
   database: deleteAccountDatabase,
   vault: eraseAccountVault,
@@ -37,7 +35,7 @@ export async function eraseAccountStorage(accountId: string): Promise<EraseRepor
     }
   };
 
-  for (const medium of ['async-storage', 'files', 'database'] as const) {
+  for (const medium of ['files', 'database'] as const) {
     await step(medium, () => ACCOUNT_ERASE_DISPATCH[medium](accountId));
   }
 

@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useChatStore } from './chat-store';
 import { InMemoryChatSession } from './in-memory-session';
 import { connectFake, native, ns, resetChatStore } from './testing/store';
@@ -16,7 +15,6 @@ const BOB = 'c'.repeat(64);
 const connect = (session: InMemoryChatSession) => connectFake(session);
 
 beforeEach(async () => {
-  await AsyncStorage.clear();
   resetChatStore();
 });
 

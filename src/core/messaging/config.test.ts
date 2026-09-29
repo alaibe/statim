@@ -27,7 +27,7 @@ describe('storage', () => {
     expect(await loadProtocolConfig('acct-b', 'status')).toEqual({ nodeUrl: 'http://b' });
   });
 
-  it('lives in the keychain, not AsyncStorage, because these are real credentials', async () => {
+  it('lives in the keychain, because these are real credentials', async () => {
     await saveProtocolConfig('acct-a', 'status', { nodeUrl: 'secret-value' });
     expect(await vaultGet(accountProtocolConfigsKey('acct-a'))).toContain('secret-value');
   });
