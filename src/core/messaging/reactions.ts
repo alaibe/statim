@@ -52,6 +52,12 @@ export function foldReactions(messages: readonly ChatMessage[]): ChatMessage[] {
     });
 }
 
+export function hasReactions(
+  message: ChatMessage
+): message is ChatMessage & { reactions: NonNullable<ChatMessage['reactions']> } {
+  return !!message.reactions && Object.keys(message.reactions).length > 0;
+}
+
 export function hasReacted(
   message: ChatMessage,
   emoji: string,

@@ -21,7 +21,7 @@ export const MATRIX_PROTOCOL = {
   id: 'matrix',
   docsUrl: guideUrl('networks', 'matrix'),
   label: 'Matrix',
-  external: true,
+  folded: true,
   publicChats: {
     title: 'Join a Matrix chat',
     hint: 'Enter a room alias, ID, or matrix.to link to preview it.',

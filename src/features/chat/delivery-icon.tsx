@@ -1,30 +1,9 @@
 import { View } from 'react-native';
 
 import { Icon, type IconTone } from '@/design';
-import { useChatStore } from '@/core/messaging/chat-store';
-import type { Chat, ChatMessage } from '@/core/messaging/types';
+import type { ChatMessage } from '@/core/messaging/types';
 
-export function readByPeer(
-  chat: Pick<Chat, 'readUpTo'> | undefined,
-  message: ChatMessage
-): boolean {
-  return message.fromMe && (chat?.readUpTo ?? 0) >= message.sentAt;
-}
-
-/** Re-renders only when this message crosses the chat's read mark, not on every change to the chat. */
-export function useReadByPeer(message: ChatMessage): boolean {
-  return useChatStore((s) =>
-    readByPeer(
-      s.chats.find((chat) => chat.id === message.chatId),
-      message
-    )
-  );
-}
-
-/**
- * Telegram's ticks: one once sent, two once read. `tone` (or `color`) is for a
- * message sent and not yet read; failed and read have their own.
- */
+/** `tone` (or `color`) is for a message sent and not yet read; failed and read have their own. */
 export function DeliveryIcon({
   message,
   read,

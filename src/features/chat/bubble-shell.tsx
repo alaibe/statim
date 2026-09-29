@@ -4,7 +4,6 @@ import Svg, { Path } from 'react-native-svg';
 
 import { cn, Icon, Text, useThemeColors } from '@/design';
 import { MessageActions, type MessageAction, type MessageAnchor } from './message-actions';
-import { ReactionRow, type Reactors } from './reaction-row';
 
 export interface ReplyPreview {
   author: string;
@@ -19,13 +18,12 @@ export interface ThreadChip {
 export function BubbleShell({
   fromMe,
   grouped,
-  tail = false,
+  tail,
   senderName,
   showSender,
   bare = false,
   privateToMe = false,
-  reactions,
-  reactors,
+  below,
   onReact,
   actions,
   replyPreview,
@@ -35,13 +33,13 @@ export function BubbleShell({
   fromMe: boolean;
   grouped: boolean;
   /** The last bubble of a run from one sender, which points at them. */
-  tail?: boolean;
+  tail: boolean;
   senderName: string;
   showSender: boolean;
   bare?: boolean;
   privateToMe?: boolean;
-  reactions?: Readonly<Record<string, readonly string[]>>;
-  reactors?: Reactors;
+  /** Under the bubble, for content drawn without one. */
+  below: React.ReactNode;
   onReact?: (emoji: string) => void;
   actions: () => MessageAction[];
   replyPreview?: ReplyPreview;
@@ -63,7 +61,6 @@ export function BubbleShell({
     });
   };
 
-  const reacted = reactions && Object.keys(reactions).length > 0 ? reactions : undefined;
   const pointed = tail && !bare;
 
   const body = (held: boolean) => (
@@ -154,15 +151,7 @@ export function BubbleShell({
           </View>
         ) : null}
 
-        {reacted && bare ? (
-          <ReactionRow
-            reactions={reacted}
-            fromMe={fromMe}
-            inBubble={false}
-            reactors={reactors}
-            onReact={onReact}
-          />
-        ) : null}
+        {below}
 
         {thread ? (
           <RNPressable

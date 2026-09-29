@@ -6,7 +6,6 @@ import type { ChatMessage, MessageId } from '@/core/messaging/types';
 import { DateSeparator } from './date-separator';
 import type { MessageAction } from './message-actions';
 import { MessageBubble, type ReplyPreview } from './message-bubble';
-import type { Reactors } from './reaction-row';
 
 const GROUP_WINDOW_MS = 60_000;
 
@@ -26,7 +25,8 @@ export function MessageRow({
   highlighted,
   replyTarget,
   nameFor,
-  reactors,
+  selfId,
+  read,
   senderName,
   isGroup,
   onCommand,
@@ -42,7 +42,8 @@ export function MessageRow({
   highlighted: boolean;
   replyTarget: ChatMessage | undefined;
   nameFor: (id: string) => string;
-  reactors?: Reactors;
+  selfId: string;
+  read: boolean;
   senderName: string;
   isGroup: boolean;
   onCommand: (command: string) => void;
@@ -53,8 +54,8 @@ export function MessageRow({
   onOpenThread?: (root: MessageId) => void;
 }) {
   const startsNewDay = isNewDay(previous?.sentAt, message.sentAt);
-  const grouped = !!previous && sameRun(previous, message) && !startsNewDay;
-  const tail = !next || !sameRun(message, next) || isNewDay(message.sentAt, next.sentAt);
+  const grouped = !!previous && sameRun(previous, message);
+  const tail = !next || !sameRun(message, next);
 
   return (
     <>
@@ -64,7 +65,9 @@ export function MessageRow({
           message={message}
           grouped={grouped}
           tail={tail}
-          reactors={reactors}
+          read={read}
+          selfId={selfId}
+          nameFor={nameFor}
           senderName={senderName}
           showSender={isGroup && !grouped && !message.privateToMe}
           onCommand={onCommand}
@@ -94,6 +97,7 @@ function sameRun(earlier: ChatMessage, later: ChatMessage): boolean {
     earlier.senderId === later.senderId &&
     later.sentAt - earlier.sentAt < GROUP_WINDOW_MS &&
     earlier.content.kind !== 'system' &&
-    later.content.kind !== 'system'
+    later.content.kind !== 'system' &&
+    !isNewDay(earlier.sentAt, later.sentAt)
   );
 }

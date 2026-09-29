@@ -20,6 +20,7 @@ import {
   selfIdFor,
   useChatStore,
 } from '@/core/messaging/chat-store';
+import { readByPeer } from '@/core/messaging/unread';
 import { protocolOf, type ProtocolId } from '@/core/messaging/namespace';
 import { chatPermissions, NO_PERMISSIONS } from '@/core/messaging/permissions';
 import type { ChatMessage, Chat, ChatId, MessageContent, MessageId } from '@/core/messaging/types';
@@ -88,9 +89,9 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
     loadEarlier,
     highlighted,
   } = useChatTimeline(id, thread, session, Boolean(onOpenThread));
-  const selfId = chat ? selfIdFor({ sessions }, chat.protocol) : '';
+  const selfId = selfIdFor({ sessions }, protocol);
+  const readUpTo = chat?.readUpTo ?? 0;
   const { nameFor } = useDisplayNames(chat ? chatPeople(chat, selfId, allMessages) : []);
-  const reactors = { nameOf: nameFor, selfId };
   const pinnedMessages = usePinnedMessages(
     id,
     allMessages,
@@ -149,7 +150,8 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
       highlighted={item.id === highlighted}
       replyTarget={item.replyTo ? byId.get(item.replyTo) : undefined}
       nameFor={nameFor}
-      reactors={reactors}
+      selfId={selfId}
+      read={item.fromMe && readByPeer(readUpTo, item)}
       senderName={isBot ? botName : nameFor(item.senderId)}
       isGroup={isGroup}
       onCommand={runCommand}

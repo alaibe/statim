@@ -470,7 +470,9 @@ describe('TelegramSession chats', () => {
     td().answer('getChats', { '@type': 'chats', chat_ids: [200] });
     td().answer('getMessage', textMessage(200, 7, 100, 'earlier', { outgoing: true, date: 700 }));
 
-    await session.listChats();
+    expect((await session.listChats())[0].readUpTo).toBeUndefined();
+    td().answer('getChatHistory', { '@type': 'messages', total_count: 0, messages: [] });
+    await session.getMessages(chatIdOf(200));
     await flush();
     expect((await session.listChats())[0].readUpTo).toBe(700_000);
 

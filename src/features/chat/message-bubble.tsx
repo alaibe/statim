@@ -1,13 +1,14 @@
-import { useContext, useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { View } from 'react-native';
 
 import { cn, Text } from '@/design';
 import { usePluginHost } from '@/core/plugins/host';
 import { sessionFor, useChatStore } from '@/core/messaging/chat-store';
+import { hasReactions } from '@/core/messaging/reactions';
 import type { ChatMessage, MessageId, WidgetContent } from '@/core/messaging/types';
 import type { MessageAction } from './message-actions';
 import { BubbleShell, type ReplyPreview, type ThreadChip } from './bubble-shell';
-import { ReactionHandlers, ReactionRow, type Reactors } from './reaction-row';
+import { ReactionRow } from './reaction-row';
 import { findTransactionHash } from '@/lib/evm/transactions';
 import { segmentText, type LinkSegment } from '@/core/messaging/links';
 import { labelledLinks, plainText } from '@/core/messaging/markdown';
@@ -25,7 +26,7 @@ import { VoiceBubble } from './attachments/voice-bubble';
 import { VideoBubble } from './attachments/video-bubble';
 import { PollBubble } from './poll-bubble';
 import { awaitsFile, formatTimestamp } from '@/core/messaging/preview';
-import { DeliveryIcon, useReadByPeer } from './delivery-icon';
+import { DeliveryIcon } from './delivery-icon';
 import { openUrlQuietly } from './link-actions';
 
 export type { ReplyPreview } from './bubble-shell';
@@ -33,10 +34,12 @@ export type { ReplyPreview } from './bubble-shell';
 export interface MessageBubbleProps {
   message: ChatMessage;
   grouped: boolean;
-  tail?: boolean;
+  tail: boolean;
+  read: boolean;
   senderName: string;
   showSender: boolean;
-  reactors?: Reactors;
+  selfId: string;
+  nameFor: (id: string) => string;
   onCommand?: (command: string) => void;
   onReact?: (emoji: string) => void;
   onVote?: (optionIds: number[]) => Promise<void>;
@@ -49,9 +52,11 @@ export function MessageBubble({
   message,
   grouped,
   tail,
+  read,
   senderName,
   showSender,
-  reactors,
+  selfId,
+  nameFor,
   onCommand,
   onReact,
   onVote,
@@ -75,6 +80,19 @@ export function MessageBubble({
   }
 
   if (content.kind === 'reaction') return null;
+
+  const reactionRow = (inBubble: boolean) =>
+    hasReactions(message) ? (
+      <ReactionRow
+        reactions={message.reactions}
+        fromMe={fromMe}
+        inBubble={inBubble}
+        selfId={selfId}
+        nameFor={nameFor}
+        onReact={onReact}
+      />
+    ) : null;
+  const footer: FooterProps = { message, read, reactions: reactionRow(true) };
 
   let bare = false;
   let children: React.ReactNode;
@@ -105,7 +123,7 @@ export function MessageBubble({
         );
       } else {
         children = (
-          <TextBody message={message} text={content.fallback ?? 'Rich message'} unsupported />
+          <TextBody footer={footer} text={content.fallback ?? 'Rich message'} unsupported />
         );
       }
       break;
@@ -136,12 +154,12 @@ export function MessageBubble({
       children = bare ? (
         <View>
           {media}
-          <Footer message={message} overlay />
+          <Footer {...footer} place="overlay" />
         </View>
       ) : (
         <>
           {media}
-          <Footer message={message} />
+          <Footer {...footer} />
         </>
       );
       break;
@@ -157,7 +175,7 @@ export function MessageBubble({
             size={content.size}
             fromMe={fromMe}
           />
-          <Footer message={message} />
+          <Footer {...footer} />
         </>
       );
       break;
@@ -171,7 +189,7 @@ export function MessageBubble({
             fromMe={fromMe}
             seed={message.id}
           />
-          <Footer message={message} />
+          <Footer {...footer} />
         </>
       );
       break;
@@ -180,52 +198,50 @@ export function MessageBubble({
       children = (
         <>
           <PollBubble poll={content} fromMe={fromMe} onVote={onVote} />
-          <Footer message={message} />
+          <Footer {...footer} />
         </>
       );
       break;
 
     case 'text':
-      children = <TextBody message={message} text={content.text} onCommand={onCommand} />;
+      children = <TextBody footer={footer} text={content.text} onCommand={onCommand} />;
       break;
 
     default:
-      children = <TextBody message={message} text={content.fallback} unsupported />;
+      children = <TextBody footer={footer} text={content.fallback} unsupported />;
   }
 
   return (
-    <ReactionHandlers.Provider value={{ reactors, onReact }}>
-      <BubbleShell
-        fromMe={fromMe}
-        grouped={grouped}
-        tail={tail}
-        senderName={senderName}
-        showSender={showSender}
-        reactions={message.reactions}
-        reactors={reactors}
-        privateToMe={message.privateToMe}
-        onReact={onReact}
-        actions={actions}
-        replyPreview={replyPreview}
-        thread={thread}
-        bare={bare}>
-        {children}
-      </BubbleShell>
-    </ReactionHandlers.Provider>
+    <BubbleShell
+      fromMe={fromMe}
+      grouped={grouped}
+      tail={tail}
+      senderName={senderName}
+      showSender={showSender}
+      below={bare ? reactionRow(false) : null}
+      privateToMe={message.privateToMe}
+      onReact={onReact}
+      actions={actions}
+      replyPreview={replyPreview}
+      thread={thread}
+      bare={bare}>
+      {children}
+    </BubbleShell>
   );
 }
 
 function TextBody({
-  message,
+  footer,
   text,
   unsupported = false,
   onCommand,
 }: {
-  message: ChatMessage;
+  footer: FooterProps;
   text: string;
   unsupported?: boolean;
   onCommand?: (command: string) => void;
 }) {
+  const { message } = footer;
   const { fromMe } = message;
   const className = cn('text-body', fromMe ? 'text-bubble-out-on' : 'text-bubble-in-on');
 
@@ -233,7 +249,7 @@ function TextBody({
     return (
       <>
         <Text className={cn(className, 'italic opacity-80')}>{text}</Text>
-        <Footer message={message} />
+        <Footer {...footer} />
       </>
     );
   }
@@ -247,7 +263,7 @@ function TextBody({
   const location = link ? parseLocation(link.href) : null;
   const account = segments.find((s) => s.kind === 'address' || s.kind === 'ens');
   const inline =
-    !transactionHash && !location && link?.kind !== 'url' && !account && !reactedTo(message);
+    !transactionHash && !location && link?.kind !== 'url' && !account && !hasReactions(message);
 
   return (
     <>
@@ -259,7 +275,7 @@ function TextBody({
         onCommand={onCommand}
         footer={
           inline
-            ? { node: <Footer message={message} inline />, label: footerLabel(message) }
+            ? { node: <Footer {...footer} place="inline" />, label: footerLabel(message) }
             : undefined
         }
       />
@@ -274,37 +290,34 @@ function TextBody({
         <AddressPreview value={account.text} chatId={message.chatId} onCommand={onCommand} />
       ) : null}
 
-      {inline ? null : <Footer message={message} />}
+      {inline ? null : <Footer {...footer} />}
     </>
   );
 }
 
-function reactedTo(message: ChatMessage): boolean {
-  return !!message.reactions && Object.keys(message.reactions).length > 0;
+function timeLabel(message: ChatMessage): string {
+  return `${message.edited ? 'edited ' : ''}${formatTimestamp(message.sentAt)}`;
 }
 
-/** What the time reads, with room for the ticks on your own messages. */
+/** The time's text, with room for the ticks on your own messages. */
 function footerLabel(message: ChatMessage): string {
-  const time = `${message.edited ? 'edited ' : ''}${formatTimestamp(message.sentAt)}`;
-  return message.fromMe ? `${time}\u2003\u2002` : time;
+  return message.fromMe ? `${timeLabel(message)}\u2003\u2002` : timeLabel(message);
 }
 
-/**
- * `overlay` sits the time on a photo that has no bubble around it; `inline`
- * at the end of the text's last line. Otherwise it has a row of its own,
- * shared with the reactions like Telegram's.
- */
+interface FooterProps {
+  message: ChatMessage;
+  read: boolean;
+  reactions: ReactNode;
+}
+
+/** `overlay` sits the time on a photo that has no bubble around it; `inline` at the end of the text's last line. */
 function Footer({
   message,
-  overlay = false,
-  inline = false,
-}: {
-  message: ChatMessage;
-  overlay?: boolean;
-  inline?: boolean;
-}) {
-  const { reactors, onReact } = useContext(ReactionHandlers);
-  const read = useReadByPeer(message);
+  read,
+  reactions,
+  place = 'row',
+}: FooterProps & { place?: 'row' | 'overlay' | 'inline' }) {
+  const overlay = place === 'overlay';
   const time = (
     <View
       className={cn(
@@ -316,7 +329,7 @@ function Footer({
         className={
           overlay ? 'text-white' : message.fromMe ? 'text-bubble-out-on/60' : 'text-content-subtle'
         }>
-        {`${message.edited ? 'edited ' : ''}${formatTimestamp(message.sentAt)}`}
+        {timeLabel(message)}
       </Text>
       {message.fromMe ? (
         <DeliveryIcon
@@ -329,19 +342,11 @@ function Footer({
       ) : null}
     </View>
   );
-  if (overlay || inline) return time;
-  if (message.reactions && reactedTo(message)) {
+  if (place !== 'row') return time;
+  if (reactions) {
     return (
       <View className="mt-1 flex-row items-end gap-3">
-        <View className="min-w-0 flex-1">
-          <ReactionRow
-            reactions={message.reactions}
-            fromMe={message.fromMe}
-            inBubble
-            reactors={reactors}
-            onReact={onReact}
-          />
-        </View>
+        <View className="min-w-0 flex-1">{reactions}</View>
         {time}
       </View>
     );

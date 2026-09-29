@@ -1,39 +1,96 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { TextInput } from 'react-native';
 
 import { errorMessage } from '@/core/errors';
 import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
-import type { ProtocolId } from '@/core/messaging/namespace';
 import { isBridgedNetwork, type NetworkId } from '@/core/messaging/networks';
+import type { ChatSession } from '@/core/messaging/protocol';
 import type { ProtocolDescriptor } from '@/core/messaging/registry';
-import { contactsOf } from '@/features/contacts/contacts';
+import { contactsOf, type Contact } from '@/features/contacts/contacts';
 import { openChatFromSheet } from '@/features/navigation/open';
 import { networkLabel } from '@/features/protocols/presentation';
+import { useKeyedLoad } from '@/lib/use-keyed-load';
 import { connectableProtocols } from '@/protocols';
-import type { RemotePerson } from '@/protocols/matrix/provisioning';
-import { addBy, bridgeLinks, type BridgeLink } from './bridged-networks';
+import type { MatrixCapabilities } from '@/protocols/matrix/provisioning';
+import {
+  bridgeLinks,
+  candidateOf,
+  type BridgeAddBy,
+  type BridgeLink,
+  type Candidate,
+} from './bridged-networks';
 import { useDisplayNames } from './use-display-names';
-
-interface Participant {
-  input: string;
-  participantId: string;
-  /** Their id on the far network, for someone found through a bridge. */
-  remoteId?: string;
-}
 
 /** A chip on the screen: a protocol, or a network one of your Matrix bridges reaches. */
 export interface Destination {
   id: NetworkId;
   label: string;
   descriptor: ProtocolDescriptor;
+  bridged: boolean;
+  /** Absent for a bridged network you have chats on but are not signed in to on the bridge. */
   bridge?: BridgeLink;
+  adding: 'address' | BridgeAddBy;
+  /** Your own names on the network, lowercased. */
+  selves: ReadonlySet<string>;
 }
 
-type KnownRow =
-  | { kind: 'header'; letter: string }
-  | { kind: 'person'; id: string; name: string; chatId: string };
+type KnownRow = { kind: 'header'; letter: string } | ({ kind: 'person' } & Candidate);
 
-function groupByInitial(people: { id: string; name: string; chatId: string }[]): KnownRow[] {
+const NO_SELVES: ReadonlySet<string> = new Set();
+const NO_LINKS: BridgeLink[] = [];
+
+export function useDestinations() {
+  const sessions = useChatStore((s) => s.sessions);
+  const chats = useChatStore((s) => s.chats);
+  const matrix = sessions.matrix as (ChatSession & Partial<MatrixCapabilities>) | undefined;
+  const provisioningFor = matrix?.bridgeProvisioning?.bind(matrix);
+  const { value: links = NO_LINKS } = useKeyedLoad(
+    provisioningFor && matrix ? matrix.self.address : null,
+    () => bridgeLinks(provisioningFor ?? (() => null))
+  );
+
+  const contacts = contactsOf(chats, (p) => selfIdFor({ sessions }, p));
+  const protocols = connectableProtocols().filter((p) => sessions[p.id]);
+  const carrier = protocols.find((p) => p.id === 'matrix');
+  const bridged = [
+    ...new Set([
+      ...links.map((link) => link.network),
+      ...contacts.map((contact) => contact.network).filter(isBridgedNetwork),
+    ]),
+  ];
+  const available: Destination[] = [
+    ...protocols.map((descriptor) => ({
+      id: descriptor.id,
+      label: networkLabel(descriptor.id),
+      descriptor,
+      bridged: false,
+      adding: 'address' as const,
+      selves: NO_SELVES,
+    })),
+    ...(carrier
+      ? bridged
+          .map((network) => {
+            const bridge = links.find((link) => link.network === network);
+            return {
+              id: network,
+              label: networkLabel(network),
+              descriptor: carrier,
+              bridged: true,
+              bridge,
+              adding: bridge?.addBy ?? null,
+              selves: bridge?.selves ?? NO_SELVES,
+            };
+          })
+          .sort((a, b) => a.label.localeCompare(b.label))
+      : []),
+  ];
+
+  const [chosen, choose] = useState<NetworkId | null>(null);
+  const destination = available.find((d) => d.id === chosen) ?? available[0];
+  return { sessions, contacts, available, destination, choose };
+}
+
+function groupByInitial(people: Candidate[]): KnownRow[] {
   const out: KnownRow[] = [];
   let letter = '';
   for (const person of people) {
@@ -42,79 +99,29 @@ function groupByInitial(people: { id: string; name: string; chatId: string }[]):
       letter = initial;
       out.push({ kind: 'header', letter });
     }
-    out.push({
-      kind: 'person',
-      id: person.id,
-      name: person.name,
-      chatId: person.chatId,
-    });
+    out.push({ kind: 'person', ...person });
   }
   return out;
 }
 
-function defaultGroupName(participants: Participant[]): string {
-  const names = participants.slice(0, 2).map((r) => r.input.split('.')[0].slice(0, 10));
+function defaultGroupName(participants: Candidate[]): string {
+  const names = participants.slice(0, 2).map((r) => r.name.split('.')[0].slice(0, 10));
   const rest = participants.length - names.length;
   return rest > 0 ? `${names.join(', ')} +${rest}` : names.join(', ');
 }
 
-export function useNewChat() {
-  const sessions = useChatStore((s) => s.sessions);
-  const chats = useChatStore((s) => s.chats);
+export function useNewChat(destination: Destination, contacts: readonly Contact[]) {
   const resolveParticipant = useChatStore((s) => s.resolveParticipant);
   const startDm = useChatStore((s) => s.startDm);
   const startGroup = useChatStore((s) => s.startGroup);
-
-  const protocols = connectableProtocols().filter((p) => sessions[p.id]);
-  const matrix = protocols.find((p) => p.id === 'matrix');
-  const matrixSession = sessions.matrix;
-  const [links, setLinks] = useState<BridgeLink[]>([]);
-  useEffect(() => {
-    if (!matrixSession) return;
-    let cancelled = false;
-    void bridgeLinks(matrixSession).then((found) => {
-      if (!cancelled) setLinks(found);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [matrixSession]);
-
-  const contacts = contactsOf(chats, (p) => selfIdFor({ sessions }, p));
-  const bridged = [
-    ...new Set([
-      ...links.map((link) => link.network),
-      ...contacts.map((contact) => contact.network).filter(isBridgedNetwork),
-    ]),
-  ];
-  const available: Destination[] = [
-    ...protocols.map((descriptor) => ({ id: descriptor.id, label: descriptor.label, descriptor })),
-    ...(matrix
-      ? bridged
-          .map((network) => ({
-            id: network,
-            label: networkLabel(network),
-            descriptor: matrix,
-            bridge: links.find((link) => link.network === network),
-          }))
-          .sort((a, b) => a.label.localeCompare(b.label))
-      : []),
-  ];
-
-  const [chosen, setChosen] = useState<NetworkId | null>(null);
-  const destination = available.find((d) => d.id === chosen) ?? available[0];
-  const active = destination?.id ?? null;
-  const descriptor = destination?.descriptor;
-  const protocol: ProtocolId | null = descriptor?.id ?? null;
-  const bridgedHere = !!destination && isBridgedNetwork(destination.id);
-  const adding: 'address' | 'search' | 'lookup' | null = bridgedHere
-    ? addBy(destination.bridge)
-    : 'address';
-  const [results, setResults] = useState<RemotePerson[]>([]);
+  const { descriptor, bridge } = destination;
+  const protocol = descriptor.id;
+  const mine = (name: string) => destination.selves.has(name.toLowerCase());
 
   const [draft, setDraft] = useState('');
   const draftRef = useRef<TextInput>(null);
-  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [participants, setParticipants] = useState<Candidate[]>([]);
+  const [results, setResults] = useState<Candidate[]>([]);
   const [title, setTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -122,23 +129,14 @@ export function useNewChat() {
   const isGroup = participants.length > 1;
   const groupName = defaultGroupName(participants);
 
-  const { nameFor } = useDisplayNames(contacts);
-  const selves = destination?.bridge?.selves;
+  const here = contacts.filter((contact) => contact.network === destination.id);
+  const { nameFor } = useDisplayNames(here);
   const known = groupByInitial(
-    contacts
-      .filter((contact) => contact.network === active)
-      .map((contact) => ({ ...contact, name: nameFor(contact.id) }))
-      .filter((person) => !selves?.has(person.name.toLowerCase()))
+    here
+      .map((contact) => ({ participantId: contact.id, name: nameFor(contact.id) }))
+      .filter((person) => !mine(person.name))
       .sort((a, b) => a.name.localeCompare(b.name))
   );
-
-  function chooseProtocol(next: NetworkId) {
-    if (next === active) return;
-    setChosen(next);
-    setParticipants([]);
-    setResults([]);
-    setError(null);
-  }
 
   function changeDraft(text: string) {
     setDraft(text);
@@ -148,17 +146,13 @@ export function useNewChat() {
   async function addParticipant() {
     const input = draft.trim();
     if (!input) return;
-    if (bridgedHere) return findOnBridge(input);
+    if (bridge) return find(bridge, input);
 
-    if (!descriptor) {
-      setError('Still connecting to that protocol. Try again in a moment.');
-      return;
-    }
     setBusy(true);
     setError(null);
     let participantId: string | null;
     try {
-      participantId = await resolveParticipant(descriptor.id, input);
+      participantId = await resolveParticipant(protocol, input);
     } catch (e) {
       setError(errorMessage(e, 'Could not check that address'));
       setBusy(false);
@@ -174,23 +168,20 @@ export function useNewChat() {
       setError(`${input} is already on the list.`);
       return;
     }
-    setParticipants((current) => [...current, { input, participantId }]);
+    setParticipants((current) => [...current, { participantId, name: input }]);
     setDraft('');
     draftRef.current?.clear();
   }
 
-  /** A bridge finds people its own way: by search, or by an exact username, phone or email. */
-  async function findOnBridge(input: string) {
-    const link = destination?.bridge;
-    if (!link || !adding || !destination) return;
+  async function find(link: BridgeLink, input: string) {
     setBusy(true);
     setError(null);
     try {
       const found =
-        adding === 'search'
+        link.addBy === 'search'
           ? await link.provisioning.search(input)
           : [await link.provisioning.resolve(input)];
-      const people = found.filter((person) => !link.selves.has((person.name ?? '').toLowerCase()));
+      const people = found.map(candidateOf).filter((person) => !mine(person.name));
       setResults(people);
       if (people.length === 0) setError(`Nobody on ${destination.label} matches ${input}.`);
     } catch (e) {
@@ -199,27 +190,16 @@ export function useNewChat() {
     setBusy(false);
   }
 
-  function pickResult(person: RemotePerson) {
-    setError(null);
-    setParticipants([
-      {
-        input: person.name ?? person.id,
-        participantId: person.mxid ?? person.id,
-        remoteId: person.id,
-      },
-    ]);
-  }
-
   const selectedIds = new Set(participants.map((r) => r.participantId));
 
-  function toggleParticipant(id: string, name: string) {
+  function toggle(person: Candidate) {
     setError(null);
     setParticipants((current) =>
-      current.some((r) => r.participantId === id)
-        ? current.filter((r) => r.participantId !== id)
-        : bridgedHere
-          ? [{ input: name, participantId: id }]
-          : [...current, { input: name, participantId: id }]
+      current.some((r) => r.participantId === person.participantId)
+        ? current.filter((r) => r.participantId !== person.participantId)
+        : destination.bridged
+          ? [person]
+          : [...current, person]
     );
   }
 
@@ -229,16 +209,23 @@ export function useNewChat() {
 
   const only = participants.length === 1 ? participants[0] : null;
   const existingDm = only
-    ? (contacts.find((p) => p.network === active && p.id === only.participantId)?.chatId ?? null)
+    ? (here.find((contact) => contact.id === only.participantId)?.chatId ?? null)
     : null;
+
+  async function startWith(person: Candidate) {
+    if (bridge && person.remoteId) {
+      const created = await bridge.provisioning.createDm(person.remoteId);
+      return startDm(protocol, created.mxid ?? person.participantId);
+    }
+    return startDm(protocol, person.participantId);
+  }
 
   async function start() {
     if (existingDm) {
       openChatFromSheet(existingDm);
       return;
     }
-
-    if (participants.length === 0 || !protocol) return;
+    if (participants.length === 0) return;
 
     setBusy(true);
     setError(null);
@@ -248,7 +235,7 @@ export function useNewChat() {
           participants.map((r) => r.participantId),
           title.trim() || groupName
         )
-      : startPerson(protocol, participants[0]);
+      : startWith(participants[0]);
     try {
       const chat = await starting;
       openChatFromSheet(chat.id);
@@ -258,28 +245,11 @@ export function useNewChat() {
     setBusy(false);
   }
 
-  /** On a bridge, the bridge opens the DM on the far network before its room is opened here. */
-  async function startPerson(on: ProtocolId, person: Participant) {
-    const link = destination?.bridge;
-    if (link && person.remoteId) {
-      const created = await link.provisioning.createDm(person.remoteId);
-      return startDm(on, created.mxid ?? person.participantId);
-    }
-    return startDm(on, person.participantId);
-  }
-
   return {
-    sessions,
-    available,
-    active,
-    destination,
-    adding,
-    results,
-    pickResult,
-    descriptor,
     draft,
     draftRef,
     participants,
+    results,
     groupName,
     error,
     busy,
@@ -287,10 +257,9 @@ export function useNewChat() {
     known,
     selectedIds,
     existingDm,
-    chooseProtocol,
     changeDraft,
     addParticipant,
-    toggleParticipant,
+    toggle,
     removeParticipant,
     setTitle,
     start,

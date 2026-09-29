@@ -83,7 +83,8 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   private readonly pendingMembers = new Map<string, Promise<MxMember[]>>();
   private readonly names = new Map<string, string>();
   /** Once a room shows its bridge it keeps it, even after the bridged users fall out of the summary. */
-  private readonly networks = new Map<string, BridgedNetwork>();
+  /** null for a room no bridge carries, until its roster arrives. */
+  private readonly networks = new Map<string, BridgedNetwork | null>();
   private readonly mediaPaths = new Map<string, string>();
   private readonly awaitedMedia = new Map<string, MxEvent>();
   private readonly unfetched = new Map<MessageId, { raw: MxEvent; media: MxMedia }>();
@@ -628,6 +629,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
             if (member.displayName) this.names.set(member.userId, member.displayName);
           }
           this.members.set(roomId, members);
+          if (this.networks.get(roomId) === null) this.networks.delete(roomId);
           const room = this.rooms.get(roomId);
           if (room && members.length > 0) this.announce(room);
           return members;
@@ -643,16 +645,17 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     this.pendingMembers.delete(roomId);
   }
 
-  private participantOf(room: MxRoom): string | null {
+  private rosterOf(roomId: string): string[] | undefined {
+    return this.members.get(roomId)?.map((member) => member.userId);
+  }
+
+  private participantOf(room: MxRoom, roster = this.rosterOf(room.id) ?? []): string | null {
     const selfId = this.self.participantId;
     const other = (id: string) => id !== selfId && !isBridgeBot(id);
     return (
       room.peer ??
       room.heroes.find(other) ??
-      this.members
-        .get(room.id)
-        ?.map((member) => member.userId)
-        .find(other) ??
+      roster.find(other) ??
       (room.inviter !== selfId ? room.inviter : null) ??
       null
     );
@@ -660,27 +663,29 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
 
   private toChat(room: MxRoom): ProtocolChat {
     const selfId = this.self.participantId;
-    const known = this.members.get(room.id);
-    const network =
-      this.networks.get(room.id) ??
-      bridgedNetwork([
-        room.peer,
-        room.latest?.sender,
-        room.inviter,
-        ...room.heroes,
-        ...room.elevated,
-        ...(known?.map((member) => member.userId) ?? []),
-      ]);
-    if (network) this.networks.set(room.id, network);
+    const roster = this.rosterOf(room.id);
+    let network = this.networks.get(room.id);
+    if (network === undefined) {
+      network =
+        bridgedNetwork([
+          room.peer,
+          room.latest?.sender,
+          room.inviter,
+          ...room.heroes,
+          ...room.elevated,
+          ...(roster ?? []),
+        ]) ?? null;
+      this.networks.set(room.id, network);
+    }
 
     const isDm = room.isDm || (!!network && isBridgedDm(room));
-    const participant = this.participantOf(room);
+    const participant = this.participantOf(room, roster ?? []);
     const presence = isDm && participant ? this.presence.get(participant) : undefined;
     const memberIds = isDm
       ? participant
         ? [participant, selfId]
         : [selfId]
-      : [...new Set([...(known?.map((member) => member.userId) ?? room.heroes), selfId])];
+      : [...new Set([...(roster ?? room.heroes), selfId])];
 
     return {
       id: chatIdOf(room.id),
@@ -689,7 +694,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
       typing: this.typing.get(room.id) ?? false,
       ...(presence?.online ? { online: true } : {}),
       ...(presence?.lastSeenAt ? { lastSeenAt: presence.lastSeenAt } : {}),
-      network,
+      network: network ?? undefined,
       title: room.name || (isDm ? (participant ?? room.id) : 'Untitled chat'),
       avatarUri: this.avatarOf(room),
       memberIds,

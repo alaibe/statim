@@ -49,3 +49,7 @@ export function totalUnread(
 ): number {
   return chats.filter((c) => !prefsFor(prefs, c.id).muted && isUnread(c, readAt)).length;
 }
+
+export function readByPeer(readUpTo: number, message: ChatMessage): boolean {
+  return readUpTo >= message.sentAt;
+}

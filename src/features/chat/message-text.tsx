@@ -28,10 +28,7 @@ export function MessageText({
   text: string;
   fromMe: boolean;
   className?: string;
-  /**
-   * The time, set at the end of the last line the way Telegram does when the
-   * text is one paragraph; `label` is what it reads, to keep its room free.
-   */
+  /** The time, at the end of a one-paragraph text; `label` is what it reads, to keep its room free. */
   footer?: { node: ReactNode; label: string };
   /** With `onCommand`, an address offers to send funds where /send can run. */
   chatId?: ChatId;
@@ -67,7 +64,7 @@ export function MessageText({
           <View className="gap-1">
             <Blocks blocks={blocks} look={look} />
           </View>
-          {footer?.node}
+          {footer ? <View className="flex-row justify-end">{footer.node}</View> : null}
         </>
       )}
 

@@ -7,7 +7,7 @@ export const STATUS_PROTOCOL = {
   id: 'status',
   docsUrl: guideUrl('networks', 'status'),
   label: 'Status',
-  external: false,
+  folded: true,
   description: 'DMs and groups with people on Status.',
   address: {
     label: 'Chat key',

@@ -7,7 +7,7 @@ import type { Folder, ChatListRow } from '@/core/messaging/folders';
 import { formatTimestamp, messagePreview } from '@/core/messaging/preview';
 import type { NetworkId } from '@/core/messaging/networks';
 import type { Chat, ChatId } from '@/core/messaging/types';
-import { unreadBadge } from '@/core/messaging/unread';
+import { readByPeer, unreadBadge } from '@/core/messaging/unread';
 import {
   CountBadge,
   Enter,
@@ -22,7 +22,7 @@ import {
 import { openChat } from '@/features/navigation/open';
 import { networkLabel } from '@/features/protocols/presentation';
 import { ChatAvatar } from './chat-avatar';
-import { DeliveryIcon, readByPeer } from './delivery-icon';
+import { DeliveryIcon } from './delivery-icon';
 
 export function ChatRow({
   chat,
@@ -104,7 +104,11 @@ export function ChatRow({
           last ? (
             <View className="flex-row items-center gap-1">
               {last.fromMe ? (
-                <DeliveryIcon message={last} read={readByPeer(chat, last)} size={14} />
+                <DeliveryIcon
+                  message={last}
+                  read={readByPeer(chat.readUpTo ?? 0, last)}
+                  size={14}
+                />
               ) : null}
               <Text variant="caption" className={unread && !muted ? 'text-brand' : undefined}>
                 {formatTimestamp(last.sentAt)}

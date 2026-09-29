@@ -10,7 +10,7 @@ export const TELEGRAM_PROTOCOL = {
   id: 'telegram',
   docsUrl: guideUrl('networks', 'telegram'),
   label: 'Telegram',
-  external: true,
+  folded: true,
   publicChats: {
     title: 'Join a Telegram group or channel',
     hint: 'Enter a @username, public link, or invite link to preview it.',

@@ -58,8 +58,8 @@ export interface ProtocolDescriptor {
   meta: ChatProtocolMeta;
   description: string;
   docsUrl?: string;
-  /** An account on someone else's server, signed into, rather than one made from your keys. */
-  external: boolean;
+  /** Its chats sit in a folder of their own rather than at the top of the chat list. */
+  folded: boolean;
   address: AddressCopy;
   publicChats?: PublicChatsCopy;
   configSchema: ProtocolConfigSchema;

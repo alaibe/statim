@@ -11,13 +11,14 @@ import {
   splitRequests,
 } from '@/core/messaging/folders';
 import { messagePreview } from '@/core/messaging/preview';
-import type { NetworkId } from '@/core/messaging/networks';
+import { isBridgedNetwork, type NetworkId } from '@/core/messaging/networks';
 import type { Chat, ChatId } from '@/core/messaging/types';
 import { hasUnreadMentions } from '@/core/messaging/unread';
+import { protocolById } from '@/protocols';
 
-export const isFolded = (network: NetworkId) => network !== 'xmtp';
+export const isFolded = (network: NetworkId) =>
+  isBridgedNetwork(network) || (protocolById(network)?.folded ?? true);
 
-/** These list every chat they match, whichever folder it is in. */
 export const crossesFolders = (filter: ChatFilter) => filter === 'unread' || filter === 'mentions';
 
 export function chatListContents({
@@ -57,9 +58,8 @@ export function chatListContents({
       ? scope.filter(include).map(chatRow)
       : chatListRows(ordered, include, isFolded, context);
   const networks = new Set(
-    rows.map((row) => (row.kind === 'chat' ? networkOf(row.chat) : undefined))
+    rows.flatMap((row) => (row.kind === 'chat' ? (networkOf(row.chat) ?? []) : []))
   );
-  networks.delete(undefined);
 
   return {
     accepted,

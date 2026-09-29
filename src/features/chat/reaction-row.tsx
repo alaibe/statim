@@ -1,30 +1,21 @@
-import { createContext, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { cn, Text } from '@/design';
-
-export interface Reactors {
-  nameOf(id: string): string;
-  selfId?: string;
-}
-
-/** What a bubble's footer needs to draw the reactions beside the time. */
-export const ReactionHandlers = createContext<{
-  reactors?: Reactors;
-  onReact?: (emoji: string) => void;
-}>({});
 
 export function ReactionRow({
   reactions,
   fromMe,
   inBubble,
-  reactors,
+  selfId,
+  nameFor,
   onReact,
 }: {
   reactions: Readonly<Record<string, readonly string[]>>;
   fromMe: boolean;
   inBubble: boolean;
-  reactors?: Reactors;
+  selfId: string;
+  nameFor: (id: string) => string;
   onReact?: (emoji: string) => void;
 }) {
   return (
@@ -39,12 +30,10 @@ export function ReactionRow({
           key={emoji}
           emoji={emoji}
           people={people}
-          mine={!!reactors?.selfId && people.includes(reactors.selfId)}
+          mine={people.includes(selfId)}
           fromMe={fromMe}
           inBubble={inBubble}
-          names={people.map((id) =>
-            id === reactors?.selfId ? 'You' : (reactors?.nameOf(id) ?? id)
-          )}
+          names={people.map((id) => (id === selfId ? 'You' : nameFor(id)))}
           onPress={onReact && (() => onReact(emoji))}
         />
       ))}

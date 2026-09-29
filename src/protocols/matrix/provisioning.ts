@@ -76,8 +76,7 @@ export interface Whoami {
   logins: {
     id: string;
     name: string;
-    /** Who the login is on the far network. */
-    profile?: { name?: string; username?: string; phone?: string; email?: string };
+    profile?: { name?: string; username?: string };
   }[];
 }
 
@@ -88,11 +87,8 @@ export interface ProvisioningCapabilities {
     lookup_phone: boolean;
     lookup_email: boolean;
     lookup_username: boolean;
-    any_phone: boolean;
-    contact_list: boolean;
     search: boolean;
   };
-  group_creation?: Record<string, unknown>;
 }
 
 /** Someone on the far network, and their puppet on Matrix. */
@@ -101,7 +97,6 @@ export interface RemotePerson {
   name?: string;
   identifiers?: string[];
   mxid?: string;
-  dm_room_mxid?: string;
 }
 
 export type ProvisionRequest = (
@@ -123,13 +118,8 @@ export class BridgeProvisioning {
     return provisioning;
   }
 
-  async contacts(): Promise<RemotePerson[]> {
-    return ((await this.request('/v3/contacts')) as { contacts: RemotePerson[] }).contacts;
-  }
-
   async search(query: string): Promise<RemotePerson[]> {
-    const found = await this.request('/v3/search_users', { method: 'POST', body: { query } });
-    return (found as { results: RemotePerson[] }).results;
+    return (await this.post<{ results: RemotePerson[] }>('/v3/search_users', { query })).results;
   }
 
   resolve(identifier: string): Promise<RemotePerson> {
@@ -138,11 +128,8 @@ export class BridgeProvisioning {
     ) as Promise<RemotePerson>;
   }
 
-  /** Makes the bridge open the DM on the far network, with its room on Matrix. */
   createDm(identifier: string): Promise<RemotePerson> {
-    return this.request(`/v3/create_dm/${encodeURIComponent(identifier)}`, {
-      method: 'POST',
-    }) as Promise<RemotePerson>;
+    return this.post(`/v3/create_dm/${encodeURIComponent(identifier)}`);
   }
 
   start(flowId: string): Promise<LoginStep> {
@@ -159,11 +146,11 @@ export class BridgeProvisioning {
   }
 
   async cancel(step: LoginStep): Promise<void> {
-    await this.request(`/v3/login/cancel/${encodeURIComponent(step.login_id)}`, { method: 'POST' });
+    await this.post(`/v3/login/cancel/${encodeURIComponent(step.login_id)}`);
   }
 
-  private post(path: string, body?: unknown): Promise<LoginStep> {
-    return this.request(path, { method: 'POST', body }) as Promise<LoginStep>;
+  private post<T>(path: string, body?: unknown): Promise<T> {
+    return this.request(path, { method: 'POST', body }) as Promise<T>;
   }
 }
 

@@ -1,5 +1,5 @@
 import { isLocalChat } from '@/core/messaging/bots';
-import { networkOf, splitRequests } from '@/core/messaging/folders';
+import { splitRequests } from '@/core/messaging/folders';
 import type { ProtocolId } from '@/core/messaging/namespace';
 import type { NetworkId } from '@/core/messaging/networks';
 import type { Chat, ParticipantId } from '@/core/messaging/types';
@@ -35,7 +35,7 @@ export function contactsOf(
       byContact.set(key, {
         id,
         protocol: chat.protocol,
-        network: networkOf(chat) ?? chat.protocol,
+        network: chat.network ?? chat.protocol,
         chatId: chat.id,
       });
     }
@@ -58,7 +58,6 @@ export function fromContactKey(key: string): Contact {
   return { id, protocol, network, chatId };
 }
 
-/** "Slack via Matrix" for a bridged contact, the protocol alone otherwise. */
 export function contactNetwork({
   protocol,
   network,

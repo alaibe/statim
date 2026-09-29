@@ -8,7 +8,7 @@ export const NOSTR_PROTOCOL = {
   id: 'nostr',
   docsUrl: guideUrl('networks', 'nostr'),
   label: 'Nostr',
-  external: false,
+  folded: true,
   description: 'Sealed DMs relayed by servers that never learn who sent them.',
   address: {
     label: 'Public key',
