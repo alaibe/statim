@@ -195,6 +195,7 @@ export type TdChatUpdate =
       positions: TdChatPosition[];
     }
   | { '@type': 'updateChatReadInbox'; chat_id: number; unread_count: number }
+  | { '@type': 'updateChatReadOutbox'; chat_id: number; last_read_outbox_message_id: number }
   | { '@type': 'updateChatUnreadMentionCount'; chat_id: number; unread_mention_count: number }
   | {
       '@type': 'updateChatPendingJoinRequests';

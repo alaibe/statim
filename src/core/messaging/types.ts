@@ -106,7 +106,6 @@ export interface ChatMessage<Id extends AnyChatId = ChatId> {
   /** Set on a reply inside a thread: the message that started it. */
   readonly threadRoot?: MessageId;
   readonly reactions?: Readonly<Record<string, readonly ParticipantId[]>>;
-  readonly readAt?: number;
   readonly forwarded?: boolean;
   readonly isPinned?: boolean;
   readonly privateToMe?: boolean;
@@ -144,6 +143,8 @@ interface ChatFields<Id extends AnyChatId> {
   readonly unreadCount?: number;
   readonly mentionCount?: number;
   readonly markedUnread?: boolean;
+  /** When the latest of your messages the other side has read was sent; unset where the protocol does not say. */
+  readonly readUpTo?: number;
   /** The draft the protocol keeps for this chat; empty when there is none. Unset where drafts stay on the device. */
   readonly draft?: string;
   readonly pendingJoinRequests?: number;

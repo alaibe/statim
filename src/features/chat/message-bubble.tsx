@@ -25,7 +25,7 @@ import { VoiceBubble } from './attachments/voice-bubble';
 import { VideoBubble } from './attachments/video-bubble';
 import { PollBubble } from './poll-bubble';
 import { awaitsFile, formatTimestamp } from '@/core/messaging/preview';
-import { DeliveryIcon } from './delivery-icon';
+import { DeliveryIcon, useReadByPeer } from './delivery-icon';
 import { openUrlQuietly } from './link-actions';
 
 export type { ReplyPreview } from './bubble-shell';
@@ -304,6 +304,7 @@ function Footer({
   inline?: boolean;
 }) {
   const { reactors, onReact } = useContext(ReactionHandlers);
+  const read = useReadByPeer(message);
   const time = (
     <View
       className={cn(
@@ -320,6 +321,7 @@ function Footer({
       {message.fromMe ? (
         <DeliveryIcon
           message={message}
+          read={read}
           size={13}
           tone="bubble-out-on"
           color={overlay ? '#fff' : undefined}

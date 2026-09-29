@@ -22,7 +22,7 @@ import {
 import { openChat } from '@/features/navigation/open';
 import { networkLabel } from '@/features/protocols/presentation';
 import { ChatAvatar } from './chat-avatar';
-import { DeliveryIcon } from './delivery-icon';
+import { DeliveryIcon, readByPeer } from './delivery-icon';
 
 export function ChatRow({
   chat,
@@ -103,7 +103,9 @@ export function ChatRow({
         meta={
           last ? (
             <View className="flex-row items-center gap-1">
-              {last.fromMe ? <DeliveryIcon message={last} size={14} /> : null}
+              {last.fromMe ? (
+                <DeliveryIcon message={last} read={readByPeer(chat, last)} size={14} />
+              ) : null}
               <Text variant="caption" className={unread && !muted ? 'text-brand' : undefined}>
                 {formatTimestamp(last.sentAt)}
               </Text>

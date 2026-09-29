@@ -19,6 +19,9 @@ export function patchChat(chat: TdChat, update: TdChatUpdate): void {
     case 'updateChatReadInbox':
       chat.unread_count = update.unread_count;
       return;
+    case 'updateChatReadOutbox':
+      chat.last_read_outbox_message_id = update.last_read_outbox_message_id;
+      return;
     case 'updateChatUnreadMentionCount':
       chat.unread_mention_count = update.unread_mention_count;
       return;

@@ -104,6 +104,8 @@ export class TelegramSession implements ChatSession {
   private readonly messages = new TelegramMessages(this.host, this.outbox);
   private readonly awaitedFiles = new Map<number, { chatId: number; messageId?: number }>();
   private readonly refetching = new Map<string, Promise<void>>();
+  /** When the message a chat's read marker stands on was sent, where the last message cannot tell. */
+  private readonly readDates = new Map<number, { messageId: number; at: number }>();
   private readonly typing = new TypingTracker((chatId) => {
     const chat = this.td.chats.get(chatId);
     if (chat) this.announce(chat);
@@ -291,6 +293,7 @@ export class TelegramSession implements ChatSession {
       case 'updateChatPhoto':
       case 'updateChatLastMessage':
       case 'updateChatReadInbox':
+      case 'updateChatReadOutbox':
       case 'updateChatUnreadMentionCount':
       case 'updateChatPendingJoinRequests':
       case 'updateChatDraftMessage':
@@ -807,6 +810,7 @@ export class TelegramSession implements ChatSession {
       lastMessage: chat.last_message ? this.toMessage(chat.last_message, false) : undefined,
       unreadCount: chat.unread_count,
       mentionCount: chat.unread_mention_count,
+      readUpTo: this.readUpTo(chat),
       ...(chat.is_marked_as_unread ? { markedUnread: true } : {}),
       draft: draftText(chat.draft_message),
       ...(chat.pending_join_requests?.total_count
@@ -823,6 +827,36 @@ export class TelegramSession implements ChatSession {
       selfRole: isDm ? undefined : this.td.roleIn(chat),
       ...this.td.rightsIn(chat),
     };
+  }
+
+  /**
+   * TDLib marks how far the other side has read by message id. The last
+   * message's own date answers most chats; otherwise the marked message is
+   * fetched once and the chat announced again.
+   */
+  private readUpTo(chat: TdChat): number | undefined {
+    const upTo = chat.last_read_outbox_message_id;
+    if (!upTo) return undefined;
+    const last = chat.last_message;
+    if (last && last.id <= upTo) return last.date * 1000;
+    const known = this.readDates.get(chat.id);
+    if (known?.messageId !== upTo) void this.fetchReadDate(chat, upTo);
+    return known?.at;
+  }
+
+  private async fetchReadDate(chat: TdChat, messageId: number): Promise<void> {
+    const key = `read:${chat.id}:${messageId}`;
+    if (this.refetching.has(key)) return;
+    const pending = this.api
+      .send<TdMessage>({ '@type': 'getMessage', chat_id: chat.id, message_id: messageId })
+      .then((message) => {
+        this.readDates.set(chat.id, { messageId, at: message.date * 1000 });
+        this.announce(chat);
+      })
+      .catch(() => {})
+      .finally(() => this.refetching.delete(key));
+    this.refetching.set(key, pending);
+    await pending;
   }
 
   private mapping(raw: TdMessage, fetchMedia: boolean): MappingContext {

@@ -461,6 +461,24 @@ describe('TelegramSession chats', () => {
     });
   });
 
+  it('tells how far the other side has read, from TDLib’s read marker', async () => {
+    const { session, td } = await signedIn();
+    const bob = privateChat(200, 'Bob Builder');
+    bob.last_message = textMessage(200, 9, 100, 'later', { outgoing: true, date: 900 });
+    bob.last_read_outbox_message_id = 7;
+    td().emit({ '@type': 'updateNewChat', chat: bob });
+    td().answer('getChats', { '@type': 'chats', chat_ids: [200] });
+    td().answer('getMessage', textMessage(200, 7, 100, 'earlier', { outgoing: true, date: 700 }));
+
+    await session.listChats();
+    await flush();
+    expect((await session.listChats())[0].readUpTo).toBe(700_000);
+
+    td().emit({ '@type': 'updateChatReadOutbox', chat_id: 200, last_read_outbox_message_id: 9 });
+    await flush();
+    expect((await session.listChats())[0].readUpTo).toBe(900_000);
+  });
+
   it('lists private chats, groups, and channels in TDLib’s order', async () => {
     const { session, td } = await signedIn();
     td().answer('getBasicGroupFullInfo', {
