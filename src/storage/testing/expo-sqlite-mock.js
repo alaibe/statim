@@ -9,9 +9,11 @@
  * ever agree with whatever the code already did.
  *
  * This does not cover SQLCipher. Node's build has no codec, so `PRAGMA key` is
- * an unknown pragma and SQLite ignores it. That is the silent-plaintext
- * failure mode worth knowing about, and why encryption has to be checked on a
- * device. Schema, migrations, upserts, ordering and limits are the real thing.
+ * an unknown pragma and SQLite ignores it. What it does model is that a
+ * SQLCipher connection reads nothing until it has been given the key: every
+ * other statement on a connection that has not run `PRAGMA key` fails, the
+ * way an encrypted file does on a device. Schema, migrations, upserts,
+ * ordering and limits are the real thing.
  */
 const { DatabaseSync } = require('node:sqlite');
 const fs = require('node:fs');
@@ -28,48 +30,48 @@ function fileFor(name) {
 }
 
 function wrap(db) {
-  const wrapped = {
+  let keyed = false;
+  const unlocked = (sql) => {
+    if (/^\s*PRAGMA\s+key\s*=/i.test(sql)) keyed = true;
+    else if (!keyed) throw new Error('file is not a database');
+  };
+  const values = (params) => (params.length === 1 && Array.isArray(params[0]) ? params[0] : params);
+
+  return {
     async execAsync(sql) {
+      unlocked(sql);
       db.exec(sql);
     },
 
     async runAsync(sql, ...params) {
-      const result = db.prepare(sql).run(...params);
+      unlocked(sql);
+      const result = db.prepare(sql).run(...values(params));
       return { changes: result.changes, lastInsertRowId: result.lastInsertRowid };
     },
 
-    async getFirstAsync(sql, ...params) {
-      if (/^\s*PRAGMA\s+cipher_version/i.test(sql)) {
-        return cipherVersion ? { cipher_version: cipherVersion } : null;
-      }
-      return db.prepare(sql).get(...params) ?? null;
-    },
-
-    async getAllAsync(sql, ...params) {
-      return db.prepare(sql).all(...params);
+    async prepareAsync(sql) {
+      unlocked(sql);
+      const cipher = /^\s*PRAGMA\s+cipher_version/i.test(sql);
+      const statement = cipher ? null : db.prepare(sql);
+      statement?.setReturnArrays(true);
+      return {
+        async executeForRawResultAsync(...params) {
+          const rows = cipher
+            ? cipherVersion
+              ? [[cipherVersion]]
+              : []
+            : statement.all(...values(params));
+          return { getAllAsync: async () => rows };
+        },
+        async finalizeAsync() {},
+      };
     },
 
     async closeAsync() {
       db.close();
       for (const [name, entry] of open) if (entry.db === db) open.delete(name);
     },
-
-    /** The raw handle, for a test that wants to look behind the store. */
-    __db: db,
   };
-  wrapped.withExclusiveTransactionAsync = async (task) => {
-    db.exec('BEGIN IMMEDIATE');
-    try {
-      await task(wrapped);
-      db.exec('COMMIT');
-    } catch (error) {
-      try {
-        db.exec('ROLLBACK');
-      } catch {}
-      throw error;
-    }
-  };
-  return wrapped;
 }
 
 async function openDatabaseAsync(name) {

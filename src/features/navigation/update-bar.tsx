@@ -5,8 +5,6 @@ import { View } from 'react-native';
 
 import { Button, Text, toast } from '@/design';
 
-const START_OVER = 'statim accounts erase --all\nstatim accounts import';
-
 /** Downloads a newer release in the background and offers to restart into it. */
 export function UpdateBar() {
   const [update, setUpdate] = useState<Update | null>(null);
@@ -38,20 +36,11 @@ export function UpdateBar() {
   };
 
   return (
-    <View className="gap-2 border-t border-line px-3 py-2">
-      <View className="flex-row items-center gap-2">
-        <Text variant="footnote" className="flex-1 text-content">
-          Version {update.version} is ready
-        </Text>
-        <Button size="sm" label="Restart" onPress={restart} />
-      </View>
-      <Text variant="footnote">
-        Before 1.0 a new version is not built to read what an older one stored. After restarting,
-        erase your accounts and import each again from its recovery phrase:
+    <View className="flex-row items-center gap-2 border-t border-line px-3 py-2">
+      <Text variant="footnote" className="flex-1 text-content">
+        Version {update.version} is ready
       </Text>
-      <Text selectable className="font-mono text-xs">
-        {START_OVER}
-      </Text>
+      <Button size="sm" label="Restart" onPress={restart} />
     </View>
   );
 }

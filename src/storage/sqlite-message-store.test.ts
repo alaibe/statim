@@ -31,6 +31,20 @@ afterEach(async () => {
   accounts.clear();
 });
 
+/** Runs `before` ahead of every statement matching `pattern`, however the store sends it. */
+async function beforeStatement(id: string, pattern: RegExp, before: () => Promise<void>) {
+  const { connection } = await openAccountDatabase(id);
+  const { run, rows } = connection;
+  jest.spyOn(connection, 'run').mockImplementation(async (sql, params) => {
+    if (pattern.test(sql)) await before();
+    return run(sql, params);
+  });
+  jest.spyOn(connection, 'rows').mockImplementation(async (sql, params) => {
+    if (pattern.test(sql)) await before();
+    return rows(sql, params);
+  });
+}
+
 function message(
   over: Omit<Partial<ProtocolMessage>, 'chatId'> & { id: string; chatId: string }
 ): ProtocolMessage {
@@ -56,7 +70,7 @@ function chat(id: string, protocolId: ProtocolId = STATUS, over: Record<string, 
   };
 }
 
-describe('the schema', () => {
+describe('the database', () => {
   it('fails closed when SQLCipher is unavailable and can retry', async () => {
     const id = freshAccount();
     const sqlite = jest.requireMock('expo-sqlite') as {
@@ -68,21 +82,6 @@ describe('the schema', () => {
 
     sqlite.__setCipherVersion('4.6.1');
     await expect(openAccountDatabase(id)).resolves.toBeDefined();
-  });
-
-  it('creates itself on first open and records its version', async () => {
-    const id = freshAccount();
-    const db = await openAccountDatabase(id);
-
-    const version = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
-    expect(version?.user_version).toBe(1);
-
-    const tables = await db.getAllAsync<{ name: string }>(
-      "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name"
-    );
-    expect(tables.map((t) => t.name)).toEqual(
-      expect.arrayContaining(['chat_cache', 'chats', 'messages', 'transport_cursors'])
-    );
   });
 
   it('does not re-run the migration on a second open', async () => {
@@ -216,11 +215,8 @@ describe('messages', () => {
   it('rolls back chat metadata when an atomic ingest fails', async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
-    const db = await openAccountDatabase(id);
-    const run = db.runAsync.bind(db);
-    jest.spyOn(db, 'runAsync').mockImplementation(async (sql, ...params) => {
-      if (sql.includes('INSERT INTO messages')) throw new Error('disk full');
-      return run(sql, ...params);
+    await beforeStatement(id, /insert into "messages"/i, async () => {
+      throw new Error('disk full');
     });
 
     await expect(
@@ -234,21 +230,16 @@ describe('messages', () => {
   it('does not expose chat metadata before its message commits', async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
-    const db = await openAccountDatabase(id);
-    const run = db.runAsync.bind(db);
     let release!: () => void;
     let reached!: () => void;
     const paused = new Promise<void>((resolve) => {
       reached = resolve;
     });
-    jest.spyOn(db, 'runAsync').mockImplementation(async (sql, ...params) => {
-      if (sql.includes('INSERT INTO messages')) {
-        reached();
-        await new Promise<void>((resolve) => {
-          release = resolve;
-        });
-      }
-      return run(sql, ...params);
+    await beforeStatement(id, /insert into "messages"/i, async () => {
+      reached();
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
     });
 
     const ingesting = store.insertMessage(message({ id: 'm1', chatId: 'c1' }), chat('c1'));
@@ -438,8 +429,8 @@ describe('messages', () => {
     await store.upsertChat(chat('c1'));
     await store.insertMessage(message({ id: 'm1', chatId: 'c1' }));
 
-    const db = await openAccountDatabase(id);
-    await db.runAsync("UPDATE messages SET content = 'not json' WHERE id = 'm1'");
+    const { connection } = await openAccountDatabase(id);
+    await connection.run("UPDATE messages SET content = 'not json' WHERE id = 'm1'", []);
 
     const [loaded] = await store.loadMessages(C1);
     expect(loaded.content.kind).toBe('unsupported');
@@ -479,21 +470,16 @@ describe('clearing', () => {
   it('blocks new writes and waits for the account queue before deletion', async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
-    const db = await openAccountDatabase(id);
-    const run = db.runAsync.bind(db);
     let release!: () => void;
     let reached!: () => void;
     const paused = new Promise<void>((resolve) => {
       reached = resolve;
     });
-    jest.spyOn(db, 'runAsync').mockImplementation(async (sql, ...params) => {
-      if (sql.includes('INSERT INTO chats')) {
-        reached();
-        await new Promise<void>((resolve) => {
-          release = resolve;
-        });
-      }
-      return run(sql, ...params);
+    await beforeStatement(id, /insert into "chats"/i, async () => {
+      reached();
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
     });
 
     const writing = store.upsertChat(chat('c1'));

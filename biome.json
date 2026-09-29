@@ -16,6 +16,7 @@
       "!site/public/**",
       "!site/next-env.d.ts",
       "!src/global.css",
+      "!src/storage/migrations/**",
       "!**/token-list.json",
       "!package-lock.json"
     ]

@@ -1,8 +1,17 @@
-import type { AccountDatabase } from './account-database';
-import { deleteDatabase, openDatabase } from './sqlite-engine';
+import { DrizzleQueryError } from 'drizzle-orm/errors';
+import { drizzle, type SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy';
+
+import { migrate } from './migrate';
+import type { SqliteConnection } from './sqlite-connection';
+import { deleteDatabase, openConnection } from './sqlite-engine';
 import { accountDatabaseKey } from './vault';
 
-const SCHEMA_VERSION = 1;
+export type Database = SqliteRemoteDatabase;
+
+export interface AccountDatabase {
+  db: Database;
+  connection: SqliteConnection;
+}
 
 const databases = new Map<string, Promise<AccountDatabase>>();
 const operations = new Map<
@@ -26,14 +35,16 @@ export function accountDatabaseGeneration(accountId: string): number {
 export function runAccountDatabaseOperation<T>(
   accountId: string,
   generation: number,
-  work: (db: AccountDatabase) => Promise<T>
+  work: (db: Database) => Promise<T>
 ): Promise<T> {
   const state = operationState(accountId);
   if (state.deleting || state.generation !== generation) {
     return Promise.reject(new Error('Account database is being deleted or has been deleted.'));
   }
 
-  const result = state.tail.then(() => openAccountDatabase(accountId).then(work));
+  const result = state.tail.then(() =>
+    openAccountDatabase(accountId).then(({ db }) => work(db).catch(withoutQuery))
+  );
   state.tail = result.then(
     () => {},
     () => {}
@@ -41,8 +52,24 @@ export function runAccountDatabaseOperation<T>(
   return result;
 }
 
+/** Drizzle's wrapper carries the statement's parameters, which here are message text. */
+function withoutQuery(error: unknown): never {
+  throw error instanceof DrizzleQueryError && error.cause !== undefined ? error.cause : error;
+}
+
 export function databaseNameFor(accountId: string): string {
   return `account-${accountId}.db`;
+}
+
+function drizzleOver(connection: SqliteConnection): Database {
+  return drizzle(async (sql, params, method) => {
+    if (method === 'run') {
+      await connection.run(sql, params);
+      return { rows: [] };
+    }
+    const rows = await connection.rows(sql, params);
+    return { rows: method === 'get' ? rows[0] : rows };
+  });
 }
 
 export function openAccountDatabase(accountId: string): Promise<AccountDatabase> {
@@ -50,17 +77,19 @@ export function openAccountDatabase(accountId: string): Promise<AccountDatabase>
   if (existing) return existing;
 
   const opening = (async () => {
-    const db = await openDatabase(databaseNameFor(accountId));
+    const connection = await openConnection(databaseNameFor(accountId));
     try {
       const key = await accountDatabaseKey(accountId);
-      await db.execAsync(`PRAGMA key = "x'${key}'"; PRAGMA synchronous = NORMAL;`);
-      const cipher = await db.getFirstAsync<{ cipher_version: string }>('PRAGMA cipher_version');
-      if (!cipher?.cipher_version) throw new Error('SQLCipher is unavailable in this app build.');
+      await connection.exec(`PRAGMA key = "x'${key}'"; PRAGMA synchronous = NORMAL;`);
+      const [cipher] = await connection.rows('PRAGMA cipher_version', []);
+      if (!cipher?.[0]) throw new Error('SQLCipher is unavailable in this app build.');
+      await connection.exec('PRAGMA journal_mode = WAL');
 
-      await createSchema(db);
-      return db;
+      const db = drizzleOver(connection);
+      await migrate(db).catch(withoutQuery);
+      return { db, connection };
     } catch (error) {
-      await db.closeAsync().catch(() => {});
+      await connection.close().catch(() => {});
       throw error;
     }
   })();
@@ -70,66 +99,6 @@ export function openAccountDatabase(accountId: string): Promise<AccountDatabase>
     if (databases.get(accountId) === opening) databases.delete(accountId);
   });
   return opening;
-}
-
-async function createSchema(db: AccountDatabase): Promise<void> {
-  const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
-  if ((row?.user_version ?? 0) >= SCHEMA_VERSION) return;
-
-  await db.execAsync(`
-    PRAGMA journal_mode = WAL;
-
-    CREATE TABLE IF NOT EXISTS chats (
-      id           TEXT PRIMARY KEY NOT NULL,
-      protocol_id  TEXT NOT NULL,
-      participants TEXT NOT NULL,
-      title        TEXT,
-      created_at   INTEGER NOT NULL,
-      hidden       INTEGER NOT NULL DEFAULT 0,
-      routing_key  TEXT
-    );
-
-    CREATE INDEX IF NOT EXISTS chats_by_protocol
-      ON chats (protocol_id);
-
-    CREATE TABLE IF NOT EXISTS messages (
-      id              TEXT NOT NULL,
-      chat_id         TEXT NOT NULL,
-      sender_id       TEXT NOT NULL,
-      sent_at         INTEGER NOT NULL,
-      from_me         INTEGER NOT NULL DEFAULT 0,
-      status          TEXT NOT NULL DEFAULT 'sent',
-      content         TEXT NOT NULL,
-      reply_to        TEXT,
-      edited          INTEGER NOT NULL DEFAULT 0,
-      PRIMARY KEY (chat_id, id)
-    );
-
-    -- Every read is "the newest N in this chat, oldest first".
-    CREATE INDEX IF NOT EXISTS messages_by_chat
-      ON messages (chat_id, sent_at);
-
-    CREATE TABLE IF NOT EXISTS transport_cursors (
-      protocol_id     TEXT NOT NULL,
-      chat_id         TEXT NOT NULL,
-      timestamp       INTEGER NOT NULL,
-      PRIMARY KEY (protocol_id, chat_id)
-    );
-
-    CREATE TABLE IF NOT EXISTS chat_cache (
-      id   TEXT PRIMARY KEY NOT NULL,
-      data TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS protocol_state (
-      protocol_id TEXT NOT NULL,
-      key         TEXT NOT NULL,
-      value       TEXT NOT NULL,
-      PRIMARY KEY (protocol_id, key)
-    );
-
-    PRAGMA user_version = ${SCHEMA_VERSION};
-  `);
 }
 
 export async function deleteAccountDatabase(accountId: string): Promise<void> {
@@ -143,13 +112,13 @@ export async function deleteAccountDatabase(accountId: string): Promise<void> {
 
   const failures: unknown[] = [];
   if (opening) {
-    let db: AccountDatabase | undefined;
+    let opened: AccountDatabase | undefined;
     try {
-      db = await opening;
+      opened = await opening;
     } catch {}
-    if (db) {
+    if (opened) {
       try {
-        await db.closeAsync();
+        await opened.connection.close();
       } catch (error) {
         failures.push(error);
       }

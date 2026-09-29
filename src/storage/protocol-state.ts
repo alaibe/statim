@@ -1,7 +1,9 @@
+import { and, eq, sql } from 'drizzle-orm';
+
 import type { ProtocolId } from '@/core/messaging/namespace';
 
-import type { AccountDatabase } from './account-database';
-import { accountDatabaseGeneration, runAccountDatabaseOperation } from './database';
+import { accountDatabaseGeneration, runAccountDatabaseOperation, type Database } from './database';
+import { protocolState } from './schema';
 
 /** What a protocol keeps beside its chats, in the account's encrypted database. */
 export interface ProtocolState {
@@ -14,49 +16,45 @@ export interface ProtocolState {
 
 export function sqliteProtocolState(accountId: string, protocolId: ProtocolId): ProtocolState {
   const generation = accountDatabaseGeneration(accountId);
-  const run = <T>(work: (db: AccountDatabase) => Promise<T>) =>
+  const run = <T>(work: (db: Database) => Promise<T>) =>
     runAccountDatabaseOperation(accountId, generation, work);
+  const entry = (key: string) =>
+    and(eq(protocolState.protocolId, protocolId), eq(protocolState.key, key));
 
   return {
     async get<T>(key: string) {
       const row = await run((db) =>
-        db.getFirstAsync<{ value: string }>(
-          'SELECT value FROM protocol_state WHERE protocol_id = ? AND key = ?',
-          protocolId,
-          key
-        )
+        db.select({ value: protocolState.value }).from(protocolState).where(entry(key)).get()
       );
-      return row ? (JSON.parse(row.value) as T) : null;
+      return row ? (row.value as T) : null;
     },
     async set<T>(key: string, value: T) {
       await run((db) =>
-        db.runAsync(
-          `INSERT INTO protocol_state (protocol_id, key, value) VALUES (?, ?, ?)
-           ON CONFLICT (protocol_id, key) DO UPDATE SET value = excluded.value`,
-          protocolId,
-          key,
-          JSON.stringify(value)
-        )
+        db
+          .insert(protocolState)
+          .values({ protocolId, key, value })
+          .onConflictDoUpdate({
+            target: [protocolState.protocolId, protocolState.key],
+            set: { value },
+          })
       );
     },
     async remove(key: string) {
-      await run((db) =>
-        db.runAsync('DELETE FROM protocol_state WHERE protocol_id = ? AND key = ?', protocolId, key)
-      );
+      await run((db) => db.delete(protocolState).where(entry(key)));
     },
     async entries<T>(prefix: string) {
       const rows = await run((db) =>
-        db.getAllAsync<{ key: string; value: string }>(
-          'SELECT key, value FROM protocol_state WHERE protocol_id = ? AND substr(key, 1, ?) = ?',
-          protocolId,
-          prefix.length,
-          prefix
-        )
+        db
+          .select({ key: protocolState.key, value: protocolState.value })
+          .from(protocolState)
+          .where(
+            and(
+              eq(protocolState.protocolId, protocolId),
+              eq(sql`substr(${protocolState.key}, 1, ${prefix.length})`, prefix)
+            )
+          )
       );
-      return rows.map((row): [string, T] => [
-        row.key.slice(prefix.length),
-        JSON.parse(row.value) as T,
-      ]);
+      return rows.map((row): [string, T] => [row.key.slice(prefix.length), row.value as T]);
     },
   };
 }

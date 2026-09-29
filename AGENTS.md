@@ -29,7 +29,9 @@ Biome formats TypeScript and JSON, rustfmt formats `src-tauri`. Neither lints;
   (`npx expo prebuild`); `skills/statim/SKILL.md` and
   `src-tauri/cli/help.txt` from `src/features/cli/commands.ts`
   (`npm run cli:docs`); `docs/public/promo/` from `marketing/film.html`
-  (`npm run promo:build`). Editing the output is undone on the next build.
+  (`npm run promo:build`); `src/storage/migrations/index.ts` from the SQL
+  files beside it (`npm run db:bundle`). Editing the output is undone on the
+  next build.
 - `.web.ts` / `.web.tsx` is the desktop. There is no browser deployment.
   A platform file must have a non-platform neighbour, and Expo Router needs a
   non-platform file for every route.
@@ -38,6 +40,12 @@ Biome formats TypeScript and JSON, rustfmt formats `src-tauri`. Neither lints;
   before Expo Router builds the route tree.
 - Protocols go in `src/protocols/<name>/` and implement `ChatSession`.
   Persistence is `src/storage`. Do not mix the two.
+- Stored data moves forward by migration. For the account database, edit
+  `src/storage/schema.ts`, run `npm run db:generate` and commit the SQL it
+  writes. A shipped migration stays as it is; the next change is a new one.
+  SQL drizzle-kit cannot write, such as moving data, goes in a
+  `npm run db:generate -- --custom` migration; run `npm run db:bundle` once
+  its SQL is in.
 - User-typed `/commands` are `SlashCommand`s contributed by a plugin, or
   core commands in `src/core/commands`. Core commands get no plugin context.
 - Chat widgets are data, not components (`src/design/widgets/schema.ts`),

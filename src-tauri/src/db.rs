@@ -1,6 +1,6 @@
 //! One SQLCipher connection per database file, addressed by name. The
 //! JavaScript side serialises its own work per account, so plain
-//! `BEGIN`/`COMMIT` statements over `db_exec` are real transactions.
+//! `BEGIN`/`COMMIT` statements are real transactions.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
