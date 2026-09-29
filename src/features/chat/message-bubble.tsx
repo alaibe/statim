@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useContext, useEffect } from 'react';
 import { View } from 'react-native';
 
 import { cn, Text } from '@/design';
@@ -7,7 +7,7 @@ import { sessionFor, useChatStore } from '@/core/messaging/chat-store';
 import type { ChatMessage, MessageId, WidgetContent } from '@/core/messaging/types';
 import type { MessageAction } from './message-actions';
 import { BubbleShell, type ReplyPreview, type ThreadChip } from './bubble-shell';
-import type { Reactors } from './reaction-row';
+import { ReactionHandlers, ReactionRow, type Reactors } from './reaction-row';
 import { findTransactionHash } from '@/lib/evm/transactions';
 import { segmentText, type LinkSegment } from '@/core/messaging/links';
 import { labelledLinks, plainText } from '@/core/messaging/markdown';
@@ -194,22 +194,24 @@ export function MessageBubble({
   }
 
   return (
-    <BubbleShell
-      fromMe={fromMe}
-      grouped={grouped}
-      tail={tail}
-      senderName={senderName}
-      showSender={showSender}
-      reactions={message.reactions}
-      reactors={reactors}
-      privateToMe={message.privateToMe}
-      onReact={onReact}
-      actions={actions}
-      replyPreview={replyPreview}
-      thread={thread}
-      bare={bare}>
-      {children}
-    </BubbleShell>
+    <ReactionHandlers.Provider value={{ reactors, onReact }}>
+      <BubbleShell
+        fromMe={fromMe}
+        grouped={grouped}
+        tail={tail}
+        senderName={senderName}
+        showSender={showSender}
+        reactions={message.reactions}
+        reactors={reactors}
+        privateToMe={message.privateToMe}
+        onReact={onReact}
+        actions={actions}
+        replyPreview={replyPreview}
+        thread={thread}
+        bare={bare}>
+        {children}
+      </BubbleShell>
+    </ReactionHandlers.Provider>
   );
 }
 
@@ -244,6 +246,8 @@ function TextBody({
     labelledLinks(text).map((href): LinkSegment => ({ kind: 'url', text: href, href }))[0];
   const location = link ? parseLocation(link.href) : null;
   const account = segments.find((s) => s.kind === 'address' || s.kind === 'ens');
+  const inline =
+    !transactionHash && !location && link?.kind !== 'url' && !account && !reactedTo(message);
 
   return (
     <>
@@ -253,6 +257,11 @@ function TextBody({
         className={className}
         chatId={message.chatId}
         onCommand={onCommand}
+        footer={
+          inline
+            ? { node: <Footer message={message} inline />, label: footerLabel(message) }
+            : undefined
+        }
       />
 
       {transactionHash ? <TransactionPreview hash={transactionHash} fromMe={fromMe} /> : null}
@@ -265,23 +274,46 @@ function TextBody({
         <AddressPreview value={account.text} chatId={message.chatId} onCommand={onCommand} />
       ) : null}
 
-      <Footer message={message} />
+      {inline ? null : <Footer message={message} />}
     </>
   );
 }
 
-/** `overlay` sits the time on a photo that has no bubble around it. */
-function Footer({ message, overlay = false }: { message: ChatMessage; overlay?: boolean }) {
-  return (
+function reactedTo(message: ChatMessage): boolean {
+  return !!message.reactions && Object.keys(message.reactions).length > 0;
+}
+
+/** What the time reads, with room for the ticks on your own messages. */
+function footerLabel(message: ChatMessage): string {
+  const time = `${message.edited ? 'edited ' : ''}${formatTimestamp(message.sentAt)}`;
+  return message.fromMe ? `${time}\u2003\u2002` : time;
+}
+
+/**
+ * `overlay` sits the time on a photo that has no bubble around it; `inline`
+ * at the end of the text's last line. Otherwise it has a row of its own,
+ * shared with the reactions like Telegram's.
+ */
+function Footer({
+  message,
+  overlay = false,
+  inline = false,
+}: {
+  message: ChatMessage;
+  overlay?: boolean;
+  inline?: boolean;
+}) {
+  const { reactors, onReact } = useContext(ReactionHandlers);
+  const time = (
     <View
       className={cn(
-        'flex-row items-center justify-end gap-1',
-        overlay ? 'absolute bottom-1.5 right-1.5 rounded-pill bg-black/45 px-1.5 py-0.5' : '-mt-0.5'
+        'flex-row items-center gap-1',
+        overlay && 'absolute bottom-1.5 right-1.5 rounded-pill bg-black/45 px-1.5 py-0.5'
       )}>
       <Text
         variant="micro"
         className={
-          overlay ? 'text-white' : message.fromMe ? 'text-bubble-out-on/70' : 'text-content-subtle'
+          overlay ? 'text-white' : message.fromMe ? 'text-bubble-out-on/60' : 'text-content-subtle'
         }>
         {`${message.edited ? 'edited ' : ''}${formatTimestamp(message.sentAt)}`}
       </Text>
@@ -295,6 +327,24 @@ function Footer({ message, overlay = false }: { message: ChatMessage; overlay?: 
       ) : null}
     </View>
   );
+  if (overlay || inline) return time;
+  if (message.reactions && reactedTo(message)) {
+    return (
+      <View className="mt-1 flex-row items-end gap-3">
+        <View className="min-w-0 flex-1">
+          <ReactionRow
+            reactions={message.reactions}
+            fromMe={message.fromMe}
+            inBubble
+            reactors={reactors}
+            onReact={onReact}
+          />
+        </View>
+        {time}
+      </View>
+    );
+  }
+  return <View className="-mt-0.5 flex-row justify-end">{time}</View>;
 }
 
 function LiveWidget({

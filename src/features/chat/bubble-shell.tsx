@@ -83,13 +83,14 @@ export function BubbleShell({
         : undefined)}
       delayLongPress={280}
       accessible={false}
+      style={bare ? undefined : BUBBLE_SHADOW}
       className={cn(
         // A wide window would otherwise stretch a bubble across the pane.
         !held && (process.env.EXPO_OS === 'web' ? 'max-w-[min(82%,560px)]' : 'max-w-[82%]'),
         bare
           ? ''
           : cn(
-              'rounded-bubble px-3.5 py-2 shadow-sm',
+              'rounded-bubble px-2.5 py-1.5',
               fromMe ? 'bg-bubble-out' : 'bg-bubble-in',
               fromMe
                 ? pointed
@@ -126,15 +127,6 @@ export function BubbleShell({
         </View>
       ) : null}
       {children}
-      {reacted && !bare ? (
-        <ReactionRow
-          reactions={reacted}
-          fromMe={fromMe}
-          inBubble
-          reactors={reactors}
-          onReact={onReact}
-        />
-      ) : null}
       {pointed ? <Tail fromMe={fromMe} /> : null}
     </RNPressable>
   );
@@ -204,17 +196,24 @@ function repliesLabel(count: number): string {
   return count === 1 ? '1 reply' : `${count} replies`;
 }
 
-/** Telegram's hook at the bubble's bottom corner, on the sender's side. */
+const BUBBLE_SHADOW = { boxShadow: '0 1px 2px rgba(16, 35, 47, 0.15)' };
+
+/** Telegram Web's tail (tweb `message-tail-filled`), drawn against the bubble's square corner. */
+const TAIL = {
+  in: 'M3 19H9V2C8.807 4.84 8.124 7.767 6.95 10.782C6.046 13.107 4.504 15.267 2.325 17.262A1 1 0 0 0 3 19Z',
+  out: 'M8 19H2V2C2.193 4.84 2.876 7.767 4.05 10.782C4.954 13.107 6.496 15.267 8.675 17.262A1 1 0 0 1 8 19Z',
+};
+
 function Tail({ fromMe }: { fromMe: boolean }) {
   const colors = useThemeColors();
   return (
     <Svg
-      width={8}
-      height={14}
-      viewBox="0 0 8 14"
-      style={{ position: 'absolute', bottom: 0, [fromMe ? 'right' : 'left']: -7 }}>
+      width={11}
+      height={20}
+      viewBox="0 0 11 20"
+      style={{ position: 'absolute', bottom: -1, [fromMe ? 'right' : 'left']: -8.4 }}>
       <Path
-        d={fromMe ? 'M0 0V14H8C4.5 13.5 1 11 0 6Z' : 'M8 0V14H0C3.5 13.5 7 11 8 6Z'}
+        d={fromMe ? TAIL.out : TAIL.in}
         fill={fromMe ? colors['bubble-out'] : colors['bubble-in']}
       />
     </Svg>

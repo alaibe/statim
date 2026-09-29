@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { createContext, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { cn, Text } from '@/design';
@@ -7,6 +7,12 @@ export interface Reactors {
   nameOf(id: string): string;
   selfId?: string;
 }
+
+/** What a bubble's footer needs to draw the reactions beside the time. */
+export const ReactionHandlers = createContext<{
+  reactors?: Reactors;
+  onReact?: (emoji: string) => void;
+}>({});
 
 export function ReactionRow({
   reactions,
@@ -25,7 +31,7 @@ export function ReactionRow({
     <View
       className={cn(
         'flex-row flex-wrap gap-1',
-        inBubble ? 'mt-1.5' : 'mt-1',
+        !inBubble && 'mt-1',
         fromMe && !inBubble && 'justify-end'
       )}>
       {Object.entries(reactions).map(([emoji, people]) => (

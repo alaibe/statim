@@ -43,7 +43,7 @@ module.exports = {
       },
       borderRadius: {
         card: '18px',
-        bubble: '20px',
+        bubble: '15px',
         field: '14px',
         pill: '999px',
       },

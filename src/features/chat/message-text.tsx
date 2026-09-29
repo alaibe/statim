@@ -23,10 +23,16 @@ export function MessageText({
   className,
   chatId,
   onCommand,
+  footer,
 }: {
   text: string;
   fromMe: boolean;
   className?: string;
+  /**
+   * The time, set at the end of the last line the way Telegram does when the
+   * text is one paragraph; `label` is what it reads, to keep its room free.
+   */
+  footer?: { node: ReactNode; label: string };
   /** With `onCommand`, an address offers to send funds where /send can run. */
   chatId?: ChatId;
   onCommand?: (command: string) => void;
@@ -47,13 +53,22 @@ export function MessageText({
   return (
     <>
       {only?.kind === 'paragraph' ? (
-        <Text className={className}>
-          <Spans spans={only.spans} look={look} />
-        </Text>
-      ) : (
-        <View className="gap-1">
-          <Blocks blocks={blocks} look={look} />
+        <View>
+          <Text className={className}>
+            <Spans spans={only.spans} look={look} />
+            {footer ? (
+              <Text variant="micro" className="opacity-0">{`\u2002\u2002${footer.label}`}</Text>
+            ) : null}
+          </Text>
+          {footer ? <View className="absolute bottom-0 right-0">{footer.node}</View> : null}
         </View>
+      ) : (
+        <>
+          <View className="gap-1">
+            <Blocks blocks={blocks} look={look} />
+          </View>
+          {footer?.node}
+        </>
       )}
 
       {held ? (
