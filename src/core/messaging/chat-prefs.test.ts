@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { createAccountStorage } from '@/storage/account';
+import { createAccountStorage, type AccountStorage } from '@/storage/account';
+import { deleteAccountDatabase } from '@/storage/database';
+import { scopePrefix } from '@/storage/scope';
 import {
   loadChatPrefs,
   orderChats,
@@ -33,6 +35,7 @@ function chat(raw: string, sentAt: number): Chat {
 
 beforeEach(async () => {
   await AsyncStorage.clear();
+  for (const id of ['prefs-test', 'acct-a', 'acct-b']) await deleteAccountDatabase(id);
 });
 
 describe('withPref', () => {
@@ -93,7 +96,11 @@ describe('orderChats', () => {
 });
 
 describe('persistence', () => {
-  const storage = createAccountStorage('prefs-test');
+  let storage: AccountStorage;
+  beforeEach(() => {
+    storage = createAccountStorage('prefs-test');
+  });
+
   it('round-trips', async () => {
     await saveChatPrefs(storage, { [C1]: { pinned: true } });
     expect(await loadChatPrefs(storage)).toEqual({ [C1]: { pinned: true } });
@@ -103,8 +110,8 @@ describe('persistence', () => {
     expect(await loadChatPrefs(storage)).toEqual({});
   });
 
-  it('survives corrupt storage', async () => {
-    await AsyncStorage.setItem(storage.key('chat.prefs'), 'not json');
+  it('drops an unreadable value left in AsyncStorage', async () => {
+    await AsyncStorage.setItem(`${scopePrefix('prefs-test')}chat.prefs`, 'not json');
     expect(await loadChatPrefs(storage)).toEqual({});
   });
 

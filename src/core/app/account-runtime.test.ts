@@ -1,5 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { AccountRuntime, type RuntimeAccount } from './account-runtime';
 import { useChatStore } from '../messaging/chat-store';
 import { InMemoryChatSession } from '../messaging/in-memory-session';
@@ -10,6 +8,7 @@ import type { ProtocolMessage } from '../messaging/types';
 import { PluginRegistry } from '../plugins/registry';
 import type { Plugin, PluginContext, PluginLease } from '../plugins/types';
 import { createAccountStorage } from '@/storage/account';
+import { deleteAccountDatabase } from '@/storage/database';
 import { PROTOCOLS } from '@/protocols';
 import { botChatId } from '@/core/messaging/bots';
 import { asChatId } from '@/core/messaging/testing/ids';
@@ -31,8 +30,10 @@ function input(
   };
 }
 
+const ACCOUNTS = ['account-a', 'account-b'];
+
 beforeEach(async () => {
-  await AsyncStorage.clear();
+  for (const id of ACCOUNTS) await deleteAccountDatabase(id);
   useChatStore.setState({
     status: 'idle',
     sessions: {},

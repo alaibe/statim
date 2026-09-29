@@ -61,3 +61,8 @@ export const protocolState = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.protocolId, table.key] })]
 );
+
+export const accountState = sqliteTable('account_state', {
+  key: text('key').primaryKey(),
+  value: text('value', { mode: 'json' }).notNull(),
+});

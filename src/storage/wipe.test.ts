@@ -1,9 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { clearScope } from './scope';
-import { createAccountStorage } from './account';
+import { clearScope, scopePrefix } from './scope';
 
-/** AsyncStorage keys owned by an account. */
+/** AsyncStorage keys an account wrote before its settings moved into its database. */
 const ACCOUNT_DATA = [
   'chat.readAt',
   'chat.prefs',
@@ -24,9 +23,8 @@ beforeEach(async () => {
 });
 
 async function seedFor(accountId: string) {
-  const storage = createAccountStorage(accountId);
   for (const key of [...ACCOUNT_DATA, ...ACCOUNT_SETTINGS]) {
-    await AsyncStorage.setItem(storage.key(key), 'x');
+    await AsyncStorage.setItem(scopePrefix(accountId) + key, 'x');
   }
   for (const key of [...DEVICE_SETTINGS, ...FOREIGN]) await AsyncStorage.setItem(key, 'x');
 }

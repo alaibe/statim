@@ -30,7 +30,9 @@ taps.
 Everything sits under `~/Library/Application Support/im.statim.app/`:
 the encrypted vault holding recovery phrases and keys, one encrypted database
 per account, and the Telegram and Matrix data for each account. The vault's key
-is in the macOS Keychain.
+is in the macOS Keychain. The one exception is XMTP's copy of your chats, which
+its library keeps in the app's web storage; it comes back from the XMTP network
+if lost.
 
 Erasing an account from Settings removes all of it.
 

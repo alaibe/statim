@@ -14,5 +14,13 @@ export const MIGRATIONS: MigrationMeta[] = [
     "bps": true,
     "folderMillis": 1790668752829,
     "hash": "bab0b03a38076ed8886cf05bdc20b963d884b2dd1481f1b66210bb9eaf67a940"
+  },
+  {
+    "sql": [
+      "CREATE TABLE `account_state` (\n\t`key` text PRIMARY KEY NOT NULL,\n\t`value` text NOT NULL\n);\n"
+    ],
+    "bps": true,
+    "folderMillis": 1790699492896,
+    "hash": "8bb5823f055711341690508ba7becae6cabc95cd037de091acded0165a614c8c"
   }
 ];

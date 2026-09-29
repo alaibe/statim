@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { createAccountStorage } from '@/storage/account';
+import { deleteAccountDatabase } from '@/storage/database';
+import { scopePrefix } from '@/storage/scope';
 import {
   countsFor,
   entriesFor,
@@ -31,6 +33,7 @@ function message(id: string, content: MessageContent, sentAt = 1): ChatMessage {
 
 beforeEach(async () => {
   await AsyncStorage.clear();
+  for (const id of ['media-test', 'acct-a', 'acct-b']) await deleteAccountDatabase(id);
 });
 
 describe('extractLinks', () => {
@@ -152,9 +155,9 @@ describe('persistence', () => {
     expect(await loadMediaIndex(b)).toEqual({});
   });
 
-  it('survives corrupt storage', async () => {
+  it('drops an unreadable value left in AsyncStorage', async () => {
     const storage = createAccountStorage('media-test');
-    await AsyncStorage.setItem(storage.key('chat.mediaIndex'), '{{{');
+    await AsyncStorage.setItem(`${scopePrefix('media-test')}chat.mediaIndex`, '{{{');
     expect(await loadMediaIndex(storage)).toEqual({});
   });
 });

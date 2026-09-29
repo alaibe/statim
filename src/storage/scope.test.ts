@@ -1,27 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { clearScope, scopePrefix } from './scope';
-import { createAccountStorage } from './account';
 
 beforeEach(async () => {
   await AsyncStorage.clear();
-});
-
-describe('account storage', () => {
-  it('gives two accounts different keys for the same logical value', () => {
-    expect(createAccountStorage('one').key('chat.prefs')).not.toBe(
-      createAccountStorage('two').key('chat.prefs')
-    );
-  });
-
-  it('binds plugin reads and writes to their owning account', async () => {
-    const a = createAccountStorage('one').plugin('wallet');
-    const b = createAccountStorage('two').plugin('wallet');
-    await a.set('chain', 'mainnet');
-
-    expect(await a.get('chain')).toBe('mainnet');
-    expect(await b.get('chain')).toBeNull();
-  });
 });
 
 describe('clearScope', () => {
