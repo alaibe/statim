@@ -55,22 +55,31 @@ fn fresh_key() -> Result<Vec<u8>, String> {
     Ok(key.to_vec())
 }
 
+fn key_file(app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(app_data_dir(app)?.join("vault.key"))
+}
+
+fn file_key(app: &AppHandle) -> Result<Option<Vec<u8>>, String> {
+    match std::fs::read_to_string(key_file(app)?) {
+        Ok(encoded) => BASE64_STANDARD
+            .decode(encoded.trim())
+            .map(Some)
+            .map_err(|e| e.to_string()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
 /// Debug builds keep the key in a file next to the vault, readable by this
 /// user only. The credential store grants access per code signature, and an
 /// unsigned development binary has a new one after every compile, so it would
-/// prompt on every run. A key a signed build already put there is moved over
-/// once, so the accounts survive.
+/// prompt on every run. The key moves between the two stores whichever build
+/// runs first, so the accounts survive either way.
 fn debug_key(app: &AppHandle) -> Result<Vec<u8>, String> {
-    let path = app_data_dir(app)?.join("vault.key");
-    match std::fs::read_to_string(&path) {
-        Ok(encoded) => {
-            return BASE64_STANDARD
-                .decode(encoded.trim())
-                .map_err(|e| e.to_string())
-        }
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-        Err(e) => return Err(e.to_string()),
+    if let Some(key) = file_key(app)? {
+        return Ok(key);
     }
+    let path = key_file(app)?;
     let key = match keychain_key() {
         Ok(Some(key)) => key,
         _ => fresh_key()?,
@@ -92,7 +101,10 @@ fn master_key(app: &AppHandle) -> Result<Key<Aes256Gcm>, String> {
         match keychain_key()? {
             Some(key) => key,
             None => {
-                let key = fresh_key()?;
+                let key = match file_key(app)? {
+                    Some(key) => key,
+                    None => fresh_key()?,
+                };
                 keychain_store(&key)?;
                 key
             }
