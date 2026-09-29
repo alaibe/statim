@@ -80,10 +80,11 @@ export function openAccountDatabase(accountId: string): Promise<AccountDatabase>
     const connection = await openConnection(databaseNameFor(accountId));
     try {
       const key = await accountDatabaseKey(accountId);
-      await connection.exec(`PRAGMA key = "x'${key}'"; PRAGMA synchronous = NORMAL;`);
+      await connection.exec(
+        `PRAGMA key = "x'${key}'"; PRAGMA synchronous = NORMAL; PRAGMA journal_mode = WAL;`
+      );
       const [cipher] = await connection.rows('PRAGMA cipher_version', []);
       if (!cipher?.[0]) throw new Error('SQLCipher is unavailable in this app build.');
-      await connection.exec('PRAGMA journal_mode = WAL');
 
       const db = drizzleOver(connection);
       await migrate(db).catch(withoutQuery);

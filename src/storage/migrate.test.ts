@@ -20,15 +20,15 @@ async function tables(): Promise<string[]> {
   return rows.map(([name]) => String(name));
 }
 
-const later = (tag: string, statements: string[]) => ({
-  tag,
-  when: MIGRATIONS[MIGRATIONS.length - 1].when + 1,
-  hash: tag,
-  statements,
+const later = (hash: string, sql: string[]) => ({
+  sql,
+  hash,
+  bps: true,
+  folderMillis: MIGRATIONS[MIGRATIONS.length - 1].folderMillis + 1,
 });
 
 it('applies every migration to a new database and records each', async () => {
-  expect(await applied()).toEqual(MIGRATIONS.map(({ hash, when }) => [hash, when]));
+  expect(await applied()).toEqual(MIGRATIONS.map(({ hash, folderMillis }) => [hash, folderMillis]));
   expect(await tables()).toEqual(
     expect.arrayContaining(['chats', 'messages', 'transport_cursors', 'chat_cache'])
   );
@@ -46,7 +46,7 @@ it('applies only what is newer than the last recorded migration', async () => {
   await migrate(db, [...MIGRATIONS, later('extra', ['CREATE TABLE extra (id text)'])]);
 
   expect(await tables()).toContain('extra');
-  expect((await applied()).at(-1)).toEqual(['extra', later('extra', []).when]);
+  expect((await applied()).at(-1)).toEqual(['extra', later('extra', []).folderMillis]);
 });
 
 it('rolls a failing migration back whole, unrecorded', async () => {

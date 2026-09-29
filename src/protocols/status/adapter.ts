@@ -108,7 +108,7 @@ import { Reassembly, readSegment } from './segments';
 import { partitionedTopic, personalTopic } from './topics';
 import { statusAudio } from './voice';
 
-export const STATUS_PROTOCOL_ID = 'status';
+const STATUS_PROTOCOL_ID = 'status';
 
 const POLL_INTERVAL_MS = 3_000;
 const REFRESH_EVERY = 20;
@@ -493,8 +493,10 @@ export class StatusSession implements ChatSession {
   private async flushAcks(): Promise<void> {
     const batches = [...this.acks];
     this.acks.clear();
+    if (batches.length === 0) return;
+    const bundle = this.bundle();
     await Promise.allSettled(
-      batches.map(([sender, ids]) => this.publishTo(sender, encodeMvds({ acks: ids })))
+      batches.map(([sender, ids]) => this.publishTo(sender, encodeMvds({ acks: ids }), bundle))
     );
   }
 
@@ -946,8 +948,7 @@ export class StatusSession implements ChatSession {
     const timestamp = Date.now();
     const last = this.clocks.get(chatId) ?? 0;
     const clock = last < timestamp ? timestamp : last + 1;
-    this.clocks.set(chatId, clock);
-    await this.state.set(`clock:${chatId}`, clock);
+    await this.observeClock(chatId, clock);
     return { clock, timestamp };
   }
 
@@ -1474,7 +1475,7 @@ export class StatusSession implements ChatSession {
   }
 
   async createGroup(participants: ParticipantId[], title: string): Promise<ProtocolChat> {
-    const members = [...new Set(participants)].filter((id) => id !== this.self.participantId);
+    const members = this.others(participants);
     for (const member of members) publicKeyFromParticipant(member);
     const strangers = members.filter((member) => !mutual(this.contact(member)));
     if (strangers.length > 0) {

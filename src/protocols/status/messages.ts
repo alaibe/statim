@@ -115,7 +115,6 @@ export interface WireEncrypted {
   dhKey?: Uint8Array;
   x3dh?: { key: Uint8Array; id: Uint8Array };
   ratchet?: { key: Uint8Array; n: number; pn: number; id: Uint8Array };
-  hashRatchet: boolean;
 }
 
 export interface WireProtocolMessage {
@@ -527,7 +526,6 @@ export function decodeProtocolMessage(bytes: Uint8Array): WireProtocolMessage {
         pn: ratchet.number(3),
         id: ratchet.bytes(4),
       },
-      hashRatchet: value.has(102),
     });
   }
   return {

@@ -55,6 +55,16 @@ export const XMTP_PROTOCOL = {
       storage,
     });
   },
+  installations: {
+    async list({ account, config }) {
+      const { inboxInstallations } = await import('./adapter');
+      return inboxInstallations(account, xmtpEnvironment(config.env));
+    },
+    async revoke({ account, config }, ids) {
+      const { revokeInboxInstallations } = await import('./adapter');
+      await revokeInboxInstallations(account, ids, xmtpEnvironment(config.env));
+    },
+  },
   async eraseLocalData({ accountId, address, config }) {
     const dbEncryptionKey = await loadDbEncryptionKey(accountId);
     if (!dbEncryptionKey) return;

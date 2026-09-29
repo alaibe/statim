@@ -8,7 +8,12 @@ import {
   type ProtocolConfigSchema,
 } from './config';
 import type { ProtocolId } from './namespace';
-import type { ChatProtocolMeta, ChatSession, CustomContentType } from './protocol';
+import type {
+  ChatProtocolMeta,
+  ChatSession,
+  CustomContentType,
+  XmtpInstallation,
+} from './protocol';
 import type { AccountStorage } from '@/storage/account';
 
 export interface PublicChatsCopy {
@@ -24,6 +29,11 @@ export interface ProtocolConnectParams {
   contentTypes: CustomContentType[];
   config: ProtocolConfig;
   storage: AccountStorage;
+}
+
+export interface ProtocolInstallationParams {
+  account: LocalAccount;
+  config: ProtocolConfig;
 }
 
 export interface ProtocolEraseParams {
@@ -57,6 +67,11 @@ export interface ProtocolDescriptor {
   usesPluginContentTypes?: boolean;
   connect?(params: ProtocolConnectParams): Promise<ChatSession>;
   eraseLocalData?(params: ProtocolEraseParams): Promise<void>;
+  /** The account's installations, read and revoked without a session, as while a full inbox keeps one from connecting. */
+  installations?: {
+    list(params: ProtocolInstallationParams): Promise<XmtpInstallation[]>;
+    revoke(params: ProtocolInstallationParams, ids: string[]): Promise<void>;
+  };
 }
 
 export function connectableProtocols(

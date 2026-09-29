@@ -6,11 +6,8 @@ import { useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
 import { formatDayLabel } from '@/core/messaging/preview';
 import { useAction } from '@/features/use-action';
 import { SettingsScreen } from '@/features/settings/settings-screen';
-import {
-  listXmtpInstallations,
-  revokeXmtpInstallations,
-  type XmtpInstallation as Installation,
-} from '@/features/xmtp-devices';
+import type { XmtpInstallation as Installation } from '@/core/messaging/protocol';
+import { listXmtpInstallations, revokeXmtpInstallations } from '@/features/xmtp-devices';
 
 export default function DevicesScreen() {
   const session = useChatStore(xmtpSessionFor);

@@ -38,7 +38,7 @@ import {
   writeInlineAttachment,
 } from '@/core/messaging/attachments';
 import { protocolChatId } from '@/core/messaging/namespace';
-import type { ChatSession, GroupInfo } from '@/core/messaging/protocol';
+import type { ChatSession, GroupInfo, XmtpInstallation } from '@/core/messaging/protocol';
 import type {
   Chat,
   ProtocolChatId,
@@ -54,7 +54,7 @@ import type {
   ProtocolChat,
 } from '@/core/messaging/types';
 import { isParticipantId } from '@/core/messaging/bots';
-import { base64ToBytes, bytesToBase64 } from '@/lib/bytes';
+import { base64ToBytes, bytesToBase64, fromHex } from '@/lib/bytes';
 import { PLUGIN_AUTHORITY } from './codec';
 import { fallbackFilename, xmtpEnvironment, type XmtpEnvironment } from './shared';
 
@@ -101,25 +101,19 @@ export async function eraseXmtpLocalDatabase(options: XmtpEraseOptions): Promise
   }
 }
 
-export interface XmtpInstallation {
-  id: string;
-  createdAt?: number;
-  current: boolean;
-}
-
-async function inboxOf(account: LocalAccount) {
-  const backend = await createBackend({ env: xmtpEnvironment() });
+async function inboxOf(account: LocalAccount, env: XmtpEnv) {
+  const backend = await createBackend({ env });
   const inboxId = await getInboxIdForIdentifier(backend, identifierFor(account.address));
+  if (!inboxId) throw new Error('This account has no XMTP inbox.');
   return { backend, inboxId };
 }
 
 /** Read from the network, so it works while this device cannot register, as when the inbox is full. */
 export async function inboxInstallations(
   account: LocalAccount,
-  current?: string
+  env: XmtpEnv = xmtpEnvironment()
 ): Promise<XmtpInstallation[]> {
-  const { backend, inboxId } = await inboxOf(account);
-  if (!inboxId) return [];
+  const { backend, inboxId } = await inboxOf(account, env);
   const [state] = await Client.fetchInboxStates([inboxId], backend);
   return (state?.installations ?? []).map((installation) => ({
     id: installation.id,
@@ -127,22 +121,17 @@ export async function inboxInstallations(
       installation.clientTimestampNs === undefined
         ? undefined
         : Number(installation.clientTimestampNs / 1_000_000n),
-    current: installation.id === current,
+    current: false,
   }));
 }
 
 export async function revokeInboxInstallations(
   account: LocalAccount,
-  ids: string[]
+  ids: string[],
+  env: XmtpEnv = xmtpEnvironment()
 ): Promise<void> {
-  const { backend, inboxId } = await inboxOf(account);
-  if (!inboxId) throw new Error('This account has no XMTP inbox.');
-  await Client.revokeInstallations(
-    signerForAccount(account),
-    inboxId,
-    ids.map((id) => hexToBytes(id.startsWith('0x') ? (id as `0x${string}`) : `0x${id}`)),
-    backend
-  );
+  const { backend, inboxId } = await inboxOf(account, env);
+  await Client.revokeInstallations(signerForAccount(account), inboxId, ids.map(fromHex), backend);
 }
 
 export class XmtpSession implements ChatSession {
@@ -406,12 +395,27 @@ export class XmtpSession implements ChatSession {
     await conversation.sendReadReceipt();
   }
 
-  listInstallations(): Promise<XmtpInstallation[]> {
-    return inboxInstallations(this.account, this.client.installationId);
+  async listInstallations(): Promise<XmtpInstallation[]> {
+    const state = await this.client.preferences.fetchInboxState();
+    const current = this.client.installationId;
+
+    return state.installations.map((installation) => ({
+      id: installation.id,
+      createdAt:
+        installation.clientTimestampNs === undefined
+          ? undefined
+          : Number(installation.clientTimestampNs / 1_000_000n),
+      current: installation.id === current,
+    }));
   }
 
-  revokeInstallations(ids: string[]): Promise<void> {
-    return revokeInboxInstallations(this.account, ids);
+  async revokeInstallations(ids: string[]): Promise<void> {
+    await Client.revokeInstallations(
+      signerForAccount(this.account),
+      this.self.participantId,
+      ids.map(fromHex),
+      xmtpEnvironment()
+    );
   }
 
   async sync(): Promise<void> {

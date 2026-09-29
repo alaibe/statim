@@ -22,7 +22,7 @@ import {
   writeInlineAttachment,
 } from '@/core/messaging/attachments';
 import { protocolChatId } from '@/core/messaging/namespace';
-import type { ChatSession, GroupInfo } from '@/core/messaging/protocol';
+import type { ChatSession, GroupInfo, XmtpInstallation } from '@/core/messaging/protocol';
 import type {
   Chat,
   ProtocolChatId,
@@ -54,40 +54,32 @@ function signerForAccount(account: LocalAccount): Signer {
   };
 }
 
-export interface XmtpInstallation {
-  id: string;
-  createdAt?: number;
-  current: boolean;
-}
-
-function inboxOf(account: LocalAccount): Promise<InboxId> {
-  return Client.getOrCreateInboxId(
-    new PublicIdentity(account.address, 'ETHEREUM'),
-    xmtpEnvironment()
-  );
+function inboxOf(account: LocalAccount, env: XMTPEnvironment): Promise<InboxId> {
+  return Client.getOrCreateInboxId(new PublicIdentity(account.address, 'ETHEREUM'), env);
 }
 
 /** Read from the network, so it works while this device cannot register, as when the inbox is full. */
 export async function inboxInstallations(
   account: LocalAccount,
-  current?: string
+  env: XMTPEnvironment = xmtpEnvironment()
 ): Promise<XmtpInstallation[]> {
-  const [state] = await Client.inboxStatesForInboxIds(xmtpEnvironment(), [await inboxOf(account)]);
+  const [state] = await Client.inboxStatesForInboxIds(env, [await inboxOf(account, env)]);
   return (state?.installations ?? []).map((installation) => ({
     id: installation.id,
     createdAt: installation.createdAt,
-    current: installation.id === current,
+    current: false,
   }));
 }
 
 export async function revokeInboxInstallations(
   account: LocalAccount,
-  ids: string[]
+  ids: string[],
+  env: XMTPEnvironment = xmtpEnvironment()
 ): Promise<void> {
   await Client.revokeInstallations(
-    xmtpEnvironment(),
+    env,
     signerForAccount(account),
-    await inboxOf(account),
+    await inboxOf(account, env),
     ids as Parameters<typeof Client.revokeInstallations>[3]
   );
 }
@@ -373,12 +365,24 @@ export class XmtpSession implements ChatSession {
     await conversation.send({ readReceipt: {} });
   }
 
-  listInstallations(): Promise<XmtpInstallation[]> {
-    return inboxInstallations(this.account, this.client.installationId);
+  async listInstallations(): Promise<XmtpInstallation[]> {
+    const state = await this.client.inboxState(true);
+    const current = this.client.installationId;
+
+    return state.installations.map((installation) => ({
+      id: installation.id,
+      createdAt: installation.createdAt,
+      current: installation.id === current,
+    }));
   }
 
-  revokeInstallations(ids: string[]): Promise<void> {
-    return revokeInboxInstallations(this.account, ids);
+  async revokeInstallations(ids: string[]): Promise<void> {
+    await Client.revokeInstallations(
+      xmtpEnvironment(),
+      signerForAccount(this.account),
+      this.client.inboxId,
+      ids as Parameters<typeof Client.revokeInstallations>[3]
+    );
   }
 
   async sync(): Promise<void> {

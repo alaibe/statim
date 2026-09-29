@@ -1,24 +1,30 @@
 import { useAccountStore } from '@/core/account/account-store';
 import { useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
-import type { XmtpInstallation } from '@/protocols/xmtp/adapter';
+import { loadProtocolConfig } from '@/core/messaging/config';
+import type { XmtpInstallation } from '@/core/messaging/protocol';
+import { protocolById } from '@/protocols';
 
-export type { XmtpInstallation };
-
-function requireAccount() {
-  const account = useAccountStore.getState().keyring?.account;
-  if (!account) throw new Error('No account is active.');
-  return account;
+async function offline() {
+  const { activeAccountId, keyring } = useAccountStore.getState();
+  const installations = protocolById('xmtp')?.installations;
+  if (!activeAccountId || !keyring || !installations) throw new Error('No account is active.');
+  const params = {
+    account: keyring.account,
+    config: await loadProtocolConfig(activeAccountId, 'xmtp'),
+  };
+  return { installations, params };
 }
 
-/** Only a connected session knows which installation is this one; without it none is. */
 export async function listXmtpInstallations(): Promise<XmtpInstallation[]> {
   const session = xmtpSessionFor(useChatStore.getState());
   if (session?.listInstallations) return session.listInstallations();
-  const { inboxInstallations } = await import('@/protocols/xmtp/adapter');
-  return inboxInstallations(requireAccount());
+  const { installations, params } = await offline();
+  return installations.list(params);
 }
 
 export async function revokeXmtpInstallations(ids: string[]): Promise<void> {
-  const { revokeInboxInstallations } = await import('@/protocols/xmtp/adapter');
-  await revokeInboxInstallations(requireAccount(), ids);
+  const session = xmtpSessionFor(useChatStore.getState());
+  if (session?.revokeInstallations) return session.revokeInstallations(ids);
+  const { installations, params } = await offline();
+  await installations.revoke(params, ids);
 }

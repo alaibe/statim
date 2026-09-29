@@ -144,9 +144,16 @@ export interface ChatSession {
   disconnect(): Promise<void>;
 }
 
+export interface XmtpInstallation {
+  id: string;
+  createdAt?: number;
+  /** The installation of the connected session, which can't revoke itself. */
+  current: boolean;
+}
+
 export interface XmtpCapabilities {
   eraseLocalDatabase(): Promise<void>;
-  listInstallations?(): Promise<{ id: string; createdAt?: number; current: boolean }[]>;
+  listInstallations?(): Promise<XmtpInstallation[]>;
   revokeInstallations?(ids: string[]): Promise<void>;
 }
 
