@@ -1,6 +1,6 @@
 import type { Chat } from '@/core/messaging/types';
 
-import { fromContactKey, contactKey, contactsOf, type Contact } from './contacts';
+import { fromContactKey, contactKey, contactNetwork, contactsOf, type Contact } from './contacts';
 import { botChatId } from '@/core/messaging/bots';
 import { testChat } from '@/core/messaging/testing/chats';
 import { asChatId } from '@/core/messaging/testing/ids';
@@ -91,7 +91,19 @@ describe('the people behind a list of chats', () => {
 
 describe('contactKey', () => {
   it('round-trips a contact', () => {
-    const contact: Contact = { id: 'bob', protocol: 'xmtp', chatId: 'xmtp-1' };
+    const contact: Contact = {
+      id: 'bob',
+      protocol: 'matrix',
+      network: 'slack',
+      chatId: 'matrix-1',
+    };
     expect(fromContactKey(contactKey(contact))).toEqual(contact);
+  });
+});
+
+describe('contactNetwork', () => {
+  it('names the bridged network and the protocol that reaches it', () => {
+    expect(contactNetwork({ protocol: 'matrix', network: 'slack' })).toBe('Slack via Matrix');
+    expect(contactNetwork({ protocol: 'telegram', network: 'telegram' })).toBe('Telegram');
   });
 });

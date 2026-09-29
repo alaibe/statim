@@ -1,7 +1,7 @@
 import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
 import type { ProtocolId } from '@/core/messaging/namespace';
 import type { ParticipantId } from '@/core/messaging/types';
-import { contactsOf } from '@/features/contacts/contacts';
+import { contactNetwork, contactsOf } from '@/features/contacts/contacts';
 import { connectableProtocols } from '@/protocols';
 
 import { chatLabels, displayNames, whenAccountReady, type CliHandler } from '../context';
@@ -97,13 +97,14 @@ export const peopleHandlers = {
         id: p.id,
         name: names[p.id] ?? p.id,
         protocol: p.protocol,
+        network: p.network,
         chat: p.chatId,
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
     return {
       data,
       text: data.length
-        ? data.map((p) => `${p.name}  (${p.protocol})  ${p.chat}`)
+        ? data.map((p) => `${p.name}  (${contactNetwork(p)})  ${p.chat}`)
         : 'No contacts yet.',
     };
   },

@@ -645,9 +645,14 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
 
   private participantOf(room: MxRoom): string | null {
     const selfId = this.self.participantId;
+    const other = (id: string) => id !== selfId && !isBridgeBot(id);
     return (
       room.peer ??
-      room.heroes.find((id) => id !== selfId && !isBridgeBot(id)) ??
+      room.heroes.find(other) ??
+      this.members
+        .get(room.id)
+        ?.map((member) => member.userId)
+        .find(other) ??
       (room.inviter !== selfId ? room.inviter : null) ??
       null
     );
@@ -672,7 +677,9 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     const participant = this.participantOf(room);
     const presence = isDm && participant ? this.presence.get(participant) : undefined;
     const memberIds = isDm
-      ? [...new Set([participant ?? room.id, selfId])]
+      ? participant
+        ? [participant, selfId]
+        : [selfId]
       : [...new Set([...(known?.map((member) => member.userId) ?? room.heroes), selfId])];
 
     return {

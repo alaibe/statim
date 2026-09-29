@@ -1,11 +1,15 @@
 import { isLocalChat } from '@/core/messaging/bots';
-import { splitRequests } from '@/core/messaging/folders';
+import { networkOf, splitRequests } from '@/core/messaging/folders';
 import type { ProtocolId } from '@/core/messaging/namespace';
+import type { NetworkId } from '@/core/messaging/networks';
 import type { Chat, ParticipantId } from '@/core/messaging/types';
+import { networkLabel } from '@/features/protocols/presentation';
 
 export interface Contact {
   id: ParticipantId;
   protocol: ProtocolId;
+  /** Where they really are: Slack or Discord for someone reached through a Matrix bridge. */
+  network: NetworkId;
   chatId: string;
 }
 
@@ -28,18 +32,38 @@ export function contactsOf(
       if (id === self) continue;
       const key = `${chat.protocol}:${id}`;
       if (byContact.has(key)) continue;
-      byContact.set(key, { id, protocol: chat.protocol, chatId: chat.id });
+      byContact.set(key, {
+        id,
+        protocol: chat.protocol,
+        network: networkOf(chat) ?? chat.protocol,
+        chatId: chat.id,
+      });
     }
   }
 
   return [...byContact.values()];
 }
 
-export function contactKey({ protocol, id, chatId }: Contact): string {
-  return JSON.stringify([protocol, id, chatId]);
+export function contactKey({ protocol, id, network, chatId }: Contact): string {
+  return JSON.stringify([protocol, id, network, chatId]);
 }
 
 export function fromContactKey(key: string): Contact {
-  const [protocol, id, chatId] = JSON.parse(key) as [ProtocolId, string, string];
-  return { id, protocol, chatId };
+  const [protocol, id, network, chatId] = JSON.parse(key) as [
+    ProtocolId,
+    string,
+    NetworkId,
+    string,
+  ];
+  return { id, protocol, network, chatId };
+}
+
+/** "Slack via Matrix" for a bridged contact, the protocol alone otherwise. */
+export function contactNetwork({
+  protocol,
+  network,
+}: Pick<Contact, 'protocol' | 'network'>): string {
+  return network === protocol
+    ? networkLabel(protocol)
+    : `${networkLabel(network)} via ${networkLabel(protocol)}`;
 }

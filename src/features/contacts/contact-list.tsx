@@ -11,7 +11,12 @@ import {
   manageLimitedAccess,
   type ContactAccess,
 } from '@/features/contacts/device-contacts';
-import { fromContactKey, contactKey, contactsOf } from '@/features/contacts/contacts';
+import {
+  fromContactKey,
+  contactKey,
+  contactNetwork,
+  contactsOf,
+} from '@/features/contacts/contacts';
 import { openChat } from '@/features/navigation/open';
 
 export type ContactSort = 'name' | 'recent';
@@ -121,7 +126,7 @@ export function ContactList({
             <ListItem
               key={`${contact.protocol}-${contact.id}`}
               title={nameFor(contact.id)}
-              subtitle={contact.protocol.toUpperCase()}
+              subtitle={contactNetwork(contact)}
               leading={<Avatar seed={nameFor(contact.id)} size="md" />}
               selected={contact.chatId === selectedChatId}
               onPress={() => openChat(contact.chatId)}
