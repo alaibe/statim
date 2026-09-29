@@ -76,6 +76,17 @@ pub(crate) fn write_line(writer: &mut impl Write, message: &Value) -> std::io::R
     writer.write_all(&line)
 }
 
+/// Both builds share one data directory, so only one copy may run: a second
+/// launch, of either build, brings the running one forward and quits.
+pub fn show_running_copy() -> bool {
+    let Ok(mut stream) = transport::connect() else {
+        return false;
+    };
+    let _ = write_line(&mut stream, &json!({ "type": "show" }));
+    eprintln!("Statim is already running; showing that copy instead.");
+    true
+}
+
 pub fn launched_in_background() -> bool {
     std::env::args().any(|arg| arg == BACKGROUND)
 }
@@ -124,6 +135,11 @@ fn converse<R: Runtime>(app: AppHandle<R>, stream: Stream) {
             continue;
         };
         cli.touch();
+        if message["type"] == "show" {
+            let shown = app.clone();
+            let _ = app.run_on_main_thread(move || show_main(&shown));
+            continue;
+        }
         if message["type"] == "request" && message["argv"][0] == "quit" {
             let _ = cli.write(id, &json!({ "type": "exit", "code": 0 }));
             app.exit(0);

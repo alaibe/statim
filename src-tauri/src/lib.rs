@@ -59,18 +59,14 @@ fn raise_open_file_limit() {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    if cli::show_running_copy() {
+        return;
+    }
     #[cfg(unix)]
     raise_open_file_limit();
 
     #[allow(unused_mut)]
     let mut builder = tauri::Builder::default();
-    // Release only: a debug build must be able to run beside the installed app.
-    #[cfg(not(debug_assertions))]
-    {
-        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _, _| {
-            cli::show_main(app)
-        }));
-    }
     #[cfg(feature = "updater")]
     {
         builder = builder.plugin(tauri_plugin_updater::Builder::new().build());

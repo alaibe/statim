@@ -48,7 +48,6 @@ mime = "0.3"
 dirs = "6"
 rpassword = "7"
 interprocess = "2"
-tauri-plugin-single-instance = "2"
 
 # SQLCipher from source. macOS gets CommonCrypto; everything else compiles its
 # own OpenSSL so the build has no system dependency.

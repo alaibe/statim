@@ -6,11 +6,7 @@ use interprocess::local_socket::{prelude::*, Listener, ListenerOptions, Name, St
 /// `identifier` in tauri.conf.json: the client runs before Tauri and cannot ask it.
 const IDENTIFIER: &str = "im.statim.app";
 
-const NAME: &str = if cfg!(debug_assertions) {
-    "cli-dev.sock"
-} else {
-    "cli.sock"
-};
+const NAME: &str = "cli.sock";
 
 /// Unix: a 0600 socket file in the app's data directory. Its full path can
 /// outgrow `sun_path` (104 bytes on macOS) inside the App Store container, so
