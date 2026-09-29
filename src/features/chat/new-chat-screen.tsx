@@ -21,7 +21,7 @@ import { useBack } from '@/features/navigation/use-back';
 import { toneFor } from '@/features/protocols/presentation';
 import { JoinPublicChat } from '@/features/chat/join-public-chat';
 import { supports } from '@/core/messaging/capability';
-import { useNewChat } from './use-new-chat';
+import { useNewChat, type Destination } from './use-new-chat';
 
 export function NewChatScreen() {
   const goBack = useBack('/chats');
@@ -29,6 +29,10 @@ export function NewChatScreen() {
     sessions,
     available,
     active,
+    destination,
+    adding,
+    results,
+    pickResult,
     descriptor,
     draft,
     draftRef,
@@ -69,7 +73,14 @@ export function NewChatScreen() {
                   />
                 ))}
               </View>
-              {descriptor ? (
+              {destination && destination.id !== destination.descriptor.id ? (
+                <View className="flex-row items-start gap-2">
+                  <Badge label="Bridged" tone="warning" />
+                  <Text variant="caption" className="flex-1">
+                    {`Your Matrix bridge carries these chats to ${destination.label}. It reads the messages to pass them on.`}
+                  </Text>
+                </View>
+              ) : descriptor ? (
                 <View className="flex-row items-start gap-2">
                   <Badge
                     label={descriptor.meta.properties.endToEndEncrypted ? 'Encrypted' : 'Not E2EE'}
@@ -84,25 +95,27 @@ export function NewChatScreen() {
           ) : null}
 
           <Text variant="bodyMuted">
-            {descriptor
-              ? `${descriptor.address.hint} Add more than one to make it a group.`
-              : 'Connecting…'}
+            {destination ? hintFor(destination, adding) : 'Connecting…'}
           </Text>
 
-          {descriptor?.publicChats && supports(sessions[active], 'previewPublicChat') ? (
-            <JoinPublicChat key={active} protocol={active} copy={descriptor.publicChats} />
+          {adding === 'address' &&
+          descriptor?.publicChats &&
+          supports(sessions[descriptor.id], 'previewPublicChat') ? (
+            <JoinPublicChat key={active} protocol={descriptor.id} copy={descriptor.publicChats} />
           ) : null}
 
           {descriptor ? (
             <View className="gap-1">
               <Eyebrow>
                 {known.length > 0
-                  ? `People you have talked to on ${descriptor.label}`
-                  : `Nobody yet on ${descriptor.label}`}
+                  ? `People you have talked to on ${destination?.label}`
+                  : `Nobody yet on ${destination?.label}`}
               </Eyebrow>
               {known.length === 0 ? (
                 <Text variant="caption">
-                  {`Paste ${descriptor.address.noun} below to start the first one. People you talk to on another protocol are listed under that protocol, because an id only means something to the network that made it.`}
+                  {adding === 'address'
+                    ? `Paste ${descriptor.address.noun} below to start the first one. People you talk to on another protocol are listed under that protocol, because an id only means something to the network that made it.`
+                    : 'Chats you have there show up here once the bridge has brought them over.'}
                 </Text>
               ) : null}
               {known.map((entry) =>
@@ -133,30 +146,69 @@ export function NewChatScreen() {
             </View>
           ) : null}
 
-          <View className="flex-row items-end gap-2">
-            <Field
-              testID="new-chat-input"
-              containerClassName="flex-1"
-              label={descriptor?.address.label ?? 'Address'}
-              placeholder={descriptor?.address.placeholder}
-              ref={draftRef}
-              onChangeText={changeDraft}
-              autoCapitalize="none"
-              autoCorrect={false}
-              spellCheck={false}
-              returnKeyType="done"
-              onSubmitEditing={() => void addParticipant()}
-            />
-            <IconButton
-              testID="new-chat-add"
-              icon="add"
-              label="Add participant"
-              tone="brand"
-              onPress={() => void addParticipant()}
-              disabled={draft.trim().length < 3 || busy}
-              className="mb-0.5"
-            />
-          </View>
+          {adding ? (
+            <View className="flex-row items-end gap-2">
+              <Field
+                testID="new-chat-input"
+                containerClassName="flex-1"
+                label={
+                  adding === 'search'
+                    ? `Search ${destination?.label}`
+                    : adding === 'lookup'
+                      ? 'Username, phone or email'
+                      : (descriptor?.address.label ?? 'Address')
+                }
+                placeholder={adding === 'address' ? descriptor?.address.placeholder : undefined}
+                ref={draftRef}
+                onChangeText={changeDraft}
+                autoCapitalize="none"
+                autoCorrect={false}
+                spellCheck={false}
+                returnKeyType="done"
+                onSubmitEditing={() => void addParticipant()}
+              />
+              <IconButton
+                testID="new-chat-add"
+                icon={adding === 'search' ? 'search-outline' : 'add'}
+                label={adding === 'search' ? 'Search' : 'Add participant'}
+                tone="brand"
+                onPress={() => void addParticipant()}
+                disabled={draft.trim().length < (adding === 'search' ? 2 : 3) || busy}
+                className="mb-0.5"
+              />
+            </View>
+          ) : null}
+
+          {results.map((person) => (
+            <Pressable
+              key={person.id}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: selectedIds.has(person.mxid ?? person.id) }}
+              accessibilityLabel={person.name ?? person.id}
+              onPress={() => pickResult(person)}
+              className="min-h-tap flex-row items-center gap-3 py-1.5">
+              <Avatar seed={person.name ?? person.id} size="md" />
+              <View className="min-w-0 flex-1">
+                <Text className="font-medium" numberOfLines={1}>
+                  {person.name ?? person.id}
+                </Text>
+                {person.identifiers?.[0] ? (
+                  <Text variant="caption" numberOfLines={1}>
+                    {person.identifiers[0]}
+                  </Text>
+                ) : null}
+              </View>
+              <Icon
+                name={
+                  selectedIds.has(person.mxid ?? person.id)
+                    ? 'checkmark-circle'
+                    : 'add-circle-outline'
+                }
+                size={20}
+                tone={selectedIds.has(person.mxid ?? person.id) ? 'brand' : 'subtle'}
+              />
+            </Pressable>
+          ))}
 
           <ErrorText>{error}</ErrorText>
 
@@ -244,3 +296,16 @@ const GROUP_BADGE = {
       'The group is whoever a message is addressed to. Nobody can be added or removed afterwards, and leaving is only local to your device.',
   },
 };
+
+function hintFor(destination: Destination, adding: 'address' | 'search' | 'lookup' | null): string {
+  switch (adding) {
+    case 'address':
+      return `${destination.descriptor.address.hint} Add more than one to make it a group.`;
+    case 'search':
+      return `Search ${destination.label} for someone, or pick someone you have talked to. Chats started here are one to one.`;
+    case 'lookup':
+      return `Add someone by their ${destination.label} username, phone or email, or pick someone you have talked to. Chats started here are one to one.`;
+    case null:
+      return `Pick someone you have talked to on ${destination.label}. The bridge cannot start new chats there.`;
+  }
+}
