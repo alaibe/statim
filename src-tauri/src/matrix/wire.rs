@@ -43,6 +43,7 @@ pub struct MxRoom {
     pub(super) peer: Option<String>,
     pub(super) membership: &'static str,
     pub(super) heroes: Vec<String>,
+    pub(super) elevated: Vec<String>,
     pub(super) self_role: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) inviter: Option<String>,

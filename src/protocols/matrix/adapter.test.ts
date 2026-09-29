@@ -171,6 +171,37 @@ describe('MatrixSession chats', () => {
     });
   });
 
+  it('knows a bridged room by its bot and treats a one-to-one portal as a DM', async () => {
+    const bot = '@slackbot:example.org';
+    const puppet = '@slack_t1-u2:example.org';
+    const channel = room('!channel:example.org', {
+      name: '#general',
+      elevated: [ME, bot],
+      memberCount: 3,
+    });
+    const portal = room('!portal:example.org', {
+      name: 'Dana',
+      heroes: [bot, puppet],
+      elevated: [bot],
+      memberCount: 3,
+    });
+    const { chat } = await connect(SESSION, (api) => {
+      api.roomsById.set(channel.id, channel);
+      api.roomsById.set(portal.id, portal);
+    });
+    const chats = await chat.listChats();
+
+    expect(chats.find((c) => c.id === chatIdOf(channel.id))).toMatchObject({
+      kind: 'group',
+      network: 'slack',
+    });
+    expect(chats.find((c) => c.id === chatIdOf(portal.id))).toMatchObject({
+      kind: 'dm',
+      network: 'slack',
+      memberIds: [puppet, ME],
+    });
+  });
+
   it('announces room updates with their preview and streams events as messages', async () => {
     const { content: _, ...rest } = textEvent('$x', DM.id, BOB, 'hello');
     const latest = {

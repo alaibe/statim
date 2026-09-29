@@ -88,6 +88,10 @@ impl Session {
         } else {
             None
         };
+        let elevated = power
+            .as_ref()
+            .map(|levels| levels.users.keys().map(|id| id.to_string()).collect())
+            .unwrap_or_default();
         let latest_id = joined.then(|| (**room).latest_event().event_id()).flatten();
         Some((
             MxRoom {
@@ -103,6 +107,7 @@ impl Session {
                 peer,
                 membership,
                 heroes,
+                elevated,
                 self_role,
                 inviter,
                 latest,

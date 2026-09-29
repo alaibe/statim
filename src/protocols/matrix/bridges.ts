@@ -48,6 +48,10 @@ export function bridgedNetwork(userIds: (string | null | undefined)[]): BridgedN
   return undefined;
 }
 
+export function isBridgeBot(userId: string): boolean {
+  return knownBridge(localpart(userId)) !== undefined;
+}
+
 export function bridgeBotId(bridge: KnownBridge, selfUserId: string): string {
   return `@${bridge.localpart}:${serverName(selfUserId)}`;
 }

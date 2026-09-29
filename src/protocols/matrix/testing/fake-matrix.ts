@@ -256,6 +256,7 @@ export function room(id: string, overrides: Partial<MxRoom> = {}): MxRoom {
     isDm: false,
     membership: 'joined',
     heroes: [],
+    elevated: [],
     selfRole: 'member',
     ...overrides,
   };

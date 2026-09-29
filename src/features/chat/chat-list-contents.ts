@@ -14,9 +14,11 @@ import { messagePreview } from '@/core/messaging/preview';
 import type { NetworkId } from '@/core/messaging/networks';
 import type { Chat, ChatId } from '@/core/messaging/types';
 import { hasUnreadMentions } from '@/core/messaging/unread';
-import { protocolById } from '@/protocols';
 
-export const isFolded = (network: NetworkId) => protocolById(network)?.external ?? true;
+export const isFolded = (network: NetworkId) => network !== 'xmtp';
+
+/** These list every chat they match, whichever folder it is in. */
+export const crossesFolders = (filter: ChatFilter) => filter === 'unread' || filter === 'mentions';
 
 export function chatListContents({
   chats,
@@ -40,10 +42,9 @@ export function chatListContents({
   const { accepted, requests } = splitRequests(chats);
   const context = { prefs: chatPrefs, readAt };
   const ordered = orderChats(accepted, chatPrefs, { includeArchived: true });
-  const scope = folder
-    ? ordered.filter((c) => inFolder(c, folder, context))
-    : ordered.filter((c) => !prefsFor(chatPrefs, c.id).archived);
-  const unread = scope.filter((c) => isUnreadHere(c, context));
+  const everywhere = ordered.filter((c) => !prefsFor(chatPrefs, c.id).archived);
+  const scope = folder ? ordered.filter((c) => inFolder(c, folder, context)) : everywhere;
+  const unread = everywhere.filter((c) => isUnreadHere(c, context));
 
   const q = query.trim().toLowerCase();
   const include = (c: Chat) =>
@@ -51,21 +52,23 @@ export function chatListContents({
       titleOf(c).toLowerCase().includes(q) ||
       messagePreview(c.lastMessage).toLowerCase().includes(q)) &&
     (matchesFilter(c, filter, context) || (filter === 'unread' && held.has(c.id)));
-  const nativeNetworks = new Set(
-    scope.map(networkOf).filter((n): n is NetworkId => n !== undefined && !isFolded(n))
+  const rows =
+    folder || q || crossesFolders(filter)
+      ? scope.filter(include).map(chatRow)
+      : chatListRows(ordered, include, isFolded, context);
+  const networks = new Set(
+    rows.map((row) => (row.kind === 'chat' ? networkOf(row.chat) : undefined))
   );
+  networks.delete(undefined);
 
   return {
     accepted,
     requests,
     scope,
-    rows:
-      folder || q
-        ? scope.filter(include).map(chatRow)
-        : chatListRows(ordered, include, isFolded, context),
+    rows,
     unseen: filter === 'unread' ? unread.filter((c) => !held.has(c.id)).map((c) => c.id) : [],
     unreadHere: unread.length,
-    mentionsHere: scope.filter((c) => hasUnreadMentions(c, readAt)).length,
-    showNetwork: !folder && nativeNetworks.size > 1,
+    mentionsHere: everywhere.filter((c) => hasUnreadMentions(c, readAt)).length,
+    showNetwork: !folder && networks.size > 1,
   };
 }

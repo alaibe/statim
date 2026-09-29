@@ -32,7 +32,7 @@ import type {
   MxUpdate,
 } from './api';
 import type { BridgedNetwork } from '@/core/messaging/networks';
-import { bridgedNetwork } from './bridges';
+import { bridgedNetwork, isBridgeBot } from './bridges';
 import { toContent } from './content';
 import { outgoing, textOutgoing } from './outgoing';
 import {
@@ -647,7 +647,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     const selfId = this.self.participantId;
     return (
       room.peer ??
-      room.heroes.find((id) => id !== selfId) ??
+      room.heroes.find((id) => id !== selfId && !isBridgeBot(id)) ??
       (room.inviter !== selfId ? room.inviter : null) ??
       null
     );
@@ -655,27 +655,35 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
 
   private toChat(room: MxRoom): ProtocolChat {
     const selfId = this.self.participantId;
-    const participant = this.participantOf(room);
-    const presence = room.isDm && participant ? this.presence.get(participant) : undefined;
     const known = this.members.get(room.id);
-    const memberIds = room.isDm
+    const network =
+      this.networks.get(room.id) ??
+      bridgedNetwork([
+        room.peer,
+        room.latest?.sender,
+        room.inviter,
+        ...room.heroes,
+        ...room.elevated,
+        ...(known?.map((member) => member.userId) ?? []),
+      ]);
+    if (network) this.networks.set(room.id, network);
+
+    const isDm = room.isDm || (!!network && isBridgedDm(room));
+    const participant = this.participantOf(room);
+    const presence = isDm && participant ? this.presence.get(participant) : undefined;
+    const memberIds = isDm
       ? [...new Set([participant ?? room.id, selfId])]
       : [...new Set([...(known?.map((member) => member.userId) ?? room.heroes), selfId])];
 
-    const network =
-      this.networks.get(room.id) ??
-      bridgedNetwork([participant, room.latest?.sender, room.inviter, ...room.heroes]);
-    if (network) this.networks.set(room.id, network);
-
     return {
       id: chatIdOf(room.id),
-      kind: room.isDm ? 'dm' : room.broadcast ? 'channel' : 'group',
+      kind: isDm ? 'dm' : room.broadcast ? 'channel' : 'group',
       canSend: room.canSend,
       typing: this.typing.get(room.id) ?? false,
       ...(presence?.online ? { online: true } : {}),
       ...(presence?.lastSeenAt ? { lastSeenAt: presence.lastSeenAt } : {}),
       network,
-      title: room.name || (room.isDm ? (participant ?? room.id) : 'Untitled chat'),
+      title: room.name || (isDm ? (participant ?? room.id) : 'Untitled chat'),
       avatarUri: this.avatarOf(room),
       memberIds,
       createdAt: room.latest?.timestamp ?? 0,
@@ -688,7 +696,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
       canPin: room.canPin,
       canDeleteOthers: room.canDeleteOthers,
       consent: room.membership === 'invited' ? 'request' : 'accepted',
-      selfRole: room.isDm ? undefined : room.selfRole,
+      selfRole: isDm ? undefined : room.selfRole,
     };
   }
 
@@ -778,4 +786,13 @@ function describeLoginError(error: unknown): string {
     return 'The homeserver could not be reached. Check the URL.';
   }
   return message;
+}
+
+/**
+ * A bridge that doesn't mark its one-to-one portals as direct still leaves
+ * just you, the other person and its bot in them. Slack channels keep their `#`.
+ */
+function isBridgedDm(room: MxRoom): boolean {
+  const humans = (room.memberCount ?? 0) - room.elevated.filter(isBridgeBot).length;
+  return humans === 2 && !room.name.startsWith('#');
 }

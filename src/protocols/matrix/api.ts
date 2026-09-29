@@ -44,6 +44,8 @@ export interface MxRoom {
   membership: MxMembership;
   /** Who the room is named after when it has no name. */
   heroes: string[];
+  /** Who has a power level of their own; a bridge's bot always does in its rooms. */
+  elevated: string[];
   selfRole: MxRole;
   inviter?: string;
   /** For the list; new messages arrive as `event` updates. */

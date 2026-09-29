@@ -214,6 +214,7 @@ class RnMatrixClient implements MatrixApi {
         : undefined,
       membership,
       heroes,
+      elevated: power ? [...power.userPowerLevels().keys()] : [],
       selfRole,
       inviter: info.inviter?.userId,
       latest,
