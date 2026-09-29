@@ -9,6 +9,8 @@ import {
   ListConversationsOrderBy,
   Opfs,
   PermissionLevel,
+  createBackend,
+  getInboxIdForIdentifier,
   ReactionAction,
   ReactionSchema,
   SortDirection,
@@ -97,6 +99,50 @@ export async function eraseXmtpLocalDatabase(options: XmtpEraseOptions): Promise
   } finally {
     opfs.close();
   }
+}
+
+export interface XmtpInstallation {
+  id: string;
+  createdAt?: number;
+  current: boolean;
+}
+
+async function inboxOf(account: LocalAccount) {
+  const backend = await createBackend({ env: xmtpEnvironment() });
+  const inboxId = await getInboxIdForIdentifier(backend, identifierFor(account.address));
+  return { backend, inboxId };
+}
+
+/** Read from the network, so it works while this device cannot register, as when the inbox is full. */
+export async function inboxInstallations(
+  account: LocalAccount,
+  current?: string
+): Promise<XmtpInstallation[]> {
+  const { backend, inboxId } = await inboxOf(account);
+  if (!inboxId) return [];
+  const [state] = await Client.fetchInboxStates([inboxId], backend);
+  return (state?.installations ?? []).map((installation) => ({
+    id: installation.id,
+    createdAt:
+      installation.clientTimestampNs === undefined
+        ? undefined
+        : Number(installation.clientTimestampNs / 1_000_000n),
+    current: installation.id === current,
+  }));
+}
+
+export async function revokeInboxInstallations(
+  account: LocalAccount,
+  ids: string[]
+): Promise<void> {
+  const { backend, inboxId } = await inboxOf(account);
+  if (!inboxId) throw new Error('This account has no XMTP inbox.');
+  await Client.revokeInstallations(
+    signerForAccount(account),
+    inboxId,
+    ids.map((id) => hexToBytes(id.startsWith('0x') ? (id as `0x${string}`) : `0x${id}`)),
+    backend
+  );
 }
 
 export class XmtpSession implements ChatSession {
@@ -360,27 +406,12 @@ export class XmtpSession implements ChatSession {
     await conversation.sendReadReceipt();
   }
 
-  async listInstallations(): Promise<{ id: string; createdAt?: number; current: boolean }[]> {
-    const state = await this.client.preferences.fetchInboxState();
-    const current = this.client.installationId;
-
-    return state.installations.map((installation) => ({
-      id: installation.id,
-      createdAt:
-        installation.clientTimestampNs === undefined
-          ? undefined
-          : Number(installation.clientTimestampNs / 1_000_000n),
-      current: installation.id === current,
-    }));
+  listInstallations(): Promise<XmtpInstallation[]> {
+    return inboxInstallations(this.account, this.client.installationId);
   }
 
-  async revokeInstallations(ids: string[]): Promise<void> {
-    await Client.revokeInstallations(
-      signerForAccount(this.account),
-      this.self.participantId,
-      ids.map((id) => hexToBytes(id.startsWith('0x') ? (id as `0x${string}`) : `0x${id}`)),
-      xmtpEnvironment()
-    );
+  revokeInstallations(ids: string[]): Promise<void> {
+    return revokeInboxInstallations(this.account, ids);
   }
 
   async sync(): Promise<void> {

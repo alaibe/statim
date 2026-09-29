@@ -54,6 +54,44 @@ function signerForAccount(account: LocalAccount): Signer {
   };
 }
 
+export interface XmtpInstallation {
+  id: string;
+  createdAt?: number;
+  current: boolean;
+}
+
+function inboxOf(account: LocalAccount): Promise<InboxId> {
+  return Client.getOrCreateInboxId(
+    new PublicIdentity(account.address, 'ETHEREUM'),
+    xmtpEnvironment()
+  );
+}
+
+/** Read from the network, so it works while this device cannot register, as when the inbox is full. */
+export async function inboxInstallations(
+  account: LocalAccount,
+  current?: string
+): Promise<XmtpInstallation[]> {
+  const [state] = await Client.inboxStatesForInboxIds(xmtpEnvironment(), [await inboxOf(account)]);
+  return (state?.installations ?? []).map((installation) => ({
+    id: installation.id,
+    createdAt: installation.createdAt,
+    current: installation.id === current,
+  }));
+}
+
+export async function revokeInboxInstallations(
+  account: LocalAccount,
+  ids: string[]
+): Promise<void> {
+  await Client.revokeInstallations(
+    xmtpEnvironment(),
+    signerForAccount(account),
+    await inboxOf(account),
+    ids as Parameters<typeof Client.revokeInstallations>[3]
+  );
+}
+
 export interface XmtpConnectOptions {
   accountId: string;
   account: LocalAccount;
@@ -335,24 +373,12 @@ export class XmtpSession implements ChatSession {
     await conversation.send({ readReceipt: {} });
   }
 
-  async listInstallations(): Promise<{ id: string; createdAt?: number; current: boolean }[]> {
-    const state = await this.client.inboxState(true);
-    const current = this.client.installationId;
-
-    return state.installations.map((installation) => ({
-      id: installation.id,
-      createdAt: installation.createdAt,
-      current: installation.id === current,
-    }));
+  listInstallations(): Promise<XmtpInstallation[]> {
+    return inboxInstallations(this.account, this.client.installationId);
   }
 
-  async revokeInstallations(ids: string[]): Promise<void> {
-    await Client.revokeInstallations(
-      xmtpEnvironment(),
-      signerForAccount(this.account),
-      this.client.inboxId,
-      ids as Parameters<typeof Client.revokeInstallations>[3]
-    );
+  revokeInstallations(ids: string[]): Promise<void> {
+    return revokeInboxInstallations(this.account, ids);
   }
 
   async sync(): Promise<void> {

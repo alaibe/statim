@@ -1,11 +1,12 @@
 import { useAccountStore } from '@/core/account/account-store';
-import { connectionFor, useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
+import { connectionFor, useChatStore } from '@/core/messaging/chat-store';
 import { loadProtocolConfig, missingFields, withDefaults } from '@/core/messaging/config';
 import type { ProtocolId } from '@/core/messaging/namespace';
 import type { LoginState } from '@/core/messaging/protocol';
 import { isConfigured, type ProtocolDescriptor } from '@/core/messaging/registry';
 import { protocolById, connectableProtocols } from '@/protocols';
 import { accountRuntime } from '@/runtime';
+import { listXmtpInstallations, revokeXmtpInstallations } from '@/features/xmtp-devices';
 
 import { approveOrThrow, waitFor, whenAccountReady, type CliHandler, type CliIo } from '../context';
 import { CliError } from '../errors';
@@ -208,9 +209,7 @@ export const protocolHandlers = {
 
   async devices() {
     await whenAccountReady();
-    const xmtp = xmtpSessionFor(useChatStore.getState());
-    if (!xmtp?.listInstallations) throw new CliError('XMTP is not connected.', 'unavailable');
-    const installations = await xmtp.listInstallations();
+    const installations = await listXmtpInstallations();
     return {
       data: installations,
       text: installations.map(
@@ -224,16 +223,12 @@ export const protocolHandlers = {
 
   async 'devices revoke'({ rest }, { io }) {
     await whenAccountReady();
-    const xmtp = xmtpSessionFor(useChatStore.getState());
-    if (!xmtp?.listInstallations || !xmtp.revokeInstallations) {
-      throw new CliError('XMTP is not connected.', 'unavailable');
-    }
-    const current = (await xmtp.listInstallations()).find((i) => i.current)?.id;
+    const current = (await listXmtpInstallations()).find((i) => i.current)?.id;
     if (current && rest.includes(current)) {
       throw new CliError('That is this device. Revoke the others instead.', 'usage');
     }
     await approveOrThrow(io, `Revoke ${rest.length} XMTP installation(s)?\n${rest.join('\n')}`);
-    await xmtp.revokeInstallations(rest);
+    await revokeXmtpInstallations(rest);
     return { data: { revoked: rest }, text: `Revoked ${rest.length} installation(s).` };
   },
 } satisfies Record<string, CliHandler>;

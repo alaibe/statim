@@ -6,12 +6,11 @@ import { useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
 import { formatDayLabel } from '@/core/messaging/preview';
 import { useAction } from '@/features/use-action';
 import { SettingsScreen } from '@/features/settings/settings-screen';
-
-interface Installation {
-  id: string;
-  createdAt?: number;
-  current: boolean;
-}
+import {
+  listXmtpInstallations,
+  revokeXmtpInstallations,
+  type XmtpInstallation as Installation,
+} from '@/features/xmtp-devices';
 
 export default function DevicesScreen() {
   const session = useChatStore(xmtpSessionFor);
@@ -21,17 +20,13 @@ export default function DevicesScreen() {
   const [confirming, setConfirming] = useState<Installation | null>(null);
 
   const load = useCallback(async () => {
-    if (!session?.listInstallations) {
-      setInstallations([]);
-      return;
-    }
     try {
-      setInstallations(await session.listInstallations());
+      setInstallations(await listXmtpInstallations());
       setError(null);
     } catch (e) {
       setError(errorMessage(e, 'Could not read your devices'));
     }
-  }, [session]);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,11 +36,11 @@ export default function DevicesScreen() {
     return () => {
       cancelled = true;
     };
-  }, [load]);
+  }, [load, session]);
 
   const revoke = useAction(
     async (installation: Installation) => {
-      await session?.revokeInstallations?.([installation.id]);
+      await revokeXmtpInstallations([installation.id]);
       await load();
     },
     { success: 'Device revoked', failure: 'Could not revoke that device' }
@@ -63,7 +58,7 @@ export default function DevicesScreen() {
           <Section
             title="This device"
             surface="card"
-            empty="This protocol does not report devices, so there is nothing to show here."
+            empty="Not connected to XMTP. If every installation slot is taken, revoke an old device below, then reconnect."
             className="mb-6">
             {here ? (
               <ListItem
