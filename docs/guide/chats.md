@@ -59,7 +59,7 @@ request. Tapping the card again later takes them back to that DM. With any
 other XMTP app, they can message the address directly.
 
 <div class="phones">
-  <figure><img src="/screenshots/manual/move-invite.png" alt="A Telegram DM where Alice asked to continue on XMTP, with a Continue on XMTP button under her message"><figcaption>What the other person sees</figcaption></figure>
+  <figure><img src="/screenshots/move-invite.png" alt="A Telegram DM where Alice asked to continue on XMTP, with a Continue on XMTP button under her message"><figcaption>What the other person sees</figcaption></figure>
 </div>
 
 ## Folders and filters

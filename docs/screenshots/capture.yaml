@@ -219,3 +219,17 @@ appId: im.statim.app
       - tapOn: "Open"
 - waitForAnimationToEnd
 - takeScreenshot: contacts
+
+# A fresh account has no Telegram DM and nobody to invite it, so a debug
+# build seeds this one (src/app/+native-intent.tsx).
+- openLink: "statim://fixture/move-invite"
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"
+- extendedWaitUntil:
+    visible: "Continue on XMTP"
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: move-invite
