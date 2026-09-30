@@ -1000,6 +1000,14 @@ describe('MatrixSession messages', () => {
       width: 640,
       height: 360,
     });
+    await chat.send(DM_ID, {
+      kind: 'sticker',
+      uri: 'file:///tmp/wave.webp',
+      mimeType: 'image/webp',
+      width: 512,
+      height: 512,
+      emoji: '👋',
+    });
     await chat.send(DM_ID, { kind: 'reaction', targetId: '$1', emoji: '👍', action: 'added' });
     expect(api.named('send')).toEqual([
       [DM.id, { kind: 'text', body: 'hi' }, '$1'],
@@ -1012,6 +1020,18 @@ describe('MatrixSession messages', () => {
       [
         DM.id,
         { kind: 'video', path: '/tmp/clip.mp4', mimeType: 'video/mp4', width: 640, height: 360 },
+        undefined,
+      ],
+      [
+        DM.id,
+        {
+          kind: 'sticker',
+          path: '/tmp/wave.webp',
+          body: '👋',
+          mimeType: 'image/webp',
+          width: 512,
+          height: 512,
+        },
         undefined,
       ],
     ]);

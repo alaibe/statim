@@ -195,6 +195,39 @@ describe('sending', () => {
     expect(session.sent).toHaveLength(1);
   });
 
+  it('sends a still sticker as a photo where the network has no stickers', async () => {
+    const session = new InMemoryChatSession();
+    session.seedChat({ id: 'c1' });
+    await connect(session);
+    const sticker = {
+      kind: 'sticker',
+      uri: 'https://example.org/wave.webp',
+      mimeType: 'image/webp',
+      width: 512,
+      height: 512,
+      emoji: '👋',
+    } as const;
+
+    await useChatStore.getState().sendMessage(ns('c1'), sticker);
+    expect(session.sent[0].content).toEqual({
+      kind: 'image',
+      uri: 'https://example.org/wave.webp',
+      mimeType: 'image/webp',
+      width: 512,
+      height: 512,
+    });
+
+    await expect(
+      useChatStore
+        .getState()
+        .sendMessage(ns('c1'), { ...sticker, mimeType: 'application/x-tgsticker' })
+    ).rejects.toThrow('still pictures');
+
+    Object.assign(session, { sendsStickers: true });
+    await useChatStore.getState().sendMessage(ns('c1'), sticker);
+    expect(session.sent[1].content).toEqual(sticker);
+  });
+
   it('shows the message optimistically, then marks it sent', async () => {
     const session = new InMemoryChatSession();
     session.seedChat({ id: 'c1' });

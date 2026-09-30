@@ -179,7 +179,16 @@ export type MxOutgoing =
       size?: number;
       caption?: string;
     }
-  | { kind: 'voice'; path: string; durationMs: number; mimeType?: string; size?: number };
+  | { kind: 'voice'; path: string; durationMs: number; mimeType?: string; size?: number }
+  | {
+      kind: 'sticker';
+      path: string;
+      body: string;
+      mimeType?: string;
+      width?: number;
+      height?: number;
+      size?: number;
+    };
 
 export type MxUpdate =
   | { type: 'room'; room: MxRoom }

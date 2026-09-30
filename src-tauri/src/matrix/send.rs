@@ -1,5 +1,10 @@
 use super::*;
 
+use matrix_sdk::ruma::events::relation::{InReplyTo, Reply as InReplyToRelation, Thread};
+use matrix_sdk::ruma::events::room::message::Relation;
+use matrix_sdk::ruma::events::room::ImageInfo;
+use matrix_sdk::ruma::events::sticker::{StickerEventContent, StickerEventContentWithoutRelation};
+
 impl Session {
     /// Straight to the homeserver, so a rejection rejects here; the echo brings the event id.
     pub(super) async fn send(
@@ -11,22 +16,37 @@ impl Session {
     ) -> Result<(), String> {
         let room = self.room(room_id.as_str())?;
         let parse = |id: Option<String>| id.map(|id| EventId::parse(id).map_err(err)).transpose();
-        let reply = relation(parse(reply_to)?, parse(thread_root)?);
+        let (reply_to, thread_root) = (parse(reply_to)?, parse(thread_root)?);
         match content {
             MxOutgoing::Text(text) => {
                 let content = text_content(text)?;
-                let content = match reply {
+                let content = match relation(reply_to, thread_root) {
                     Some(reply) => room.make_reply_event(content, reply).await.map_err(err)?,
                     None => content.with_relation(None),
                 };
                 room.send(content).await.map_err(err)?;
+            }
+            sticker @ MxOutgoing::Sticker { .. } => {
+                let (body, mime, data, info, _) = attachment(sticker).await?;
+                let url = self
+                    .client
+                    .media()
+                    .upload(&mime, data, None)
+                    .await
+                    .map_err(err)?
+                    .content_uri;
+                let mut info = ImageInfo::from(info);
+                info.mimetype = Some(mime.to_string());
+                let mut sticker = StickerEventContent::new(body, info, url);
+                sticker.relates_to = sticker_relation(reply_to, thread_root);
+                room.send(sticker).await.map_err(err)?;
             }
             other => {
                 let (name, mime, data, info, caption) = attachment(other).await?;
                 let config = AttachmentConfig::new()
                     .info(info)
                     .caption(caption.map(TextMessageEventContent::plain))
-                    .reply(reply);
+                    .reply(relation(reply_to, thread_root));
                 room.send_attachment(name, &mime, data, config)
                     .await
                     .map_err(err)?;
@@ -59,6 +79,21 @@ fn relation(reply_to: Option<OwnedEventId>, thread_root: Option<OwnedEventId>) -
         enforce_thread: EnforceThread::Threaded(within),
         add_mentions: AddMentions::Yes,
     })
+}
+
+/// The same fallback as `relation`, written into the event, since stickers skip the SDK's reply helper.
+fn sticker_relation(
+    reply_to: Option<OwnedEventId>,
+    thread_root: Option<OwnedEventId>,
+) -> Option<Relation<StickerEventContentWithoutRelation>> {
+    match (thread_root, reply_to) {
+        (Some(root), Some(reply_to)) => Some(Relation::Thread(Thread::reply(root, reply_to))),
+        (Some(root), None) => Some(Relation::Thread(Thread::plain(root.clone(), root))),
+        (None, Some(reply_to)) => Some(Relation::Reply(InReplyToRelation::new(InReplyTo::new(
+            reply_to,
+        )))),
+        (None, None) => None,
+    }
 }
 
 /// The page names files itself; the SDK would otherwise use the path's basename.
@@ -145,6 +180,25 @@ pub(super) async fn attachment(
                 duration: Some(Duration::from_millis(duration_ms)),
                 size: size.map(uint),
                 waveform: None,
+            }),
+            None,
+        )),
+        MxOutgoing::Sticker {
+            path,
+            body,
+            mime_type,
+            width,
+            height,
+            size,
+        } => Ok((
+            body,
+            parse(mime_type, "image/webp")?,
+            tokio::fs::read(&path).await.map_err(err)?,
+            AttachmentInfo::Image(BaseImageInfo {
+                width: width.map(uint),
+                height: height.map(uint),
+                size: size.map(uint),
+                ..Default::default()
             }),
             None,
         )),
@@ -292,6 +346,58 @@ mod tests {
         let outside = relation(Some(other), None).unwrap();
         assert_eq!(outside.enforce_thread, EnforceThread::MaybeThreaded);
         assert!(relation(None, None).is_none());
+    }
+
+    #[test]
+    fn reads_what_the_page_sends() {
+        let voice: MxOutgoing = serde_json::from_str(
+            r#"{"kind":"voice","path":"/v.m4a","durationMs":1200,"mimeType":"audio/mp4"}"#,
+        )
+        .unwrap();
+        assert!(matches!(
+            voice,
+            MxOutgoing::Voice {
+                duration_ms: 1200,
+                mime_type: Some(_),
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn a_sticker_replies_and_threads_like_the_phone_writes_it() {
+        let relates = |reply_to: Option<&str>, thread_root: Option<&str>| {
+            let id = |id: &str| OwnedEventId::try_from(id).unwrap();
+            let mut sticker = StickerEventContent::new(
+                "x".into(),
+                ImageInfo::new(),
+                "mxc://example.org/a".into(),
+            );
+            sticker.relates_to = sticker_relation(reply_to.map(id), thread_root.map(id));
+            serde_json::to_value(sticker).unwrap()["m.relates_to"].clone()
+        };
+        assert_eq!(
+            relates(Some("$a"), None),
+            serde_json::json!({ "m.in_reply_to": { "event_id": "$a" } })
+        );
+        assert_eq!(
+            relates(None, Some("$root")),
+            serde_json::json!({
+                "rel_type": "m.thread",
+                "event_id": "$root",
+                "is_falling_back": true,
+                "m.in_reply_to": { "event_id": "$root" },
+            })
+        );
+        assert_eq!(
+            relates(Some("$a"), Some("$root")),
+            serde_json::json!({
+                "rel_type": "m.thread",
+                "event_id": "$root",
+                "m.in_reply_to": { "event_id": "$a" },
+            })
+        );
+        assert!(relates(None, None).is_null());
     }
 
     #[test]

@@ -86,6 +86,17 @@ export function inputContent(content: MessageContent, wrapped = WRAPS_INPUT_MEDI
         self_destruct_type: null,
         has_spoiler: false,
       };
+    case 'sticker':
+      return {
+        '@type': 'inputMessageSticker',
+        ...media('sticker', 'inputSticker', {
+          sticker: localFile(content.uri),
+          thumbnail: null,
+          width: content.width ?? 0,
+          height: content.height ?? 0,
+        }),
+        emoji: content.emoji ?? '',
+      };
     default:
       throw new Error(`Telegram cannot send "${content.kind}" content`);
   }

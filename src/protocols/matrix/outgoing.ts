@@ -47,6 +47,16 @@ export function outgoing(content: MessageContent): MxOutgoing {
         mimeType: content.mimeType,
         size: content.size,
       };
+    case 'sticker':
+      return {
+        kind: 'sticker',
+        path: pathOfFileUri(content.uri),
+        body: content.emoji || 'Sticker',
+        mimeType: content.mimeType,
+        width: content.width,
+        height: content.height,
+        size: content.size,
+      };
     default:
       throw new Error(`Matrix cannot send "${content.kind}" content`);
   }

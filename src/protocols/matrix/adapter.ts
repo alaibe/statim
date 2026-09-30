@@ -68,6 +68,7 @@ export interface MatrixConnectOptions {
  */
 export class MatrixSession implements ChatSession, MatrixCapabilities {
   readonly sendsVideo = true;
+  readonly sendsStickers = true;
   readonly threads = true;
   private api!: MatrixApi;
   private unsubscribe: Unsubscribe | null = null;

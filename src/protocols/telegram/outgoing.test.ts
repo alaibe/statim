@@ -34,6 +34,31 @@ describe('inputContent', () => {
     });
   });
 
+  it('sends a sticker with its emoji, wrapped on the desktop and flat on the phone', () => {
+    const sticker = {
+      kind: 'sticker',
+      uri: 'file:///td/stickers/1.tgs',
+      mimeType: 'application/x-tgsticker',
+      width: 512,
+      height: 512,
+      emoji: '🤗',
+    } as const;
+    const file = { '@type': 'inputFileLocal', path: '/td/stickers/1.tgs' };
+    expect(inputContent(sticker, true)).toEqual({
+      '@type': 'inputMessageSticker',
+      sticker: { '@type': 'inputSticker', sticker: file, thumbnail: null, width: 512, height: 512 },
+      emoji: '🤗',
+    });
+    expect(inputContent(sticker, false)).toEqual({
+      '@type': 'inputMessageSticker',
+      sticker: file,
+      thumbnail: null,
+      width: 512,
+      height: 512,
+      emoji: '🤗',
+    });
+  });
+
   it('sends a GIF as an animation so it keeps moving', () => {
     expect(
       inputContent({ kind: 'image', uri: 'file:///tmp/a.gif', mimeType: 'image/gif' }, true)

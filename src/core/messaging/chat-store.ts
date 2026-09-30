@@ -29,6 +29,7 @@ import type {
 import { historyFailure } from './history';
 import { HYDRATE_LIMIT, type MessageStore } from './message-store';
 import { persistLocalAttachment } from './attachments';
+import { stickerAsImage } from './stickers';
 import { MARKED_UNREAD } from './unread';
 import { searchMessages } from './search';
 import { draftKey, draftSync, saveDraftsSoon, withDraft, type Drafts } from './drafts';
@@ -334,10 +335,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const route = requireRoute(get(), id);
     const accountId = get().accountId;
     const pendingId = `pending:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+    const outgoing =
+      picked.kind === 'sticker' && !route.session.sendsStickers ? stickerAsImage(picked) : picked;
     const content =
-      'uri' in picked && accountId
-        ? await persistLocalAttachment(pendingId, picked, accountId)
-        : picked;
+      'uri' in outgoing && accountId
+        ? await persistLocalAttachment(pendingId, outgoing, accountId)
+        : outgoing;
 
     const pending: ChatMessage = {
       id: pendingId,

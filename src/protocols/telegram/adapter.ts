@@ -80,6 +80,7 @@ const PHONE_HINT = 'The number your Telegram account uses, with the country code
  */
 export class TelegramSession implements ChatSession {
   readonly sendsVideo = true;
+  readonly sendsStickers = true;
   private api!: TdApi;
   private unsubscribe: Unsubscribe | null = null;
   private me: TdUser | null = null;

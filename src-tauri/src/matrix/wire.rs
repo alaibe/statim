@@ -231,7 +231,11 @@ pub struct MxText {
 }
 
 #[derive(Deserialize)]
-#[serde(tag = "kind", rename_all = "camelCase")]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum MxOutgoing {
     Text(MxText),
     Image {
@@ -261,6 +265,14 @@ pub enum MxOutgoing {
         path: String,
         duration_ms: u64,
         mime_type: Option<String>,
+        size: Option<u64>,
+    },
+    Sticker {
+        path: String,
+        body: String,
+        mime_type: Option<String>,
+        width: Option<u64>,
+        height: Option<u64>,
         size: Option<u64>,
     },
 }

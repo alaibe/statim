@@ -484,6 +484,21 @@ class RnMatrixClient implements MatrixApi {
       );
       return;
     }
+    if (content.kind === 'sticker') {
+      const { path, body, mimeType = 'image/webp', width, height, size } = content;
+      const data = await new File(`file://${path}`).arrayBuffer();
+      const url = await this.client.uploadMedia(mimeType, data, undefined);
+      await room.sendRaw(
+        'm.sticker',
+        JSON.stringify({
+          body,
+          info: { mimetype: mimeType, w: width, h: height, size },
+          url,
+          'm.relates_to': relation(replyTo, threadRoot),
+        })
+      );
+      return;
+    }
     if (!threadRoot) {
       await sendMedia((await this.liveTimeline(roomId)).timeline, content, replyTo);
       return;
@@ -639,7 +654,7 @@ function fallsBack(event: sdk.EventTimelineItem): boolean {
 
 async function sendMedia(
   timeline: sdk.TimelineLike,
-  content: Exclude<MxOutgoing, { kind: 'text' }>,
+  content: Exclude<MxOutgoing, { kind: 'text' | 'sticker' }>,
   replyTo: string | undefined
 ): Promise<void> {
   const source = new sdk.UploadSource.File({ filename: content.path });
