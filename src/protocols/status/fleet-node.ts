@@ -75,6 +75,8 @@ export class FleetNode implements WakuNode {
       networkConfig: { clusterId: routingInfo.clusterId },
       defaultBootstrap: false,
       bootstrapPeers: STATUS_FLEET,
+      // js-waku hangs up bootstrap peers past 3 whatever they serve, and only the boot nodes serve filter.
+      connectionManager: { maxBootstrapPeers: STATUS_FLEET.length },
     });
     await node.start();
     try {
