@@ -6,6 +6,7 @@ import type {
   MentionCandidate,
   PublicChatPreview,
 } from '@/core/messaging/protocol';
+import type { StickerChoice, StickerContent, StickerPack } from '@/core/messaging/stickers';
 import type {
   ProtocolChatId,
   GroupMember,
@@ -28,6 +29,7 @@ import { TelegramGroups } from './groups';
 import type { TelegramHost } from './service-host';
 import { TelegramJoining } from './joining';
 import { TelegramMessages } from './messages';
+import { TelegramStickers } from './stickers';
 import { patchChat, TypingTracker } from './updates';
 import { Outbox } from './outbox';
 import { type MappingContext, toMessage } from './mapping';
@@ -109,6 +111,7 @@ export class TelegramSession implements ChatSession {
   private readonly groups = new TelegramGroups(this.host);
   private readonly joining = new TelegramJoining(this.host, this.groups);
   private readonly messages = new TelegramMessages(this.host, this.outbox);
+  private readonly stickerSets = new TelegramStickers(this.host);
   private readonly awaitedFiles = new Map<number, FileWaiter[]>();
   private readonly refetching = new Map<string, Promise<void>>();
   /** When the message a chat's read marker stands on was sent, where the last message cannot tell; unset while fetching or after it failed. */
@@ -494,6 +497,18 @@ export class TelegramSession implements ChatSession {
     }
 
     return collected.map((m) => this.toMessage(m, false)).reverse();
+  }
+
+  stickerPacks(): Promise<StickerPack[]> {
+    return this.stickerSets.packs();
+  }
+
+  stickers(_id: ProtocolChatId, packId: string): Promise<StickerChoice[]> {
+    return this.stickerSets.stickers(packId);
+  }
+
+  stickerContent(_id: ProtocolChatId, packId: string, stickerId: string): Promise<StickerContent> {
+    return this.stickerSets.content(packId, stickerId);
   }
 
   async fetchMedia(id: ProtocolChatId, messageId: MessageId): Promise<void> {

@@ -117,6 +117,17 @@ export interface TdFile extends TdObject {
   local: { path: string; is_downloading_completed: boolean; is_downloading_active: boolean };
 }
 
+export interface TdSticker {
+  id: string;
+  width: number;
+  height: number;
+  emoji?: string;
+  format: { '@type': string };
+  /** WEBP or JPEG, whatever the sticker's own format. */
+  thumbnail: { file: TdFile } | null;
+  sticker: TdFile;
+}
+
 export interface TdFormattedText extends TdObject {
   '@type': 'formattedText';
   text: string;

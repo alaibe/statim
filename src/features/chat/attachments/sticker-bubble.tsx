@@ -6,15 +6,12 @@ import { View } from 'react-native';
 
 import { Text } from '@/design';
 import { stickerLabel } from '@/core/messaging/preview';
-import { stickerFormat } from '@/core/messaging/stickers';
-import type { MessageContent } from '@/core/messaging/types';
+import { stickerFormat, type StickerContent } from '@/core/messaging/stickers';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 
 import { loadLottie } from './lottie';
 import { StickerAnimation } from './sticker-animation';
 import { useMessagePlayer } from './video-bubble';
-
-type Sticker = Extract<MessageContent, { kind: 'sticker' }>;
 
 const SIDE = 180;
 
@@ -23,7 +20,7 @@ interface Box {
   height: number;
 }
 
-export function StickerBubble({ sticker }: { sticker: Sticker }) {
+export function StickerBubble({ sticker }: { sticker: StickerContent }) {
   const { uri, emoji } = sticker;
   const format = stickerFormat(sticker.mimeType);
   const box = boxFor(sticker.width, sticker.height);
@@ -79,8 +76,8 @@ function StickerVideo({ uri, box, onError }: { uri: string; box: Box; onError():
   );
 }
 
-/** What is left when this device cannot decode the sticker, as can happen with WEBM. */
-function StickerEmoji({ emoji, box }: { emoji?: string; box: Box }) {
+/** The emoji in place of a sticker that is still downloading, or that this device cannot decode. */
+export function StickerEmoji({ emoji, box }: { emoji?: string; box: Box }) {
   return (
     <View style={box} className="items-center justify-center">
       {emoji ? (

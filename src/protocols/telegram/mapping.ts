@@ -1,11 +1,11 @@
 import { labelled, stickerLabel, unsupported } from '@/core/messaging/preview';
-import { LOTTIE_STICKER } from '@/core/messaging/stickers';
+import { LOTTIE_STICKER, type StickerContent } from '@/core/messaging/stickers';
 import type { MessageContent, ParticipantId, ProtocolMessage } from '@/core/messaging/types';
 
 import type { TdObject } from './api';
 import { formattedToMarkdown } from './formatting';
 import { chatIdOf, messageIdOf, senderIdOf, userIdOf } from './ids';
-import type { TdFile, TdFormattedText, TdMessage } from './types';
+import type { TdFile, TdFormattedText, TdMessage, TdSticker } from './types';
 
 export interface MappingContext {
   selfId?: ParticipantId;
@@ -83,6 +83,18 @@ const STICKER_MIME: Record<string, string> = {
   stickerFormatTgs: LOTTIE_STICKER,
   stickerFormatWebm: 'video/webm',
 };
+
+export function stickerContent(sticker: TdSticker, uri: string): StickerContent {
+  return {
+    kind: 'sticker',
+    uri,
+    mimeType: STICKER_MIME[sticker.format['@type']],
+    width: sticker.width,
+    height: sticker.height,
+    size: sticker.sticker.size,
+    ...(sticker.emoji ? { emoji: sticker.emoji } : {}),
+  };
+}
 
 const MAPPERS: Record<string, (input: Input) => MessageContent> = {
   messageText: ({ content }) => ({
@@ -174,25 +186,9 @@ const MAPPERS: Record<string, (input: Input) => MessageContent> = {
   },
 
   messageSticker: ({ content, context }) => {
-    const sticker = content.sticker as {
-      sticker: TdFile;
-      width: number;
-      height: number;
-      emoji?: string;
-      format: TdObject;
-    };
-    const { emoji } = sticker;
+    const sticker = content.sticker as TdSticker;
     const uri = context.media(sticker.sticker);
-    if (!uri) return unsupported('sticker', stickerLabel(emoji));
-    return {
-      kind: 'sticker',
-      uri,
-      mimeType: STICKER_MIME[sticker.format['@type']],
-      width: sticker.width,
-      height: sticker.height,
-      size: sticker.sticker.size,
-      ...(emoji ? { emoji } : {}),
-    };
+    return uri ? stickerContent(sticker, uri) : unsupported('sticker', stickerLabel(sticker.emoji));
   },
   messageAnimation: ({ content, context, caption }) => {
     const animation = content.animation as {

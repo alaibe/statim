@@ -12,7 +12,15 @@ const HEIGHT = 460;
 const MARGIN = 12;
 
 /** On the desktop the panel is a popover above the button that opened it. */
-export function MediaPanel({ tab: initialTab, anchor, onClose, onEmoji, onGif }: MediaPanelProps) {
+export function MediaPanel({
+  chatId,
+  tabs,
+  tab: initialTab,
+  anchor,
+  onClose,
+  onEmoji,
+  onSend,
+}: MediaPanelProps) {
   const window = useWindowDimensions();
   const [tab, setTab] = useState<MediaTab>(initialTab);
   useEscapeKey(true, onClose);
@@ -35,13 +43,12 @@ export function MediaPanel({ tab: initialTab, anchor, onClose, onEmoji, onGif }:
         }}
         className="overflow-hidden rounded-card border border-line bg-surface-raised shadow-xl">
         <MediaPanelContent
+          chatId={chatId}
+          tabs={tabs}
           tab={tab}
           onTab={setTab}
           onEmoji={onEmoji}
-          onGif={(content) => {
-            onGif(content);
-            onClose();
-          }}
+          onSend={onSend}
           autoFocusSearch
         />
       </View>

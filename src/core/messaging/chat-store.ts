@@ -29,7 +29,12 @@ import type {
 import { historyFailure } from './history';
 import { HYDRATE_LIMIT, type MessageStore } from './message-store';
 import { persistLocalAttachment } from './attachments';
-import { stickerAsImage } from './stickers';
+import {
+  stickerAsImage,
+  type StickerChoice,
+  type StickerContent,
+  type StickerPack,
+} from './stickers';
 import { MARKED_UNREAD } from './unread';
 import { searchMessages } from './search';
 import { draftKey, draftSync, saveDraftsSoon, withDraft, type Drafts } from './drafts';
@@ -128,6 +133,9 @@ export interface ChatState {
 
   getMembers(id: ChatId): Promise<GroupMember[]>;
   mentionCandidates(id: ChatId, query: string): Promise<MentionCandidate[]>;
+  stickerPacks(id: ChatId): Promise<StickerPack[]>;
+  stickers(id: ChatId, packId: string): Promise<StickerChoice[]>;
+  stickerContent(id: ChatId, packId: string, stickerId: string): Promise<StickerContent>;
   getGroupInfo(id: ChatId): Promise<GroupInfo>;
   setSlowModeDelay(id: ChatId, seconds: number): Promise<void>;
   addMembers(id: ChatId, participants: ParticipantId[]): Promise<void>;
@@ -490,6 +498,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   mentionCandidates(id, query) {
     return onChat(get(), id, 'mentionCandidates', query);
+  },
+
+  stickerPacks(id) {
+    return onChat(get(), id, 'stickerPacks');
+  },
+
+  stickers(id, packId) {
+    return onChat(get(), id, 'stickers', packId);
+  },
+
+  stickerContent(id, packId, stickerId) {
+    return onChat(get(), id, 'stickerContent', packId, stickerId);
   },
 
   getGroupInfo(id) {

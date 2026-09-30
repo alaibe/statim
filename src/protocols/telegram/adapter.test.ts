@@ -792,6 +792,64 @@ describe('TelegramSession messages', () => {
     return { ...context, received };
   }
 
+  it('lists recent stickers and installed packs, fetching previews behind, and a sticker to send', async () => {
+    const { session, td } = await inChatWithBob();
+    const file = (id: number, done: boolean) => ({
+      '@type': 'file',
+      id,
+      size: 900,
+      local: {
+        path: done ? `/td/${id}` : '',
+        is_downloading_completed: done,
+        is_downloading_active: false,
+      },
+    });
+    const sticker = (id: string, fileId: number, emoji: string, previewed = true) => ({
+      id,
+      width: 512,
+      height: 512,
+      emoji,
+      format: { '@type': 'stickerFormatTgs' },
+      thumbnail: { file: file(fileId + 1, previewed) },
+      sticker: file(fileId, false),
+    });
+    td().answer('getRecentStickers', {
+      '@type': 'stickers',
+      stickers: [sticker('1', 10, '👋')],
+    });
+    td().answer('getInstalledStickerSets', {
+      '@type': 'stickerSets',
+      sets: [{ id: '77', title: 'Ducks', covers: [sticker('2', 20, '🤗')] }],
+    });
+    td().answer('getStickerSet', {
+      '@type': 'stickerSet',
+      stickers: [sticker('2', 20, '🤗'), sticker('3', 30, '😘', false)],
+    });
+    td().answer('downloadFile', (request) => file(request.file_id as number, true));
+
+    expect(await session.stickerPacks()).toEqual([
+      { id: 'recent', title: 'Recent', cover: 'file:///td/11' },
+      { id: '77', title: 'Ducks', cover: 'file:///td/21' },
+    ]);
+    expect(await session.stickers(chatIdOf(200), '77')).toEqual([
+      { id: '2', emoji: '🤗', preview: 'file:///td/21' },
+      { id: '3', emoji: '😘', preview: undefined },
+    ]);
+    expect(await session.stickerContent(chatIdOf(200), '77', '3')).toEqual({
+      kind: 'sticker',
+      uri: 'file:///td/30',
+      mimeType: 'application/x-tgsticker',
+      width: 512,
+      height: 512,
+      size: 900,
+      emoji: '😘',
+    });
+    expect(td().requests('downloadFile')).toEqual([
+      expect.objectContaining({ file_id: 31, priority: 24, synchronous: false }),
+      expect.objectContaining({ file_id: 30, synchronous: true }),
+    ]);
+  });
+
   it('searches one chat and all Telegram chats', async () => {
     const { session, td } = await inChatWithBob();
     td().answer('searchChatMessages', {

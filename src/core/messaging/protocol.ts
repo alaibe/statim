@@ -11,6 +11,7 @@ import type {
   ProtocolChat,
 } from './types';
 import type { HistoryState } from './history';
+import type { StickerChoice, StickerContent, StickerPack } from './stickers';
 
 /**
  * A protocol that signs in interactively (a phone number, a one-time code)
@@ -79,6 +80,11 @@ export interface ChatSession {
   /** Human names where the protocol has them; addresses are what gets copied. */
   resolveNames?(ids: ParticipantId[]): Promise<Record<ParticipantId, string>>;
   mentionCandidates?(id: ProtocolChatId, query: string): Promise<MentionCandidate[]>;
+  /** Your sticker packs on the network, recently used first. */
+  stickerPacks?(id: ProtocolChatId): Promise<StickerPack[]>;
+  stickers?(id: ProtocolChatId, packId: string): Promise<StickerChoice[]>;
+  /** The sticker's own file on this device, fetched if need be. */
+  stickerContent?(id: ProtocolChatId, packId: string, stickerId: string): Promise<StickerContent>;
   createDm(participant: ParticipantId): Promise<ProtocolChat>;
   createGroup(participants: ParticipantId[], title: string): Promise<ProtocolChat>;
   previewPublicChat?(usernameOrLink: string): Promise<PublicChatPreview>;

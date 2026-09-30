@@ -115,6 +115,18 @@ export function Composer({
 
   const canAttach =
     !editing && (!isLocalChat(chatId) || chatId === STATIM_LOCAL_ID || chatId === SAVED_LOCAL_ID);
+  const mediaTabs: MediaTab[] = supports('stickerPacks')
+    ? ['emoji', 'stickers', 'gifs']
+    : ['emoji', 'gifs'];
+
+  const sendContent = (content: MessageContent) => {
+    onSendContent(content).catch((e) => setError(errorMessage(e, 'Could not send that')));
+  };
+  const closeMedia = () => {
+    setMedia(null);
+    // After the modal has unmounted, or its focus trap puts the focus back on the button.
+    if (process.env.EXPO_OS === 'web') setTimeout(() => inputRef.current?.focus(), 0);
+  };
 
   const attach = async (pick: () => Promise<MessageContent | null>) => {
     try {
@@ -235,12 +247,7 @@ export function Composer({
         </View>
 
         {canAttach && value.trim().length === 0 && !busy ? (
-          <VoiceRecorder
-            onRecorded={(content) => {
-              onSendContent(content).catch((e) => setError(errorMessage(e, 'Could not send that')));
-            }}
-            onError={setError}
-          />
+          <VoiceRecorder onRecorded={sendContent} onError={setError} />
         ) : (
           <IconButton
             testID="composer-send"
@@ -257,18 +264,15 @@ export function Composer({
 
       {media ? (
         <MediaPanel
+          chatId={chatId}
+          tabs={mediaTabs}
           tab={media.tab}
           anchor={media.anchor}
-          onClose={() => {
-            setMedia(null);
-            // After the modal has unmounted, or its focus trap puts the focus back on the button.
-            if (process.env.EXPO_OS === 'web') setTimeout(() => inputRef.current?.focus(), 0);
-          }}
+          onClose={closeMedia}
           onEmoji={(picked) => setValue(value + picked)}
-          onGif={(content) => {
-            onSendContent(content).catch((e) =>
-              setError(errorMessage(e, 'Could not send that GIF'))
-            );
+          onSend={(content) => {
+            closeMedia();
+            sendContent(content);
           }}
         />
       ) : null}

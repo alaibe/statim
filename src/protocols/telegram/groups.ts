@@ -5,7 +5,6 @@ import type {
   ParticipantId,
   ProtocolChat,
 } from '@/core/messaging/types';
-import { localFileUri } from '@/storage/media';
 
 import type { TdObject } from './api';
 import type {
@@ -13,9 +12,9 @@ import type {
   TdBasicGroupFullInfo,
   TdChat,
   TdChatMembers,
-  TdFile,
   TdSupergroup,
 } from './types';
+import { localFile } from './files';
 import type { TelegramHost } from './service-host';
 import { nameOf } from './users';
 import { userSender } from './ids';
@@ -139,24 +138,9 @@ export class TelegramGroups {
     }
 
     const photo = chat.photo?.small;
-    let avatarUri: string | undefined;
-    if (photo) {
-      const file = photo.local.is_downloading_completed
-        ? photo
-        : await this.host
-            .api()
-            .send<TdFile>({
-              '@type': 'downloadFile',
-              file_id: photo.id,
-              priority: 16,
-              offset: 0,
-              limit: 0,
-              synchronous: true,
-            })
-            .catch(() => null);
-      if (file?.local.is_downloading_completed && file.local.path)
-        avatarUri = localFileUri(file.local.path);
-    }
+    const avatarUri = photo
+      ? await localFile(this.host.api(), photo, 16).catch(() => undefined)
+      : undefined;
 
     return {
       description: description || undefined,

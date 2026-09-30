@@ -4,14 +4,17 @@ import { ScrollView, View } from 'react-native';
 
 import { ErrorText, Loading, Pressable, SearchField, Text } from '@/design';
 import { useAccountStore } from '@/core/account/account-store';
-import type { MessageContent } from '@/core/messaging/types';
+import type { ChatId, MessageContent } from '@/core/messaging/types';
 import { errorMessage } from '@/core/errors';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 
 import { featuredGifs, gifToContent, loadGifKey, searchGifs, type Gif } from './attachments/gifs';
 import { EmojiGrid } from './emoji-grid';
+import { StickerGrid } from './sticker-grid';
 
-export type MediaTab = 'emoji' | 'gifs';
+export type MediaTab = 'emoji' | 'stickers' | 'gifs';
+
+const TAB_LABELS: Record<MediaTab, string> = { emoji: 'Emoji', stickers: 'Stickers', gifs: 'GIFs' };
 
 export interface MediaAnchor {
   x: number;
@@ -21,19 +24,23 @@ export interface MediaAnchor {
 }
 
 export interface MediaPanelProps {
+  chatId: ChatId;
+  tabs: MediaTab[];
   tab: MediaTab;
   /** Where the button that opened it sits; the desktop docks the panel to it. */
   anchor?: MediaAnchor | null;
   onClose(): void;
   onEmoji(emoji: string): void;
-  onGif(content: MessageContent): void;
+  onSend(content: MessageContent): void;
 }
 
 export interface MediaPanelContentProps {
+  chatId: ChatId;
+  tabs: MediaTab[];
   tab: MediaTab;
   onTab(tab: MediaTab): void;
   onEmoji(emoji: string): void;
-  onGif(content: MessageContent): void;
+  onSend(content: MessageContent): void;
   /** A popover has the keyboard already; a bottom sheet would raise it over itself. */
   autoFocusSearch?: boolean;
 }
@@ -43,10 +50,12 @@ const GIF_GAP = 4;
 const SEARCH_DEBOUNCE_MS = 350;
 
 export function MediaPanelContent({
+  chatId,
+  tabs,
   tab,
   onTab,
   onEmoji,
-  onGif,
+  onSend,
   autoFocusSearch,
 }: MediaPanelContentProps) {
   const [width, setWidth] = useState(0);
@@ -56,13 +65,15 @@ export function MediaPanelContent({
       <View className="flex-1">
         {width === 0 ? null : tab === 'emoji' ? (
           <EmojiGrid width={width} onEmoji={onEmoji} autoFocusSearch={autoFocusSearch} />
+        ) : tab === 'stickers' ? (
+          <StickerGrid chatId={chatId} width={width} onSend={onSend} />
         ) : (
-          <GifGrid width={width} onGif={onGif} autoFocusSearch={autoFocusSearch} />
+          <GifGrid width={width} onSend={onSend} autoFocusSearch={autoFocusSearch} />
         )}
       </View>
 
       <View className="flex-row items-center justify-center gap-1 border-t border-line px-3 py-2">
-        {(['emoji', 'gifs'] as const).map((entry) => {
+        {tabs.map((entry) => {
           const active = entry === tab;
           return (
             <Pressable
@@ -77,7 +88,7 @@ export function MediaPanelContent({
                 className={
                   active ? 'font-semibold text-content' : 'font-medium text-content-muted'
                 }>
-                {entry === 'emoji' ? 'Emoji' : 'GIFs'}
+                {TAB_LABELS[entry]}
               </Text>
             </Pressable>
           );
@@ -89,11 +100,11 @@ export function MediaPanelContent({
 
 function GifGrid({
   width,
-  onGif,
+  onSend,
   autoFocusSearch,
 }: {
   width: number;
-  onGif(content: MessageContent): void;
+  onSend(content: MessageContent): void;
   autoFocusSearch?: boolean;
 }) {
   const accountId = useAccountStore((s) => s.activeAccountId);
@@ -147,7 +158,7 @@ function GifGrid({
   const send = async (gif: Gif) => {
     if (!accountId) return;
     try {
-      onGif(await gifToContent(accountId, gif));
+      onSend(await gifToContent(accountId, gif));
     } catch (e) {
       setError(errorMessage(e, 'Could not send that GIF'));
     }
