@@ -1,9 +1,9 @@
 import type { JoinRequest, PublicChatPreview } from '@/core/messaging/protocol';
 import type { ProtocolChatId, ParticipantId, ProtocolChat } from '@/core/messaging/types';
-import { localFileUri } from '@/storage/media';
 
 import type { TdObject } from './api';
 import { inMainList, isCurrentMember } from './chats';
+import { localUriOf } from './files';
 import { chatIdOf } from './ids';
 import type { TelegramGroups } from './groups';
 import { isInviteLink, joinOrRequest, normalizeInviteLink } from './invite-links';
@@ -95,10 +95,7 @@ export class TelegramJoining {
       description: info.description || undefined,
       memberCount: info.member_count || undefined,
       requiresApproval: info.creates_join_request,
-      avatarUri:
-        photo?.local.is_downloading_completed && photo.local.path
-          ? localFileUri(photo.local.path)
-          : undefined,
+      avatarUri: photo && localUriOf(photo),
     };
   }
 

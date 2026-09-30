@@ -30,12 +30,12 @@ import type { TelegramHost } from './service-host';
 import { TelegramJoining } from './joining';
 import { TelegramMessages } from './messages';
 import { TelegramStickers } from './stickers';
+import { download, localUriOf } from './files';
 import { patchChat, TypingTracker } from './updates';
 import { Outbox } from './outbox';
 import { type MappingContext, toMessage } from './mapping';
 import { addressOf, nameOf } from './users';
 import { UnsupportedError } from '@/core/errors';
-import { localFileUri } from '@/storage/media';
 import type {
   TdAuthorizationState,
   TdChat,
@@ -887,19 +887,17 @@ export class TelegramSession implements ChatSession {
   }
 
   private localUri(raw: TdMessage, file: TdFile, fetchMedia: boolean): string | null {
-    if (file.local.is_downloading_completed && file.local.path)
-      return localFileUri(file.local.path);
-    if (fetchMedia) this.download(file, { chatId: raw.chat_id, messageId: raw.id }, 16);
-    return null;
+    const local = localUriOf(file);
+    if (!local && fetchMedia) this.download(file, { chatId: raw.chat_id, messageId: raw.id }, 16);
+    return local ?? null;
   }
 
   private photoUri(chat: TdChat): string | undefined {
     const photo = chat.photo?.small;
     if (!photo) return undefined;
-    if (photo.local.is_downloading_completed && photo.local.path)
-      return localFileUri(photo.local.path);
-    this.download(photo, { chatId: chat.id }, 1);
-    return undefined;
+    const local = localUriOf(photo);
+    if (!local) this.download(photo, { chatId: chat.id }, 1);
+    return local;
   }
 
   private download(file: TdFile, awaited: FileWaiter, priority: number) {
@@ -912,15 +910,7 @@ export class TelegramSession implements ChatSession {
       return;
     }
     this.awaitedFiles.set(file.id, [awaited]);
-    this.api
-      .send<TdFile>({
-        '@type': 'downloadFile',
-        file_id: file.id,
-        priority,
-        offset: 0,
-        limit: 0,
-        synchronous: false,
-      })
+    download(this.api, file, priority, false)
       .then((started) =>
         started.local.is_downloading_completed ? this.downloaded(file.id) : undefined
       )

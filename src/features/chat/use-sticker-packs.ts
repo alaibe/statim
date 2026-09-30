@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { useAccountStore } from '@/core/account/account-store';
 import { useChatStore } from '@/core/messaging/chat-store';
-import type { StickerChoice, StickerContent } from '@/core/messaging/stickers';
+import type { PickerPack } from '@/core/messaging/stickers';
 import type { ChatId } from '@/core/messaging/types';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 
@@ -11,15 +11,6 @@ import { useSupports } from './use-supports';
 
 const RETRY_MS = 700;
 const RETRIES = 15;
-
-/** A pack in the picker, whichever source it comes from. */
-export interface PickerPack {
-  key: string;
-  title: string;
-  cover?: string;
-  stickers(): Promise<StickerChoice[]>;
-  content(stickerId: string): Promise<StickerContent>;
-}
 
 /** The chat's network's own packs, then Statim's, each source failing on its own. */
 export function useStickerPacks(chatId: ChatId) {

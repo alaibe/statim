@@ -282,7 +282,15 @@ export function Composer({
         onClose={() => setAttaching(false)}
         title="Attach"
         actions={[
-          { label: 'Photo library', icon: 'images-outline', onPress: () => attach(pickImage) },
+          ...(carriesImages
+            ? [
+                {
+                  label: 'Photo library',
+                  icon: 'images-outline' as const,
+                  onPress: () => attach(pickImage),
+                },
+              ]
+            : []),
           ...(sendsVideo
             ? [
                 {
@@ -292,7 +300,15 @@ export function Composer({
                 },
               ]
             : []),
-          { label: 'Take a photo', icon: 'camera-outline', onPress: () => attach(takePhoto) },
+          ...(carriesImages
+            ? [
+                {
+                  label: 'Take a photo',
+                  icon: 'camera-outline' as const,
+                  onPress: () => attach(takePhoto),
+                },
+              ]
+            : []),
           { label: 'File', icon: 'document-outline', onPress: () => attach(pickFile) },
           ...(carriesImages
             ? [{ label: 'GIF', icon: 'happy-outline' as const, onPress: () => openMedia('gifs') }]

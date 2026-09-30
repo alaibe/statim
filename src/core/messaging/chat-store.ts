@@ -969,7 +969,10 @@ export function mergeChats(
     }
     const read =
       protocolMark(chat, known, readAt[id], now) ?? readThroughOwnMessage(chat, readAt[id]);
-    if (read !== undefined) readAt = { ...readAt, [id]: read };
+    if (read !== undefined) {
+      if (readAt === list.readAt) readAt = { ...readAt };
+      readAt[id] = read;
+    }
     if (known && sameValue(known, chat)) continue;
     if (!known) added.add(id);
     latest.set(id, chat);

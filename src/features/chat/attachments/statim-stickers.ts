@@ -3,7 +3,7 @@ import { downloadMedia } from '@/core/messaging/media-store';
 import { arrayOf, isNumber, isString, shape } from '@/lib/guards';
 import { SITE } from '@/lib/guide';
 
-import type { PickerPack } from '../use-sticker-packs';
+import type { PickerPack } from '@/core/messaging/stickers';
 
 /** Where the site publishes the packs, ending in `/`; a local copy of `docs/public/stickers/` while developing. */
 const PACKS = process.env.EXPO_PUBLIC_STICKERS_URL ?? `${SITE}stickers/`;
@@ -38,9 +38,9 @@ let index: Promise<HostedPack[]> | undefined;
 
 /** Statim's own packs, read from the site once per launch; a failed read is tried again next time. */
 export function statimPacks(accountId: string): Promise<PickerPack[]> {
-  index ??= readIndex();
-  index.catch(() => {
+  index ??= readIndex().catch((error: unknown) => {
     index = undefined;
+    throw error;
   });
   return index.then((packs) => packs.map((pack) => pickerPack(accountId, pack)));
 }

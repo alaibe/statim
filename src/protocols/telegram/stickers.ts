@@ -1,7 +1,7 @@
 import type { StickerChoice, StickerContent, StickerPack } from '@/core/messaging/stickers';
 
 import type { TdObject } from './api';
-import { localFile, localFileSoon } from './files';
+import { download, localFile, localUriOf } from './files';
 import { stickerContent } from './mapping';
 import type { TelegramHost } from './service-host';
 import type { TdSticker } from './types';
@@ -20,6 +20,8 @@ const PICKER_PRIORITY = 24;
 
 /** Your recent stickers and installed packs, as the picker asks for them. */
 export class TelegramStickers {
+  private readonly requested = new Set<number>();
+
   constructor(private readonly host: TelegramHost) {}
 
   async packs(): Promise<StickerPack[]> {
@@ -69,9 +71,17 @@ export class TelegramStickers {
     return found.stickers;
   }
 
+  /** The thumbnail once it is on disk; until then TDLib is asked for it once. */
   private preview(sticker: TdSticker): string | undefined {
-    return sticker.thumbnail
-      ? localFileSoon(this.host.api(), sticker.thumbnail.file, PICKER_PRIORITY)
-      : undefined;
+    const file = sticker.thumbnail?.file;
+    if (!file) return undefined;
+    const local = localUriOf(file);
+    if (!local && !this.requested.has(file.id)) {
+      this.requested.add(file.id);
+      download(this.host.api(), file, PICKER_PRIORITY, false).catch(() =>
+        this.requested.delete(file.id)
+      );
+    }
+    return local;
   }
 }

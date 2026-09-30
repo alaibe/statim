@@ -18,6 +18,15 @@ export interface StickerChoice {
   preview?: string;
 }
 
+/** A pack in the picker, whichever source it comes from. */
+export interface PickerPack {
+  key: string;
+  title: string;
+  cover?: string;
+  stickers(): Promise<StickerChoice[]>;
+  content(stickerId: string): Promise<StickerContent>;
+}
+
 export function stickerFormat(mimeType: string | undefined): 'image' | 'lottie' | 'video' {
   if (mimeType === LOTTIE_STICKER) return 'lottie';
   return mimeType?.startsWith('video/') ? 'video' : 'image';

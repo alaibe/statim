@@ -34,16 +34,11 @@ export interface MediaPanelProps {
   onSend(content: MessageContent): void;
 }
 
-export interface MediaPanelContentProps {
-  chatId: ChatId;
-  tabs: MediaTab[];
-  tab: MediaTab;
+export type MediaPanelContentProps = Omit<MediaPanelProps, 'anchor' | 'onClose'> & {
   onTab(tab: MediaTab): void;
-  onEmoji(emoji: string): void;
-  onSend(content: MessageContent): void;
   /** A popover has the keyboard already; a bottom sheet would raise it over itself. */
   autoFocusSearch?: boolean;
-}
+};
 
 const GIF_COLUMNS = 3;
 const GIF_GAP = 4;

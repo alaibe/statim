@@ -5,10 +5,11 @@ import { ScrollView, View } from 'react-native';
 import { ErrorText, Loading, Pressable, Text } from '@/design';
 import { errorMessage } from '@/core/errors';
 import { stickerLabel } from '@/core/messaging/preview';
+import type { PickerPack } from '@/core/messaging/stickers';
 import type { ChatId, MessageContent } from '@/core/messaging/types';
 
 import { StickerEmoji } from './attachments/sticker-bubble';
-import { type PickerPack, useLoadUntil, useStickerPacks } from './use-sticker-packs';
+import { useLoadUntil, useStickerPacks } from './use-sticker-packs';
 
 const COLUMNS = 4;
 const GAP = 6;

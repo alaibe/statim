@@ -5,12 +5,11 @@ import {
   useChatStore,
   type SendOutcome,
 } from '@/core/messaging/chat-store';
-import { readMediaBase64 } from '@/core/messaging/media-store';
+import { readMediaBytes } from '@/core/messaging/media-store';
 import { awaitsFile } from '@/core/messaging/preview';
 import { LOTTIE_STICKER } from '@/core/messaging/stickers';
 import type { ChatMessage, ChatId, MessageContent } from '@/core/messaging/types';
 import { errorMessage } from '@/core/errors';
-import { base64ToBytes } from '@/lib/bytes';
 import { contentFromBrowserFile } from '@/features/chat/attachments/pick';
 
 import {
@@ -180,11 +179,11 @@ export const messageHandlers = {
       typeof flags.out === 'string'
         ? flags.out
         : (c.name ?? `${message.id}.${extensionOf(c.mimeType)}`);
-    const { data, size } = await readMediaBase64(c.uri);
-    await io.writeFile(out, base64ToBytes(data));
+    const bytes = await readMediaBytes(c.uri);
+    await io.writeFile(out, bytes);
     return {
-      data: { path: out, size, mimeType: c.mimeType },
-      text: `Saved ${out} (${size} bytes).`,
+      data: { path: out, size: bytes.length, mimeType: c.mimeType },
+      text: `Saved ${out} (${bytes.length} bytes).`,
     };
   },
 } satisfies Record<string, CliHandler>;
