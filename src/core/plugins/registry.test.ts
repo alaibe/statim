@@ -498,4 +498,22 @@ describe('channel scoping', () => {
 
     expect(await registry.participantNames()).toEqual({ 'inbox-1': 'Weather' });
   });
+
+  it('lets an active plugin claim a text message for one of its views', async () => {
+    const claims = (prefix: string) => [
+      { view: 'card', match: (text: string) => (text.startsWith(prefix) ? [text] : null) },
+    ];
+    const registry = new PluginRegistry([
+      makePlugin('off', { textPreviews: claims('hi') }),
+      makePlugin('on', { textPreviews: claims('hi') }),
+    ]);
+    await activate(registry, 'on');
+
+    expect(registry.textPreview('hi there')).toEqual({
+      pluginId: 'on',
+      view: 'card',
+      args: ['hi there'],
+    });
+    expect(registry.textPreview('bye')).toBeNull();
+  });
 });

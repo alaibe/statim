@@ -1,12 +1,12 @@
 import { act, createElement } from 'react';
 import { create, type ReactTestRenderer } from 'react-test-renderer';
 
-import type { WidgetContent } from '@/core/messaging/types';
+import type { LiveView, WidgetContent } from '@/core/messaging/types';
 import { notifyLiveViews } from '@/core/plugins/live';
 import type { PluginView } from '@/core/plugins/types';
 import type { Widget } from '@/design/widgets';
 
-import { useLiveWidget } from './use-live-widget';
+import { useLiveWidget, usePluginView } from './use-live-widget';
 
 const mockViews = new Map<string, PluginView>();
 const mockHost = {
@@ -77,6 +77,43 @@ describe('useLiveWidget', () => {
     await mount(snapshot);
     notifyLiveViews('q');
     await settle();
+    expect(view).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('usePluginView', () => {
+  const live: LiveView = { pluginId: 'p', view: 'list', args: ['x'] };
+
+  function ViewProbe({ at, once }: { at: LiveView; once?: boolean }) {
+    return createElement('probe', { widget: usePluginView(at, { once }) });
+  }
+  const mountView = (at: LiveView, once?: boolean) =>
+    act(async () => {
+      tree = create(createElement(ViewProbe, { at, once }));
+      await nextTask();
+    });
+
+  it('builds a view that costs network requests only once when asked', async () => {
+    const view = jest.fn(async () => card('now'));
+    mockViews.set('p/list', view);
+
+    await mountView(live, true);
+    notifyLiveViews('p');
+    await settle();
+    expect(shown()).toEqual(text('now'));
+    expect(view).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps one build across renders that pass an equal view', async () => {
+    const view = jest.fn(async () => card('now'));
+    mockViews.set('p/list', view);
+
+    await mountView({ ...live });
+    await act(async () => {
+      tree.update(createElement(ViewProbe, { at: { ...live } }));
+      await nextTask();
+    });
+    expect(shown()).toEqual(text('now'));
     expect(view).toHaveBeenCalledTimes(1);
   });
 });

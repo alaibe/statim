@@ -308,7 +308,7 @@ describe('every command', () => {
       // Everything here involves the person on the other side: pay them, ask
       // them, tell them where to pay you, look up who they are.
       'dm',
-      ['address', 'balance', 'commands', 'ens', 'profile', 'request', 'send'],
+      ['address', 'balance', 'commands', 'ens', 'move', 'profile', 'request', 'send'],
     ],
     [
       // The same, plus the group's own management. That is core: you cannot

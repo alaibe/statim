@@ -5,7 +5,7 @@ import { cn, Text } from '@/design';
 import { usePluginHost } from '@/core/plugins/host';
 import { sessionFor, useChatStore } from '@/core/messaging/chat-store';
 import { hasReactions } from '@/core/messaging/reactions';
-import type { ChatMessage, MessageId, WidgetContent } from '@/core/messaging/types';
+import type { ChatMessage, LiveView, MessageId, WidgetContent } from '@/core/messaging/types';
 import type { MessageAction } from './message-actions';
 import { BubbleShell, type ReplyPreview, type ThreadChip } from './bubble-shell';
 import { ReactionRow } from './reaction-row';
@@ -17,6 +17,7 @@ import { AddressPreview } from './address-preview';
 import { LinkPreviewCard } from './link-preview-card';
 import { LocationCard } from './location-card';
 import { MessageText } from './message-text';
+import { PluginPreview } from './plugin-preview';
 import { TransactionPreview } from './transaction-preview';
 import { WidgetView } from '@/design/widgets/widget-view';
 import { useLiveWidget } from './use-live-widget';
@@ -244,6 +245,8 @@ function TextBody({
   const { message } = footer;
   const { fromMe } = message;
   const className = cn('text-body', fromMe ? 'text-bubble-out-on' : 'text-bubble-in-on');
+  const plain = plainText(text);
+  const claimed = useTextPreview(plain);
 
   if (unsupported) {
     return (
@@ -254,16 +257,23 @@ function TextBody({
     );
   }
 
-  const plain = plainText(text);
-  const segments = segmentText(plain);
-  const transactionHash = findTransactionHash(plain);
+  const segments = claimed ? [] : segmentText(plain);
+  const transactionHash = claimed ? null : findTransactionHash(plain);
   const link =
     segments.find((s): s is LinkSegment => s.kind === 'url' || s.kind === 'location') ??
-    labelledLinks(text).map((href): LinkSegment => ({ kind: 'url', text: href, href }))[0];
+    (claimed ? [] : labelledLinks(text)).map(
+      (href): LinkSegment => ({ kind: 'url', text: href, href })
+    )[0];
   const location = link ? parseLocation(link.href) : null;
   const account = segments.find((s) => s.kind === 'address' || s.kind === 'ens');
+  const pluginCard = fromMe ? null : claimed;
   const inline =
-    !transactionHash && !location && link?.kind !== 'url' && !account && !hasReactions(message);
+    !transactionHash &&
+    !location &&
+    link?.kind !== 'url' &&
+    !account &&
+    !pluginCard &&
+    !hasReactions(message);
 
   return (
     <>
@@ -289,10 +299,16 @@ function TextBody({
       {account ? (
         <AddressPreview value={account.text} chatId={message.chatId} onCommand={onCommand} />
       ) : null}
+      {pluginCard ? <PluginPreview live={pluginCard} onCommand={onCommand} /> : null}
 
       {inline ? null : <Footer {...footer} />}
     </>
   );
+}
+
+function useTextPreview(plain: string): LiveView | null {
+  const { registry } = usePluginHost();
+  return registry.textPreview(plain);
 }
 
 function timeLabel(message: ChatMessage): string {

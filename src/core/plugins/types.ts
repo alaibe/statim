@@ -200,12 +200,20 @@ export interface UriHandler {
 
 export type PluginView = (args?: readonly string[]) => Promise<WidgetContent>;
 
+/** A card under someone else's text message, drawn by `view`, in place of the app's own link and address cards. */
+export interface TextPreview {
+  view: string;
+  /** The view's args when the text is one this plugin recognises. */
+  match(text: string): string[] | null;
+}
+
 export interface PluginContribution {
   commands?: SlashCommand[];
   views?: Record<string, PluginView>;
   bots?: Bot[];
   contentTypes?: PluginContentType[];
   composerActions?: ComposerAction[];
+  textPreviews?: TextPreview[];
   overlays?: PluginOverlay[];
   uriHandlers?: UriHandler[];
   /** Names you gave participants, such as bots you added. They win over names from the protocol. */

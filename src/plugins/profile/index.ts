@@ -9,19 +9,26 @@ import {
   resolveNameForCoin,
 } from '@/lib/evm/ens';
 
+import { moveCommand, moveNames, movePreview, moveViews } from './move';
+
 export const profilePlugin: Plugin = {
   manifest: {
     id: 'profile',
     name: 'Names & addresses',
-    description: 'Share your address in a chat, and look up what an ENS name points at.',
+    description:
+      'Share your address in a chat, look up what an ENS name points at, and continue a DM on XMTP.',
     version: '1.0.0',
     icon: 'person-circle-outline',
-    permissions: ['account.read', 'chat.read', 'chat.send', 'network'],
+    permissions: ['account.read', 'chat.read', 'chat.send', 'network', 'storage'],
   },
 
-  setup() {
+  setup(context) {
     return {
+      views: moveViews(context),
+      textPreviews: [movePreview],
+      names: () => moveNames(context),
       commands: [
+        moveCommand(context),
         {
           name: 'address',
           aliases: ['myaddress'],

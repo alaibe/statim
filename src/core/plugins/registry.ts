@@ -10,7 +10,7 @@ import { botChatId, type Bot } from '../messaging/bots';
 import { inScope, type ChatScope } from '../messaging/chat-scope';
 import { supports } from '../messaging/capability';
 import type { ChatSession } from '../messaging/protocol';
-import type { ChatId, ParticipantId } from '../messaging/types';
+import type { ChatId, LiveView, ParticipantId } from '../messaging/types';
 import type {
   ActivePlugin,
   ComposerAction,
@@ -306,6 +306,16 @@ export class PluginRegistry {
 
   view(pluginId: PluginId, name: string): PluginView | undefined {
     return this.active.get(pluginId)?.contribution.views?.[name];
+  }
+
+  textPreview(text: string): LiveView | null {
+    for (const [pluginId, entry] of this.active) {
+      for (const preview of entry.contribution.textPreviews ?? []) {
+        const args = preview.match(text);
+        if (args) return { pluginId, view: preview.view, args };
+      }
+    }
+    return null;
   }
 
   async participantNames(): Promise<Record<ParticipantId, string>> {

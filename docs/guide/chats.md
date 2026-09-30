@@ -48,6 +48,16 @@ Declining takes the chat off your list without blocking the sender. Until
 you accept, nothing you do is visible to the sender. An
 invitation to a Matrix chat arrives as a request too, and accepting it joins it.
 
+## Continue a DM on XMTP
+
+Telegram can read your Telegram chats, and a bridge can read the chats it
+carries. To move a DM somewhere they can't, type `/move` in it. Statim sends
+the other person your XMTP address. If they use Statim, they tap **Continue on
+XMTP** under that message. That opens an XMTP DM with you, under the name
+they already had for you, and says hello there; the hello reaches you as a
+request. Tapping the card again later takes them back to that DM. With any
+other XMTP app, they can message the address directly.
+
 ## Folders and filters
 
 Telegram, Matrix and every network a Matrix bridge brings in each get a folder
