@@ -24,6 +24,7 @@ const ROOT = join(__dirname, '..');
 const MARK = join(ROOT, 'assets/brand/mark.svg');
 const OUT = join(ROOT, 'assets/images');
 const STORE = join(ROOT, 'distribution/play');
+const TRAY = join(ROOT, 'src-tauri/icons/tray');
 const APP_JSON = join(ROOT, 'app.json');
 const TMP = join(ROOT, 'node_modules/.cache/brand');
 
@@ -31,6 +32,8 @@ const CANVAS = 512;
 const INK = '#FFFFFF';
 /** The dark splash background; the dark app icon sits on the same colour. */
 const NIGHT = '#141A3A';
+/** The light theme's `danger` token. */
+const UNREAD = '#DC3C3E';
 
 const mark = readFileSync(MARK, 'utf8');
 const attribute = (name) => {
@@ -112,6 +115,7 @@ function render(name, markup, width, height = width, dir = OUT) {
 mkdirSync(TMP, { recursive: true });
 mkdirSync(OUT, { recursive: true });
 mkdirSync(STORE, { recursive: true });
+mkdirSync(TRAY, { recursive: true });
 
 console.log(`brand assets (plate ${PLATE}, adaptive inset ${ADAPTIVE_SCALE.toFixed(2)}):`);
 
@@ -140,6 +144,22 @@ render('favicon', svg({ plate: PLATE, shape: 'rounded' }), 64);
 // Desktop: `tauri icon` cuts this into the .icns, .ico and PNG set in
 // src-tauri/icons; see `brand:build`.
 render('icon-desktop', svg({ plate: PLATE, shape: 'desktop', scale: DESKTOP_TILE }), 1024);
+
+// The menu bar and system tray. macOS draws a template image in the menu
+// bar's own colour and writes the unread count beside it; Windows cannot show
+// text there, so its icon, and Linux's, gets a dot instead.
+render('template', svg({ plate: null, scale: (0.92 * CANVAS) / 2 / REACH }), 44, 44, TRAY);
+render('icon', svg({ plate: PLATE, shape: 'rounded' }), 64, 64, TRAY);
+render(
+  'unread',
+  svg({ plate: PLATE, shape: 'rounded' }).replace(
+    '</svg>',
+    `<circle cx="${CANVAS * 0.8}" cy="${CANVAS * 0.2}" r="${CANVAS * 0.19}" fill="${UNREAD}" stroke="#FFFFFF" stroke-width="${CANVAS * 0.04}"/></svg>`
+  ),
+  64,
+  64,
+  TRAY
+);
 
 // The Statim room's avatar in the chat list, header and pickers: a circle,
 // since that is what every other avatar is. 96pt at 3x.

@@ -11,6 +11,7 @@ mod paths;
 #[cfg(debug_assertions)]
 mod probe;
 mod tdlib;
+mod tray;
 mod vault;
 mod web_login;
 
@@ -19,9 +20,10 @@ use tauri::RunEvent;
 use tauri::{AppHandle, Manager, WindowEvent};
 use tauri_plugin_window_state::StateFlags;
 
-/// The unread count on the Dock icon; zero clears it.
+/// The unread count on the Dock icon and the tray; zero clears it.
 #[tauri::command]
 async fn set_badge(app: AppHandle, count: i64) -> Result<(), String> {
+    tray::show_unread(&app, count);
     if let Some(window) = app.get_webview_window("main") {
         window
             .set_badge_count(if count > 0 { Some(count) } else { None })
@@ -160,11 +162,9 @@ pub fn run() {
         ])
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
-                let webview = window.app_handle().get_webview_window(window.label());
-                if let Some(webview) = webview.filter(|_| window.state::<cli::Cli>().has_clients())
-                {
+                if window.label() == "main" {
                     api.prevent_close();
-                    cli::hide_main(&webview);
+                    let _ = window.hide();
                 }
             }
         })
@@ -188,6 +188,9 @@ pub fn run() {
             vault::preload(app.handle());
             paint_canvas(app.handle());
             cli::serve(app.handle());
+            if let Err(error) = tray::install(app.handle()) {
+                log::warn!("[tray] not shown: {error}");
+            }
             if cli::launched_in_background() {
                 #[cfg(target_os = "macos")]
                 app.set_activation_policy(tauri::ActivationPolicy::Accessory);

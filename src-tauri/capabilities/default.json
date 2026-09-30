@@ -33,6 +33,7 @@
     },
     "notification:default",
     "process:allow-restart",
+    "process:allow-exit",
     "window-state:default",
     {
       "identifier": "http:default",

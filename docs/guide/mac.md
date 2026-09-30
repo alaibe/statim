@@ -21,7 +21,12 @@ taps.
 - Photos, files and voice notes all work. A photo is compressed before it goes;
   a received file opens in whatever handles its type.
 - Sharing means copying to the clipboard. An invite also opens Messages.
-- Unread messages show as a badge on the Dock icon.
+- Closing the window leaves Statim running, so messages and notifications
+  keep arriving. The Dock icon keeps its badge, and an icon in the menu bar
+  shows the unread count. Click the Dock icon, or choose Open Statim from the
+  menu bar icon, to bring the window back; **⌘Q** quits. On Windows and Linux
+  the icon sits in the system tray with Open Statim and Quit in its menu, and
+  **Ctrl+Q** also quits.
 - **Settings → Security** locks the app with Touch ID, on a Mac that has it,
   or with a PIN, which the lock screen also takes from the keyboard.
 

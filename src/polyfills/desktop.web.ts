@@ -1,3 +1,4 @@
+import { exit } from '@tauri-apps/plugin-process';
 import { Buffer } from 'buffer';
 
 // The Ledger libraries build APDUs with Node's Buffer.
@@ -15,6 +16,21 @@ function editable(target: EventTarget | null): boolean {
 document.addEventListener('contextmenu', (event) => {
   if (!editable(event.target)) event.preventDefault();
 });
+
+// Closing the window leaves the app running; macOS quits from its app menu,
+// Windows and Linux with Ctrl+Q as well as from the tray.
+if (!/Mac/.test(navigator.userAgent)) {
+  document.addEventListener(
+    'keydown',
+    (event) => {
+      if (event.ctrlKey && event.key.toLowerCase() === 'q') {
+        event.preventDefault();
+        void exit(0);
+      }
+    },
+    true
+  );
+}
 
 // ⌘R reloads the page during development; the window has no menu item for it.
 if (__DEV__) {

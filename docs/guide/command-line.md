@@ -84,7 +84,6 @@ app either way.
 ## The app in the background
 
 When the command line started the app, it has no window and no Dock icon.
-Open the app as usual to bring its window up. If you close the window while a
-command is still running, such as `watch`, the app keeps going in the
-background. With no window and nothing running, it quits after ten minutes.
-`statim quit` quits it straight away.
+Open the app as usual to bring its window up. Until you do, it quits after ten
+minutes with no command running; after that it behaves like an app you opened
+yourself. `statim quit` quits it straight away.
