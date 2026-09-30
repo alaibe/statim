@@ -1034,6 +1034,43 @@ describe('mergeChats', () => {
     expect(next.drafts).toEqual({ 'xmtp-a': 'later' });
     expect(next.readAt).toEqual({ 'xmtp-a': 7_000 });
   });
+
+  it('reads a chat up to your own newest message, unless you marked it unread', () => {
+    const last = (id: string, sentAt: number, fromMe: boolean) =>
+      chat(id, {
+        lastMessage: {
+          id: `${id}-${sentAt}`,
+          chatId: asChatId(`xmtp-${id}`),
+          senderId: fromMe ? 'me' : 'them',
+          sentAt,
+          content: { kind: 'text', text: 'hi' },
+          fromMe,
+          status: 'sent',
+        },
+      });
+    const list = {
+      chats: [last('synced', 3_000, true), chat('sent'), chat('marked'), chat('theirs')],
+      drafts: {},
+      readAt: { 'xmtp-synced': 1_000, 'xmtp-marked': MARKED_UNREAD, 'xmtp-theirs': 1_000 },
+    };
+    const next = mergeChats(
+      list,
+      [
+        last('synced', 3_000, true),
+        last('sent', 2_000, true),
+        last('marked', 4_000, true),
+        last('theirs', 5_000, false),
+      ],
+      noDraft,
+      9_000
+    );
+    expect(next.readAt).toEqual({
+      'xmtp-synced': 3_000,
+      'xmtp-sent': 2_000,
+      'xmtp-marked': MARKED_UNREAD,
+      'xmtp-theirs': 1_000,
+    });
+  });
 });
 
 describe('removing messages', () => {

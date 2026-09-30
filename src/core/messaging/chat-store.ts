@@ -917,6 +917,12 @@ function protocolMark(
   return undefined;
 }
 
+function readThroughOwnMessage(chat: Chat, readAt: number | undefined): number | undefined {
+  const last = chat.lastMessage;
+  if (!last?.fromMe || readAt === MARKED_UNREAD || (readAt ?? 0) >= last.sentAt) return undefined;
+  return last.sentAt;
+}
+
 type ChatList = Pick<ChatState, 'chats' | 'drafts' | 'readAt'>;
 
 export function mergeChats(
@@ -938,8 +944,9 @@ export function mergeChats(
       const adopted = adoptDraft(id, draft, drafts[key] ?? '');
       if (adopted !== undefined) drafts = withDraft(drafts, key, adopted);
     }
-    const marked = protocolMark(chat, known, readAt[id], now);
-    if (marked !== undefined) readAt = { ...readAt, [id]: marked };
+    const read =
+      protocolMark(chat, known, readAt[id], now) ?? readThroughOwnMessage(chat, readAt[id]);
+    if (read !== undefined) readAt = { ...readAt, [id]: read };
     if (known && sameValue(known, chat)) continue;
     if (!known) added.add(id);
     latest.set(id, chat);
