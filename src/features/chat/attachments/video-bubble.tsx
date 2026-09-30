@@ -3,6 +3,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { View, useWindowDimensions } from 'react-native';
 
 import { MessageText } from '../message-text';
+import { HoverSave } from './save-button';
 
 interface VideoBubbleProps {
   uri: string;
@@ -11,6 +12,7 @@ interface VideoBubbleProps {
   caption?: string;
   gif?: boolean;
   fromMe: boolean;
+  onSave?: () => void;
 }
 
 /** A GIF or a video sticker loops silently from the start; any other video waits for its controls. */
@@ -26,7 +28,15 @@ export function useMessagePlayer(uri: string, looping: boolean) {
   return player;
 }
 
-export function VideoBubble({ uri, width, height, caption, gif, fromMe }: VideoBubbleProps) {
+export function VideoBubble({
+  uri,
+  width,
+  height,
+  caption,
+  gif,
+  fromMe,
+  onSave,
+}: VideoBubbleProps) {
   const player = useMessagePlayer(uri, Boolean(gif));
   const { width: screenWidth } = useWindowDimensions();
   const boxWidth = Math.min(screenWidth * 0.62, 260);
@@ -34,13 +44,16 @@ export function VideoBubble({ uri, width, height, caption, gif, fromMe }: VideoB
 
   return (
     <View className="gap-1.5">
-      <VideoView
-        player={player}
-        style={{ width: boxWidth, height: boxHeight, borderRadius: 14 }}
-        contentFit={gif ? 'cover' : 'contain'}
-        nativeControls={!gif}
-        fullscreenOptions={{ enable: !gif }}
-      />
+      {/* The player's own controls take the corners of a video; a GIF has none. */}
+      <HoverSave onSave={gif ? onSave : undefined}>
+        <VideoView
+          player={player}
+          style={{ width: boxWidth, height: boxHeight, borderRadius: 14 }}
+          contentFit={gif ? 'cover' : 'contain'}
+          nativeControls={!gif}
+          fullscreenOptions={{ enable: !gif }}
+        />
+      </HoverSave>
       {caption ? (
         <MessageText
           text={caption}

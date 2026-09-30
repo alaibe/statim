@@ -1,12 +1,13 @@
 //! Attachments and other downloaded media, one directory per account under
 //! the app data directory. The page displays them through the asset protocol.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use base64::prelude::*;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
+use tauri_plugin_dialog::DialogExt;
 
-use crate::paths::{data_dir, remove_dir, safe_component};
+use crate::paths::{app_data_dir, data_dir, remove_dir, safe_component};
 
 fn media_path(
     app: &AppHandle,
@@ -60,4 +61,40 @@ pub async fn media_stat(
 pub async fn media_erase(app: AppHandle, account_id: String) -> Result<(), String> {
     safe_component(&account_id, "account")?;
     remove_dir(&data_dir(&app, "media")?.join(&account_id))
+}
+
+/// Asks where to save a copy of a file the app keeps, starting in Downloads.
+/// Returns where it went, or `None` when the user cancels.
+#[tauri::command]
+pub async fn media_export(
+    app: AppHandle,
+    path: String,
+    name: Option<String>,
+) -> Result<Option<String>, String> {
+    let source = std::fs::canonicalize(&path).map_err(|e| e.to_string())?;
+    let root = std::fs::canonicalize(app_data_dir(&app)?).map_err(|e| e.to_string())?;
+    if !source.starts_with(&root) || !source.is_file() {
+        return Err(format!("Not a file the app keeps: {path}"));
+    }
+    let file_name = name
+        .as_deref()
+        .and_then(|name| Path::new(name).file_name())
+        .or_else(|| source.file_name())
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_default();
+
+    let mut dialog = app.dialog().file().set_file_name(file_name);
+    if let Ok(downloads) = app.path().download_dir() {
+        dialog = dialog.set_directory(downloads);
+    }
+    let (chosen, target) = tokio::sync::oneshot::channel();
+    dialog.save_file(move |target| {
+        let _ = chosen.send(target);
+    });
+    let Some(target) = target.await.map_err(|e| e.to_string())? else {
+        return Ok(None);
+    };
+    let target = target.into_path().map_err(|e| e.to_string())?;
+    std::fs::copy(&source, &target).map_err(|e| e.to_string())?;
+    Ok(Some(target.to_string_lossy().into_owned()))
 }

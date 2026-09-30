@@ -30,6 +30,7 @@ import { PollBubble } from './poll-bubble';
 import { awaitsFile, formatTimestamp } from '@/core/messaging/preview';
 import { DeliveryIcon } from './delivery-icon';
 import { openUrlQuietly } from './link-actions';
+import { mediaSaver } from './message-commands';
 
 export type { ReplyPreview } from './bubble-shell';
 
@@ -146,6 +147,7 @@ export function MessageBubble({
 
     case 'image':
     case 'video': {
+      const onSave = mediaSaver(message);
       const media =
         content.kind === 'image' ? (
           <ImageBubble
@@ -154,6 +156,7 @@ export function MessageBubble({
             height={content.height}
             caption={content.caption}
             fromMe={fromMe}
+            onSave={onSave}
           />
         ) : (
           <VideoBubble
@@ -163,6 +166,7 @@ export function MessageBubble({
             caption={content.caption}
             gif={content.gif}
             fromMe={fromMe}
+            onSave={onSave}
           />
         );
       bare = !content.caption && !replyPreview;

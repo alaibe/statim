@@ -76,6 +76,7 @@ pub fn run() {
 
     builder
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_notification::init())
@@ -107,6 +108,7 @@ pub fn run() {
             media::media_write,
             media::media_stat,
             media::media_erase,
+            media::media_export,
             biometrics::biometric_capability,
             biometrics::biometric_authenticate,
             contacts::contacts_access,

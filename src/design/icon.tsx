@@ -51,6 +51,7 @@ const ICONS = {
   'diamond-outline': glyph('diamond', 'diamond'),
   'document-outline': glyph('doc', 'draft'),
   'document-text-outline': glyph('doc.text', 'description'),
+  'download-outline': glyph('arrow.down.to.line', 'download'),
   ellipse: glyph('circle.fill', 'circle'),
   'ellipse-outline': glyph('circle', 'radio_button_unchecked'),
   'ellipsis-horizontal': glyph('ellipsis', 'more_horiz'),

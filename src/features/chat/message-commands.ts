@@ -3,6 +3,7 @@ import { plainText } from '@/core/messaging/markdown';
 import type { ChatPermissions } from '@/core/messaging/permissions';
 import type { ChatMessage } from '@/core/messaging/types';
 
+import { saveMedia, type SavableMedia } from './attachments/save-media';
 import type { MessageAction } from './message-actions';
 
 export interface ChatActions {
@@ -29,6 +30,7 @@ export function messageActions(
   const sent = message.status === 'sent';
   const mine = message.fromMe && sent;
   const copy = copyableText(message.content);
+  const save = mediaSaver(message);
   const menu: (MessageAction | false)[] = [
     message.status === 'failed' && {
       id: 'retry',
@@ -55,6 +57,12 @@ export function messageActions(
       label: 'Copy',
       icon: 'copy-outline',
       onPress: () => void copyText(copy),
+    },
+    !!save && {
+      id: 'save',
+      label: 'Save as…',
+      icon: 'download-outline',
+      onPress: save,
     },
     {
       id: 'forward',
@@ -114,4 +122,15 @@ export function copyableText(content: ChatMessage['content']): string | undefine
     default:
       return undefined;
   }
+}
+
+/** Saves a copy of the message's photo, video or file, where the app can. */
+export function mediaSaver(message: ChatMessage): (() => void) | undefined {
+  const save = saveMedia;
+  const { content } = message;
+  const media: SavableMedia | undefined =
+    content.kind === 'image' || content.kind === 'video' || content.kind === 'file'
+      ? content
+      : undefined;
+  return save && media && message.status === 'sent' ? () => void save(media) : undefined;
 }

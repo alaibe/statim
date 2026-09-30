@@ -1,7 +1,10 @@
 import type { ChatMessage } from '@/core/messaging/types';
 
+import { saveMedia } from './attachments/save-media';
 import { messageActions } from './message-commands';
 import { asChatId } from '@/core/messaging/testing/ids';
+
+jest.mock('./attachments/save-media', () => ({ saveMedia: jest.fn(async () => {}) }));
 
 const handlers = {
   reply: jest.fn(),
@@ -90,6 +93,24 @@ describe('messageActions', () => {
 
   it('offers a retry for a failed send, and nothing that needs it to have arrived', () => {
     expect(ids(message({ status: 'failed' }))).toEqual(['retry', 'reply', 'copy', 'forward']);
+  });
+
+  it('saves a photo, video or file once it has arrived', () => {
+    const photo = { kind: 'image', uri: 'asset://localhost/a.jpg' } as const;
+    expect(ids(message({ content: photo }))).toEqual([
+      'reply',
+      'save',
+      'forward',
+      'pin',
+      'delete-for-me',
+      'delete',
+    ]);
+    expect(ids(message({ content: photo, status: 'sending' }))).not.toContain('save');
+
+    messageActions(message({ content: photo }), handlers, all)
+      .find((a) => a.id === 'save')
+      ?.onPress();
+    expect(saveMedia).toHaveBeenCalledWith(photo);
   });
 
   it('hands the message to the flow it starts', () => {
