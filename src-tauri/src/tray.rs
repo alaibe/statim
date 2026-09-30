@@ -60,7 +60,11 @@ pub fn show_unread<R: Runtime>(app: &AppHandle<R>, count: i64) {
         return;
     };
     let unread = count > 0;
-    let _ = tray.set_title(unread.then(|| count.to_string()));
+    let _ = tray.set_title(Some(if unread {
+        count.to_string()
+    } else {
+        String::new()
+    }));
     let _ = tray.set_tooltip(Some(if unread {
         format!("Statim: {count} unread")
     } else {
