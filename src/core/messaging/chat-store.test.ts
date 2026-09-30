@@ -368,6 +368,31 @@ describe('sending', () => {
     }
   );
 
+  it('reconciles a media echo by what survives the trip when the send returns no real id', async () => {
+    const session = new InMemoryChatSession();
+    session.seedChat({ id: 'c1' });
+    Object.assign(session, { sendsStickers: true });
+    await connect(session);
+    await useChatStore.getState().loadMessages(ns('c1'));
+    jest.spyOn(session, 'send').mockResolvedValue('local:1');
+    const sticker = { mimeType: 'image/webp', width: 512, height: 512, size: 20_000 };
+
+    await useChatStore.getState().sendMessage(ns('c1'), {
+      kind: 'sticker',
+      uri: 'https://example.com/stickers/wow.webp',
+      emoji: '😮',
+      ...sticker,
+    });
+    session.deliver('c1', {
+      id: '$echo',
+      senderId: session.self.participantId,
+      fromMe: true,
+      content: { kind: 'sticker', uri: 'file:///matrix/media/copy.webp', ...sticker },
+    });
+
+    expect(useChatStore.getState().messages[ns('c1')].map((m) => m.id)).toEqual(['$echo']);
+  });
+
   it('sends into a thread and reconciles the echo there', async () => {
     const session = new InMemoryChatSession();
     session.seedChat({ id: 'c1' });

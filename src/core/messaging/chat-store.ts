@@ -1231,17 +1231,25 @@ function removeMatchingPending(
     sentAs.delete(incoming.id);
     return messages.filter((message) => message.id !== pendingId);
   }
-  const content = JSON.stringify(incoming.content);
+  const content = echoKey(incoming.content);
   const index = messages.findIndex(
     (message) =>
       message.id.startsWith('pending:') &&
       message.status !== 'failed' &&
       message.threadRoot === incoming.threadRoot &&
       message.replyTo === incoming.replyTo &&
-      JSON.stringify(message.content) === content
+      echoKey(message.content) === content
   );
   if (index === -1) return messages;
   return [...messages.slice(0, index), ...messages.slice(index + 1)];
+}
+
+/** A file comes back as the network's own copy, and may lose its name and a sticker's emoji on the way. */
+function echoKey(content: MessageContent): string {
+  if (!('uri' in content)) return JSON.stringify(content);
+  const kept: Record<string, unknown> = { ...content };
+  for (const local of ['uri', 'name', 'emoji']) delete kept[local];
+  return JSON.stringify(kept, Object.keys(kept).sort());
 }
 
 function withPreview(chats: readonly Chat[], id: ChatId, message: ChatMessage): readonly Chat[] {
