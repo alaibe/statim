@@ -20,24 +20,24 @@ interface GridProps {
 }
 
 export function StickerGrid({ chatId, ...grid }: GridProps & { chatId: ChatId }) {
-  const packs = useStickerPacks(chatId);
+  const { packs, error } = useStickerPacks(chatId);
 
-  if (packs.error) {
+  if (error) {
     return (
       <ErrorText className="px-4 py-4">
-        {errorMessage(packs.error, 'Could not load your stickers')}
+        {errorMessage(error, 'Could not load the stickers')}
       </ErrorText>
     );
   }
-  if (!packs.value) return <Loading className="flex-1 py-8" />;
-  if (packs.value.length === 0) {
+  if (!packs) return <Loading className="flex-1 py-8" />;
+  if (packs.length === 0) {
     return (
       <Text variant="footnote" className="px-4 py-4">
-        No sticker packs yet. The packs you add in Telegram show up here.
+        No sticker packs yet.
       </Text>
     );
   }
-  return <Packs packs={packs.value} {...grid} />;
+  return <Packs packs={packs} {...grid} />;
 }
 
 function Packs({ packs, width, onSend }: GridProps & { packs: PickerPack[] }) {
@@ -65,7 +65,7 @@ function Packs({ packs, width, onSend }: GridProps & { packs: PickerPack[] }) {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        className="grow-0 border-b border-line"
+        className="shrink-0 grow-0 border-b border-line"
         contentContainerClassName="gap-1 px-3 py-2">
         {packs.map((each) => (
           <Pressable
@@ -98,6 +98,7 @@ function Packs({ packs, width, onSend }: GridProps & { packs: PickerPack[] }) {
         <Loading className="flex-1 py-8" />
       ) : (
         <ScrollView
+          className="flex-1"
           contentContainerClassName="flex-row flex-wrap px-3 py-2"
           contentContainerStyle={{ gap: GAP }}>
           {(choices.value ?? []).map((sticker) => (

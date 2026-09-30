@@ -76,7 +76,7 @@ export function Composer({
   const colors = useThemeColors();
   const inputRef = useRef<ComposerInputHandle>(null);
   const { registry } = usePluginHost();
-  const { supports, sendsVideo } = useSupports(chatId);
+  const { supports, sendsImages, sendsVideo } = useSupports(chatId);
 
   const value = useChatStore((s) => s.drafts[draftKey(chatId, thread)] ?? '');
   const setDraftFor = useChatStore((s) => s.setDraft);
@@ -115,9 +115,9 @@ export function Composer({
 
   const canAttach =
     !editing && (!isLocalChat(chatId) || chatId === STATIM_LOCAL_ID || chatId === SAVED_LOCAL_ID);
-  const mediaTabs: MediaTab[] = supports('stickerPacks')
-    ? ['emoji', 'stickers', 'gifs']
-    : ['emoji', 'gifs'];
+  // The app's own chats keep what you send on this device, pictures included.
+  const carriesImages = canAttach && (isLocalChat(chatId) || sendsImages);
+  const mediaTabs: MediaTab[] = carriesImages ? ['emoji', 'stickers', 'gifs'] : ['emoji'];
 
   const sendContent = (content: MessageContent) => {
     onSendContent(content).catch((e) => setError(errorMessage(e, 'Could not send that')));
@@ -294,7 +294,9 @@ export function Composer({
             : []),
           { label: 'Take a photo', icon: 'camera-outline', onPress: () => attach(takePhoto) },
           { label: 'File', icon: 'document-outline', onPress: () => attach(pickFile) },
-          { label: 'GIF', icon: 'happy-outline', onPress: () => openMedia('gifs') },
+          ...(carriesImages
+            ? [{ label: 'GIF', icon: 'happy-outline' as const, onPress: () => openMedia('gifs') }]
+            : []),
         ]}
       />
     </View>

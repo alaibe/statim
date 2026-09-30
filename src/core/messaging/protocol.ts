@@ -60,6 +60,7 @@ export interface MentionCandidate {
 
 export interface ChatSession {
   readonly self: SelfParticipant;
+  readonly sendsImages?: boolean;
   readonly sendsVideo?: boolean;
   /** Stickers go out as stickers; without, a still one is sent as a photo. */
   readonly sendsStickers?: boolean;

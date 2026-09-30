@@ -275,6 +275,7 @@ async function remembered<T>(state: ProtocolState, key: string, create: () => T)
 
 export class StatusSession implements ChatSession {
   readonly self: SelfParticipant;
+  readonly sendsImages = true;
 
   private readonly inbox: string[];
   private readonly chats = new Map<ProtocolChatId, TransportChat>();

@@ -16,35 +16,18 @@
  *
  *   npm run brand:build
  */
-const { execFileSync } = require('node:child_process');
-const { mkdirSync, readFileSync, writeFileSync, rmSync } = require('node:fs');
+const { mkdirSync, readFileSync, writeFileSync } = require('node:fs');
 const { join } = require('node:path');
 
-const ROOT = join(__dirname, '..');
-const MARK = join(ROOT, 'assets/brand/mark.svg');
+const { CANVAS, INK, NIGHT, PATH, PLATE, RADIUS, REACH, ROOT, rasterise } = require('./lib/mark');
+
 const OUT = join(ROOT, 'assets/images');
 const STORE = join(ROOT, 'distribution/play');
 const TRAY = join(ROOT, 'src-tauri/icons/tray');
 const APP_JSON = join(ROOT, 'app.json');
-const TMP = join(ROOT, 'node_modules/.cache/brand');
 
-const CANVAS = 512;
-const INK = '#FFFFFF';
-/** The dark splash background; the dark app icon sits on the same colour. */
-const NIGHT = '#141A3A';
 /** The light theme's `danger` token. */
 const UNREAD = '#DC3C3E';
-
-const mark = readFileSync(MARK, 'utf8');
-const attribute = (name) => {
-  const match = new RegExp(`${name}="([^"]+)"`).exec(mark);
-  if (!match) throw new Error(`mark.svg has no ${name}; run trace-brand-mark first`);
-  return match[1];
-};
-const PLATE = attribute('data-plate');
-const RADIUS = Number(attribute('data-radius'));
-const REACH = Number(attribute('data-reach'));
-const PATH = attribute(' d');
 
 // Android crops the adaptive layers to whatever shape the launcher picks; a
 // circle keeps only the central 66dp of 108, so the mark is inset to sit
@@ -98,21 +81,10 @@ function banner({ width, height, plate }) {
 }
 
 function render(name, markup, width, height = width, dir = OUT) {
-  const source = join(TMP, `${name}.svg`);
-  writeFileSync(source, markup);
-  execFileSync('rsvg-convert', [
-    '-w',
-    String(width),
-    '-h',
-    String(height),
-    source,
-    '-o',
-    join(dir, `${name}.png`),
-  ]);
+  rasterise(markup, join(dir, `${name}.png`), width, height);
   console.log(`  ${name}.png  ${width}x${height}`);
 }
 
-mkdirSync(TMP, { recursive: true });
 mkdirSync(OUT, { recursive: true });
 mkdirSync(STORE, { recursive: true });
 mkdirSync(TRAY, { recursive: true });
@@ -169,8 +141,6 @@ render('statim-avatar', svg({ plate: PLATE, shape: 'circle' }), 288);
 // graphic it will not publish without. Both opaque, as Play requires.
 render('icon', svg({ plate: PLATE }), 512, 512, STORE);
 render('feature-graphic', banner({ width: 1024, height: 500, plate: PLATE }), 1024, 500, STORE);
-
-rmSync(TMP, { recursive: true, force: true });
 
 // The same colour is repeated in app.json for the parts of the icon and
 // splash the native side paints itself, and as Android's primary colour. Set

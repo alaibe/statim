@@ -7,6 +7,7 @@ export function useSupports(chatId: ChatId) {
   return {
     session,
     supports: (key: Capability) => supports(session, key),
+    sendsImages: Boolean(session?.sendsImages),
     sendsVideo: Boolean(session?.sendsVideo),
     threads: Boolean(session?.threads),
   };

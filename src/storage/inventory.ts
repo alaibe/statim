@@ -11,7 +11,7 @@ export const STORAGE_INVENTORY = {
     device: ['accounts.', 'security.'],
   },
   files: {
-    account: ['attachments', 'gifs', 'tdlib', 'matrix'],
+    account: ['attachments', 'gifs', 'stickers', 'tdlib', 'matrix'],
     device: [],
   },
   database: {

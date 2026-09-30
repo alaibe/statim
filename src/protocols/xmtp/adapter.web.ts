@@ -136,6 +136,7 @@ export async function revokeInboxInstallations(
 
 export class XmtpSession implements ChatSession {
   readonly self: SelfParticipant;
+  readonly sendsImages = true;
   readonly sendsCustom = true;
 
   private readonly addressCache = new Map<ParticipantId, string>();

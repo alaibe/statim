@@ -1,0 +1,51 @@
+{
+  "packs": [
+    {
+      "id": "statim",
+      "title": "Statim",
+      "version": 1,
+      "stickers": [
+        {
+          "id": "gm",
+          "emoji": "☀️"
+        },
+        {
+          "id": "gn",
+          "emoji": "🌙"
+        },
+        {
+          "id": "hi",
+          "emoji": "👋"
+        },
+        {
+          "id": "thanks",
+          "emoji": "🙏"
+        },
+        {
+          "id": "lol",
+          "emoji": "😂"
+        },
+        {
+          "id": "love",
+          "emoji": "❤️"
+        },
+        {
+          "id": "wow",
+          "emoji": "😮"
+        },
+        {
+          "id": "ok",
+          "emoji": "👌"
+        },
+        {
+          "id": "nope",
+          "emoji": "🙅"
+        },
+        {
+          "id": "wagmi",
+          "emoji": "🚀"
+        }
+      ]
+    }
+  ]
+}

@@ -81,6 +81,7 @@ const PHONE_HINT = 'The number your Telegram account uses, with the country code
  * in its own database.
  */
 export class TelegramSession implements ChatSession {
+  readonly sendsImages = true;
   readonly sendsVideo = true;
   readonly sendsStickers = true;
   private api!: TdApi;

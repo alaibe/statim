@@ -30,8 +30,9 @@ Biome formats TypeScript and JSON, rustfmt formats `src-tauri`. Neither lints;
   `src-tauri/cli/help.txt` from `src/features/cli/commands.ts`
   (`npm run cli:docs`); `docs/public/promo/` from `marketing/film.html`
   (`npm run promo:build`); `src/storage/migrations/index.ts` from the SQL
-  files beside it (`npm run db:bundle`). Editing the output is undone on the
-  next build.
+  files beside it (`npm run db:bundle`); `docs/public/stickers/` from
+  `scripts/generate-stickers.js` (`npm run stickers:build`). Editing the
+  output is undone on the next build.
 - `.web.ts` / `.web.tsx` is the desktop. There is no browser deployment.
   A platform file must have a non-platform neighbour, and Expo Router needs a
   non-platform file for every route.
@@ -94,6 +95,8 @@ _Avoid_: event, post
 **Reply**: A message that answers an earlier message and quotes it.
 
 **Sticker**: A message that is one picture or short animation, drawn large and without a bubble.
+
+**Sticker pack**: A named set of stickers you pick from: your packs on a network, or Statim's own, published with the site.
 
 **Thread**: The messages posted under one message, shown apart from the rest of the chat.
 _Avoid_: topic, sub-chat
