@@ -148,8 +148,9 @@ export class FakeMatrix implements MatrixApi {
     content: MxOutgoing,
     replyTo?: string,
     threadRoot?: string
-  ): Promise<void> {
+  ): Promise<string | undefined> {
     this.record('send', roomId, content, replyTo, ...(threadRoot ? [threadRoot] : []));
+    return `$sent-${this.named('send').length}`;
   }
 
   async toggleReaction(roomId: string, eventId: string, key: string): Promise<void> {

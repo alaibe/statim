@@ -487,8 +487,8 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
       await this.api.toggleReaction(roomId, content.targetId, content.emoji);
       return `${content.targetId}_reaction`;
     }
-    await this.api.send(roomId, outgoing(content), replyTo, threadRoot);
-    return `local:${Date.now()}`;
+    const eventId = await this.api.send(roomId, outgoing(content), replyTo, threadRoot);
+    return eventId ?? `local:${Date.now()}`;
   }
 
   async deleteMessage(id: ProtocolChatId, messageId: MessageId): Promise<void> {

@@ -1,60 +1,64 @@
 use super::*;
 
-use std::hash::{DefaultHasher, Hash, Hasher};
-
 use matrix_sdk::ruma::events::relation::{InReplyTo, Reply as InReplyToRelation, Thread};
 use matrix_sdk::ruma::events::room::message::Relation;
 use matrix_sdk::ruma::events::room::ImageInfo;
 use matrix_sdk::ruma::events::sticker::{StickerEventContent, StickerEventContentWithoutRelation};
 
 impl Session {
-    /// Straight to the homeserver, so a rejection rejects here; the echo brings the event id.
+    /// Straight to the homeserver, so a rejection rejects here; returns the new event's id.
     pub(super) async fn send(
         &self,
         room_id: &RoomId,
         content: MxOutgoing,
         reply_to: Option<String>,
         thread_root: Option<String>,
-    ) -> Result<(), String> {
+    ) -> Result<String, String> {
         let room = self.room(room_id.as_str())?;
         let parse = |id: Option<String>| id.map(|id| EventId::parse(id).map_err(err)).transpose();
         let (reply_to, thread_root) = (parse(reply_to)?, parse(thread_root)?);
-        match content {
+        let event_id = match content {
             MxOutgoing::Text(text) => {
                 let content = text_content(text)?;
                 let content = match relation(reply_to, thread_root) {
                     Some(reply) => room.make_reply_event(content, reply).await.map_err(err)?,
                     None => content.with_relation(None),
                 };
-                room.send(content).await.map_err(err)?;
+                room.send(content).await.map_err(err)?.response.event_id
             }
-            sticker @ MxOutgoing::Sticker { .. } => {
-                let (body, mime, data, info, _) = attachment(sticker).await?;
-                let key = {
-                    let mut hasher = DefaultHasher::new();
-                    data.hash(&mut hasher);
-                    hasher.finish()
-                };
-                let known = self.uploads.lock().unwrap().get(&key).cloned();
+            MxOutgoing::Sticker {
+                path,
+                body,
+                mime_type,
+                width,
+                height,
+                size,
+            } => {
+                let mime = mime_type.unwrap_or_else(|| "image/webp".to_string());
+                let known = self.uploads.lock().unwrap().get(&path).cloned();
                 let url = match known {
                     Some(url) => url,
                     None => {
+                        let data = tokio::fs::read(&path).await.map_err(err)?;
                         let url = self
                             .client
                             .media()
-                            .upload(&mime, data, None)
+                            .upload(&mime.parse().map_err(err)?, data, None)
                             .await
                             .map_err(err)?
                             .content_uri;
-                        self.uploads.lock().unwrap().insert(key, url.clone());
+                        self.uploads.lock().unwrap().insert(path, url.clone());
                         url
                     }
                 };
-                let mut info = ImageInfo::from(info);
-                info.mimetype = Some(mime.to_string());
+                let mut info = ImageInfo::new();
+                info.width = width.map(uint);
+                info.height = height.map(uint);
+                info.size = size.map(uint);
+                info.mimetype = Some(mime);
                 let mut sticker = StickerEventContent::new(body, info, url);
                 sticker.relates_to = sticker_relation(reply_to, thread_root);
-                room.send(sticker).await.map_err(err)?;
+                room.send(sticker).await.map_err(err)?.response.event_id
             }
             other => {
                 let (name, mime, data, info, caption) = attachment(other).await?;
@@ -64,10 +68,11 @@ impl Session {
                     .reply(relation(reply_to, thread_root));
                 room.send_attachment(name, &mime, data, config)
                     .await
-                    .map_err(err)?;
+                    .map_err(err)?
+                    .event_id
             }
-        }
-        Ok(())
+        };
+        Ok(event_id.to_string())
     }
 }
 
@@ -198,26 +203,7 @@ pub(super) async fn attachment(
             }),
             None,
         )),
-        MxOutgoing::Sticker {
-            path,
-            body,
-            mime_type,
-            width,
-            height,
-            size,
-        } => Ok((
-            body,
-            parse(mime_type, "image/webp")?,
-            tokio::fs::read(&path).await.map_err(err)?,
-            AttachmentInfo::Image(BaseImageInfo {
-                width: width.map(uint),
-                height: height.map(uint),
-                size: size.map(uint),
-                ..Default::default()
-            }),
-            None,
-        )),
-        MxOutgoing::Text(_) => Err("Not an attachment".to_string()),
+        MxOutgoing::Text(_) | MxOutgoing::Sticker { .. } => Err("Not an attachment".to_string()),
     }
 }
 
@@ -232,7 +218,7 @@ pub async fn mx_send(
     content: MxOutgoing,
     reply_to: Option<String>,
     thread_root: Option<String>,
-) -> Result<(), String> {
+) -> Result<String, String> {
     let session = current(&state)?;
     let room_id = RoomId::parse(&room_id).map_err(err)?;
     session.send(&room_id, content, reply_to, thread_root).await

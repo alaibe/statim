@@ -225,7 +225,13 @@ export interface MatrixApi {
   leave(roomId: string): Promise<void>;
 
   /** Resolves once the homeserver has the message; it then arrives as an `event` update. */
-  send(roomId: string, content: MxOutgoing, replyTo?: string, threadRoot?: string): Promise<void>;
+  /** The new event's id, where the SDK gives it back; the phone's does not. */
+  send(
+    roomId: string,
+    content: MxOutgoing,
+    replyTo?: string,
+    threadRoot?: string
+  ): Promise<string | undefined>;
   edit(roomId: string, eventId: string, content: MxTextOutgoing): Promise<void>;
   redact(roomId: string, eventId: string): Promise<void>;
   pinnedMessages(roomId: string): Promise<MxEvent[]>;

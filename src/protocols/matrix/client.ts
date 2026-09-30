@@ -464,7 +464,7 @@ class RnMatrixClient implements MatrixApi {
     content: MxOutgoing,
     replyTo?: string,
     threadRoot?: string
-  ): Promise<void> {
+  ): Promise<undefined> {
     const room = this.requireRoom(roomId);
     if (content.kind === 'text') {
       const relates = relation(replyTo, threadRoot);

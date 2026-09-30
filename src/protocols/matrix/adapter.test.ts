@@ -982,9 +982,15 @@ describe('MatrixSession messages', () => {
     });
   });
 
+  it('gives a stand-in id when the SDK sends without saying which event it made', async () => {
+    const { chat, api } = await connect();
+    jest.spyOn(api, 'send').mockResolvedValue(undefined);
+    expect(await chat.send(DM_ID, { kind: 'text', text: 'hi' })).toMatch(/^local:/);
+  });
+
   it('sends text, replies, attachments and reactions', async () => {
     const { chat, api } = await connect();
-    expect(await chat.send(DM_ID, { kind: 'text', text: 'hi' }, '$1')).toMatch(/^local:/);
+    expect(await chat.send(DM_ID, { kind: 'text', text: 'hi' }, '$1')).toBe('$sent-1');
     await chat.send(DM_ID, {
       kind: 'image',
       uri: 'file:///tmp/a%20b.png',
