@@ -16,6 +16,10 @@ export function AddressPreview({
   const canSend = useOffersSend(chatId, onCommand);
   const args = canSend ? [value] : [value, 'no-send'];
   return (
-    <PluginPreview live={{ pluginId: 'wallet', view: 'address', args }} once onCommand={onCommand} />
+    <PluginPreview
+      live={{ pluginId: 'wallet', view: 'address', args }}
+      once
+      onCommand={onCommand}
+    />
   );
 }
