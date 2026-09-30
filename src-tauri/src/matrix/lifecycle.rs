@@ -36,6 +36,7 @@ pub(super) async fn build_session(
         tasks: Mutex::new(Vec::new()),
         latest_seen: Mutex::new(HashMap::new()),
         live: tokio::sync::Mutex::new(Vec::new()),
+        uploads: Mutex::new(HashMap::new()),
     }))
 }
 

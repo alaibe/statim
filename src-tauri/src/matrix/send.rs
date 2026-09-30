@@ -1,5 +1,7 @@
 use super::*;
 
+use std::hash::{DefaultHasher, Hash, Hasher};
+
 use matrix_sdk::ruma::events::relation::{InReplyTo, Reply as InReplyToRelation, Thread};
 use matrix_sdk::ruma::events::room::message::Relation;
 use matrix_sdk::ruma::events::room::ImageInfo;
@@ -28,13 +30,26 @@ impl Session {
             }
             sticker @ MxOutgoing::Sticker { .. } => {
                 let (body, mime, data, info, _) = attachment(sticker).await?;
-                let url = self
-                    .client
-                    .media()
-                    .upload(&mime, data, None)
-                    .await
-                    .map_err(err)?
-                    .content_uri;
+                let key = {
+                    let mut hasher = DefaultHasher::new();
+                    data.hash(&mut hasher);
+                    hasher.finish()
+                };
+                let known = self.uploads.lock().unwrap().get(&key).cloned();
+                let url = match known {
+                    Some(url) => url,
+                    None => {
+                        let url = self
+                            .client
+                            .media()
+                            .upload(&mime, data, None)
+                            .await
+                            .map_err(err)?
+                            .content_uri;
+                        self.uploads.lock().unwrap().insert(key, url.clone());
+                        url
+                    }
+                };
                 let mut info = ImageInfo::from(info);
                 info.mimetype = Some(mime.to_string());
                 let mut sticker = StickerEventContent::new(body, info, url);

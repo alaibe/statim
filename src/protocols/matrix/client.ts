@@ -44,6 +44,8 @@ class RnMatrixClient implements MatrixApi {
   private syncService: sdk.SyncServiceLike | null = null;
   private roomEntries: sdk.RoomListEntriesWithDynamicAdaptersResultLike | null = null;
   private delegateHandle: sdk.TaskHandleLike | null | undefined;
+  /** Stickers already on the homeserver, by file: a pack's are sent again and again. */
+  private readonly uploads = new Map<string, string>();
   private readonly listeners = new Set<(update: MxUpdate) => void>();
   private readonly live = new Map<string, LiveTimeline>();
   private readonly mapped = new WeakMap<sdk.TimelineItemLike, MxEvent | null>();
@@ -486,8 +488,12 @@ class RnMatrixClient implements MatrixApi {
     }
     if (content.kind === 'sticker') {
       const { path, body, mimeType = 'image/webp', width, height, size } = content;
-      const data = await new File(`file://${path}`).arrayBuffer();
-      const url = await this.client.uploadMedia(mimeType, data, undefined);
+      let url = this.uploads.get(path);
+      if (!url) {
+        const data = await new File(`file://${path}`).arrayBuffer();
+        url = await this.client.uploadMedia(mimeType, data, undefined);
+        this.uploads.set(path, url);
+      }
       await room.sendRaw(
         'm.sticker',
         JSON.stringify({

@@ -102,6 +102,8 @@ struct Session {
     latest_seen: Mutex<HashMap<OwnedRoomId, u64>>,
     /// Most recently used last.
     live: tokio::sync::Mutex<Vec<(OwnedRoomId, Arc<LiveTimeline>)>>,
+    /// Stickers already on the homeserver, by a hash of their bytes: a pack's are sent again and again.
+    uploads: Mutex<HashMap<u64, matrix_sdk::ruma::OwnedMxcUri>>,
 }
 
 #[derive(Default)]
