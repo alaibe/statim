@@ -16,7 +16,6 @@ export function SaveButton({ onPress, size = 18 }: { onPress: () => void; size?:
   );
 }
 
-/** Shows a save button in the top-right corner of a photo or video while the pointer is over it. */
 export function HoverSave({ onSave, children }: { onSave?: () => void; children: ReactNode }) {
   const [hovered, setHovered] = useState(false);
   if (!onSave) return children;

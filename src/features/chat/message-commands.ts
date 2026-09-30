@@ -3,7 +3,7 @@ import { plainText } from '@/core/messaging/markdown';
 import type { ChatPermissions } from '@/core/messaging/permissions';
 import type { ChatMessage } from '@/core/messaging/types';
 
-import { saveMedia, type SavableMedia } from './attachments/save-media';
+import { saveMedia } from './attachments/save-media';
 import type { MessageAction } from './message-actions';
 
 export interface ChatActions {
@@ -124,13 +124,14 @@ export function copyableText(content: ChatMessage['content']): string | undefine
   }
 }
 
-/** Saves a copy of the message's photo, video or file, where the app can. */
+/** Undefined on phones, for other kinds of message, and until the file has arrived. */
 export function mediaSaver(message: ChatMessage): (() => void) | undefined {
+  // An imported binding is not narrowed inside the closure below.
   const save = saveMedia;
   const { content } = message;
-  const media: SavableMedia | undefined =
-    content.kind === 'image' || content.kind === 'video' || content.kind === 'file'
-      ? content
-      : undefined;
-  return save && media && message.status === 'sent' ? () => void save(media) : undefined;
+  if (!save || message.status !== 'sent') return undefined;
+  if (content.kind !== 'image' && content.kind !== 'video' && content.kind !== 'file') {
+    return undefined;
+  }
+  return () => void save(content);
 }

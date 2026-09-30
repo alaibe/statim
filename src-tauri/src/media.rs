@@ -7,7 +7,7 @@ use base64::prelude::*;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_dialog::DialogExt;
 
-use crate::paths::{app_data_dir, data_dir, remove_dir, safe_component};
+use crate::paths::{data_dir, remove_dir, safe_component};
 
 fn media_path(
     app: &AppHandle,
@@ -63,17 +63,16 @@ pub async fn media_erase(app: AppHandle, account_id: String) -> Result<(), Strin
     remove_dir(&data_dir(&app, "media")?.join(&account_id))
 }
 
-/// Asks where to save a copy of a file the app keeps, starting in Downloads.
-/// Returns where it went, or `None` when the user cancels.
+/// Asks where to save a copy of a file the page can display, starting in
+/// Downloads. Returns false when the user cancels.
 #[tauri::command]
 pub async fn media_export(
     app: AppHandle,
     path: String,
     name: Option<String>,
-) -> Result<Option<String>, String> {
-    let source = std::fs::canonicalize(&path).map_err(|e| e.to_string())?;
-    let root = std::fs::canonicalize(app_data_dir(&app)?).map_err(|e| e.to_string())?;
-    if !source.starts_with(&root) || !source.is_file() {
+) -> Result<bool, String> {
+    let source = PathBuf::from(&path);
+    if !app.asset_protocol_scope().is_allowed(&source) || !source.is_file() {
         return Err(format!("Not a file the app keeps: {path}"));
     }
     let file_name = name
@@ -87,14 +86,17 @@ pub async fn media_export(
     if let Ok(downloads) = app.path().download_dir() {
         dialog = dialog.set_directory(downloads);
     }
-    let (chosen, target) = tokio::sync::oneshot::channel();
-    dialog.save_file(move |target| {
-        let _ = chosen.send(target);
+    let (sender, receiver) = tokio::sync::oneshot::channel();
+    dialog.save_file(move |picked| {
+        let _ = sender.send(picked);
     });
-    let Some(target) = target.await.map_err(|e| e.to_string())? else {
-        return Ok(None);
+    let Some(target) = receiver.await.map_err(|e| e.to_string())? else {
+        return Ok(false);
     };
     let target = target.into_path().map_err(|e| e.to_string())?;
-    std::fs::copy(&source, &target).map_err(|e| e.to_string())?;
-    Ok(Some(target.to_string_lossy().into_owned()))
+    tauri::async_runtime::spawn_blocking(move || std::fs::copy(source, target))
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())?;
+    Ok(true)
 }
