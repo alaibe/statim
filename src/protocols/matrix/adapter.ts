@@ -86,7 +86,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   /** null for a room no bridge carries, until its roster arrives. */
   private readonly networks = new Map<string, BridgedNetwork | null>();
   private readonly mediaPaths = new Map<string, string>();
-  private readonly awaitedMedia = new Map<string, MxEvent>();
+  private readonly awaitedMedia = new Map<string, MxEvent[]>();
   private readonly unfetched = new Map<MessageId, { raw: MxEvent; media: MxMedia }>();
   private readonly avatars = new Map<string, string | null>();
   private readonly presence = new PresenceWatcher(
@@ -753,15 +753,19 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   }
 
   private download(raw: MxEvent, media: MxMedia): void {
-    if (this.awaitedMedia.has(media.source)) return;
-    this.awaitedMedia.set(media.source, raw);
+    const waiting = this.awaitedMedia.get(media.source);
+    if (waiting) {
+      if (!waiting.some((event) => event.id === raw.id)) waiting.push(raw);
+      return;
+    }
+    this.awaitedMedia.set(media.source, [raw]);
     this.api
       .media(media)
       .then(async (downloaded) => {
         this.mediaPaths.set(media.source, downloaded);
-        const event = this.awaitedMedia.get(media.source);
+        const events = this.awaitedMedia.get(media.source) ?? [];
         this.awaitedMedia.delete(media.source);
-        if (event) await this.emitMessage(event);
+        await Promise.all(events.map((event) => this.emitMessage(event)));
       })
       .catch(() => this.awaitedMedia.delete(media.source));
   }

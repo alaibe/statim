@@ -42,3 +42,54 @@ describe('Telegram animations', () => {
     });
   });
 });
+
+const sticker = (format: string, downloaded = true): TdMessage => ({
+  ...animation('image/webp'),
+  content: {
+    '@type': 'messageSticker',
+    sticker: {
+      sticker: { ...file, local: { ...file.local, is_downloading_completed: downloaded } },
+      width: 512,
+      height: 512,
+      emoji: '😂',
+      format: { '@type': format },
+    },
+    is_premium: false,
+  },
+});
+
+const downloadedOnly = {
+  ...context,
+  media: (f: TdFile) => (f.local.is_downloading_completed ? `file://${f.local.path}` : null),
+};
+
+describe('Telegram stickers', () => {
+  it('shows a WEBP sticker', () => {
+    expect(toMessage(sticker('stickerFormatWebp'), downloadedOnly).content).toEqual({
+      kind: 'sticker',
+      uri: 'file:///td/a',
+      mimeType: 'image/webp',
+      width: 512,
+      height: 512,
+      size: 10,
+      emoji: '😂',
+    });
+  });
+
+  it('marks an animated sticker as Lottie and a video sticker as WEBM', () => {
+    expect(toMessage(sticker('stickerFormatTgs'), downloadedOnly).content).toMatchObject({
+      mimeType: 'application/x-tgsticker',
+    });
+    expect(toMessage(sticker('stickerFormatWebm'), downloadedOnly).content).toMatchObject({
+      mimeType: 'video/webm',
+    });
+  });
+
+  it('waits for the file with the emoji as the label', () => {
+    expect(toMessage(sticker('stickerFormatWebp', false), downloadedOnly).content).toEqual({
+      kind: 'unsupported',
+      typeId: 'sticker',
+      fallback: '😂 Sticker',
+    });
+  });
+});

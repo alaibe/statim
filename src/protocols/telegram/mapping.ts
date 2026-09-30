@@ -1,4 +1,5 @@
-import { labelled, unsupported } from '@/core/messaging/preview';
+import { labelled, stickerLabel, unsupported } from '@/core/messaging/preview';
+import { LOTTIE_STICKER } from '@/core/messaging/stickers';
 import type { MessageContent, ParticipantId, ProtocolMessage } from '@/core/messaging/types';
 
 import type { TdObject } from './api';
@@ -76,6 +77,12 @@ const SYSTEM_TEXT: Record<string, string> = {
 };
 
 const senderName = ({ raw, context }: Input) => context.names([userIdOf(raw.sender_id)]);
+
+const STICKER_MIME: Record<string, string> = {
+  stickerFormatWebp: 'image/webp',
+  stickerFormatTgs: LOTTIE_STICKER,
+  stickerFormatWebm: 'video/webm',
+};
 
 const MAPPERS: Record<string, (input: Input) => MessageContent> = {
   messageText: ({ content }) => ({
@@ -166,9 +173,26 @@ const MAPPERS: Record<string, (input: Input) => MessageContent> = {
     };
   },
 
-  messageSticker: ({ content }) => {
-    const emoji = (content.sticker as { emoji?: string }).emoji;
-    return unsupported('sticker', emoji ? `${emoji} Sticker` : 'Sticker');
+  messageSticker: ({ content, context }) => {
+    const sticker = content.sticker as {
+      sticker: TdFile;
+      width: number;
+      height: number;
+      emoji?: string;
+      format: TdObject;
+    };
+    const { emoji } = sticker;
+    const uri = context.media(sticker.sticker);
+    if (!uri) return unsupported('sticker', stickerLabel(emoji));
+    return {
+      kind: 'sticker',
+      uri,
+      mimeType: STICKER_MIME[sticker.format['@type']],
+      width: sticker.width,
+      height: sticker.height,
+      size: sticker.sticker.size,
+      ...(emoji ? { emoji } : {}),
+    };
   },
   messageAnimation: ({ content, context, caption }) => {
     const animation = content.animation as {

@@ -72,6 +72,16 @@ export type MessageContent =
       readonly gif?: boolean;
     }
   | {
+      readonly kind: 'sticker';
+      readonly uri: string;
+      /** `application/x-tgsticker` is a gzipped Lottie animation, `video/webm` a looping video. */
+      readonly mimeType?: string;
+      readonly width?: number;
+      readonly height?: number;
+      readonly size?: number;
+      readonly emoji?: string;
+    }
+  | {
       readonly kind: 'poll';
       readonly question: string;
       readonly options: readonly {

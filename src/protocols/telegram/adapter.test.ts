@@ -1233,6 +1233,36 @@ describe('TelegramSession messages', () => {
     });
   });
 
+  it('shows every message that waits on the same file once it is downloaded', async () => {
+    const { session, td, received } = await inChatWithBob();
+    let downloaded = false;
+    const photo = (id: number) =>
+      photoMessage(200, id, 200, { id: 77, path: '/files/p.jpg', downloaded });
+    const file = () => ({
+      '@type': 'file',
+      id: 77,
+      size: 1234,
+      local: { path: '/files/p.jpg', is_downloading_completed: downloaded },
+    });
+    td().answer('downloadFile', file());
+    td().answer('getMessage', (request) => photo(request.message_id as number));
+    td().emit({ '@type': 'updateNewMessage', message: photo(15) });
+    td().emit({ '@type': 'updateNewMessage', message: photo(16) });
+    await flush();
+
+    await session.fetchMedia(chatIdOf(200), received[0].id);
+    await session.fetchMedia(chatIdOf(200), received[1].id);
+    downloaded = true;
+    td().emit({ '@type': 'updateFile', file: file() });
+    await flush();
+
+    expect(td().requests('downloadFile')).toHaveLength(1);
+    expect(received.slice(2).map((m) => [m.id, m.content.kind])).toEqual([
+      ['200_15', 'image'],
+      ['200_16', 'image'],
+    ]);
+  });
+
   it('renders a downloaded Telegram video with its caption', async () => {
     const { td, received } = await inChatWithBob();
     const message = textMessage(200, 16, 200, '');

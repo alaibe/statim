@@ -186,7 +186,12 @@ pub enum MxContent {
         caption: Option<String>,
     },
     Sticker {
-        body: String,
+        #[serde(flatten)]
+        media: MxMediaOut,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        width: Option<u64>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        height: Option<u64>,
     },
     Poll {
         question: String,

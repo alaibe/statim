@@ -3,6 +3,7 @@ import { useLockStore } from '@/core/account/lock-store';
 import type { AccountRecord } from '@/core/account/accounts';
 import { isLocalChat } from '@/core/messaging/bots';
 import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
+import { attachedFile } from '@/core/messaging/attachments';
 import { contentPreview } from '@/core/messaging/preview';
 import type { ProtocolId } from '@/core/messaging/namespace';
 import type { ChatMessage, Chat, ChatId, ParticipantId } from '@/core/messaging/types';
@@ -275,10 +276,8 @@ export async function displayNames(
 
 export function messageJson(m: ChatMessage, names: Record<ParticipantId, string> = {}) {
   const c = m.content;
-  const attachment =
-    c.kind === 'image' || c.kind === 'file' || c.kind === 'voice' || c.kind === 'video'
-      ? { name: c.name, mimeType: c.mimeType, size: c.size }
-      : undefined;
+  const file = attachedFile(c);
+  const attachment = file && { name: file.name, mimeType: file.mimeType, size: file.size };
   return {
     id: m.id,
     chat: m.chatId,

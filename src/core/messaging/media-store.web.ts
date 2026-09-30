@@ -24,10 +24,14 @@ async function statMedia(
 }
 
 /** `blob:`, `data:` and `asset:` URIs are all fetchable in the window. */
-export async function readMediaBase64(uri: string): Promise<{ data: string; size: number }> {
+export async function readMediaBytes(uri: string): Promise<Uint8Array> {
   const response = await fetch(uri);
   if (!response.ok) throw new Error(`Could not read ${uri}: ${response.status}`);
-  const bytes = new Uint8Array(await response.arrayBuffer());
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+export async function readMediaBase64(uri: string): Promise<{ data: string; size: number }> {
+  const bytes = await readMediaBytes(uri);
   return { data: bytesToBase64(bytes), size: bytes.length };
 }
 

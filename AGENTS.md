@@ -93,6 +93,8 @@ _Avoid_: event, post
 
 **Reply**: A message that answers an earlier message and quotes it.
 
+**Sticker**: A message that is one picture or short animation, drawn large and without a bubble.
+
 **Thread**: The messages posted under one message, shown apart from the rest of the chat.
 _Avoid_: topic, sub-chat
 

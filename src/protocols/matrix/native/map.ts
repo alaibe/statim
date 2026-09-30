@@ -73,8 +73,15 @@ function mapMsgLike(kind: sdk.MsgLikeKind): MxContent | null {
   switch (kind.tag) {
     case sdk.MsgLikeKind_Tags.Message:
       return mapMessage(kind.inner.content.msgType);
-    case sdk.MsgLikeKind_Tags.Sticker:
-      return { kind: 'sticker', body: kind.inner.body };
+    case sdk.MsgLikeKind_Tags.Sticker: {
+      const { body, info, source } = kind.inner;
+      return {
+        kind: 'sticker',
+        ...media(source, body, info.mimetype, info.size),
+        width: info.width === undefined ? undefined : Number(info.width),
+        height: info.height === undefined ? undefined : Number(info.height),
+      };
+    }
     case sdk.MsgLikeKind_Tags.Poll:
       return {
         kind: 'poll',

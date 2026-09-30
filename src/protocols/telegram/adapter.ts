@@ -66,6 +66,12 @@ export interface TelegramConnectOptions {
 const MAIN_LIST = { '@type': 'chatListMain' } as const;
 const CHAT_PAGE = 100;
 const MAX_CHAT_PAGES = 20;
+
+/** Who to refresh once a file is local: a message, or the chat whose photo it is. */
+interface FileWaiter {
+  chatId: number;
+  messageId?: number;
+}
 const PHONE_HINT = 'The number your Telegram account uses, with the country code.';
 
 /**
@@ -102,7 +108,7 @@ export class TelegramSession implements ChatSession {
   private readonly groups = new TelegramGroups(this.host);
   private readonly joining = new TelegramJoining(this.host, this.groups);
   private readonly messages = new TelegramMessages(this.host, this.outbox);
-  private readonly awaitedFiles = new Map<number, { chatId: number; messageId?: number }>();
+  private readonly awaitedFiles = new Map<number, FileWaiter[]>();
   private readonly refetching = new Map<string, Promise<void>>();
   /** When the message a chat's read marker stands on was sent, where the last message cannot tell; unset while fetching or after it failed. */
   private readonly readDates = new Map<number, { messageId: number; at?: number }>();
@@ -378,10 +384,7 @@ export class TelegramSession implements ChatSession {
       case 'updateFile': {
         const { file } = update;
         if (!file.local.is_downloading_completed) return;
-        const awaited = this.awaitedFiles.get(file.id);
-        if (!awaited) return;
-        this.awaitedFiles.delete(file.id);
-        return this.afterDownload(awaited);
+        return this.downloaded(file.id);
       }
       default:
         return;
@@ -882,13 +885,16 @@ export class TelegramSession implements ChatSession {
     return undefined;
   }
 
-  private download(
-    file: TdFile,
-    awaited: { chatId: number; messageId?: number },
-    priority: number
-  ) {
-    if (this.awaitedFiles.has(file.id)) return;
-    this.awaitedFiles.set(file.id, awaited);
+  private download(file: TdFile, awaited: FileWaiter, priority: number) {
+    const waiting = this.awaitedFiles.get(file.id);
+    if (waiting) {
+      const known = waiting.some(
+        (other) => other.chatId === awaited.chatId && other.messageId === awaited.messageId
+      );
+      if (!known) waiting.push(awaited);
+      return;
+    }
+    this.awaitedFiles.set(file.id, [awaited]);
     this.api
       .send<TdFile>({
         '@type': 'downloadFile',
@@ -898,15 +904,19 @@ export class TelegramSession implements ChatSession {
         limit: 0,
         synchronous: false,
       })
-      .then((started) => {
-        if (!started.local.is_downloading_completed) return;
-        this.awaitedFiles.delete(file.id);
-        return this.afterDownload(awaited);
-      })
+      .then((started) =>
+        started.local.is_downloading_completed ? this.downloaded(file.id) : undefined
+      )
       .catch(() => this.awaitedFiles.delete(file.id));
   }
 
-  private async afterDownload({ chatId, messageId }: { chatId: number; messageId?: number }) {
+  private async downloaded(fileId: number) {
+    const awaited = this.awaitedFiles.get(fileId) ?? [];
+    this.awaitedFiles.delete(fileId);
+    await Promise.all(awaited.map((each) => this.afterDownload(each)));
+  }
+
+  private async afterDownload({ chatId, messageId }: FileWaiter) {
     if (messageId !== undefined) return this.refetch(chatId, messageId);
     const chat = this.td.chats.get(chatId);
     if (chat) await this.announce(chat);

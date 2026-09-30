@@ -13,15 +13,21 @@ interface VideoBubbleProps {
   fromMe: boolean;
 }
 
-export function VideoBubble({ uri, width, height, caption, gif, fromMe }: VideoBubbleProps) {
+/** A GIF or a video sticker loops silently from the start; any other video waits for its controls. */
+export function useMessagePlayer(uri: string, looping: boolean) {
   const player = useVideoPlayer(uri, (player) => {
-    player.loop = Boolean(gif);
-    player.muted = Boolean(gif);
+    player.loop = looping;
+    player.muted = looping;
   });
   // On the desktop the <video> element only exists once the view has mounted.
   useEffect(() => {
-    if (gif) player.play();
-  }, [gif, player]);
+    if (looping) player.play();
+  }, [looping, player]);
+  return player;
+}
+
+export function VideoBubble({ uri, width, height, caption, gif, fromMe }: VideoBubbleProps) {
+  const player = useMessagePlayer(uri, Boolean(gif));
   const { width: screenWidth } = useWindowDimensions();
   const boxWidth = Math.min(screenWidth * 0.62, 260);
   const boxHeight = Math.min((boxWidth * (height || 9)) / (width || 16), 320);

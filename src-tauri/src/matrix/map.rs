@@ -108,9 +108,19 @@ pub(super) fn map_content(content: &TimelineItemContent) -> Option<MxContent> {
     match content {
         TimelineItemContent::MsgLike(msg) => match &msg.kind {
             MsgLikeKind::Message(message) => map_message(message.msgtype()),
-            MsgLikeKind::Sticker(sticker) => Some(MxContent::Sticker {
-                body: sticker.content().body.clone(),
-            }),
+            MsgLikeKind::Sticker(sticker) => {
+                let content = sticker.content();
+                Some(MxContent::Sticker {
+                    media: media_of(
+                        &content.source.clone().into(),
+                        &content.body,
+                        content.info.mimetype.as_deref(),
+                        content.info.size,
+                    ),
+                    width: content.info.width.map(Into::into),
+                    height: content.info.height.map(Into::into),
+                })
+            }
             MsgLikeKind::Poll(poll) => {
                 let result = poll.results();
                 Some(MxContent::Poll {

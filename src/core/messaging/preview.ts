@@ -15,6 +15,7 @@ const FILE_PLACEHOLDERS = new Set([
   'voice',
   'video',
   'animation',
+  'sticker',
 ]);
 
 export const awaitsFile = (content: MessageContent): boolean =>
@@ -22,6 +23,8 @@ export const awaitsFile = (content: MessageContent): boolean =>
 
 export const labelled = (label: string, caption?: string) =>
   caption ? `${label} · ${caption}` : label;
+
+export const stickerLabel = (emoji?: string) => (emoji ? `${emoji} Sticker` : 'Sticker');
 
 export function contentPreview(content: MessageContent): string {
   switch (content.kind) {
@@ -46,6 +49,8 @@ export function contentPreview(content: MessageContent): string {
     case 'video':
       if (content.gif) return content.caption?.trim() || 'GIF';
       return content.caption?.trim() ? `\u{1F3AC} ${content.caption.trim()}` : '\u{1F3AC} Video';
+    case 'sticker':
+      return stickerLabel(content.emoji);
     case 'poll':
       return `\u{1F4CA} ${content.question}`;
 

@@ -14,6 +14,10 @@ export async function readMediaBase64(uri: string): Promise<{ data: string; size
   return { data: await file.base64(), size: file.size ?? 0 };
 }
 
+export function readMediaBytes(uri: string): Promise<Uint8Array> {
+  return new File(uri).bytes();
+}
+
 /** Keeps `base64` under the account's media unless that name is already there. */
 export async function storeMedia(
   area: FileArea,

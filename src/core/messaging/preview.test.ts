@@ -36,6 +36,12 @@ describe('messagePreview', () => {
     ).toBe('Wants 1 ETH');
   });
 
+  it('names a sticker by its emoji when it has one', () => {
+    const sticker = { kind: 'sticker', uri: 'file:///s.webp' } as const;
+    expect(messagePreview({ ...base, content: { ...sticker, emoji: '😂' } })).toBe('😂 Sticker');
+    expect(messagePreview({ ...base, content: sticker })).toBe('Sticker');
+  });
+
   it('falls back gracefully when a plugin is disabled', () => {
     expect(
       messagePreview({

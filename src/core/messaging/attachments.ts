@@ -16,6 +16,16 @@ export function classifyAttachment(mimeType?: string, filename?: string): Attach
   return 'file';
 }
 
+export interface AttachedFile {
+  uri: string;
+  name?: string;
+  mimeType?: string;
+  size?: number;
+}
+
+export const attachedFile = (content: MessageContent): AttachedFile | undefined =>
+  'uri' in content ? content : undefined;
+
 export interface InlineAttachment {
   filename: string;
   mimeType: string;

@@ -23,6 +23,7 @@ import { WidgetView } from '@/design/widgets/widget-view';
 import { useLiveWidget } from './use-live-widget';
 import { FileBubble } from './attachments/file-bubble';
 import { ImageBubble } from './attachments/image-bubble';
+import { StickerBubble } from './attachments/sticker-bubble';
 import { VoiceBubble } from './attachments/voice-bubble';
 import { VideoBubble } from './attachments/video-bubble';
 import { PollBubble } from './poll-bubble';
@@ -95,6 +96,19 @@ export function MessageBubble({
     ) : null;
   const footer: FooterProps = { message, read, reactions: reactionRow(true) };
 
+  const withFooter = (media: ReactNode, overlay: boolean) =>
+    overlay ? (
+      <View>
+        {media}
+        <Footer {...footer} place="overlay" />
+      </View>
+    ) : (
+      <>
+        {media}
+        <Footer {...footer} />
+      </>
+    );
+
   let bare = false;
   let children: React.ReactNode;
 
@@ -152,19 +166,14 @@ export function MessageBubble({
           />
         );
       bare = !content.caption && !replyPreview;
-      children = bare ? (
-        <View>
-          {media}
-          <Footer {...footer} place="overlay" />
-        </View>
-      ) : (
-        <>
-          {media}
-          <Footer {...footer} />
-        </>
-      );
+      children = withFooter(media, bare);
       break;
     }
+
+    case 'sticker':
+      bare = !replyPreview;
+      children = withFooter(<StickerBubble sticker={content} />, bare);
+      break;
 
     case 'file':
       children = (

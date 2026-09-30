@@ -140,7 +140,7 @@ export type MxContent =
       durationMs?: number;
       caption?: string;
     } & MxMedia)
-  | { kind: 'sticker'; body: string }
+  | ({ kind: 'sticker'; width?: number; height?: number } & MxMedia)
   | {
       kind: 'poll';
       question: string;

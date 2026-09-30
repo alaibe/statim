@@ -118,8 +118,18 @@ export function toContent(raw: MxEvent, context: ContentContext): MessageContent
         closed: content.closed,
       };
     }
-    case 'sticker':
-      return unsupported('sticker', content.body || 'Sticker');
+    case 'sticker': {
+      const uri = context.media(content);
+      if (!uri) return unsupported('sticker', content.name || 'Sticker');
+      return {
+        kind: 'sticker',
+        uri,
+        mimeType: content.mimeType,
+        width: content.width,
+        height: content.height,
+        size: content.size,
+      };
+    }
     case 'location':
       return unsupported('location', '📍 Location');
     case 'redacted':

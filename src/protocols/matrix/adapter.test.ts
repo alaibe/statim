@@ -930,6 +930,27 @@ describe('MatrixSession messages', () => {
     expect(api.named('media')).toHaveLength(1);
   });
 
+  it('re-emits every message that waits on the same file after one download', async () => {
+    const { chat, api } = await connect(SESSION, (api) => {
+      api.roomsById.set(DM.id, DM);
+      api.timelines.set(DM.id, [
+        imageEvent('$1', DM.id, BOB, 'wave.webp'),
+        imageEvent('$2', DM.id, BOB, 'wave.webp'),
+      ]);
+    });
+    const streamed: ProtocolMessage[] = [];
+    await chat.streamMessages((m) => streamed.push(m));
+
+    const waiting = await chat.getMessages(DM_ID);
+    await Promise.all(waiting.map((m) => chat.fetchMedia(DM_ID, m.id)));
+    await flush();
+
+    expect(api.named('media')).toHaveLength(1);
+    expect(streamed.map((m) => [m.id, m.content.kind])).toEqual(
+      waiting.map((m) => [m.id, 'image'])
+    );
+  });
+
   it('downloads Matrix video messages for playback', async () => {
     const { chat } = await connect(SESSION, (api) => {
       api.roomsById.set(DM.id, DM);
