@@ -1,6 +1,7 @@
 import * as sdk from '@unomed/react-native-matrix-sdk';
 import * as Crypto from 'expo-crypto';
 import { Directory, File } from 'expo-file-system';
+import { fromHex } from '@/lib/bytes';
 
 import type {
   MatrixApi,
@@ -59,7 +60,7 @@ class RnMatrixClient implements MatrixApi {
     const store = new sdk.SqliteStoreBuilder(
       `${params.dataDirectory}/store`,
       `${params.dataDirectory}/cache`
-    ).key(new TextEncoder().encode(params.storeKey).buffer);
+    ).key(fromHex(params.storeKey).buffer);
     this.client = await new sdk.ClientBuilder()
       .sqliteStore(store)
       .homeserverUrl(params.homeserverUrl)
