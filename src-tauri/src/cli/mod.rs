@@ -3,10 +3,9 @@ mod transport;
 
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::{Duration, Instant};
 
 use interprocess::local_socket::{prelude::*, SendHalf, Stream};
 use serde_json::{json, Value};
@@ -14,17 +13,11 @@ use tauri::{AppHandle, Emitter, Manager, Runtime};
 
 pub const BACKGROUND: &str = "--background";
 
-/// A copy started for the command line, never opened and with nobody talking
-/// to it, quits after this long.
-const IDLE_QUIT: Duration = Duration::from_secs(10 * 60);
-
 pub struct Cli {
     clients: Mutex<HashMap<u64, Arc<Mutex<SendHalf>>>>,
     /// Requests that arrived before the page was listening.
     queue: Mutex<Option<Vec<Value>>>,
     next_id: AtomicU64,
-    last_activity: Mutex<Instant>,
-    opened: AtomicBool,
 }
 
 impl Default for Cli {
@@ -33,21 +26,11 @@ impl Default for Cli {
             clients: Mutex::default(),
             queue: Mutex::new(Some(Vec::new())),
             next_id: AtomicU64::new(1),
-            last_activity: Mutex::new(Instant::now()),
-            opened: AtomicBool::new(false),
         }
     }
 }
 
 impl Cli {
-    fn has_clients(&self) -> bool {
-        !self.clients.lock().unwrap().is_empty()
-    }
-
-    fn touch(&self) {
-        *self.last_activity.lock().unwrap() = Instant::now();
-    }
-
     fn deliver<R: Runtime>(&self, app: &AppHandle<R>, payload: Value) {
         let mut queue = self.queue.lock().unwrap();
         match queue.as_mut() {
@@ -108,20 +91,6 @@ pub fn serve<R: Runtime>(app: &AppHandle<R>) {
             thread::spawn(move || converse(app, stream));
         }
     });
-    if !launched_in_background() {
-        return;
-    }
-    let idle = app.clone();
-    thread::spawn(move || loop {
-        thread::sleep(Duration::from_secs(30));
-        let cli = idle.state::<Cli>();
-        if cli.opened.load(Ordering::Relaxed) {
-            return;
-        }
-        if !cli.has_clients() && cli.last_activity.lock().unwrap().elapsed() > IDLE_QUIT {
-            idle.exit(0);
-        }
-    });
 }
 
 fn converse<R: Runtime>(app: AppHandle<R>, stream: Stream) {
@@ -132,14 +101,12 @@ fn converse<R: Runtime>(app: AppHandle<R>, stream: Stream) {
         .lock()
         .unwrap()
         .insert(id, Arc::new(Mutex::new(writer)));
-    cli.touch();
 
     for line in BufReader::new(reader).lines() {
         let Ok(line) = line else { break };
         let Ok(message) = serde_json::from_str::<Value>(&line) else {
             continue;
         };
-        cli.touch();
         if message["type"] == "show" {
             let shown = app.clone();
             let _ = app.run_on_main_thread(move || show_main(&shown));
@@ -158,7 +125,6 @@ fn converse<R: Runtime>(app: AppHandle<R>, stream: Stream) {
 }
 
 pub fn show_main<R: Runtime>(app: &AppHandle<R>) {
-    app.state::<Cli>().opened.store(true, Ordering::Relaxed);
     #[cfg(target_os = "macos")]
     let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
     if let Some(window) = app.get_webview_window("main") {

@@ -83,7 +83,7 @@ app either way.
 
 ## The app in the background
 
-When the command line started the app, it has no window and no Dock icon.
-Open the app as usual to bring its window up. Until you do, it quits after ten
-minutes with no command running; after that it behaves like an app you opened
-yourself. `statim quit` quits it straight away.
+When the command line started the app, it has no window and no Dock icon,
+only its icon in the menu bar (the system tray on Windows and Linux). Open the
+app as usual to bring its window up. It keeps running until you choose
+**Quit Statim** from that icon or run `statim quit`.
