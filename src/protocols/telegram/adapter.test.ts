@@ -1234,11 +1234,12 @@ describe('TelegramSession messages', () => {
     expect(td().requests('downloadFile')[0]).toMatchObject({ file_id: 88, priority: 1 });
 
     const done = { ...small, local: { path: '/files/carol.jpg', is_downloading_completed: true } };
-    chat.photo = { small: done, big: done } as never;
+    td().answer('downloadFile', done);
     td().emit({ '@type': 'updateFile', file: done });
     await flush();
     expect(chats.at(-1)).toMatchObject({ id: '300' });
     expect(chats.at(-1)?.avatarUri).toContain('/files/carol.jpg');
+    expect(td().requests('downloadFile')).toHaveLength(1);
   });
 
   it('shows a placeholder for a photo, downloads it when it is shown, then the image', async () => {

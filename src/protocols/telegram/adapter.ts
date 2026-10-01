@@ -389,7 +389,7 @@ export class TelegramSession implements ChatSession {
       case 'updateFile': {
         const { file } = update;
         if (!file.local.is_downloading_completed) return;
-        return this.downloaded(file.id);
+        return this.downloaded(file);
       }
       default:
         return;
@@ -912,20 +912,22 @@ export class TelegramSession implements ChatSession {
     this.awaitedFiles.set(file.id, [awaited]);
     download(this.api, file, priority, false)
       .then((started) =>
-        started.local.is_downloading_completed ? this.downloaded(file.id) : undefined
+        started.local.is_downloading_completed ? this.downloaded(started) : undefined
       )
       .catch(() => this.awaitedFiles.delete(file.id));
   }
 
-  private async downloaded(fileId: number) {
-    const awaited = this.awaitedFiles.get(fileId) ?? [];
-    this.awaitedFiles.delete(fileId);
-    await Promise.all(awaited.map((each) => this.afterDownload(each)));
+  private async downloaded(file: TdFile) {
+    const awaited = this.awaitedFiles.get(file.id) ?? [];
+    this.awaitedFiles.delete(file.id);
+    await Promise.all(awaited.map((each) => this.afterDownload(each, file)));
   }
 
-  private async afterDownload({ chatId, messageId }: FileWaiter) {
+  private async afterDownload({ chatId, messageId }: FileWaiter, file: TdFile) {
     if (messageId !== undefined) return this.refetch(chatId, messageId);
     const chat = this.td.chats.get(chatId);
-    if (chat) await this.announce(chat);
+    if (!chat) return;
+    if (chat.photo?.small.id === file.id) chat.photo.small = file;
+    await this.announce(chat);
   }
 }
