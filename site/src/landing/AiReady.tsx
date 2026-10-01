@@ -5,7 +5,7 @@ const points = [
   {
     name: 'Everything the app does',
     description:
-      'Chats, messages, files, groups, protocol sign-in, settings and every slash command have a CLI command, with --json output for scripts.',
+      'Chats, messages, files, groups, protocol sign-in, settings and every slash command have a CLI command, with --json output for scripts. statim mcp offers the same commands as tools to any app that speaks MCP.',
   },
   {
     name: 'Instructions for your assistant',

@@ -26,10 +26,10 @@ Biome formats TypeScript and JSON, rustfmt formats `src-tauri`. Neither lints;
   `src/design/tokens.ts` (`npm run theme:build`); `assets/brand/mark.svg`,
   every icon and store graphic from `assets/brand/status-logo-2018.png`
   (`npm run brand:build`); `ios/` and `android/` from `app.json`
-  (`npx expo prebuild`); `skills/statim/SKILL.md` and
-  `src-tauri/cli/help.txt` from `src/features/cli/commands.ts`
-  (`npm run cli:docs`); `docs/public/promo/` from `marketing/film.html`
-  (`npm run promo:build`); `src/storage/migrations/index.ts` from the SQL
+  (`npx expo prebuild`); `skills/statim/SKILL.md`,
+  `src-tauri/cli/help.txt` and `src-tauri/cli/mcp.json` from
+  `src/features/cli/commands.ts` (`npm run cli:docs`);
+  `docs/public/promo/` from `marketing/film.html` (`npm run promo:build`); `src/storage/migrations/index.ts` from the SQL
   files beside it (`npm run db:bundle`); `docs/public/stickers/` from
   `scripts/generate-stickers.js` (`npm run stickers:build`). Editing the
   output is undone on the next build.

@@ -10,7 +10,7 @@ import {
 
 const GROUPS = [...new Set(COMMANDS.map((c) => c.group))] as CliGroup[];
 
-const APPROVAL = 'Waits for the person at the app to approve it.';
+export const APPROVAL = 'Waits for the person at the app to approve it.';
 
 export function renderHelp(): string {
   const width = Math.max(...COMMANDS.map((c) => c.path.length)) + 2;
@@ -31,6 +31,7 @@ export function renderHelp(): string {
     'statim help <command>     arguments and examples for one command',
     'statim --skills           instructions for AI agents (SKILL.md)',
     'statim skills install     install them for Claude Code (--claude), Codex (--codex) or --dir <path>',
+    'statim mcp                serve these commands to an AI app as an MCP server, over stdio',
     'statim --version',
     '',
   ].join('\n');

@@ -97,4 +97,5 @@ Live
 statim help <command>     arguments and examples for one command
 statim --skills           instructions for AI agents (SKILL.md)
 statim skills install     install them for Claude Code (--claude), Codex (--codex) or --dir <path>
+statim mcp                serve these commands to an AI app as an MCP server, over stdio
 statim --version

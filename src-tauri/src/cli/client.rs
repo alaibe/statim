@@ -44,6 +44,7 @@ fn offline(args: &[String]) -> Option<i32> {
         ["--help" | "-h" | "help"] => print!("{HELP}"),
         ["--skills" | "skills"] => print!("{SKILL}"),
         ["skills", "install", targets @ ..] => return Some(install_skill(targets)),
+        ["mcp"] => return Some(super::mcp::serve()),
         _ => return None,
     }
     Some(0)
@@ -105,35 +106,47 @@ fn remote(args: Vec<String>) -> i32 {
             }
         },
     };
-    let (reader, mut writer) = stream.split();
-
     let request = json!({
         "type": "request",
         "argv": args,
         "tty": io::stdout().is_terminal(),
         "stdinTty": io::stdin().is_terminal(),
     });
-    if super::write_line(&mut writer, &request).is_err() {
+    let print = |kind: &str, text: &str| {
+        if kind == "out" {
+            print!("{text}");
+            let _ = io::stdout().flush();
+        } else {
+            eprint!("{text}");
+        }
+    };
+    exchange(stream, &request, print, answer).unwrap_or_else(|| {
         eprintln!("Statim closed the connection.");
-        return 1;
-    }
+        1
+    })
+}
 
+/// Runs one command in the app: its `out` and `err` text goes to `output`,
+/// its questions to `answer`. `None` when the app hung up first.
+pub(super) fn exchange(
+    stream: Stream,
+    request: &Value,
+    mut output: impl FnMut(&str, &str),
+    answer: impl Fn(&Value) -> Value,
+) -> Option<i32> {
+    let (reader, mut writer) = stream.split();
+    super::write_line(&mut writer, request).ok()?;
     for line in BufReader::new(reader).lines() {
         let Ok(line) = line else { break };
         let Ok(message) = serde_json::from_str::<Value>(&line) else {
             continue;
         };
-        let text = message["text"].as_str().unwrap_or_default();
         match message["type"].as_str().unwrap_or_default() {
-            "out" => {
-                print!("{text}");
-                let _ = io::stdout().flush();
-            }
-            "err" => eprint!("{text}"),
-            "exit" => return message["code"].as_i64().unwrap_or(1) as i32,
+            kind @ ("out" | "err") => output(kind, message["text"].as_str().unwrap_or_default()),
+            "exit" => return Some(message["code"].as_i64().unwrap_or(1) as i32),
             "prompt" | "stdin" | "read" | "write" => {
-                let reply = answer(&message);
-                let reply = json!({ "type": "reply", "seq": message["seq"], "result": reply });
+                let reply =
+                    json!({ "type": "reply", "seq": message["seq"], "result": answer(&message) });
                 if super::write_line(&mut writer, &reply).is_err() {
                     break;
                 }
@@ -141,11 +154,10 @@ fn remote(args: Vec<String>) -> i32 {
             _ => {}
         }
     }
-    eprintln!("Statim closed the connection.");
-    1
+    None
 }
 
-fn answer(message: &Value) -> Value {
+pub(super) fn answer(message: &Value) -> Value {
     let path = message["path"].as_str().unwrap_or_default();
     let result: io::Result<Value> = match message["type"].as_str().unwrap_or_default() {
         "prompt" => prompt(
@@ -183,7 +195,7 @@ fn prompt(text: &str, secret: bool) -> io::Result<String> {
     Ok(line.trim_end_matches(['\r', '\n']).to_string())
 }
 
-fn start_app() -> io::Result<Stream> {
+pub(super) fn start_app() -> io::Result<Stream> {
     let exe = env::current_exe()?.canonicalize()?;
     let mut command = Command::new(exe);
     command

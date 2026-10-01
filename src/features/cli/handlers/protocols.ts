@@ -55,6 +55,12 @@ function describeLogin(label: string, login: LoginState | null) {
   };
 }
 
+function typeItInTheApp(protocol: string, what: string): CliError {
+  return new CliError(
+    `Your ${protocol} ${what} does not go through an AI app. Type it in Statim under Settings › Protocols › ${protocol}.`
+  );
+}
+
 async function submitLogin(descriptor: ProtocolDescriptor, answer: string): Promise<void> {
   const session = sessionOf(descriptor);
   const before = loginOf(descriptor.id);
@@ -152,6 +158,7 @@ export const protocolHandlers = {
           'usage'
         );
       }
+      if (io.mcp && field.kind === 'secret') throw typeItInTheApp(descriptor.label, field.label);
       next[key] =
         eq === -1
           ? await io.prompt(`${field.label}: `, field.kind === 'secret')
@@ -178,7 +185,9 @@ export const protocolHandlers = {
       );
     }
     if (args.answer !== undefined) {
-      if (!loginOf(descriptor.id)) return describeLogin(descriptor.label, null);
+      const login = loginOf(descriptor.id);
+      if (!login) return describeLogin(descriptor.label, null);
+      if (io.mcp && login.step === 'password') throw typeItInTheApp(descriptor.label, 'password');
       await submitLogin(descriptor, args.answer);
       return describeLogin(descriptor.label, loginOf(descriptor.id));
     }

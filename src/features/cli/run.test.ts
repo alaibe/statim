@@ -2,6 +2,7 @@ import { useAccountStore } from '@/core/account/account-store';
 import { useLockStore } from '@/core/account/lock-store';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { InMemoryChatSession } from '@/core/messaging/in-memory-session';
+import type { LoginState } from '@/core/messaging/protocol';
 import { connectFake, disconnectFake, ns, resetChatStore } from '@/core/messaging/testing/store';
 import type { PluginHostValue } from '@/core/plugins/host';
 import { PluginRegistry } from '@/core/plugins/registry';
@@ -32,6 +33,7 @@ function fakeIo(stdin = ''): FakeIo {
     json: false,
     tty: false,
     stdinTty: stdin === '',
+    mcp: false,
     out: [],
     err: [],
     approvals: [],
@@ -441,6 +443,36 @@ it('does nothing until the command line is turned on in the app', async () => {
   expect(code).toBe(4);
   expect(err).toContain('Settings › Command line');
   expect(session.sent).toEqual([]);
+});
+
+describe('an AI app over MCP', () => {
+  const mcpIo = () => Object.assign(fakeIo(), { mcp: true });
+
+  it('never takes a sign-in password', async () => {
+    await disconnectFake();
+    const submitLogin = jest.fn();
+    Object.assign(session, {
+      subscribeLogin: (listener: (login: LoginState | null) => void) => {
+        listener({ step: 'password' });
+        return () => {};
+      },
+      submitLogin,
+    });
+    await connectFake(session);
+
+    const { code, err } = await run(['protocols', 'login', 'xmtp', 'hunter2'], mcpIo());
+
+    expect(code).toBe(1);
+    expect(err).toContain('does not go through an AI app');
+    expect(submitLogin).not.toHaveBeenCalled();
+  });
+
+  it('never sets a secret protocol setting', async () => {
+    const { code, err } = await run(['protocols', 'config', 'telegram', 'apiHash=abc'], mcpIo());
+
+    expect(code).toBe(1);
+    expect(err).toContain('Your Telegram API hash does not go through an AI app');
+  });
 });
 
 describe('locked app', () => {

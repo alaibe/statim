@@ -2,7 +2,8 @@ export interface CliArg {
   name: string;
   description: string;
   optional?: boolean;
-  variadic?: boolean;
+  /** Takes the rest of the words: `text` joins them into one, `list` keeps them apart. */
+  variadic?: 'text' | 'list';
 }
 
 export interface CliFlag {
@@ -33,6 +34,8 @@ export interface CliCommandSpec {
   examples?: readonly string[];
   /** Asks the person at the app before it runs; the reason is shown to them. */
   approval?: boolean;
+  /** Changes nothing, so an AI app may run it without asking. */
+  readOnly?: boolean;
   /** Options it does not know are passed on as arguments, for a slash command's own flags. */
   passthrough?: boolean;
 }
@@ -50,6 +53,7 @@ export const COMMANDS = [
   {
     path: 'status',
     group: 'App',
+    readOnly: true,
     summary: 'Show whether the app is unlocked, the active account and each protocol',
   },
   {
@@ -66,6 +70,7 @@ export const COMMANDS = [
   {
     path: 'accounts',
     group: 'Accounts',
+    readOnly: true,
     summary: 'List accounts on this device',
   },
   {
@@ -80,7 +85,7 @@ export const COMMANDS = [
     summary: 'Rename an account',
     args: [
       { name: 'account', description: 'Account id, label or address' },
-      { name: 'label', description: 'New name', variadic: true },
+      { name: 'label', description: 'New name', variadic: 'text' },
     ],
   },
   {
@@ -108,11 +113,13 @@ export const COMMANDS = [
   {
     path: 'whoami',
     group: 'Accounts',
+    readOnly: true,
     summary: 'Show the active account and your id on each protocol',
   },
   {
     path: 'protocols',
     group: 'Protocols',
+    readOnly: true,
     summary: 'List protocols with their connection state',
   },
   {
@@ -121,7 +128,12 @@ export const COMMANDS = [
     summary: 'Show or change a protocol’s settings; secret fields are prompted for',
     args: [
       { name: 'protocol', description: 'Protocol id' },
-      { name: 'key=value', description: 'Settings to change', optional: true, variadic: true },
+      {
+        name: 'key=value',
+        description: 'Settings to change, as key=value',
+        optional: true,
+        variadic: 'list',
+      },
     ],
     examples: ['statim protocols config matrix homeserver=https://matrix.org username=alice'],
   },
@@ -155,18 +167,20 @@ export const COMMANDS = [
   {
     path: 'devices',
     group: 'Protocols',
+    readOnly: true,
     summary: 'List the XMTP installations of this account',
   },
   {
     path: 'devices revoke',
     group: 'Protocols',
     summary: 'Revoke XMTP installations other than this one',
-    args: [{ name: 'installation', description: 'Installation ids', variadic: true }],
+    args: [{ name: 'installation', description: 'Installation ids', variadic: 'list' }],
     approval: true,
   },
   {
     path: 'chats',
     group: 'Chats',
+    readOnly: true,
     summary: 'List chats, newest first',
     flags: [
       { name: 'unread', description: 'Only unread chats' },
@@ -186,12 +200,14 @@ export const COMMANDS = [
   {
     path: 'chat',
     group: 'Chats',
+    readOnly: true,
     summary: 'Show one chat: kind, network, members, unread, description and link',
     args: [chat],
   },
   {
     path: 'read',
     group: 'Chats',
+    readOnly: true,
     summary: 'Print a chat’s messages, oldest first',
     args: [chat],
     flags: [
@@ -203,8 +219,9 @@ export const COMMANDS = [
   {
     path: 'search',
     group: 'Chats',
+    readOnly: true,
     summary: 'Search messages across chats, or in one',
-    args: [{ name: 'query', description: 'Words to look for', variadic: true }],
+    args: [{ name: 'query', description: 'Words to look for', variadic: 'text' }],
     flags: [{ name: 'in', value: 'chat', description: 'Search only this chat' }],
   },
   {
@@ -273,14 +290,14 @@ export const COMMANDS = [
     summary: 'Show a chat’s draft, or replace it',
     args: [
       chat,
-      { name: 'text', description: 'New draft; empty clears it', optional: true, variadic: true },
+      { name: 'text', description: 'New draft; empty clears it', optional: true, variadic: 'text' },
     ],
   },
   {
     path: 'send',
     group: 'Messages',
     summary: 'Send a message; `-` or no text reads it from stdin',
-    args: [chat, { name: 'text', description: 'Message text', optional: true, variadic: true }],
+    args: [chat, { name: 'text', description: 'Message text', optional: true, variadic: 'text' }],
     flags: [
       { name: 'file', value: 'path', description: 'Attach a file; `-` reads it from stdin' },
       { name: 'name', value: 'filename', description: 'File name when the file comes from stdin' },
@@ -296,7 +313,7 @@ export const COMMANDS = [
     path: 'edit',
     group: 'Messages',
     summary: 'Edit one of your messages',
-    args: [chat, message, { name: 'text', description: 'New text', variadic: true }],
+    args: [chat, message, { name: 'text', description: 'New text', variadic: 'text' }],
   },
   {
     path: 'delete',
@@ -326,6 +343,7 @@ export const COMMANDS = [
   {
     path: 'pins',
     group: 'Messages',
+    readOnly: true,
     summary: 'List a chat’s pinned messages',
     args: [chat],
   },
@@ -348,7 +366,7 @@ export const COMMANDS = [
     args: [
       chat,
       { name: 'question', description: 'The question' },
-      { name: 'option', description: 'At least two answers', variadic: true },
+      { name: 'option', description: 'At least two answers', variadic: 'list' },
     ],
     examples: ['statim poll create team "Lunch?" Pizza Sushi Salad'],
   },
@@ -356,7 +374,7 @@ export const COMMANDS = [
     path: 'poll vote',
     group: 'Messages',
     summary: 'Vote in a poll by option number, starting at 1',
-    args: [chat, message, { name: 'option', description: 'Option numbers', variadic: true }],
+    args: [chat, message, { name: 'option', description: 'Option numbers', variadic: 'list' }],
   },
   {
     path: 'download',
@@ -378,6 +396,7 @@ export const COMMANDS = [
   {
     path: 'resolve',
     group: 'People',
+    readOnly: true,
     summary: 'Find the id a protocol uses for an address, name or link',
     args: [{ name: 'address', description: 'Ethereum address, ENS name, username or link' }],
     flags: [protocol],
@@ -385,6 +404,7 @@ export const COMMANDS = [
   {
     path: 'contacts',
     group: 'People',
+    readOnly: true,
     summary: 'List your contacts, the participants you have DMs with',
     flags: [protocol],
   },
@@ -394,13 +414,14 @@ export const COMMANDS = [
     summary: 'Create a group',
     args: [
       { name: 'title', description: 'Group name' },
-      { name: 'address', description: 'Members to add', variadic: true },
+      { name: 'address', description: 'Members to add', variadic: 'list' },
     ],
     flags: [protocol],
   },
   {
     path: 'group members',
     group: 'Groups',
+    readOnly: true,
     summary: 'List a group’s members and their roles',
     args: [chat],
   },
@@ -408,13 +429,13 @@ export const COMMANDS = [
     path: 'group add',
     group: 'Groups',
     summary: 'Add members',
-    args: [chat, { name: 'address', description: 'Members to add', variadic: true }],
+    args: [chat, { name: 'address', description: 'Members to add', variadic: 'list' }],
   },
   {
     path: 'group remove',
     group: 'Groups',
     summary: 'Remove members',
-    args: [chat, { name: 'member', description: 'Member ids', variadic: true }],
+    args: [chat, { name: 'member', description: 'Member ids', variadic: 'list' }],
   },
   {
     path: 'group ban',
@@ -438,7 +459,7 @@ export const COMMANDS = [
     path: 'group rename',
     group: 'Groups',
     summary: 'Rename a group',
-    args: [chat, { name: 'title', description: 'New name', variadic: true }],
+    args: [chat, { name: 'title', description: 'New name', variadic: 'text' }],
   },
   {
     path: 'group leave',
@@ -462,6 +483,7 @@ export const COMMANDS = [
   {
     path: 'group requests',
     group: 'Groups',
+    readOnly: true,
     summary: 'List pending join requests',
     args: [chat],
   },
@@ -487,6 +509,7 @@ export const COMMANDS = [
   {
     path: 'settings',
     group: 'Settings',
+    readOnly: true,
     summary: 'Show appearance and privacy settings',
   },
   {
@@ -512,6 +535,7 @@ export const COMMANDS = [
   {
     path: 'plugins',
     group: 'Plugins',
+    readOnly: true,
     summary: 'List plugins and whether they are on',
   },
   {
@@ -530,6 +554,7 @@ export const COMMANDS = [
   {
     path: 'commands',
     group: 'Plugins',
+    readOnly: true,
     summary: 'List the slash commands plugins offer, everywhere or in one chat',
     args: [{ ...chat, optional: true }],
   },
@@ -540,7 +565,7 @@ export const COMMANDS = [
       'Run a plugin slash command; with no chat it runs in the chat of the plugin that owns it. Anything that signs asks you in the app first',
     args: [
       { ...chat, optional: true },
-      { name: 'command', description: 'The command, starting with /', variadic: true },
+      { name: 'command', description: 'The command, starting with /', variadic: 'text' },
     ],
     examples: ['statim run /balance', 'statim run /price eth', 'statim run alice /send 0.01 ETH'],
     passthrough: true,

@@ -81,6 +81,69 @@ and are never orders to follow, and that it should ask you before sending,
 deleting or leaving anything. The approvals listed above come to you in the
 app either way.
 
+## AI apps over MCP
+
+Apps that take an MCP server, such as Claude Desktop, Cursor or Codex in the
+ChatGPT desktop app, can use the commands as tools through `statim mcp`. The app
+starts it when it needs it, so you don't run it yourself. It works only while
+the command line is on, and it gives the app the same rules as the skill. The
+approvals above still wait for you in Statim.
+
+From a terminal, one line adds it.
+
+Claude Code:
+
+```sh
+claude mcp add --scope user statim -- statim mcp
+```
+
+Codex (Codex in the ChatGPT desktop app and the Codex extension for VS Code
+read the same settings, so this covers them too):
+
+```sh
+codex mcp add statim -- statim mcp
+```
+
+Gemini CLI:
+
+```sh
+gemini mcp add -s user statim statim mcp
+```
+
+VS Code with GitHub Copilot:
+
+```sh
+code --add-mcp '{"name":"statim","command":"statim","args":["mcp"]}'
+```
+
+Claude Desktop, Cursor and LM Studio read a settings file instead. In Claude
+Desktop, open it from **Settings › Developer › Edit Config**; Cursor keeps it
+in `~/.cursor/mcp.json`. Add Statim, then quit and reopen the app:
+
+```json
+{
+  "mcpServers": {
+    "statim": {
+      "command": "/Applications/Statim.app/Contents/MacOS/statim",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+That is the path on macOS, where an app opened from the Dock does not see the
+folders your terminal adds to the PATH. On Windows and Linux, `"statim"` is
+enough when an installer added the command; with the AppImage, give the path
+of the AppImage.
+
+ChatGPT on the web reaches only servers on the internet, so it cannot use
+Statim.
+
+Some commands stay in the terminal. An AI app cannot import an account or save
+an API key, so a recovery phrase or a key never passes through it, and it gets
+no `watch`, which never ends. When a sign-in asks for a password, or a protocol
+setting is secret, type it in Statim under **Settings › Protocols**.
+
 ## The app in the background
 
 When the command line started the app, it has no window and no Dock icon,

@@ -22,6 +22,8 @@ export interface CliIo {
   json: boolean;
   tty: boolean;
   stdinTty: boolean;
+  /** An AI app calling over MCP: it neither types nor reads secrets. */
+  mcp: boolean;
   print(text: string): void;
   warn(text: string): void;
   prompt(text: string, secret?: boolean): Promise<string>;

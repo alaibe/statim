@@ -1,4 +1,5 @@
 pub mod client;
+mod mcp;
 mod transport;
 
 use std::collections::HashMap;

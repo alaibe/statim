@@ -14,6 +14,7 @@ interface Request {
   argv: string[];
   tty: boolean;
   stdinTty: boolean;
+  mcp?: boolean;
 }
 
 interface Answer {
@@ -75,6 +76,7 @@ function ioFor(connection: Connection, request: Request): CliIo {
     json: false,
     tty: request.tty,
     stdinTty: request.stdinTty,
+    mcp: request.mcp === true,
     print: (text) => connection.send({ type: 'out', text: `${text}\n` }),
     warn: (text) => connection.send({ type: 'err', text: `${text}\n` }),
     prompt: async (text, secret = false) =>

@@ -162,7 +162,7 @@ List protocols with their connection state.
 Show or change a protocol’s settings; secret fields are prompted for.
 
 - `protocol`: Protocol id
-- `key=value`: Settings to change
+- `key=value`: Settings to change, as key=value
 
 ```sh
 statim protocols config matrix homeserver=https://matrix.org username=alice
