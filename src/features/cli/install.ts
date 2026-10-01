@@ -1,6 +1,7 @@
 export interface CliInstall {
   installed: boolean;
   command: string | null;
+  path: string | null;
 }
 
 /** The command line ships with the desktop app only (`install.web.ts`). */

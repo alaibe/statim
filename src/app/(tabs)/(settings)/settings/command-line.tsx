@@ -6,8 +6,15 @@ import { copyText } from '@/design/copy-text';
 import { isCliAllowed, setCliAllowed } from '@/features/cli/access';
 import { cliInstall, type CliInstall } from '@/features/cli/install';
 import { SettingsScreen } from '@/features/settings/settings-screen';
+import { guideUrl } from '@/lib/guide';
+import { openExternal } from '@/lib/open-url';
 
 const SKILLS = 'statim skills install';
+const CLAUDE_CODE_MCP = 'claude mcp add --scope user statim -- statim mcp';
+
+function mcpSettings(path: string): string {
+  return JSON.stringify({ mcpServers: { statim: { command: path, args: ['mcp'] } } }, null, 2);
+}
 
 function Command({ command, done }: { command: string; done: string }) {
   return (
@@ -86,6 +93,34 @@ export default function CommandLineScreen() {
             another agent.
           </Text>
           <Command command={SKILLS} done="Command copied" />
+        </View>
+      </Section>
+
+      <Section title="AI apps over MCP" surface="card" className="mb-6">
+        <View className="gap-3 p-4">
+          <Text variant="footnote">
+            Apps that take an MCP server can use these commands as tools, while the command line is
+            allowed. For Claude Code, run:
+          </Text>
+          <Command command={CLAUDE_CODE_MCP} done="Command copied" />
+          {install?.path ? (
+            <>
+              <Text variant="footnote">
+                Claude Desktop, Cursor and LM Studio read a settings file instead. In Claude Desktop
+                it is Settings › Developer › Edit Config, not Connectors, which only take web
+                addresses. Add this to it, then quit and reopen the app.
+              </Text>
+              <Command command={mcpSettings(install.path)} done="Settings copied" />
+            </>
+          ) : null}
+          <Button
+            label="How to add it to Codex and other apps"
+            tone="neutral"
+            size="sm"
+            onPress={() =>
+              openExternal(guideUrl('command-line', 'ai-apps-over-mcp')).catch(() => {})
+            }
+          />
         </View>
       </Section>
     </SettingsScreen>

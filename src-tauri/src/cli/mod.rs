@@ -159,6 +159,9 @@ pub struct Install {
     installed: bool,
     /// What to run in a terminal to put `statim` on the PATH.
     command: Option<String>,
+    /// What an AI app's MCP settings point at, since apps opened from the
+    /// Dock do not see the terminal's PATH.
+    path: Option<String>,
 }
 
 /// The installers put the command on the PATH; a copy dragged out of a disk
@@ -174,6 +177,10 @@ pub fn cli_install() -> Install {
     };
     let quoted =
         |path: &std::ffi::OsStr| format!("'{}'", path.to_string_lossy().replace('\'', r"'\''"));
+    let path = appimage()
+        .map(std::path::PathBuf::from)
+        .or_else(|| std::env::current_exe().ok())
+        .map(|path| path.to_string_lossy().into_owned());
 
     if cfg!(target_os = "macos") {
         let link = std::path::Path::new("/usr/local/bin/statim");
@@ -183,6 +190,7 @@ pub fn cli_install() -> Install {
                 "sudo mkdir -p /usr/local/bin && sudo ln -sf {} /usr/local/bin/statim",
                 quoted(exe.as_os_str())
             )),
+            path,
         };
     }
     if let Some(image) = appimage() {
@@ -195,11 +203,13 @@ pub fn cli_install() -> Install {
                 "mkdir -p ~/.local/bin && ln -sf {} ~/.local/bin/statim",
                 quoted(&image)
             )),
+            path,
         };
     }
     Install {
         installed: true,
         command: None,
+        path,
     }
 }
 

@@ -134,7 +134,8 @@ in `~/.cursor/mcp.json`. Add Statim, then quit and reopen the app:
 That is the path on macOS, where an app opened from the Dock does not see the
 folders your terminal adds to the PATH. On Windows and Linux, `"statim"` is
 enough when an installer added the command; with the AppImage, give the path
-of the AppImage.
+of the AppImage. **Settings › Command line** shows this entry with the path of
+your copy.
 
 ChatGPT on the web reaches only servers on the internet, so it cannot use
 Statim.
