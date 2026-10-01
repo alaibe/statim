@@ -13,9 +13,9 @@
         ],
         "releaseNotes": "First release.",
         "promoText": "Encrypted messaging where the account is a key you hold. No phone number, no email, no server with your name on it.",
-        "privacyPolicyUrl": "https://alaibe.github.io/statim/privacy",
+        "privacyPolicyUrl": "https://statim.laibe.cc/privacy",
         "supportUrl": "https://github.com/alaibe/statim/issues",
-        "marketingUrl": "https://alaibe.github.io/statim/"
+        "marketingUrl": "https://statim.laibe.cc/"
       }
     },
     "advisory": {

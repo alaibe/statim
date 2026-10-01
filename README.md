@@ -23,7 +23,7 @@ endorsed by Status.
   <img src="distribution/ios/screenshots/6.9/06-plugins.png" width="196" alt="Plugins screen: assistant, names, bots, wallet, browser and markets">
 </p>
 
-**[User guide](https://alaibe.github.io/statim/)** ·
+**[User guide](https://statim.laibe.cc/)** ·
 [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) ·
 [Privacy](PRIVACY.md) · [Disclaimer](DISCLAIMER.md)
 
@@ -125,7 +125,7 @@ refresh them.
 
 | For | Where |
 | --- | --- |
-| Using the app | [alaibe.github.io/statim](https://alaibe.github.io/statim/) (`docs/`) |
+| Using the app | [statim.laibe.cc](https://statim.laibe.cc/) (`docs/`) |
 | Working on the code | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
 | Reporting a vulnerability | [`SECURITY.md`](SECURITY.md) |
 | What leaves your device | [`PRIVACY.md`](PRIVACY.md) |
@@ -135,7 +135,7 @@ refresh them.
 | End-to-end tests | [`e2e/README.md`](e2e/README.md) |
 | The promo film | [`marketing/`](marketing/README.md) |
 | Running Nostr and Status locally | [`local-net/README.md`](local-net/README.md) |
-| Running your own bots | [Your own bots](https://alaibe.github.io/statim/guide/bots) |
+| Running your own bots | [Your own bots](https://statim.laibe.cc/guide/bots) |
 
 ## License
 

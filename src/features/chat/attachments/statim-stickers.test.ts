@@ -6,7 +6,7 @@ jest.mock('@/core/messaging/media-store', () => ({
 }));
 
 const PACK = { id: 'statim', title: 'Statim', version: 1, stickers: [{ id: 'gm', emoji: '☀️' }] };
-const SITE = 'https://alaibe.github.io/statim/stickers/';
+const SITE = 'https://statim.laibe.cc/stickers/';
 
 const answer = (...bodies: [unknown, number?][]) => {
   const fetch = jest.spyOn(globalThis, 'fetch');

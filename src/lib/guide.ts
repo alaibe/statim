@@ -1,4 +1,4 @@
-export const SITE = 'https://alaibe.github.io/statim/';
+export const SITE = 'https://statim.laibe.cc/';
 const GUIDE = `${SITE}guide`;
 
 /** A page of the user guide, for the "How to set this up" links. */
