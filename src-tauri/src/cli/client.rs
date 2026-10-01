@@ -1,6 +1,6 @@
 use std::env;
 use std::fs;
-use std::io::{self, BufRead, BufReader, IsTerminal, Read, Write};
+use std::io::{self, BufRead, BufReader, ErrorKind, IsTerminal, Read, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::thread;
@@ -120,25 +120,41 @@ fn remote(args: Vec<String>) -> i32 {
             eprint!("{text}");
         }
     };
-    exchange(stream, &request, print, answer).unwrap_or_else(|| {
+    exchange(stream, &request, print, answer, || false).unwrap_or_else(|| {
         eprintln!("Statim closed the connection.");
         1
     })
 }
 
 /// Runs one command in the app: its `out` and `err` text goes to `output`,
-/// its questions to `answer`. `None` when the app hung up first.
+/// its questions to `answer`. `None` when the app hung up first, or when
+/// `stop` says to give up while a read timeout set on `stream` lets it look.
 pub(super) fn exchange(
     stream: Stream,
     request: &Value,
     mut output: impl FnMut(&str, &str),
     answer: impl Fn(&Value) -> Value,
+    stop: impl Fn() -> bool,
 ) -> Option<i32> {
     let (reader, mut writer) = stream.split();
     super::write_line(&mut writer, request).ok()?;
-    for line in BufReader::new(reader).lines() {
-        let Ok(line) = line else { break };
-        let Ok(message) = serde_json::from_str::<Value>(&line) else {
+    let mut reader = BufReader::new(reader);
+    let mut line = Vec::new();
+    loop {
+        match reader.read_until(b'\n', &mut line) {
+            Ok(0) => return None,
+            Ok(_) => {}
+            Err(error) if matches!(error.kind(), ErrorKind::WouldBlock | ErrorKind::TimedOut) => {
+                if stop() {
+                    return None;
+                }
+                continue;
+            }
+            Err(_) => return None,
+        }
+        let message = serde_json::from_slice::<Value>(&line);
+        line.clear();
+        let Ok(message) = message else {
             continue;
         };
         match message["type"].as_str().unwrap_or_default() {
@@ -147,14 +163,11 @@ pub(super) fn exchange(
             "prompt" | "stdin" | "read" | "write" => {
                 let reply =
                     json!({ "type": "reply", "seq": message["seq"], "result": answer(&message) });
-                if super::write_line(&mut writer, &reply).is_err() {
-                    break;
-                }
+                super::write_line(&mut writer, &reply).ok()?;
             }
             _ => {}
         }
     }
-    None
 }
 
 pub(super) fn answer(message: &Value) -> Value {
@@ -227,5 +240,42 @@ pub(super) fn start_app() -> io::Result<Stream> {
             Err(error) if Instant::now() > deadline => return Err(error),
             Err(_) => thread::sleep(Duration::from_millis(200)),
         }
+    }
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use std::time::{Duration, Instant};
+
+    use interprocess::local_socket::{prelude::*, GenericFilePath, ListenerOptions, Stream};
+    use serde_json::json;
+
+    #[test]
+    fn stops_waiting_for_an_app_that_never_answers() {
+        let path =
+            std::env::temp_dir().join(format!("statim-exchange-{}.sock", std::process::id()));
+        let name = || path.as_os_str().to_fs_name::<GenericFilePath>().unwrap();
+        let listener = ListenerOptions::new()
+            .name(name())
+            .try_overwrite(true)
+            .create_sync()
+            .unwrap();
+        let app = std::thread::spawn(move || {
+            let silent = listener.accept().unwrap();
+            std::thread::sleep(Duration::from_secs(2));
+            drop(silent);
+        });
+
+        let stream = Stream::connect(name()).unwrap();
+        stream
+            .set_recv_timeout(Some(Duration::from_millis(20)))
+            .unwrap();
+        let started = Instant::now();
+        let code = super::exchange(stream, &json!({}), |_, _| {}, |_| json!({}), || true);
+
+        assert_eq!(code, None);
+        assert!(started.elapsed() < Duration::from_secs(1));
+        app.join().unwrap();
+        let _ = std::fs::remove_file(&path);
     }
 }
