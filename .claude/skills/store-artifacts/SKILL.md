@@ -94,9 +94,10 @@ and `ios/export-compliance.md` in full; the short version:
 - [ ] Organization account. Guideline 3.1.5(b) requires cryptocurrency
       wallet apps to come from an organization, not an individual. Check the
       enrollment type before building; changing it takes weeks.
-- [ ] Export compliance. `ITSAppUsesNonExemptEncryption` is `true` in
-      `app.json`; App Store Connect will ask for a self-classification report
-      or CCATS on the first upload. See `ios/export-compliance.md`.
+- [ ] Export compliance. Each uploaded build shows "Missing Compliance" until
+      the encryption questions are answered, or until `app.json` carries
+      `ITSEncryptionExportComplianceCode` with the key. See
+      `ios/export-compliance.md`.
 - [ ] `expo-observe` is declared as Performance Data in both the privacy
       manifest and the App Privacy answers. If it is ever removed, change both.
       See `privacy-labels.md`.

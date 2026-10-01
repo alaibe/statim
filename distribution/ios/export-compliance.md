@@ -25,18 +25,30 @@ encrypted messaging is the app's purpose, not an incidental feature.
 
 ## What is set
 
-`app.json`, under `expo.ios.infoPlist`:
+Nothing, for now. `app.json` leaves `ITSAppUsesNonExemptEncryption` out of the
+`Info.plist`. App Store Connect rejects an upload that sets it to `true` without
+`ITSEncryptionExportComplianceCode`, and it issues that code only after the
+questions are answered on an uploaded build. Without the key, each build shows
+"Missing Compliance" until someone answers.
 
-```json
-"ITSAppUsesNonExemptEncryption": true
-```
-
-Setting `false`, or leaving the key out and answering "no" in App Store Connect,
+The answers for this app are yes, it uses encryption; no, it does not qualify
+for an exemption; it uses standard algorithms beyond the ones in the operating
+system; and it is available in France. Answering "no" to the first question
 would declare that the app uses only exempt encryption. It does not.
 
-## What follows from `true`
+Once Apple approves the documentation and issues a code, add both keys to
+`expo.ios.infoPlist` in `app.json`:
 
-App Store Connect asks, on the first upload, for one of:
+```json
+"ITSAppUsesNonExemptEncryption": true,
+"ITSEncryptionExportComplianceCode": "<the code>"
+```
+
+Builds that carry both pass compliance without the questions.
+
+## The documentation
+
+App Store Connect asks for one of:
 
 - a **CCATS** classification from the US Bureau of Industry and Security, or
 - a **self-classification report** under License Exception ENC (5D002),

@@ -19,7 +19,6 @@
       },
       "bundleIdentifier": "im.statim.app",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": true,
         "LSApplicationQueriesSchemes": ["wc", "ethereum"],
         "NSMicrophoneUsageDescription": "Record a voice note to send in a message. Audio is recorded on this device and sent inside the encrypted message.",
         "NSBluetoothAlwaysUsageDescription": "Connect to a hardware wallet over Bluetooth to confirm transactions on it. No data is collected and nothing is sent anywhere."
