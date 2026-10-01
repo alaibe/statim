@@ -9,7 +9,7 @@ creates a local key on first launch.
 TO REVIEW THE APP
 
 Open the app and tap "Create an account", then "Reveal recovery phrase" and
-"I've written it down". The local Statim room provides help and commands and
+"I've written it down". The Statim chat in the chat list offers notes and slash commands and
 works without a second party. Sending a message to someone requires another
 XMTP, Nostr or Status user.
 
@@ -17,7 +17,7 @@ PLUGINS
 
 Chains, market data, a dapp browser and bots are plugins that ship switched off.
 Settings → Plugins lists them, and each states what it adds and what it may
-reach. Turning one on takes effect immediately and adds its own conversation to
+reach. Turning one on takes effect immediately and adds its own chat to
 the chat list.
 
 WALLET
@@ -39,5 +39,5 @@ key; an optional one raises the rate limit.
 
 CONTACTS PERMISSION
 
-Requested only when the user opens Contacts → Invite friends. The address book
+Requested only when the user opens Contacts → Invite contacts. The address book
 is read on the device to suggest who to invite and never leaves it.

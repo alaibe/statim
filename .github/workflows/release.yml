@@ -5,6 +5,7 @@ name: Release
 #
 # Desktop bundles are built by tauri-apps/tauri-action on a runner per OS and
 # attached to one draft release, published once every build has succeeded.
+# Mobile builds go through EAS to the stores and do not hold the release back.
 on:
   push:
     tags: ['v*']
@@ -145,6 +146,31 @@ jobs:
             "src-tauri/target/universal-apple-darwin/release/bundle/macos/Statim.app" "$V" "$PKG"
           gh api -X POST -H "Content-Type: application/octet-stream" --input "$PKG" --silent \
             "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ needs.prepare.outputs.release_id }}/assets?name=$PKG"
+
+  mobile:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ios]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: expo/expo-github-action@v9
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - run: npm ci
+
+      - run: >-
+          eas build --platform ${{ matrix.platform }} --profile production
+          --non-interactive --wait --auto-submit
 
   publish:
     needs: [prepare, desktop]
