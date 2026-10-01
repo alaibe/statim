@@ -11,7 +11,7 @@ them work around upstream bugs, and three work around the same one: Swift 6.2.4
 | `expo-modules-core+57.0.18` | A `nonisolated(unsafe) weak let` emitter can no longer cross into an actor |
 | `@expo+metro-config+57.0.12` | A lazy `import()` of a `.cjs` entry loads its `.js` sibling instead |
 | `@xmtp+react-native-sdk+5.7.0` | `SwiftUI.Group` collides with `XMTPiOS.Group`; the Android module does not build; neither platform reports install times in milliseconds |
-| `react-native-tdlib+2.3.0` | No way to free the raw client without wiping the database |
+| `react-native-tdlib+2.3.0` | No way to free the raw client without wiping the database; the framework claims iOS 11 but needs 18.1 |
 | `nativewind+4.2.6` | `NATIVEWIND_OS=web` treated as native, so `platformSelect()` reaches the browser |
 | `react-native-reanimated+4.5.1` | Entering elements pinned `position: absolute` after a custom animation |
 
@@ -233,12 +233,27 @@ implemented the raw receive path: its `td_json_client_receive` sends a null
 request instead of reading updates. Telegram is therefore iOS-only until that is
 fixed upstream or the adapter grows a second native backend.
 
-**Remove when** upstream ships a native-only destroy for the raw API.
+The patch also fixes the bundled framework's minimum iOS version.
+
+Symptom: App Store Connect rejects the upload with ITMS-90208, "The bundle
+Statim.app/Frameworks/libtdjson.framework does not support the minimum OS
+Version specified in the Info.plist."
+
+Cause: The `libtdjson` binary in both xcframework slices is built for iOS 18.1
+(`xcrun vtool -show-build` reports `minos 18.1`), while the framework's
+`Info.plist` says `MinimumOSVersion` 11.0.
+
+Fix: Set `MinimumOSVersion` to 18.1 in both slices' `Info.plist`.
+`expo-build-properties` sets `ios.deploymentTarget` to 18.1 to match, because the
+app cannot run on an older iOS than the library it loads.
+
+**Remove when** upstream ships a native-only destroy for the raw API and a
+framework whose `Info.plist` matches its binary.
 Regenerate with:
 
 ```bash
 npx patch-package react-native-tdlib \
-  --include 'ios/TdLibModule\.mm$|^index\.js$|^index\.d\.ts$'
+  --include 'ios/TdLibModule\.mm$|^index\.js$|^index\.d\.ts$|libtdjson\.framework/Info\.plist$'
 ```
 
 ---

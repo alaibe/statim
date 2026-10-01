@@ -30,6 +30,30 @@ index 2058dc7..6fa6f8a 100644
    getTextEntities: TdLibModule.getTextEntities,
  
    // Auth
+diff --git a/node_modules/react-native-tdlib/ios/Libraries/tdjson/libtdjson.xcframework/ios-arm64/libtdjson.framework/Info.plist b/node_modules/react-native-tdlib/ios/Libraries/tdjson/libtdjson.xcframework/ios-arm64/libtdjson.framework/Info.plist
+index 274e44b..bd037f5 100644
+--- a/node_modules/react-native-tdlib/ios/Libraries/tdjson/libtdjson.xcframework/ios-arm64/libtdjson.framework/Info.plist
++++ b/node_modules/react-native-tdlib/ios/Libraries/tdjson/libtdjson.xcframework/ios-arm64/libtdjson.framework/Info.plist
+@@ -9,6 +9,6 @@
+   <key>CFBundleShortVersionString</key><string>1.8.41</string>
+   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+   <key>CFBundlePackageType</key><string>FMWK</string>
+-  <key>MinimumOSVersion</key><string>11.0</string>
++  <key>MinimumOSVersion</key><string>18.1</string>
+ </dict>
+ </plist>
+diff --git a/node_modules/react-native-tdlib/ios/Libraries/tdjson/libtdjson.xcframework/ios-arm64_x86_64-simulator/libtdjson.framework/Info.plist b/node_modules/react-native-tdlib/ios/Libraries/tdjson/libtdjson.xcframework/ios-arm64_x86_64-simulator/libtdjson.framework/Info.plist
+index 274e44b..bd037f5 100644
+--- a/node_modules/react-native-tdlib/ios/Libraries/tdjson/libtdjson.xcframework/ios-arm64_x86_64-simulator/libtdjson.framework/Info.plist
++++ b/node_modules/react-native-tdlib/ios/Libraries/tdjson/libtdjson.xcframework/ios-arm64_x86_64-simulator/libtdjson.framework/Info.plist
+@@ -9,6 +9,6 @@
+   <key>CFBundleShortVersionString</key><string>1.8.41</string>
+   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+   <key>CFBundlePackageType</key><string>FMWK</string>
+-  <key>MinimumOSVersion</key><string>11.0</string>
++  <key>MinimumOSVersion</key><string>18.1</string>
+ </dict>
+ </plist>
 diff --git a/node_modules/react-native-tdlib/ios/TdLibModule.mm b/node_modules/react-native-tdlib/ios/TdLibModule.mm
 index a916c8a..835d478 100644
 --- a/node_modules/react-native-tdlib/ios/TdLibModule.mm
