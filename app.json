@@ -180,13 +180,13 @@
     "extra": {
       "walletConnectProjectId": "860e6227a1f1c25e34248a064184c755",
       "eas": {
-        "projectId": "79810f0e-e25f-4feb-bedf-b527e71edd9f"
+        "projectId": "675fe294-d646-4536-b012-6224cd52b6e4"
       }
     },
     "owner": "alaibe",
     "primaryColor": "#4A57AD",
     "updates": {
-      "url": "https://u.expo.dev/79810f0e-e25f-4feb-bedf-b527e71edd9f",
+      "url": "https://u.expo.dev/675fe294-d646-4536-b012-6224cd52b6e4",
       "checkAutomatically": "ON_LOAD"
     }
   }
