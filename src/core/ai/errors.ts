@@ -1,16 +1,11 @@
 export type AiErrorCode =
-  /** No model to use: none on this device and none set up. */
   | 'unavailable'
-  /** The model's safety rules declined the text. */
   | 'refused'
-  /** More text than the model takes in one go. */
   | 'too-long'
   /** The translation language is supported but not downloaded. */
   | 'language-missing'
   | 'language-unsupported'
-  /** The device model's daily allowance is used up. */
   | 'quota'
-  /** The server answered with an error, or not at all. */
   | 'server';
 
 export class AiError extends Error {

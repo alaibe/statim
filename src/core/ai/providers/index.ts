@@ -15,7 +15,6 @@ export type ProviderLookup =
   | { readonly ok: true; readonly provider: AiProvider }
   | { readonly ok: false; readonly reason: string };
 
-/** Ollama's first model, when a computer runs it on the default port. */
 async function localOllama(): Promise<AiProvider | null> {
   if (process.env.EXPO_OS !== 'web') return null;
   const models = await Promise.race([

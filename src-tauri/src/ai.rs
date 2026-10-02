@@ -1,5 +1,3 @@
-//! The model and the translator built into the Mac: Apple Intelligence through
-//! fm-rs, Apple Translation through a small Swift file `build.rs` compiles.
 //! Errors carry the codes the phone's native module rejects with.
 
 use serde::Serialize;

@@ -42,7 +42,6 @@ async function ask(context: PluginContext, request: CompletionRequest): Promise<
   return { text: await provider.complete(request), label: provider.label };
 }
 
-/** Everything after the first word, line breaks kept. */
 function afterFirstWord(rest: string): string {
   return rest.replace(/^\s*\S+\s*/, '');
 }
@@ -75,7 +74,6 @@ function setupCard(reason: string): WidgetContent {
   };
 }
 
-/** No model to use is answered with the way to set one up, not a bare error. */
 function offeringSetup(command: SlashCommand): SlashCommand {
   return {
     ...command,

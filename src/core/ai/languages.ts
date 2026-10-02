@@ -44,7 +44,6 @@ const ALIASES: Record<string, string> = {
   ua: 'uk',
 };
 
-/** A tag ("fr"), an alias ("jp") or a name ("french"), in any case. */
 export function findLanguage(word: string): Language | null {
   const key = word.trim().toLowerCase();
   if (!key) return null;

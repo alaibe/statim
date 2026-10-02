@@ -73,7 +73,6 @@ export interface PluginAccountApi {
   deriveEd25519(path: string): Ed25519Key;
 }
 
-/** A message as a plugin reads it: who wrote it, by name, and its text. */
 export interface PluginMessage {
   id: MessageId;
   /** The sender's name as the app shows it, or "You". */
