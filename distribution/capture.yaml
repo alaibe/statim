@@ -1,4 +1,5 @@
-# Captures store images from the clean simulator prepared by `store-artifacts`.
+# Captures store images on iOS and Android, from the clean device prepared by
+# scripts/capture-screenshots.sh.
 appId: im.statim.app
 ---
 - launchApp:
@@ -40,6 +41,10 @@ appId: im.statim.app
     visible:
       id: "chat-local-statim"
     timeout: 30000
+- extendedWaitUntil:
+    notVisible: "Fetching history.*"
+    timeout: 60000
+    optional: true
 - waitForAnimationToEnd
 - takeScreenshot: 02-chats
 
@@ -81,7 +86,7 @@ appId: im.statim.app
 - waitForAnimationToEnd
 - takeScreenshot: 04-note
 
-- longPressOn: "Remember to book the train tomorrow"
+- longPressOn: "Remember to book the train tomorrow.*"
 - waitForAnimationToEnd
 - takeScreenshot: 05-message-actions
 - tapOn:

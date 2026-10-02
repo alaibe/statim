@@ -8,14 +8,17 @@ The text and images the stores ask for, and how each platform gets released.
 | `ios/review-notes.md` | App Review Information → Notes, and TestFlight's Beta App Review notes |
 | `ios/export-compliance.md` | the encryption questions App Store Connect asks on upload |
 | `ios/screenshots/6.9/` | Media Manager → iPhone 6.9" Display |
-| `ios/capture.yaml` | the Maestro flow those screenshots come from |
 | `privacy-labels.md` | App Privacy and Play's Data safety form |
 | `play/listing.md` | Play Console listing, Data safety and content rating |
 | `play/icon.png`, `play/feature-graphic.png` | Play listing graphics, from `npm run brand:build` |
+| `play/screenshots/` | Main store listing → Phone screenshots |
+| `capture.yaml` | the Maestro flow both sets of screenshots come from |
 
 `./scripts/capture-screenshots.sh store path/to/Statim.app` retakes the
-screenshots from an erased simulator, so no real chat ends up in the listing.
-Use a release build for a submission. `.claude/skills/store-artifacts/SKILL.md`
+screenshots from an erased simulator, and
+`./scripts/capture-screenshots.sh play path/to/app-release.apk` from a fresh
+install on a booted emulator, so no real chat ends up in the listing. Use a
+release build for a submission. `.claude/skills/store-artifacts/SKILL.md`
 has the text limits and the other checks to run before submitting.
 
 ## Releasing
