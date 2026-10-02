@@ -17,7 +17,7 @@ import {
   summaryRequest,
   transcript,
 } from '@/core/ai/prompts';
-import { recentLines } from '@/core/messaging/chat-lines';
+import { recentLines, type ChatLine } from '@/core/messaging/chat-lines';
 import type { WidgetContent } from '@/core/messaging/types';
 import type { CoreFeature } from '@/core/plugins/registry';
 import type { ComposerAction, SlashCommand } from '@/core/plugins/types';
@@ -42,6 +42,24 @@ async function provider(): Promise<AiProvider> {
 async function ask(request: CompletionRequest): Promise<AiAnswer> {
   const model = await provider();
   return { text: await model.complete(request), label: model.label };
+}
+
+/** Fewer messages each time the model runs out of room, down to two. */
+async function completeOver(
+  model: AiProvider,
+  lines: readonly ChatLine[],
+  build: (chat: string) => CompletionRequest
+): Promise<{ text: string; count: number }> {
+  let budget = model.maxInputChars - build('').instructions.length - 32;
+  for (;;) {
+    const chat = transcript(lines, budget);
+    try {
+      return { text: await model.complete(build(chat.text)), count: chat.count };
+    } catch (error) {
+      if (!isAiError(error, 'too-long') || chat.count <= 2) throw error;
+      budget = Math.floor(chat.text.length / 2);
+    }
+  }
 }
 
 function afterFirstWord(rest: string): string {
@@ -157,13 +175,9 @@ const commands = (
         }
 
         const model = await provider();
-        const budget = model.maxInputChars - summaryRequest('').instructions.length - 32;
-        const chat = transcript(messages, budget);
-        const text = await model.complete(summaryRequest(chat.text));
+        const { text, count } = await completeOver(model, messages, summaryRequest);
         const title =
-          chat.count === 1
-            ? 'Summary of the last message'
-            : `Summary of the last ${chat.count} messages`;
+          count === 1 ? 'Summary of the last message' : `Summary of the last ${count} messages`;
         await respond(answerCard(title, { text, label: model.label }, true));
         return { type: 'handled' };
       },
@@ -181,9 +195,8 @@ const commands = (
         }
 
         const model = await provider();
-        const budget = model.maxInputChars - suggestRequest('').instructions.length - 32;
         const replies = parseSuggestions(
-          await model.complete(suggestRequest(transcript(messages, budget).text))
+          (await completeOver(model, messages, suggestRequest)).text
         );
         if (replies.length === 0) throw new AiError('server', 'The model suggested nothing.');
 

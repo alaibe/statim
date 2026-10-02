@@ -15,10 +15,16 @@ export async function deviceModelState(): Promise<DeviceModelState> {
   return invoke<DeviceModelState>('ai_model_state').catch(() => 'unsupported' as const);
 }
 
-export async function completeOnDevice(instructions: string, prompt: string): Promise<string> {
-  return invoke<string>('ai_complete', { instructions, prompt }).catch((error: unknown) => {
-    throw fromNative(error);
-  });
+export async function completeOnDevice(
+  instructions: string,
+  prompt: string,
+  maxTokens: number
+): Promise<string> {
+  return invoke<string>('ai_complete', { instructions, prompt, maxTokens }).catch(
+    (error: unknown) => {
+      throw fromNative(error);
+    }
+  );
 }
 
 export async function translateOnDevice(text: string, target: string): Promise<string> {

@@ -7,9 +7,13 @@ export async function deviceModelState(): Promise<DeviceModelState> {
   return OnDeviceAi.modelState().catch(() => 'unsupported' as const);
 }
 
-export async function completeOnDevice(instructions: string, prompt: string): Promise<string> {
+export async function completeOnDevice(
+  instructions: string,
+  prompt: string,
+  maxTokens: number
+): Promise<string> {
   if (!OnDeviceAi) throw new AiError('unavailable', 'This build has no on-device model.');
-  return OnDeviceAi.complete(instructions, prompt).catch((error: unknown) => {
+  return OnDeviceAi.complete(instructions, prompt, maxTokens).catch((error: unknown) => {
     throw fromNative(error);
   });
 }

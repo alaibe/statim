@@ -23,9 +23,10 @@ public class OnDeviceAiModule: Module {
       }
     }
 
-    AsyncFunction("complete") { (instructions: String, prompt: String) async throws -> String in
+    AsyncFunction("complete") {
+      (instructions: String, prompt: String, maxTokens: Int) async throws -> String in
       guard #available(iOS 26.0, *) else { throw needsNewerSystem }
-      return try await Model.complete(instructions: instructions, prompt: prompt)
+      return try await Model.complete(instructions: instructions, prompt: prompt, maxTokens: maxTokens)
     }
 
     AsyncFunction("translate") { (text: String, target: String) async throws -> String in
@@ -37,7 +38,7 @@ public class OnDeviceAiModule: Module {
 
 @available(iOS 26.0, *)
 enum Model {
-  static func complete(instructions: String, prompt: String) async throws -> String {
+  static func complete(instructions: String, prompt: String, maxTokens: Int) async throws -> String {
     // The default guardrails refuse ordinary messages, "pick up the kids at 5" among them.
     let model = SystemLanguageModel(guardrails: .permissiveContentTransformations)
     guard model.isAvailable else {
@@ -45,7 +46,8 @@ enum Model {
     }
     let session = LanguageModelSession(model: model, instructions: instructions)
     do {
-      return try await session.respond(to: prompt).content
+      let options = GenerationOptions(maximumResponseTokens: maxTokens)
+      return try await session.respond(to: prompt, options: options).content
     } catch let error as LanguageModelSession.GenerationError {
       switch error {
       case .guardrailViolation, .refusal:

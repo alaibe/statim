@@ -14,7 +14,8 @@ export const deviceProvider: AiProvider = {
   label: `${DEVICE_MODEL_NAME} · on-device`,
   onDevice: true,
   maxInputChars: DEVICE_MAX_INPUT_CHARS,
-  complete: ({ instructions, prompt }) => completeOnDevice(instructions, prompt),
+  complete: ({ instructions, prompt, maxAnswerTokens }) =>
+    completeOnDevice(instructions, prompt, maxAnswerTokens),
 };
 
 export function deviceUnavailableReason(state: Exclude<DeviceModelState, 'ready'>): string {

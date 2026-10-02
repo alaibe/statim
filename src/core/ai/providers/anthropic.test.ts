@@ -15,9 +15,9 @@ it('sends the Messages API shape and joins the text blocks', async () => {
   answer({ content: [{ type: 'text', text: 'Bonjour' }], stop_reason: 'end_turn' });
   const provider = anthropicProvider({ key: 'k', model: 'claude-opus-5-5', url: '' });
 
-  await expect(provider.complete({ instructions: 'Translate', prompt: 'Hello' })).resolves.toBe(
-    'Bonjour'
-  );
+  await expect(
+    provider.complete({ instructions: 'Translate', prompt: 'Hello', maxAnswerTokens: 100 })
+  ).resolves.toBe('Bonjour');
   const [url, init] = fetchMock.mock.calls[0];
   const headers = init?.headers as Record<string, string>;
   expect(url).toBe('https://api.anthropic.com/v1/messages');
@@ -36,10 +36,12 @@ it('asks for a server-side fallback only on models that take one', async () => {
   await anthropicProvider({ key: 'k', model: 'claude-opus-5-5', url: '' }).complete({
     instructions: '',
     prompt: '',
+    maxAnswerTokens: 100,
   });
   await anthropicProvider({ key: 'k', model: 'claude-haiku-4-5', url: '' }).complete({
     instructions: '',
     prompt: '',
+    maxAnswerTokens: 100,
   });
 
   const [opus, haiku] = fetchMock.mock.calls.map(([, init]) => ({
@@ -55,7 +57,9 @@ it('asks for a server-side fallback only on models that take one', async () => {
 it('reports a refusal instead of an empty answer', async () => {
   answer({ content: [], stop_reason: 'refusal' });
   const provider = anthropicProvider({ key: 'k', model: 'claude-opus-5-5', url: '' });
-  await expect(provider.complete({ instructions: '', prompt: '' })).rejects.toMatchObject({
+  await expect(
+    provider.complete({ instructions: '', prompt: '', maxAnswerTokens: 100 })
+  ).rejects.toMatchObject({
     code: 'refused',
   });
 });

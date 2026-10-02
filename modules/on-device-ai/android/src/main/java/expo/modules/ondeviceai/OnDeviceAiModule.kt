@@ -43,8 +43,8 @@ class OnDeviceAiModule : Module() {
       }
     }
 
-    AsyncFunction("complete") Coroutine { instructions: String, prompt: String ->
-      complete(instructions, prompt)
+    AsyncFunction("complete") Coroutine { instructions: String, prompt: String, maxTokens: Int ->
+      complete(instructions, prompt, maxTokens)
     }
 
     AsyncFunction("translate") Coroutine { text: String, target: String ->
@@ -69,8 +69,10 @@ class OnDeviceAiModule : Module() {
     }
   }
 
-  private suspend fun complete(instructions: String, prompt: String): String {
-    val request = generateContentRequest(TextPart("$instructions\n\n$prompt")) {}
+  private suspend fun complete(instructions: String, prompt: String, maxTokens: Int): String {
+    val request = generateContentRequest(TextPart("$instructions\n\n$prompt")) {
+      maxOutputTokens = maxTokens
+    }
     try {
       return model.generateContent(request).candidates.first().text.trim()
     } catch (e: GenAiException) {

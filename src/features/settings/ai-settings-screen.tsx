@@ -169,6 +169,7 @@ function AiSettingsForm({
       await lookup.provider.complete({
         instructions: 'Reply with the single word OK.',
         prompt: 'Are you there?',
+        maxAnswerTokens: 20,
       });
       const seconds = ((Date.now() - started) / 1000).toFixed(1);
       toast.success(`${lookup.provider.label} answered in ${seconds} s`);

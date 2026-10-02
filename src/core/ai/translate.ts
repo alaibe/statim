@@ -1,7 +1,7 @@
 import { AiError, isAiError } from './errors';
 import { DEVICE_TRANSLATION_LABEL, DEVICE_TRANSLATION_SETTINGS, translateOnDevice } from './device';
 import type { Language } from './languages';
-import { tagged } from './prompts';
+import { roomFor, tagged } from './prompts';
 import { resolveProvider, type AiAnswer } from './providers';
 
 export function translationInstructions(target: Language): string {
@@ -66,6 +66,7 @@ export async function translateText(
     const translated = await lookup.provider.complete({
       instructions: translationInstructions(target),
       prompt: tagged('text', text),
+      maxAnswerTokens: roomFor(text),
     });
     return { text: translated, label: lookup.provider.label };
   }

@@ -1,6 +1,8 @@
 export interface CompletionRequest {
   readonly instructions: string;
   readonly prompt: string;
+  /** Where an on-device model stops; left to the model on a server. */
+  readonly maxAnswerTokens: number;
 }
 
 export interface AiProvider {

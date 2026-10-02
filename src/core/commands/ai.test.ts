@@ -136,3 +136,22 @@ it('is offered only while the switch is on', () => {
   expect(listener).toHaveBeenCalledTimes(2);
   unsubscribe();
 });
+
+it('/summarize tries again with fewer messages when the model runs out of room', async () => {
+  const { AiError } = jest.requireActual<typeof import('@/core/ai/errors')>('@/core/ai/errors');
+  lines.mockResolvedValueOnce(
+    Array.from({ length: 40 }, (_, i) => ({
+      id: String(i),
+      from: i % 2 ? 'You' : 'Ann',
+      fromMe: i % 2 === 1,
+      sentAt: i,
+      text: `message number ${i} with a little more text in it`,
+    }))
+  );
+  complete.mockRejectedValueOnce(new AiError('too-long', 'too long')).mockResolvedValueOnce('- ok');
+  const { result, respond } = invoke('summarize');
+  await result;
+  const [first, second] = complete.mock.calls.map(([r]) => (r as { prompt: string }).prompt);
+  expect(second.length).toBeLessThan(first.length);
+  expect(JSON.stringify(respond.mock.calls[0][0])).toMatch(/Summary of the last \d+ messages/);
+});

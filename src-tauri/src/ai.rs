@@ -47,7 +47,7 @@ mod model {
         }
     }
 
-    pub fn complete(instructions: &str, prompt: &str) -> Result<String, AiError> {
+    pub fn complete(instructions: &str, prompt: &str, max_tokens: u32) -> Result<String, AiError> {
         if !at_least_macos(26) {
             return Err(AiError::new(
                 "ERR_UNAVAILABLE",
@@ -60,9 +60,10 @@ mod model {
                 .map_err(failure)?;
         model.ensure_available().map_err(failure)?;
         let session = Session::with_instructions(&model, instructions).map_err(failure)?;
-        let response = session
-            .respond(prompt, &GenerationOptions::default())
-            .map_err(failure)?;
+        let options = GenerationOptions::builder()
+            .max_response_tokens(max_tokens)
+            .build();
+        let response = session.respond(prompt, &options).map_err(failure)?;
         Ok(response.content().to_owned())
     }
 
@@ -99,7 +100,11 @@ mod model {
         "unsupported"
     }
 
-    pub fn complete(_instructions: &str, _prompt: &str) -> Result<String, AiError> {
+    pub fn complete(
+        _instructions: &str,
+        _prompt: &str,
+        _max_tokens: u32,
+    ) -> Result<String, AiError> {
         Err(AiError::new(
             "ERR_UNAVAILABLE",
             "This computer has no AI model of its own.",
@@ -172,8 +177,12 @@ pub async fn ai_model_state() -> Result<&'static str, AiError> {
 }
 
 #[tauri::command]
-pub async fn ai_complete(instructions: String, prompt: String) -> Result<String, AiError> {
-    blocking(move || model::complete(&instructions, &prompt)).await
+pub async fn ai_complete(
+    instructions: String,
+    prompt: String,
+    max_tokens: u32,
+) -> Result<String, AiError> {
+    blocking(move || model::complete(&instructions, &prompt, max_tokens)).await
 }
 
 #[tauri::command]
@@ -194,6 +203,7 @@ mod tests {
         let answer = model::complete(
             "Translate the text inside <text> tags into French. Reply with the translation only.",
             "<text>Can you pick up the kids at 5? I'm stuck at work.</text>",
+            200,
         )
         .map_err(|e| e.message)
         .unwrap();
