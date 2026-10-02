@@ -16,8 +16,10 @@ before they go. On the Mac you can also paste or drop files into the message
 box: photos go as photos, videos as videos where the protocol takes them, and
 anything else as a file.
 
-On a phone you can also share photos into Statim from any other app: pick
-**Statim** in the share sheet, then the chat to send them to.
+On a phone you can also share into Statim from any other app: pick **Statim**
+in the share sheet, then a chat. Photos, videos and files are sent right away,
+under the same rules as the paperclip. A link or text goes into the message box
+for you to finish and send.
 
 What you type but do not send stays with the chat as a draft. On Telegram the
 draft is saved to your account too, so it follows the chat to your other

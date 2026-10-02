@@ -170,7 +170,6 @@ function AppShell() {
           <Stack.Screen name="qr" options={SHEET_OPTIONS} />
           <Stack.Screen name="bridge-login" options={SHEET_OPTIONS} />
           <Stack.Screen name="search" options={SHEET_OPTIONS} />
-          {/* A card, not a modal: a modal would cover the lock screen on a cold start. */}
           <Stack.Screen name="share" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen
             name="sheet"

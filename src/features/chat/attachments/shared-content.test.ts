@@ -1,6 +1,6 @@
 import { ImageManipulator } from 'expo-image-manipulator';
 
-import { deleteSharedFiles, imageFromShare } from './shared-image';
+import { contentFromShare, deleteSharedFiles, sharedText } from './shared-content';
 
 const mockSizes: Record<string, number> = {};
 const mockDeleted: string[] = [];
@@ -54,11 +54,10 @@ it('bounds a shared photo to 1600 px and sends it as a JPEG', async () => {
   mockSizes['file:///cache/out.jpg'] = 300 * 1024;
 
   await expect(
-    imageFromShare({
-      value: 'file:///group/IMG_0001.HEIC',
-      shareType: 'image',
-      mimeType: 'image/heic',
-    })
+    contentFromShare(
+      { value: 'file:///group/IMG_0001.HEIC', shareType: 'image', mimeType: 'image/heic' },
+      false
+    )
   ).resolves.toEqual({
     kind: 'image',
     uri: 'file:///cache/out.jpg',
@@ -76,7 +75,10 @@ it('leaves a small photo at its size and still refuses one over the limit', asyn
   mockSizes['file:///cache/out.jpg'] = 701 * 1024;
 
   await expect(
-    imageFromShare({ value: 'file:///group/small.png', shareType: 'image', mimeType: 'image/png' })
+    contentFromShare(
+      { value: 'file:///group/small.png', shareType: 'image', mimeType: 'image/png' },
+      false
+    )
   ).rejects.toThrow('The limit is');
   expect(resize).not.toHaveBeenCalled();
 });
@@ -85,7 +87,10 @@ it('keeps a GIF as it is, so it still moves', async () => {
   mockSizes['file:///group/party.gif'] = 200 * 1024;
 
   await expect(
-    imageFromShare({ value: 'file:///group/party.gif', shareType: 'image', mimeType: 'image/gif' })
+    contentFromShare(
+      { value: 'file:///group/party.gif', shareType: 'image', mimeType: 'image/gif' },
+      false
+    )
   ).resolves.toEqual({
     kind: 'image',
     uri: 'file:///group/party.gif',
@@ -94,6 +99,51 @@ it('keeps a GIF as it is, so it still moves', async () => {
     size: 200 * 1024,
   });
   expect(ImageManipulator.manipulate).not.toHaveBeenCalledWith('file:///group/party.gif');
+});
+
+it('sends a video as a video where the protocol can, and as a file within the limit elsewhere', async () => {
+  const clip = {
+    value: 'file:///group/clip.mov',
+    shareType: 'video',
+    mimeType: 'video/quicktime',
+  } as const;
+  mockSizes[clip.value] = 5 * 1024 * 1024;
+
+  await expect(contentFromShare(clip, true)).resolves.toEqual({
+    kind: 'video',
+    uri: clip.value,
+    name: 'clip.mov',
+    mimeType: 'video/quicktime',
+    size: 5 * 1024 * 1024,
+  });
+  await expect(contentFromShare(clip, false)).rejects.toThrow('That file is 5120KB');
+});
+
+it('sends anything else as a file', async () => {
+  const pdf = {
+    value: 'file:///group/notes.pdf',
+    shareType: 'file',
+    mimeType: 'application/pdf',
+  } as const;
+  mockSizes[pdf.value] = 40 * 1024;
+
+  await expect(contentFromShare(pdf, true)).resolves.toEqual({
+    kind: 'file',
+    uri: pdf.value,
+    name: 'notes.pdf',
+    mimeType: 'application/pdf',
+    size: 40 * 1024,
+  });
+});
+
+it('gathers shared text and links into one draft', () => {
+  expect(
+    sharedText([
+      { value: 'Look at this ', shareType: 'text' },
+      { value: 'file:///group/a.jpg', shareType: 'image' },
+      { value: 'https://statim.laibe.cc', shareType: 'url' },
+    ])
+  ).toBe('Look at this\nhttps://statim.laibe.cc');
 });
 
 it("deletes the share extension's copies but never a sender's content URI", () => {

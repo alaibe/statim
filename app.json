@@ -177,12 +177,18 @@
         {
           "ios": {
             "enabled": true,
-            "activationRule": { "supportsImageWithMaxCount": 10 }
+            "activationRule": {
+              "supportsText": true,
+              "supportsWebUrlWithMaxCount": 1,
+              "supportsImageWithMaxCount": 10,
+              "supportsMovieWithMaxCount": 10,
+              "supportsFileWithMaxCount": 10
+            }
           },
           "android": {
             "enabled": true,
-            "singleShareMimeTypes": ["image/*"],
-            "multipleShareMimeTypes": ["image/*"]
+            "singleShareMimeTypes": ["*/*"],
+            "multipleShareMimeTypes": ["*/*"]
           }
         }
       ]

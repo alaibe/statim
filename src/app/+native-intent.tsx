@@ -3,7 +3,6 @@ import type { Chat, ChatId, ChatMessage } from '@/core/messaging/types';
 import { moveInviteText } from '@/plugins/profile/move-invite';
 
 /**
- * `statim://expo-sharing` is how the share sheet hands over a photo.
  * `statim://fixture/<name>` opens a made-up chat in a debug build, for the
  * screenshots docs/screenshots/capture.yaml takes of what a fresh account
  * cannot have yet.

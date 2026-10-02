@@ -11,20 +11,42 @@ import { assertFits } from './pick';
 const MAX_EDGE = 1600;
 const QUALITY = 0.78;
 
-/**
- * Another app hands over the original, often a photo of several megabytes,
- * so it is bounded and re-encoded as a JPEG the way the picker would. A GIF
- * stays as it is, since a re-encode would freeze it.
- */
-export async function imageFromShare(payload: SharePayload): Promise<MessageContent> {
-  const name = basenameOf(payload.value);
-  if (payload.mimeType === 'image/gif') {
-    const size = new File(payload.value).size ?? undefined;
-    assertFits(size, 'That GIF');
-    return { kind: 'image', uri: payload.value, name, mimeType: payload.mimeType, size };
-  }
+export const isSharedText = (payload: SharePayload) =>
+  payload.shareType === 'text' || payload.shareType === 'url';
 
-  const context = ImageManipulator.manipulate(payload.value);
+export function sharedText(payloads: SharePayload[]): string {
+  return payloads
+    .filter(isSharedText)
+    .map((p) => p.value.trim())
+    .filter(Boolean)
+    .join('\n');
+}
+
+export async function contentFromShare(
+  payload: SharePayload,
+  sendsVideo: boolean
+): Promise<MessageContent> {
+  const name = basenameOf(payload.value);
+  if (payload.shareType === 'image' && payload.mimeType !== 'image/gif') {
+    return imageFromShare(payload.value, name);
+  }
+  const base = {
+    uri: payload.value,
+    name,
+    mimeType: payload.mimeType,
+    size: new File(payload.value).size ?? undefined,
+  };
+  if (payload.shareType === 'image') {
+    assertFits(base.size, 'That GIF');
+    return { kind: 'image', ...base };
+  }
+  if (payload.shareType === 'video' && sendsVideo) return { kind: 'video', ...base };
+  assertFits(base.size, 'That file');
+  return { kind: 'file', ...base, name: name ?? 'file' };
+}
+
+async function imageFromShare(uri: string, name: string | undefined): Promise<MessageContent> {
+  const context = ImageManipulator.manipulate(uri);
   const original = await context.renderAsync();
   const scale = Math.min(1, MAX_EDGE / Math.max(original.width, original.height));
   const image =
@@ -46,10 +68,6 @@ export async function imageFromShare(payload: SharePayload): Promise<MessageCont
   };
 }
 
-/**
- * The iPhone's share extension leaves a copy of every photo in the app group,
- * and nothing else removes it. Android's content URIs belong to the sender.
- */
 export function deleteSharedFiles(payloads: SharePayload[]): void {
   for (const { value } of payloads) {
     if (!value.startsWith('file:')) continue;
