@@ -1,9 +1,10 @@
 import { Image } from 'expo-image';
 import { useState } from 'react';
-import { Modal, Pressable as RNPressable, View, useWindowDimensions } from 'react-native';
-import { Icon, Pressable } from '@/design';
+import { View, useWindowDimensions } from 'react-native';
+import { Pressable } from '@/design';
 import { MessageText } from '../message-text';
-import { HoverSave, SaveButton } from './save-button';
+import { MediaViewer } from './media-viewer';
+import { HoverSave } from './save-button';
 
 export interface ImageBubbleProps {
   uri: string;
@@ -52,21 +53,11 @@ export function ImageBubble({ uri, width, height, caption, fromMe, onSave }: Ima
         />
       ) : null}
 
-      <Modal
-        visible={zoomed}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setZoomed(false)}>
-        <RNPressable
-          className="flex-1 items-center justify-center bg-black"
-          onPress={() => setZoomed(false)}>
-          <Image source={{ uri }} style={{ width: '100%', height: '80%' }} contentFit="contain" />
-          <View className="absolute right-5 top-16 flex-row items-center gap-5">
-            {onSave ? <SaveButton onPress={onSave} size={22} /> : null}
-            <Icon name="close" size={28} color="#fff" />
-          </View>
-        </RNPressable>
-      </Modal>
+      <MediaViewer visible={zoomed} onClose={() => setZoomed(false)} onSave={onSave}>
+        <View style={{ width: '100%', height: '80%', pointerEvents: 'none' }}>
+          <Image source={{ uri }} style={{ flex: 1 }} contentFit="contain" />
+        </View>
+      </MediaViewer>
     </View>
   );
 }

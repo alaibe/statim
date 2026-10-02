@@ -37,8 +37,8 @@ protocol can do and what you are allowed to do in that chat:
 - **Reply** quotes the message above yours; tapping the quote jumps back to it.
 - **Copy** the text.
 - **Save as…** (Mac) copies a photo, video or file to a folder you pick.
-  Photos and GIFs also show a save button in their top-right corner when you
-  point at them, and so does a photo opened full screen.
+  Photos, videos and GIFs also show a save button in their top-right corner
+  when you point at them, and so does one opened full screen.
 - **Forward** to another chat, on any protocol.
 - **Edit** your own text. An edited message says "edited" next to its time.
 - **Pin message** puts it in the bar at the top of the chat. It only shows

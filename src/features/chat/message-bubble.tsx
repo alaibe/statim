@@ -163,6 +163,7 @@ export function MessageBubble({
             uri={content.uri}
             width={content.width}
             height={content.height}
+            durationMs={content.durationMs}
             caption={content.caption}
             gif={content.gif}
             fromMe={fromMe}
