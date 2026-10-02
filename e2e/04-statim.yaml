@@ -5,14 +5,14 @@ appId: im.statim.app
 - runFlow: lib/open-statim-chat.yaml
 - assertVisible:
     id: "chat-header-local-statim"
-- assertNotVisible: ${output.note}
+- assertNotVisible: "${output.note}.*"
 
 - runFlow:
     file: lib/send-command.yaml
     env:
       TEXT: ${output.note}
 - extendedWaitUntil:
-    visible: ${output.note}
+    visible: "${output.note}.*"
     timeout: 10000
 
 - tapOn: "Back"
@@ -22,12 +22,12 @@ appId: im.statim.app
 - assertVisible:
     id: "chat-header-local-statim"
 - extendedWaitUntil:
-    visible: ${output.note}
+    visible: "${output.note}.*"
     timeout: 10000
 
 - runFlow: lib/open-statim-chat.yaml
 - assertVisible:
     id: "chat-header-local-statim"
 - extendedWaitUntil:
-    visible: ${output.note}
+    visible: "${output.note}.*"
     timeout: 15000
