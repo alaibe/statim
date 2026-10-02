@@ -14,6 +14,39 @@ export const aiPlugin: Plugin = {
   },
 
   setup(context) {
-    return { commands: aiCommands(context) };
+    return {
+      commands: aiCommands(context),
+      composerActions: [
+        {
+          id: 'ai-rewrite',
+          label: 'Rewrite',
+          icon: 'create-outline',
+          command: '/rewrite',
+          takesDraft: true,
+          showIn: ['dm', 'group'],
+        },
+        {
+          id: 'ai-translate',
+          label: 'Translate',
+          icon: 'globe-outline',
+          command: '/translate',
+          showIn: ['dm', 'group', 'channel'],
+        },
+        {
+          id: 'ai-summarize',
+          label: 'Summarize',
+          icon: 'document-text-outline',
+          command: '/summarize',
+          showIn: ['dm', 'group', 'channel'],
+        },
+        {
+          id: 'ai-suggest',
+          label: 'Suggest a reply',
+          icon: 'chatbubbles-outline',
+          command: '/suggest',
+          showIn: ['dm', 'group'],
+        },
+      ],
+    };
   },
 };

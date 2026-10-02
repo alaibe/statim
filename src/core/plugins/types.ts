@@ -198,6 +198,8 @@ export interface ComposerAction {
   label: string;
   icon: IconName;
   command: string;
+  /** Runs on what the composer holds, appended to `command`, and is offered only while it holds something. */
+  takesDraft?: boolean;
   showIn?: readonly ChatScope[];
   global?: boolean;
 }

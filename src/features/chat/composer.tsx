@@ -196,6 +196,7 @@ export function Composer({
       <QuickActions
         chatId={chatId}
         scope={scope}
+        draft={value}
         onRun={(command) => void dispatch(command, 'action')}
       />
 
