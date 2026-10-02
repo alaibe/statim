@@ -57,7 +57,8 @@ export function MessageText({
           <Text className={className}>
             <Spans spans={only.spans} look={look} />
             {footer ? (
-              <Text variant="micro" className="opacity-0">{`\u2002\u2002${footer.label}`}</Text>
+              // A span ignores opacity, and Android reads transparent black as no colour.
+              <Text variant="micro" className="text-white/0">{`\u2002\u2002${footer.label}`}</Text>
             ) : null}
           </Text>
           {footer ? <View className="absolute bottom-0 right-0">{footer.node}</View> : null}
