@@ -3,11 +3,13 @@ import type { Chat, ChatId, ChatMessage } from '@/core/messaging/types';
 import { moveInviteText } from '@/plugins/profile/move-invite';
 
 /**
+ * `statim://expo-sharing` is how the share sheet hands over a photo.
  * `statim://fixture/<name>` opens a made-up chat in a debug build, for the
  * screenshots docs/screenshots/capture.yaml takes of what a fresh account
  * cannot have yet.
  */
 export function redirectSystemPath({ path }: { path: string; initial: boolean }): string {
+  if (/^statim:\/\/expo-sharing\b/.test(path)) return '/share';
   if (!__DEV__) return path;
   try {
     const name = /fixture\/([\w-]+)/.exec(path)?.[1];

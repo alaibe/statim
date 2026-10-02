@@ -10,7 +10,7 @@ const PHOTO_QUALITY = 0.5;
 
 export class AttachmentRejected extends Error {}
 
-function assertFits(size: number | undefined, what: string): void {
+export function assertFits(size: number | undefined, what: string): void {
   if (size !== undefined && size > INLINE_LIMIT_BYTES) {
     throw new AttachmentRejected(
       `${what} is ${Math.round(size / 1024)}KB. The limit is ` +

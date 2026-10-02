@@ -171,7 +171,21 @@
         }
       ],
       "expo-image",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-sharing",
+        {
+          "ios": {
+            "enabled": true,
+            "activationRule": { "supportsImageWithMaxCount": 10 }
+          },
+          "android": {
+            "enabled": true,
+            "singleShareMimeTypes": ["image/*"],
+            "multipleShareMimeTypes": ["image/*"]
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
