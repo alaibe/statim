@@ -87,6 +87,22 @@ message is looked up through the blockchain endpoint you already use, exactly as
 
 GIF search uses KLIPY, and only if you enter your own key for it.
 
+### AI
+
+The AI plugin is off until you turn it on, and each command runs only when you
+type it or tap its chip. With Automatic, the model and the translator are the
+ones built into your device (Apple Intelligence and Apple Translation, or
+Gemini Nano and Google's ML Kit) and the text never leaves it. ML Kit downloads
+a language from Google the first time you translate into it, which shows Google
+your network address and nothing else.
+
+If you choose your own server or Anthropic in Settings → AI, the text of each
+request goes to that server: what you rewrite or translate and, for summaries
+and reply suggestions, the recent messages of that chat, including other
+people's in a group. Translation also falls back to that server when the device
+has no translator for a language. The address and the key you enter stay on
+this device.
+
 ### App updates
 
 On iPhone and Android, the app asks Expo's update service (`u.expo.dev`) at

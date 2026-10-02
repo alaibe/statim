@@ -5,7 +5,7 @@ import { resolveProvider } from './providers';
 import { translateText } from './translate';
 
 jest.mock('./device', () => ({
-  DEVICE_TRANSLATOR_NAME: 'Apple Translation',
+  DEVICE_TRANSLATION_LABEL: 'Apple Translation · on-device',
   DEVICE_TRANSLATION_SETTINGS: 'Settings › Apps › Translate › Downloaded Languages',
   translateOnDevice: jest.fn(),
 }));

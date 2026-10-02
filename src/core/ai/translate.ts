@@ -1,5 +1,5 @@
 import { AiError, isAiError } from './errors';
-import { DEVICE_TRANSLATION_SETTINGS, DEVICE_TRANSLATOR_NAME, translateOnDevice } from './device';
+import { DEVICE_TRANSLATION_LABEL, DEVICE_TRANSLATION_SETTINGS, translateOnDevice } from './device';
 import type { Language } from './languages';
 import { tagged } from './prompt';
 import { resolveProvider, type AiAnswer } from './providers';
@@ -47,7 +47,6 @@ function missingLanguage(target: Language): AiError {
   );
 }
 
-/** The device's translator when it has the language, otherwise the model. */
 export async function translateText(
   accountId: string,
   text: string,
@@ -55,7 +54,7 @@ export async function translateText(
 ): Promise<AiAnswer> {
   try {
     const translated = await translateKeepingLinks(text, target.tag);
-    return { text: translated, label: `${DEVICE_TRANSLATOR_NAME} · on-device` };
+    return { text: translated, label: DEVICE_TRANSLATION_LABEL };
   } catch (error) {
     if (!isAiError(error) || error.code === 'refused' || error.code === 'too-long') throw error;
     const lookup = await resolveProvider(accountId);

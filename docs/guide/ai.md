@@ -61,6 +61,12 @@ Apple Translation only uses languages you have downloaded:
 - Mac: **System Settings › General › Language & Region › Translation Languages**
 
 On Android, ML Kit downloads a language the first time you use it, about 30 MB.
+Its translations are marked "Translated by Google", and Google asks apps that
+show them to carry this notice: THIS SERVICE MAY CONTAIN TRANSLATIONS POWERED BY
+GOOGLE. GOOGLE DISCLAIMS ALL WARRANTIES RELATED TO THE TRANSLATIONS, EXPRESS OR
+IMPLIED, INCLUDING ANY WARRANTIES OF ACCURACY, RELIABILITY, AND ANY IMPLIED
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT.
 
 When the device has no translator for a language, the model you set up
 translates instead, and the card names it.

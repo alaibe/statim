@@ -6,7 +6,7 @@ import { fromNative } from './errors';
 export type { DeviceModelState };
 
 export const DEVICE_MODEL_NAME = 'Apple Intelligence';
-export const DEVICE_TRANSLATOR_NAME = 'Apple Translation';
+export const DEVICE_TRANSLATION_LABEL = 'Apple Translation · on-device';
 export const DEVICE_MODEL_SETTINGS: string | null = 'System Settings › Apple Intelligence & Siri';
 export const DEVICE_TRANSLATION_SETTINGS: string | null =
   'System Settings › General › Language & Region › Translation Languages';

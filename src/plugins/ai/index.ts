@@ -27,7 +27,7 @@ export const aiPlugin: Plugin = {
         },
         {
           id: 'ai-translate',
-          label: 'Translate',
+          label: process.env.EXPO_OS === 'android' ? 'Translate with Google' : 'Translate',
           icon: 'globe-outline',
           command: '/translate',
           showIn: ['dm', 'group', 'channel'],
