@@ -28,8 +28,13 @@ fn xcrun(args: &[&str]) -> String {
 }
 
 fn apple_translation() {
-    let source = "swift/translation.swift";
-    println!("cargo:rerun-if-changed={source}");
+    let sources = [
+        "swift/translation.swift",
+        "../modules/on-device-ai/ios/AppleTranslation.swift",
+    ];
+    for source in sources {
+        println!("cargo:rerun-if-changed={source}");
+    }
     let arch = match env::var("CARGO_CFG_TARGET_ARCH").as_deref() {
         Ok("aarch64") => "arm64",
         _ => "x86_64",
@@ -46,11 +51,13 @@ fn apple_translation() {
         ])
         .args(["-module-name", "statim_translation"])
         .args(["-target", &format!("{arch}-apple-macosx15.0")])
-        .args(["-sdk", &sdk, source, "-o"])
+        .args(["-sdk", &sdk])
+        .args(sources)
+        .arg("-o")
         .arg(out.join("libstatim_translation.a"))
         .status()
         .expect("swiftc runs");
-    assert!(status.success(), "swiftc failed on {source}");
+    assert!(status.success(), "swiftc failed on {sources:?}");
 
     let swift = xcrun(&["--find", "swift"]);
     let toolchain = Path::new(&swift)

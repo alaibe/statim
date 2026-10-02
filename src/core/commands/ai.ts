@@ -1,13 +1,7 @@
-import { useAiStore } from '@/core/ai/ai-store';
+import { useAccountStore } from '@/core/account/account-store';
+import { TRANSLATE_CHIP_LABEL } from '@/core/ai/device';
 import { AiError, isAiError } from '@/core/ai/errors';
-import { deviceLanguage, findLanguage, type Language } from '@/core/ai/languages';
-import { translateText } from '@/core/ai/translate';
-import {
-  resolveProvider,
-  type AiAnswer,
-  type AiProvider,
-  type CompletionRequest,
-} from '@/core/ai/providers';
+import { deviceLanguage, findLanguage } from '@/core/ai/languages';
 import {
   parseStyle,
   parseSuggestions,
@@ -17,6 +11,14 @@ import {
   summaryRequest,
   transcript,
 } from '@/core/ai/prompts';
+import {
+  resolveProvider,
+  type AiAnswer,
+  type AiProvider,
+  type CompletionRequest,
+} from '@/core/ai/providers';
+import { translateText } from '@/core/ai/translate';
+import { useAppearanceStore } from '@/core/app/appearance';
 import { recentLines, type ChatLine } from '@/core/messaging/chat-lines';
 import type { WidgetContent } from '@/core/messaging/types';
 import type { CoreFeature } from '@/core/plugins/registry';
@@ -28,23 +30,11 @@ const SUMMARY_MAX = 300;
 const SUGGEST_CONTEXT = 20;
 
 function account(): string {
-  const id = useAiStore.getState().accountId;
+  const id = useAccountStore.getState().activeAccountId;
   if (!id) throw new AiError('unavailable', 'No account is active yet.');
   return id;
 }
 
-async function provider(): Promise<AiProvider> {
-  const lookup = await resolveProvider(account());
-  if (!lookup.ok) throw new AiError('unavailable', lookup.reason);
-  return lookup.provider;
-}
-
-async function ask(request: CompletionRequest): Promise<AiAnswer> {
-  const model = await provider();
-  return { text: await model.complete(request), label: model.label };
-}
-
-/** Fewer messages each time the model runs out of room, down to two. */
 async function completeOver(
   model: AiProvider,
   lines: readonly ChatLine[],
@@ -83,14 +73,6 @@ function answerCard(title: string, answer: AiAnswer, mistakes = false): WidgetCo
   };
 }
 
-function setupCard(reason: string): WidgetContent {
-  return {
-    kind: 'widget',
-    fallback: reason,
-    widget: W.card([W.text(reason)], { title: 'AI', icon: 'sparkles-outline', tone: 'warning' }),
-  };
-}
-
 function offeringSetup(command: SlashCommand): SlashCommand {
   return {
     ...command,
@@ -99,7 +81,15 @@ function offeringSetup(command: SlashCommand): SlashCommand {
         return await command.run(invocation);
       } catch (error) {
         if (!isAiError(error, 'unavailable')) throw error;
-        await invocation.respond(setupCard(error.message));
+        await invocation.respond({
+          kind: 'widget',
+          fallback: error.message,
+          widget: W.card([W.text(error.message)], {
+            title: 'AI',
+            icon: 'sparkles-outline',
+            tone: 'warning',
+          }),
+        });
         return { type: 'handled' };
       }
     },
@@ -122,8 +112,11 @@ const commands = (
             message: 'Type your text after /rewrite, for example "/rewrite shorter …".',
           };
         }
-        const answer = await ask(rewriteRequest(text, style ?? 'clearer'));
-        return { type: 'setComposer', text: answer.text };
+        const model = await resolveProvider(account());
+        return {
+          type: 'setComposer',
+          text: await model.complete(rewriteRequest(text, style ?? 'clearer')),
+        };
       },
     },
 
@@ -134,26 +127,20 @@ const commands = (
       usage: '/translate [language] [text]',
       async run({ args, rest, chatId, respond }) {
         const named = args[0] ? findLanguage(args[0]) : null;
-        const text = (named ? afterFirstWord(rest) : rest).trim();
-        const target: Language = named ?? deviceLanguage();
-        const accountId = account();
-
-        const already = { type: 'notice', message: `That is already in ${target.name}.` } as const;
-
-        if (named && text) {
-          const answer = await translateText(accountId, text, target);
-          if (answer.text.trim() === text) return already;
-          return { type: 'setComposer', text: answer.text };
-        }
-
-        const source = text
-          ? { from: null, text }
+        const typed = (named ? afterFirstWord(rest) : rest).trim();
+        const target = named ?? deviceLanguage();
+        const received = typed
+          ? null
           : (await recentLines(chatId, 30)).filter((m) => !m.fromMe && m.text).at(-1);
-        if (!source) return { type: 'error', message: 'There is no message to translate yet.' };
+        const text = typed || received?.text;
+        if (!text) return { type: 'error', message: 'There is no message to translate yet.' };
 
-        const answer = await translateText(accountId, source.text, target);
-        if (answer.text.trim() === source.text.trim()) return already;
-        const title = source.from ? `${source.from}, in ${target.name}` : `In ${target.name}`;
+        const answer = await translateText(account(), text, target);
+        if (answer.text.trim() === text.trim()) {
+          return { type: 'notice', message: `That is already in ${target.name}.` };
+        }
+        if (named && typed) return { type: 'setComposer', text: answer.text };
+        const title = received ? `${received.from}, in ${target.name}` : `In ${target.name}`;
         await respond(answerCard(title, answer));
         return { type: 'handled' };
       },
@@ -169,12 +156,15 @@ const commands = (
         const asked = Number(args[0]);
         const limit =
           Number.isInteger(asked) && asked > 0 ? Math.min(asked, SUMMARY_MAX) : SUMMARY_DEFAULT;
-        const messages = (await recentLines(chatId, limit)).filter((m) => m.text);
+        const [lines, model] = await Promise.all([
+          recentLines(chatId, limit),
+          resolveProvider(account()),
+        ]);
+        const messages = lines.filter((m) => m.text);
         if (messages.length < 2) {
           return { type: 'error', message: 'There is not enough here to summarise yet.' };
         }
 
-        const model = await provider();
         const { text, count } = await completeOver(model, messages, summaryRequest);
         const title =
           count === 1 ? 'Summary of the last message' : `Summary of the last ${count} messages`;
@@ -189,12 +179,15 @@ const commands = (
       description: 'Suggest replies to the latest messages, for you to pick and edit',
       usage: '/suggest',
       async run({ chatId, respond }) {
-        const messages = (await recentLines(chatId, SUGGEST_CONTEXT)).filter((m) => m.text);
+        const [lines, model] = await Promise.all([
+          recentLines(chatId, SUGGEST_CONTEXT),
+          resolveProvider(account()),
+        ]);
+        const messages = lines.filter((m) => m.text);
         if (!messages.some((m) => !m.fromMe)) {
           return { type: 'error', message: 'There is nothing to answer yet.' };
         }
 
-        const model = await provider();
         const replies = parseSuggestions(
           (await completeOver(model, messages, suggestRequest)).text
         );
@@ -225,13 +218,13 @@ const composerActions: ComposerAction[] = [
     id: 'ai-rewrite',
     label: 'Rewrite',
     icon: 'create-outline',
-    command: '/rewrite',
+    command: '/rewrite clearer',
     takesDraft: true,
     showIn: ['dm', 'group'],
   },
   {
     id: 'ai-translate',
-    label: process.env.EXPO_OS === 'android' ? 'Translate with Google' : 'Translate',
+    label: TRANSLATE_CHIP_LABEL,
     icon: 'globe-outline',
     command: '/translate',
     showIn: ['dm', 'group', 'channel'],
@@ -252,13 +245,12 @@ const composerActions: ComposerAction[] = [
   },
 ];
 
-/** Offered while the switch in Settings › AI is on. */
 export const aiFeature: CoreFeature = {
   commands,
   composerActions,
-  isOn: () => useAiStore.getState().enabled,
+  isOn: () => useAppearanceStore.getState().aiInChats,
   subscribe: (listener) =>
-    useAiStore.subscribe((state, previous) => {
-      if (state.enabled !== previous.enabled) listener();
+    useAppearanceStore.subscribe((state, previous) => {
+      if (state.aiInChats !== previous.aiInChats) listener();
     }),
 };

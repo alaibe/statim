@@ -1,6 +1,8 @@
-import { useAiStore } from '@/core/ai/ai-store';
+import { useAccountStore } from '@/core/account/account-store';
+import { AiError } from '@/core/ai/errors';
 import { resolveProvider } from '@/core/ai/providers';
 import { translateText } from '@/core/ai/translate';
+import { useAppearanceStore } from '@/core/app/appearance';
 import { recentLines, type ChatLine } from '@/core/messaging/chat-lines';
 import { asChatId } from '@/core/messaging/testing/ids';
 import type { CommandInvocation, PluginContext, SlashCommand } from '@/core/plugins/types';
@@ -18,9 +20,9 @@ const complete = jest.fn<Promise<string>, [unknown]>();
 const chatId = asChatId('xmtp-chat');
 
 const history: ChatLine[] = [
-  { id: '1', from: 'Ann', fromMe: false, sentAt: 1, text: 'Dinner Thursday?' },
-  { id: '2', from: 'You', fromMe: true, sentAt: 2, text: 'Maybe' },
-  { id: '3', from: 'Ann', fromMe: false, sentAt: 3, text: 'The Thai place?' },
+  { from: 'Ann', fromMe: false, text: 'Dinner Thursday?' },
+  { from: 'You', fromMe: true, text: 'Maybe' },
+  { from: 'Ann', fromMe: false, text: 'The Thai place?' },
 ];
 
 const command = (name: string) => aiFeature.commands.find((c) => c.name === name) as SlashCommand;
@@ -39,16 +41,13 @@ function invoke(name: string, rest = '') {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  useAiStore.setState({ accountId: 'acct', enabled: true });
+  useAccountStore.setState({ activeAccountId: 'acct' });
+  useAppearanceStore.setState({ aiInChats: true });
   lines.mockImplementation(async (_id, limit) => history.slice(-limit));
   resolve.mockResolvedValue({
-    ok: true,
-    provider: {
-      label: 'Apple Intelligence · on-device',
-      onDevice: true,
-      maxInputChars: 6000,
-      complete,
-    },
+    label: 'Apple Intelligence · on-device',
+    maxInputChars: 6000,
+    complete,
   });
 });
 
@@ -104,10 +103,12 @@ it('/suggest offers each reply as a button that fills the composer', async () =>
 });
 
 it('answers with the reason when there is no model to use', async () => {
-  resolve.mockResolvedValue({
-    ok: false,
-    reason: 'This device has no AI model of its own. Set up a model in Settings › AI.',
-  });
+  resolve.mockRejectedValue(
+    new AiError(
+      'unavailable',
+      'This device has no AI model of its own. Set up a model in Settings › AI.'
+    )
+  );
   const { result, respond } = invoke('summarize');
   await expect(result).resolves.toEqual({ type: 'handled' });
   expect(JSON.stringify(respond.mock.calls[0][0])).toContain('Set up a model in Settings › AI.');
@@ -129,22 +130,19 @@ it('/translate says when the text is already in that language', async () => {
 it('is offered only while the switch is on', () => {
   const listener = jest.fn();
   const unsubscribe = aiFeature.subscribe(listener);
-  useAiStore.setState({ enabled: false });
+  useAppearanceStore.setState({ aiInChats: false });
   expect(aiFeature.isOn()).toBe(false);
-  useAiStore.setState({ enabled: true });
+  useAppearanceStore.setState({ aiInChats: true });
   expect(aiFeature.isOn()).toBe(true);
   expect(listener).toHaveBeenCalledTimes(2);
   unsubscribe();
 });
 
 it('/summarize tries again with fewer messages when the model runs out of room', async () => {
-  const { AiError } = jest.requireActual<typeof import('@/core/ai/errors')>('@/core/ai/errors');
   lines.mockResolvedValueOnce(
     Array.from({ length: 40 }, (_, i) => ({
-      id: String(i),
       from: i % 2 ? 'You' : 'Ann',
       fromMe: i % 2 === 1,
-      sentAt: i,
       text: `message number ${i} with a little more text in it`,
     }))
   );
@@ -154,4 +152,16 @@ it('/summarize tries again with fewer messages when the model runs out of room',
   const [first, second] = complete.mock.calls.map(([r]) => (r as { prompt: string }).prompt);
   expect(second.length).toBeLessThan(first.length);
   expect(JSON.stringify(respond.mock.calls[0][0])).toMatch(/Summary of the last \d+ messages/);
+});
+
+it('the Rewrite chip names its style, so a draft that starts with one keeps the word', async () => {
+  const chip = aiFeature.composerActions.find((action) => action.id === 'ai-rewrite');
+  complete.mockResolvedValueOnce('A friendly reminder about Thursday.');
+  await invoke(
+    'rewrite',
+    `${chip?.command.replace('/rewrite ', '')} Friendly reminder about thursday`
+  ).result;
+  const request = JSON.stringify(complete.mock.calls[0][0]);
+  expect(request).toContain('clearer and more polite');
+  expect(request).toContain('Friendly reminder about thursday');
 });

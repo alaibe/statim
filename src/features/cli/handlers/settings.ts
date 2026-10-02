@@ -1,4 +1,3 @@
-import { useAiStore } from '@/core/ai/ai-store';
 import { useAppearanceStore, type ThemeChoice } from '@/core/app/appearance';
 import { writeCredential, type CredentialId } from '@/core/account/credentials';
 import { useAccountStore } from '@/core/account/account-store';
@@ -29,7 +28,7 @@ const SETTERS: Record<string, (value: string) => Promise<void>> = {
   'read-receipts': (v) => useAppearanceStore.getState().setReadReceipts(onOff(v)),
   'typing-indicators': (v) => useAppearanceStore.getState().setTypingIndicators(onOff(v)),
   'link-previews': (v) => useAppearanceStore.getState().setLinkPreviews(onOff(v)),
-  ai: (v) => useAiStore.getState().setEnabled(onOff(v)),
+  ai: (v) => useAppearanceStore.getState().setAiInChats(onOff(v)),
 };
 
 function current() {
@@ -40,7 +39,7 @@ function current() {
     'read-receipts': s.readReceipts,
     'typing-indicators': s.typingIndicators,
     'link-previews': s.linkPreviews,
-    ai: useAiStore.getState().enabled,
+    ai: s.aiInChats,
   };
 }
 

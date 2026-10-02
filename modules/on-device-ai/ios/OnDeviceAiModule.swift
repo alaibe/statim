@@ -1,7 +1,5 @@
 import ExpoModulesCore
 import FoundationModels
-import NaturalLanguage
-import Translation
 
 private func failure(_ code: String, _ description: String) -> Exception {
   Exception(name: "OnDeviceAiError", description: description, code: code)
@@ -31,7 +29,11 @@ public class OnDeviceAiModule: Module {
 
     AsyncFunction("translate") { (text: String, target: String) async throws -> String in
       guard #available(iOS 26.0, *) else { throw needsNewerSystem }
-      return try await Translator.translate(text, to: target)
+      do {
+        return try await AppleTranslation.translate(text, to: target)
+      } catch let failed as TranslationFailure {
+        throw failure(failed.code, failed.message)
+      }
     }
   }
 }
@@ -45,22 +47,24 @@ enum Model {
       throw failure("ERR_UNAVAILABLE", "Apple Intelligence is not ready on this device.")
     }
     let session = LanguageModelSession(model: model, instructions: instructions)
+    let options = GenerationOptions(maximumResponseTokens: maxTokens)
     do {
-      let options = GenerationOptions(maximumResponseTokens: maxTokens)
       return try await session.respond(to: prompt, options: options).content
-    } catch let error as LanguageModelSession.GenerationError {
-      switch error {
-      case .guardrailViolation, .refusal:
-        throw failure("ERR_REFUSED", "Apple Intelligence declined this text.")
-      case .exceededContextWindowSize:
-        throw failure("ERR_TOO_LONG", "That is more text than Apple Intelligence takes at once.")
-      case .unsupportedLanguageOrLocale:
-        throw failure("ERR_REFUSED", "Apple Intelligence does not speak this language yet.")
-      default:
-        throw failure("ERR_GENERATION", "Apple Intelligence could not answer. \(describe(error))")
-      }
     } catch {
-      throw failure("ERR_GENERATION", "Apple Intelligence could not answer. \(describe(error))")
+      throw mapped(error)
+    }
+  }
+
+  private static func mapped(_ error: Error) -> Exception {
+    switch error as? LanguageModelSession.GenerationError {
+    case .guardrailViolation?, .refusal?:
+      return failure("ERR_REFUSED", "Apple Intelligence declined this text.")
+    case .exceededContextWindowSize?:
+      return failure("ERR_TOO_LONG", "That is more text than Apple Intelligence takes at once.")
+    case .unsupportedLanguageOrLocale?:
+      return failure("ERR_REFUSED", "Apple Intelligence does not speak this language yet.")
+    default:
+      return failure("ERR_GENERATION", "Apple Intelligence could not answer. \(describe(error))")
     }
   }
 
@@ -71,35 +75,5 @@ enum Model {
       ?? ns.userInfo[NSUnderlyingErrorKey] as? NSError
     let root = cause ?? ns
     return "(\(root.domain.split(separator: ".").last ?? "") \(root.code))"
-  }
-}
-
-@available(iOS 26.0, *)
-enum Translator {
-  static func translate(_ text: String, to target: String) async throws -> String {
-    let destination = Locale.Language(identifier: target)
-    guard let detected = NLLanguageRecognizer.dominantLanguage(for: text) else {
-      throw failure("ERR_LANGUAGE_UNSUPPORTED", "Could not tell which language this is.")
-    }
-    let source = Locale.Language(identifier: detected.rawValue)
-    if source.languageCode == destination.languageCode && source.script == destination.script {
-      return text
-    }
-    switch await LanguageAvailability().status(from: source, to: destination) {
-    case .installed:
-      let session = TranslationSession(installedSource: source, target: destination)
-      var lines: [String] = []
-      for line in text.components(separatedBy: "\n") {
-        let blank = line.trimmingCharacters(in: .whitespaces).isEmpty
-        lines.append(blank ? line : try await session.translate(line).targetText)
-      }
-      return lines.joined(separator: "\n")
-    case .supported:
-      throw failure("ERR_LANGUAGE_MISSING", "The language is not downloaded on this device.")
-    case .unsupported:
-      throw failure("ERR_LANGUAGE_UNSUPPORTED", "Apple Translation does not support this pair.")
-    @unknown default:
-      throw failure("ERR_LANGUAGE_UNSUPPORTED", "Apple Translation does not support this pair.")
-    }
   }
 }

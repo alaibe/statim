@@ -1,60 +1,50 @@
-import { loadAiConfig, loadAiKey, type ModelChoice } from '../config';
+import { loadAiConfig, loadAiKey, type AiConfig } from '../config';
 import { deviceModelState } from '../device';
+import { AiError } from '../errors';
 import { anthropicProvider, DEFAULT_ANTHROPIC_MODEL } from './anthropic';
 import type { AiProvider } from './interface';
-import { deviceProvider, deviceUnavailableReason } from './on-device';
+import { deviceProvider, deviceUnavailableReason, SET_UP_A_MODEL } from './on-device';
 import { listModels, openAiProvider } from './openai';
 
 export type { AiAnswer, AiProvider, CompletionRequest } from './interface';
-export { deviceProvider } from './on-device';
 
 export const OLLAMA_URL = 'http://localhost:11434/v1';
-const SETUP = 'Set up a model in Settings › AI.';
-
-export type ProviderLookup =
-  | { readonly ok: true; readonly provider: AiProvider }
-  | { readonly ok: false; readonly reason: string };
 
 async function localOllama(): Promise<AiProvider | null> {
   if (process.env.EXPO_OS !== 'web') return null;
-  const models = await Promise.race([
-    listModels(OLLAMA_URL, null).catch(() => [] as string[]),
-    new Promise<string[]>((resolve) => setTimeout(() => resolve([]), 1_500)),
-  ]);
-  return models[0] ? openAiProvider({ url: OLLAMA_URL, model: models[0], key: null }) : null;
+  const [model] = await listModels(OLLAMA_URL, null, 1_500).catch(() => []);
+  return model ? openAiProvider({ url: OLLAMA_URL, model, key: null }) : null;
 }
 
-export async function providerFor(
-  config: ModelChoice,
-  key: string | null
-): Promise<ProviderLookup> {
+/** Throws `unavailable`, saying what to set up, when there is no model to use. */
+export async function providerFor(config: AiConfig, key: string | null): Promise<AiProvider> {
   switch (config.source) {
     case 'auto': {
       const state = await deviceModelState();
-      if (state === 'ready') return { ok: true, provider: deviceProvider };
+      if (state === 'ready') return deviceProvider;
       const ollama = await localOllama();
-      if (ollama) return { ok: true, provider: ollama };
-      return { ok: false, reason: deviceUnavailableReason(state) };
+      if (ollama) return ollama;
+      throw new AiError('unavailable', deviceUnavailableReason(state));
     }
     case 'openai':
       if (!config.url || !config.model) {
-        return { ok: false, reason: `Your server needs an address and a model. ${SETUP}` };
+        throw new AiError(
+          'unavailable',
+          `Your server needs an address and a model. ${SET_UP_A_MODEL}`
+        );
       }
-      return { ok: true, provider: openAiProvider({ url: config.url, model: config.model, key }) };
+      return openAiProvider({ url: config.url, model: config.model, key });
     case 'anthropic':
-      if (!key) return { ok: false, reason: `Anthropic needs an API key. ${SETUP}` };
-      return {
-        ok: true,
-        provider: anthropicProvider({
-          key,
-          model: config.model || DEFAULT_ANTHROPIC_MODEL,
-          url: config.url,
-        }),
-      };
+      if (!key) throw new AiError('unavailable', `Anthropic needs an API key. ${SET_UP_A_MODEL}`);
+      return anthropicProvider({
+        key,
+        model: config.model || DEFAULT_ANTHROPIC_MODEL,
+        url: config.url,
+      });
   }
 }
 
-export async function resolveProvider(accountId: string): Promise<ProviderLookup> {
-  const [config, key] = await Promise.all([loadAiConfig(accountId), loadAiKey(accountId)]);
-  return providerFor(config, key);
+export async function resolveProvider(accountId: string): Promise<AiProvider> {
+  const config = await loadAiConfig(accountId);
+  return providerFor(config, config.source === 'auto' ? null : await loadAiKey(accountId));
 }

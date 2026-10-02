@@ -13,14 +13,10 @@ export async function completeOnDevice(
   maxTokens: number
 ): Promise<string> {
   if (!OnDeviceAi) throw new AiError('unavailable', 'This build has no on-device model.');
-  return OnDeviceAi.complete(instructions, prompt, maxTokens).catch((error: unknown) => {
-    throw fromNative(error);
-  });
+  return fromNative(OnDeviceAi.complete(instructions, prompt, maxTokens));
 }
 
 export async function translateOnDevice(text: string, target: string): Promise<string> {
   if (!OnDeviceAi) throw new AiError('unavailable', 'This build has no on-device translation.');
-  return OnDeviceAi.translate(text, target).catch((error: unknown) => {
-    throw fromNative(error);
-  });
+  return fromNative(OnDeviceAi.translate(text, target));
 }

@@ -2,13 +2,7 @@ import type { ChatLine } from '@/core/messaging/chat-lines';
 
 import { parseStyle, parseSuggestions, rewriteRequest, transcript } from './prompts';
 
-const message = (from: string, text: string): ChatLine => ({
-  id: `${from}-${text}`,
-  from,
-  fromMe: from === 'You',
-  sentAt: 0,
-  text,
-});
+const message = (from: string, text: string): ChatLine => ({ from, fromMe: from === 'You', text });
 
 it('keeps the newest lines that fit, oldest first', () => {
   const messages = [message('Ann', 'one'), message('Bob', 'two'), message('You', 'three')];

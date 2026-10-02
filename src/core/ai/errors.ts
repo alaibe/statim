@@ -4,8 +4,6 @@ export type AiErrorCode =
   | 'too-long'
   /** The translation language is supported but not downloaded. */
   | 'language-missing'
-  | 'language-unsupported'
-  | 'quota'
   | 'server';
 
 export class AiError extends Error {
@@ -27,17 +25,16 @@ const NATIVE_CODES: Record<string, AiErrorCode> = {
   ERR_REFUSED: 'refused',
   ERR_TOO_LONG: 'too-long',
   ERR_LANGUAGE_MISSING: 'language-missing',
-  ERR_LANGUAGE_UNSUPPORTED: 'language-unsupported',
-  ERR_QUOTA: 'quota',
 };
 
 /** The device module and the desktop shell reject with `{ code, message }`. */
-export function fromNative(error: unknown): AiError {
-  if (error instanceof AiError) return error;
-  const { code, message } = (error ?? {}) as { code?: unknown; message?: unknown };
-  const text = typeof message === 'string' && message ? message : String(error);
-  return new AiError(
-    (typeof code === 'string' && NATIVE_CODES[code]) || 'server',
-    text.replace(/^Error: /, '')
-  );
+export function fromNative<T>(call: Promise<T>): Promise<T> {
+  return call.catch((error: unknown) => {
+    const { code, message } = (error ?? {}) as { code?: unknown; message?: unknown };
+    const text = typeof message === 'string' && message ? message : String(error);
+    throw new AiError(
+      (typeof code === 'string' && NATIVE_CODES[code]) || 'server',
+      text.replace(/^Error: /, '')
+    );
+  });
 }

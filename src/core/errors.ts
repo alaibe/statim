@@ -1,3 +1,4 @@
+import { AiError } from './ai/errors';
 import type { ProtocolId } from './messaging/namespace';
 
 export class HttpError extends Error {
@@ -28,6 +29,7 @@ export class NotConnectedError extends Error {
 }
 
 export function errorMessage(error: unknown, fallback = 'Something went wrong'): string {
+  if (error instanceof AiError) return error.message;
   if (error instanceof Error && error.message) return humanize(error.message, error);
   if (typeof error === 'string' && error) return humanize(error);
   return fallback;

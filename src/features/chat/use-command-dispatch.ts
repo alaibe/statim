@@ -111,7 +111,9 @@ export function useCommandDispatch({
           });
           if (result.type === 'error') await respond(result.message);
           if (result.type === 'notice') toast[result.tone ?? 'info'](result.message);
-          setDraft(result.type === 'setComposer' ? result.text : '');
+          // A chip runs beside the draft rather than from it, so only a typed command clears it.
+          if (result.type === 'setComposer') setDraft(result.text);
+          else if (from === 'typed') setDraft('');
         } else {
           setDraft(await onSendText(text));
         }

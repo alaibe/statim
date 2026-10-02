@@ -7,6 +7,7 @@ import { parseCommand } from '@/core/commands/parser';
 import type { ChatScope } from '@/core/messaging/chat-scope';
 import type { ChatId } from '@/core/messaging/types';
 import { usePluginHost } from '@/core/plugins/host';
+import type { ComposerAction } from '@/core/plugins/types';
 import { worksOn } from '@/core/plugins/registry';
 
 import { useSupports } from './use-supports';
@@ -15,13 +16,13 @@ import { useSupports } from './use-supports';
 export function QuickActions({
   chatId,
   scope,
-  draft,
+  hasDraft,
   onRun,
 }: {
   chatId: ChatId;
   scope: ChatScope;
-  draft: string;
-  onRun: (command: string) => void;
+  hasDraft: boolean;
+  onRun: (action: ComposerAction) => void;
 }) {
   const { registry } = usePluginHost();
   const { session } = useSupports(chatId);
@@ -31,9 +32,8 @@ export function QuickActions({
     () => registry.composerActionsFor(chatId, scope)
   );
   const commands = registry.commandsFor(chatId, scope);
-  const typed = draft.trim();
   const actions = offered.filter(({ action }) => {
-    if (action.takesDraft && !typed) return false;
+    if (action.takesDraft && !hasDraft) return false;
     const entry = commands.get(parseCommand(action.command)?.name ?? '');
     return !entry || worksOn(entry.command, session);
   });
@@ -52,7 +52,7 @@ export function QuickActions({
             testID={`quick-${action.id}`}
             accessibilityRole="button"
             accessibilityLabel={action.label}
-            onPress={() => onRun(action.takesDraft ? `${action.command} ${typed}` : action.command)}
+            onPress={() => onRun(action)}
             className="flex-row items-center gap-1.5 rounded-pill border border-line bg-surface-raised px-3 py-1.5">
             <Icon name={action.icon} size={14} tone="brand" />
             <Text variant="caption" className="font-medium text-content">

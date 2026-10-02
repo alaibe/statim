@@ -7,6 +7,7 @@ export type { DeviceModelState };
 
 export const DEVICE_MODEL_NAME = 'Apple Intelligence';
 export const DEVICE_TRANSLATION_LABEL = 'Apple Translation · on-device';
+export const TRANSLATE_CHIP_LABEL = 'Translate';
 export const DEVICE_MODEL_SETTINGS: string | null = 'System Settings › Apple Intelligence & Siri';
 export const DEVICE_TRANSLATION_SETTINGS: string | null =
   'System Settings › General › Language & Region › Translation Languages';
@@ -20,15 +21,9 @@ export async function completeOnDevice(
   prompt: string,
   maxTokens: number
 ): Promise<string> {
-  return invoke<string>('ai_complete', { instructions, prompt, maxTokens }).catch(
-    (error: unknown) => {
-      throw fromNative(error);
-    }
-  );
+  return fromNative(invoke<string>('ai_complete', { instructions, prompt, maxTokens }));
 }
 
 export async function translateOnDevice(text: string, target: string): Promise<string> {
-  return invoke<string>('ai_translate', { text, target }).catch((error: unknown) => {
-    throw fromNative(error);
-  });
+  return fromNative(invoke<string>('ai_translate', { text, target }));
 }

@@ -57,7 +57,6 @@ export function openAiProvider({
   const root = apiRoot(url);
   return {
     label: `${model} · ${hostOf(root)}`,
-    onDevice: false,
     maxInputChars: REMOTE_MAX_INPUT_CHARS,
     async complete({ instructions, prompt }) {
       const body = await requestJson(`${root}/chat/completions`, {
@@ -76,8 +75,12 @@ export function openAiProvider({
   };
 }
 
-export async function listModels(url: string, key: string | null): Promise<string[]> {
-  const body = await requestJson(`${apiRoot(url)}/models`, { headers: headers(key) });
+export async function listModels(
+  url: string,
+  key: string | null,
+  timeoutMs?: number
+): Promise<string[]> {
+  const body = await requestJson(`${apiRoot(url)}/models`, { headers: headers(key) }, timeoutMs);
   const data = (body as { data?: { id?: unknown }[] } | null)?.data ?? [];
   return data.flatMap((model) => (typeof model?.id === 'string' ? [model.id] : []));
 }

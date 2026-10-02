@@ -1,9 +1,9 @@
 import { anthropicProvider } from './anthropic';
-import { aiFetch } from './http';
+import { appFetch } from '@/lib/http';
 
-jest.mock('./http', () => ({ aiFetch: jest.fn() }));
+jest.mock('@/lib/http', () => ({ appFetch: jest.fn() }));
 
-const fetchMock = aiFetch as jest.MockedFunction<typeof aiFetch>;
+const fetchMock = appFetch as jest.MockedFunction<typeof appFetch>;
 
 function answer(body: unknown) {
   fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(body), { status: 200 }));

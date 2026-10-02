@@ -1,5 +1,4 @@
 import type { AccountRuntime } from '@/core/app/account-runtime';
-import type { AiState } from '@/core/ai/ai-store';
 import type { AppearanceState } from '@/core/app/appearance';
 import type { AccountState } from '@/core/account/account-store';
 import type { LockState } from '@/core/account/lock-store';
@@ -107,12 +106,7 @@ export const APPEARANCE_STORE: Record<Actions<AppearanceState>, Covered> = {
   setReadReceipts: 'settings set',
   setTypingIndicators: 'settings set',
   setLinkPreviews: 'settings set',
-};
-
-export const AI_STORE: Record<Actions<AiState>, Covered> = {
-  hydrate: 'internal',
-  clear: 'internal',
-  setEnabled: 'settings set',
+  setAiInChats: 'settings set',
 };
 
 export const ACCOUNT_RUNTIME: Record<Actions<AccountRuntime>, Covered> = {

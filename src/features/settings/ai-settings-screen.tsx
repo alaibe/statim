@@ -14,20 +14,19 @@ import {
   Toggle,
 } from '@/design';
 import { useAccountStore } from '@/core/account/account-store';
-import { useAiStore } from '@/core/ai/ai-store';
-import { DEFAULT_ANTHROPIC_MODEL } from '@/core/ai/providers/anthropic';
 import {
   loadAiConfig,
   loadAiKey,
   saveAiConfig,
   saveAiKey,
+  type AiConfig,
   type AiSource,
-  type ModelChoice,
 } from '@/core/ai/config';
 import { DEVICE_MODEL_NAME, deviceModelState, type DeviceModelState } from '@/core/ai/device';
 import { OLLAMA_URL, providerFor } from '@/core/ai/providers';
-import { apiRoot, listModels } from '@/core/ai/providers/openai';
-import { hostOf } from '@/core/ai/providers/remote';
+import { DEFAULT_ANTHROPIC_MODEL } from '@/core/ai/providers/anthropic';
+import { listModels } from '@/core/ai/providers/openai';
+import { useAppearanceStore } from '@/core/app/appearance';
 import { guideUrl } from '@/lib/guide';
 import { openExternal } from '@/lib/open-url';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
@@ -37,14 +36,13 @@ import { useAction } from '@/features/use-action';
 
 const DESKTOP = process.env.EXPO_OS === 'web';
 
-interface Saved {
-  config: ModelChoice;
+interface Draft extends AiConfig {
   key: string;
-  device: DeviceModelState;
 }
 
-interface Draft extends ModelChoice {
-  key: string;
+interface Saved {
+  draft: Draft;
+  device: DeviceModelState;
 }
 
 async function loadSaved(accountId: string): Promise<Saved> {
@@ -53,7 +51,7 @@ async function loadSaved(accountId: string): Promise<Saved> {
     loadAiKey(accountId),
     deviceModelState(),
   ]);
-  return { config, key: key ?? '', device };
+  return { draft: { ...config, key: key ?? '' }, device };
 }
 
 function automaticHint(device: DeviceModelState): string {
@@ -72,24 +70,16 @@ function automaticHint(device: DeviceModelState): string {
   }
 }
 
-/** Phones refuse plain http:// to most servers; say so before the request fails. */
-function addressHint(url: string): string | undefined {
-  if (!/^http:\/\//i.test(url.trim())) return undefined;
-  const host = hostOf(apiRoot(url)).replace(/:\d+$/, '');
-  if (process.env.EXPO_OS === 'ios' && host.includes('.') && !host.endsWith('.local')) {
-    return 'On iPhone, http:// only reaches names on your network, like mac-mini.local or a Tailscale machine name. Use https:// for any other address.';
-  }
-  if (process.env.EXPO_OS === 'android' && host !== 'localhost') {
-    return 'Android connects only to https:// servers.';
-  }
-  return undefined;
-}
-
 const SOURCES: { id: AiSource; title: string; hint?: string }[] = [
   { id: 'auto', title: 'Automatic' },
   { id: 'openai', title: 'Your server', hint: 'Ollama, llama.cpp, LM Studio, OpenAI, OpenRouter' },
   { id: 'anthropic', title: 'Anthropic', hint: 'Claude, with your API key' },
 ];
+
+const FORM: Record<Exclude<AiSource, 'auto'>, { title: string; key: string; model: string }> = {
+  openai: { title: 'Server', key: 'Only if the server asks for one', model: 'llama3.2' },
+  anthropic: { title: 'Anthropic', key: 'sk-ant-…', model: DEFAULT_ANTHROPIC_MODEL },
+};
 
 export function AiSettingsScreen() {
   const accountId = useAccountStore((s) => s.activeAccountId);
@@ -119,72 +109,62 @@ function AiSettingsForm({
   saved: Saved;
   onSaved: () => void;
 }) {
-  const enabled = useAiStore((s) => s.enabled);
-  const [draft, setDraft] = useState<Draft>({
-    source: saved.config.source,
-    url: saved.config.url,
-    model: saved.config.model,
-    key: saved.key,
-  });
+  const enabled = useAppearanceStore((s) => s.aiInChats);
+  const [draft, setDraft] = useState<Draft>(saved.draft);
   const [models, setModels] = useState<readonly string[]>([]);
   const change = (patch: Partial<Draft>) => setDraft((current) => ({ ...current, ...patch }));
+  const key = draft.key.trim() || null;
 
-  // A key belongs to the source it was saved with, so another server never receives it.
+  // Switching source starts from an empty form, so a key never follows you to another service.
   const pick = (source: AiSource) => {
     if (source === draft.source) return;
-    const same = source === saved.config.source;
     setModels([]);
-    setDraft({
-      source,
-      url: same ? saved.config.url : '',
-      model: same ? saved.config.model : '',
-      key: same ? saved.key : '',
-    });
+    setDraft(source === saved.draft.source ? saved.draft : { source, url: '', model: '', key: '' });
   };
 
   const dirty =
-    draft.source !== saved.config.source ||
-    draft.url.trim() !== saved.config.url ||
-    draft.model.trim() !== saved.config.model ||
-    draft.key.trim() !== saved.key;
+    draft.source !== saved.draft.source ||
+    draft.url.trim() !== saved.draft.url ||
+    draft.model.trim() !== saved.draft.model ||
+    draft.key.trim() !== saved.draft.key;
 
   const save = useAction(
     async () => {
-      await saveAiConfig(accountId, { source: draft.source, url: draft.url, model: draft.model });
-      await saveAiKey(accountId, draft.key);
+      await Promise.all([saveAiConfig(accountId, draft), saveAiKey(accountId, draft.key)]);
       onSaved();
     },
     { success: 'AI settings saved', failure: 'Could not save the AI settings' }
   );
 
-  const toggle = useAction((on: boolean) => useAiStore.getState().setEnabled(on), {
+  const toggle = useAction((on: boolean) => useAppearanceStore.getState().setAiInChats(on), {
     failure: 'Could not change the AI setting',
   });
 
   const tryIt = useAction(
     async () => {
-      const lookup = await providerFor(draft, draft.key.trim() || null);
-      if (!lookup.ok) throw new Error(lookup.reason);
+      const model = await providerFor(draft, key);
       const started = Date.now();
-      await lookup.provider.complete({
+      await model.complete({
         instructions: 'Reply with the single word OK.',
         prompt: 'Are you there?',
         maxAnswerTokens: 20,
       });
       const seconds = ((Date.now() - started) / 1000).toFixed(1);
-      toast.success(`${lookup.provider.label} answered in ${seconds} s`);
+      toast.success(`${model.label} answered in ${seconds} s`);
     },
     { failure: 'The model did not answer' }
   );
 
   const findModels = useAction(
     async () => {
-      const found = await listModels(draft.url, draft.key.trim() || null);
+      const found = await listModels(draft.url, key);
       if (found.length === 0) throw new Error('The server lists no models.');
       setModels(found);
     },
     { failure: 'Could not list the models' }
   );
+
+  const form = draft.source === 'auto' ? null : FORM[draft.source];
 
   return (
     <>
@@ -220,74 +200,27 @@ function AiSettingsForm({
             ))}
           </Section>
 
-          {draft.source === 'openai' ? (
-            <Section title="Server" surface="card" className="mb-6">
+          {form ? (
+            <Section title={form.title} surface="card" className="mb-6">
               <View className="gap-3 px-gutter py-4">
-                <Field
-                  testID="ai-url"
-                  label="Address"
-                  value={draft.url}
-                  onChangeText={(url) => change({ url })}
-                  placeholder={OLLAMA_URL}
-                  hint={addressHint(draft.url)}
-                  autoCorrect={false}
-                  autoCapitalize="none"
-                  keyboardType="url"
-                />
-                <Field
-                  testID="ai-key"
-                  label="API key"
-                  value={draft.key}
-                  onChangeText={(key) => change({ key })}
-                  placeholder="Only if the server asks for one"
-                  autoCorrect={false}
-                  autoCapitalize="none"
-                  secureTextEntry
-                />
-                <Field
-                  testID="ai-model"
-                  label="Model"
-                  value={draft.model}
-                  onChangeText={(model) => change({ model })}
-                  placeholder="llama3.2"
-                  autoCorrect={false}
-                  autoCapitalize="none"
-                />
-                {models.length > 0 ? (
-                  <View className="flex-row flex-wrap gap-1.5">
-                    {models.map((model) => (
-                      <Chip
-                        key={model}
-                        label={model}
-                        size="sm"
-                        selected={model === draft.model}
-                        onPress={() => change({ model })}
-                      />
-                    ))}
-                  </View>
+                {draft.source === 'openai' ? (
+                  <Field
+                    testID="ai-url"
+                    label="Address"
+                    value={draft.url}
+                    onChangeText={(url) => change({ url })}
+                    placeholder={OLLAMA_URL}
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    keyboardType="url"
+                  />
                 ) : null}
-                <Button
-                  testID="ai-find-models"
-                  label="Find models"
-                  tone="neutral"
-                  size="sm"
-                  loading={findModels.busy}
-                  disabled={!draft.url.trim() || findModels.busy}
-                  onPress={() => findModels.run()}
-                />
-              </View>
-            </Section>
-          ) : null}
-
-          {draft.source === 'anthropic' ? (
-            <Section title="Anthropic" surface="card" className="mb-6">
-              <View className="gap-3 px-gutter py-4">
                 <Field
                   testID="ai-key"
                   label="API key"
                   value={draft.key}
-                  onChangeText={(key) => change({ key })}
-                  placeholder="sk-ant-…"
+                  onChangeText={(text) => change({ key: text })}
+                  placeholder={form.key}
                   autoCorrect={false}
                   autoCapitalize="none"
                   secureTextEntry
@@ -297,10 +230,36 @@ function AiSettingsForm({
                   label="Model"
                   value={draft.model}
                   onChangeText={(model) => change({ model })}
-                  placeholder={DEFAULT_ANTHROPIC_MODEL}
+                  placeholder={form.model}
                   autoCorrect={false}
                   autoCapitalize="none"
                 />
+                {draft.source === 'openai' ? (
+                  <>
+                    {models.length > 0 ? (
+                      <View className="flex-row flex-wrap gap-1.5">
+                        {models.map((model) => (
+                          <Chip
+                            key={model}
+                            label={model}
+                            size="sm"
+                            selected={model === draft.model}
+                            onPress={() => change({ model })}
+                          />
+                        ))}
+                      </View>
+                    ) : null}
+                    <Button
+                      testID="ai-find-models"
+                      label="Find models"
+                      tone="neutral"
+                      size="sm"
+                      loading={findModels.busy}
+                      disabled={!draft.url.trim() || findModels.busy}
+                      onPress={() => findModels.run()}
+                    />
+                  </>
+                ) : null}
               </View>
             </Section>
           ) : null}

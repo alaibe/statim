@@ -14,6 +14,7 @@ export interface AppearanceState {
   readReceipts: boolean;
   typingIndicators: boolean;
   linkPreviews: boolean;
+  aiInChats: boolean;
 
   hydrate(storage: AccountStorage): Promise<void>;
   clear(): void;
@@ -22,11 +23,12 @@ export interface AppearanceState {
   setReadReceipts(enabled: boolean): Promise<void>;
   setTypingIndicators(enabled: boolean): Promise<void>;
   setLinkPreviews(enabled: boolean): Promise<void>;
+  setAiInChats(enabled: boolean): Promise<void>;
 }
 
 type Settings = Pick<
   AppearanceState,
-  'theme' | 'wallpaper' | 'readReceipts' | 'typingIndicators' | 'linkPreviews'
+  'theme' | 'wallpaper' | 'readReceipts' | 'typingIndicators' | 'linkPreviews' | 'aiInChats'
 >;
 
 const DEFAULTS: Settings = {
@@ -35,6 +37,7 @@ const DEFAULTS: Settings = {
   readReceipts: false,
   typingIndicators: false,
   linkPreviews: true,
+  aiInChats: false,
 };
 
 let projectedStorage: AccountStorage | null = null;
@@ -84,6 +87,11 @@ export const useAppearanceStore = create<AppearanceState>((set, get) => ({
     set({ linkPreviews });
     await persist(get());
   },
+
+  async setAiInChats(aiInChats) {
+    set({ aiInChats });
+    await persist(get());
+  },
 }));
 
 async function persist(state: AppearanceState): Promise<void> {
@@ -96,6 +104,7 @@ async function persist(state: AppearanceState): Promise<void> {
       readReceipts: state.readReceipts,
       typingIndicators: state.typingIndicators,
       linkPreviews: state.linkPreviews,
+      aiInChats: state.aiInChats,
     } satisfies Settings);
   } catch (error) {
     console.warn('[appearance] could not persist settings', error);

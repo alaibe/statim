@@ -2,7 +2,7 @@ import { AiError } from '../errors';
 import { hostOf, REMOTE_MAX_INPUT_CHARS, requestJson } from './remote';
 import type { AiProvider } from './interface';
 
-export const ANTHROPIC_URL = 'https://api.anthropic.com';
+const ANTHROPIC_URL = 'https://api.anthropic.com';
 export const DEFAULT_ANTHROPIC_MODEL = 'claude-opus-5-5';
 
 /** Models that accept `fallbacks: "default"`, which retries a declined request on another model. */
@@ -26,7 +26,6 @@ export function anthropicProvider({
   const fallback = FALLBACK_MODELS.test(model) && root === ANTHROPIC_URL;
   return {
     label: `${model} · ${hostOf(root)}`,
-    onDevice: false,
     maxInputChars: REMOTE_MAX_INPUT_CHARS,
     async complete({ instructions, prompt }) {
       const body = (await requestJson(`${root}/v1/messages`, {

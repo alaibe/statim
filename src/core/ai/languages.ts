@@ -7,7 +7,7 @@ export interface Language {
 const ENGLISH: Language = { tag: 'en', name: 'English' };
 
 /** The languages both on-device translators carry. */
-export const LANGUAGES: readonly Language[] = [
+const LANGUAGES: readonly Language[] = [
   { tag: 'ar', name: 'Arabic' },
   { tag: 'zh-Hans', name: 'Chinese' },
   { tag: 'zh-Hant', name: 'Traditional Chinese' },
@@ -55,7 +55,6 @@ export function findLanguage(word: string): Language | null {
   );
 }
 
-/** The device's language, or English when it is not one the translators carry. */
 export function deviceLanguage(locale = Intl.DateTimeFormat().resolvedOptions().locale): Language {
   const [base, region] = locale.split('-');
   return (region && findLanguage(`${base}-${region}`)) || findLanguage(base) || ENGLISH;

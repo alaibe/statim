@@ -48,7 +48,7 @@ const CORE_CONTEXT = new Proxy({} as PluginContext, {
 /** Commands that ship with the app but are offered only while their switch in Settings is on. */
 export interface CoreFeature {
   commands: SlashCommand[];
-  composerActions?: ComposerAction[];
+  composerActions: ComposerAction[];
   isOn(): boolean;
   subscribe(listener: () => void): () => void;
 }
@@ -115,16 +115,18 @@ export class PluginRegistry {
     for (const feature of core.features ?? []) feature.subscribe(() => this.invalidate());
   }
 
+  private featuresOn(): CoreFeature[] {
+    return (this.core.features ?? []).filter((feature) => feature.isOn());
+  }
+
   private coreCommands(): SlashCommand[] {
-    const on = (this.core.features ?? []).filter((feature) => feature.isOn());
-    return [...(this.core.commands ?? []), ...on.flatMap((feature) => feature.commands)];
+    return [...(this.core.commands ?? []), ...this.featuresOn().flatMap((f) => f.commands)];
   }
 
   private coreComposerActions(): ComposerAction[] {
-    const on = (this.core.features ?? []).filter((feature) => feature.isOn());
     return [
       ...(this.core.composerActions ?? []),
-      ...on.flatMap((feature) => feature.composerActions ?? []),
+      ...this.featuresOn().flatMap((f) => f.composerActions),
     ];
   }
 

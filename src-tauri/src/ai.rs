@@ -145,7 +145,6 @@ mod translator {
         match status {
             0 => Ok(message),
             1 => Err(AiError::new("ERR_LANGUAGE_MISSING", message)),
-            2 => Err(AiError::new("ERR_LANGUAGE_UNSUPPORTED", message)),
             _ => Err(AiError::new("ERR_GENERATION", message)),
         }
     }

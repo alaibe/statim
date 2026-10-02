@@ -1,9 +1,9 @@
-import { aiFetch } from './http';
+import { appFetch } from '@/lib/http';
 import { apiRoot, listModels, openAiProvider, stripThinking } from './openai';
 
-jest.mock('./http', () => ({ aiFetch: jest.fn() }));
+jest.mock('@/lib/http', () => ({ appFetch: jest.fn() }));
 
-const fetchMock = aiFetch as jest.MockedFunction<typeof aiFetch>;
+const fetchMock = appFetch as jest.MockedFunction<typeof appFetch>;
 
 function answer(status: number, body: unknown) {
   fetchMock.mockResolvedValueOnce(

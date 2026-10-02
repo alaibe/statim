@@ -196,8 +196,14 @@ export function Composer({
       <QuickActions
         chatId={chatId}
         scope={scope}
-        draft={value}
-        onRun={(command) => void dispatch(command, 'action')}
+        hasDraft={value.trim() !== ''}
+        onRun={(action) => {
+          const draft = useChatStore.getState().drafts[draftKey(chatId, thread)]?.trim();
+          void dispatch(
+            action.takesDraft ? `${action.command} ${draft}` : action.command,
+            'action'
+          );
+        }}
       />
 
       {banner ? <ModeBanner banner={banner} editing={editing} onCancel={onCancelBanner} /> : null}

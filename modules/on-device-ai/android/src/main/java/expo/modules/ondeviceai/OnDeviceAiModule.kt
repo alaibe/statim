@@ -22,6 +22,7 @@ class AiError(code: String, message: String) : CodedException(code, message, nul
 
 class OnDeviceAiModule : Module() {
   private val model by lazy { Generation.getClient() }
+  private val identifier by lazy { LanguageIdentification.getClient() }
   private val downloading = AtomicBoolean(false)
 
   override fun definition() = ModuleDefinition {
@@ -53,6 +54,7 @@ class OnDeviceAiModule : Module() {
 
     OnDestroy {
       model.close()
+      identifier.close()
     }
   }
 
@@ -95,7 +97,7 @@ class OnDeviceAiModule : Module() {
   private suspend fun translate(text: String, target: String): String {
     val destination = TranslateLanguage.fromLanguageTag(target)
       ?: throw AiError("ERR_LANGUAGE_UNSUPPORTED", "ML Kit does not translate into this language.")
-    val detected = LanguageIdentification.getClient().use { it.identifyLanguage(text).await() }
+    val detected = identifier.identifyLanguage(text).await()
     val source = detected.takeIf { it != LanguageIdentifier.UNDETERMINED_LANGUAGE_TAG }
       ?.let { TranslateLanguage.fromLanguageTag(it) }
       ?: throw AiError("ERR_LANGUAGE_UNSUPPORTED", "Could not tell which language this is.")
