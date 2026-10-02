@@ -8,7 +8,7 @@ import { moveInviteText } from '@/plugins/profile/move-invite';
  * cannot have yet.
  */
 export function redirectSystemPath({ path }: { path: string; initial: boolean }): string {
-  if (/^statim:\/\/expo-sharing\b/.test(path)) return '/share';
+  if (path.startsWith('statim://expo-sharing')) return '/share';
   if (!__DEV__) return path;
   try {
     const name = /fixture\/([\w-]+)/.exec(path)?.[1];

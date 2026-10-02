@@ -2,10 +2,11 @@ import { Image } from 'expo-image';
 import { useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 
-import { cn, Icon, Pressable, Text } from '@/design';
+import { cn, Pressable, Text } from '@/design';
 import { useAppearanceStore } from '@/core/app/appearance';
 import type { LinkPreview } from '@/core/messaging/link-preview';
 import { openExternal, openInBrowser } from '@/lib/open-url';
+import { PlayOverlay } from './attachments/video-bubble';
 import { useLinkPreview } from './use-link-preview';
 
 // A fixed width: a short message then grows to fit the card, instead of the
@@ -97,13 +98,7 @@ function PreviewImage({
         transition={120}
         onLoad={({ source }) => setLoaded({ width: source.width, height: source.height })}
       />
-      {video ? (
-        <View className="absolute inset-0 items-center justify-center">
-          <View className="h-12 w-12 items-center justify-center rounded-pill bg-black/55 pl-1">
-            <Icon name="play" size={22} color="white" />
-          </View>
-        </View>
-      ) : null}
+      {video ? <PlayOverlay /> : null}
     </View>
   );
 }

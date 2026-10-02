@@ -1,7 +1,6 @@
 import type { ImagePickerAsset } from 'expo-image-picker';
 
-const MAX_EDGE = 1600;
-const QUALITY = 0.78;
+import { jpegName, PHOTO_JPEG_QUALITY, photoScale } from './photo-encoding';
 
 /**
  * The browser picker hands over the original file untouched, so a photo is
@@ -12,7 +11,7 @@ export async function compressPickedImage(asset: ImagePickerAsset): Promise<Imag
   if (asset.mimeType === 'image/gif') return asset;
 
   const image = await load(asset.uri);
-  const scale = Math.min(1, MAX_EDGE / Math.max(image.naturalWidth, image.naturalHeight));
+  const scale = photoScale(image.naturalWidth, image.naturalHeight);
   const width = Math.round(image.naturalWidth * scale);
   const height = Math.round(image.naturalHeight * scale);
 
@@ -21,7 +20,7 @@ export async function compressPickedImage(asset: ImagePickerAsset): Promise<Imag
   canvas.height = height;
   canvas.getContext('2d')?.drawImage(image, 0, 0, width, height);
   const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, 'image/jpeg', QUALITY)
+    canvas.toBlob(resolve, 'image/jpeg', PHOTO_JPEG_QUALITY)
   );
   if (!blob) return asset;
 
@@ -32,7 +31,7 @@ export async function compressPickedImage(asset: ImagePickerAsset): Promise<Imag
     height,
     fileSize: blob.size,
     mimeType: 'image/jpeg',
-    fileName: (asset.fileName ?? 'photo').replace(/\.[^.]+$/, '') + '.jpg',
+    fileName: jpegName(asset.fileName),
   };
 }
 

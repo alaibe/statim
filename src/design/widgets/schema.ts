@@ -263,7 +263,7 @@ export function displayValues(
 }
 
 export function normaliseDecimal(text: string, separator: string): string {
-  return separator === '.' ? text : text.split(separator).join('.');
+  return text.split(separator).join('.');
 }
 
 export function fillText(text: string, display: Record<string, string>): string {

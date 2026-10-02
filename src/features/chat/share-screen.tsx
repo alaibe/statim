@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import { EmptyState, ListItem, Loading, ModalHeader, Screen, toast } from '@/design';
 import { useAccountStore } from '@/core/account/account-store';
-import { isLocalChat, SAVED_LOCAL_ID, STATIM_LOCAL_ID } from '@/core/messaging/bots';
+import { isLocalChat, takesAttachments } from '@/core/messaging/bots';
 import { sessionFor, useChatStore } from '@/core/messaging/chat-store';
 import { draftKey } from '@/core/messaging/drafts';
 import type { Chat } from '@/core/messaging/types';
@@ -54,7 +54,7 @@ export function ShareScreen() {
             clearSharedPayloads();
             if (text) appendToDraft(chat, text);
             openChatFromSheet(chat.id);
-            if (files.length > 0) sendFiles(chat, files);
+            if (files.length > 0) void sendFiles(chat, files);
           }}
         />
       )}
@@ -67,9 +67,8 @@ function ChatPicker({ photos, onPick }: { photos: boolean; onPick: (chat: Chat) 
   const sessions = useChatStore((s) => s.sessions);
   const { titleOf, selfIdOf } = useChatTitles(chats);
   const takesShare = (chat: Chat) =>
-    isLocalChat(chat.id)
-      ? chat.id === STATIM_LOCAL_ID || chat.id === SAVED_LOCAL_ID
-      : !photos || Boolean(sessionFor({ sessions }, chat.id)?.sendsImages);
+    takesAttachments(chat.id) &&
+    (!photos || isLocalChat(chat.id) || Boolean(sessionFor({ sessions }, chat.id)?.sendsImages));
 
   return (
     <FlashList
@@ -95,14 +94,16 @@ function appendToDraft(chat: Chat, text: string) {
   setDraft(chat.id, draft ? `${draft}\n${text}` : text);
 }
 
-function sendFiles(chat: Chat, files: SharePayload[]) {
-  const state = useChatStore.getState();
-  const sendsVideo = Boolean(sessionFor(state, chat.id)?.sendsVideo);
-  (async () => {
+async function sendFiles(chat: Chat, files: SharePayload[]) {
+  const { sendMessage, sessions } = useChatStore.getState();
+  const sendsVideo = Boolean(sessionFor({ sessions }, chat.id)?.sendsVideo);
+  try {
     for (const file of files) {
-      await state.sendMessage(chat.id, await contentFromShare(file, sendsVideo));
+      await sendMessage(chat.id, await contentFromShare(file, sendsVideo));
     }
-  })()
-    .catch((e) => toast.error(errorMessage(e, 'Could not send that')))
-    .finally(() => deleteSharedFiles(files));
+  } catch (e) {
+    toast.error(errorMessage(e, 'Could not send that'));
+  } finally {
+    deleteSharedFiles(files);
+  }
 }

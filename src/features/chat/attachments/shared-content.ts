@@ -6,10 +6,8 @@ import { reportError } from '@/core/app/report-error';
 import { basenameOf } from '@/core/messaging/media-store';
 import type { MessageContent } from '@/core/messaging/types';
 
+import { jpegName, PHOTO_JPEG_QUALITY, photoScale } from './photo-encoding';
 import { assertFits } from './pick';
-
-const MAX_EDGE = 1600;
-const QUALITY = 0.78;
 
 export const isSharedText = (payload: SharePayload) =>
   payload.shareType === 'text' || payload.shareType === 'url';
@@ -48,12 +46,12 @@ export async function contentFromShare(
 async function imageFromShare(uri: string, name: string | undefined): Promise<MessageContent> {
   const context = ImageManipulator.manipulate(uri);
   const original = await context.renderAsync();
-  const scale = Math.min(1, MAX_EDGE / Math.max(original.width, original.height));
+  const scale = photoScale(original.width, original.height);
   const image =
     scale < 1
       ? await context.resize({ width: Math.round(original.width * scale) }).renderAsync()
       : original;
-  const saved = await image.saveAsync({ compress: QUALITY, format: SaveFormat.JPEG });
+  const saved = await image.saveAsync({ compress: PHOTO_JPEG_QUALITY, format: SaveFormat.JPEG });
   const size = new File(saved.uri).size ?? undefined;
   assertFits(size, 'That photo');
 
@@ -63,7 +61,7 @@ async function imageFromShare(uri: string, name: string | undefined): Promise<Me
     width: saved.width,
     height: saved.height,
     size,
-    name: `${(name ?? 'photo').replace(/\.[^.]+$/, '')}.jpg`,
+    name: jpegName(name),
     mimeType: 'image/jpeg',
   };
 }

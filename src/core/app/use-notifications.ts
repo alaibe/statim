@@ -1,7 +1,9 @@
 import { useGlobalSearchParams, useSegments } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useEffect, useEffectEvent } from 'react';
 
 import { wasProactive } from '@/runtime';
+import { useAccountStore } from '../account/account-store';
+import { useLockStore } from '../account/lock-store';
 import { isLocalChat } from '../messaging/bots';
 import { prefsFor, type ChatPrefsMap } from '../messaging/chat-prefs';
 import { useChatStore, type ChatState } from '../messaging/chat-store';
@@ -10,6 +12,7 @@ import type { ChatMessage, Chat, ChatId } from '../messaging/types';
 import { totalUnread } from '../messaging/unread';
 import {
   appFocused,
+  askForNotifications,
   configureNotifications,
   notifyMessage,
   onNotificationTapped,
@@ -19,14 +22,17 @@ import {
 export function useMessageNotifications(onTap: (id: ChatId) => void) {
   const segments = useSegments() as string[];
   const { id } = useGlobalSearchParams<{ id?: string }>();
-  const onScreen = useRef<string | undefined>(undefined);
-  useEffect(() => {
-    onScreen.current = segments[0] === 'chat' ? id : undefined;
-  }, [segments, id]);
+  const reading = useEffectEvent(() => (appFocused() && segments[0] === 'chat' ? id : undefined));
+  const unlocked = useLockStore((s) => s.status === 'open');
+  const signedIn = useAccountStore((s) => s.status === 'ready');
 
   useEffect(() => {
     configureNotifications();
   }, []);
+
+  useEffect(() => {
+    if (unlocked && signedIn) void askForNotifications();
+  }, [unlocked, signedIn]);
 
   useEffect(() => {
     const since = Date.now();
@@ -43,9 +49,9 @@ export function useMessageNotifications(onTap: (id: ChatId) => void) {
       }
       if (state.chats === previous.chats) return;
 
-      const reading = appFocused() ? onScreen.current : undefined;
+      const open = reading();
       for (const { chat, message } of arrivals(previous.chats, state.chats, since)) {
-        if (!worthNotifying(chat, message, state.chatPrefs, reading)) continue;
+        if (!worthNotifying(chat, message, state.chatPrefs, open)) continue;
         void notifyMessage({
           chatId: chat.id,
           title: chat.title,

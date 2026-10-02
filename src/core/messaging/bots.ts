@@ -22,6 +22,10 @@ export function botIdFromChat(id: ChatId): string {
 export const STATIM_LOCAL_ID = botChatId('statim');
 export const SAVED_LOCAL_ID = botChatId('saved');
 
+export function takesAttachments(id: ChatId): boolean {
+  return !isLocalChat(id) || id === STATIM_LOCAL_ID || id === SAVED_LOCAL_ID;
+}
+
 export const SAVED_MESSAGES: Bot = {
   id: 'saved',
   name: 'Saved Messages',

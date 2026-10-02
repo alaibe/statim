@@ -54,9 +54,7 @@ export function ImageBubble({ uri, width, height, caption, fromMe, onSave }: Ima
       ) : null}
 
       <MediaViewer visible={zoomed} onClose={() => setZoomed(false)} onSave={onSave}>
-        <View style={{ width: '100%', height: '80%', pointerEvents: 'none' }}>
-          <Image source={{ uri }} style={{ flex: 1 }} contentFit="contain" />
-        </View>
+        <Image source={{ uri }} style={{ flex: 1 }} contentFit="contain" />
       </MediaViewer>
     </View>
   );

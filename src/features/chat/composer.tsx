@@ -15,7 +15,7 @@ import {
   Text,
   useThemeColors,
 } from '@/design';
-import { isLocalChat, SAVED_LOCAL_ID, STATIM_LOCAL_ID } from '@/core/messaging/bots';
+import { isLocalChat, takesAttachments } from '@/core/messaging/bots';
 import { chatScope } from '@/core/messaging/chat-scope';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { draftKey } from '@/core/messaging/drafts';
@@ -113,8 +113,7 @@ export function Composer({
     );
   };
 
-  const canAttach =
-    !editing && (!isLocalChat(chatId) || chatId === STATIM_LOCAL_ID || chatId === SAVED_LOCAL_ID);
+  const canAttach = !editing && takesAttachments(chatId);
   // The app's own chats keep what you send on this device, pictures included.
   const carriesImages = canAttach && (isLocalChat(chatId) || sendsImages);
   const mediaTabs: MediaTab[] = carriesImages ? ['emoji', 'stickers', 'gifs'] : ['emoji'];

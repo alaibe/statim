@@ -64,19 +64,17 @@ export function VideoBubble({
               nativeControls={false}
             />
             {gif ? null : (
-              <View className="absolute inset-0 items-center justify-center">
-                <View className="h-12 w-12 items-center justify-center rounded-pill bg-black/55 pl-1">
-                  <Icon name="play" size={22} color="white" />
-                </View>
-              </View>
+              <>
+                <PlayOverlay />
+                {durationMs ? (
+                  <View className="absolute left-1.5 top-1.5 rounded-pill bg-black/45 px-1.5 py-0.5">
+                    <Text variant="micro" className="text-white">
+                      {formatDuration(durationMs)}
+                    </Text>
+                  </View>
+                ) : null}
+              </>
             )}
-            {!gif && durationMs ? (
-              <View className="absolute left-1.5 top-1.5 rounded-pill bg-black/45 px-1.5 py-0.5">
-                <Text variant="micro" className="text-white">
-                  {formatDuration(durationMs)}
-                </Text>
-              </View>
-            ) : null}
           </View>
         </Pressable>
       </HoverSave>
@@ -88,9 +86,19 @@ export function VideoBubble({
         />
       ) : null}
 
-      <MediaViewer visible={open} onClose={() => setOpen(false)} onSave={onSave}>
+      <MediaViewer visible={open} onClose={() => setOpen(false)} onSave={onSave} interactive={!gif}>
         {open ? <ViewerVideo uri={uri} gif={gif} /> : null}
       </MediaViewer>
+    </View>
+  );
+}
+
+export function PlayOverlay() {
+  return (
+    <View className="absolute inset-0 items-center justify-center">
+      <View className="h-12 w-12 items-center justify-center rounded-pill bg-black/55 pl-1">
+        <Icon name="play" size={22} color="white" />
+      </View>
     </View>
   );
 }
@@ -98,8 +106,6 @@ export function VideoBubble({
 function ViewerVideo({ uri, gif }: { uri: string; gif: boolean }) {
   const player = useMessagePlayer(uri, gif, true);
   return (
-    <View style={{ width: '100%', height: '80%', pointerEvents: gif ? 'none' : 'auto' }}>
-      <VideoView player={player} style={{ flex: 1 }} contentFit="contain" nativeControls={!gif} />
-    </View>
+    <VideoView player={player} style={{ flex: 1 }} contentFit="contain" nativeControls={!gif} />
   );
 }
