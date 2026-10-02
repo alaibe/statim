@@ -91,6 +91,9 @@
           "ios": {
             "deploymentTarget": "18.1",
             "usePrecompiledModules": false
+          },
+          "android": {
+            "minSdkVersion": 26
           }
         }
       ],
