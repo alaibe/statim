@@ -26,7 +26,8 @@ type AccountScopedKey = `account.${string}.${
   | 'matrixStoreKey'
   | 'matrixSession'
   | 'protocols'
-  | 'credentials'}`;
+  | 'credentials'
+  | 'ai'}`;
 
 export function accountMnemonicKey(accountId: string): AccountScopedKey {
   return `account.${accountId}.mnemonic`;
@@ -63,6 +64,10 @@ export function accountCredentialsKey(accountId: string): AccountScopedKey {
   return `account.${accountId}.credentials`;
 }
 
+export function accountAiConfigKey(accountId: string): AccountScopedKey {
+  return `account.${accountId}.ai`;
+}
+
 export function accountScopedKeys(accountId: string): VaultKeyName[] {
   return [
     accountMnemonicKey(accountId),
@@ -73,6 +78,7 @@ export function accountScopedKeys(accountId: string): VaultKeyName[] {
     accountMatrixSessionKey(accountId),
     accountProtocolConfigsKey(accountId),
     accountCredentialsKey(accountId),
+    accountAiConfigKey(accountId),
   ];
 }
 

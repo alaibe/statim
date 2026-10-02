@@ -81,7 +81,7 @@ Groups
 Settings
   settings           Show appearance and privacy settings
   settings set       Change a setting
-  apikey             Save an API key (gifs or trades), read from stdin or a hidden prompt; empty removes it
+  apikey             Save an API key (gifs, trades or ai), read from stdin or a hidden prompt; empty removes it
 
 Plugins
   plugins            List plugins and whether they are on

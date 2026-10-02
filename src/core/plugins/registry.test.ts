@@ -41,6 +41,7 @@ function stubContext(): PluginContext {
       sendText: async () => {},
       sendCustom: async () => {},
       members: async () => [],
+      messages: async () => [],
     },
     ui: {
       notify: () => {},

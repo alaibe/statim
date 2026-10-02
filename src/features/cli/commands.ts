@@ -529,8 +529,8 @@ export const COMMANDS = [
     path: 'apikey',
     group: 'Settings',
     summary:
-      'Save an API key (gifs or trades), read from stdin or a hidden prompt; empty removes it',
-    args: [{ name: 'service', description: 'gifs or trades' }],
+      'Save an API key (gifs, trades or ai), read from stdin or a hidden prompt; empty removes it',
+    args: [{ name: 'service', description: 'gifs, trades or ai' }],
   },
   {
     path: 'plugins',

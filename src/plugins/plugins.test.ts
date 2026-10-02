@@ -308,7 +308,21 @@ describe('every command', () => {
       // Everything here involves the person on the other side: pay them, ask
       // them, tell them where to pay you, look up who they are.
       'dm',
-      ['address', 'balance', 'commands', 'ens', 'move', 'profile', 'request', 'send'],
+      // The AI commands read or write what is said in this chat, for you only.
+      [
+        'address',
+        'balance',
+        'commands',
+        'ens',
+        'move',
+        'profile',
+        'request',
+        'rewrite',
+        'send',
+        'suggest',
+        'summarize',
+        'translate',
+      ],
     ],
     [
       // The same, plus the group's own management. That is core: you cannot
@@ -326,8 +340,12 @@ describe('every command', () => {
         'remove',
         'rename',
         'request',
+        'rewrite',
         'send',
         'split',
+        'suggest',
+        'summarize',
+        'translate',
       ],
     ],
   ] as const)('offers exactly the agreed set in a %s', async (scope, expected) => {

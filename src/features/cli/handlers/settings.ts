@@ -9,7 +9,7 @@ import { readText } from './input';
 
 const THEMES: ThemeChoice[] = ['system', 'light', 'dark'];
 const WALLPAPERS = Object.keys(CHAT_PATTERNS) as ChatPatternName[];
-const CREDENTIALS: CredentialId[] = ['gifs', 'trades'];
+const CREDENTIALS: CredentialId[] = ['gifs', 'trades', 'ai'];
 
 function onOff(value: string): boolean {
   if (['on', 'true', 'yes', '1'].includes(value)) return true;

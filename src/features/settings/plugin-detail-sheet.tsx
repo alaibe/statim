@@ -11,6 +11,7 @@ const TONE: Record<string, RowIconTone> = {
   wallet: 'green',
   browser: 'teal',
   markets: 'orange',
+  ai: 'teal',
 };
 
 export function PluginIcon({ plugin }: { plugin: Plugin }) {

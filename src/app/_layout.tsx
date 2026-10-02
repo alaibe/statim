@@ -39,7 +39,8 @@ Observe.configure({
 const HOST_UI: HostUi = {
   notify: (message, tone = 'info') => toast[tone](message),
   openChat,
-  openSettings: (page) => openTab(page === 'pin' ? '/settings/pin' : '/settings'),
+  openSettings: (page) =>
+    openTab(page === 'pin' ? '/settings/pin' : page === 'ai' ? '/settings/ai' : '/settings'),
 };
 
 /**

@@ -29,6 +29,7 @@ export const SETTINGS_PAGES = [
   'privacy',
   'trades',
   'gifs',
+  'ai',
   'devices',
   'plugins',
   'protocols',
@@ -163,6 +164,15 @@ export function SettingsSections({
           trailing={chevron}
           selected={selected === 'gifs'}
           onPress={() => openTab('/settings/gifs')}
+        />
+        <ListItem
+          testID="settings-ai"
+          title="AI"
+          subtitle={hint('The model that rewrites, translates and summarises')}
+          leading={<RowIcon name="sparkles-outline" tone="teal" />}
+          trailing={chevron}
+          selected={selected === 'ai'}
+          onPress={() => openTab('/settings/ai')}
         />
         <ListItem
           testID="settings-devices"
