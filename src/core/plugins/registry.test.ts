@@ -41,7 +41,6 @@ function stubContext(): PluginContext {
       sendText: async () => {},
       sendCustom: async () => {},
       members: async () => [],
-      messages: async () => [],
     },
     ui: {
       notify: () => {},
@@ -92,6 +91,36 @@ describe('PluginRegistry', () => {
     expect(registry.commandListFor(asChatId('xmtp-abc'))).toHaveLength(0);
     await activate(registry, 'a');
     expect(registry.commandListFor(asChatId('xmtp-abc'))).toHaveLength(1);
+  });
+
+  it('offers a core feature only while it is on, and says so to subscribers', () => {
+    let on = false;
+    let notify = () => {};
+    const registry = new PluginRegistry([], {
+      features: [
+        {
+          commands: [
+            { name: 'hi', description: '', usage: '', run: async () => ({ type: 'handled' }) },
+          ],
+          composerActions: [{ id: 'hi', label: 'Hi', icon: 'ellipse', command: '/hi' }],
+          isOn: () => on,
+          subscribe: (listener) => {
+            notify = listener;
+            return () => {};
+          },
+        },
+      ],
+    });
+    const changed = jest.fn();
+    registry.subscribe(changed);
+    const chat = asChatId('xmtp-abc');
+
+    expect(registry.commandListFor(chat)).toHaveLength(0);
+    on = true;
+    notify();
+    expect(changed).toHaveBeenCalled();
+    expect(registry.commandListFor(chat).map(({ command }) => command.name)).toEqual(['hi']);
+    expect(registry.composerActionsFor(chat)).toHaveLength(1);
   });
 
   it('registers aliases alongside the primary command name', async () => {

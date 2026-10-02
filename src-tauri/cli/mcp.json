@@ -1244,7 +1244,7 @@
         "properties": {
           "setting": {
             "type": "string",
-            "description": "theme, wallpaper, read-receipts, typing-indicators or link-previews"
+            "description": "theme, wallpaper, read-receipts, typing-indicators, link-previews or ai"
           },
           "value": {
             "type": "string",

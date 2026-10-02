@@ -1,13 +1,13 @@
 # AI
 
-The AI plugin rewrites what you are about to send, translates, summarises a
-chat and suggests replies. It is off until you turn it on in **Settings ›
-Plugins**, like every other plugin, and it only runs when you ask: nothing is
-read in the background and nothing is sent until you press send yourself.
+AI rewrites what you are about to send, translates, summarises a chat and
+suggests replies. It is off until you turn on **AI in chats** in **Settings ›
+AI**, and it only runs when you ask: nothing is read in the background and
+nothing is sent until you press send yourself.
 
 ## The commands
 
-Once the plugin is on, chips sit above the composer in DMs and groups. Each has
+Once it is on, chips sit above the composer in DMs and groups. Each has
 a slash command behind it that you can also type.
 
 | Chip | Slash command | Does |
@@ -24,7 +24,7 @@ its card says it may contain mistakes.
 
 ## Where the model runs
 
-**Settings › AI** picks the model.
+Below the switch, **Settings › AI** picks the model.
 
 **Automatic** is the default and keeps everything on your device:
 

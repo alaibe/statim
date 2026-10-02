@@ -15,7 +15,6 @@ import type {
   ChatMessage,
   ChatId,
   MessageContent,
-  MessageId,
   ParticipantId,
   WidgetContent,
 } from '../messaging/types';
@@ -73,16 +72,6 @@ export interface PluginAccountApi {
   deriveEd25519(path: string): Ed25519Key;
 }
 
-export interface PluginMessage {
-  id: MessageId;
-  /** The sender's name as the app shows it, or "You". */
-  from: string;
-  fromMe: boolean;
-  sentAt: number;
-  /** The text, or a one-line description of a photo, file or poll. */
-  text: string;
-}
-
 export interface PluginChatApi {
   startDm(addressOrId: string): Promise<ChatId | null>;
   startGroup(
@@ -93,8 +82,6 @@ export interface PluginChatApi {
   sendText(chatId: ChatId, text: string): Promise<void>;
   sendCustom(chatId: ChatId, typeId: string, data: unknown): Promise<void>;
   members(chatId: ChatId): Promise<ParticipantId[]>;
-  /** The newest `limit` messages, oldest first, without private notices and reactions. */
-  messages(chatId: ChatId, limit: number): Promise<PluginMessage[]>;
 }
 
 export interface PluginUiApi {
@@ -109,8 +96,8 @@ export interface PluginUiApi {
   openSettings(page: SettingsLink): void;
 }
 
-/** The parts of Settings a plugin can send the user to: its Security section, setting a PIN, or the AI model. */
-export type SettingsLink = 'security' | 'pin' | 'ai';
+/** The parts of Settings a plugin can send the user to: its Security section, or setting a PIN. */
+export type SettingsLink = 'security' | 'pin';
 
 export interface PluginSummary {
   id: PluginId;

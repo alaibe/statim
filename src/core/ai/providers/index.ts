@@ -1,4 +1,4 @@
-import { loadAiConfig, loadAiKey, type AiConfig } from '../config';
+import { loadAiConfig, loadAiKey, type ModelChoice } from '../config';
 import { deviceModelState } from '../device';
 import { anthropicProvider, DEFAULT_ANTHROPIC_MODEL } from './anthropic';
 import type { AiProvider } from './interface';
@@ -24,7 +24,10 @@ async function localOllama(): Promise<AiProvider | null> {
   return models[0] ? openAiProvider({ url: OLLAMA_URL, model: models[0], key: null }) : null;
 }
 
-export async function providerFor(config: AiConfig, key: string | null): Promise<ProviderLookup> {
+export async function providerFor(
+  config: ModelChoice,
+  key: string | null
+): Promise<ProviderLookup> {
   switch (config.source) {
     case 'auto': {
       const state = await deviceModelState();

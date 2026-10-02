@@ -5,12 +5,10 @@ import { openExternal } from '@/lib/open-url';
 import { capabilitiesOf } from '../account/account-kind';
 import type { Keyring } from '../account/keyring';
 import { groupCommands, groupComposerActions } from '../commands/group';
+import { aiFeature } from '../commands/ai';
 import { pollCommand } from '../commands/poll';
 import { sessionFor, useChatStore, xmtpSessionFor } from '../messaging/chat-store';
 import { chatScope } from '../messaging/chat-scope';
-import { nameFrom, resolveParticipants } from '../messaging/display-names';
-import { plainText } from '../messaging/markdown';
-import { contentPreview } from '../messaging/preview';
 import { notifyLiveViews } from './live';
 import { PluginRegistry, worksOn } from './registry';
 import type {
@@ -208,34 +206,6 @@ function makePluginContext(
         }
       },
 
-      async messages(chatId, limit) {
-        require('chat.read');
-        if (!accountChat().messages[chatId]) await guard(() => accountChat().loadMessages(chatId));
-        const store = accountChat();
-        const chat = store.chats.find((c) => c.id === chatId);
-        const picked = (store.messages[chatId] ?? [])
-          .filter((m) => !m.privateToMe && !m.preview && m.content.kind !== 'reaction')
-          .slice(-limit);
-        const others = [...new Set(picked.filter((m) => !m.fromMe).map((m) => m.senderId))];
-        const [resolved, own] = await Promise.all([
-          chat
-            ? resolveParticipants(chat.protocol, others)
-            : Promise.resolve({ names: {}, addresses: {} }),
-          registry.participantNames(),
-        ]);
-        active();
-        return picked.map((m) => ({
-          id: m.id,
-          from: m.fromMe ? 'You' : nameFrom(m.senderId, resolved, own),
-          fromMe: m.fromMe,
-          sentAt: m.sentAt,
-          text:
-            m.content.kind === 'text'
-              ? plainText(m.content.text).trim()
-              : contentPreview(m.content),
-        }));
-      },
-
       async sendCustom(chatId, typeId, data) {
         require('chat.send');
         await guard(() => accountChat().sendMessage(chatId, { kind: 'custom', typeId, data }));
@@ -317,6 +287,7 @@ export function PluginProvider({ plugins, defaultEnabled, ui, children }: Plugin
       new PluginRegistry(plugins, {
         commands: [...groupCommands, pollCommand],
         composerActions: groupComposerActions,
+        features: [aiFeature],
       })
   );
   const [enabledIds, setEnabledIds] = useState<PluginId[]>([]);

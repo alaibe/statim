@@ -2,6 +2,7 @@ import type { AccountRecord } from '../account/accounts';
 import { reportError } from './report-error';
 import type { Keyring } from '../account/keyring';
 import { useAppearanceStore } from './appearance';
+import { useAiStore } from '../ai/ai-store';
 import { clearLinkPreviewCache, hydrateLinkPreviewCache } from '../messaging/link-preview-cache';
 import { clearEnsCache, hydrateEnsCache } from '@/lib/evm/ens-cache';
 import { loadProtocolConfig, saveProtocolConfig, type ProtocolConfig } from '../messaging/config';
@@ -225,13 +226,14 @@ export class AccountRuntime {
     projectAccount(storage);
     const cache = new ChatCache(storage.messages);
 
-    const [readAt, chatPrefs, drafts, mediaIndex, prefs, , , , cached] = await Promise.all([
+    const [readAt, chatPrefs, drafts, mediaIndex, prefs, , , , , cached] = await Promise.all([
       readReadState(storage),
       loadChatPrefs(storage),
       loadDrafts(storage),
       loadMediaIndex(storage),
       loadPluginPrefs(storage),
       useAppearanceStore.getState().hydrate(storage),
+      useAiStore.getState().hydrate(input.accountId),
       hydrateLinkPreviewCache(storage),
       hydrateEnsCache(storage),
       cache.restore(),
@@ -373,6 +375,7 @@ export class AccountRuntime {
     if (status !== 'erasing') {
       clearChatProjection();
       useAppearanceStore.getState().clear();
+      useAiStore.getState().clear();
       clearLinkPreviewCache();
       clearEnsCache();
     }
@@ -395,6 +398,7 @@ export class AccountRuntime {
     if (accountId !== (next?.accountId ?? null) || status === 'erasing') {
       clearChatProjection(status);
       useAppearanceStore.getState().clear();
+      useAiStore.getState().clear();
       clearLinkPreviewCache();
       clearEnsCache();
     }

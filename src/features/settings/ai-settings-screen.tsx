@@ -1,16 +1,28 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { Button, Checkmark, Chip, Field, ListItem, Note, Section, Text, toast } from '@/design';
+import {
+  Button,
+  Checkmark,
+  Chip,
+  Field,
+  ListItem,
+  Note,
+  Section,
+  Text,
+  toast,
+  Toggle,
+} from '@/design';
 import { useAccountStore } from '@/core/account/account-store';
+import { useAiStore } from '@/core/ai/ai-store';
 import { DEFAULT_ANTHROPIC_MODEL } from '@/core/ai/providers/anthropic';
 import {
   loadAiConfig,
   loadAiKey,
   saveAiConfig,
   saveAiKey,
-  type AiConfig,
   type AiSource,
+  type ModelChoice,
 } from '@/core/ai/config';
 import { DEVICE_MODEL_NAME, deviceModelState, type DeviceModelState } from '@/core/ai/device';
 import { OLLAMA_URL, providerFor } from '@/core/ai/providers';
@@ -26,12 +38,12 @@ import { useAction } from '@/features/use-action';
 const DESKTOP = process.env.EXPO_OS === 'web';
 
 interface Saved {
-  config: AiConfig;
+  config: ModelChoice;
   key: string;
   device: DeviceModelState;
 }
 
-interface Draft extends AiConfig {
+interface Draft extends ModelChoice {
   key: string;
 }
 
@@ -107,7 +119,13 @@ function AiSettingsForm({
   saved: Saved;
   onSaved: () => void;
 }) {
-  const [draft, setDraft] = useState<Draft>({ ...saved.config, key: saved.key });
+  const enabled = useAiStore((s) => s.enabled);
+  const [draft, setDraft] = useState<Draft>({
+    source: saved.config.source,
+    url: saved.config.url,
+    model: saved.config.model,
+    key: saved.key,
+  });
   const [models, setModels] = useState<readonly string[]>([]);
   const change = (patch: Partial<Draft>) => setDraft((current) => ({ ...current, ...patch }));
 
@@ -132,12 +150,16 @@ function AiSettingsForm({
 
   const save = useAction(
     async () => {
-      await saveAiConfig(accountId, draft);
+      await saveAiConfig(accountId, { source: draft.source, url: draft.url, model: draft.model });
       await saveAiKey(accountId, draft.key);
       onSaved();
     },
     { success: 'AI settings saved', failure: 'Could not save the AI settings' }
   );
+
+  const toggle = useAction((on: boolean) => useAiStore.getState().setEnabled(on), {
+    failure: 'Could not change the AI setting',
+  });
 
   const tryIt = useAction(
     async () => {
@@ -165,134 +187,153 @@ function AiSettingsForm({
 
   return (
     <>
-      <Section title="Model" surface="card" className="mb-6">
-        {SOURCES.map((source) => (
-          <ListItem
-            key={source.id}
-            testID={`ai-source-${source.id}`}
-            title={source.title}
-            subtitle={source.id === 'auto' ? automaticHint(saved.device) : source.hint}
-            numberOfLinesSubtitle={2}
-            onPress={() => pick(source.id)}
-            trailing={<Checkmark selected={source.id === draft.source} />}
-          />
-        ))}
+      <Section surface="card" className="mb-6">
+        <ListItem
+          testID="ai-enabled"
+          title="AI in chats"
+          subtitle="Rewrite, Translate, Summarize and Suggest a reply, above the composer and as slash commands"
+          numberOfLinesSubtitle={2}
+          trailing={
+            <Toggle
+              label="AI in chats"
+              value={enabled}
+              onValueChange={(on) => void toggle.run(on)}
+            />
+          }
+        />
       </Section>
 
-      {draft.source === 'openai' ? (
-        <Section title="Server" surface="card" className="mb-6">
-          <View className="gap-3 px-gutter py-4">
-            <Field
-              testID="ai-url"
-              label="Address"
-              value={draft.url}
-              onChangeText={(url) => change({ url })}
-              placeholder={OLLAMA_URL}
-              hint={addressHint(draft.url)}
-              autoCorrect={false}
-              autoCapitalize="none"
-              keyboardType="url"
-            />
-            <Field
-              testID="ai-key"
-              label="API key"
-              value={draft.key}
-              onChangeText={(key) => change({ key })}
-              placeholder="Only if the server asks for one"
-              autoCorrect={false}
-              autoCapitalize="none"
-              secureTextEntry
-            />
-            <Field
-              testID="ai-model"
-              label="Model"
-              value={draft.model}
-              onChangeText={(model) => change({ model })}
-              placeholder="llama3.2"
-              autoCorrect={false}
-              autoCapitalize="none"
-            />
-            {models.length > 0 ? (
-              <View className="flex-row flex-wrap gap-1.5">
-                {models.map((model) => (
-                  <Chip
-                    key={model}
-                    label={model}
-                    size="sm"
-                    selected={model === draft.model}
-                    onPress={() => change({ model })}
-                  />
-                ))}
+      {enabled ? (
+        <>
+          <Section title="Model" surface="card" className="mb-6">
+            {SOURCES.map((source) => (
+              <ListItem
+                key={source.id}
+                testID={`ai-source-${source.id}`}
+                title={source.title}
+                subtitle={source.id === 'auto' ? automaticHint(saved.device) : source.hint}
+                numberOfLinesSubtitle={2}
+                onPress={() => pick(source.id)}
+                trailing={<Checkmark selected={source.id === draft.source} />}
+              />
+            ))}
+          </Section>
+
+          {draft.source === 'openai' ? (
+            <Section title="Server" surface="card" className="mb-6">
+              <View className="gap-3 px-gutter py-4">
+                <Field
+                  testID="ai-url"
+                  label="Address"
+                  value={draft.url}
+                  onChangeText={(url) => change({ url })}
+                  placeholder={OLLAMA_URL}
+                  hint={addressHint(draft.url)}
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                  keyboardType="url"
+                />
+                <Field
+                  testID="ai-key"
+                  label="API key"
+                  value={draft.key}
+                  onChangeText={(key) => change({ key })}
+                  placeholder="Only if the server asks for one"
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                  secureTextEntry
+                />
+                <Field
+                  testID="ai-model"
+                  label="Model"
+                  value={draft.model}
+                  onChangeText={(model) => change({ model })}
+                  placeholder="llama3.2"
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                />
+                {models.length > 0 ? (
+                  <View className="flex-row flex-wrap gap-1.5">
+                    {models.map((model) => (
+                      <Chip
+                        key={model}
+                        label={model}
+                        size="sm"
+                        selected={model === draft.model}
+                        onPress={() => change({ model })}
+                      />
+                    ))}
+                  </View>
+                ) : null}
+                <Button
+                  testID="ai-find-models"
+                  label="Find models"
+                  tone="neutral"
+                  size="sm"
+                  loading={findModels.busy}
+                  disabled={!draft.url.trim() || findModels.busy}
+                  onPress={() => findModels.run()}
+                />
               </View>
-            ) : null}
-            <Button
-              testID="ai-find-models"
-              label="Find models"
-              tone="neutral"
-              size="sm"
-              loading={findModels.busy}
-              disabled={!draft.url.trim() || findModels.busy}
-              onPress={() => findModels.run()}
-            />
-          </View>
-        </Section>
-      ) : null}
+            </Section>
+          ) : null}
 
-      {draft.source === 'anthropic' ? (
-        <Section title="Anthropic" surface="card" className="mb-6">
-          <View className="gap-3 px-gutter py-4">
-            <Field
-              testID="ai-key"
-              label="API key"
-              value={draft.key}
-              onChangeText={(key) => change({ key })}
-              placeholder="sk-ant-…"
-              autoCorrect={false}
-              autoCapitalize="none"
-              secureTextEntry
-            />
-            <Field
-              testID="ai-model"
-              label="Model"
-              value={draft.model}
-              onChangeText={(model) => change({ model })}
-              placeholder={DEFAULT_ANTHROPIC_MODEL}
-              autoCorrect={false}
-              autoCapitalize="none"
-            />
-          </View>
-        </Section>
-      ) : null}
+          {draft.source === 'anthropic' ? (
+            <Section title="Anthropic" surface="card" className="mb-6">
+              <View className="gap-3 px-gutter py-4">
+                <Field
+                  testID="ai-key"
+                  label="API key"
+                  value={draft.key}
+                  onChangeText={(key) => change({ key })}
+                  placeholder="sk-ant-…"
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                  secureTextEntry
+                />
+                <Field
+                  testID="ai-model"
+                  label="Model"
+                  value={draft.model}
+                  onChangeText={(model) => change({ model })}
+                  placeholder={DEFAULT_ANTHROPIC_MODEL}
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                />
+              </View>
+            </Section>
+          ) : null}
 
-      <View className="mb-6 flex-row gap-2 px-gutter">
-        <View className="flex-1">
-          <Button
-            testID="ai-save"
-            label="Save"
-            fullWidth
-            loading={save.busy}
-            disabled={!dirty || save.busy}
-            onPress={() => save.run()}
-          />
-        </View>
-        <View className="flex-1">
-          <Button
-            testID="ai-try"
-            label="Try it"
-            tone="neutral"
-            fullWidth
-            loading={tryIt.busy}
-            disabled={tryIt.busy}
-            onPress={() => tryIt.run()}
-          />
-        </View>
-      </View>
+          <View className="mb-6 flex-row gap-2 px-gutter">
+            <View className="flex-1">
+              <Button
+                testID="ai-save"
+                label="Save"
+                fullWidth
+                loading={save.busy}
+                disabled={!dirty || save.busy}
+                onPress={() => save.run()}
+              />
+            </View>
+            <View className="flex-1">
+              <Button
+                testID="ai-try"
+                label="Try it"
+                tone="neutral"
+                fullWidth
+                loading={tryIt.busy}
+                disabled={tryIt.busy}
+                onPress={() => tryIt.run()}
+              />
+            </View>
+          </View>
+        </>
+      ) : null}
 
       <Note className="mx-gutter" icon="information-circle-outline">
         <Text variant="footnote">
-          Turn on the AI plugin in Settings › Plugins to add /rewrite, /translate, /summarize and
-          /suggest to your chats. Each runs only when you type it, and nothing is sent until you
-          send it yourself.
+          AI is off until you turn it on. Each command runs only when you type it or tap its chip,
+          and nothing is sent until you send it yourself.
         </Text>
         <Text variant="footnote">
           Automatic uses the model built into this device, so the text never leaves it. Translation

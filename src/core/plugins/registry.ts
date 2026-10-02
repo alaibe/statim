@@ -45,9 +45,18 @@ const CORE_CONTEXT = new Proxy({} as PluginContext, {
   },
 });
 
+/** Commands that ship with the app but are offered only while their switch in Settings is on. */
+export interface CoreFeature {
+  commands: SlashCommand[];
+  composerActions?: ComposerAction[];
+  isOn(): boolean;
+  subscribe(listener: () => void): () => void;
+}
+
 export interface CoreContribution {
   commands?: SlashCommand[];
   composerActions?: ComposerAction[];
+  features?: CoreFeature[];
 }
 
 function indexCommands(
@@ -103,6 +112,20 @@ export class PluginRegistry {
   constructor(plugins: Plugin[] = [], core: CoreContribution = {}) {
     this.core = core;
     for (const plugin of plugins) this.register(plugin);
+    for (const feature of core.features ?? []) feature.subscribe(() => this.invalidate());
+  }
+
+  private coreCommands(): SlashCommand[] {
+    const on = (this.core.features ?? []).filter((feature) => feature.isOn());
+    return [...(this.core.commands ?? []), ...on.flatMap((feature) => feature.commands)];
+  }
+
+  private coreComposerActions(): ComposerAction[] {
+    const on = (this.core.features ?? []).filter((feature) => feature.isOn());
+    return [
+      ...(this.core.composerActions ?? []),
+      ...on.flatMap((feature) => feature.composerActions ?? []),
+    ];
   }
 
   register(plugin: Plugin) {
@@ -233,7 +256,7 @@ export class PluginRegistry {
 
   /** Core first, then plugins. No scope skips the `showIn` gate; no chat skips ownership. */
   private *entries(chatId?: ChatId, scope?: ChatScope): Generator<CommandEntry> {
-    for (const command of this.core.commands ?? []) {
+    for (const command of this.coreCommands()) {
       if (scope !== undefined && !inScope(command.showIn, scope)) continue;
       yield { command, context: CORE_CONTEXT, pluginId: CORE_ID };
     }
@@ -250,7 +273,7 @@ export class PluginRegistry {
     scope?: ChatScope
   ): { action: ComposerAction; context: PluginContext; pluginId: PluginId }[] {
     return this.memo(`actions:${chatId}:${scope}`, () => {
-      const core = (this.core.composerActions ?? [])
+      const core = this.coreComposerActions()
         .filter((action) => scope === undefined || inScope(action.showIn, scope))
         .map((action) => ({ action, context: CORE_CONTEXT, pluginId: CORE_ID }));
 

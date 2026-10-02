@@ -1,6 +1,5 @@
 import type { Plugin, PluginId } from '@/core/plugins/types';
 
-import { aiPlugin } from './ai';
 import { assistantPlugin } from './assistant';
 import { botsPlugin } from './bots';
 import { browserPlugin } from './browser';
@@ -15,7 +14,6 @@ export const ALL_PLUGINS: Plugin[] = [
   walletPlugin,
   browserPlugin,
   marketsPlugin,
-  aiPlugin,
 ];
 
 export const DEFAULT_ENABLED_PLUGINS: PluginId[] = [

@@ -1,7 +1,7 @@
 import { AiError, isAiError } from './errors';
 import { DEVICE_TRANSLATION_LABEL, DEVICE_TRANSLATION_SETTINGS, translateOnDevice } from './device';
 import type { Language } from './languages';
-import { tagged } from './prompt';
+import { tagged } from './prompts';
 import { resolveProvider, type AiAnswer } from './providers';
 
 export function translationInstructions(target: Language): string {

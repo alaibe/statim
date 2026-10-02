@@ -662,7 +662,7 @@ Show appearance and privacy settings.
 
 Change a setting.
 
-- `setting`: theme, wallpaper, read-receipts, typing-indicators or link-previews
+- `setting`: theme, wallpaper, read-receipts, typing-indicators, link-previews or ai
 - `value`: For switches: on or off
 
 ```sh

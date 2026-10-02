@@ -1,6 +1,11 @@
-import type { CompletionRequest } from '@/core/ai/providers';
-import { tagged } from '@/core/ai/prompt';
-import type { PluginMessage } from '@/core/plugins/types';
+import type { ChatLine } from '@/core/messaging/chat-lines';
+
+import type { CompletionRequest } from './providers';
+
+/** Text the model must treat as data, never as an instruction to follow. */
+export function tagged(tag: string, text: string): string {
+  return `<${tag}>\n${text.replaceAll(`</${tag}>`, `< /${tag}>`)}\n</${tag}>`;
+}
 
 export const STYLES = {
   clearer: 'clearer and more polite',
@@ -28,7 +33,7 @@ export function rewriteRequest(text: string, style: Style): CompletionRequest {
 }
 
 /** Oldest first, as many of the newest lines as fit in `budget` characters. */
-export function transcript(messages: readonly PluginMessage[], budget: number) {
+export function transcript(messages: readonly ChatLine[], budget: number) {
   const lines: string[] = [];
   let used = 0;
   for (let i = messages.length - 1; i >= 0; i -= 1) {

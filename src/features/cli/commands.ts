@@ -519,7 +519,7 @@ export const COMMANDS = [
     args: [
       {
         name: 'setting',
-        description: 'theme, wallpaper, read-receipts, typing-indicators or link-previews',
+        description: 'theme, wallpaper, read-receipts, typing-indicators, link-previews or ai',
       },
       { name: 'value', description: 'For switches: on or off' },
     ],

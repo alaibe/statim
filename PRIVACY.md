@@ -89,8 +89,8 @@ GIF search uses KLIPY, and only if you enter your own key for it.
 
 ### AI
 
-The AI plugin is off until you turn it on, and each command runs only when you
-type it or tap its chip. With Automatic, the model and the translator are the
+AI is off until you turn it on in Settings → AI, and each command runs only
+when you type it or tap its chip. With Automatic, the model and the translator are the
 ones built into your device (Apple Intelligence and Apple Translation, or
 Gemini Nano and Google's ML Kit) and the text never leaves it. ML Kit downloads
 a language from Google the first time you translate into it, which shows Google

@@ -1,8 +1,8 @@
-import type { PluginMessage } from '@/core/plugins/types';
+import type { ChatLine } from '@/core/messaging/chat-lines';
 
 import { parseStyle, parseSuggestions, rewriteRequest, transcript } from './prompts';
 
-const message = (from: string, text: string): PluginMessage => ({
+const message = (from: string, text: string): ChatLine => ({
   id: `${from}-${text}`,
   from,
   fromMe: from === 'You',

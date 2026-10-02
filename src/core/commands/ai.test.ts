@@ -1,37 +1,29 @@
+import { useAiStore } from '@/core/ai/ai-store';
 import { resolveProvider } from '@/core/ai/providers';
 import { translateText } from '@/core/ai/translate';
+import { recentLines, type ChatLine } from '@/core/messaging/chat-lines';
 import { asChatId } from '@/core/messaging/testing/ids';
-import type {
-  CommandInvocation,
-  PluginContext,
-  PluginMessage,
-  SlashCommand,
-} from '@/core/plugins/types';
+import type { CommandInvocation, PluginContext, SlashCommand } from '@/core/plugins/types';
 
-import { aiCommands } from './commands';
+import { aiFeature } from './ai';
 
 jest.mock('@/core/ai/providers', () => ({ resolveProvider: jest.fn() }));
 jest.mock('@/core/ai/translate', () => ({ translateText: jest.fn() }));
+jest.mock('@/core/messaging/chat-lines', () => ({ recentLines: jest.fn() }));
 
 const resolve = resolveProvider as jest.MockedFunction<typeof resolveProvider>;
 const translate = translateText as jest.MockedFunction<typeof translateText>;
+const lines = recentLines as jest.MockedFunction<typeof recentLines>;
 const complete = jest.fn<Promise<string>, [unknown]>();
 const chatId = asChatId('xmtp-chat');
 
-const history: PluginMessage[] = [
+const history: ChatLine[] = [
   { id: '1', from: 'Ann', fromMe: false, sentAt: 1, text: 'Dinner Thursday?' },
   { id: '2', from: 'You', fromMe: true, sentAt: 2, text: 'Maybe' },
   { id: '3', from: 'Ann', fromMe: false, sentAt: 3, text: 'The Thai place?' },
 ];
 
-const context = {
-  account: { accountId: 'acct' },
-  chat: { messages: jest.fn(async (_id: unknown, limit: number) => history.slice(-limit)) },
-  ui: { openSettings: jest.fn() },
-} as unknown as PluginContext;
-
-const commands = aiCommands(context);
-const command = (name: string) => commands.find((c) => c.name === name) as SlashCommand;
+const command = (name: string) => aiFeature.commands.find((c) => c.name === name) as SlashCommand;
 
 function invoke(name: string, rest = '') {
   const respond = jest.fn<Promise<void>, [unknown]>(async () => {});
@@ -39,7 +31,7 @@ function invoke(name: string, rest = '') {
     rest,
     args: rest.split(/\s+/).filter(Boolean),
     chatId,
-    context,
+    context: {} as PluginContext,
     respond,
   };
   return { result: command(name).run(invocation), respond };
@@ -47,6 +39,8 @@ function invoke(name: string, rest = '') {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  useAiStore.setState({ accountId: 'acct', enabled: true });
+  lines.mockImplementation(async (_id, limit) => history.slice(-limit));
   resolve.mockResolvedValue({
     ok: true,
     provider: {
@@ -109,18 +103,14 @@ it('/suggest offers each reply as a button that fills the composer', async () =>
   expect(card).toContain('/draft Can we do Friday?');
 });
 
-it('answers with the way to set a model up when there is none', async () => {
-  resolve.mockResolvedValue({ ok: false, reason: 'This device has no AI model of its own.' });
+it('answers with the reason when there is no model to use', async () => {
+  resolve.mockResolvedValue({
+    ok: false,
+    reason: 'This device has no AI model of its own. Set up a model in Settings › AI.',
+  });
   const { result, respond } = invoke('summarize');
   await expect(result).resolves.toEqual({ type: 'handled' });
-  const card = JSON.stringify(respond.mock.calls[0][0]);
-  expect(card).toContain('This device has no AI model of its own.');
-  expect(card).toContain('/ai settings');
-});
-
-it('/ai settings opens the AI page', async () => {
-  await invoke('ai', 'settings').result;
-  expect(context.ui.openSettings).toHaveBeenCalledWith('ai');
+  expect(JSON.stringify(respond.mock.calls[0][0])).toContain('Set up a model in Settings › AI.');
 });
 
 it('/translate says when the text is already in that language', async () => {
@@ -134,4 +124,15 @@ it('/translate says when the text is already in that language', async () => {
     message: 'That is already in English.',
   });
   expect(respond).not.toHaveBeenCalled();
+});
+
+it('is offered only while the switch is on', () => {
+  const listener = jest.fn();
+  const unsubscribe = aiFeature.subscribe(listener);
+  useAiStore.setState({ enabled: false });
+  expect(aiFeature.isOn()).toBe(false);
+  useAiStore.setState({ enabled: true });
+  expect(aiFeature.isOn()).toBe(true);
+  expect(listener).toHaveBeenCalledTimes(2);
+  unsubscribe();
 });

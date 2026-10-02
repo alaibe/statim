@@ -1,3 +1,4 @@
+import { useAiStore } from '@/core/ai/ai-store';
 import { AiError, isAiError } from '@/core/ai/errors';
 import { deviceLanguage, findLanguage, type Language } from '@/core/ai/languages';
 import { translateText } from '@/core/ai/translate';
@@ -7,10 +8,6 @@ import {
   type AiProvider,
   type CompletionRequest,
 } from '@/core/ai/providers';
-import type { WidgetContent } from '@/core/messaging/types';
-import type { PluginContext, SlashCommand } from '@/core/plugins/types';
-import { W } from '@/design/widgets';
-
 import {
   parseStyle,
   parseSuggestions,
@@ -19,27 +16,32 @@ import {
   suggestRequest,
   summaryRequest,
   transcript,
-} from './prompts';
+} from '@/core/ai/prompts';
+import { recentLines } from '@/core/messaging/chat-lines';
+import type { WidgetContent } from '@/core/messaging/types';
+import type { CoreFeature } from '@/core/plugins/registry';
+import type { ComposerAction, SlashCommand } from '@/core/plugins/types';
+import { W } from '@/design/widgets';
 
 const SUMMARY_DEFAULT = 50;
 const SUMMARY_MAX = 300;
 const SUGGEST_CONTEXT = 20;
 
-function accountOf(context: PluginContext): string {
-  const id = context.account.accountId;
+function account(): string {
+  const id = useAiStore.getState().accountId;
   if (!id) throw new AiError('unavailable', 'No account is active yet.');
   return id;
 }
 
-async function providerOf(context: PluginContext): Promise<AiProvider> {
-  const lookup = await resolveProvider(accountOf(context));
+async function provider(): Promise<AiProvider> {
+  const lookup = await resolveProvider(account());
   if (!lookup.ok) throw new AiError('unavailable', lookup.reason);
   return lookup.provider;
 }
 
-async function ask(context: PluginContext, request: CompletionRequest): Promise<AiAnswer> {
-  const provider = await providerOf(context);
-  return { text: await provider.complete(request), label: provider.label };
+async function ask(request: CompletionRequest): Promise<AiAnswer> {
+  const model = await provider();
+  return { text: await model.complete(request), label: model.label };
 }
 
 function afterFirstWord(rest: string): string {
@@ -67,10 +69,7 @@ function setupCard(reason: string): WidgetContent {
   return {
     kind: 'widget',
     fallback: reason,
-    widget: W.card(
-      [W.text(reason), W.actions([{ label: 'AI settings', command: '/ai settings' }])],
-      { title: 'AI', icon: 'sparkles-outline', tone: 'warning' }
-    ),
+    widget: W.card([W.text(reason)], { title: 'AI', icon: 'sparkles-outline', tone: 'warning' }),
   };
 }
 
@@ -89,8 +88,8 @@ function offeringSetup(command: SlashCommand): SlashCommand {
   };
 }
 
-export function aiCommands(context: PluginContext): SlashCommand[] {
-  const commands: SlashCommand[] = [
+const commands = (
+  [
     {
       name: 'rewrite',
       showIn: ['dm', 'group'],
@@ -105,7 +104,7 @@ export function aiCommands(context: PluginContext): SlashCommand[] {
             message: 'Type your text after /rewrite, for example "/rewrite shorter …".',
           };
         }
-        const answer = await ask(context, rewriteRequest(text, style ?? 'clearer'));
+        const answer = await ask(rewriteRequest(text, style ?? 'clearer'));
         return { type: 'setComposer', text: answer.text };
       },
     },
@@ -119,22 +118,22 @@ export function aiCommands(context: PluginContext): SlashCommand[] {
         const named = args[0] ? findLanguage(args[0]) : null;
         const text = (named ? afterFirstWord(rest) : rest).trim();
         const target: Language = named ?? deviceLanguage();
-        const account = accountOf(context);
+        const accountId = account();
 
         const already = { type: 'notice', message: `That is already in ${target.name}.` } as const;
 
         if (named && text) {
-          const answer = await translateText(account, text, target);
+          const answer = await translateText(accountId, text, target);
           if (answer.text.trim() === text) return already;
           return { type: 'setComposer', text: answer.text };
         }
 
         const source = text
           ? { from: null, text }
-          : (await context.chat.messages(chatId, 30)).filter((m) => !m.fromMe && m.text).at(-1);
+          : (await recentLines(chatId, 30)).filter((m) => !m.fromMe && m.text).at(-1);
         if (!source) return { type: 'error', message: 'There is no message to translate yet.' };
 
-        const answer = await translateText(account, source.text, target);
+        const answer = await translateText(accountId, source.text, target);
         if (answer.text.trim() === source.text.trim()) return already;
         const title = source.from ? `${source.from}, in ${target.name}` : `In ${target.name}`;
         await respond(answerCard(title, answer));
@@ -152,20 +151,20 @@ export function aiCommands(context: PluginContext): SlashCommand[] {
         const asked = Number(args[0]);
         const limit =
           Number.isInteger(asked) && asked > 0 ? Math.min(asked, SUMMARY_MAX) : SUMMARY_DEFAULT;
-        const messages = (await context.chat.messages(chatId, limit)).filter((m) => m.text);
+        const messages = (await recentLines(chatId, limit)).filter((m) => m.text);
         if (messages.length < 2) {
           return { type: 'error', message: 'There is not enough here to summarise yet.' };
         }
 
-        const provider = await providerOf(context);
-        const budget = provider.maxInputChars - summaryRequest('').instructions.length - 32;
+        const model = await provider();
+        const budget = model.maxInputChars - summaryRequest('').instructions.length - 32;
         const chat = transcript(messages, budget);
-        const text = await provider.complete(summaryRequest(chat.text));
+        const text = await model.complete(summaryRequest(chat.text));
         const title =
           chat.count === 1
             ? 'Summary of the last message'
             : `Summary of the last ${chat.count} messages`;
-        await respond(answerCard(title, { text, label: provider.label }, true));
+        await respond(answerCard(title, { text, label: model.label }, true));
         return { type: 'handled' };
       },
     },
@@ -176,17 +175,15 @@ export function aiCommands(context: PluginContext): SlashCommand[] {
       description: 'Suggest replies to the latest messages, for you to pick and edit',
       usage: '/suggest',
       async run({ chatId, respond }) {
-        const messages = (await context.chat.messages(chatId, SUGGEST_CONTEXT)).filter(
-          (m) => m.text
-        );
+        const messages = (await recentLines(chatId, SUGGEST_CONTEXT)).filter((m) => m.text);
         if (!messages.some((m) => !m.fromMe)) {
           return { type: 'error', message: 'There is nothing to answer yet.' };
         }
 
-        const provider = await providerOf(context);
-        const budget = provider.maxInputChars - suggestRequest('').instructions.length - 32;
+        const model = await provider();
+        const budget = model.maxInputChars - suggestRequest('').instructions.length - 32;
         const replies = parseSuggestions(
-          await provider.complete(suggestRequest(transcript(messages, budget).text))
+          await model.complete(suggestRequest(transcript(messages, budget).text))
         );
         if (replies.length === 0) throw new AiError('server', 'The model suggested nothing.');
 
@@ -199,7 +196,7 @@ export function aiCommands(context: PluginContext): SlashCommand[] {
                 W.text(reply),
                 W.actions([{ label: 'Use this', command: `/draft ${reply}` }]),
               ]),
-              W.badges([{ label: provider.label }]),
+              W.badges([{ label: model.label }]),
             ],
             { title: 'Replies you could send', icon: 'sparkles-outline' }
           ),
@@ -207,39 +204,48 @@ export function aiCommands(context: PluginContext): SlashCommand[] {
         return { type: 'handled' };
       },
     },
+  ] satisfies SlashCommand[]
+).map(offeringSetup);
 
-    {
-      name: 'ai',
-      hidden: true,
-      showIn: ['dm', 'group', 'channel'],
-      description: 'Show which model the AI commands use',
-      usage: '/ai [settings]',
-      async run({ args, respond }) {
-        if (args[0]?.toLowerCase() === 'settings') {
-          context.ui.openSettings('ai');
-          return { type: 'handled' };
-        }
-        const lookup = await resolveProvider(accountOf(context));
-        if (!lookup.ok) throw new AiError('unavailable', lookup.reason);
-        const { label, onDevice } = lookup.provider;
-        await respond({
-          kind: 'widget',
-          fallback: `AI commands use ${label}`,
-          widget: W.card(
-            [
-              W.text(
-                onDevice
-                  ? `${label}. What you ask stays on this device.`
-                  : `${label}. What you ask is sent to that server.`
-              ),
-              W.actions([{ label: 'AI settings', command: '/ai settings' }]),
-            ],
-            { title: 'AI', icon: 'sparkles-outline' }
-          ),
-        });
-        return { type: 'handled' };
-      },
-    },
-  ];
-  return commands.map(offeringSetup);
-}
+const composerActions: ComposerAction[] = [
+  {
+    id: 'ai-rewrite',
+    label: 'Rewrite',
+    icon: 'create-outline',
+    command: '/rewrite',
+    takesDraft: true,
+    showIn: ['dm', 'group'],
+  },
+  {
+    id: 'ai-translate',
+    label: process.env.EXPO_OS === 'android' ? 'Translate with Google' : 'Translate',
+    icon: 'globe-outline',
+    command: '/translate',
+    showIn: ['dm', 'group', 'channel'],
+  },
+  {
+    id: 'ai-summarize',
+    label: 'Summarize',
+    icon: 'document-text-outline',
+    command: '/summarize',
+    showIn: ['dm', 'group', 'channel'],
+  },
+  {
+    id: 'ai-suggest',
+    label: 'Suggest a reply',
+    icon: 'chatbubbles-outline',
+    command: '/suggest',
+    showIn: ['dm', 'group'],
+  },
+];
+
+/** Offered while the switch in Settings › AI is on. */
+export const aiFeature: CoreFeature = {
+  commands,
+  composerActions,
+  isOn: () => useAiStore.getState().enabled,
+  subscribe: (listener) =>
+    useAiStore.subscribe((state, previous) => {
+      if (state.enabled !== previous.enabled) listener();
+    }),
+};
