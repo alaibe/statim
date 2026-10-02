@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { createContext, useRef, useState } from 'react';
 import { Pressable as RNPressable, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
@@ -14,6 +14,8 @@ export interface ThreadChip {
   replies: number;
   onOpen(): void;
 }
+
+export const HeldBubble = createContext(false);
 
 export function BubbleShell({
   fromMe,
@@ -67,6 +69,7 @@ export function BubbleShell({
     <RNPressable
       ref={held ? undefined : bubbleRef}
       onLongPress={held ? undefined : open}
+      onStartShouldSetResponderCapture={held ? () => true : undefined}
       // The desktop counterpart of the long-press. Spelled out rather than
       // through `contextMenu()`: react-hooks/refs treats passing `open` to a
       // call made during render as a ref read during render.
@@ -175,7 +178,7 @@ export function BubbleShell({
         actions={menu}
         onReact={onReact}
         onClose={() => setPicking(false)}
-        render={() => body(true)}
+        render={() => <HeldBubble value>{body(true)}</HeldBubble>}
       />
     </>
   );

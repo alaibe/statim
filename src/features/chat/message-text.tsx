@@ -1,12 +1,13 @@
 import { router } from 'expo-router';
-import { Fragment, useMemo, useState, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { Fragment, use, useMemo, useState, type ReactNode } from 'react';
+import { TextInput, View } from 'react-native';
 
 import { ActionSheet, cn, Text } from '@/design';
 import { type LinkSegment, segmentText } from '@/core/messaging/links';
 import { type Block, listMarker, parseMarkdown, type Span } from '@/core/messaging/markdown';
 import type { ParticipantId, ChatId } from '@/core/messaging/types';
 
+import { HeldBubble } from './bubble-shell';
 import { linkActions, openLink } from './link-actions';
 import { useOffersSend } from './use-offers-send';
 
@@ -35,6 +36,7 @@ export function MessageText({
   onCommand?: (command: string) => void;
 }) {
   const [held, setHeld] = useState<LinkSegment | null>(null);
+  const lifted = use(HeldBubble);
   const blocks = useMemo(() => parseMarkdown(text), [text]);
   const canSend = useOffersSend(chatId, onCommand);
   const look: Look = {
@@ -45,7 +47,8 @@ export function MessageText({
       ? (member) => router.push({ pathname: '/profile/[id]', params: { id: chatId, member } })
       : undefined,
   };
-  const only = blocks.length === 1 ? blocks[0] : undefined;
+  // The time's room at the end of the line is text, which a selection would take.
+  const only = blocks.length === 1 && !lifted ? blocks[0] : undefined;
 
   return (
     <>
@@ -88,9 +91,11 @@ function Blocks({ blocks, look }: { blocks: readonly Block[]; look: Look }) {
       case 'paragraph':
       case 'heading':
         return (
-          <Text key={i} className={cn(className, block.kind === 'heading' && 'font-bold', gap)}>
+          <Paragraph
+            key={i}
+            className={cn(className, block.kind === 'heading' && 'font-bold', gap)}>
             <Spans spans={block.spans} look={look} />
-          </Text>
+          </Paragraph>
         );
       case 'code':
         return (
@@ -102,9 +107,9 @@ function Blocks({ blocks, look }: { blocks: readonly Block[]; look: Look }) {
               fromMe ? 'bg-bubble-out-on/15' : 'bg-content/5',
               gap
             )}>
-            <Text selectable className={cn(className, 'font-mono text-footnote')}>
+            <Paragraph selectable className={cn(className, 'font-mono text-footnote')}>
               {block.text}
-            </Text>
+            </Paragraph>
           </View>
         );
       case 'quote':
@@ -140,6 +145,31 @@ function Blocks({ blocks, look }: { blocks: readonly Block[]; look: Look }) {
         );
     }
   });
+}
+
+/** In a held bubble on iOS, a UITextView: a selectable Text there only copies the whole of itself. */
+function Paragraph({
+  className,
+  selectable,
+  children,
+}: {
+  className?: string;
+  selectable?: boolean;
+  children: ReactNode;
+}) {
+  const lifted = use(HeldBubble);
+  if (lifted && process.env.EXPO_OS === 'ios') {
+    return (
+      <TextInput readOnly multiline scrollEnabled={false} className={cn(className, 'p-0')}>
+        <Text className={className}>{children}</Text>
+      </TextInput>
+    );
+  }
+  return (
+    <Text selectable={lifted || selectable} className={className}>
+      {children}
+    </Text>
+  );
 }
 
 function Spans({ spans, look }: { spans: readonly Span[]; look: Look }) {

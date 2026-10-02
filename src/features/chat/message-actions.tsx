@@ -115,7 +115,7 @@ export function MessageActions({
         </Animated.View>
       ) : null}
 
-      <View style={{ pointerEvents: 'none', width: anchor.width }}>{render()}</View>
+      <View style={{ pointerEvents: 'box-none', width: anchor.width }}>{render()}</View>
 
       <Animated.View entering={FadeIn.duration(140).delay(30)} exiting={FadeOut.duration(100)}>
         <View
