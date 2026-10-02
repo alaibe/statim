@@ -190,6 +190,13 @@ const MAPPERS: Record<string, (input: Input) => MessageContent> = {
     const uri = context.media(sticker.sticker);
     return uri ? stickerContent(sticker, uri) : unsupported('sticker', stickerLabel(sticker.emoji));
   },
+  messageAnimatedEmoji: ({ content, context }) => {
+    const emoji = content.emoji as string;
+    const sticker = (content.animated_emoji as { sticker: TdSticker | null }).sticker;
+    if (!sticker) return { kind: 'text', text: emoji };
+    const uri = context.media(sticker.sticker);
+    return uri ? { ...stickerContent(sticker, uri), emoji } : unsupported('sticker', emoji);
+  },
   messageAnimation: ({ content, context, caption }) => {
     const animation = content.animation as {
       animation: TdFile;

@@ -93,3 +93,44 @@ describe('Telegram stickers', () => {
     });
   });
 });
+
+const animatedEmoji = (sticker: object | null): TdMessage => ({
+  ...animation('image/webp'),
+  content: {
+    '@type': 'messageAnimatedEmoji',
+    emoji: '😟',
+    animated_emoji: { sticker, sticker_width: 512, sticker_height: 512, fitzpatrick_type: 0 },
+  },
+});
+
+describe('Telegram animated emoji', () => {
+  const tgs = (downloaded: boolean) => ({
+    sticker: { ...file, local: { ...file.local, is_downloading_completed: downloaded } },
+    width: 512,
+    height: 512,
+    format: { '@type': 'stickerFormatTgs' },
+  });
+
+  it('plays the emoji as an animated sticker', () => {
+    expect(toMessage(animatedEmoji(tgs(true)), downloadedOnly).content).toMatchObject({
+      kind: 'sticker',
+      mimeType: 'application/x-tgsticker',
+      emoji: '😟',
+    });
+  });
+
+  it('shows the emoji while the animation downloads', () => {
+    expect(toMessage(animatedEmoji(tgs(false)), downloadedOnly).content).toEqual({
+      kind: 'unsupported',
+      typeId: 'sticker',
+      fallback: '😟',
+    });
+  });
+
+  it('falls back to text when the emoji has no animation', () => {
+    expect(toMessage(animatedEmoji(null), downloadedOnly).content).toEqual({
+      kind: 'text',
+      text: '😟',
+    });
+  });
+});
