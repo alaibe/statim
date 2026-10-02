@@ -19,6 +19,7 @@ chat list or makes a network request until you do.
 | **Browser** | Bookmarked sites, opened in your system browser and connected to your wallet over WalletConnect. |
 | **Markets** | Spot prices, and a chat that tells you when one crosses a level or moves by a percentage. |
 | **Bots** | Talk to bots on XMTP by address. Bots reply with cards and buttons. |
+| **AI** | Rewrite and translate your messages, summarise a chat, get reply ideas. See [AI](./ai). |
 
 Turning a plugin on takes effect immediately and adds its own chat
 where it needs one. Turning it off removes that and stops everything it was
@@ -55,6 +56,7 @@ slash commands only work in groups.
 | `/price`, `/alert`, `/alerts`, `/unalert` | Markets |
 | `/bots`, `/addbot`, `/removebot`, `/startbot` | Bots |
 | `/members`, `/invite`, `/remove`, `/rename`, `/leave` | This group |
+| `/rewrite`, `/translate`, `/summarize`, `/suggest` | AI |
 
 A slash command that needs more than you typed opens a form in the composer area.
 Anything that signs, whether a send, a trade or a WalletConnect request, always

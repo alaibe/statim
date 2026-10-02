@@ -24,6 +24,7 @@ export const navigation: Array<NavGroup> = [
       { title: 'Your own bots', href: '/guide/bots' },
       { title: 'Wallet', href: '/guide/wallet' },
       { title: 'Plugins & slash commands', href: '/guide/plugins' },
+      { title: 'AI', href: '/guide/ai' },
       { title: 'Settings', href: '/guide/settings' },
       { title: 'On the Mac', href: '/guide/mac' },
       { title: 'Command line', href: '/guide/command-line' },

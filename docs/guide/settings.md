@@ -59,6 +59,8 @@ write the recovery phrase down before you set a PIN.
   [Wallet](./wallet#swap-and-bridge).
 - **GIFs** takes a KLIPY key for GIF search. Optional, under the same rule: no
   key ships with the app, and yours stays on this device.
+- **AI** picks the model behind the AI plugin: the one on your device, your own
+  server, or Anthropic with your key. See [AI](./ai).
 - **Devices** lists the phones and computers signed in to your XMTP inbox, and
   revokes one you no longer have.
 

@@ -16,6 +16,8 @@ import { DEVICE_MODEL_NAME, deviceModelState, type DeviceModelState } from '@/co
 import { OLLAMA_URL, providerFor } from '@/core/ai/providers';
 import { apiRoot, listModels } from '@/core/ai/providers/openai';
 import { hostOf } from '@/core/ai/providers/remote';
+import { guideUrl } from '@/lib/guide';
+import { openExternal } from '@/lib/open-url';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 
 import { SettingsScreen } from './settings-screen';
@@ -301,6 +303,11 @@ function AiSettingsForm({
           translate, and for /summarize and /suggest the recent messages of the chat. In a group
           that includes what other people wrote.
         </Text>
+        <Button
+          label="How to set this up"
+          tone="neutral"
+          onPress={() => openExternal(guideUrl('ai')).catch(() => {})}
+        />
       </Note>
     </>
   );
