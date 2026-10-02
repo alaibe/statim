@@ -1,13 +1,20 @@
 import { Stack, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
+import { useLockStore } from '@/core/account/lock-store';
+import { askForNotifications } from '@/core/notifications';
 import { IconButton, Screen } from '@/design';
 import { ChatList } from '@/features/chat/chat-list';
 
 export default function ChatsScreen() {
   const router = useRouter();
   const [query, setQuery] = useState('');
+  const unlocked = useLockStore((s) => s.status === 'open');
+
+  useEffect(() => {
+    if (unlocked) void askForNotifications();
+  }, [unlocked]);
 
   return (
     <Screen className="px-0" edges={[]}>

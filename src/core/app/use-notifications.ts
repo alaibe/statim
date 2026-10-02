@@ -1,13 +1,15 @@
-import { useEffect } from 'react';
+import { useGlobalSearchParams, useSegments } from 'expo-router';
+import { useEffect, useRef } from 'react';
 
 import { wasProactive } from '@/runtime';
 import { isLocalChat } from '../messaging/bots';
-import { prefsFor } from '../messaging/chat-prefs';
+import { prefsFor, type ChatPrefsMap } from '../messaging/chat-prefs';
 import { useChatStore, type ChatState } from '../messaging/chat-store';
 import { contentPreview } from '../messaging/preview';
 import type { ChatMessage, Chat, ChatId } from '../messaging/types';
 import { totalUnread } from '../messaging/unread';
 import {
+  appFocused,
   configureNotifications,
   notifyMessage,
   onNotificationTapped,
@@ -15,6 +17,13 @@ import {
 } from '../notifications';
 
 export function useMessageNotifications(onTap: (id: ChatId) => void) {
+  const segments = useSegments() as string[];
+  const { id } = useGlobalSearchParams<{ id?: string }>();
+  const onScreen = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    onScreen.current = segments[0] === 'chat' ? id : undefined;
+  }, [segments, id]);
+
   useEffect(() => {
     configureNotifications();
   }, []);
@@ -34,12 +43,9 @@ export function useMessageNotifications(onTap: (id: ChatId) => void) {
       }
       if (state.chats === previous.chats) return;
 
+      const reading = appFocused() ? onScreen.current : undefined;
       for (const { chat, message } of arrivals(previous.chats, state.chats, since)) {
-        if (message.fromMe) continue;
-        if (message.content.kind === 'system') continue;
-        if (prefsFor(state.chatPrefs, chat.id).muted) continue;
-        if (isLocalChat(chat.id) && !wasProactive(message.id)) continue;
-
+        if (!worthNotifying(chat, message, state.chatPrefs, reading)) continue;
         void notifyMessage({
           chatId: chat.id,
           title: chat.title,
@@ -52,6 +58,18 @@ export function useMessageNotifications(onTap: (id: ChatId) => void) {
   }, []);
 
   useEffect(() => onNotificationTapped(onTap), [onTap]);
+}
+
+export function worthNotifying(
+  chat: Chat,
+  message: ChatMessage,
+  prefs: ChatPrefsMap,
+  reading: string | undefined
+): boolean {
+  if (message.fromMe || message.content.kind === 'system') return false;
+  if (chat.id === reading) return false;
+  if (prefsFor(prefs, chat.id).muted) return false;
+  return !isLocalChat(chat.id) || wasProactive(message.id);
 }
 
 export function arrivals(

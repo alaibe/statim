@@ -1,5 +1,5 @@
 import type { ChatMessage, Chat } from '../messaging/types';
-import { arrivals } from './use-notifications';
+import { arrivals, worthNotifying } from './use-notifications';
 import { testChat } from '@/core/messaging/testing/chats';
 import { asChatId } from '@/core/messaging/testing/ids';
 
@@ -45,5 +45,31 @@ describe('arrivals', () => {
 
   it('ignores the older message a deletion brings back', () => {
     expect(arrivals([chat(message('b', 3_000))], [chat(message('a', 2_000))], SINCE)).toEqual([]);
+  });
+});
+
+describe('worthNotifying', () => {
+  const bob = chat();
+
+  it('notifies a new message from someone else', () => {
+    expect(worthNotifying(bob, message('a', 2_000), {}, undefined)).toBe(true);
+  });
+
+  it('stays quiet for the chat on screen', () => {
+    expect(worthNotifying(bob, message('a', 2_000), {}, 'telegram-1')).toBe(false);
+  });
+
+  it('notifies a chat other than the one on screen', () => {
+    expect(worthNotifying(bob, message('a', 2_000), {}, 'telegram-2')).toBe(true);
+  });
+
+  it('stays quiet for a muted chat', () => {
+    const prefs = { [bob.id]: { muted: true } };
+    expect(worthNotifying(bob, message('a', 2_000), prefs, undefined)).toBe(false);
+  });
+
+  it('stays quiet for your own message', () => {
+    const mine = { ...message('a', 2_000), fromMe: true };
+    expect(worthNotifying(bob, mine, {}, undefined)).toBe(false);
   });
 });

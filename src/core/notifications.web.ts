@@ -12,6 +12,12 @@ export type { MessageNotification } from './notifications';
 
 export function configureNotifications(): void {}
 
+export async function askForNotifications(): Promise<void> {}
+
+export function appFocused(): boolean {
+  return document.hasFocus();
+}
+
 async function allowed(): Promise<boolean> {
   if (await isPermissionGranted()) return true;
   return (await requestPermission()) === 'granted';

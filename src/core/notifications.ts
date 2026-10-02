@@ -1,7 +1,10 @@
 import * as Notifications from 'expo-notifications';
+import { AppState } from 'react-native';
 
 import { parseChatId } from './messaging/namespace';
 import type { ChatId } from './messaging/types';
+
+const CHANNEL = 'messages';
 
 let configured = false;
 
@@ -19,6 +22,21 @@ export function configureNotifications(): void {
   });
 }
 
+/** Android 13 shows the permission prompt only once a channel exists. */
+export async function askForNotifications(): Promise<void> {
+  try {
+    await Notifications.setNotificationChannelAsync(CHANNEL, {
+      name: 'Messages',
+      importance: Notifications.AndroidImportance.HIGH,
+    });
+    const current = await Notifications.getPermissionsAsync();
+    if (current.granted || !current.canAskAgain) return;
+    await Notifications.requestPermissionsAsync();
+  } catch (error) {
+    console.warn('[notifications] could not ask for permission', error);
+  }
+}
+
 export interface MessageNotification {
   chatId: ChatId;
   title: string;
@@ -33,11 +51,15 @@ export async function notifyMessage(notification: MessageNotification): Promise<
         body: notification.body,
         data: { chatId: notification.chatId },
       },
-      trigger: null,
+      trigger: { channelId: CHANNEL },
     });
   } catch (error) {
     console.warn('[notifications] could not post', error);
   }
+}
+
+export function appFocused(): boolean {
+  return AppState.currentState === 'active';
 }
 
 let shownBadge: number | undefined;
