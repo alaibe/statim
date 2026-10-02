@@ -31,6 +31,8 @@ const STATUS_FLEET = [
 ];
 
 const CONNECT_TIMEOUT_MS = 20_000;
+const PING_INTERVAL_MS = 60_000;
+const CONNECT_REDIAL_MS = 5_000;
 const PAGE_SIZE = 20;
 const routingInfo = { clusterId: 16, shardId: 32, pubsubTopic: STATUS_PUBSUB_TOPIC };
 
@@ -76,9 +78,11 @@ export class FleetNode implements WakuNode {
       defaultBootstrap: false,
       bootstrapPeers: STATUS_FLEET,
       // js-waku hangs up bootstrap peers past 3 whatever they serve, and only the boot nodes serve filter.
-      connectionManager: { maxBootstrapPeers: STATUS_FLEET.length },
+      connectionManager: { maxBootstrapPeers: STATUS_FLEET.length, enableAutoRecovery: false },
+      libp2p: { connectionMonitor: { pingInterval: PING_INTERVAL_MS } },
     });
     await node.start();
+    const retry = setInterval(() => void redial(node).catch(() => {}), CONNECT_REDIAL_MS);
     try {
       await node.waitForPeers(
         [Protocols.Filter, Protocols.LightPush, Protocols.Store],
@@ -87,6 +91,8 @@ export class FleetNode implements WakuNode {
     } catch {
       await node.stop();
       throw new Error('No Status node answered. Check the connection, or set a Status node URL.');
+    } finally {
+      clearInterval(retry);
     }
     return new FleetNode(node);
   }
@@ -96,6 +102,7 @@ export class FleetNode implements WakuNode {
   }
 
   async subscribe(contentTopics: string[]): Promise<void> {
+    redial(this.node).catch(() => {});
     const fresh = contentTopics.filter((topic) => !this.subscribed.has(topic));
     if (fresh.length === 0) return;
     const subscribed = await this.node.filter.subscribe(fresh.map(decoderFor), (message) => {
@@ -158,5 +165,12 @@ export class FleetNode implements WakuNode {
 
   async close(): Promise<void> {
     await this.node.stop();
+  }
+}
+
+async function redial(node: LightNode): Promise<void> {
+  const { libp2p } = node;
+  for (const peer of await libp2p.peerStore.all()) {
+    if (libp2p.getConnections(peer.id).length === 0) libp2p.dial(peer.id).catch(() => {});
   }
 }
