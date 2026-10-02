@@ -108,7 +108,9 @@ export function FormWidget({
               hint={fill(field.hint)}
               placeholder={fill(field.placeholder)}
               defaultValue={field.value ?? ''}
-              onChangeText={(text) => answer(field.id, text)}
+              onChangeText={(text) =>
+                answer(field.id, field.keyboard === 'decimal' ? text.replace(/,/g, '.') : text)
+              }
               autoCorrect={false}
               autoCapitalize="none"
               keyboardType={field.keyboard === 'decimal' ? 'decimal-pad' : 'default'}
