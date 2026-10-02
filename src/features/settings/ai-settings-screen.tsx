@@ -14,7 +14,8 @@ import {
 } from '@/core/ai/config';
 import { DEVICE_MODEL_NAME, deviceModelState, type DeviceModelState } from '@/core/ai/device';
 import { OLLAMA_URL, providerFor } from '@/core/ai/providers';
-import { listModels } from '@/core/ai/providers/openai';
+import { apiRoot, listModels } from '@/core/ai/providers/openai';
+import { hostOf } from '@/core/ai/providers/remote';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 
 import { SettingsScreen } from './settings-screen';
@@ -57,6 +58,19 @@ function automaticHint(device: DeviceModelState): string {
   }
 }
 
+/** Phones refuse plain http:// to most servers; say so before the request fails. */
+function addressHint(url: string): string | undefined {
+  if (!/^http:\/\//i.test(url.trim())) return undefined;
+  const host = hostOf(apiRoot(url)).replace(/:\d+$/, '');
+  if (process.env.EXPO_OS === 'ios' && host.includes('.') && !host.endsWith('.local')) {
+    return 'On iPhone, http:// only reaches names on your network, like mac-mini.local or a Tailscale machine name. Use https:// for any other address.';
+  }
+  if (process.env.EXPO_OS === 'android' && host !== 'localhost') {
+    return 'Android connects only to https:// servers.';
+  }
+  return undefined;
+}
+
 const SOURCES: { id: AiSource; title: string; hint?: string }[] = [
   { id: 'auto', title: 'Automatic' },
   { id: 'openai', title: 'Your server', hint: 'Ollama, llama.cpp, LM Studio, OpenAI, OpenRouter' },
@@ -72,7 +86,7 @@ export function AiSettingsScreen() {
     <SettingsScreen title="AI">
       {accountId && saved ? (
         <AiSettingsForm
-          key={`${accountId}:${version}`}
+          key={accountId}
           accountId={accountId}
           saved={saved}
           onSaved={() => setVersion((v) => v + 1)}
@@ -172,6 +186,7 @@ function AiSettingsForm({
               value={draft.url}
               onChangeText={(url) => change({ url })}
               placeholder={OLLAMA_URL}
+              hint={addressHint(draft.url)}
               autoCorrect={false}
               autoCapitalize="none"
               keyboardType="url"

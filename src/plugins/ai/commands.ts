@@ -123,8 +123,11 @@ export function aiCommands(context: PluginContext): SlashCommand[] {
         const target: Language = named ?? deviceLanguage();
         const account = accountOf(context);
 
+        const already = { type: 'notice', message: `That is already in ${target.name}.` } as const;
+
         if (named && text) {
           const answer = await translateText(account, text, target);
+          if (answer.text.trim() === text) return already;
           return { type: 'setComposer', text: answer.text };
         }
 
@@ -134,6 +137,7 @@ export function aiCommands(context: PluginContext): SlashCommand[] {
         if (!source) return { type: 'error', message: 'There is no message to translate yet.' };
 
         const answer = await translateText(account, source.text, target);
+        if (answer.text.trim() === source.text.trim()) return already;
         const title = source.from ? `${source.from}, in ${target.name}` : `In ${target.name}`;
         await respond(answerCard(title, answer));
         return { type: 'handled' };

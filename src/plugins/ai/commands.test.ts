@@ -122,3 +122,16 @@ it('/ai settings opens the AI page', async () => {
   await invoke('ai', 'settings').result;
   expect(context.ui.openSettings).toHaveBeenCalledWith('ai');
 });
+
+it('/translate says when the text is already in that language', async () => {
+  translate.mockResolvedValueOnce({
+    text: 'The Thai place?',
+    label: 'Apple Translation · on-device',
+  });
+  const { result, respond } = invoke('translate', 'english');
+  await expect(result).resolves.toEqual({
+    type: 'notice',
+    message: 'That is already in English.',
+  });
+  expect(respond).not.toHaveBeenCalled();
+});
