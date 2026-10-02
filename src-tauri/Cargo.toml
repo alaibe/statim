@@ -56,9 +56,13 @@ interprocess = "2"
 block2 = "0.6"
 objc2 = "0.6"
 objc2-contacts = "0.3"
-objc2-foundation = { version = "0.3", features = ["NSArray", "NSEnumerator", "NSError", "NSObject", "NSString"] }
+objc2-foundation = { version = "0.3", features = ["NSArray", "NSEnumerator", "NSError", "NSObject", "NSProcessInfo", "NSString"] }
 objc2-local-authentication = { version = "0.3", features = ["LAContext", "LAError", "block2"] }
 rusqlite = { version = "0.40", features = ["bundled-sqlcipher"] }
+
+# Apple Intelligence runs on Apple silicon only. A fork until blacktop/fm-rs#5 ships.
+[target.'cfg(all(target_os = "macos", target_arch = "aarch64"))'.dependencies]
+fm-rs = { git = "https://github.com/alaibe/fm-rs", rev = "5240022cb6432597a57329467470a11eff2be099" }
 
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 rusqlite = { version = "0.40", features = ["bundled-sqlcipher-vendored-openssl"] }

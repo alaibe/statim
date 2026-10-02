@@ -1807,6 +1807,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "fm-rs"
+version = "0.3.0"
+source = "git+https://github.com/alaibe/fm-rs?rev=5240022cb6432597a57329467470a11eff2be099#5240022cb6432597a57329467470a11eff2be099"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6047,6 +6056,7 @@ dependencies = [
  "base64 0.22.1",
  "block2",
  "dirs",
+ "fm-rs",
  "futures-util",
  "getrandom 0.2.17",
  "interprocess",

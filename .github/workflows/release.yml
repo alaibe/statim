@@ -82,6 +82,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Xcode 26
+        if: matrix.os == 'macos-15'
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
