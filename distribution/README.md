@@ -101,9 +101,11 @@ Android is not released. It needs a Play developer account, a service account
 key at `secrets/play-service-account.json` (gitignored), phone screenshots from
 an Android build, and a target API level that meets Play's minimum. Gradle
 needs a JDK from 17 to 21, and `./scripts/setup.sh --android` checks the
-toolchain. Telegram does not work on Android: the Android side of
-`react-native-tdlib` does not expose the `td_json_client` calls that
-`src/protocols/telegram/td-client.ts` uses.
+toolchain. Telegram on Android needs `libtdjsonjava.so` in
+`modules/tdjson/android/src/main/jniLibs`, which
+`./scripts/build-tdlib-android.sh` builds from TDLib's source. Nothing puts it
+there for an EAS build yet, and a build without it reports Telegram as not
+part of the build.
 
 Play re-signs uploads with its own app signing key, while an APK built by EAS
 carries EAS's key. People cannot upgrade between the two without uninstalling.

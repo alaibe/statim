@@ -70,9 +70,9 @@ review step first.
 
 ## Platforms
 
-iOS, macOS, Windows and Linux. Android builds from the same codebase but has no
-Telegram: `react-native-tdlib`'s Android side does not expose the raw
-`td_json_client` calls `src/protocols/telegram/td-client.ts` drives.
+iOS, macOS, Windows and Linux. Android builds from the same codebase. Its
+Telegram needs TDLib built for Android first:
+`./scripts/build-tdlib-android.sh` puts it into `modules/tdjson`.
 
 One tag releases every platform. [`distribution/`](distribution/README.md) has the pipeline,
 the secrets it reads and the store checklists.

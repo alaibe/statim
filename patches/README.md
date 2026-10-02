@@ -230,8 +230,8 @@ after TDLib has said it is closed, with no receive in flight.
 
 Android is deliberately not patched. The wrapper's Android side never
 implemented the raw receive path: its `td_json_client_receive` sends a null
-request instead of reading updates. Telegram is therefore iOS-only until that is
-fixed upstream or the adapter grows a second native backend.
+request instead of reading updates. Android drives TDLib through
+`modules/tdjson` instead.
 
 The patch also fixes the bundled framework's minimum iOS version.
 
