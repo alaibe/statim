@@ -3,6 +3,7 @@ import {
   fillCommand,
   fillText,
   isWidget,
+  normaliseDecimal,
   resolveValues,
   summariseWidget,
   visibleOptions,
@@ -139,6 +140,24 @@ describe('form', () => {
 
   it('trims, so a stray space does not become a quoted argument', () => {
     expect(fillCommand('/send {amount}', { amount: '  0.01  ' })).toBe('/send 0.01');
+  });
+});
+
+describe('decimal answers', () => {
+  it('reads the decimal comma of a comma locale as a point', () => {
+    expect(normaliseDecimal('0,01', ',')).toBe('0.01');
+  });
+
+  it('keeps a point typed in a comma locale', () => {
+    expect(normaliseDecimal('0.01', ',')).toBe('0.01');
+  });
+
+  it('leaves a thousands comma alone, so 1,000 is refused rather than sent as 1', () => {
+    expect(normaliseDecimal('1,000', '.')).toBe('1,000');
+  });
+
+  it('never drops a grouping separator, which could turn 0.01 into 1', () => {
+    expect(normaliseDecimal('1.000,5', ',')).toBe('1.000.5');
   });
 });
 

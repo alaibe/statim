@@ -262,6 +262,10 @@ export function displayValues(
   );
 }
 
+export function normaliseDecimal(text: string, separator: string): string {
+  return separator === '.' ? text : text.split(separator).join('.');
+}
+
 export function fillText(text: string, display: Record<string, string>): string {
   return text.replace(/\{(\w+)\}/g, (whole, id: string) => display[id] || whole);
 }

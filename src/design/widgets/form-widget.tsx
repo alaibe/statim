@@ -18,11 +18,14 @@ import {
   displayValues,
   fillCommand,
   fillText,
+  normaliseDecimal,
   resolveValues,
   visibleOptions,
   type Widget,
   type WidgetOption,
 } from './schema';
+
+const DECIMAL_SEPARATOR = new Intl.NumberFormat().format(1.5).charAt(1);
 
 function SelectField({
   label,
@@ -109,7 +112,10 @@ export function FormWidget({
               placeholder={fill(field.placeholder)}
               defaultValue={field.value ?? ''}
               onChangeText={(text) =>
-                answer(field.id, field.keyboard === 'decimal' ? text.replace(/,/g, '.') : text)
+                answer(
+                  field.id,
+                  field.keyboard === 'decimal' ? normaliseDecimal(text, DECIMAL_SEPARATOR) : text
+                )
               }
               autoCorrect={false}
               autoCapitalize="none"
