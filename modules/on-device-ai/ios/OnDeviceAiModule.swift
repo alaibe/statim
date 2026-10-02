@@ -85,8 +85,13 @@ enum Translator {
     }
     switch await LanguageAvailability().status(from: source, to: destination) {
     case .installed:
-      return try await TranslationSession(installedSource: source, target: destination)
-        .translate(text).targetText
+      let session = TranslationSession(installedSource: source, target: destination)
+      var lines: [String] = []
+      for line in text.components(separatedBy: "\n") {
+        let blank = line.trimmingCharacters(in: .whitespaces).isEmpty
+        lines.append(blank ? line : try await session.translate(line).targetText)
+      }
+      return lines.joined(separator: "\n")
     case .supported:
       throw failure("ERR_LANGUAGE_MISSING", "The language is not downloaded on this device.")
     case .unsupported:

@@ -12,6 +12,32 @@ export function translationInstructions(target: Language): string {
   );
 }
 
+/** Links, addresses, emails, mentions and code, which a translator would mangle. */
+const KEEP =
+  /https?:\/\/[^\s)]*[^\s).,;:!?]|\b0x[0-9a-fA-F]{8,}\b|[\w.+-]+@[\w-]+\.[\w.-]*\w|@[\w.-]*\w|`[^`\n]*`/g;
+
+export function protect(text: string): { masked: string; kept: string[] } {
+  const kept: string[] = [];
+  const masked = text.replace(KEEP, (match) => `{${kept.push(match) - 1}}`);
+  return { masked, kept };
+}
+
+/** Null when the translator lost a placeholder. */
+export function restore(translated: string, kept: readonly string[]): string | null {
+  let out = translated;
+  for (const [i, original] of kept.entries()) {
+    if (!out.includes(`{${i}}`)) return null;
+    out = out.replace(`{${i}}`, original);
+  }
+  return out;
+}
+
+async function translateKeepingLinks(text: string, target: string): Promise<string> {
+  const { masked, kept } = protect(text);
+  if (kept.length === 0) return translateOnDevice(text, target);
+  return restore(await translateOnDevice(masked, target), kept) ?? translateOnDevice(text, target);
+}
+
 function missingLanguage(target: Language): AiError {
   return new AiError(
     'language-missing',
@@ -28,7 +54,7 @@ export async function translateText(
   target: Language
 ): Promise<AiAnswer> {
   try {
-    const translated = await translateOnDevice(text, target.tag);
+    const translated = await translateKeepingLinks(text, target.tag);
     return { text: translated, label: `${DEVICE_TRANSLATOR_NAME} · on-device` };
   } catch (error) {
     if (!isAiError(error) || error.code === 'refused' || error.code === 'too-long') throw error;

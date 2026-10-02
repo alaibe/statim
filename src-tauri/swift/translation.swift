@@ -56,7 +56,12 @@ private func translate(_ text: String, to destination: Locale.Language) async ->
   case .installed:
     do {
       let session = TranslationSession(installedSource: source, target: destination)
-      return (translated, try await session.translate(text).targetText)
+      var lines: [String] = []
+      for line in text.components(separatedBy: "\n") {
+        let blank = line.trimmingCharacters(in: .whitespaces).isEmpty
+        lines.append(blank ? line : try await session.translate(line).targetText)
+      }
+      return (translated, lines.joined(separator: "\n"))
     } catch {
       return (failed, error.localizedDescription)
     }

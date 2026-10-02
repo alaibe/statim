@@ -49,3 +49,23 @@ it('says where to download a missing language when there is no model either', as
     'Download French in Settings › Apps › Translate › Downloaded Languages'
   );
 });
+
+it('keeps links, addresses and code out of the translator', async () => {
+  onDevice.mockImplementationOnce(async (text) =>
+    text.replace('Go to', 'Allez sur').replace('send to', 'envoyer à')
+  );
+  const text = 'Go to https://statim.laibe.cc/ and send to 0x4c7a1e0b9d3f2a6e, `npm test`';
+  await expect(translateText('a', text, french)).resolves.toEqual({
+    text: 'Allez sur https://statim.laibe.cc/ and envoyer à 0x4c7a1e0b9d3f2a6e, `npm test`',
+    label: 'Apple Translation · on-device',
+  });
+  expect(onDevice.mock.calls[0][0]).toBe('Go to {0} and send to {1}, {2}');
+});
+
+it('translates the text as it is when the translator drops a placeholder', async () => {
+  onDevice.mockResolvedValueOnce('Allez sur le site').mockResolvedValueOnce('Allez sur le lien');
+  await expect(translateText('a', 'Go to https://a.example', french)).resolves.toMatchObject({
+    text: 'Allez sur le lien',
+  });
+  expect(onDevice.mock.calls[1][0]).toBe('Go to https://a.example');
+});
