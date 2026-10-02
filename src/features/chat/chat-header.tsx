@@ -12,6 +12,7 @@ import { ChatAvatar } from './chat-avatar';
 import { headerSubtitle } from './header-subtitle';
 
 const desktop = process.env.EXPO_OS === 'web';
+const android = process.env.EXPO_OS === 'android';
 
 interface ChatHeaderProps {
   chat: Chat;
@@ -97,7 +98,12 @@ function HeaderBar({ children }: { children: React.ReactNode }) {
   const frame = useLayoutInsets();
   return (
     <View
-      className="absolute left-0 right-0 top-0 z-10 flex-row items-center gap-2 px-3"
+      // BlurView only tints on Android, so messages scrolled under the header would show through it.
+      className={
+        android
+          ? 'absolute left-0 right-0 top-0 z-10 flex-row items-center gap-2 border-b border-line bg-canvas px-3'
+          : 'absolute left-0 right-0 top-0 z-10 flex-row items-center gap-2 px-3'
+      }
       style={{ paddingTop: insets.top + frame.top + 6, paddingBottom: 8 }}>
       {children}
     </View>

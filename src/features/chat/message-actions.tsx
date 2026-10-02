@@ -33,6 +33,7 @@ export interface MessageAnchor {
 const REACTION_BAR_HEIGHT = 48;
 const MENU_ROW_HEIGHT = 46;
 const GAP = 8;
+const android = process.env.EXPO_OS === 'android';
 
 export function MessageActions({
   visible,
@@ -156,6 +157,8 @@ export function MessageActions({
           intensity={40}
           tint={colors.scheme === 'dark' ? 'dark' : 'light'}
           style={{ flex: 1 }}>
+          {/* BlurView only tints on Android, which leaves the message showing beside its raised copy. */}
+          {android ? <View className="absolute inset-0 bg-canvas/85" /> : null}
           {scrolls ? (
             <ScrollView
               contentContainerStyle={{ paddingTop: top, paddingBottom: screenHeight - bottom }}
