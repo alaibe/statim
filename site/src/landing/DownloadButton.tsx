@@ -65,13 +65,11 @@ export function DownloadButton({
 
   let label = download
     ? `Download for ${names[download.platform]}`
-    : platform === 'ios'
-      ? 'Coming to the App Store'
-      : release.version
-        ? 'Choose a download'
-        : 'Get it on GitHub';
+    : release.version
+      ? 'Choose a download'
+      : 'Get it on GitHub';
 
-  let href = download?.url ?? (platform === 'ios' || release.version ? '#download' : release.url);
+  let href = download?.url ?? (release.version ? '#download' : release.url);
 
   return (
     <a

@@ -70,8 +70,9 @@ review step first.
 
 ## Platforms
 
-iOS, macOS, Windows and Linux. Android builds from the same codebase. Its
-Telegram needs TDLib built for Android first:
+iOS, macOS, Windows and Linux. The iPhone app is in beta on
+[TestFlight](https://testflight.apple.com/join/kQGUUDUv). Android builds from
+the same codebase. Its Telegram needs TDLib built for Android first:
 `./scripts/build-tdlib-android.sh` puts it into `modules/tdjson`.
 
 One tag releases every platform. [`distribution/`](distribution/README.md) has the pipeline,

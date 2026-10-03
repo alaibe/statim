@@ -1,6 +1,7 @@
 export const repo = 'alaibe/statim';
 export const repoUrl = `https://github.com/${repo}`;
 export const releasesUrl = `${repoUrl}/releases`;
+export const testflightUrl = 'https://testflight.apple.com/join/kQGUUDUv';
 export const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 export const origin = 'https://statim.laibe.cc';
 export const siteUrl = `${origin}${basePath}`;

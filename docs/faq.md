@@ -122,8 +122,8 @@ It builds from the same codebase and is not released yet. Everything except
 Telegram works there; Telegram needs a piece the underlying library does not
 offer on Android.
 
-The desktop app for macOS, Windows and Linux is what you can use today. The
-iPhone app is on its way to the App Store.
+You can use the desktop app for macOS, Windows and Linux today, and the iPhone
+app through its [TestFlight beta](https://testflight.apple.com/join/kQGUUDUv).
 
 ## Is this Status?
 

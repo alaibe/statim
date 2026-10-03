@@ -13,11 +13,7 @@ const platforms: Array<{ platform: Platform; name: string; empty: string }> = [
   { platform: 'windows', name: 'Windows', empty: 'Not in this release.' },
   { platform: 'linux', name: 'Linux', empty: 'Not in this release.' },
   { platform: 'android', name: 'Android', empty: 'Not released yet.' },
-  {
-    platform: 'ios',
-    name: 'iPhone',
-    empty: 'Apple allows no downloads outside the App Store. It is on its way there.',
-  },
+  { platform: 'ios', name: 'iPhone', empty: 'Not released yet.' },
 ];
 
 function formatSize(bytes?: number) {
@@ -100,9 +96,7 @@ export function Download({ release }: { release: Release }) {
                   </ul>
                 ) : (
                   <p className="mt-4 text-sm text-gray-400">
-                    {release.version || platform === 'ios'
-                      ? empty
-                      : 'Coming with the first release.'}
+                    {release.version ? empty : 'Coming with the first release.'}
                   </p>
                 )}
               </li>

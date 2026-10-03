@@ -1,4 +1,4 @@
-import { releasesUrl, repo } from '@/lib/site';
+import { releasesUrl, repo, testflightUrl } from '@/lib/site';
 
 export type Platform = 'mac' | 'windows' | 'linux' | 'android' | 'ios';
 
@@ -27,6 +27,13 @@ const kinds: Array<[RegExp, Platform, string, string]> = [
   [/\.apk$/, 'android', 'Android', 'APK'],
 ];
 
+const testflight: Download = {
+  platform: 'ios',
+  label: 'iPhone',
+  detail: 'TestFlight beta · iOS 18.1 or later',
+  url: testflightUrl,
+};
+
 export async function getRelease(): Promise<Release> {
   let headers: HeadersInit = { Accept: 'application/vnd.github+json' };
   if (process.env.GITHUB_TOKEN) {
@@ -38,7 +45,7 @@ export async function getRelease(): Promise<Release> {
   }).catch(() => null);
 
   if (!response?.ok) {
-    return { version: null, url: releasesUrl, downloads: [] };
+    return { version: null, url: releasesUrl, downloads: [testflight] };
   }
 
   let release = (await response.json()) as {
@@ -59,5 +66,9 @@ export async function getRelease(): Promise<Release> {
       }))
   );
 
-  return { version: release.tag_name.replace(/^v/, ''), url: release.html_url, downloads };
+  return {
+    version: release.tag_name.replace(/^v/, ''),
+    url: release.html_url,
+    downloads: [...downloads, testflight],
+  };
 }

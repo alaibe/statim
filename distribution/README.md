@@ -66,7 +66,8 @@ The home screen still shows Statim. The bundle ID is `im.statim.app`, and
 the push key and the App Store Connect API key. EAS assigns build numbers and
 ignores the `buildNumber` in `app.json`.
 
-Builds go to TestFlight. To build and upload by hand:
+Builds go to TestFlight, where anyone can join through the public link
+https://testflight.apple.com/join/kQGUUDUv. To build and upload by hand:
 
 ```sh
 eas build --platform ios --profile production --auto-submit
