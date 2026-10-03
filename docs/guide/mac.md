@@ -5,6 +5,18 @@ plugin. The layout puts a sidebar of chats beside the open chat,
 the way Telegram for macOS does, and a keyboard and a pointer take over from
 taps.
 
+## Installing
+
+With [Homebrew](https://brew.sh):
+
+```sh
+brew install --cask alaibe/tap/statim
+```
+
+That puts Statim in Applications and the `statim` command on your PATH. Or
+download the `.dmg` from the [download page](https://statim.laibe.cc/#download)
+and drag Statim into Applications.
+
 ## What changes
 
 - **⌘K** opens the switcher: type a few letters of a chat and press Enter.

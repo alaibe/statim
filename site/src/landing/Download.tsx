@@ -14,7 +14,20 @@ const platforms: Array<{
   empty: string;
   note?: React.ReactNode;
 }> = [
-  { platform: 'mac', name: 'macOS', empty: 'Not in this release.' },
+  {
+    platform: 'mac',
+    name: 'macOS',
+    empty: 'Not in this release.',
+    note: (
+      <>
+        Or with Homebrew:{' '}
+        <code className="font-mono text-gray-200 select-all">
+          <span className="whitespace-nowrap">brew install --cask</span>{' '}
+          <span className="whitespace-nowrap">alaibe/tap/statim</span>
+        </code>
+      </>
+    ),
+  },
   { platform: 'windows', name: 'Windows', empty: 'Not in this release.' },
   { platform: 'linux', name: 'Linux', empty: 'Not in this release.' },
   {
