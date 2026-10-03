@@ -19,6 +19,9 @@ npm start
 `E2E_METRO_PORT` points the run at a Metro other than 8081, and `E2E_DEVICE` at
 one simulator or device when several are booted.
 
+A failing run prints where Maestro left its screenshots and logs; a passing run
+leaves nothing behind.
+
 A normal run keeps whatever account the device already has. `--fresh` resets
 the simulator Keychain or clears the app's data on Android, and `00-onboarding`
 then creates the account the later flows need.

@@ -108,7 +108,7 @@ android() {
   # The dev client reopens the last bundle it loaded, so every later launchApp
   # lands in the app only once it has loaded this one.
   "${adb[@]}" reverse "tcp:$PORT" "tcp:$PORT" >/dev/null
-  "$MAESTRO" "${DEVICE[@]}" test \
+  "$MAESTRO" "${DEVICE[@]}" test --test-output-dir "$OUTPUT" \
     -e DEV_CLIENT_URL="exp+statim://expo-development-client/?url=http%3A%2F%2Flocalhost%3A$PORT&disableOnboarding=1" \
     e2e/lib/android-dev-client.yaml
 }
@@ -118,9 +118,14 @@ curl -sf -m 5 "http://localhost:$PORT/status" >/dev/null 2>&1 || {
   exit 1
 }
 
+OUTPUT="$(mktemp -d -t statim-e2e)"
 "$PLATFORM"
 
-if [ $# -gt 0 ]; then
-  exec "$MAESTRO" ${DEVICE[@]+"${DEVICE[@]}"} test "e2e/$1.yaml"
+FLOWS=(--exclude-tags "$OTHER-only" e2e)
+[ $# -eq 0 ] || FLOWS=("e2e/$1.yaml")
+if "$MAESTRO" ${DEVICE[@]+"${DEVICE[@]}"} test --test-output-dir "$OUTPUT" "${FLOWS[@]}"; then
+  rm -rf "$OUTPUT"
+else
+  echo "Maestro's screenshots and logs: $OUTPUT"
+  exit 1
 fi
-exec "$MAESTRO" ${DEVICE[@]+"${DEVICE[@]}"} test --exclude-tags "$OTHER-only" e2e
