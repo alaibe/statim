@@ -106,15 +106,13 @@ the sidebar.
 
 ## Why does my computer warn me when I install it?
 
-The desktop app isn't signed with an Apple or Microsoft certificate yet, so
-both systems treat it as coming from an unknown developer.
+On a Mac it shouldn't: the app is signed with an Apple Developer ID and
+notarized by Apple, so it opens like any other. If you update from 0.6.0 or
+earlier, macOS asks once whether Statim can use its Keychain item. Choose
+Always Allow.
 
-- **macOS** refuses to open it the first time. Click Done, then go to System
-  Settings → Privacy & Security, scroll down to the message about
-  Statim and click Open Anyway. After an update, macOS may ask once more
-  whether the app can use its Keychain item. Choose Always Allow.
-- **Windows** shows "Windows protected your PC". Click More info, then Run
-  anyway.
+The Windows app isn't signed with a Microsoft certificate yet, so Windows
+shows "Windows protected your PC". Click More info, then Run anyway.
 
 ## Where is Android?
 
