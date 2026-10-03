@@ -1,11 +1,10 @@
 name: Release
 
-# Push a tag to release everything:
+# Push a tag to release the desktop apps:
 #   git tag v0.1.0 && git push github v0.1.0
 #
 # Desktop bundles are built by tauri-apps/tauri-action on a runner per OS and
 # attached to one draft release, published once every build has succeeded.
-# Mobile builds go through EAS to the stores and do not hold the release back.
 on:
   push:
     tags: ['v*']
@@ -138,31 +137,6 @@ jobs:
           releaseId: ${{ needs.prepare.outputs.release_id }}
           # Writes and merges latest.json across the matrix; installed copies read it.
           uploadUpdaterJson: true
-
-  mobile:
-    needs: prepare
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [ios, android]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - uses: expo/expo-github-action@v9
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
-      - run: npm ci
-
-      - run: >-
-          eas build --platform ${{ matrix.platform }} --profile production
-          --non-interactive --wait ${{ matrix.platform == 'ios' && '--auto-submit' || '' }}
 
   publish:
     needs: [prepare, desktop]

@@ -76,7 +76,7 @@ testing on [Google Play](https://play.google.com/apps/internaltest/4701701549081
 Telegram on the phone needs TDLib in `modules/tdjson` first:
 `./scripts/tdlib.sh ios` or `./scripts/tdlib.sh android`.
 
-One tag releases every platform, through
+One tag releases the desktop apps, through
 [`.github/workflows/release.yml`](.github/workflows/release.yml).
 
 ## Quick start

@@ -5,7 +5,8 @@
 #
 #   scripts/tdlib.sh desktop            this machine's desktop app
 #   scripts/tdlib.sh ios                the iPhone app
-#   scripts/tdlib.sh android [abi...]   the Android app, from source
+#   scripts/tdlib.sh android [abi...]   the Android app, from source, for the ABIs
+#                                       Gradle packages unless named
 set -euo pipefail
 
 COMMIT="d1085f9cebc5a62379991ae1652673954f229c1f"
@@ -37,6 +38,7 @@ relink() {
     curl -fL --progress-bar -o "$zip.part" \
       "https://github.com/Swiftgram/TDLibFramework/releases/download/$VERSION/TDLibFramework.zip"
     mv "$zip.part" "$zip"
+    find "$CACHE" -maxdepth 1 -name 'TDLibFramework-*.zip' ! -name "$(basename "$zip")" -delete
   fi
   unzip -q "$zip" "TDLibFramework.xcframework/$slice/*" -d "$TMP"
   local flags=()
@@ -128,7 +130,8 @@ ios() {
 # TDLib's own Android scripts with the JSONJava interface: td_json behind a small
 # JNI class, so Android speaks the same JSON as the other apps.
 android() {
-  local abis="${*:-arm64-v8a armeabi-v7a x86_64 x86}" openssl="openssl-3.5.9" ndk="27.1.12297006"
+  local default="${ORG_GRADLE_PROJECT_reactNativeArchitectures:-arm64-v8a armeabi-v7a x86_64 x86}"
+  local abis="${*:-${default//,/ }}" openssl="openssl-3.5.9" ndk="27.1.12297006"
   local dest="$ROOT/modules/tdjson/android/src/main/jniLibs" work="$CACHE/tdlib-android"
   local sdk="${ANDROID_HOME:?ANDROID_HOME must point at the Android SDK}"
   [ -d "$sdk/ndk/$ndk" ] || { echo "Missing NDK: sdkmanager 'ndk;$ndk'" >&2; exit 1; }
