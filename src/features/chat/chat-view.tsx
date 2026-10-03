@@ -27,11 +27,16 @@ import type { ChatMessage, Chat, ChatId, MessageContent, MessageId } from '@/cor
 import { useAppearanceStore } from '@/core/app/appearance';
 import { errorMessage } from '@/core/errors';
 import { Composer } from './composer';
+import { BlockedBar } from './block';
 import { RequestBar } from './request-bar';
 import { CommandPending } from './command-pending';
 import { ForwardSheet } from './forward-sheet';
 import { MessageList } from './message-list';
-import { chatParticipants, type DisplayParticipant } from '@/core/messaging/display-names';
+import {
+  chatParticipants,
+  chatTitle,
+  type DisplayParticipant,
+} from '@/core/messaging/display-names';
 import { useDisplayNames } from './use-display-names';
 import { useSupports } from './use-supports';
 import { useComposerMode } from './composer-mode';
@@ -212,8 +217,10 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
         )}
 
         <View style={{ paddingBottom: insets.bottom }}>
-          {!chat ? null : chat.consent === 'request' ? (
-            <RequestBar chatId={id} />
+          {!chat ? null : chat.blocked ? (
+            <BlockedBar chatId={id} />
+          ) : chat.consent === 'request' ? (
+            <RequestBar chat={chat} name={chatTitle(chat, selfId, nameFor)} />
           ) : chat.kind === 'channel' && !permissions.send ? (
             <ChannelMuteBar id={id} />
           ) : !permissions.send ? (

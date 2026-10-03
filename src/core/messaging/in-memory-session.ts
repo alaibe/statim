@@ -212,6 +212,14 @@ export class InMemoryChatSession implements ChatSession {
     for (const listener of this.chatListeners) listener(next);
   }
 
+  async setBlocked(id: ProtocolChatId, blocked: boolean): Promise<void> {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+    const next = { ...chat, blocked };
+    this.chats.set(id, next);
+    for (const listener of this.chatListeners) listener(next);
+  }
+
   async send(id: ProtocolChatId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
     if (!this.chats.has(id)) throw new Error(`Chat ${id} not found`);
 

@@ -40,6 +40,8 @@ Chats
   unmute             Unmute a chat
   archive            Archive a chat
   unarchive          Move a chat out of the archive
+  block              Block the other participant of a DM: nothing they send reaches you
+  unblock            Unblock the other participant of a DM
   draft              Show a chat’s draft, or replace it
 
 Messages

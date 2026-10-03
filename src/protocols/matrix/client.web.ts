@@ -87,6 +87,14 @@ class TauriMatrixClient implements MatrixApi {
     return invoke('mx_ban', { roomId, userId });
   }
 
+  ignoredUsers(): Promise<string[]> {
+    return invoke('mx_ignored_users');
+  }
+
+  setIgnored(userId: string, ignored: boolean): Promise<void> {
+    return invoke('mx_set_ignored', { userId, ignored });
+  }
+
   setPowerLevel(roomId: string, userId: string, level: number): Promise<void> {
     return invoke('mx_set_power_level', { roomId, userId, level });
   }

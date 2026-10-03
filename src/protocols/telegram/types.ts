@@ -42,6 +42,9 @@ export interface TdDraftMessage {
   content: { '@type': string; text?: TdFormattedText };
 }
 
+/** Main stops their messages and calls; Stories only hides your stories from them. */
+export type TdBlockList = { '@type': 'blockListMain' | 'blockListStories' };
+
 export interface TdChat extends TdObject {
   '@type': 'chat';
   id: number;
@@ -57,6 +60,7 @@ export interface TdChat extends TdObject {
   pending_join_requests?: { total_count: number } | null;
   permissions?: TdPermissions;
   last_read_outbox_message_id: number;
+  block_list?: TdBlockList | null;
 }
 
 export type TdMemberStatus =
@@ -220,7 +224,8 @@ export type TdChatUpdate =
       positions: TdChatPosition[];
     }
   | { '@type': 'updateChatIsMarkedAsUnread'; chat_id: number; is_marked_as_unread: boolean }
-  | { '@type': 'updateChatPermissions'; chat_id: number; permissions: TdChat['permissions'] };
+  | { '@type': 'updateChatPermissions'; chat_id: number; permissions: TdChat['permissions'] }
+  | { '@type': 'updateChatBlockList'; chat_id: number; block_list: TdBlockList | null };
 
 export type TdUpdate =
   | TdChatUpdate

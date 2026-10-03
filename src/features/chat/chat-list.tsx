@@ -21,13 +21,20 @@ import { useChatStore } from '@/core/messaging/chat-store';
 import type { Chat, ChatId } from '@/core/messaging/types';
 import { messagePreview } from '@/core/messaging/preview';
 import { type ChatPrefs, prefsFor } from '@/core/messaging/chat-prefs';
-import { type Folder, type ChatListRow, isUnreadHere, networkOf } from '@/core/messaging/folders';
+import {
+  type Folder,
+  type ChatListRow,
+  homeFolder,
+  isUnreadHere,
+  networkOf,
+} from '@/core/messaging/folders';
 import { isUnread } from '@/core/messaging/unread';
 import { useChatTitles } from '@/features/chat/use-display-names';
 import { HistoryStatus } from '@/features/chat/history-status';
 import { FilterBar } from '@/features/chat/filter-bar';
 import { useChatListStore } from '@/features/chat/chat-list-store';
 import { useUnreadCounts } from '@/features/chat/use-unread-counts';
+import { BlockSheet } from './block';
 import { ChatMenu, type ChatMenuTarget } from './chat-menu';
 import { ConnectingState, ChatRow, FolderHeader, FolderRow, Separator } from './chat-list-rows';
 import { chatListContents, isFolded } from './chat-list-contents';
@@ -74,6 +81,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   };
 
   const [menu, setMenu] = useState<ChatMenuTarget | null>(null);
+  const [blocking, setBlocking] = useState<Chat | null>(null);
   const showMenu = (chat: Chat, anchor: MenuAnchor | null) => setMenu({ chat, anchor });
   const folder = useChatListStore((s) => s.folder);
   const setFolder = useChatListStore((s) => s.setFolder);
@@ -86,21 +94,20 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   const [kept, setKept] = useState({ view, ids: NO_IDS });
   const held = kept.view === view ? kept.ids : NO_IDS;
   const deferredQuery = useDeferredValue(query);
-  const { accepted, requests, scope, rows, unseen, unreadHere, mentionsHere, showNetwork } =
-    useMemo(
-      () =>
-        chatListContents({
-          chats,
-          chatPrefs,
-          readAt,
-          folder,
-          filter,
-          query: deferredQuery,
-          held,
-          titleOf,
-        }),
-      [chats, chatPrefs, readAt, folder, filter, deferredQuery, held, titleOf]
-    );
+  const { listed, requests, scope, rows, unseen, unreadHere, mentionsHere, showNetwork } = useMemo(
+    () =>
+      chatListContents({
+        chats,
+        chatPrefs,
+        readAt,
+        folder,
+        filter,
+        query: deferredQuery,
+        held,
+        titleOf,
+      }),
+    [chats, chatPrefs, readAt, folder, filter, deferredQuery, held, titleOf]
+  );
   if (unseen.length > 0) setKept({ view, ids: new Set([...held, ...unseen]) });
 
   const trimmed = query.trim();
@@ -125,15 +132,9 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   const leaveFolder = () => go(null);
   useEscapeKey(folder !== null, leaveFolder);
   const openSelectedFolder = useEffectEvent(() => {
-    const selected = accepted.find((c) => c.id === selectedId);
+    const selected = listed.find((c) => c.id === selectedId);
     if (!selected || selectedListed || trimmed) return;
-    const network = networkOf(selected);
-    const prefs = prefsFor(chatPrefs, selected.id);
-    const home: Folder | null = prefs.archived
-      ? 'archive'
-      : network && isFolded(network) && !prefs.pinned
-        ? network
-        : null;
+    const home = homeFolder(selected, chatPrefs, isFolded);
     if (home !== folder) setFolder(home);
   });
   useEffect(() => {
@@ -253,6 +254,14 @@ export function ChatList({ query, selectedId }: ChatListProps) {
           onClose={() => setMenu(null)}
           titleOf={titleOf}
           selfIdOf={selfIdOf}
+          onBlock={setBlocking}
+        />
+      ) : null}
+      {blocking ? (
+        <BlockSheet
+          chatId={blocking.id}
+          name={titleOf(blocking)}
+          onClose={() => setBlocking(null)}
         />
       ) : null}
     </>

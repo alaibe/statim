@@ -38,6 +38,9 @@ export function patchChat(chat: TdChat, update: TdChatUpdate): void {
     case 'updateChatPermissions':
       chat.permissions = update.permissions;
       return;
+    case 'updateChatBlockList':
+      chat.block_list = update.block_list;
+      return;
   }
 }
 

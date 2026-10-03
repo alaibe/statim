@@ -73,7 +73,7 @@ export function worthNotifying(
   reading: string | undefined
 ): boolean {
   if (message.fromMe || message.content.kind === 'system') return false;
-  if (chat.id === reading) return false;
+  if (chat.id === reading || chat.blocked) return false;
   if (prefsFor(prefs, chat.id).muted) return false;
   return !isLocalChat(chat.id) || wasProactive(message.id);
 }

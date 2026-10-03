@@ -68,6 +68,12 @@ describe('worthNotifying', () => {
     expect(worthNotifying(bob, message('a', 2_000), prefs, undefined)).toBe(false);
   });
 
+  it('stays quiet for a DM whose other participant you blocked', () => {
+    expect(worthNotifying({ ...bob, blocked: true }, message('a', 2_000), {}, undefined)).toBe(
+      false
+    );
+  });
+
   it('stays quiet for your own message', () => {
     const mine = { ...message('a', 2_000), fromMe: true };
     expect(worthNotifying(bob, mine, {}, undefined)).toBe(false);

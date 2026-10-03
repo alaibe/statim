@@ -562,6 +562,26 @@ describe('MatrixSession chats', () => {
     expect(api.named('leave')).toHaveLength(2);
   });
 
+  it('blocks the other side of a DM by ignoring them, and reads who is ignored', async () => {
+    const { chat, api } = await connect(SESSION, (api) => {
+      api.roomsById.set(DM.id, DM);
+      api.roomsById.set(GROUP.id, GROUP);
+      api.ignored.add(CAROL);
+    });
+    const dm = async () => (await chat.listChats()).find((c) => c.id === DM_ID);
+    expect((await dm())?.blocked).toBeUndefined();
+
+    await chat.setBlocked(DM_ID, true);
+    expect(api.named('setIgnored')).toEqual([[BOB, true]]);
+    expect((await dm())?.blocked).toBe(true);
+    expect((await chat.listChats()).find((c) => c.id === GROUP_ID)?.blocked).toBeUndefined();
+    await expect(chat.setBlocked(GROUP_ID, true)).rejects.toThrow('only a DM');
+
+    api.ignored.clear();
+    await chat.sync();
+    expect((await dm())?.blocked).toBeUndefined();
+  });
+
   it('forwards roster and room management calls', async () => {
     const { chat, api } = await connect();
     await chat.addMembers(GROUP_ID, [BOB, CAROL]);

@@ -1,5 +1,6 @@
 import {
   chatListRows,
+  homeFolder,
   inFolder,
   isUnreadHere,
   matchesFilter,
@@ -43,6 +44,17 @@ describe('splitRequests', () => {
     expect(split.accepted.map(native)).toEqual(['accepted']);
     expect(split.requests.map(native)).toEqual(['stranger']);
   });
+
+  it('keeps blocked chats apart, requests among them', () => {
+    const split = splitRequests([
+      chat({ id: 'friend' }),
+      chat({ id: 'spam', consent: 'request', blocked: true }),
+      chat({ id: 'ex', blocked: true }),
+    ]);
+    expect(split.accepted.map(native)).toEqual(['friend']);
+    expect(split.requests).toEqual([]);
+    expect(split.blocked.map(native)).toEqual(['spam', 'ex']);
+  });
 });
 
 describe('matchesFilter', () => {
@@ -53,9 +65,10 @@ describe('matchesFilter', () => {
     expect(matchesFilter(chat({ id: 'statim', protocol: 'local' }), 'dms', empty)).toBe(false);
   });
 
-  it('counts unread, but not muted or already read', () => {
+  it('counts unread, but not muted, blocked or already read', () => {
     const c = chat({ id: 'c1' });
     expect(isUnreadHere(c, empty)).toBe(true);
+    expect(isUnreadHere({ ...c, blocked: true }, empty)).toBe(false);
     expect(isUnreadHere(c, { prefs: { [c.id]: { muted: true } }, readAt: {} })).toBe(false);
     expect(isUnreadHere(c, { prefs: {}, readAt: { [c.id]: 5_000 } })).toBe(false);
   });
@@ -87,6 +100,30 @@ describe('inFolder', () => {
     expect(inFolder(slack, 'slack', archived)).toBe(false);
     expect(inFolder(slack, 'archive', archived)).toBe(true);
   });
+
+  it('keeps a blocked chat in Blocked only, archived or not', () => {
+    const blocked = chat({ id: 's', protocol: 'matrix', network: 'slack', blocked: true });
+    const archived = { prefs: { 'matrix-s': { archived: true } }, readAt: {} };
+    expect(inFolder(blocked, 'blocked', archived)).toBe(true);
+    expect(inFolder(blocked, 'archive', archived)).toBe(false);
+    expect(inFolder(blocked, 'slack', empty)).toBe(false);
+  });
+});
+
+describe('homeFolder', () => {
+  const folded = (network: string) => network !== 'nostr';
+  const telegram = chat({ id: 't', protocol: 'telegram' });
+  const nostr = chat({ id: 'n', protocol: 'nostr' });
+
+  it('opens the folder a chat sits in', () => {
+    expect(homeFolder(telegram, {}, folded)).toBe('telegram');
+    expect(homeFolder(nostr, {}, folded)).toBeNull();
+    expect(homeFolder(telegram, { [telegram.id]: { pinned: true } }, folded)).toBeNull();
+    expect(homeFolder(nostr, { [nostr.id]: { archived: true } }, folded)).toBe('archive');
+    expect(
+      homeFolder({ ...nostr, blocked: true }, { [nostr.id]: { archived: true } }, folded)
+    ).toBe('blocked');
+  });
 });
 
 describe('chatListRows', () => {
@@ -116,6 +153,15 @@ describe('chatListRows', () => {
     ];
     const context = { prefs: { 'matrix-s1': { archived: true } }, readAt: {} };
     expect(shape(chatListRows(ordered, all, folded, context))).toEqual(['archive[s1]', 'n1']);
+  });
+
+  it('puts Blocked last and keeps blocked chats out of the rest', () => {
+    const ordered = [
+      chat({ id: 'n1', protocol: 'nostr', blocked: true }),
+      chat({ id: 'n2', protocol: 'nostr' }),
+      chat({ id: 't1', protocol: 'telegram', blocked: true }),
+    ];
+    expect(shape(chatListRows(ordered, all, folded, empty))).toEqual(['n2', 'blocked[n1,t1]']);
   });
 
   it('leaves a pinned chat out of its folder', () => {

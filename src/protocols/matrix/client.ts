@@ -426,6 +426,15 @@ class RnMatrixClient implements MatrixApi {
     await this.requireRoom(roomId).banUser(userId, undefined);
   }
 
+  ignoredUsers(): Promise<string[]> {
+    return this.client.ignoredUsers();
+  }
+
+  async setIgnored(userId: string, ignored: boolean): Promise<void> {
+    if (ignored) await this.client.ignoreUser(userId);
+    else await this.client.unignoreUser(userId);
+  }
+
   async setPowerLevel(roomId: string, userId: string, level: number): Promise<void> {
     await this.requireRoom(roomId).updatePowerLevelsForUsers([
       { userId, powerLevel: BigInt(level) },

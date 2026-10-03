@@ -243,6 +243,28 @@ describe('StatusSession', () => {
         'hi',
       ]);
     });
+
+    it('blocking keeps the chat and drops what follows until it is unblocked', async () => {
+      await alice.session.createDm(BOB.public);
+      await alice.session.send(chat(BOB.public), { kind: 'text', text: 'hi' });
+      await bob.session.pollOnce();
+      await bob.session.setBlocked(chat(ALICE.public), true);
+      expect(await bob.session.listChats()).toMatchObject([{ id: ALICE.public, blocked: true }]);
+
+      await alice.session.send(chat(BOB.public), { kind: 'text', text: 'hello?' });
+      await bob.session.pollOnce();
+      const before = ['Please add me to your contacts', 'hi'];
+      expect(texts(await bob.session.getMessages(chat(ALICE.public)))).toEqual(before);
+
+      await bob.session.setBlocked(chat(ALICE.public), false);
+      expect((await bob.session.listChats())[0].blocked).toBeUndefined();
+      await alice.session.send(chat(BOB.public), { kind: 'text', text: 'there?' });
+      await bob.session.pollOnce();
+      expect(texts(await bob.session.getMessages(chat(ALICE.public)))).toEqual([
+        ...before,
+        'there?',
+      ]);
+    });
   });
 
   describe('messages', () => {

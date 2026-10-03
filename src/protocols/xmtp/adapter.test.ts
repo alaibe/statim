@@ -12,6 +12,14 @@ jest.mock('@xmtp/react-native-sdk', () => ({
     create: (...args: unknown[]) => mockCreate(...args),
   },
   PublicIdentity: function PublicIdentity() {},
+  ConsentRecord: function ConsentRecord(
+    this: Record<string, string>,
+    value: string,
+    entryType: string,
+    state: string
+  ) {
+    Object.assign(this, { value, entryType, state });
+  },
   ConsentState: {},
   ConversationVersion: { GROUP: 'group', DM: 'dm' },
   Dm: class {},
@@ -61,16 +69,30 @@ const receipt = (id: string, sentMs: number) => ({
 });
 
 const findConversationByTopic = jest.fn();
+const setConsentState = jest.fn();
 
-async function sessionWith(conversations: unknown[], streamed: unknown[] = []) {
+async function sessionWith(
+  conversations: unknown[],
+  streamed: unknown[] = [],
+  { denied = [], deniedInboxes = [] }: { denied?: unknown[]; deniedInboxes?: string[] } = {}
+) {
   findConversationByTopic.mockReset();
   findConversationByTopic.mockImplementation(async (topic: string) =>
     conversations.find((conversation) => (conversation as { topic: string }).topic === topic)
   );
+  setConsentState.mockReset();
   mockBuild.mockResolvedValue({
     ...client('me'),
+    preferences: {
+      inboxIdConsentState: async (inboxId: string) =>
+        deniedInboxes.includes(inboxId) ? 'denied' : 'unknown',
+      setConsentState,
+    },
     conversations: {
       list: async () => conversations,
+      listDms: async () => denied,
+      findConversation: async (id: string) =>
+        [...conversations, ...denied].find((c) => (c as { id: string }).id === id),
       findConversationByTopic,
       streamAllMessages: async (onMessage: (message: unknown) => Promise<void>) => {
         for (const message of streamed) await onMessage(message);
@@ -126,4 +148,33 @@ it('asks the client for the chat of a topic that names none', async () => {
   await session.streamMessages(({ id, chatId }) => received.push({ id, chatId }));
   expect(received).toEqual([{ id: 'hello', chatId: 'dm' }]);
   expect(findConversationByTopic).toHaveBeenCalledWith(OTHER_TOPIC);
+});
+
+it('lists a DM blocked by denying its peer, and leaves a declined one out', async () => {
+  const blocked = { ...dm, id: 'blocked', state: 'denied', peerInboxId: async () => 'spammer' };
+  const declined = { ...dm, id: 'declined', state: 'denied', peerInboxId: async () => 'stranger' };
+  const session = await sessionWith([dm], [], {
+    denied: [blocked, declined],
+    deniedInboxes: ['spammer'],
+  });
+
+  const listed = await session.listChats();
+  expect(listed.map((chat) => [chat.id, chat.blocked])).toEqual([
+    ['dm', undefined],
+    ['blocked', true],
+  ]);
+});
+
+it('blocks by denying the peer inbox as well as the DM, and allows both to unblock', async () => {
+  const updateConsent = jest.fn();
+  const session = await sessionWith([{ ...dm, updateConsent }]);
+
+  await session.setBlocked('dm' as never, true);
+  await session.setBlocked('dm' as never, false);
+
+  expect(setConsentState.mock.calls.map(([record]) => ({ ...record }))).toEqual([
+    { value: 'peer', entryType: 'inbox_id', state: 'denied' },
+    { value: 'peer', entryType: 'inbox_id', state: 'allowed' },
+  ]);
+  expect(updateConsent.mock.calls).toEqual([['denied'], ['allowed']]);
 });

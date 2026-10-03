@@ -44,7 +44,8 @@ only. Nothing from it is uploaded.
 
 A chat someone else starts arrives under **Requests** at the top of the
 list, not in your chats. Open it, read it, then **Accept** or **Decline**.
-Declining takes the chat off your list without blocking the sender. Until
+Declining takes the chat off your list without blocking the sender. To stop
+hearing from them at all, tap **Block** instead. Until
 you accept, nothing you do is visible to the sender. An
 invitation to a Matrix chat arrives as a request too, and accepting it joins it.
 
@@ -67,7 +68,8 @@ other XMTP app, they can message the address directly.
 Telegram, Matrix and every network a Matrix bridge brings in each get a folder
 in the list, such as **Telegram** or **Slack**, so a busy account does not bury
 the rest. Pin a chat and it stays in the main list. Archived chats have their
-own **Archive** folder.
+own **Archive** folder, and DMs with people you blocked are in **Blocked** at
+the end of the list.
 
 The filters at the top narrow the list: **All**, **Unread**, **Mentions** (chats
 where someone mentioned or replied to you), **DMs** and **Groups**.
@@ -90,6 +92,24 @@ not notify.
 **Mark as unread** keeps a chat in **Unread** until you open it again. On
 Telegram and Matrix the mark is saved to your account, so a chat marked on your
 phone shows unread on the Mac as well.
+
+## Block someone
+
+Long-press a DM, or right-click it on the Mac, and choose **Block**. The
+button is also on their profile and on a request. Nothing they send reaches
+you and you cannot write to them. The chat moves to **Blocked**; open it and
+tap **Unblock** to let them back in.
+
+Where the block is kept depends on the protocol:
+
+- Telegram keeps it on its servers, so it holds in every Telegram app and
+  they cannot message you.
+- Matrix puts them on your account's ignore list. Your homeserver stops
+  passing on anything they send, in groups too, to all your devices.
+- XMTP saves it in your account's settings on the network, where other XMTP
+  apps can read it.
+- Nostr and Status have no server that could refuse their messages. Statim
+  drops what they send on this device, and nothing tells them.
 
 ## Groups
 

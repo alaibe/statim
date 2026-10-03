@@ -565,6 +565,44 @@ describe('TelegramSession chats', () => {
     expect(td().requests('setMessageSenderBlockList')).toEqual([]);
   });
 
+  it('blocks the other participant of a DM and follows the block list TDLib reports', async () => {
+    const { session, td } = await signedIn();
+    td().emit({ '@type': 'updateNewChat', chat: privateChat(200, 'Bob') });
+    td().emit({ '@type': 'updateNewChat', chat: groupChat(5, 'Builders') });
+
+    await session.setBlocked(chatIdOf(200), true);
+    await session.setBlocked(chatIdOf(200), false);
+    await expect(session.setBlocked(chatIdOf(-5), true)).rejects.toThrow('only a DM');
+    expect(td().requests('setMessageSenderBlockList')).toEqual([
+      {
+        '@type': 'setMessageSenderBlockList',
+        sender_id: { '@type': 'messageSenderUser', user_id: 200 },
+        block_list: { '@type': 'blockListMain' },
+      },
+      {
+        '@type': 'setMessageSenderBlockList',
+        sender_id: { '@type': 'messageSenderUser', user_id: 200 },
+        block_list: null,
+      },
+    ]);
+
+    td().answer('getChats', { '@type': 'chats', chat_ids: [200] });
+    const bob = async () => (await session.listChats())[0];
+    expect((await bob()).blocked).toBeUndefined();
+    td().emit({
+      '@type': 'updateChatBlockList',
+      chat_id: 200,
+      block_list: { '@type': 'blockListMain' },
+    });
+    expect((await bob()).blocked).toBe(true);
+    td().emit({
+      '@type': 'updateChatBlockList',
+      chat_id: 200,
+      block_list: { '@type': 'blockListStories' },
+    });
+    expect((await bob()).blocked).toBeUndefined();
+  });
+
   it('lets a channel admin post only with the right to post', async () => {
     const { session, td } = await signedIn();
     const admin = (rights: { can_post_messages?: boolean }) =>

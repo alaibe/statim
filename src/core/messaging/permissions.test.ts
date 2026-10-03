@@ -54,6 +54,20 @@ describe('chatPermissions', () => {
     expect(chatPermissions(testChat({ consent: 'request' }), session()).answerRequest).toBe(false);
     expect(chatPermissions(testChat(), answers).answerRequest).toBe(false);
     expect(chatPermissions(testChat({ consent: 'declined' }), answers).answerRequest).toBe(false);
+    expect(
+      chatPermissions(testChat({ consent: 'request', blocked: true }), answers).answerRequest
+    ).toBe(false);
+  });
+
+  it('blocks only in a DM, and sends nothing to someone blocked', () => {
+    const blocks = session('setBlocked');
+    expect(chatPermissions(testChat(), blocks).block).toBe(true);
+    expect(chatPermissions(testChat(), session()).block).toBe(false);
+    expect(chatPermissions(testChat({ kind: 'group' }), blocks).block).toBe(false);
+    expect(chatPermissions(testChat({ blocked: true }), blocks)).toMatchObject({
+      block: true,
+      send: false,
+    });
   });
 
   it('lets an owner or admin add and remove group members, and invite where the session makes links', () => {

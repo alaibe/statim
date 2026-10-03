@@ -130,6 +130,8 @@ export interface ChatSession {
   ): Promise<Unsubscribe>;
 
   setConsent?(id: ProtocolChatId, consent: ConsentDecision): Promise<void>;
+  /** Blocks or unblocks the other participant of a DM; while blocked, nothing they send arrives. */
+  setBlocked?(id: ProtocolChatId, blocked: boolean): Promise<void>;
 
   sendReadReceipt?(id: ProtocolChatId): Promise<void>;
   setMarkedUnread?(id: ProtocolChatId, unread: boolean): Promise<void>;

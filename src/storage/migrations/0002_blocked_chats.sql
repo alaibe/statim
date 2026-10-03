@@ -1,0 +1,1 @@
+ALTER TABLE `chats` ADD `blocked` integer DEFAULT false NOT NULL;

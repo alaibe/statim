@@ -1,4 +1,5 @@
 use super::*;
+use matrix_sdk::ruma::events::ignored_user_list::IgnoredUserListEventContent;
 
 impl Session {
     pub(super) fn room(&self, id: &str) -> Result<Room, String> {
@@ -263,6 +264,39 @@ pub async fn mx_ban(
         .ban_user(&user, None)
         .await
         .map_err(err)
+}
+
+#[tauri::command]
+pub async fn mx_ignored_users(state: State<'_, Matrix>) -> Result<Vec<String>, String> {
+    let session = current(&state)?;
+    let list = session
+        .client
+        .account()
+        .account_data::<IgnoredUserListEventContent>()
+        .await
+        .map_err(err)?
+        .map(|raw| raw.deserialize())
+        .transpose()
+        .map_err(err)?
+        .unwrap_or_default();
+    Ok(list.ignored_users.keys().map(ToString::to_string).collect())
+}
+
+#[tauri::command]
+pub async fn mx_set_ignored(
+    state: State<'_, Matrix>,
+    user_id: String,
+    ignored: bool,
+) -> Result<(), String> {
+    let session = current(&state)?;
+    let user = UserId::parse(&user_id).map_err(err)?;
+    let account = session.client.account();
+    if ignored {
+        account.ignore_user(&user).await
+    } else {
+        account.unignore_user(&user).await
+    }
+    .map_err(err)
 }
 
 #[tauri::command]

@@ -22,5 +22,13 @@ export const MIGRATIONS: MigrationMeta[] = [
     "bps": true,
     "folderMillis": 1790699492896,
     "hash": "8bb5823f055711341690508ba7becae6cabc95cd037de091acded0165a614c8c"
+  },
+  {
+    "sql": [
+      "ALTER TABLE `chats` ADD `blocked` integer DEFAULT false NOT NULL;"
+    ],
+    "bps": true,
+    "folderMillis": 1791011579306,
+    "hash": "6db38086da10d370cee0984586ccd440002e1a02af9cf3295ac0de9f56705a92"
   }
 ];

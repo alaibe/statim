@@ -1,6 +1,7 @@
 import { sha256 } from '@noble/hashes/sha2';
 
 import { type DerivedKey, shortAddress } from '@/core/account/keyring';
+import { UnsupportedError } from '@/core/errors';
 import { HistoryTracker, PartialHistoryError, type HistoryState } from '@/core/messaging/history';
 import type { MessageStore, TransportChat } from '@/core/messaging/message-store';
 import { protocolChatId } from '@/core/messaging/namespace';
@@ -955,6 +956,7 @@ export class StatusSession implements ChatSession {
 
   private async insert(message: ProtocolMessage): Promise<void> {
     const existing = this.chats.get(message.chatId);
+    if (existing?.blocked && !message.fromMe) return;
     const chat = existing ?? this.newDmChat(message.chatId);
     const shown = chat.hidden && !this.groups.has(chat.id) ? { ...chat, hidden: false } : chat;
     const changed = shown !== existing;
@@ -1033,6 +1035,7 @@ export class StatusSession implements ChatSession {
       createdAt: chat.createdAt,
       lastMessage,
       consent: consentOf(contact),
+      ...(chat.blocked ? { blocked: true } : {}),
       avatarUri: contact.picture,
     };
   }
@@ -1340,6 +1343,14 @@ export class StatusSession implements ChatSession {
     }
     await this.insert(message);
     return message.id;
+  }
+
+  /** Nothing goes out: they are not told, and what they send is dropped here. */
+  async setBlocked(id: ProtocolChatId, blocked: boolean): Promise<void> {
+    if (this.groups.has(id)) throw new UnsupportedError('On Status only a DM can be blocked.');
+    const chat = { ...(this.chats.get(id) ?? this.newDmChat(id)), blocked };
+    await this.saveChat(chat);
+    this.announce(chat);
   }
 
   async setConsent(id: ProtocolChatId, consent: ConsentDecision): Promise<void> {

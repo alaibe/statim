@@ -1,3 +1,4 @@
+import { UnsupportedError } from '../errors';
 import { HistoryTracker, type HistoryState } from './history';
 import type { MessageStore, TransportChat } from './message-store';
 import type { ChatSession } from './protocol';
@@ -75,6 +76,7 @@ export class StoreBackedSession implements ChatSession, TransportSink {
   }
 
   private async deliver(chat: TransportChat, incoming: IncomingMessage, isNew: boolean) {
+    if (chat.blocked && !incoming.fromMe) return;
     const visible = { ...chat, hidden: false };
     const message: ProtocolMessage = {
       ...incoming,
@@ -162,6 +164,7 @@ export class StoreBackedSession implements ChatSession, TransportSink {
       memberIds: chat.participants,
       createdAt: chat.createdAt,
       consent: 'accepted',
+      ...(chat.blocked ? { blocked: true } : {}),
       lastMessage,
       selfRole: undefined,
     };
@@ -243,6 +246,14 @@ export class StoreBackedSession implements ChatSession, TransportSink {
 
   async renameGroup(id: ProtocolChatId, title: string): Promise<void> {
     const chat = { ...this.require(id), title };
+    await this.store.upsertChat(chat);
+    this.remember(chat);
+    this.announce(chat, (await this.store.loadMessages(id, 1))[0]);
+  }
+
+  async setBlocked(id: ProtocolChatId, blocked: boolean): Promise<void> {
+    const chat = { ...this.require(id), blocked };
+    if (this.toChat(chat).kind !== 'dm') throw new UnsupportedError('Only a DM can be blocked.');
     await this.store.upsertChat(chat);
     this.remember(chat);
     this.announce(chat, (await this.store.loadMessages(id, 1))[0]);

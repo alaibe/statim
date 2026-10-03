@@ -1,5 +1,6 @@
 import {
   Client,
+  ConsentEntityType,
   ConsentState,
   ContentType,
   DeliveryStatus,
@@ -31,6 +32,7 @@ import {
 import type { ContentCodec } from '@xmtp/content-type-primitives';
 import { hexToBytes, isAddress, type LocalAccount } from 'viem';
 
+import { UnsupportedError } from '@/core/errors';
 import {
   classifyAttachment,
   fallbackMimeType,
@@ -187,20 +189,37 @@ export class XmtpSession implements ChatSession {
   }
 
   async listChats(): Promise<ProtocolChat[]> {
-    const lists = await Promise.all(
-      VISIBLE.map(async (consent) => ({
+    const lists = await Promise.all([
+      ...VISIBLE.map(async (consent) => ({
         consent,
         conversations: await this.client.conversations.list({
           consentStates: [consent],
           orderBy: ListConversationsOrderBy.LastActivity,
         }),
-      }))
-    );
+      })),
+      this.blockedDms().then((conversations) => ({ consent: ConsentState.Denied, conversations })),
+    ]);
     return Promise.all(
       lists.flatMap(({ consent, conversations }) =>
         conversations.map((c) => this.toChat(c, undefined, consent))
       )
     );
+  }
+
+  /** Blocking denies the DM and its peer's inbox; a DM denied alone was declined. */
+  private async blockedDms(): Promise<Dm<any>[]> {
+    const denied = await this.client.conversations.listDms({
+      consentStates: [ConsentState.Denied],
+    });
+    const blocked = await Promise.all(
+      denied.map(async (dm) => this.inboxBlocked(await dm.peerInboxId()))
+    );
+    return denied.filter((_, i) => blocked[i]);
+  }
+
+  private async inboxBlocked(inboxId: string): Promise<boolean> {
+    const state = await this.client.preferences.getConsentState(ConsentEntityType.InboxId, inboxId);
+    return state === ConsentState.Denied;
   }
 
   async getMessages(id: ProtocolChatId, opts?: { limit?: number }): Promise<ProtocolMessage[]> {
@@ -390,6 +409,22 @@ export class XmtpSession implements ChatSession {
     );
   }
 
+  async setBlocked(id: ProtocolChatId, blocked: boolean): Promise<void> {
+    const conversation = await this.client.conversations.getConversationById(id);
+    if (!conversation || conversation instanceof Group) {
+      throw new UnsupportedError('On XMTP only a DM can be blocked.');
+    }
+    const state = blocked ? ConsentState.Denied : ConsentState.Allowed;
+    await this.client.preferences.setConsentStates([
+      {
+        entity: await (conversation as Dm<any>).peerInboxId(),
+        entityType: ConsentEntityType.InboxId,
+        state,
+      },
+    ]);
+    await conversation.updateConsentState(state);
+  }
+
   async sendReadReceipt(id: ProtocolChatId): Promise<void> {
     const conversation = await this.client.conversations.getConversationById(id);
     if (!conversation) return;
@@ -511,6 +546,7 @@ export class XmtpSession implements ChatSession {
     let title: string;
     let memberIds: ParticipantId[] = [];
     let selfRole: GroupRole | undefined;
+    let blocked = false;
 
     if (isGroup) {
       const members = await raw.members();
@@ -523,6 +559,7 @@ export class XmtpSession implements ChatSession {
       const participant = await (raw as Dm<any>).peerInboxId();
       title = participant;
       memberIds = [participant, this.self.participantId];
+      blocked = await this.inboxBlocked(participant);
     }
 
     const [state, recent] = await Promise.all([
@@ -540,6 +577,7 @@ export class XmtpSession implements ChatSession {
       memberIds,
       createdAt: raw.createdAt?.getTime() ?? Date.now(),
       consent: mapConsent(state),
+      ...(blocked ? { blocked: true } : {}),
       selfRole,
       lastMessage,
     };

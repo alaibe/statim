@@ -219,6 +219,9 @@ export interface MatrixApi {
   invite(roomId: string, userId: string): Promise<void>;
   kick(roomId: string, userId: string): Promise<void>;
   ban(roomId: string, userId: string): Promise<void>;
+  /** Whose events the homeserver holds back from this account. */
+  ignoredUsers(): Promise<string[]>;
+  setIgnored(userId: string, ignored: boolean): Promise<void>;
   setPowerLevel(roomId: string, userId: string, level: number): Promise<void>;
   setName(roomId: string, name: string): Promise<void>;
   join(roomId: string): Promise<void>;

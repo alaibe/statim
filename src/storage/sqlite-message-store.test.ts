@@ -118,6 +118,7 @@ describe('chats', () => {
         routingKey: '/app/1/chat/proto',
         participants: ['a', 'b', 'c'],
         hidden: true,
+        blocked: true,
       })
     );
 
@@ -129,6 +130,7 @@ describe('chats', () => {
       title: 'Duo',
       createdAt: 5000,
       hidden: true,
+      blocked: true,
       routingKey: '/app/1/chat/proto',
     });
   });

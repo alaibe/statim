@@ -152,6 +152,7 @@ export interface ChatState {
   watchPresence(id: ChatId): Unsubscribe;
   markUnread(id: ChatId): Promise<void>;
   setConsent(id: ChatId, consent: ConsentDecision): Promise<void>;
+  setBlocked(id: ChatId, blocked: boolean): Promise<void>;
   setChatPref(id: ChatId, change: Partial<ChatPrefs>): Promise<void>;
   setDraft(id: ChatId, text: string, thread?: MessageId): void;
 
@@ -808,9 +809,35 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
+  async setBlocked(id, blocked) {
+    const route = routeOrNull(get(), id);
+    const chat = get().chats.find((c) => c.id === id);
+    if (!route || !chat || !chatPermissions(chat, route.session).block) {
+      throw new Error('Only a DM can be blocked, on a protocol that blocks.');
+    }
+
+    const accountId = get().accountId;
+    const previous = Boolean(chat.blocked);
+    const mark = (from: boolean, to: boolean) =>
+      set((state) => ({
+        chats: state.chats.map((c) =>
+          c.id === id && Boolean(c.blocked) === from ? { ...c, blocked: to } : c
+        ),
+      }));
+    mark(previous, blocked);
+
+    try {
+      await capability(route.session, 'setBlocked')(route.nativeId, blocked);
+    } catch (error) {
+      if (sameSession(get(), accountId, route.protocol, route.session)) mark(blocked, previous);
+      throw error;
+    }
+  },
+
   ingestMessage(message: ChatMessage) {
     set((state) => {
       const id = message.chatId;
+      if (!message.fromMe && state.chats.find((c) => c.id === id)?.blocked) return state;
       const raw = state.rawMessages[id] ?? state.messages[id];
       const loaded = raw === undefined ? {} : withRaw(state, id, withMessage(raw, message));
 
@@ -1049,6 +1076,7 @@ async function onChat<K extends Capability>(
 
 function requireSendable(state: ChatState, id: ChatId): void {
   const chat = state.chats.find((c) => c.id === id);
+  if (chat?.blocked) throw new Error('You blocked this person. Unblock them to send a message.');
   if (chat && !chatPermissions(chat, sessionFor(state, id)).send) {
     throw new Error('You cannot send messages in this chat.');
   }

@@ -19,6 +19,8 @@ export interface StoredChat<Id extends AnyChatId = AnyChatId> {
   title?: string;
   createdAt: number;
   hidden: boolean;
+  /** A DM whose other participant you blocked. */
+  blocked?: boolean;
   routingKey?: string;
 }
 

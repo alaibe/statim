@@ -12,6 +12,7 @@ export const chats = sqliteTable(
     title: text('title'),
     createdAt: integer('created_at').notNull(),
     hidden: integer('hidden', { mode: 'boolean' }).notNull().default(false),
+    blocked: integer('blocked', { mode: 'boolean' }).notNull().default(false),
     routingKey: text('routing_key'),
   },
   (table) => [index('chats_by_protocol').on(table.protocolId)]

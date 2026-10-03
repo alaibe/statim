@@ -309,7 +309,8 @@ export class TelegramSession implements ChatSession {
       case 'updateChatPendingJoinRequests':
       case 'updateChatDraftMessage':
       case 'updateChatIsMarkedAsUnread':
-      case 'updateChatPermissions': {
+      case 'updateChatPermissions':
+      case 'updateChatBlockList': {
         const chat = this.td.chats.get(update.chat_id);
         if (!chat) return;
         patchChat(chat, update);
@@ -709,6 +710,17 @@ export class TelegramSession implements ChatSession {
     });
   }
 
+  async setBlocked(id: ProtocolChatId, blocked: boolean): Promise<void> {
+    const chat = await this.td.requireChat(Number(id));
+    if (chat.type['@type'] !== 'chatTypePrivate')
+      throw new UnsupportedError('On Telegram only a DM can be blocked.');
+    await this.api.send({
+      '@type': 'setMessageSenderBlockList',
+      sender_id: { '@type': 'messageSenderUser', user_id: chat.type.user_id },
+      block_list: blocked ? { '@type': 'blockListMain' } : null,
+    });
+  }
+
   async sendReadReceipt(id: ProtocolChatId): Promise<void> {
     const chat = this.td.chats.get(Number(id));
     if (!chat?.last_message) return;
@@ -847,6 +859,7 @@ export class TelegramSession implements ChatSession {
           ? participant.status.was_online * 1000
           : undefined,
       consent: 'accepted',
+      ...(isDm && chat.block_list?.['@type'] === 'blockListMain' ? { blocked: true } : {}),
       selfRole: isDm ? undefined : this.td.roleIn(chat),
       ...this.td.rightsIn(chat),
     };

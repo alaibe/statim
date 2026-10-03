@@ -220,7 +220,7 @@ Waits for the person at the app to approve it.
 
 #### chats
 
-`statim chats [--unread] [--mentions] [--dms] [--groups] [--archived] [--requests] [--network <name>] [--limit <n>]`
+`statim chats [--unread] [--mentions] [--dms] [--groups] [--archived] [--requests] [--blocked] [--network <name>] [--limit <n>]`
 
 List chats, newest first.
 
@@ -230,6 +230,7 @@ List chats, newest first.
 - `--groups`: Only groups and channels
 - `--archived`: Only archived chats
 - `--requests`: Only requests
+- `--blocked`: Only DMs whose other participant you blocked
 - `--network <name>`: Only chats on this network, such as telegram or slack
 - `--limit <n>`: How many to show
 
@@ -338,6 +339,22 @@ Archive a chat.
 `statim unarchive <chat>`
 
 Move a chat out of the archive.
+
+- `chat`: Chat id, or a unique part of its title
+
+#### block
+
+`statim block <chat>`
+
+Block the other participant of a DM: nothing they send reaches you.
+
+- `chat`: Chat id, or a unique part of its title
+
+#### unblock
+
+`statim unblock <chat>`
+
+Unblock the other participant of a DM.
 
 - `chat`: Chat id, or a unique part of its title
 

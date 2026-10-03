@@ -55,6 +55,7 @@ function chatJson(c: Chat, label: ChatLabel = { title: c.title }) {
     pinned: Boolean(prefs.pinned),
     muted: Boolean(prefs.muted),
     archived: Boolean(prefs.archived),
+    blocked: Boolean(c.blocked),
     canSend: chatPermissions(c, sessionFor(state, c.id)).send,
     ...(draft ? { draft } : {}),
   };
@@ -65,6 +66,7 @@ function chatLine(c: ReturnType<typeof chatJson>): string {
     c.unread ? `${c.unread} unread` : c.markedUnread ? 'unread' : '',
     c.pinned ? 'pinned' : '',
     c.muted ? 'muted' : '',
+    c.blocked ? 'blocked' : '',
   ].filter(Boolean);
   return (
     `${c.title}  (${c.network} ${c.kind}${marks.length ? `, ${marks.join(', ')}` : ''})  ${c.id}` +
@@ -77,6 +79,14 @@ function setPref(change: Partial<ChatPrefs>, done: string): CliHandler {
     const chat = await readyChat(args.chat!);
     await useChatStore.getState().setChatPref(chat.id, change);
     return { data: { id: chat.id, ...change }, text: `${done} ${chat.label}.` };
+  };
+}
+
+function setBlocked(blocked: boolean, done: string): CliHandler {
+  return async ({ args }) => {
+    const chat = await readyChat(args.chat!);
+    await useChatStore.getState().setBlocked(chat.id, blocked);
+    return { data: { id: chat.id, blocked }, text: `${done} ${chat.label}.` };
   };
 }
 
@@ -130,10 +140,12 @@ export const chatHandlers = {
     const { chats, chatPrefs, readAt } = useChatStore.getState();
     const context = { prefs: chatPrefs, readAt };
     const limit = flags.limit === undefined ? Infinity : Number(flags.limit);
-    const { accepted, requests } = splitRequests(chats);
+    const { accepted, requests, blocked } = splitRequests(chats);
     const network = typeof flags.network === 'string' ? requireNetwork(flags.network) : undefined;
-    const picked = (flags.requests ? requests : accepted).filter((c) => {
-      if (Boolean(flags.archived) !== Boolean(prefsFor(chatPrefs, c.id).archived)) return false;
+    const listed = flags.blocked ? blocked : flags.requests ? requests : accepted;
+    const picked = listed.filter((c) => {
+      if (!flags.blocked && Boolean(flags.archived) !== Boolean(prefsFor(chatPrefs, c.id).archived))
+        return false;
       if (flags.dms && !matchesFilter(c, 'dms', context)) return false;
       if (flags.groups && !matchesFilter(c, 'groups', context)) return false;
       if (network && networkIn(c) !== network) return false;
@@ -222,6 +234,8 @@ export const chatHandlers = {
   unmute: setPref({ muted: false }, 'Unmuted'),
   archive: setPref({ archived: true }, 'Archived'),
   unarchive: setPref({ archived: false }, 'Unarchived'),
+  block: setBlocked(true, 'Blocked'),
+  unblock: setBlocked(false, 'Unblocked'),
 
   async draft({ args }) {
     const chat = await readyChat(args.chat!);

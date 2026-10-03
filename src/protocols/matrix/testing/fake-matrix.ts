@@ -24,6 +24,7 @@ export class FakeMatrix implements MatrixApi {
   readonly roomMembers = new Map<string, MxMember[]>();
   readonly pinnedIds = new Map<string, string[]>();
   readonly profiles = new Map<string, MxProfile>();
+  readonly ignored = new Set<string>();
   readonly calls: { name: string; args: unknown[] }[] = [];
   startParams: MxStartParams | null = null;
   loginResult: MxSession | Error = SESSION;
@@ -125,6 +126,16 @@ export class FakeMatrix implements MatrixApi {
 
   async ban(roomId: string, userId: string): Promise<void> {
     this.record('ban', roomId, userId);
+  }
+
+  async ignoredUsers(): Promise<string[]> {
+    return [...this.ignored];
+  }
+
+  async setIgnored(userId: string, ignored: boolean): Promise<void> {
+    this.record('setIgnored', userId, ignored);
+    if (ignored) this.ignored.add(userId);
+    else this.ignored.delete(userId);
   }
 
   async setPowerLevel(roomId: string, userId: string, level: number): Promise<void> {

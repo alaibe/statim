@@ -523,6 +523,29 @@ describe('groups, honestly', () => {
     expect(await session.listChats()).toHaveLength(1);
   });
 
+  it('blocks a DM here: what they send is dropped until you unblock them', async () => {
+    const store = new InMemoryMessageStore();
+    const { session, factory } = await connect(['wss://a.example'], store);
+    const dm = await session.createDm(bob.publicKey);
+    const group = await session.createGroup([bob.publicKey, carol.publicKey], 'Trio');
+    const messages: ProtocolMessage[] = [];
+    await session.streamMessages((m) => messages.push(m));
+
+    await session.setBlocked(dm.id, true);
+    await expect(session.setBlocked(group.id, true)).rejects.toThrow('Only a DM');
+    deliverFrom(factory.relays[0], bob, [alice.publicKey], 'let me in');
+    await settleDeliveries();
+    expect(messages).toEqual([]);
+    expect((await session.listChats()).find((c) => c.id === dm.id)?.blocked).toBe(true);
+    const stored = await store.loadChats('nostr');
+    expect(stored.find((c) => c.id === dm.id)?.blocked).toBe(true);
+
+    await session.setBlocked(dm.id, false);
+    deliverFrom(factory.relays[0], bob, [alice.publicKey], 'thanks');
+    await settleDeliveries();
+    expect(messages.map((m) => m.content)).toEqual([{ kind: 'text', text: 'thanks' }]);
+  });
+
   it('renames locally; the name travels on the next message', async () => {
     const { session, factory } = await connect();
     const group = await session.createGroup([bob.publicKey, carol.publicKey], 'Old');

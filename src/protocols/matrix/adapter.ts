@@ -18,6 +18,7 @@ import type {
   ProtocolMessage,
   ProtocolChat,
 } from '@/core/messaging/types';
+import { UnsupportedError } from '@/core/errors';
 import { localFileUri } from '@/storage/media';
 
 import type {
@@ -91,6 +92,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   private readonly awaitedMedia = new Map<string, MxEvent[]>();
   private readonly unfetched = new Map<MessageId, { raw: MxEvent; media: MxMedia }>();
   private readonly avatars = new Map<string, string | null>();
+  private ignored: ReadonlySet<string> = new Set();
   private readonly presence = new PresenceWatcher(
     () => this.homeserver(),
     (userId) => this.announceDmsWith(userId)
@@ -197,6 +199,21 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     this.options.parameters.session = session;
     await this.options.persistSession(session);
     this.setLogin(null);
+    void this.loadIgnored().catch(() => {});
+  }
+
+  private async loadIgnored(): Promise<void> {
+    this.followIgnored(new Set(await this.api.ignoredUsers()));
+  }
+
+  private followIgnored(ignored: ReadonlySet<string>): void {
+    const before = this.ignored;
+    this.ignored = ignored;
+    for (const room of this.rooms.values()) {
+      const participant = this.participantOf(room);
+      if (included(room) && participant && before.has(participant) !== ignored.has(participant))
+        this.announce(room);
+    }
   }
 
   // ---- updates ----
@@ -508,6 +525,21 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     await this.api.edit(roomIdOf(id), messageId, textOutgoing(text));
   }
 
+  /** The homeserver holds back an ignored user's events, in every room. */
+  async setBlocked(id: ProtocolChatId, blocked: boolean): Promise<void> {
+    const room = await this.requireRoom(roomIdOf(id));
+    const chat = this.toChat(room);
+    const participant = this.participantOf(room, this.rosterOf(room.id) ?? []);
+    if (chat.kind !== 'dm' || !participant) {
+      throw new UnsupportedError('On Matrix only a DM with someone known can be blocked.');
+    }
+    await this.api.setIgnored(participant, blocked);
+    const ignored = new Set(this.ignored);
+    if (blocked) ignored.add(participant);
+    else ignored.delete(participant);
+    this.followIgnored(ignored);
+  }
+
   /** An invitation is a request; declining one, or a DM, leaves the room. */
   async setConsent(id: ProtocolChatId, consent: ConsentDecision): Promise<void> {
     const roomId = roomIdOf(id);
@@ -582,7 +614,9 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   }
 
   /** The SDK syncs continuously; there is nothing to pull. */
-  async sync(): Promise<void> {}
+  async sync(): Promise<void> {
+    if (this.userId) await this.loadIgnored();
+  }
 
   async streamMessages(onMessage: (m: ProtocolMessage) => void): Promise<Unsubscribe> {
     this.messageListeners.add(onMessage);
@@ -710,6 +744,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
       canPin: room.canPin,
       canDeleteOthers: room.canDeleteOthers,
       consent: room.membership === 'invited' ? 'request' : 'accepted',
+      ...(isDm && participant && this.ignored.has(participant) ? { blocked: true } : {}),
       selfRole: isDm ? undefined : room.selfRole,
     };
   }

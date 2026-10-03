@@ -189,6 +189,7 @@ export const COMMANDS = [
       { name: 'groups', description: 'Only groups and channels' },
       { name: 'archived', description: 'Only archived chats' },
       { name: 'requests', description: 'Only requests' },
+      { name: 'blocked', description: 'Only DMs whose other participant you blocked' },
       {
         name: 'network',
         value: 'name',
@@ -282,6 +283,18 @@ export const COMMANDS = [
     path: 'unarchive',
     group: 'Chats',
     summary: 'Move a chat out of the archive',
+    args: [chat],
+  },
+  {
+    path: 'block',
+    group: 'Chats',
+    summary: 'Block the other participant of a DM: nothing they send reaches you',
+    args: [chat],
+  },
+  {
+    path: 'unblock',
+    group: 'Chats',
+    summary: 'Unblock the other participant of a DM',
     args: [chat],
   },
   {

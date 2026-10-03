@@ -107,6 +107,9 @@ _Avoid_: invite, message request, pending chat
 **Decline**: Refuse a request. The chat leaves your list; the sender is not blocked.
 _Avoid_: deny, ignore, reject, block
 
+**Block**: Stop the other participant of a DM from reaching you. Nothing they send arrives and you cannot write to them; the chat waits in the Blocked folder until you unblock them.
+_Avoid_: ban, ignore, mute, deny
+
 **Join request**: Someone asking to join a group or channel you manage.
 
 **Invite link**: A link that lets whoever opens it join a group or channel.
@@ -141,7 +144,7 @@ _Avoid_: inbox
 **Filter**: One of the tabs above the chat list that narrows it: All, Unread, Mentions, DMs, Groups.
 _Avoid_: tab, folder
 
-**Folder**: A row in the chat list that holds a set of chats: the archive, or every chat on one network.
+**Folder**: A row in the chat list that holds a set of chats: the archive, blocked DMs, or every chat on one network.
 _Avoid_: directory
 
 **Archive**: The folder for chats you have moved out of the main list.

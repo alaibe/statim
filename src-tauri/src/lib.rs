@@ -142,6 +142,8 @@ pub fn run() {
             matrix::mx_invite,
             matrix::mx_kick,
             matrix::mx_ban,
+            matrix::mx_ignored_users,
+            matrix::mx_set_ignored,
             matrix::mx_set_power_level,
             matrix::mx_set_name,
             matrix::mx_join,

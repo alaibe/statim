@@ -40,10 +40,11 @@ export function chatListContents({
   held: ReadonlySet<string>;
   titleOf: (c: Chat) => string;
 }) {
-  const { accepted, requests } = splitRequests(chats);
+  const { accepted, requests, blocked } = splitRequests(chats);
+  const listed = [...accepted, ...blocked];
   const context = { prefs: chatPrefs, readAt };
-  const ordered = orderChats(accepted, chatPrefs, { includeArchived: true });
-  const everywhere = ordered.filter((c) => !prefsFor(chatPrefs, c.id).archived);
+  const ordered = orderChats(listed, chatPrefs, { includeArchived: true });
+  const everywhere = ordered.filter((c) => !c.blocked && !prefsFor(chatPrefs, c.id).archived);
   const scope = folder ? ordered.filter((c) => inFolder(c, folder, context)) : everywhere;
   const unread = everywhere.filter((c) => isUnreadHere(c, context));
 
@@ -62,7 +63,7 @@ export function chatListContents({
   );
 
   return {
-    accepted,
+    listed,
     requests,
     scope,
     rows,

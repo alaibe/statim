@@ -927,6 +927,61 @@ describe('marking unread', () => {
   });
 });
 
+describe('blocking', () => {
+  const blockedIn = () => useChatStore.getState().chats.find((c) => c.id === ns('ex'))?.blocked;
+
+  it('blocks and unblocks the other participant of a DM through the protocol', async () => {
+    const session = new InMemoryChatSession();
+    session.seedChat({ id: 'ex', title: 'Ex' });
+    await connect(session);
+
+    await useChatStore.getState().setBlocked(ns('ex'), true);
+    expect(blockedIn()).toBe(true);
+    expect((await session.listChats()).find((c) => c.id === 'ex')?.blocked).toBe(true);
+    await expect(
+      useChatStore.getState().sendMessage(ns('ex'), { kind: 'text', text: 'hi' })
+    ).rejects.toThrow('You blocked this person.');
+
+    await useChatStore.getState().setBlocked(ns('ex'), false);
+    expect(blockedIn()).toBe(false);
+  });
+
+  it('takes in nothing the blocked participant sends', async () => {
+    const session = new InMemoryChatSession();
+    session.seedChat({ id: 'ex', title: 'Ex' });
+    await connect(session);
+    await useChatStore.getState().setBlocked(ns('ex'), true);
+
+    session.deliver('ex', { id: 'late', content: { kind: 'text', text: 'still there?' } });
+
+    expect(
+      useChatStore.getState().chats.find((c) => c.id === ns('ex'))?.lastMessage
+    ).toBeUndefined();
+  });
+
+  it('blocks no one in a group', async () => {
+    const session = new InMemoryChatSession();
+    session.seedChat({ id: 'g', title: 'Group', kind: 'group' });
+    await connect(session);
+
+    await expect(useChatStore.getState().setBlocked(ns('g'), true)).rejects.toThrow(
+      'Only a DM can be blocked'
+    );
+  });
+
+  it('unblocks again when the protocol refuses', async () => {
+    const session = new InMemoryChatSession();
+    session.seedChat({ id: 'ex', title: 'Ex' });
+    await connect(session);
+    session.setBlocked = async () => {
+      throw new Error('offline');
+    };
+
+    await expect(useChatStore.getState().setBlocked(ns('ex'), true)).rejects.toThrow('offline');
+    expect(blockedIn()).toBe(false);
+  });
+});
+
 describe('disconnecting', () => {
   it('clears protocol state', async () => {
     const session = new InMemoryChatSession();

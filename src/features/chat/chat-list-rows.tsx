@@ -130,19 +130,26 @@ export function ChatRow({
 
 const chatCount = (n: number) => `${n} ${n === 1 ? 'chat' : 'chats'}`;
 
+const OWN_FOLDERS = {
+  archive: { label: 'Archive', icon: 'archive-outline' },
+  blocked: { label: 'Blocked', icon: 'ban-outline' },
+} as const;
+
+const isOwnFolder = (folder: Folder): folder is keyof typeof OWN_FOLDERS => folder in OWN_FOLDERS;
+
 function folderLabel(folder: Folder): string {
-  return folder === 'archive' ? 'Archive' : networkLabel(folder);
+  return isOwnFolder(folder) ? OWN_FOLDERS[folder].label : networkLabel(folder);
 }
 
 function FolderIcon({ folder, size }: { folder: Folder; size: number }) {
-  if (folder !== 'archive') {
+  if (!isOwnFolder(folder)) {
     return <NetworkMark network={folder} label={folderLabel(folder)} size={size} />;
   }
   return (
     <View
       style={{ width: size, height: size }}
       className="items-center justify-center rounded-pill bg-surface-sunken">
-      <Icon name="archive-outline" size={size * 0.5} tone="muted" />
+      <Icon name={OWN_FOLDERS[folder].icon} size={size * 0.5} tone="muted" />
     </View>
   );
 }
@@ -158,8 +165,8 @@ export function FolderRow({
   preview: string;
   onPress: () => void;
 }) {
-  const archive = row.folder === 'archive';
-  const highlight = unread > 0 && !archive;
+  const quiet = isOwnFolder(row.folder);
+  const highlight = unread > 0 && !quiet;
   return (
     <ListItem
       testID={`folder-${row.folder}`}
@@ -176,7 +183,7 @@ export function FolderRow({
           </Text>
         ) : undefined
       }
-      subtitleTrailing={unread > 0 ? <CountBadge count={unread} muted={archive} /> : undefined}
+      subtitleTrailing={unread > 0 ? <CountBadge count={unread} muted={quiet} /> : undefined}
     />
   );
 }

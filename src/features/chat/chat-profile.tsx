@@ -36,6 +36,7 @@ import {
   SlowModeSection,
 } from '@/features/chat/group-sections';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
+import { BlockSheet, setBlocked } from './block';
 import { SharedMedia } from './shared-media';
 
 const ensOf = (address: string) => resolveEnsProfile(address as `0x${string}`);
@@ -80,6 +81,7 @@ function LoadedChatProfile({
   const { nameFor, addressFor } = useDisplayNames(participants);
 
   const [inviting, setInviting] = useState(false);
+  const [blocking, setBlocking] = useState(false);
   const details = useKeyedLoad(
     chat.kind !== 'dm' && !member && canGetGroupInfo ? chat.id : null,
     getGroupInfo
@@ -158,7 +160,17 @@ function LoadedChatProfile({
           {canInvite ? (
             <Action icon="person-add-outline" label="Invite" onPress={() => setInviting(true)} />
           ) : null}
+          {!member && permissions.block ? (
+            <Action
+              icon="ban-outline"
+              label={chat.blocked ? 'Unblock' : 'Block'}
+              onPress={() => (chat.blocked ? void setBlocked(chat.id, false) : setBlocking(true))}
+            />
+          ) : null}
         </View>
+        {blocking ? (
+          <BlockSheet chatId={chat.id} name={title} onClose={() => setBlocking(false)} />
+        ) : null}
 
         {participantAddress ? (
           <Card className="mx-gutter mb-5 gap-1">

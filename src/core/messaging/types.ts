@@ -163,6 +163,8 @@ interface ChatFields<Id extends AnyChatId> {
   readonly online?: boolean;
   readonly lastSeenAt?: number;
   readonly consent: Consent;
+  /** A DM whose other participant you blocked. */
+  readonly blocked?: boolean;
   /** Where the chat really lives when a bridge carries it. */
   readonly network?: BridgedNetwork;
   readonly selfRole?: GroupRole;

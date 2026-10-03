@@ -81,6 +81,11 @@ describe('totalUnread', () => {
     const chats = [chat({ id: 'xmtp-c1' }), chat({ id: 'xmtp-c2' })];
     expect(totalUnread(chats, {}, { [C2]: { muted: true } })).toBe(1);
   });
+
+  it('leaves blocked chats out', () => {
+    const chats = [chat({ id: 'xmtp-c1' }), chat({ id: 'xmtp-c2', blocked: true })];
+    expect(totalUnread(chats, {}, {})).toBe(1);
+  });
 });
 
 describe('unreadCount', () => {

@@ -275,6 +275,10 @@
             "type": "boolean",
             "description": "Only requests"
           },
+          "blocked": {
+            "type": "boolean",
+            "description": "Only DMs whose other participant you blocked"
+          },
           "network": {
             "type": "string",
             "description": "Only chats on this network, such as telegram or slack"
@@ -510,6 +514,38 @@
     {
       "name": "unarchive",
       "description": "Move a chat out of the archive.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "chat": {
+            "type": "string",
+            "description": "Chat id, or a unique part of its title"
+          }
+        },
+        "required": [
+          "chat"
+        ]
+      }
+    },
+    {
+      "name": "block",
+      "description": "Block the other participant of a DM: nothing they send reaches you.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "chat": {
+            "type": "string",
+            "description": "Chat id, or a unique part of its title"
+          }
+        },
+        "required": [
+          "chat"
+        ]
+      }
+    },
+    {
+      "name": "unblock",
+      "description": "Unblock the other participant of a DM.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1514,6 +1550,7 @@
         "groups": "groups",
         "archived": "archived",
         "requests": "requests",
+        "blocked": "blocked",
         "network": "network",
         "limit": "limit"
       }
@@ -1635,6 +1672,24 @@
     "unarchive": {
       "path": [
         "unarchive"
+      ],
+      "args": [
+        "chat"
+      ],
+      "flags": {}
+    },
+    "block": {
+      "path": [
+        "block"
+      ],
+      "args": [
+        "chat"
+      ],
+      "flags": {}
+    },
+    "unblock": {
+      "path": [
+        "unblock"
       ],
       "args": [
         "chat"

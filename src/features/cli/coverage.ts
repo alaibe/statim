@@ -59,6 +59,7 @@ export const CHAT_STORE: Record<Actions<ChatState>, Covered> = {
   watchPresence: 'chat',
   markUnread: 'mark-unread',
   setConsent: 'accept',
+  setBlocked: 'block',
   setChatPref: 'pin',
   setDraft: 'draft',
   ingestMessage: 'internal',

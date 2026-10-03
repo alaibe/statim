@@ -47,7 +47,8 @@ export function totalUnread(
   readAt: Record<ChatId, number>,
   prefs: ChatPrefsMap
 ): number {
-  return chats.filter((c) => !prefsFor(prefs, c.id).muted && isUnread(c, readAt)).length;
+  return chats.filter((c) => !c.blocked && !prefsFor(prefs, c.id).muted && isUnread(c, readAt))
+    .length;
 }
 
 export function readByPeer(readUpTo: number, message: ChatMessage): boolean {
