@@ -73,9 +73,8 @@ review step first.
 iOS, Android, macOS, Windows and Linux. The iPhone app is in beta on
 [TestFlight](https://testflight.apple.com/join/kQGUUDUv), and Android in
 testing on [Google Play](https://play.google.com/apps/internaltest/4701701549081878732).
-Telegram on the phone needs TDLib in `modules/tdjson`
-first: `./scripts/fetch-tdlib-ios.sh` for iOS, `./scripts/build-tdlib-android.sh`
-for Android.
+Telegram on the phone needs TDLib in `modules/tdjson` first:
+`./scripts/tdlib.sh ios` or `./scripts/tdlib.sh android`.
 
 One tag releases every platform, through
 [`.github/workflows/release.yml`](.github/workflows/release.yml).
@@ -83,13 +82,13 @@ One tag releases every platform, through
 ## Quick start
 
 Node.js 22.13+, Xcode 26.3 with an iPhone simulator, and CocoaPods. Rust as
-well for the desktop app. Expo Go cannot run this: XMTP, TDLib, SQLCipher and
-the hardware wallet transports are all native modules.
+well for the desktop app, and for Android its SDK and a JDK from 17 to 21.
+Expo Go cannot run this: XMTP, TDLib, SQLCipher and the hardware wallet
+transports are all native modules.
 
 ```bash
 npm install                 # also applies patches/ and copies the XMTP wasm bundle
-./scripts/setup.sh          # checks the toolchain; --install fixes what it safely can
-./scripts/fetch-tdlib-ios.sh
+./scripts/tdlib.sh ios
 npx expo run:ios
 ```
 
@@ -100,10 +99,6 @@ npm run typecheck && npm run lint && npm test
 npm run test:e2e     # Maestro, against a booted simulator with Metro running
 npm run test:all     # all four, in that order
 ```
-
-`scripts/setup.sh` is a doctor, not an installer: it reports what is missing and
-the command that fixes it, and only installs when you pass `--install`. Add
-`--android` to include that toolchain in the check.
 
 ### Keys and configuration
 

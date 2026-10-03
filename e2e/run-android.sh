@@ -18,7 +18,10 @@ APP_ID=im.statim.app
 PORT="${E2E_METRO_PORT:-8081}"
 
 MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
-[ -x "$MAESTRO" ] || { echo "maestro not found at $MAESTRO"; exit 1; }
+[ -x "$MAESTRO" ] || {
+  echo "maestro not found at $MAESTRO. Install it:  curl -Ls https://get.maestro.mobile.dev | bash"
+  exit 1
+}
 
 ADB="$(command -v adb || true)"
 [ -n "$ADB" ] || ADB="${ANDROID_HOME:-$HOME/Library/Android/sdk}/platform-tools/adb"

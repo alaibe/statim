@@ -6,7 +6,8 @@ iOS simulator or Android emulator.
 ## Running them
 
 ```bash
-./scripts/setup.sh --install   # Maestro needs a JDK; macOS ships none
+brew install --cask temurin@21 # Maestro needs a JDK; macOS ships none
+curl -Ls "https://get.maestro.mobile.dev" | bash
 npx expo run:ios
 npm start
 

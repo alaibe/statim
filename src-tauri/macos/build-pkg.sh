@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   scripts/build-mac-pkg.sh <path/to/Statim.app> <version> <out.pkg>
+#   src-tauri/macos/build-pkg.sh <path/to/Statim.app> <version> <out.pkg>
 set -euo pipefail
 
 APP="$1"

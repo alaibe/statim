@@ -14,7 +14,10 @@ if [ "${1:-}" = "--fresh" ]; then
 fi
 
 MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
-[ -x "$MAESTRO" ] || { echo "maestro not found at $MAESTRO"; exit 1; }
+[ -x "$MAESTRO" ] || {
+  echo "maestro not found at $MAESTRO. Install it:  curl -Ls https://get.maestro.mobile.dev | bash"
+  exit 1
+}
 
 command -v xcrun >/dev/null 2>&1 || {
   echo "This suite is iOS-only and needs Xcode's command line tools."

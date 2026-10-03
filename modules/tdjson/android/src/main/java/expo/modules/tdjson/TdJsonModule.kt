@@ -58,4 +58,4 @@ class TdJsonModule : Module() {
 }
 
 private class NotBundledException :
-  CodedException("TDLib is not part of this build: `scripts/build-tdlib-android.sh` builds it.")
+  CodedException("TDLib is not part of this build: `scripts/tdlib.sh android` builds it.")

@@ -71,6 +71,6 @@ private struct Library {
 
 private final class NotBundledException: Exception {
   override var reason: String {
-    "TDLib is not part of this build: `scripts/fetch-tdlib-ios.sh` builds it."
+    "TDLib is not part of this build: `scripts/tdlib.sh ios` builds it."
   }
 }

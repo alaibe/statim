@@ -1,4 +1,4 @@
-//! Telegram through TDLib's JSON interface. `scripts/fetch-tdlib.sh` puts the
+//! Telegram through TDLib's JSON interface. `scripts/tdlib.sh desktop` puts the
 //! library where the bundle can reach it, and it is opened on first use:
 //! `libtdjson.dylib` in the macOS bundle's Frameworks directory, `tdjson.dll`
 //! or `libtdjson.so` as a bundled resource elsewhere. The prebuilt Linux and
@@ -80,7 +80,7 @@ unsafe fn symbol<T: Copy>(library: &Library, name: &[u8]) -> Result<T, String> {
 
 fn load(app: &AppHandle) -> Result<Api, String> {
     let path = library_path(app).ok_or_else(|| {
-        "TDLib is not part of this build: `scripts/fetch-tdlib.sh` fetches it.".to_string()
+        "TDLib is not part of this build: `scripts/tdlib.sh desktop` fetches it.".to_string()
     })?;
     unsafe {
         let library = Library::new(&path).map_err(|e| e.to_string())?;

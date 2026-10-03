@@ -58,5 +58,5 @@ example
 # the app's database lives on the device (src/storage/database.ts).
 store.sqlite3*
 
-# Copied from node_modules by scripts/copy-xmtp-wasm.js
+# Copied from node_modules on postinstall
 /public/xmtp/

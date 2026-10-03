@@ -10,14 +10,11 @@ From the repository root:
 
 ```bash
 npm install
-./scripts/setup.sh
 npx expo run:ios
 ```
 
-The setup script checks your tools and prints how to fix anything missing. Pass
-`--install` if you want it to install what it can. For later iOS sessions, boot
-the simulator and run `npm start`. Run `npm run desktop` to work on the desktop
-app.
+For later iOS sessions, boot the simulator and run `npm start`. Run
+`npm run desktop` to work on the desktop app.
 
 ## Make a change
 

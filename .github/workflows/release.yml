@@ -122,10 +122,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: src-tauri/frameworks
-          key: tdlib-${{ matrix.os }}-${{ hashFiles('scripts/fetch-tdlib.sh', 'scripts/tdlib.env') }}
+          key: tdlib-${{ matrix.os }}-${{ hashFiles('scripts/tdlib.sh') }}
       - name: TDLib
         shell: bash
-        run: ./scripts/fetch-tdlib.sh
+        run: ./scripts/tdlib.sh desktop
 
       - uses: tauri-apps/tauri-action@v1
         env:
@@ -146,7 +146,7 @@ jobs:
         run: |
           V="${{ needs.prepare.outputs.version }}"
           PKG="Statim_${V}_universal.pkg"
-          ./scripts/build-mac-pkg.sh \
+          ./src-tauri/macos/build-pkg.sh \
             "src-tauri/target/universal-apple-darwin/release/bundle/macos/Statim.app" "$V" "$PKG"
           gh api -X POST -H "Content-Type: application/octet-stream" --input "$PKG" --silent \
             "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ needs.prepare.outputs.release_id }}/assets?name=$PKG"
