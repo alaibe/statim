@@ -18,8 +18,10 @@ again when you are done with it.
 
 ## Installing it
 
-On macOS and with the Linux AppImage, open **Settings › Command line** and
-press **Install**. macOS asks for your password first.
+Installed with Homebrew (`brew install --cask alaibe/tap/statim`), the command
+is already there. Otherwise, on macOS and with the Linux AppImage, open
+**Settings › Command line** and press **Install**. macOS asks for your password
+first.
 
 On Windows, both installers add it; open a new terminal afterwards. On Linux,
 the `.deb` and `.rpm` packages add it.

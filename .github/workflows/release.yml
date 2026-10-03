@@ -165,3 +165,22 @@ jobs:
           gh api -X PATCH "repos/${{ github.repository }}/releases/${{ needs.prepare.outputs.release_id }}" \
             -F draft=false --silent
           gh workflow run site.yml --repo "${{ github.repository }}" --ref main
+
+  homebrew:
+    needs: [prepare, publish]
+    if: ${{ !cancelled() && needs.publish.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          V="${{ needs.prepare.outputs.version }}"
+          DMG="Statim_${V}_universal.dmg"
+          curl -fsSL -o "$DMG" "https://github.com/${{ github.repository }}/releases/download/v$V/$DMG"
+          SHA=$(sha256sum "$DMG" | cut -d' ' -f1)
+          gh repo clone alaibe/homebrew-tap tap -- --depth 1
+          sed -i -E "s/^  version \".*\"/  version \"$V\"/; s/^  sha256 \".*\"/  sha256 \"$SHA\"/" tap/Casks/statim.rb
+          gh auth setup-git
+          git -C tap -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -am "statim $V"
+          git -C tap push

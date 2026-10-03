@@ -185,7 +185,8 @@ pub fn cli_install() -> Install {
     if cfg!(target_os = "macos") {
         let link = std::path::Path::new("/usr/local/bin/statim");
         return Install {
-            installed: links_here(link),
+            installed: links_here(link)
+                || links_here(std::path::Path::new("/opt/homebrew/bin/statim")),
             command: Some(format!(
                 "sudo mkdir -p /usr/local/bin && sudo ln -sf {} /usr/local/bin/statim",
                 quoted(exe.as_os_str())
