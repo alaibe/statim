@@ -83,7 +83,6 @@ capture_ios() {
   PATH="/opt/homebrew/opt/openjdk/bin:$PATH" ~/.maestro/bin/maestro --device "$DEVICE" test "$FLOW"
 }
 
-# A release APK, since it embeds its JavaScript and has no dev client to show.
 capture_android() {
   ADB="$(command -v adb || echo "${ANDROID_HOME:-/opt/homebrew/share/android-commandlinetools}/platform-tools/adb")"
   [ -x "$ADB" ] || { echo "adb not found. Install platform-tools and set ANDROID_HOME." >&2; exit 1; }

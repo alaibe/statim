@@ -98,7 +98,6 @@ function HeaderBar({ children }: { children: React.ReactNode }) {
   const frame = useLayoutInsets();
   return (
     <View
-      // BlurView only tints on Android, so messages scrolled under the header would show through it.
       className={
         android
           ? 'absolute left-0 right-0 top-0 z-10 flex-row items-center gap-2 border-b border-line bg-canvas px-3'
