@@ -133,6 +133,19 @@ put a name to a mint.
 | End-to-end tests | [`e2e/README.md`](e2e/README.md) |
 | Running your own bots | [Your own bots](https://statim.laibe.cc/guide/bots) |
 
+## Code signing policy
+
+Release builds come only from the release workflow, on GitHub's runners, at
+the tagged commit. Each file carries a GitHub build attestation:
+`gh attestation verify <file> --repo alaibe/statim` checks a download. The
+macOS app is signed with the maintainer's Apple Developer ID and notarized by
+Apple.
+
+- Committers and reviewers: [Anthony Laibe](https://github.com/alaibe)
+- Approvers: [Anthony Laibe](https://github.com/alaibe)
+
+What the app sends, and where, is in [`PRIVACY.md`](PRIVACY.md).
+
 ## License
 
 MIT. See [`LICENSE`](LICENSE).
