@@ -70,9 +70,10 @@ review step first.
 
 ## Platforms
 
-iOS, macOS, Windows and Linux. The iPhone app is in beta on
-[TestFlight](https://testflight.apple.com/join/kQGUUDUv). Android builds from
-the same codebase. Telegram on the phone needs TDLib in `modules/tdjson`
+iOS, Android, macOS, Windows and Linux. The iPhone app is in beta on
+[TestFlight](https://testflight.apple.com/join/kQGUUDUv), and Android in
+testing on [Google Play](https://play.google.com/apps/internaltest/4701701549081878732).
+Telegram on the phone needs TDLib in `modules/tdjson`
 first: `./scripts/fetch-tdlib-ios.sh` for iOS, `./scripts/build-tdlib-android.sh`
 for Android.
 

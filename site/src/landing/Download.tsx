@@ -6,13 +6,33 @@ import { CircleBackground } from '@/landing/CircleBackground';
 import { Container } from '@/landing/Container';
 import { DownloadButton, DownloadIcon, usePlatform } from '@/landing/DownloadButton';
 import type { Platform, Release } from '@/lib/release';
-import { repoUrl } from '@/lib/site';
+import { repoUrl, testerEmail } from '@/lib/site';
 
-const platforms: Array<{ platform: Platform; name: string; empty: string }> = [
+const platforms: Array<{
+  platform: Platform;
+  name: string;
+  empty: string;
+  note?: React.ReactNode;
+}> = [
   { platform: 'mac', name: 'macOS', empty: 'Not in this release.' },
   { platform: 'windows', name: 'Windows', empty: 'Not in this release.' },
   { platform: 'linux', name: 'Linux', empty: 'Not in this release.' },
-  { platform: 'android', name: 'Android', empty: 'Not released yet.' },
+  {
+    platform: 'android',
+    name: 'Android',
+    empty: 'Not released yet.',
+    note: (
+      <>
+        Testers only for now. To join, email{' '}
+        <a
+          href={`mailto:${testerEmail}?subject=Statim%20Android%20tester`}
+          className="font-medium text-white underline decoration-white/30 hover:decoration-white">
+          {testerEmail}
+        </a>{' '}
+        from the Google account your phone uses.
+      </>
+    ),
+  },
   { platform: 'ios', name: 'iPhone', empty: 'Not released yet.' },
 ];
 
@@ -55,7 +75,7 @@ export function Download({ release }: { release: Release }) {
         <ul
           role="list"
           className="mx-auto mt-16 grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2 lg:max-w-none lg:grid-cols-5">
-          {platforms.map(({ platform, name, empty }) => {
+          {platforms.map(({ platform, name, empty, note }) => {
             let files = release.downloads.filter((download) => download.platform === platform);
             return (
               <li
@@ -99,6 +119,7 @@ export function Download({ release }: { release: Release }) {
                     {release.version ? empty : 'Coming with the first release.'}
                   </p>
                 )}
+                {note && <p className="mt-4 text-xs text-gray-400">{note}</p>}
               </li>
             );
           })}

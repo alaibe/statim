@@ -102,7 +102,10 @@ Before the first App Store review:
 
 ## Android
 
-The Play listing is "Statim", `im.statim.app`, on internal testing. A tag
+The Play listing is "Statim", `im.statim.app`, on internal testing, which
+testers join through
+https://play.google.com/apps/internaltest/4701701549081878732. The site asks
+people to email anthony@laibe.cc to be added to the testers list. A tag
 builds the app bundle on EAS but does not submit it: Play takes a new app's
 first bundle only through the Console, and `eas submit` needs a service account
 key at `secrets/play-service-account.json` (gitignored). Download the `.aab`

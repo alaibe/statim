@@ -118,11 +118,14 @@ both systems treat it as coming from an unknown developer.
 
 ## Where is Android?
 
-It builds from the same codebase and is not released yet. Everything except
-Telegram works there; Telegram needs a piece the underlying library does not
-offer on Android.
+Android is in testing on Google Play, for testers only. To be added, email
+[anthony@laibe.cc](mailto:anthony@laibe.cc) from the Google account your phone
+uses, then
+[join the test](https://play.google.com/apps/internaltest/4701701549081878732).
+Everything except Telegram works there. Telegram is not in the Android build
+yet.
 
-You can use the desktop app for macOS, Windows and Linux today, and the iPhone
+You can also use the desktop app for macOS, Windows and Linux, and the iPhone
 app through its [TestFlight beta](https://testflight.apple.com/join/kQGUUDUv).
 
 ## Is this Status?
