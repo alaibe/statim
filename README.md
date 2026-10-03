@@ -5,9 +5,9 @@ on the device. No sign-up, no phone number, no email, and no backend of ours for
 anyone to subpoena, sell or breach. The same phrase is also an Ethereum, Bitcoin
 and Solana wallet.
 
-iOS, Android and macOS, from one Expo SDK 57 / React Native 0.86 / React 19.2
-codebase. The desktop app is the web export of that codebase running in a Tauri
-window.
+iOS, Android, macOS, Windows and Linux, from one Expo SDK 57 / React Native
+0.86 / React 19.2 codebase. The desktop app is the web export of that codebase
+running in a Tauri window.
 
 Statim takes its logo from the 2018 Status app. It is not affiliated with or
 endorsed by Status.
