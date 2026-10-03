@@ -7,6 +7,7 @@ export const siteMetadata: Metadata = {
   icons: { icon: `${basePath}/logomark.svg` },
   openGraph: {
     siteName: 'Statim',
-    images: [`${basePath}/screenshots/chats.png`],
+    images: [{ url: `${basePath}/promo/og.jpg`, width: 1200, height: 630 }],
   },
+  twitter: { card: 'summary_large_image' },
 };

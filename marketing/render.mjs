@@ -209,6 +209,22 @@ for (const cut of ['16x9', '9x16']) {
     join(out, `film-poster-${cut}.jpg`),
   ]);
 }
+execFileSync('ffmpeg', [
+  '-y',
+  '-loglevel',
+  'error',
+  '-ss',
+  '16',
+  '-i',
+  wide,
+  '-frames:v',
+  '1',
+  '-vf',
+  'crop=1920:1008,scale=1200:630:flags=lanczos',
+  '-q:v',
+  '3',
+  join(out, 'og.jpg'),
+]);
 const stills = join(work, 'webp');
 mkdirSync(stills);
 execFileSync('ffmpeg', [
