@@ -7,8 +7,8 @@ them work around upstream bugs, and three work around the same one: Swift 6.2.4
 | Patch | One line |
 | --- | --- |
 | `expo-modules-jsi+57.0.7` | Swift 6.2.4 rejects `SWIFT_RETURNS_RETAINED` on a shared-reference constructor |
-| `expo-observe+57.0.23` | `[String: Any]` is not `Sendable` and crosses an isolation boundary |
-| `expo-modules-core+57.0.18` | A `nonisolated(unsafe) weak let` emitter can no longer cross into an actor |
+| `expo-observe+57.0.24` | `[String: Any]` is not `Sendable` and crosses an isolation boundary |
+| `expo-modules-core+57.0.20` | A `nonisolated(unsafe) weak let` emitter can no longer cross into an actor |
 | `@expo+metro-config+57.0.12` | A lazy `import()` of a `.cjs` entry loads its `.js` sibling instead |
 | `@xmtp+react-native-sdk+5.7.0` | `SwiftUI.Group` collides with `XMTPiOS.Group`; the Android module does not build; neither platform reports install times in milliseconds |
 | `nativewind+4.2.6` | `NATIVEWIND_OS=web` treated as native, so `platformSelect()` reaches the browser |
@@ -28,7 +28,10 @@ artifacts.
 Delete a patch as soon as its upstream fix lands. `patch-package` fails
 loudly when a patch stops applying, so a version bump will tell you.
 
-Every patch below was checked on 2026-09-20 by reverting it in `node_modules`
+On 2026-10-03, with SDK 57's patch releases, the newest version of every patched
+package still carried the lines each patch changes; the two patches whose
+packages moved were regenerated unchanged. Every patch below was checked on
+2026-09-20 by reverting it in `node_modules`
 and compiling the pod it targets with Xcode 26.3: each error reappears without
 its patch and disappears with it. The newer upstream versions named in each
 section were installed in a throwaway checkout and compiled the same way. The
@@ -60,8 +63,8 @@ the framework from source on every build, so there is no prebuilt binary to fall
 back on.
 
 **Remove when** Expo ships a build that compiles under Swift 6.2.4. Not fixed in
-`57.0.8`, `57.1.0` (the newest for SDK 57) or the `58.0.0-canary-20260902`
-build. Same class of failure as
+`57.0.8`, `57.1.0`, `57.1.1` (the newest for SDK 57, still annotated) or the
+`58.0.0-canary-20260902` build. Same class of failure as
 [expo/expo#46242](https://github.com/expo/expo/issues/46242) on SDK 56.
 
 ### Why `expo-modules-jsi` is pinned
@@ -85,7 +88,7 @@ the patch names. Listing it as a direct dependency hoists it back to the top
 level. Remove either and the patch silently stops applying; the build then fails
 with the constructor error again.
 
-`expo-modules-core@57.0.18` declares `expo-modules-jsi ~57.1.0`, and the
+`expo-modules-core@57.0.20` declares `expo-modules-jsi ~57.1.0`, and the
 override forces `57.0.7` in its place. That works only because every Expo module
 compiles from source together; Expo's precompiled `ExpoModulesCore`, built
 against 57.1.0, segfaulted at launch on top of the source-built 57.0.7. Remove
@@ -95,7 +98,7 @@ confirm.
 
 ---
 
-## `expo-observe+57.0.23.patch`
+## `expo-observe+57.0.24.patch`
 
 Symptom:
 
@@ -115,13 +118,13 @@ dictionary is finished at that point and handed over once, never read again from
 this side, so the hand-off is sound. It is the same escape hatch Expo's own
 `JavaScriptRuntime.swift` uses for its call-scoped pointers.
 
-**Remove when** a published `expo-observe` compiles under Swift 6.2.4. `57.0.23`
-is the newest and still fails on that line. Downgrading is not a fix: `57.0.3`
+**Remove when** a published `expo-observe` compiles under Swift 6.2.4. `57.0.24`
+is the newest and still has that line unchanged. Downgrading is not a fix: `57.0.3`
 loses `filteredParams` and the third-party integration broadcast.
 
 ---
 
-## `expo-modules-core+57.0.18.patch`
+## `expo-modules-core+57.0.20.patch`
 
 Symptom: Only when Expo modules build from source:
 
@@ -231,6 +234,7 @@ web); `theme.js` does not.
 Fix: The same condition in `theme.js`.
 
 **Remove when** `nativewind/dist/theme.js` treats `NATIVEWIND_OS=web` as web.
+`4.2.7`, the newest 4.x, still does not.
 
 ---
 
