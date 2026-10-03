@@ -3,8 +3,7 @@
   "bundle": {
     "createUpdaterArtifacts": true,
     "macOS": {
-      "signingIdentity": "-",
-      "hardenedRuntime": false
+      "entitlements": "./Entitlements.release.plist"
     }
   }
 }

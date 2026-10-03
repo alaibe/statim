@@ -5,7 +5,7 @@
     "createUpdaterArtifacts": false,
     "category": "SocialNetworking",
     "macOS": {
-      "entitlements": "./Entitlements.plist",
+      "entitlements": "./Entitlements.appstore.plist",
       "files": {
         "embedded.provisionprofile": "embedded.provisionprofile"
       }
