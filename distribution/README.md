@@ -34,16 +34,17 @@ The tag runs `.github/workflows/release.yml`:
 | Linux | `ubuntu-22.04` | `.deb`, `.rpm`, `.AppImage` |
 | Windows | `windows-latest` | `.msi`, NSIS `.exe` |
 | iOS | `ubuntu-latest` | an EAS build, uploaded to TestFlight |
+| Android | `ubuntu-latest` | an EAS build of the Play app bundle, uploaded by hand |
 
 The workflow fails before building if the tag, `app.json`, `package.json`,
 `tauri.conf.json` and `Cargo.toml` disagree on the version. The GitHub release
-is published once the three desktop jobs succeed. The iOS job does not hold it
-back.
+is published once the three desktop jobs succeed. The mobile jobs do not hold
+it back.
 
 A manual run from the Actions tab builds the version `app.json` holds, and its
 `draft` input keeps the release unpublished. If that version's release is
-already published, the desktop jobs upload into it again. The iOS job runs too
-and uploads a new build to TestFlight.
+already published, the desktop jobs upload into it again. The mobile jobs run
+too, and iOS uploads a new build to TestFlight.
 
 The macOS bundles are ad-hoc signed and not notarized, so macOS asks people to
 allow the app on first open. Linux and Windows bundles are unsigned.
@@ -51,7 +52,7 @@ allow the app on first open. Linux and Windows bundles are unsigned.
 | Secret | For |
 | --- | --- |
 | `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | signs desktop updates |
-| `EXPO_TOKEN` | runs EAS from the iOS job |
+| `EXPO_TOKEN` | runs EAS from the mobile jobs |
 
 Installed desktop copies only accept updates signed by that private key, and
 its public key is `plugins.updater.pubkey` in `src-tauri/tauri.conf.json`. If
@@ -101,10 +102,13 @@ Before the first App Store review:
 
 ## Android
 
-Android is not released. It needs a Play developer account, a service account
-key at `secrets/play-service-account.json` (gitignored), phone screenshots from
-an Android build, and a target API level that meets Play's minimum. Gradle
-needs a JDK from 17 to 21, and `./scripts/setup.sh --android` checks the
+The Play listing is "Statim", `im.statim.app`, on internal testing. A tag
+builds the app bundle on EAS but does not submit it: Play takes a new app's
+first bundle only through the Console, and `eas submit` needs a service account
+key at `secrets/play-service-account.json` (gitignored). Download the `.aab`
+from the EAS build page and upload it under Test and release. EAS needs an
+Android keystore before a non-interactive build can run; `eas credentials -p
+android` creates one. Gradle needs a JDK from 17 to 21, and `./scripts/setup.sh --android` checks the
 toolchain. Telegram on Android needs `libtdjsonjava.so` in
 `modules/tdjson/android/src/main/jniLibs`, which
 `./scripts/build-tdlib-android.sh` builds from TDLib's source. Nothing puts it

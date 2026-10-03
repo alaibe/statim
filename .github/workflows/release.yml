@@ -156,7 +156,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ios]
+        platform: [ios, android]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -174,7 +174,7 @@ jobs:
 
       - run: >-
           eas build --platform ${{ matrix.platform }} --profile production
-          --non-interactive --wait --auto-submit
+          --non-interactive --wait ${{ matrix.platform == 'ios' && '--auto-submit' || '' }}
 
   publish:
     needs: [prepare, desktop]
