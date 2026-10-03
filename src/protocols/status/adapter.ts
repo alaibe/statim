@@ -673,6 +673,7 @@ export class StatusSession implements ChatSession {
     author: ParticipantId,
     chat: WireChatMessage
   ): Promise<void> {
+    if (this.chats.get(chatId)?.blocked) return;
     const deletedBy = this.deleted.get(id);
     if (
       deletedBy &&
