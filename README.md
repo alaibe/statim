@@ -135,7 +135,6 @@ put a name to a mint.
 | What the developer is not responsible for | [`DISCLAIMER.md`](DISCLAIMER.md) |
 | Why each dependency is patched | [`patches/README.md`](patches/README.md) |
 | End-to-end tests | [`e2e/README.md`](e2e/README.md) |
-| Running Nostr and Status locally | [`local-net/README.md`](local-net/README.md) |
 | Running your own bots | [Your own bots](https://statim.laibe.cc/guide/bots) |
 
 ## License
