@@ -43,6 +43,7 @@ example
 /android
 /modules/*/android/build
 /modules/tdjson/android/src/main/jniLibs
+/modules/tdjson/ios/Frameworks
 /secrets
 local-net/.run/
 

@@ -1,32 +1,33 @@
-import TdLib from 'react-native-tdlib';
+import TdJson from '../../../modules/tdjson';
 
+import type { TdObject } from './api';
 import { TdJsonClient, type TdDriver } from './json-client';
+
+// How long one receive may block natively; closing the client waits for it.
+const RECEIVE_TIMEOUT_S = 1;
+const RECEIVE_LIMIT = 500;
+
+let clientId: number | null = null;
 
 const driver: TdDriver = {
   async create() {
-    await TdLib.td_json_client_create();
+    clientId = TdJson.create();
   },
   async send(request) {
-    await TdLib.td_json_client_send(request);
+    if (clientId === null) throw new Error('No TDLib client');
+    TdJson.send(clientId, JSON.stringify(request));
   },
   async receive() {
-    try {
-      return [JSON.parse(await TdLib.td_json_client_receive())];
-    } catch (error) {
-      // The native call rejects on its own timeout when TDLib is idle.
-      if (isNativeCode(error, 'RECEIVE_ERROR')) return [];
-      throw error;
-    }
+    const id = clientId;
+    const batch = JSON.parse(await TdJson.receive(RECEIVE_TIMEOUT_S, RECEIVE_LIMIT)) as TdObject[];
+    return batch.filter((each) => each['@client_id'] === id);
   },
   async destroy() {
-    await TdLib.td_json_client_destroy();
+    if (clientId !== null) TdJson.destroy(clientId);
+    clientId = null;
   },
 };
 
 export const TdClient = {
   create: () => TdJsonClient.create(driver),
 };
-
-function isNativeCode(error: unknown, code: string): boolean {
-  return typeof error === 'object' && error !== null && (error as { code?: unknown }).code === code;
-}

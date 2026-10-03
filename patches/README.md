@@ -11,7 +11,6 @@ them work around upstream bugs, and three work around the same one: Swift 6.2.4
 | `expo-modules-core+57.0.18` | A `nonisolated(unsafe) weak let` emitter can no longer cross into an actor |
 | `@expo+metro-config+57.0.12` | A lazy `import()` of a `.cjs` entry loads its `.js` sibling instead |
 | `@xmtp+react-native-sdk+5.7.0` | `SwiftUI.Group` collides with `XMTPiOS.Group`; the Android module does not build; neither platform reports install times in milliseconds |
-| `react-native-tdlib+2.3.0` | No way to free the raw client without wiping the database; the framework claims iOS 11 but needs 18.1 |
 | `nativewind+4.2.6` | `NATIVEWIND_OS=web` treated as native, so `platformSelect()` reaches the browser |
 | `react-native-reanimated+4.5.1` | Entering elements pinned `position: absolute` after a custom animation |
 
@@ -207,54 +206,6 @@ npx patch-package @xmtp/react-native-sdk \
   --include 'ios/XMTPModule\.swift$|^android/build\.gradle$|XMTPModule\.kt$|InboxStateWrapper\.(kt|swift)$'
 ``` This is the concrete form of the "untested on New Architecture" warning
 `npx expo-doctor` reports for the package.
-
----
-
-## `react-native-tdlib+2.3.0.patch`
-
-Not a Swift problem, a missing method.
-
-Cause: The wrapper's high-level API (`startTdLib`) pins TDLib's database to
-one shared `Documents/tdlib` with no encryption key, so
-`src/protocols/telegram/td-client.ts` drives the raw `td_json_client_*` methods
-instead, with a per-account directory and a key from the keychain. In that mode
-nothing frees the native client once TDLib reports `authorizationStateClosed`:
-the only teardown the wrapper exposes is `destroy`, which first sends TDLib's
-`destroy` request and deletes all local data. Switching accounts or reconnecting
-would then either wipe the Telegram database or leave a dead client that
-`td_json_client_create` refuses to replace.
-
-Fix: Add `td_json_client_destroy`, which frees the native client and sends
-nothing to TDLib, and list it in `index.js` and `index.d.ts`. It is only called
-after TDLib has said it is closed, with no receive in flight.
-
-Android is deliberately not patched. The wrapper's Android side never
-implemented the raw receive path: its `td_json_client_receive` sends a null
-request instead of reading updates. Android drives TDLib through
-`modules/tdjson` instead.
-
-The patch also fixes the bundled framework's minimum iOS version.
-
-Symptom: App Store Connect rejects the upload with ITMS-90208, "The bundle
-Statim.app/Frameworks/libtdjson.framework does not support the minimum OS
-Version specified in the Info.plist."
-
-Cause: The `libtdjson` binary in both xcframework slices is built for iOS 18.1
-(`xcrun vtool -show-build` reports `minos 18.1`), while the framework's
-`Info.plist` says `MinimumOSVersion` 11.0.
-
-Fix: Set `MinimumOSVersion` to 18.1 in both slices' `Info.plist`.
-`expo-build-properties` sets `ios.deploymentTarget` to 18.1 to match, because the
-app cannot run on an older iOS than the library it loads.
-
-**Remove when** upstream ships a native-only destroy for the raw API and a
-framework whose `Info.plist` matches its binary.
-Regenerate with:
-
-```bash
-npx patch-package react-native-tdlib \
-  --include 'ios/TdLibModule\.mm$|^index\.js$|^index\.d\.ts$|libtdjson\.framework/Info\.plist$'
-```
 
 ---
 

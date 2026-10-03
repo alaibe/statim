@@ -122,7 +122,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: src-tauri/frameworks
-          key: tdlib-${{ matrix.os }}-${{ hashFiles('scripts/fetch-tdlib.sh') }}
+          key: tdlib-${{ matrix.os }}-${{ hashFiles('scripts/fetch-tdlib.sh', 'scripts/tdlib.env') }}
       - name: TDLib
         shell: bash
         run: ./scripts/fetch-tdlib.sh

@@ -1186,21 +1186,26 @@ describe('TelegramSession messages', () => {
       .map((r) => r.input_message_content);
     expect(photo).toMatchObject({
       '@type': 'inputMessagePhoto',
-      photo: { path: '/tmp/a b.jpg' },
+      photo: { photo: { path: '/tmp/a b.jpg' } },
       caption: { text: 'cap' },
     });
     expect(file).toMatchObject({
       '@type': 'inputMessageDocument',
-      document: { path: '/tmp/doc.pdf' },
+      document: { document: { path: '/tmp/doc.pdf' } },
     });
-    expect(voice).toMatchObject({ '@type': 'inputMessageVoiceNote', duration: 2 });
+    expect(voice).toMatchObject({
+      '@type': 'inputMessageVoiceNote',
+      voice_note: { duration: 2 },
+    });
     expect(video).toMatchObject({
       '@type': 'inputMessageVideo',
-      video: { path: '/tmp/movie.mp4' },
-      duration: 2,
-      width: 640,
-      height: 360,
-      supports_streaming: true,
+      video: {
+        video: { path: '/tmp/movie.mp4' },
+        duration: 2,
+        width: 640,
+        height: 360,
+        supports_streaming: true,
+      },
     });
   });
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Puts TDLib where the desktop app can open it at runtime, for whichever
-# platform this is. Both routes land on TDLib 1.8.67.
+# platform this is, at the version in scripts/tdlib.env.
 #
 # macOS builds it: Swiftgram publishes TDLib for Apple platforms as a static
 # archive with OpenSSL and SQLite inside, and linking that into the app would
@@ -15,10 +15,10 @@
 # one SQLCipher uses.
 set -euo pipefail
 
-VERSION="1.8.67-d1085f9c"
-# TDLib 1.8.67, in prebuilt-tdlib's own numbering.
-PREBUILT="0.1008067.0"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+source "$ROOT/scripts/tdlib.env"
+VERSION="$TDLIB_VERSION"
+PREBUILT="$TDLIB_PREBUILT"
 DEST="$ROOT/src-tauri/frameworks"
 STAMP="$DEST/libtdjson.version"
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# Builds TDLib for Android from the official source, at the commit the desktop
-# runs (scripts/fetch-tdlib.sh), into modules/tdjson. It uses TDLib's own
+# Builds TDLib for Android from the official source, at the commit in
+# scripts/tdlib.env, into modules/tdjson. It uses TDLib's own
 # Android scripts with the JSONJava interface, which is td_json behind a small
 # JNI class, so Android speaks the same JSON as iOS and the desktop.
 #
@@ -13,13 +13,14 @@
 # in ~/.cache/statim/tdlib-android, so a second run only copies.
 set -euo pipefail
 
-COMMIT="d1085f9cebc5a62379991ae1652673954f229c1f"
-VERSION="1.8.67-d1085f9c"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+source "$ROOT/scripts/tdlib.env"
+COMMIT="$TDLIB_COMMIT"
+VERSION="$TDLIB_VERSION"
 OPENSSL="openssl-3.5.9"
 NDK="27.1.12297006"
 ABIS="${*:-arm64-v8a armeabi-v7a x86_64 x86}"
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEST="$ROOT/modules/tdjson/android/src/main/jniLibs"
 WORK="${XDG_CACHE_HOME:-$HOME/.cache}/statim/tdlib-android"
 SDK="${ANDROID_HOME:?ANDROID_HOME must point at the Android SDK}"

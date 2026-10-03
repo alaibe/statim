@@ -5,18 +5,16 @@ jest.mock('@/storage/media', () => ({
 }));
 
 describe('inputContent', () => {
-  it('passes media flat to the phone TDLib', () => {
-    expect(
-      inputContent({ kind: 'file', uri: 'file:///tmp/a.pdf', name: 'a.pdf' }, false)
-    ).toMatchObject({
+  it('wraps a file and its properties in an input object', () => {
+    expect(inputContent({ kind: 'file', uri: 'file:///tmp/a.pdf', name: 'a.pdf' })).toMatchObject({
       '@type': 'inputMessageDocument',
-      document: { '@type': 'inputFileLocal', path: '/tmp/a.pdf' },
+      document: {
+        '@type': 'inputDocument',
+        document: { '@type': 'inputFileLocal', path: '/tmp/a.pdf' },
+      },
     });
-  });
-
-  it('wraps media for TDLib 1.8.67', () => {
     expect(
-      inputContent({ kind: 'image', uri: 'file:///tmp/a.jpg', width: 3, height: 4 }, true)
+      inputContent({ kind: 'image', uri: 'file:///tmp/a.jpg', width: 3, height: 4 })
     ).toMatchObject({
       '@type': 'inputMessagePhoto',
       photo: {
@@ -27,14 +25,14 @@ describe('inputContent', () => {
       },
     });
     expect(
-      inputContent({ kind: 'voice', uri: 'file:///tmp/v.m4a', durationMs: 2_400 }, true)
+      inputContent({ kind: 'voice', uri: 'file:///tmp/v.m4a', durationMs: 2_400 })
     ).toMatchObject({
       '@type': 'inputMessageVoiceNote',
       voice_note: { '@type': 'inputVoiceNote', duration: 2 },
     });
   });
 
-  it('sends a sticker with its emoji, wrapped on the desktop and flat on the phone', () => {
+  it('sends a sticker with its emoji', () => {
     const sticker = {
       kind: 'sticker',
       uri: 'file:///td/stickers/1.tgs',
@@ -44,24 +42,16 @@ describe('inputContent', () => {
       emoji: '🤗',
     } as const;
     const file = { '@type': 'inputFileLocal', path: '/td/stickers/1.tgs' };
-    expect(inputContent(sticker, true)).toEqual({
+    expect(inputContent(sticker)).toEqual({
       '@type': 'inputMessageSticker',
       sticker: { '@type': 'inputSticker', sticker: file, thumbnail: null, width: 512, height: 512 },
-      emoji: '🤗',
-    });
-    expect(inputContent(sticker, false)).toEqual({
-      '@type': 'inputMessageSticker',
-      sticker: file,
-      thumbnail: null,
-      width: 512,
-      height: 512,
       emoji: '🤗',
     });
   });
 
   it('sends a GIF as an animation so it keeps moving', () => {
     expect(
-      inputContent({ kind: 'image', uri: 'file:///tmp/a.gif', mimeType: 'image/gif' }, true)
+      inputContent({ kind: 'image', uri: 'file:///tmp/a.gif', mimeType: 'image/gif' })
     ).toMatchObject({
       '@type': 'inputMessageAnimation',
       animation: { '@type': 'inputAnimation', animation: { path: '/tmp/a.gif' } },

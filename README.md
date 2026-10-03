@@ -72,8 +72,9 @@ review step first.
 
 iOS, macOS, Windows and Linux. The iPhone app is in beta on
 [TestFlight](https://testflight.apple.com/join/kQGUUDUv). Android builds from
-the same codebase. Its Telegram needs TDLib built for Android first:
-`./scripts/build-tdlib-android.sh` puts it into `modules/tdjson`.
+the same codebase. Telegram on the phone needs TDLib in `modules/tdjson`
+first: `./scripts/fetch-tdlib-ios.sh` for iOS, `./scripts/build-tdlib-android.sh`
+for Android.
 
 One tag releases every platform. [`distribution/`](distribution/README.md) has the pipeline,
 the secrets it reads and the store checklists.
@@ -85,8 +86,9 @@ well for the desktop app. Expo Go cannot run this: XMTP, TDLib, SQLCipher and
 the hardware wallet transports are all native modules.
 
 ```bash
-npm install          # also applies patches/ and copies the XMTP wasm bundle
-./scripts/setup.sh   # checks the toolchain; --install fixes what it safely can
+npm install                 # also applies patches/ and copies the XMTP wasm bundle
+./scripts/setup.sh          # checks the toolchain; --install fixes what it safely can
+./scripts/fetch-tdlib-ios.sh
 npx expo run:ios
 ```
 
