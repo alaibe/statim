@@ -216,6 +216,7 @@ jobs:
       - env:
           AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
         run: |
+          [ -n "$AUR_SSH_PRIVATE_KEY" ] || { echo "No AUR key yet; statim-bin stays as it is."; exit 0; }
           V="${{ needs.prepare.outputs.version }}"
           mkdir -p ~/.ssh
           printf '%s\n' "$AUR_SSH_PRIVATE_KEY" > ~/.ssh/aur && chmod 600 ~/.ssh/aur
