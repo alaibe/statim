@@ -17,8 +17,8 @@ cannot make clear; never restate the code or add tautological commentary.
 tooling live there: store listings and screenshots, the release process,
 compliance filings, marketing, code generators, screenshot capture, the local
 Nostr and Status networks, build artifacts. New material of that kind goes
-there too. `priv/README.md` maps it and says how each tool runs. A
-worktree has no `priv/`; use the main checkout's.
+there too. `priv/` documents itself, including how each tool runs. A worktree
+has no `priv/`; use the main checkout's.
 
 ## Before you finish
 
