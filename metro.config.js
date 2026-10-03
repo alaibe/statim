@@ -1,3 +1,5 @@
+const path = require('node:path');
+
 const { getDefaultConfig } = require('expo/metro-config');
 const { withNativeWind } = require('nativewind/metro');
 
@@ -46,13 +48,20 @@ const BROWSER_FIELD_OVER_EXPORTS = /^(uint8arrays|multiformats|@noble\/hashes)(\
 const INTEROP_JSX_ON_WEB = /\/node_modules\/react-native-reanimated\//;
 
 /** See src/desktop/xmtp-wasm-bindings.ts. */
+config.resolver.assetExts.push('wasm');
 const XMTP_SDK = /\/node_modules\/@xmtp\/browser-sdk\//;
 const XMTP_WASM_BINDINGS_ON_WEB = require.resolve('./src/desktop/xmtp-wasm-bindings.ts');
+const XMTP_WASM = '@xmtp/wasm-bindings/dist/bindings_wasm_bg.wasm';
+const XMTP_WASM_FILE = path.join(
+  path.dirname(require.resolve('@xmtp/wasm-bindings')),
+  'bindings_wasm_bg.wasm'
+);
 
 const upstream = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   const shim = NODE_SHIMS[moduleName];
   if (shim) return { type: 'sourceFile', filePath: shim };
+  if (moduleName === XMTP_WASM) return { type: 'assetFiles', filePaths: [XMTP_WASM_FILE] };
   if (
     platform === 'web' &&
     moduleName === '@xmtp/wasm-bindings' &&

@@ -87,7 +87,7 @@ Expo Go cannot run this: XMTP, TDLib, SQLCipher and the hardware wallet
 transports are all native modules.
 
 ```bash
-npm install                 # also applies patches/ and copies the XMTP wasm bundle
+npm install                 # also applies patches/
 ./scripts/tdlib.sh ios
 npx expo run:ios
 ```

@@ -119,7 +119,7 @@
     "postdb:generate": "npm run db:bundle",
     "db:bundle": "DB_MIGRATIONS_WRITE=1 jest src/storage/migrations.test.ts",
     "test": "jest",
-    "postinstall": "patch-package && node -e \"require('fs').cpSync('node_modules/@xmtp/wasm-bindings/dist/bindings_wasm_bg.wasm', 'public/xmtp/bindings_wasm_bg.wasm')\"",
+    "postinstall": "patch-package",
     "eas-build-pre-install": "[ \"$EAS_BUILD_PLATFORM\" != ios ] || ./scripts/tdlib.sh ios",
     "test:e2e": "./e2e/run.sh",
     "test:all": "npm run format:check && npm run typecheck && npm test && npm run test:e2e",

@@ -57,6 +57,3 @@ example
 # started from the repo root. Not the app's storage —
 # the app's database lives on the device (src/storage/database.ts).
 store.sqlite3*
-
-# Copied from node_modules on postinstall
-/public/xmtp/
