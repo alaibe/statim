@@ -14,7 +14,7 @@ const FROM_SRC = '^(?:@/|(?:\\.\\./)+)';
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ['dist/*', 'site/*'],
+    ignores: ['dist/*', 'site/*', 'priv/*'],
   },
   {
     files: ['**/*.ts', '**/*.tsx'],

@@ -11,6 +11,15 @@ probably from an older SDK and probably wrong.
 Keep comments to the minimum. Add one only when it explains something the code
 cannot make clear; never restate the code or add tautological commentary.
 
+## Internal material goes in `priv/`
+
+`priv/` is gitignored except its `.gitkeep`. Whatever is about shipping and
+promoting Statim rather than building it lives there: store listings and
+screenshots, the release process, compliance filings, marketing, the brand and
+sticker generators, screenshot capture, build artifacts. New material of that
+kind goes there too. `priv/README.md` maps it and says how each tool runs. A
+worktree has no `priv/`; use the main checkout's.
+
 ## Before you finish
 
 ```bash
@@ -23,16 +32,14 @@ Biome formats TypeScript and JSON, rustfmt formats `src-tauri`. Neither lints;
 ## Things that are not obvious from the code
 
 - Generated output is not editable. `src/global.css` comes from
-  `src/design/tokens.ts` (`npm run theme:build`); `assets/brand/mark.svg`,
-  every icon and store graphic from `assets/brand/status-logo-2018.png`
-  (`npm run brand:build`); `ios/` and `android/` from `app.json`
-  (`npx expo prebuild`); `skills/statim/SKILL.md`,
+  `src/design/tokens.ts` (`npm run theme:build`); `ios/` and `android/` from
+  `app.json` (`npx expo prebuild`); `skills/statim/SKILL.md`,
   `src-tauri/cli/help.txt` and `src-tauri/cli/mcp.json` from
   `src/features/cli/commands.ts` (`npm run cli:docs`);
-  `docs/public/promo/` from `marketing/film.html` (`npm run promo:build`); `src/storage/migrations/index.ts` from the SQL
-  files beside it (`npm run db:bundle`); `docs/public/stickers/` from
-  `scripts/generate-stickers.js` (`npm run stickers:build`). Editing the
-  output is undone on the next build.
+  `src/storage/migrations/index.ts` from the SQL files beside it
+  (`npm run db:bundle`). `assets/brand/mark.svg`, every icon,
+  `docs/public/promo/` and `docs/public/stickers/` come from generators in
+  `priv/`. Editing the output is undone on the next build.
 - `.web.ts` / `.web.tsx` is the desktop. There is no browser deployment.
   A platform file must have a non-platform neighbour, and Expo Router needs a
   non-platform file for every route.

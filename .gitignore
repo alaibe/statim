@@ -50,6 +50,11 @@ local-net/.run/
 # Claude Code agent worktrees (embedded git repos)
 .claude/worktrees/
 
+# Internal material, kept off GitHub
+/priv/*
+!/priv/.gitkeep
+/.claude/skills/store-artifacts
+
 # nwaku's message archive, written into the working directory by
 # local-net/start.sh when it is run from the repo root. Not the app's storage —
 # the app's database lives on the device (src/storage/database.ts).

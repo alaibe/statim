@@ -59,7 +59,7 @@
       "ios": {
         "ascAppId": "6818129975",
         "appleTeamId": "8N3Z3WWTK7",
-        "metadataPath": "./distribution/ios/store.config.json"
+        "metadataPath": "./priv/distribution/ios/store.config.json"
       },
       "android": {
         "serviceAccountKeyPath": "./secrets/play-service-account.json",

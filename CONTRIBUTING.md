@@ -48,6 +48,5 @@ In the pull request, explain what changed, why, and how you tested it. Call out
 any checks you could not run. Keep commits focused and use messages that say
 what the change does.
 
-For release assets and store screenshots, follow
-[distribution/README.md](distribution/README.md). Report vulnerabilities through
-the private route in [SECURITY.md](SECURITY.md), not a public issue.
+Report vulnerabilities through the private route in [SECURITY.md](SECURITY.md),
+not a public issue.

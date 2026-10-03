@@ -9,6 +9,7 @@
       "!dist/**",
       "!src-tauri/**",
       "!public/**",
+      "!priv/**",
       "!patches/**",
       "!site/node_modules/**",
       "!site/.next/**",

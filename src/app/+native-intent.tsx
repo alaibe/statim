@@ -4,8 +4,7 @@ import { moveInviteText } from '@/plugins/profile/move-invite';
 
 /**
  * `statim://fixture/<name>` opens a made-up chat in a debug build, for the
- * screenshots docs/screenshots/capture.yaml takes of what a fresh account
- * cannot have yet.
+ * guide's screenshots of what a fresh account cannot have yet.
  */
 export function redirectSystemPath({ path }: { path: string; initial: boolean }): string {
   if (path.startsWith('statim://expo-sharing')) return '/share';

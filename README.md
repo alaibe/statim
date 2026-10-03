@@ -17,10 +17,10 @@ endorsed by Status.
 </p>
 
 <p align="center">
-  <img src="distribution/ios/screenshots/6.9/01-welcome.png" width="196" alt="Welcome screen: create an account, restore a phrase or connect a hardware wallet">
-  <img src="distribution/ios/screenshots/6.9/03-conversation.png" width="196" alt="The Statim chat, with slash command chips above the composer">
-  <img src="distribution/ios/screenshots/6.9/05-message-actions.png" width="196" alt="Long-pressing a message: reactions, reply, copy and forward">
-  <img src="distribution/ios/screenshots/6.9/06-plugins.png" width="196" alt="Plugins screen: assistant, names, bots, wallet, browser and markets">
+  <img src="docs/public/screenshots/welcome.png" width="196" alt="Welcome screen: create an account, restore a phrase or connect a hardware wallet">
+  <img src="docs/public/screenshots/statim-chat.png" width="196" alt="The Statim chat, with slash command chips above the composer">
+  <img src="docs/public/screenshots/message-actions.png" width="196" alt="Long-pressing a message: reactions, reply, copy and forward">
+  <img src="docs/public/screenshots/plugins.png" width="196" alt="Plugins screen: assistant, names, bots, wallet, browser and markets">
 </p>
 
 **[User guide](https://statim.laibe.cc/)** ·
@@ -77,8 +77,8 @@ Telegram on the phone needs TDLib in `modules/tdjson`
 first: `./scripts/fetch-tdlib-ios.sh` for iOS, `./scripts/build-tdlib-android.sh`
 for Android.
 
-One tag releases every platform. [`distribution/`](distribution/README.md) has the pipeline,
-the secrets it reads and the store checklists.
+One tag releases every platform, through
+[`.github/workflows/release.yml`](.github/workflows/release.yml).
 
 ## Quick start
 
@@ -134,10 +134,8 @@ refresh them.
 | Reporting a vulnerability | [`SECURITY.md`](SECURITY.md) |
 | What leaves your device | [`PRIVACY.md`](PRIVACY.md) |
 | What the developer is not responsible for | [`DISCLAIMER.md`](DISCLAIMER.md) |
-| Releasing, and what the stores ask for | [`distribution/`](distribution/README.md) |
 | Why each dependency is patched | [`patches/README.md`](patches/README.md) |
 | End-to-end tests | [`e2e/README.md`](e2e/README.md) |
-| The promo film | [`marketing/`](marketing/README.md) |
 | Running Nostr and Status locally | [`local-net/README.md`](local-net/README.md) |
 | Running your own bots | [Your own bots](https://statim.laibe.cc/guide/bots) |
 
