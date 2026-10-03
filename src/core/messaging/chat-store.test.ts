@@ -946,19 +946,6 @@ describe('blocking', () => {
     expect(blockedIn()).toBe(false);
   });
 
-  it('takes in nothing the blocked participant sends', async () => {
-    const session = new InMemoryChatSession();
-    session.seedChat({ id: 'ex', title: 'Ex' });
-    await connect(session);
-    await useChatStore.getState().setBlocked(ns('ex'), true);
-
-    session.deliver('ex', { id: 'late', content: { kind: 'text', text: 'still there?' } });
-
-    expect(
-      useChatStore.getState().chats.find((c) => c.id === ns('ex'))?.lastMessage
-    ).toBeUndefined();
-  });
-
   it('blocks no one in a group', async () => {
     const session = new InMemoryChatSession();
     session.seedChat({ id: 'g', title: 'Group', kind: 'group' });

@@ -5,11 +5,11 @@ import { wasProactive } from '@/runtime';
 import { useAccountStore } from '../account/account-store';
 import { useLockStore } from '../account/lock-store';
 import { isLocalChat } from '../messaging/bots';
-import { prefsFor, type ChatPrefsMap } from '../messaging/chat-prefs';
+import type { ChatPrefsMap } from '../messaging/chat-prefs';
 import { useChatStore, type ChatState } from '../messaging/chat-store';
 import { contentPreview } from '../messaging/preview';
 import type { ChatMessage, Chat, ChatId } from '../messaging/types';
-import { totalUnread } from '../messaging/unread';
+import { isSilenced, totalUnread } from '../messaging/unread';
 import {
   appFocused,
   askForNotifications,
@@ -73,8 +73,7 @@ export function worthNotifying(
   reading: string | undefined
 ): boolean {
   if (message.fromMe || message.content.kind === 'system') return false;
-  if (chat.id === reading || chat.blocked) return false;
-  if (prefsFor(prefs, chat.id).muted) return false;
+  if (chat.id === reading || isSilenced(chat, prefs)) return false;
   return !isLocalChat(chat.id) || wasProactive(message.id);
 }
 

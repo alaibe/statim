@@ -245,18 +245,19 @@ export class StoreBackedSession implements ChatSession, TransportSink {
   }
 
   async renameGroup(id: ProtocolChatId, title: string): Promise<void> {
-    const chat = { ...this.require(id), title };
-    await this.store.upsertChat(chat);
-    this.remember(chat);
-    this.announce(chat, (await this.store.loadMessages(id, 1))[0]);
+    await this.update({ ...this.require(id), title });
   }
 
   async setBlocked(id: ProtocolChatId, blocked: boolean): Promise<void> {
-    const chat = { ...this.require(id), blocked };
-    if (this.toChat(chat).kind !== 'dm') throw new UnsupportedError('Only a DM can be blocked.');
+    const chat = this.require(id);
+    if (chat.participants.length > 2) throw new UnsupportedError('Only a DM can be blocked.');
+    await this.update({ ...chat, blocked });
+  }
+
+  private async update(chat: TransportChat): Promise<void> {
     await this.store.upsertChat(chat);
     this.remember(chat);
-    this.announce(chat, (await this.store.loadMessages(id, 1))[0]);
+    this.announce(chat, (await this.store.loadMessages(chat.id, 1))[0]);
   }
 
   async leaveGroup(id: ProtocolChatId): Promise<void> {

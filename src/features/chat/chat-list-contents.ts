@@ -1,4 +1,4 @@
-import { orderChats, prefsFor, type ChatPrefsMap } from '@/core/messaging/chat-prefs';
+import { orderChats, type ChatPrefsMap } from '@/core/messaging/chat-prefs';
 import {
   type ChatFilter,
   chatRow,
@@ -8,6 +8,7 @@ import {
   isUnreadHere,
   matchesFilter,
   networkOf,
+  ownFolder,
   splitRequests,
 } from '@/core/messaging/folders';
 import { messagePreview } from '@/core/messaging/preview';
@@ -44,7 +45,7 @@ export function chatListContents({
   const listed = [...accepted, ...blocked];
   const context = { prefs: chatPrefs, readAt };
   const ordered = orderChats(listed, chatPrefs, { includeArchived: true });
-  const everywhere = ordered.filter((c) => !c.blocked && !prefsFor(chatPrefs, c.id).archived);
+  const everywhere = ordered.filter((c) => !ownFolder(c, chatPrefs));
   const scope = folder ? ordered.filter((c) => inFolder(c, folder, context)) : everywhere;
   const unread = everywhere.filter((c) => isUnreadHere(c, context));
 

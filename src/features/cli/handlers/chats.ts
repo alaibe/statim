@@ -6,7 +6,7 @@ import { chatPermissions } from '@/core/messaging/permissions';
 import { messagePreview } from '@/core/messaging/preview';
 import { LOCAL_PROTOCOL } from '@/core/messaging/namespace';
 import { NETWORK_IDS, type NetworkId } from '@/core/messaging/networks';
-import type { Chat } from '@/core/messaging/types';
+import type { Chat, ChatId } from '@/core/messaging/types';
 import { MARKED_UNREAD, unreadBadge } from '@/core/messaging/unread';
 
 import {
@@ -74,21 +74,19 @@ function chatLine(c: ReturnType<typeof chatJson>): string {
   );
 }
 
-function setPref(change: Partial<ChatPrefs>, done: string): CliHandler {
+function onChat(change: (id: ChatId) => Promise<void>, data: object, done: string): CliHandler {
   return async ({ args }) => {
     const chat = await readyChat(args.chat!);
-    await useChatStore.getState().setChatPref(chat.id, change);
-    return { data: { id: chat.id, ...change }, text: `${done} ${chat.label}.` };
+    await change(chat.id);
+    return { data: { id: chat.id, ...data }, text: `${done} ${chat.label}.` };
   };
 }
 
-function setBlocked(blocked: boolean, done: string): CliHandler {
-  return async ({ args }) => {
-    const chat = await readyChat(args.chat!);
-    await useChatStore.getState().setBlocked(chat.id, blocked);
-    return { data: { id: chat.id, blocked }, text: `${done} ${chat.label}.` };
-  };
-}
+const setPref = (change: Partial<ChatPrefs>, done: string) =>
+  onChat((id) => useChatStore.getState().setChatPref(id, change), change, done);
+
+const setBlocked = (blocked: boolean, done: string) =>
+  onChat((id) => useChatStore.getState().setBlocked(id, blocked), { blocked }, done);
 
 async function readChat({ args, flags }: ParsedArgs) {
   const chat = await readyChat(args.chat!);

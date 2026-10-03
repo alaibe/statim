@@ -77,14 +77,13 @@ describe('totalUnread', () => {
     expect(totalUnread(chats, { [C1]: 5_000 }, {})).toBe(1);
   });
 
-  it('leaves muted chats out', () => {
-    const chats = [chat({ id: 'xmtp-c1' }), chat({ id: 'xmtp-c2' })];
+  it('leaves muted and blocked chats out', () => {
+    const chats = [
+      chat({ id: 'xmtp-c1' }),
+      chat({ id: 'xmtp-c2' }),
+      chat({ id: 'xmtp-c3', blocked: true }),
+    ];
     expect(totalUnread(chats, {}, { [C2]: { muted: true } })).toBe(1);
-  });
-
-  it('leaves blocked chats out', () => {
-    const chats = [chat({ id: 'xmtp-c1' }), chat({ id: 'xmtp-c2', blocked: true })];
-    expect(totalUnread(chats, {}, {})).toBe(1);
   });
 });
 

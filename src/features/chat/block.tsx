@@ -1,9 +1,10 @@
 import { View } from 'react-native';
 
-import { ConfirmSheet, Icon, Pressable, Text, toast } from '@/design';
+import { ConfirmSheet, Text, toast } from '@/design';
 import { errorMessage } from '@/core/errors';
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { ChatId } from '@/core/messaging/types';
+import { BarButton } from './bar-button';
 
 export async function setBlocked(chatId: ChatId, blocked: boolean): Promise<boolean> {
   try {
@@ -49,15 +50,12 @@ export function BlockedBar({ chatId }: { chatId: ChatId }) {
       <Text variant="caption" className="text-center">
         You blocked this person. Nothing they send reaches you.
       </Text>
-      <Pressable
+      <BarButton
         testID="unblock"
-        accessibilityRole="button"
-        accessibilityLabel="Unblock"
+        icon="ban-outline"
+        label="Unblock"
         onPress={() => void setBlocked(chatId, false)}
-        className="min-h-tap flex-row items-center justify-center gap-2 rounded-pill border border-line bg-surface-raised">
-        <Icon name="ban-outline" size={18} tone="brand" />
-        <Text className="font-semibold text-brand">Unblock</Text>
-      </Pressable>
+      />
     </View>
   );
 }

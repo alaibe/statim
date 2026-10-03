@@ -1,4 +1,4 @@
-import { ActionSheet, type MenuAnchor, type SheetAction } from '@/design';
+import { ActionSheet, type MenuAnchor } from '@/design';
 import { type ChatPrefs, prefsFor } from '@/core/messaging/chat-prefs';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { chatPermissions } from '@/core/messaging/permissions';
@@ -33,18 +33,6 @@ export function ChatMenu({
   const markUnread = useChatStore((s) => s.markUnread);
   const { session } = useSupports(chat.id);
   const choose = (key: keyof ChatPrefs) => void setChatPref(chat.id, { [key]: !prefs[key] });
-  const block: SheetAction[] = chatPermissions(chat, session).block
-    ? [
-        chat.blocked
-          ? {
-              label: 'Unblock',
-              icon: 'ban-outline',
-              onPress: () => void setBlocked(chat.id, false),
-            }
-          : { label: 'Block', icon: 'ban-outline', tone: 'danger', onPress: () => onBlock(chat) },
-      ]
-    : [];
-
   return (
     <ActionSheet
       visible
@@ -74,7 +62,16 @@ export function ChatMenu({
           icon: 'mail-unread-outline',
           onPress: () => void markUnread(chat.id),
         },
-        ...block,
+        ...(chatPermissions(chat, session).block
+          ? [
+              {
+                label: chat.blocked ? 'Unblock' : 'Block',
+                icon: 'ban-outline' as const,
+                tone: chat.blocked ? undefined : ('danger' as const),
+                onPress: () => (chat.blocked ? void setBlocked(chat.id, false) : onBlock(chat)),
+              },
+            ]
+          : []),
       ]}
     />
   );

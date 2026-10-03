@@ -810,9 +810,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   async setBlocked(id, blocked) {
-    const route = routeOrNull(get(), id);
+    const route = requireRoute(get(), id);
     const chat = get().chats.find((c) => c.id === id);
-    if (!route || !chat || !chatPermissions(chat, route.session).block) {
+    if (!chat || !chatPermissions(chat, route.session).block) {
       throw new Error('Only a DM can be blocked, on a protocol that blocks.');
     }
 
@@ -837,7 +837,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
   ingestMessage(message: ChatMessage) {
     set((state) => {
       const id = message.chatId;
-      if (!message.fromMe && state.chats.find((c) => c.id === id)?.blocked) return state;
       const raw = state.rawMessages[id] ?? state.messages[id];
       const loaded = raw === undefined ? {} : withRaw(state, id, withMessage(raw, message));
 

@@ -2,7 +2,7 @@ import { isLocalChat } from './bots';
 import { type ChatPrefsMap, prefsFor } from './chat-prefs';
 import { LOCAL_PROTOCOL } from './namespace';
 import type { NetworkId } from './networks';
-import { hasUnreadMentions, isUnread } from './unread';
+import { hasUnreadMentions, isSilenced, isUnread } from './unread';
 import type { Chat, ChatId } from './types';
 
 export type Folder = 'archive' | 'blocked' | NetworkId;
@@ -49,12 +49,13 @@ export function chatRow(chat: Chat): ChatListRow {
 }
 
 export function isUnreadHere(chat: Chat, context: FilterContext): boolean {
-  return !chat.blocked && !prefsFor(context.prefs, chat.id).muted && isUnread(chat, context.readAt);
+  return !isSilenced(chat, context.prefs) && isUnread(chat, context.readAt);
 }
 
-/** Archived and blocked chats keep to their folder. */
-function tucked(chat: Chat, prefs: ChatPrefsMap): boolean {
-  return Boolean(chat.blocked || prefsFor(prefs, chat.id).archived);
+/** Archived and blocked chats keep to a folder of their own; a blocked one stays in Blocked. */
+export function ownFolder(chat: Chat, prefs: ChatPrefsMap): 'archive' | 'blocked' | null {
+  if (chat.blocked) return 'blocked';
+  return prefsFor(prefs, chat.id).archived ? 'archive' : null;
 }
 
 export function matchesFilter(chat: Chat, filter: ChatFilter, context: FilterContext): boolean {
@@ -73,25 +74,23 @@ export function matchesFilter(chat: Chat, filter: ChatFilter, context: FilterCon
 }
 
 export function inFolder(chat: Chat, folder: Folder, context: FilterContext): boolean {
-  if (folder === 'blocked') return Boolean(chat.blocked);
-  if (folder === 'archive')
-    return !chat.blocked && Boolean(prefsFor(context.prefs, chat.id).archived);
-  return !tucked(chat, context.prefs) && networkOf(chat) === folder;
+  const own = ownFolder(chat, context.prefs);
+  return own ? own === folder : networkOf(chat) === folder;
 }
 
+/** A pinned chat stays out of its network's folder, since pinning asks to see it. */
 export function homeFolder(
   chat: Chat,
   prefs: ChatPrefsMap,
   folded: (network: NetworkId) => boolean
 ): Folder | null {
-  if (chat.blocked) return 'blocked';
-  const chatPrefs = prefsFor(prefs, chat.id);
-  if (chatPrefs.archived) return 'archive';
+  const own = ownFolder(chat, prefs);
+  if (own) return own;
   const network = networkOf(chat);
-  return network && folded(network) && !chatPrefs.pinned ? network : null;
+  return network && folded(network) && !prefsFor(prefs, chat.id).pinned ? network : null;
 }
 
-/** A pinned chat stays out of its folder, since pinning asks to see it. */
+/** Archive comes first and Blocked last; a network's folder sits where its latest chat would. */
 export function chatListRows(
   ordered: Chat[],
   include: (chat: Chat) => boolean,
@@ -99,36 +98,31 @@ export function chatListRows(
   context: FilterContext
 ): ChatListRow[] {
   const rows: ChatListRow[] = [];
-  const folders = new Map<NetworkId, Extract<ChatListRow, { kind: 'folder' }>>();
-  const folderRow = (folder: 'archive' | 'blocked'): ChatListRow[] => {
-    const chats = ordered.filter((c) => include(c) && inFolder(c, folder, context));
-    return chats.length > 0 ? [{ kind: 'folder', folder, latest: chats[0], chats }] : [];
-  };
-
-  rows.push(...folderRow('archive'));
-
+  const folders = new Map<Folder, Extract<ChatListRow, { kind: 'folder' }>>();
   for (const chat of ordered) {
-    const prefs = prefsFor(context.prefs, chat.id);
-    if (tucked(chat, context.prefs) || !include(chat)) continue;
-    const network = networkOf(chat);
-    if (!network || !folded(network) || prefs.pinned) {
+    if (!include(chat)) continue;
+    const folder = homeFolder(chat, context.prefs, folded);
+    if (!folder) {
       rows.push(chatRow(chat));
       continue;
     }
-    const existing = folders.get(network);
+    const existing = folders.get(folder);
     if (existing) {
       existing.chats.push(chat);
       continue;
     }
     const row: Extract<ChatListRow, { kind: 'folder' }> = {
       kind: 'folder',
-      folder: network,
+      folder,
       latest: chat,
       chats: [chat],
     };
-    folders.set(network, row);
-    rows.push(row);
+    folders.set(folder, row);
+    if (folder !== 'archive' && folder !== 'blocked') rows.push(row);
   }
-  rows.push(...folderRow('blocked'));
-  return rows;
+  const own = (folder: 'archive' | 'blocked') => {
+    const row = folders.get(folder);
+    return row ? [row] : [];
+  };
+  return [...own('archive'), ...rows, ...own('blocked')];
 }

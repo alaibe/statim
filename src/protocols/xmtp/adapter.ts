@@ -22,7 +22,6 @@ import {
   readInlineAttachment,
   writeInlineAttachment,
 } from '@/core/messaging/attachments';
-import { UnsupportedError } from '@/core/errors';
 import { protocolChatId } from '@/core/messaging/namespace';
 import type { ChatSession, GroupInfo, XmtpInstallation } from '@/core/messaging/protocol';
 import type {
@@ -119,6 +118,7 @@ export class XmtpSession implements ChatSession {
   private readonly addressCache = new Map<ParticipantId, string>();
   private readonly deletedListeners = new Set<(id: ProtocolChatId, ids: MessageId[]) => void>();
   private closed = false;
+  private readonly blockedDmIds = new Set<string>();
 
   private constructor(
     private readonly client: Client<any>,
@@ -174,9 +174,10 @@ export class XmtpSession implements ChatSession {
       ),
       this.blockedDms(),
     ]);
-    return Promise.all(
-      [...raw, ...(blocked as unknown as XmtpConversation<any>[])].map((c) => this.toChat(c))
-    );
+    return Promise.all([
+      ...raw.map((c) => this.toChat(c)),
+      ...blocked.map((dm) => this.toChat(dm as unknown as XmtpConversation<any>, undefined, true)),
+    ]);
   }
 
   /** Blocking denies the DM and its peer's inbox; a DM denied alone was declined. */
@@ -278,6 +279,15 @@ export class XmtpSession implements ChatSession {
       throw new Error('That only works in a group.');
     }
     return conversation as Group<any>;
+  }
+
+  private async requireDm(id: ProtocolChatId): Promise<Dm<any>> {
+    const conversation = await this.client.conversations.findConversation(toXmtpId(id));
+    if (!conversation) throw new Error(`Chat ${id} not found`);
+    if (conversation.version === ConversationVersion.GROUP) {
+      throw new Error('That only works in a DM.');
+    }
+    return conversation as unknown as Dm<any>;
   }
 
   async getMembers(id: ProtocolChatId): Promise<GroupMember[]> {
@@ -383,14 +393,13 @@ export class XmtpSession implements ChatSession {
   }
 
   async setBlocked(id: ProtocolChatId, blocked: boolean): Promise<void> {
-    const conversation = await this.client.conversations.findConversation(toXmtpId(id));
-    if (!conversation || conversation.version === ConversationVersion.GROUP) {
-      throw new UnsupportedError('On XMTP only a DM can be blocked.');
-    }
+    const dm = await this.requireDm(id);
     const state = blocked ? 'denied' : 'allowed';
-    const peer = await (conversation as Dm<any>).peerInboxId();
+    const peer = await dm.peerInboxId();
     await this.client.preferences.setConsentState(new ConsentRecord(peer, 'inbox_id', state));
-    await conversation.updateConsent(state);
+    await dm.updateConsent(state);
+    if (blocked) this.blockedDmIds.add(dm.id);
+    else this.blockedDmIds.delete(dm.id);
   }
 
   async sendReadReceipt(id: ProtocolChatId): Promise<void> {
@@ -431,6 +440,7 @@ export class XmtpSession implements ChatSession {
           GROUP_TOPIC.exec(message.topic)?.[1] ??
           (await this.client.conversations.findConversationByTopic(message.topic))?.id;
         if (!id || this.closed) return;
+        if (this.blockedDmIds.has(id) && message.senderInboxId !== this.self.participantId) return;
         const chatId = protocolChatId(id);
         const deletedId = message.nativeContent?.deleteMessage?.messageId;
         if (deletedId) {
@@ -463,17 +473,18 @@ export class XmtpSession implements ChatSession {
     await this.client.deleteLocalDatabase();
   }
 
+  /** `blocked` is passed when the listing already knows it. */
   private async toChat(
     raw: XmtpConversation<any>,
-    current: () => boolean = () => true
+    current: () => boolean = () => true,
+    blocked?: boolean
   ): Promise<ProtocolChat> {
     const isGroup = raw.version === ConversationVersion.GROUP;
 
     let title: string;
     let memberIds: ParticipantId[] = [];
-
     let selfRole: GroupRole | undefined;
-    let blocked = false;
+    let peerBlocked: Promise<boolean> = Promise.resolve(false);
 
     if (isGroup) {
       const group = raw as Group<any>;
@@ -487,8 +498,16 @@ export class XmtpSession implements ChatSession {
       const participant = await (raw as Dm<any>).peerInboxId();
       title = participant;
       memberIds = [participant, this.self.participantId];
-      blocked = await this.inboxBlocked(participant);
+      peerBlocked =
+        blocked === undefined ? this.inboxBlocked(participant) : Promise.resolve(blocked);
     }
+
+    const [isBlocked, lastMessage] = await Promise.all([
+      peerBlocked,
+      current() ? this.previewOf(raw) : undefined,
+    ]);
+    if (isBlocked) this.blockedDmIds.add(raw.id);
+    else this.blockedDmIds.delete(raw.id);
 
     return {
       id: protocolChatId(raw.id),
@@ -497,9 +516,9 @@ export class XmtpSession implements ChatSession {
       memberIds,
       createdAt: raw.createdAt,
       consent: mapConsent(raw.state),
-      ...(blocked ? { blocked: true } : {}),
+      ...(isBlocked ? { blocked: true } : {}),
       selfRole,
-      lastMessage: current() ? await this.previewOf(raw) : undefined,
+      lastMessage,
     };
   }
 

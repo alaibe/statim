@@ -2,14 +2,19 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { Button, Text } from '@/design';
-import { chatPermissions } from '@/core/messaging/permissions';
-import type { Chat } from '@/core/messaging/types';
+import type { ChatId } from '@/core/messaging/types';
 import { BlockSheet } from './block';
 import { answerRequest } from './requests';
-import { useSupports } from './use-supports';
 
-export function RequestBar({ chat, name }: { chat: Chat; name: string }) {
-  const { session } = useSupports(chat.id);
+export function RequestBar({
+  chatId,
+  name,
+  canBlock,
+}: {
+  chatId: ChatId;
+  name: string;
+  canBlock: boolean;
+}) {
   const [blocking, setBlocking] = useState(false);
   return (
     <View className="gap-3 border-t border-line bg-surface-raised px-gutter pb-3 pt-3">
@@ -18,7 +23,7 @@ export function RequestBar({ chat, name }: { chat: Chat; name: string }) {
         blocking the sender.
       </Text>
       <View className="flex-row gap-2">
-        {chatPermissions(chat, session).block ? (
+        {canBlock ? (
           <View className="flex-1">
             <Button
               testID="request-block"
@@ -35,7 +40,7 @@ export function RequestBar({ chat, name }: { chat: Chat; name: string }) {
             label="Decline"
             tone="neutral"
             fullWidth
-            onPress={() => answerRequest(chat.id, 'declined')}
+            onPress={() => answerRequest(chatId, 'declined')}
           />
         </View>
         <View className="flex-1">
@@ -43,12 +48,12 @@ export function RequestBar({ chat, name }: { chat: Chat; name: string }) {
             testID="request-accept"
             label="Accept"
             fullWidth
-            onPress={() => answerRequest(chat.id, 'accepted')}
+            onPress={() => answerRequest(chatId, 'accepted')}
           />
         </View>
       </View>
       {blocking ? (
-        <BlockSheet chatId={chat.id} name={name} onClose={() => setBlocking(false)} />
+        <BlockSheet chatId={chatId} name={name} onClose={() => setBlocking(false)} />
       ) : null}
     </View>
   );

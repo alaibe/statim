@@ -22,7 +22,14 @@ import type {
 import { TdRequestError, type TdApi, type TdObject } from './api';
 import { describeAuthError, describeCodeDelivery } from './auth-copy';
 import { inMainList } from './chats';
-import { chatIdOf, chatSenderId, messageIdOf, supergroupChatId, tdMessageId } from './ids';
+import {
+  chatIdOf,
+  chatSenderId,
+  messageIdOf,
+  supergroupChatId,
+  tdMessageId,
+  userSender,
+} from './ids';
 import { TdDirectory } from './directory';
 import { draftMessage, draftText } from './drafts';
 import { TelegramGroups } from './groups';
@@ -716,7 +723,7 @@ export class TelegramSession implements ChatSession {
       throw new UnsupportedError('On Telegram only a DM can be blocked.');
     await this.api.send({
       '@type': 'setMessageSenderBlockList',
-      sender_id: { '@type': 'messageSenderUser', user_id: chat.type.user_id },
+      sender_id: userSender(String(chat.type.user_id)),
       block_list: blocked ? { '@type': 'blockListMain' } : null,
     });
   }

@@ -643,6 +643,7 @@ export class StatusSession implements ChatSession {
       return;
     }
 
+    if (this.blocks(author)) return;
     if (chat.contactRequestState) {
       const state = chat.contactRequestState;
       await this.updateContact(author, (contact) => propagatedStateReceived(contact, state));
@@ -663,6 +664,11 @@ export class StatusSession implements ChatSession {
     await this.deliver(protocolChatId(author), message.id, author, chat);
   }
 
+  /** Their DM is blocked: nothing of theirs outside groups gets through. */
+  private blocks(participant: ParticipantId): boolean {
+    return Boolean(this.chats.get(protocolChatId(participant))?.blocked);
+  }
+
   private bothMembers(group: GroupState, author: ParticipantId): boolean {
     return group.members.has(author) && group.members.has(this.self.participantId);
   }
@@ -673,7 +679,6 @@ export class StatusSession implements ChatSession {
     author: ParticipantId,
     chat: WireChatMessage
   ): Promise<void> {
-    if (this.chats.get(chatId)?.blocked) return;
     const deletedBy = this.deleted.get(id);
     if (
       deletedBy &&
@@ -711,7 +716,9 @@ export class StatusSession implements ChatSession {
     chatId: string,
     sender: ParticipantId
   ): ProtocolChatId | null {
-    if (messageType === MessageType.ONE_TO_ONE) return protocolChatId(sender);
+    if (messageType === MessageType.ONE_TO_ONE) {
+      return this.blocks(sender) ? null : protocolChatId(sender);
+    }
     if (messageType === MessageType.PRIVATE_GROUP && this.groups.has(chatId)) {
       return protocolChatId(chatId);
     }
@@ -957,7 +964,6 @@ export class StatusSession implements ChatSession {
 
   private async insert(message: ProtocolMessage): Promise<void> {
     const existing = this.chats.get(message.chatId);
-    if (existing?.blocked && !message.fromMe) return;
     const chat = existing ?? this.newDmChat(message.chatId);
     const shown = chat.hidden && !this.groups.has(chat.id) ? { ...chat, hidden: false } : chat;
     const changed = shown !== existing;

@@ -178,3 +178,11 @@ it('blocks by denying the peer inbox as well as the DM, and allows both to unblo
   ]);
   expect(updateConsent.mock.calls).toEqual([['denied'], ['allowed']]);
 });
+
+it('drops what a blocked DM streams, even before the stream hears of the block', async () => {
+  const received: string[] = [];
+  const session = await sessionWith([{ ...dm, updateConsent: jest.fn() }], [text('hello', 2_000)]);
+  await session.setBlocked('dm' as never, true);
+  await session.streamMessages((message) => received.push(message.id));
+  expect(received).toEqual([]);
+});

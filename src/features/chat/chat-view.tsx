@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ChatBackground,
   EmptyState,
-  Icon,
   Pressable,
   Text,
   toast,
@@ -27,6 +26,7 @@ import type { ChatMessage, Chat, ChatId, MessageContent, MessageId } from '@/cor
 import { useAppearanceStore } from '@/core/app/appearance';
 import { errorMessage } from '@/core/errors';
 import { Composer } from './composer';
+import { BarButton } from './bar-button';
 import { BlockedBar } from './block';
 import { RequestBar } from './request-bar';
 import { CommandPending } from './command-pending';
@@ -220,7 +220,11 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
           {!chat ? null : chat.blocked ? (
             <BlockedBar chatId={id} />
           ) : chat.consent === 'request' ? (
-            <RequestBar chat={chat} name={chatTitle(chat, selfId, nameFor)} />
+            <RequestBar
+              chatId={id}
+              name={chatTitle(chat, selfId, nameFor)}
+              canBlock={permissions.block}
+            />
           ) : chat.kind === 'channel' && !permissions.send ? (
             <ChannelMuteBar id={id} />
           ) : !permissions.send ? (
@@ -326,13 +330,12 @@ function ChannelMuteBar({ id }: { id: ChatId }) {
   const muted = useChatStore((s) => Boolean(prefsFor(s.chatPrefs, id).muted));
   const setChatPref = useChatStore((s) => s.setChatPref);
   return (
-    <Pressable
-      accessibilityRole="button"
+    <BarButton
+      icon={muted ? 'volume-high-outline' : 'volume-mute-outline'}
+      label={muted ? 'Unmute' : 'Mute'}
       accessibilityLabel={muted ? 'Unmute channel' : 'Mute channel'}
       onPress={() => void setChatPref(id, { muted: !muted })}
-      className="mx-gutter mb-2 min-h-tap flex-row items-center justify-center gap-2 rounded-pill border border-line bg-surface-raised">
-      <Icon name={muted ? 'volume-high-outline' : 'volume-mute-outline'} size={18} tone="brand" />
-      <Text className="font-semibold text-brand">{muted ? 'Unmute' : 'Mute'}</Text>
-    </Pressable>
+      className="mx-gutter mb-2"
+    />
   );
 }

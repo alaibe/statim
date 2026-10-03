@@ -529,7 +529,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   async setBlocked(id: ProtocolChatId, blocked: boolean): Promise<void> {
     const room = await this.requireRoom(roomIdOf(id));
     const chat = this.toChat(room);
-    const participant = this.participantOf(room, this.rosterOf(room.id) ?? []);
+    const participant = this.participantOf(room);
     if (chat.kind !== 'dm' || !participant) {
       throw new UnsupportedError('On Matrix only a DM with someone known can be blocked.');
     }
@@ -613,7 +613,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     await this.api.votePoll(roomIdOf(id), messageId, selected);
   }
 
-  /** The SDK syncs continuously; there is nothing to pull. */
+  /** The SDK syncs rooms continuously; only who is ignored needs asking again. */
   async sync(): Promise<void> {
     if (this.userId) await this.loadIgnored();
   }
