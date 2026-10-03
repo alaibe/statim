@@ -207,3 +207,30 @@ jobs:
           git -C tap -c user.name="github-actions[bot]" \
             -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -am "statim $V"
           git -C tap push
+
+  aur:
+    needs: [prepare, publish]
+    if: ${{ !cancelled() && needs.publish.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        run: |
+          V="${{ needs.prepare.outputs.version }}"
+          mkdir -p ~/.ssh
+          printf '%s\n' "$AUR_SSH_PRIVATE_KEY" > ~/.ssh/aur && chmod 600 ~/.ssh/aur
+          echo 'aur.archlinux.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEuBKrPzbawxA/k2g6NcyV5jmqwJ2s+zpgZGZ7tpLIcN' \
+            >> ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/aur -o IdentitiesOnly=yes"
+          git clone ssh://aur@aur.archlinux.org/statim-bin.git aur
+          sed -i -E "s/^pkgver=.*/pkgver=$V/; s/^pkgrel=.*/pkgrel=1/" aur/PKGBUILD
+          docker run --rm -v "$PWD/aur:/pkg" -e OWNER="$(id -u):$(id -g)" archlinux:latest bash -c '
+            set -e
+            sed -i "/^\[options\]/a DisableSandbox" /etc/pacman.conf
+            pacman -Sy --noconfirm --needed pacman-contrib >/dev/null
+            useradd -m b && chown -R b /pkg && cd /pkg
+            su b -c "updpkgsums && makepkg --printsrcinfo > .SRCINFO"
+            chown -R "$OWNER" /pkg'
+          git -C aur -c user.name="Anthony Laibe" -c user.email="anthony@laibe.cc" commit -am "statim $V"
+          git -C aur push
+
