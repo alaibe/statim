@@ -164,8 +164,8 @@ pub struct Install {
     path: Option<String>,
 }
 
-/// The installers put the command on the PATH; a copy dragged out of a disk
-/// image, the App Store build and an AppImage cannot, so they get a one-liner.
+/// The Windows, .deb and .rpm installers put the command on the PATH. On macOS
+/// and in an AppImage `cli_link` does, and `command` is the fallback.
 #[tauri::command]
 pub fn cli_install() -> Install {
     let exe = std::env::current_exe()
@@ -211,6 +211,48 @@ pub fn cli_install() -> Install {
         command: None,
         path,
     }
+}
+
+/// `false` when the person cancels macOS's administrator prompt.
+#[tauri::command(async)]
+#[allow(unreachable_code)]
+pub fn cli_link() -> Result<bool, String> {
+    #[cfg(target_os = "macos")]
+    {
+        let exe = std::env::current_exe()
+            .and_then(|exe| exe.canonicalize())
+            .map_err(|e| e.to_string())?;
+        let output = std::process::Command::new("/usr/bin/osascript")
+            .args([
+                "-e",
+                "on run argv",
+                "-e",
+                "do shell script \"mkdir -p /usr/local/bin && ln -sf \" & quoted form of item 1 of argv & \" /usr/local/bin/statim\" with prompt \"Statim wants to add the statim command.\" with administrator privileges",
+                "-e",
+                "end run",
+            ])
+            .arg(exe)
+            .output()
+            .map_err(|e| e.to_string())?;
+        let error = String::from_utf8_lossy(&output.stderr);
+        return if output.status.success() {
+            Ok(true)
+        } else if error.contains("(-128)") {
+            Ok(false)
+        } else {
+            Err(error.trim().to_owned())
+        };
+    }
+    #[cfg(target_os = "linux")]
+    if let Some(image) = appimage() {
+        let bin = dirs::home_dir().ok_or("No home folder")?.join(".local/bin");
+        std::fs::create_dir_all(&bin).map_err(|e| e.to_string())?;
+        let link = bin.join("statim");
+        let _ = std::fs::remove_file(&link);
+        std::os::unix::fs::symlink(image, link).map_err(|e| e.to_string())?;
+        return Ok(true);
+    }
+    Err("The installer adds the command.".to_owned())
 }
 
 fn appimage() -> Option<std::ffi::OsString> {

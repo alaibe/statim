@@ -4,7 +4,7 @@ import { View } from 'react-native';
 import { Button, Card, ListItem, Section, Text, Toggle } from '@/design';
 import { copyText } from '@/design/copy-text';
 import { isCliAllowed, setCliAllowed } from '@/features/cli/access';
-import { cliInstall, type CliInstall } from '@/features/cli/install';
+import { cliInstall, cliLink, type CliInstall } from '@/features/cli/install';
 import { SettingsScreen } from '@/features/settings/settings-screen';
 import { guideUrl } from '@/lib/guide';
 import { openExternal } from '@/lib/open-url';
@@ -29,6 +29,8 @@ function Command({ command, done }: { command: string; done: string }) {
 
 export default function CommandLineScreen() {
   const [install, setInstall] = useState<CliInstall | null>(null);
+  const [linking, setLinking] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
   const [allowed, setAllowed] = useState(false);
 
   useEffect(() => {
@@ -39,6 +41,18 @@ export default function CommandLineScreen() {
       .then(setAllowed)
       .catch(() => {});
   }, []);
+
+  async function link() {
+    setLinking(true);
+    setLinkError(null);
+    try {
+      if (await cliLink()) setInstall(await cliInstall());
+    } catch (error) {
+      setLinkError(String(error));
+    } finally {
+      setLinking(false);
+    }
+  }
 
   async function toggle(next: boolean) {
     setAllowed(next);
@@ -76,11 +90,22 @@ export default function CommandLineScreen() {
             <Text variant="footnote">Installed. Open a terminal and run statim help.</Text>
           ) : install?.command ? (
             <>
-              <Text variant="footnote">
-                Run this once in Terminal. It asks for your password to add the command to
-                /usr/local/bin.
-              </Text>
-              <Command command={install.command} done="Command copied" />
+              <Text variant="footnote">Adds statim to your PATH, so any terminal can run it.</Text>
+              <Button
+                label="Install"
+                size="sm"
+                loading={linking}
+                onPress={() => void link()}
+                testID="cli-link"
+              />
+              {linkError ? (
+                <>
+                  <Text variant="footnote">
+                    That did not work: {linkError}. Run this once in Terminal instead.
+                  </Text>
+                  <Command command={install.command} done="Command copied" />
+                </>
+              ) : null}
             </>
           ) : null}
         </View>

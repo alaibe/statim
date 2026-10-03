@@ -139,18 +139,6 @@ jobs:
           # Writes and merges latest.json across the matrix; installed copies read it.
           uploadUpdaterJson: true
 
-      - name: macOS installer package
-        if: matrix.os == 'macos-15'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          V="${{ needs.prepare.outputs.version }}"
-          PKG="Statim_${V}_universal.pkg"
-          ./src-tauri/macos/build-pkg.sh \
-            "src-tauri/target/universal-apple-darwin/release/bundle/macos/Statim.app" "$V" "$PKG"
-          gh api -X POST -H "Content-Type: application/octet-stream" --input "$PKG" --silent \
-            "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ needs.prepare.outputs.release_id }}/assets?name=$PKG"
-
   mobile:
     needs: prepare
     strategy:

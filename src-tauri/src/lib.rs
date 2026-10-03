@@ -163,6 +163,7 @@ pub fn run() {
             matrix::mx_close,
             matrix::mx_erase,
             cli::cli_install,
+            cli::cli_link,
             cli::cli_ready,
             cli::cli_send,
             cli::cli_show,

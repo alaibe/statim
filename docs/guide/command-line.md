@@ -18,13 +18,11 @@ again when you are done with it.
 
 ## Installing it
 
-On macOS, the `.pkg` installer adds the command. If you installed from the
-`.dmg` or the App Store, open **Settings › Command line** and run the line it
-shows once in Terminal.
+On macOS and with the Linux AppImage, open **Settings › Command line** and
+press **Install**. macOS asks for your password first.
 
 On Windows, both installers add it; open a new terminal afterwards. On Linux,
-the `.deb` and `.rpm` packages add it, and with the AppImage you use the line
-in **Settings › Command line**.
+the `.deb` and `.rpm` packages add it.
 
 Run `statim help` to check it works.
 
