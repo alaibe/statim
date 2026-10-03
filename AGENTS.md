@@ -31,15 +31,15 @@ Biome formats TypeScript and JSON, rustfmt formats `src-tauri`. Neither lints;
 
 ## Things that are not obvious from the code
 
-- Generated output is not editable. `src/global.css` comes from
-  `src/design/tokens.ts` (`npm run theme:build`); `ios/` and `android/` from
-  `app.json` (`npx expo prebuild`); `skills/statim/SKILL.md`,
-  `src-tauri/cli/help.txt` and `src-tauri/cli/mcp.json` from
-  `src/features/cli/commands.ts` (`npm run cli:docs`);
-  `src/storage/migrations/index.ts` from the SQL files beside it
-  (`npm run db:bundle`). `assets/brand/mark.svg`, every icon,
-  `docs/public/promo/` and `docs/public/stickers/` come from generators in
-  `priv/`. Editing the output is undone on the next build.
+- Generated output is not editable. `ios/` and `android/` come from
+  `app.json` (`npx expo prebuild`); `src/storage/migrations/index.ts` from the
+  SQL files beside it (`npm run db:bundle`). Everything else comes from a
+  generator in `priv/`: `src/global.css` from `src/design/tokens.ts`;
+  `skills/statim/SKILL.md`, `src-tauri/cli/help.txt` and
+  `src-tauri/cli/mcp.json` from `src/features/cli/commands.ts`;
+  `assets/brand/mark.svg` and every icon; `chat-pattern-tile.ts`; both token
+  lists; `docs/public/promo/` and `docs/public/stickers/`. Editing the output
+  is undone on the next build.
 - `.web.ts` / `.web.tsx` is the desktop. There is no browser deployment.
   A platform file must have a non-platform neighbour, and Expo Router needs a
   non-platform file for every route.

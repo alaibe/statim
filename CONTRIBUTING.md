@@ -28,9 +28,10 @@ app.
    nearby and keep the change focused.
 3. Add or update tests when behavior changes. Update the user guide in `docs/`
    when the way people use the app changes.
-4. Regenerate outputs from their source rather than editing generated files by
-   hand. [AGENTS.md](AGENTS.md) lists the relevant commands. If you change a
-   dependency patch, update [patches/README.md](patches/README.md).
+4. Leave generated files as they are, except database migrations, which you
+   generate as [AGENTS.md](AGENTS.md) describes. The maintainer regenerates the
+   rest from your source change. If you change a dependency patch, update
+   [patches/README.md](patches/README.md).
 
 ## Check your work
 

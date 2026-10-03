@@ -122,8 +122,7 @@ Labs Default list trimmed to the five chains the wallet sends on (829 entries),
 read with one multicall against the endpoint already in use; `/tokens add
 <contract>` covers anything it misses. Solana enumerates its own holdings
 through `getTokenAccountsByOwner`, with Jupiter's verified list bundled only to
-put a name to a mint. `npm run tokens:build` and `npm run tokens:build:solana`
-refresh them.
+put a name to a mint.
 
 ## Documentation
 
