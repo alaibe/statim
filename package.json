@@ -121,7 +121,7 @@
     "test": "jest",
     "postinstall": "patch-package",
     "eas-build-pre-install": "[ \"$EAS_BUILD_PLATFORM\" != ios ] || ./scripts/tdlib.sh ios",
-    "test:e2e": "./e2e/run.sh",
+    "test:e2e": "./e2e/run.sh ios",
     "test:all": "npm run format:check && npm run typecheck && npm test && npm run test:e2e",
     "site:dev": "npm --prefix site run dev",
     "site:build": "npm --prefix site run build",

@@ -8,31 +8,27 @@ iOS simulator or Android emulator.
 ```bash
 brew install --cask temurin@21 # Maestro needs a JDK; macOS ships none
 curl -Ls "https://get.maestro.mobile.dev" | bash
-npx expo run:ios
+npx expo run:ios               # or run:android
 npm start
 
-./e2e/run.sh                   # everything
-./e2e/run.sh 01-launch         # one flow
-./e2e/run.sh --fresh           # reset the simulator Keychain first
+./e2e/run.sh ios               # everything but the Android-only flows
+./e2e/run.sh ios 01-launch     # one flow
+./e2e/run.sh android --fresh   # wipe the account first
 ```
 
-A normal run keeps whatever account the simulator already has. `--fresh` wipes
-the Keychain, and `00-onboarding` then creates the account the later flows need.
+`E2E_METRO_PORT` points the run at a Metro other than 8081, and `E2E_DEVICE` at
+one simulator or device when several are booted.
 
-`run.sh` checks for Maestro, Java, Xcode, a booted simulator, Metro, a stale
-native build and an unresponsive CoreSimulator before it starts. Each of those
-otherwise fails somewhere in the middle of a flow and looks like a bug in the
-app.
+A normal run keeps whatever account the device already has. `--fresh` resets
+the simulator Keychain or clears the app's data on Android, and `00-onboarding`
+then creates the account the later flows need.
 
-On Android:
+`run.sh` checks for Maestro, Java, Metro and a booted device before it starts,
+and on iOS for Xcode, a stale native build and an unresponsive CoreSimulator.
+Each of those otherwise fails somewhere in the middle of a flow and looks like a
+bug in the app.
 
-```bash
-npx expo run:android
-E2E_METRO_PORT=8081 ./e2e/run-android.sh           # everything but the iOS-only flows
-./e2e/run-android.sh --fresh                       # clear the app's data first
-```
-
-`run-android.sh` forwards Metro's port to the device and loads the build from it
+On Android it forwards Metro's port to the device and loads the build from it
 once, because the dev client reopens the last bundle it loaded and every flow
 starts with `launchApp`. Give the emulator 4 GB of RAM: with the default 2 GB
 the low-memory killer takes down Maestro's driver while the app creates an
@@ -87,7 +83,8 @@ Those tests do not exercise public infrastructure, XMTP native delivery, or
 release-build networking. Before a release, exchange a message and a reply
 between two clean release installs over each configured protocol by hand.
 
-`07-open` is tagged `ios-only`: it drives Safari.
+`07-open` is tagged `ios-only`: it drives Safari. A flow for one platform gets
+that platform's `-only` tag, and the other platform's run leaves it out.
 
 The camera is only checked as far as presentation and dismissal, which the
 scanner flow does without requiring camera permission. Reading a real
