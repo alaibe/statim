@@ -13,11 +13,11 @@ cannot make clear; never restate the code or add tautological commentary.
 
 ## Internal material goes in `priv/`
 
-`priv/` is gitignored except its `.gitkeep`. Whatever is about shipping and
-promoting Statim rather than building it lives there: store listings and
-screenshots, the release process, compliance filings, marketing, code
-generators, screenshot capture, the local Nostr and Status networks, build
-artifacts. New material of that kind goes there too. `priv/README.md` maps it and says how each tool runs. A
+`priv/` is gitignored except its `.gitkeep`. The maintainer's own material and
+tooling live there: store listings and screenshots, the release process,
+compliance filings, marketing, code generators, screenshot capture, the local
+Nostr and Status networks, build artifacts. New material of that kind goes
+there too. `priv/README.md` maps it and says how each tool runs. A
 worktree has no `priv/`; use the main checkout's.
 
 ## Before you finish
