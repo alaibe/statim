@@ -285,6 +285,58 @@ bot's questions there:
 Once signed in, your chats appear in this app's list as Matrix chats
 and fill in as the bridge catches up.
 
+## Notifications on iPhone
+
+iOS stops the app soon after you leave it, so a message waits until you open
+the app again unless Apple wakes the phone for it. Your homeserver can ask
+Apple to do that through a small program, the push forwarder, which runs next
+to Synapse. Telegram can use the same forwarder.
+
+Apple only takes a push from whoever holds the push key of the developer
+account that signed the app. The App Store and TestFlight builds therefore go
+through Statim's own forwarder. Run this one only for a build you sign
+yourself, with your own key.
+
+In your Apple developer account, under **Certificates, Identifiers &
+Profiles → Keys**, create a key with **Apple Push Notifications service
+(APNs)** and download its `.p8` file. Apple lets you download it once. Note
+its key ID and your team ID, then add the forwarder to the compose file:
+
+```yaml
+  push:
+    image: ghcr.io/alaibe/statim-push:latest
+    restart: unless-stopped
+    environment:
+      APNS_KEY_FILE: /run/secrets/apns.p8
+      APNS_KEY_ID: ABC123DEFG
+      APNS_TEAM_ID: TEAM123456
+      APNS_TOPIC: im.statim.app
+    volumes:
+      - ./push/AuthKey_ABC123DEFG.p8:/run/secrets/apns.p8:ro
+```
+
+`APNS_TOPIC` is the bundle identifier of the app you built. The forwarder tries
+Apple's production service first and falls back to the development one, so
+builds from Xcode and from TestFlight both work.
+
+Your homeserver has to reach the forwarder over HTTPS, and Telegram's servers
+do too if you use it for Telegram. Unlike the rest of this page, that means it
+must be reachable from the internet:
+
+```
+push.example.org {
+    reverse_proxy push:8080
+}
+```
+
+`https://push.example.org/health` should answer `ok`.
+
+The forwarder stores nothing and keeps no record of the messages it passes
+on. It learns your phone's push token and when a message arrives. From Matrix
+it gets only the room and event ids. From Telegram it gets the message
+encrypted with a key that only your phone holds. XMTP, Nostr and Status do not
+go through it.
+
 ## Keep it running
 
 - Back up the Postgres databases, all five of them, and the `synapse`

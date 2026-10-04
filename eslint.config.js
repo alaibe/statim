@@ -40,6 +40,10 @@ module.exports = defineConfig([
       },
     ]
   ),
+  {
+    files: ['push/*.test.ts'],
+    rules: { '@typescript-eslint/no-floating-promises': 'off' },
+  },
   boundary(
     ['protocols', 'storage'],
     [

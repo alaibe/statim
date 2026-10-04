@@ -62,11 +62,10 @@ write the recovery phrase down before you set a PIN.
 - **Appearance** sets light, dark or system, and the chat wallpaper.
 - **Notifications** (desktop and Android). On the desktop, **Open at login**
   starts Statim without a window when you log in, so messages and
-  notifications arrive before you open it. On Android, **Stay connected**
-  keeps Statim running after you leave it, which Android otherwise stops
-  soon after, so messages keep arriving and notifying. Android shows a
-  **Connected** notification while it is on, and it costs some battery. Both
-  are off by default.
+  notifications arrive before you open it. Android stops Statim soon after
+  you leave it; **Stay connected** keeps it running so messages keep arriving
+  and notifying. Android shows a **Connected** notification while it is on,
+  and it costs some battery. Both are off by default.
 - **Privacy** is below.
 - **Trades** takes a LI.FI key for swaps and bridges. They work without one;
   the key only raises how often you can ask for a quote. See
