@@ -60,6 +60,9 @@ write the recovery phrase down before you set a PIN.
 ## Preferences
 
 - **Appearance** sets light, dark or system, and the chat wallpaper.
+- **Notifications** (desktop only) has **Open at login**, off by default. It
+  starts Statim without a window when you log in, so messages and
+  notifications arrive before you open it.
 - **Privacy** is below.
 - **Trades** takes a LI.FI key for swaps and bridges. They work without one;
   the key only raises how often you can ask for a quote. See

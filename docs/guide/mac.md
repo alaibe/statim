@@ -38,7 +38,8 @@ and drag Statim into Applications.
   shows the unread count. Click the Dock icon, or choose Open Statim from the
   menu bar icon, to bring the window back; **⌘Q** quits. On Windows and Linux
   the icon sits in the system tray with Open Statim and Quit in its menu, and
-  **Ctrl+Q** also quits.
+  **Ctrl+Q** also quits. Turn on **Settings → Notifications → Open at login**
+  to have it start that way, without a window, each time you log in.
 - **Settings → Security** locks the app with Touch ID, on a Mac that has it,
   or with a PIN, which the lock screen also takes from the keyboard.
 

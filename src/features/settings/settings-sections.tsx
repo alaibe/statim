@@ -22,6 +22,7 @@ const SETTINGS_PAGES = [
   'pin',
   'pin-off',
   'appearance',
+  'notifications',
   'privacy',
   'trades',
   'gifs',
@@ -150,6 +151,17 @@ export function SettingsSections({
           selected={selected === 'appearance'}
           onPress={() => openTab('/settings/appearance')}
         />
+        {process.env.EXPO_OS === 'web' ? (
+          <ListItem
+            testID="settings-notifications"
+            title="Notifications"
+            subtitle={hint('Open at login')}
+            leading={<RowIcon name="notifications-outline" tone="red" />}
+            trailing={chevron}
+            selected={selected === 'notifications'}
+            onPress={() => openTab('/settings/notifications')}
+          />
+        ) : null}
         <ListItem
           testID="settings-privacy"
           title="Privacy"
