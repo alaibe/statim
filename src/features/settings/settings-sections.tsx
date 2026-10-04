@@ -151,11 +151,11 @@ export function SettingsSections({
           selected={selected === 'appearance'}
           onPress={() => openTab('/settings/appearance')}
         />
-        {process.env.EXPO_OS === 'web' ? (
+        {process.env.EXPO_OS === 'web' || process.env.EXPO_OS === 'android' ? (
           <ListItem
             testID="settings-notifications"
             title="Notifications"
-            subtitle={hint('Open at login')}
+            subtitle={hint(process.env.EXPO_OS === 'web' ? 'Open at login' : 'Stay connected')}
             leading={<RowIcon name="notifications-outline" tone="red" />}
             trailing={chevron}
             selected={selected === 'notifications'}
