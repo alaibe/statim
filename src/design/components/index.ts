@@ -7,7 +7,7 @@ export {
 export { Avatar, type AvatarProps } from './avatar';
 export { BackHeader } from './back-header';
 export { Badge } from './badge';
-export { NetworkMark } from './network-mark';
+export { NetworkMark, squareCorner } from './network-mark';
 export { Button } from './button';
 export { Checkmark } from './checkmark';
 export { Chevron } from './chevron';

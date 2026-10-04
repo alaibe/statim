@@ -1,11 +1,21 @@
 import { isLocalChat } from './bots';
 import { type ChatPrefsMap, prefsFor } from './chat-prefs';
-import { LOCAL_PROTOCOL } from './namespace';
-import type { NetworkId } from './networks';
+import { LOCAL_PROTOCOL, type ProtocolId } from './namespace';
+import { isBridgedNetwork, type NetworkId } from './networks';
 import { hasUnreadMentions, isSilenced, isUnread } from './unread';
 import type { Chat, ChatId } from './types';
 
 export type Folder = 'archive' | 'blocked' | NetworkId;
+
+export function isOwnFolder(folder: Folder): folder is 'archive' | 'blocked' {
+  return folder === 'archive' || folder === 'blocked';
+}
+
+/** The protocol a network folder's chats arrive over; every bridge sits on Matrix. */
+export function folderProtocol(folder: Folder | null): ProtocolId | undefined {
+  if (!folder || isOwnFolder(folder)) return undefined;
+  return isBridgedNetwork(folder) ? 'matrix' : folder;
+}
 
 export type ChatFilter = 'all' | 'unread' | 'mentions' | 'dms' | 'groups';
 

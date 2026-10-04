@@ -1,10 +1,10 @@
 import type { IconName, RowIconTone } from '@/design';
-import type { ProtocolConnection } from '@/core/messaging/chat-store';
+import { connectionFor, type ProtocolConnection } from '@/core/messaging/chat-store';
 import { LOCAL_PROTOCOL, type ProtocolId } from '@/core/messaging/namespace';
 import { BRIDGED_NETWORKS, isBridgedNetwork, type NetworkId } from '@/core/messaging/networks';
 import type { ChatProtocolMeta } from '@/core/messaging/protocol';
 import type { ProtocolDescriptor } from '@/core/messaging/registry';
-import { protocolById } from '@/protocols';
+import { connectableProtocols, protocolById } from '@/protocols';
 
 export type ProtocolTone = 'neutral' | 'brand' | 'success' | 'warning' | 'danger';
 
@@ -38,7 +38,9 @@ export function connectionBadge(
 
   switch (connection.status) {
     case 'ready':
-      return { label: 'Connected', tone: 'success' };
+      return connection.history.status === 'partial'
+        ? { label: 'Incomplete', tone: 'warning' }
+        : { label: 'Connected', tone: 'success' };
     case 'connecting':
       return { label: 'Connecting', tone: 'brand' };
     case 'error':
@@ -46,6 +48,15 @@ export function connectionBadge(
     default:
       return { label: 'Not set up', tone: 'neutral' };
   }
+}
+
+export function protocolsNeedAttention(
+  protocols: Partial<Record<ProtocolId, ProtocolConnection>>
+): boolean {
+  return connectableProtocols().some((descriptor) => {
+    const { tone } = connectionBadge(descriptor, connectionFor(protocols, descriptor.id));
+    return tone === 'warning' || tone === 'danger';
+  });
 }
 
 export function protocolSubtitle(protocol: ProtocolId): string {

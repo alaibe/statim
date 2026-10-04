@@ -6,10 +6,12 @@ import { RefreshControl, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import {
+  Chevron,
   CountBadge,
   EmptyState,
   Enter,
   Icon,
+  ListItem,
   type MenuAnchor,
   Pressable,
   Text,
@@ -19,11 +21,12 @@ import {
 import { reportError } from '@/core/app/report-error';
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { Chat, ChatId } from '@/core/messaging/types';
-import { messagePreview } from '@/core/messaging/preview';
+import { messagePreview, nameList } from '@/core/messaging/preview';
 import { type ChatPrefs, prefsFor } from '@/core/messaging/chat-prefs';
 import {
   type Folder,
   type ChatListRow,
+  folderProtocol,
   homeFolder,
   isUnreadHere,
   networkOf,
@@ -36,7 +39,7 @@ import { useChatListStore } from '@/features/chat/chat-list-store';
 import { useUnreadCounts } from '@/features/chat/use-unread-counts';
 import { BlockSheet } from './block';
 import { ChatMenu, type ChatMenuTarget } from './chat-menu';
-import { ConnectingState, ChatRow, FolderHeader, FolderRow, Separator } from './chat-list-rows';
+import { ConnectingState, ChatRow, FolderRow, Separator } from './chat-list-rows';
 import { chatListContents, isFolded } from './chat-list-contents';
 
 const NO_IDS: ReadonlySet<string> = new Set();
@@ -94,20 +97,21 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   const [kept, setKept] = useState({ view, ids: NO_IDS });
   const held = kept.view === view ? kept.ids : NO_IDS;
   const deferredQuery = useDeferredValue(query);
-  const { listed, requests, scope, rows, unseen, unreadHere, mentionsHere, showNetwork } = useMemo(
-    () =>
-      chatListContents({
-        chats,
-        chatPrefs,
-        readAt,
-        folder,
-        filter,
-        query: deferredQuery,
-        held,
-        titleOf,
-      }),
-    [chats, chatPrefs, readAt, folder, filter, deferredQuery, held, titleOf]
-  );
+  const { listed, requests, rows, filtering, unseen, unreadHere, mentionsHere, showNetwork } =
+    useMemo(
+      () =>
+        chatListContents({
+          chats,
+          chatPrefs,
+          readAt,
+          folder,
+          filter,
+          query: deferredQuery,
+          held,
+          titleOf,
+        }),
+      [chats, chatPrefs, readAt, folder, filter, deferredQuery, held, titleOf]
+    );
   if (unseen.length > 0) setKept({ view, ids: new Set([...held, ...unseen]) });
 
   const trimmed = query.trim();
@@ -129,8 +133,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
     setNavigated(true);
     setFolder(next);
   };
-  const leaveFolder = () => go(null);
-  useEscapeKey(folder !== null, leaveFolder);
+  useEscapeKey(folder !== null, () => go(null));
   const openSelectedFolder = useEffectEvent(() => {
     const selected = listed.find((c) => c.id === selectedId);
     if (!selected || selectedListed || trimmed) return;
@@ -142,31 +145,41 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   }, [selectedId]);
 
   const filterContext = { prefs: chatPrefs, readAt };
-  const renderItem = ({ item: row }: ListRenderItemInfo<ChatListRow>) =>
-    row.kind === 'folder' ? (
+  const protocol = folderProtocol(folder);
+  const renderItem = ({ item: row }: ListRenderItemInfo<ChatListRow>) => {
+    if (row.kind === 'chat') {
+      return (
+        <ChatRow
+          chat={row.chat}
+          title={titleOf(row.chat)}
+          selfId={selfIdOf(row.chat)}
+          unread={isUnread(row.chat, readAt)}
+          network={showNetwork ? networkOf(row.chat) : undefined}
+          prefs={prefsFor(chatPrefs, row.chat.id)}
+          selected={row.chat.id === selectedId}
+          onMenu={showMenu}
+          onToggle={toggle}
+        />
+      );
+    }
+    const unread = row.chats.filter((c) => isUnreadHere(c, filterContext));
+    return (
       <FolderRow
         row={row}
-        unread={row.chats.filter((c) => isUnreadHere(c, filterContext)).length}
-        preview={`${titleOf(row.latest)}: ${messagePreview(row.latest.lastMessage)}`}
+        unread={unread.length}
+        preview={
+          unread.length > 0
+            ? nameList(unread, titleOf)
+            : `${titleOf(row.latest)}: ${messagePreview(row.latest.lastMessage)}`
+        }
         onPress={() => go(row.folder)}
       />
-    ) : (
-      <ChatRow
-        chat={row.chat}
-        title={titleOf(row.chat)}
-        selfId={selfIdOf(row.chat)}
-        unread={isUnread(row.chat, readAt)}
-        network={showNetwork ? networkOf(row.chat) : undefined}
-        prefs={prefsFor(chatPrefs, row.chat.id)}
-        selected={row.chat.id === selectedId}
-        onMenu={showMenu}
-        onToggle={toggle}
-      />
     );
+  };
 
   return (
     <>
-      {chats.length > 0 ? (
+      {chats.length > 0 && filtering ? (
         <FilterBar
           active={filter}
           onSelect={setFilter}
@@ -174,8 +187,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
           mentions={mentionsHere}
         />
       ) : null}
-      {folder ? <FolderHeader folder={folder} onBack={leaveFolder} count={scope.length} /> : null}
-      <HistoryStatus compact />
+      <HistoryStatus compact protocol={protocol} showPartial={protocol !== undefined} />
       {(status === 'connecting' || fetchingHistory) && chats.length === 0 ? (
         <ConnectingState />
       ) : chats.length === 0 ? (
@@ -242,6 +254,22 @@ export function ChatList({ query, selectedId }: ChatListProps) {
                   </Pressable>
                 ) : null}
               </>
+            }
+            ListFooterComponent={
+              trimmed ? (
+                <ListItem
+                  testID="search-messages"
+                  title={<Text className="text-brand">Search messages for “{trimmed}”</Text>}
+                  accessibilityLabel={`Search messages for ${trimmed}`}
+                  leading={
+                    <View className="w-11 items-center">
+                      <Icon name="search-outline" size={20} tone="brand" />
+                    </View>
+                  }
+                  trailing={<Chevron />}
+                  onPress={() => router.push(`/search?q=${encodeURIComponent(trimmed)}`)}
+                />
+              ) : null
             }
             renderItem={renderItem}
           />

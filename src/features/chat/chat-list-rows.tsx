@@ -3,18 +3,20 @@ import Animated from 'react-native-reanimated';
 
 import type { ChatPrefs } from '@/core/messaging/chat-prefs';
 import { useChatStore } from '@/core/messaging/chat-store';
-import type { Folder, ChatListRow } from '@/core/messaging/folders';
+import { type Folder, type ChatListRow, isOwnFolder } from '@/core/messaging/folders';
 import { formatTimestamp, messagePreview } from '@/core/messaging/preview';
 import type { NetworkId } from '@/core/messaging/networks';
 import type { Chat, ChatId } from '@/core/messaging/types';
 import { readByPeer, unreadBadge } from '@/core/messaging/unread';
 import {
+  Chevron,
   CountBadge,
   Enter,
   Icon,
   ListItem,
   NetworkMark,
   type MenuAnchor,
+  squareCorner,
   Pressable,
   SwipeableRow,
   Text,
@@ -135,20 +137,28 @@ const OWN_FOLDERS = {
   blocked: { label: 'Blocked', icon: 'ban-outline' },
 } as const;
 
-const isOwnFolder = (folder: Folder): folder is keyof typeof OWN_FOLDERS => folder in OWN_FOLDERS;
-
-function folderLabel(folder: Folder): string {
+export function folderLabel(folder: Folder): string {
   return isOwnFolder(folder) ? OWN_FOLDERS[folder].label : networkLabel(folder);
 }
 
+export const leaveFolderLabel = (folder: Folder) => `Back to all chats from ${folderLabel(folder)}`;
+
+export const chatSearchPlaceholder = (folder: Folder | null) =>
+  folder ? `Search ${folderLabel(folder)}` : 'Search chats';
+
 function FolderIcon({ folder, size }: { folder: Folder; size: number }) {
   if (!isOwnFolder(folder)) {
-    return <NetworkMark network={folder} label={folderLabel(folder)} size={size} />;
+    return <NetworkMark network={folder} label={folderLabel(folder)} size={size} square />;
   }
   return (
     <View
-      style={{ width: size, height: size }}
-      className="items-center justify-center rounded-pill bg-surface-sunken">
+      style={{
+        width: size,
+        height: size,
+        borderRadius: squareCorner(size),
+        borderCurve: 'continuous',
+      }}
+      className="items-center justify-center bg-surface-sunken">
       <Icon name={OWN_FOLDERS[folder].icon} size={size * 0.5} tone="muted" />
     </View>
   );
@@ -184,31 +194,23 @@ export function FolderRow({
         ) : undefined
       }
       subtitleTrailing={unread > 0 ? <CountBadge count={unread} muted={quiet} /> : undefined}
+      trailing={<Chevron />}
     />
   );
 }
 
-export function FolderHeader({
-  folder,
-  count,
-  onBack,
-}: {
-  folder: Folder;
-  count: number;
-  onBack: () => void;
-}) {
+export function FolderHeader({ folder, onBack }: { folder: Folder; onBack: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Back to all chats from ${folderLabel(folder)}`}
+      accessibilityLabel={leaveFolderLabel(folder)}
       onPress={onBack}
-      className="flex-row items-center gap-2 border-b border-line px-3 py-2">
+      className="min-w-0 flex-1 flex-row items-center gap-1.5">
       <Icon name="chevron-back" size={20} tone="brand" />
       <FolderIcon folder={folder} size={22} />
-      <Text className="flex-1 font-semibold" numberOfLines={1}>
+      <Text variant="title" className="flex-1 font-semibold" numberOfLines={1}>
         {folderLabel(folder)}
       </Text>
-      <Text variant="caption">{chatCount(count)}</Text>
     </Pressable>
   );
 }

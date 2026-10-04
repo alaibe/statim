@@ -69,15 +69,20 @@ Telegram, Matrix and every network a Matrix bridge brings in each get a folder
 in the list, such as **Telegram** or **Slack**, so a busy account does not bury
 the rest. Pin a chat and it stays in the main list. Archived chats have their
 own **Archive** folder, and DMs with people you blocked are in **Blocked** at
-the end of the list.
+the end of the list. An open folder's name takes the place of the title, with a
+back arrow beside it; on the Mac, Esc also goes back.
 
 The filters at the top narrow the list: **All**, **Unread**, **Mentions** (chats
-where someone mentioned or replied to you), **DMs** and **Groups**.
+where someone mentioned or replied to you), **DMs** and **Groups**. **Unread**
+and **Mentions** take in every folder. Archive and Blocked show all their
+chats, without filters.
 
 ## Search
 
-The search button inside a chat searches that chat; search from the list looks
-through all of them. Telegram searches its whole history. Matrix searches the
+The search box above the list finds chats by name or last message, inside the
+open folder if there is one. **Search messages for…** at the end of the results
+looks through the messages of every chat, and the search button inside a chat
+searches that chat. Telegram searches its whole history. Matrix searches the
 homeserver's history for chats without encryption, and for encrypted chats what
 this device holds. The other protocols search what is stored on this device.
 

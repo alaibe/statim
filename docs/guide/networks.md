@@ -27,6 +27,12 @@ Unread badges use each protocol's available history. Telegram and Matrix report
 their own counts; for XMTP, Status and Nostr the app counts the messages it has
 since you last read the chat.
 
+Each protocol's row in Settings shows its state. **Incomplete** means part of
+its history could not be fetched, for example when a Nostr relay does not
+answer; the protocol's page names what failed and has **Retry**. A dot on
+Settings appears when a protocol is incomplete, failed, or waiting for you to
+sign in.
+
 ## XMTP
 
 Messages between Ethereum accounts, encrypted with MLS. Groups work, and the

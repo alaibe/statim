@@ -6,14 +6,19 @@ import type { NetworkId } from '@/core/messaging/networks';
 import { NETWORK_MARKS } from '../network-marks';
 import { Text } from './text';
 
+export const squareCorner = (size: number) => size * 0.28;
+
 export function NetworkMark({
   network,
   label,
   size = 16,
+  square = false,
 }: {
   network: NetworkId;
   label: string;
   size?: number;
+  /** A folder's mark, set apart from a chat's round avatar. */
+  square?: boolean;
 }) {
   const mark = NETWORK_MARKS[network];
   const glyph = Math.round(size * 0.62);
@@ -23,7 +28,8 @@ export function NetworkMark({
       style={{
         width: size,
         height: size,
-        borderRadius: size / 2,
+        borderRadius: square ? squareCorner(size) : size / 2,
+        borderCurve: 'continuous',
         backgroundColor: mark?.color ?? '#6B7280',
         alignItems: 'center',
         justifyContent: 'center',

@@ -12,6 +12,7 @@ import type { ChatSession } from '@/core/messaging/protocol';
 import type { ProtocolDescriptor } from '@/core/messaging/registry';
 import type { MatrixCapabilities } from '@/protocols/matrix/provisioning';
 import { describeProtocol, toneFor } from '@/features/protocols/presentation';
+import { HistoryStatus } from '@/features/chat/history-status';
 import { openExternal } from '@/lib/open-url';
 import { SettingsScreen } from '@/features/settings/settings-screen';
 import { ProtocolConfigForm } from '@/features/protocols/protocol-config-form';
@@ -37,6 +38,7 @@ function ProtocolSettings({ descriptor }: { descriptor: ProtocolDescriptor }) {
 
   return (
     <SettingsScreen title={descriptor.label} intro={descriptor.description}>
+      <HistoryStatus protocol={descriptor.id} />
       <View className="gap-3 px-gutter">
         <Card className="gap-2">
           <View className="flex-row items-start gap-2">

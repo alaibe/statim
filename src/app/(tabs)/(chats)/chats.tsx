@@ -4,23 +4,36 @@ import { View } from 'react-native';
 
 import { IconButton, Screen } from '@/design';
 import { ChatList } from '@/features/chat/chat-list';
+import {
+  chatSearchPlaceholder,
+  folderLabel,
+  leaveFolderLabel,
+} from '@/features/chat/chat-list-rows';
+import { useChatListStore } from '@/features/chat/chat-list-store';
 
 export default function ChatsScreen() {
   const router = useRouter();
   const [query, setQuery] = useState('');
+  const folder = useChatListStore((s) => s.folder);
+  const setFolder = useChatListStore((s) => s.setFolder);
 
   return (
     <Screen className="px-0" edges={[]}>
       <Stack.Screen
         options={{
-          title: 'Chats',
+          title: folder ? folderLabel(folder) : 'Chats',
+          headerLeft: folder
+            ? () => (
+                <IconButton
+                  icon="chevron-back"
+                  label={leaveFolderLabel(folder)}
+                  tone="brand"
+                  onPress={() => setFolder(null)}
+                />
+              )
+            : undefined,
           headerRight: () => (
             <View className="flex-row items-center gap-1">
-              <IconButton
-                icon="search-outline"
-                label="Search messages"
-                onPress={() => router.push('/search')}
-              />
               <IconButton
                 testID="header-new-group"
                 icon="people-outline"
@@ -39,7 +52,7 @@ export default function ChatsScreen() {
         }}
       />
       <Stack.SearchBar
-        placeholder="Search chats"
+        placeholder={chatSearchPlaceholder(folder)}
         hideWhenScrolling
         onChangeText={(e) => setQuery(e.nativeEvent.text)}
       />

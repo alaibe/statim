@@ -52,3 +52,22 @@ it('lists unread chats from every folder, and counts them from inside one', () =
   ]);
   expect(contents([XMTP, SLACK, NOSTR], { folder: 'nostr' }).unreadHere).toBe(2);
 });
+
+it('searches past the filter, and shows no filter while searching', () => {
+  const { rows, filtering } = contents([XMTP, SLACK, NOSTR], { filter: 'unread', query: 'cy' });
+
+  expect(rows).toEqual([{ kind: 'chat', chat: NOSTR }]);
+  expect(filtering).toBe(false);
+});
+
+it('lists every chat in Archive whatever the filter', () => {
+  const archived = { [NOSTR.id]: { archived: true } };
+  const { rows, filtering } = contents([XMTP, NOSTR], {
+    chatPrefs: archived,
+    folder: 'archive',
+    filter: 'groups',
+  });
+
+  expect(rows).toEqual([{ kind: 'chat', chat: NOSTR }]);
+  expect(filtering).toBe(false);
+});

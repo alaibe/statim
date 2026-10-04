@@ -3,6 +3,7 @@ import type { TextInput } from 'react-native';
 
 import { errorMessage } from '@/core/errors';
 import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
+import { nameList } from '@/core/messaging/preview';
 import { isBridgedNetwork, type NetworkId } from '@/core/messaging/networks';
 import type { ChatSession } from '@/core/messaging/protocol';
 import type { ProtocolDescriptor } from '@/core/messaging/registry';
@@ -105,9 +106,7 @@ function groupByInitial(people: Candidate[]): KnownRow[] {
 }
 
 function defaultGroupName(participants: Candidate[]): string {
-  const names = participants.slice(0, 2).map((r) => r.name.split('.')[0].slice(0, 10));
-  const rest = participants.length - names.length;
-  return rest > 0 ? `${names.join(', ')} +${rest}` : names.join(', ');
+  return nameList(participants, (r) => r.name.split('.')[0].slice(0, 10));
 }
 
 export function useNewChat(destination: Destination, contacts: readonly Contact[]) {

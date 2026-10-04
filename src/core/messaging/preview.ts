@@ -59,6 +59,11 @@ export function contentPreview(content: MessageContent): string {
   }
 }
 
+export function nameList<T>(items: readonly T[], nameOf: (item: T) => string): string {
+  const shown = items.slice(0, 2).map(nameOf).join(', ');
+  return items.length > 2 ? `${shown} +${items.length - 2}` : shown;
+}
+
 export function formatDuration(ms: number): string {
   const total = Math.max(0, Math.round(ms / 1000));
   const minutes = Math.floor(total / 60);

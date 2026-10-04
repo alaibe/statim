@@ -11,10 +11,14 @@ import {
   SearchField,
   Text,
 } from '@/design';
+import { useChatStore } from '@/core/messaging/chat-store';
 import { ChatList } from '@/features/chat/chat-list';
+import { chatSearchPlaceholder, FolderHeader } from '@/features/chat/chat-list-rows';
+import { useChatListStore } from '@/features/chat/chat-list-store';
 import { ContactList, type ContactSort } from '@/features/contacts/contact-list';
 import { SettingsAccount, useEnsName } from '@/features/settings/settings-account';
 import { openTab } from '@/features/navigation/open';
+import { protocolsNeedAttention } from '@/features/protocols/presentation';
 import {
   SettingsSections,
   settingsPageFor,
@@ -53,6 +57,9 @@ export function DesktopSidebar() {
   const [query, setQuery] = useState('');
   const [sortBy, setSortBy] = useState<ContactSort>('name');
   const [sorting, setSorting] = useState(false);
+  const folder = useChatListStore((s) => s.folder);
+  const setFolder = useChatListStore((s) => s.setFolder);
+  const attention = useChatStore((s) => protocolsNeedAttention(s.protocols));
 
   // Dialogs float over the window, so the sidebar keeps the tab they were opened from.
   const routed: Tab | null = segments.includes('(contacts)')
@@ -72,6 +79,7 @@ export function DesktopSidebar() {
   const revision = tab === 'settings' ? (settingsPage ?? 'settings') : null;
   const keys = useSettingsKeys(revision);
   const ensName = useEnsName(revision);
+  const openFolder = tab === 'chats' ? folder : null;
 
   return (
     <View
@@ -79,9 +87,13 @@ export function DesktopSidebar() {
       className="w-[320px] flex-1 overflow-hidden rounded-card bg-surface shadow-md">
       <View {...DRAG_REGION} className="flex-row items-center px-2 pb-1 pt-2">
         <View style={{ width: TRAFFIC_LIGHTS_WIDTH }} />
-        <Text variant="title" className="flex-1 text-center font-semibold">
-          {TABS.find((entry) => entry.id === tab)?.label}
-        </Text>
+        {openFolder ? (
+          <FolderHeader folder={openFolder} onBack={() => setFolder(null)} />
+        ) : (
+          <Text variant="title" className="flex-1 text-center font-semibold">
+            {TABS.find((entry) => entry.id === tab)?.label}
+          </Text>
+        )}
         <View
           className="flex-row items-center justify-end"
           style={{ minWidth: TRAFFIC_LIGHTS_WIDTH }}>
@@ -92,18 +104,11 @@ export function DesktopSidebar() {
               onPress={() => setSorting(true)}
             />
           ) : (
-            <>
-              <IconButton
-                icon="search-outline"
-                label="Search messages"
-                onPress={() => router.push('/search')}
-              />
-              <IconButton
-                icon="people-outline"
-                label="New group"
-                onPress={() => router.push('/new-chat?mode=group')}
-              />
-            </>
+            <IconButton
+              icon="people-outline"
+              label="New group"
+              onPress={() => router.push('/new-chat?mode=group')}
+            />
           )}
           {tab === 'settings' ? null : (
             <IconButton
@@ -119,7 +124,7 @@ export function DesktopSidebar() {
       {tab === 'settings' ? null : (
         <SearchField
           className="mx-3 mb-2 bg-surface-raised"
-          placeholder="Search"
+          placeholder={tab === 'contacts' ? 'Search' : chatSearchPlaceholder(openFolder)}
           value={query}
           onChangeText={setQuery}
           onClear={() => setQuery('')}
@@ -158,7 +163,12 @@ export function DesktopSidebar() {
               accessibilityLabel={entry.label}
               onPress={() => openTab(entry.href)}
               className="flex-1 items-center gap-0.5 py-2">
-              <Icon name={entry.icon} size={22} tone={active ? 'brand' : 'muted'} />
+              <View>
+                <Icon name={entry.icon} size={22} tone={active ? 'brand' : 'muted'} />
+                {entry.id === 'settings' && attention ? (
+                  <View className="absolute -right-1 -top-0.5 h-2.5 w-2.5 rounded-pill border-2 border-surface bg-warning" />
+                ) : null}
+              </View>
               <Text
                 variant="caption"
                 className={active ? 'font-semibold text-brand' : 'text-content-muted'}>

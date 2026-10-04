@@ -14,12 +14,12 @@ import { useChatTitles } from '@/features/chat/use-display-names';
 
 export default function SearchScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ chatId?: string }>();
+  const params = useLocalSearchParams<{ chatId?: string; q?: string }>();
   const chatId = parseChatId(params.chatId ?? '') ?? undefined;
   const searchMessages = useChatStore((s) => s.searchMessages);
   const chats = useChatStore((s) => s.chats);
   const jumpTo = useJumpStore((s) => s.jumpTo);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(params.q ?? '');
   const [found, setFound] = useState<{ query: string; messages: ChatMessage[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
 

@@ -5,6 +5,7 @@ import {
   type Folder,
   chatListRows,
   inFolder,
+  isOwnFolder,
   isUnreadHere,
   matchesFilter,
   networkOf,
@@ -50,11 +51,12 @@ export function chatListContents({
   const unread = everywhere.filter((c) => isUnreadHere(c, context));
 
   const q = query.trim().toLowerCase();
+  const filtering = !q && !(folder && isOwnFolder(folder));
   const include = (c: Chat) =>
-    (!q ||
-      titleOf(c).toLowerCase().includes(q) ||
-      messagePreview(c.lastMessage).toLowerCase().includes(q)) &&
-    (matchesFilter(c, filter, context) || (filter === 'unread' && held.has(c.id)));
+    q
+      ? titleOf(c).toLowerCase().includes(q) ||
+        messagePreview(c.lastMessage).toLowerCase().includes(q)
+      : !filtering || matchesFilter(c, filter, context) || (filter === 'unread' && held.has(c.id));
   const rows =
     folder || q || crossesFolders(filter)
       ? scope.filter(include).map(chatRow)
@@ -66,8 +68,8 @@ export function chatListContents({
   return {
     listed,
     requests,
-    scope,
     rows,
+    filtering,
     unseen: filter === 'unread' ? unread.filter((c) => !held.has(c.id)).map((c) => c.id) : [],
     unreadHere: unread.length,
     mentionsHere: everywhere.filter((c) => hasUnreadMentions(c, readAt)).length,

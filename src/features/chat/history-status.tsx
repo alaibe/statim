@@ -5,13 +5,15 @@ import { protocolEntries, type ProtocolId } from '@/core/messaging/namespace';
 import { Pressable, Text, useThemeColors } from '@/design';
 import { networkLabel } from '@/features/protocols/presentation';
 
-/** Shared by the chat list and the oldest end of a chat's transcript. */
+/** Shared by the chat list, a protocol's settings page and the oldest end of a chat's transcript. */
 export function HistoryStatus({
   protocol,
   compact = false,
+  showPartial = true,
 }: {
   protocol?: ProtocolId;
   compact?: boolean;
+  showPartial?: boolean;
 }) {
   const colors = useThemeColors();
   const protocols = useChatStore((s) => s.protocols);
@@ -20,7 +22,9 @@ export function HistoryStatus({
   const fetching = entries.filter(([, state]) => state.history.status === 'fetching');
   const connecting = entries.filter(([, state]) => state.status === 'connecting');
   const failed = entries.filter(([, state]) => state.history.status === 'error');
-  const partial = entries.filter(([, state]) => state.history.status === 'partial');
+  const partial = showPartial
+    ? entries.filter(([, state]) => state.history.status === 'partial')
+    : [];
   const active = [
     ...fetching,
     ...connecting.filter(([id]) => !fetching.some(([key]) => key === id)),
