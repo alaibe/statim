@@ -6,6 +6,7 @@ import type {
   MxOutgoing,
   MxProfile,
   MxPublicRoom,
+  MxPusher,
   MxRoom,
   MxSession,
   MxStartParams,
@@ -51,6 +52,14 @@ export class FakeMatrix implements MatrixApi {
 
   async logout(): Promise<void> {
     this.record('logout');
+  }
+
+  async setPusher(pusher: MxPusher): Promise<void> {
+    this.record('setPusher', pusher);
+  }
+
+  async deletePusher(pushkey: string, appId: string): Promise<void> {
+    this.record('deletePusher', pushkey, appId);
   }
 
   async room(id: string): Promise<MxRoom | null> {

@@ -1,5 +1,6 @@
 import { useAccountStore } from '../account/account-store';
 import { useLockStore } from '../account/lock-store';
+import { forgetPushSecrets } from '@/storage/shared-keychain';
 import { vaultWipe } from '@/storage/vault';
 import { accountRuntime } from '@/runtime';
 
@@ -12,6 +13,7 @@ export async function eraseAccount(accountId?: string): Promise<void> {
   if (!account) throw new Error(`Account ${targetId} does not exist.`);
 
   await accountRuntime.erase(account);
+  await forgetPushSecrets(targetId);
   await useAccountStore.getState().removeErasedAccount(targetId);
 }
 

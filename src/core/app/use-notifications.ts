@@ -19,6 +19,7 @@ import {
   setBadgeCount,
 } from '../notifications';
 import { resumeStayingConnected } from '../stay-connected';
+import { watchPush } from './push';
 
 let onScreen: string | undefined;
 let watching = false;
@@ -69,6 +70,7 @@ export function useMessageNotifications(onTap: (id: ChatId) => void) {
     if (!unlocked || !signedIn) return;
     void askForNotifications();
     resumeStayingConnected();
+    watchPush();
   }, [unlocked, signedIn]);
 
   useEffect(() => {

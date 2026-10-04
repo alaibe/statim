@@ -5,6 +5,7 @@ import type {
   LoginState,
   MentionCandidate,
   PublicChatPreview,
+  PushTarget,
 } from '@/core/messaging/protocol';
 import type {
   ProtocolChatId,
@@ -20,6 +21,7 @@ import type {
 } from '@/core/messaging/types';
 import { UnsupportedError } from '@/core/errors';
 import { localFileUri } from '@/storage/media';
+import { pushSecretKey, shareWithExtension, unshare } from '@/storage/shared-keychain';
 
 import type {
   MatrixApi,
@@ -75,6 +77,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   private api!: MatrixApi;
   private unsubscribe: Unsubscribe | null = null;
   private userId: string | null = null;
+  private pushTarget: PushTarget | null = null;
   private login: LoginState | null = null;
   private readonly loginListeners = new Set<(login: LoginState | null) => void>();
   private readonly messageListeners = new Set<(message: ProtocolMessage) => void>();
@@ -176,7 +179,37 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     );
   }
 
+  /** The notification extension fetches each event itself, with this session's token. */
+  async registerPush(target: PushTarget | null): Promise<void> {
+    const session = this.options.parameters.session;
+    const previous = this.pushTarget;
+    if (!target) {
+      this.pushTarget = null;
+      if (!previous) return;
+      await unshare(pushSecretKey('matrix', previous.accountId));
+      if (session) await this.api.deletePusher(previous.deviceToken, previous.topic);
+      return;
+    }
+    if (!session) return;
+    await shareWithExtension(
+      pushSecretKey('matrix', target.accountId),
+      JSON.stringify({
+        homeserverUrl: session.homeserverUrl,
+        accessToken: session.accessToken,
+        userId: session.userId,
+      })
+    );
+    await this.api.setPusher({
+      pushkey: target.deviceToken,
+      appId: target.topic,
+      url: `${target.server}/_matrix/push/v1/notify`,
+      payload: { statim_account: target.accountId },
+    });
+    this.pushTarget = target;
+  }
+
   async signOut(): Promise<void> {
+    await this.registerPush(null).catch(() => {});
     await this.api.logout();
     await this.restart();
   }

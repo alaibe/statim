@@ -8,17 +8,22 @@ const CHANNEL = 'messages';
 
 let configured = false;
 
+/** While the app is in front its own connections notify, so a push for the same message stays quiet. */
 export function configureNotifications(): void {
   if (configured) return;
   configured = true;
 
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldPlaySound: false,
-      shouldSetBadge: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
+    handleNotification: async (notification) => {
+      const { trigger } = notification.request;
+      const remote = !!trigger && 'type' in trigger && trigger.type === 'push';
+      return {
+        shouldPlaySound: false,
+        shouldSetBadge: true,
+        shouldShowBanner: !remote,
+        shouldShowList: !remote,
+      };
+    },
   });
 }
 

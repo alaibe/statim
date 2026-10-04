@@ -50,6 +50,13 @@
           }
         ],
         "NSPrivacyTracking": false
+      },
+      "appleTeamId": "8N3Z3WWTK7",
+      "entitlements": {
+        "keychain-access-groups": [
+          "$(AppIdentifierPrefix)im.statim.app",
+          "$(AppIdentifierPrefix)im.statim.app.shared"
+        ]
       }
     },
     "android": {
@@ -194,7 +201,8 @@
             "multipleShareMimeTypes": ["*/*"]
           }
         }
-      ]
+      ],
+      "@bacons/apple-targets"
     ],
     "experiments": {
       "typedRoutes": true,

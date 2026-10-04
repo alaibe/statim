@@ -331,6 +331,12 @@ push.example.org {
 
 `https://push.example.org/health` should answer `ok`.
 
+On the iPhone, open **Settings → Notifications** and enter
+`https://push.example.org` as the push server. The app then registers the
+phone with your homeserver, and with Telegram if you use it. The notification
+names the sender and shows the text: the phone fetches a Matrix message from
+your homeserver with its own session, and opens a Telegram one with its key.
+
 The forwarder stores nothing and keeps no record of the messages it passes
 on. It learns your phone's push token and when a message arrives. From Matrix
 it gets only the room and event ids. From Telegram it gets the message

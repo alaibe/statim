@@ -13,6 +13,7 @@ import type {
   MxPublicRoom,
   MxRole,
   MxRoom,
+  MxPusher,
   MxSession,
   MxStartParams,
   MxTextOutgoing,
@@ -86,6 +87,24 @@ class RnMatrixClient implements MatrixApi {
   async logout(): Promise<void> {
     await this.stopSync();
     await this.client.logout();
+  }
+
+  async setPusher({ pushkey, appId, url, payload }: MxPusher): Promise<void> {
+    await this.client.setPusher(
+      { pushkey, appId },
+      new sdk.PusherKind.Http({
+        data: { url, format: sdk.PushFormat.EventIdOnly, defaultPayload: JSON.stringify(payload) },
+      }),
+      'Statim',
+      this.params.deviceName,
+      undefined,
+      'en',
+      true
+    );
+  }
+
+  async deletePusher(pushkey: string, appId: string): Promise<void> {
+    await this.client.deletePusher({ pushkey, appId });
   }
 
   // ---- sync ----

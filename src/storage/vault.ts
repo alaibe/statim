@@ -11,6 +11,7 @@ export const VaultKey = {
   biometricLock: 'security.biometricLock',
   commandLine: 'security.commandLine',
   keyProtection: 'security.keyProtection',
+  pushServer: 'notifications.pushServer',
   pin: 'security.pin',
   pinAttempts: 'security.pinAttempts',
   version: 'vault.version',

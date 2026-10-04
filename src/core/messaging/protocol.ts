@@ -58,6 +58,16 @@ export interface MentionCandidate {
   address?: string;
 }
 
+/** Where a push forwarder can wake this device; see push/ at the repository root. */
+export interface PushTarget {
+  server: string;
+  /** The APNs device token, in hex. */
+  deviceToken: string;
+  /** The app's bundle identifier, which APNs calls the topic. */
+  topic: string;
+  accountId: string;
+}
+
 export interface ChatSession {
   readonly self: SelfParticipant;
   readonly sendsImages?: boolean;
@@ -132,6 +142,9 @@ export interface ChatSession {
   setConsent?(id: ProtocolChatId, consent: ConsentDecision): Promise<void>;
   /** Blocks or unblocks the other participant of a DM; while blocked, nothing they send arrives. */
   setBlocked?(id: ProtocolChatId, blocked: boolean): Promise<void>;
+
+  /** Asks the protocol to wake this device through `target` while the app is closed; `null` stops it. */
+  registerPush?(target: PushTarget | null): Promise<void>;
 
   sendReadReceipt?(id: ProtocolChatId): Promise<void>;
   setMarkedUnread?(id: ProtocolChatId, unread: boolean): Promise<void>;

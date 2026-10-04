@@ -32,6 +32,13 @@ const SETTINGS_PAGES = [
   'command-line',
 ] as const;
 
+const NOTIFICATIONS_HINT =
+  process.env.EXPO_OS === 'web'
+    ? 'Open at login'
+    : process.env.EXPO_OS === 'android'
+      ? 'Stay connected'
+      : 'Push server';
+
 /** The pages the sections open, so a layout showing both can mark the open one. */
 export type SettingsPage = (typeof SETTINGS_PAGES)[number] | `protocol/${ProtocolId}`;
 
@@ -151,17 +158,15 @@ export function SettingsSections({
           selected={selected === 'appearance'}
           onPress={() => openTab('/settings/appearance')}
         />
-        {process.env.EXPO_OS === 'web' || process.env.EXPO_OS === 'android' ? (
-          <ListItem
-            testID="settings-notifications"
-            title="Notifications"
-            subtitle={hint(process.env.EXPO_OS === 'web' ? 'Open at login' : 'Stay connected')}
-            leading={<RowIcon name="notifications-outline" tone="red" />}
-            trailing={chevron}
-            selected={selected === 'notifications'}
-            onPress={() => openTab('/settings/notifications')}
-          />
-        ) : null}
+        <ListItem
+          testID="settings-notifications"
+          title="Notifications"
+          subtitle={hint(NOTIFICATIONS_HINT)}
+          leading={<RowIcon name="notifications-outline" tone="red" />}
+          trailing={chevron}
+          selected={selected === 'notifications'}
+          onPress={() => openTab('/settings/notifications')}
+        />
         <ListItem
           testID="settings-privacy"
           title="Privacy"

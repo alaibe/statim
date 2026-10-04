@@ -10,6 +10,7 @@ import type {
   MxProfile,
   MxPublicRoom,
   MxRoom,
+  MxPusher,
   MxSession,
   MxStartParams,
   MxTextOutgoing,
@@ -38,6 +39,12 @@ class TauriMatrixClient implements MatrixApi {
   logout(): Promise<void> {
     return invoke('mx_logout');
   }
+
+  async setPusher(_pusher: MxPusher): Promise<void> {
+    throw new Error('Push notifications are for the phone.');
+  }
+
+  async deletePusher(_pushkey: string, _appId: string): Promise<void> {}
 
   room(id: string): Promise<MxRoom | null> {
     return invoke('mx_room', { id });

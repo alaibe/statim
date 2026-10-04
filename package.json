@@ -3,6 +3,7 @@
   "main": "index.js",
   "version": "0.6.0",
   "dependencies": {
+    "@bacons/apple-targets": "^5.0.0",
     "@keystonehq/bc-ur-registry-eth": "^0.22.1",
     "@ledgerhq/hw-app-eth": "^7.8.16",
     "@ledgerhq/react-native-hw-transport-ble": "^6.41.0",
