@@ -1,6 +1,9 @@
+import type { IconName, RowIconTone } from '@/design';
+import type { ProtocolConnection } from '@/core/messaging/chat-store';
 import { LOCAL_PROTOCOL, type ProtocolId } from '@/core/messaging/namespace';
 import { BRIDGED_NETWORKS, isBridgedNetwork, type NetworkId } from '@/core/messaging/networks';
 import type { ChatProtocolMeta } from '@/core/messaging/protocol';
+import type { ProtocolDescriptor } from '@/core/messaging/registry';
 import { protocolById } from '@/protocols';
 
 export type ProtocolTone = 'neutral' | 'brand' | 'success' | 'warning' | 'danger';
@@ -11,6 +14,38 @@ export function toneFor(meta: ChatProtocolMeta): ProtocolTone {
     return 'success';
   }
   return 'warning';
+}
+
+const ICON: Record<ProtocolId, { name: IconName; tone: RowIconTone }> = {
+  xmtp: { name: 'shield-checkmark-outline', tone: 'blue' },
+  nostr: { name: 'flash-outline', tone: 'purple' },
+  status: { name: 'radio-outline', tone: 'teal' },
+  telegram: { name: 'paper-plane-outline', tone: 'blue' },
+  matrix: { name: 'grid-outline', tone: 'green' },
+  local: { name: 'phone-portrait-outline', tone: 'grey' },
+};
+
+export function protocolIcon(protocol: ProtocolId): { name: IconName; tone: RowIconTone } {
+  return ICON[protocol];
+}
+
+export function connectionBadge(
+  descriptor: ProtocolDescriptor,
+  connection: ProtocolConnection
+): { label: string; tone: ProtocolTone } {
+  if (!descriptor.connect) return { label: 'Not available', tone: 'neutral' };
+  if (connection.login) return { label: 'Sign in', tone: 'warning' };
+
+  switch (connection.status) {
+    case 'ready':
+      return { label: 'Connected', tone: 'success' };
+    case 'connecting':
+      return { label: 'Connecting', tone: 'brand' };
+    case 'error':
+      return { label: 'Failed', tone: 'danger' };
+    default:
+      return { label: 'Not set up', tone: 'neutral' };
+  }
 }
 
 export function protocolSubtitle(protocol: ProtocolId): string {

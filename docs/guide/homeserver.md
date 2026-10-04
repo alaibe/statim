@@ -249,13 +249,13 @@ docker compose exec synapse register_new_matrix_user \
 `https://matrix.example.org/_matrix/client/versions` should answer with a list
 of versions. Each bridge's log should end with `Bridge started`.
 
-In this app, open **Settings → Protocols → Matrix** and enter
+In this app, open **Settings → Matrix** and enter
 `https://matrix.example.org` and `@you:example.org`. [Protocols](./networks#matrix)
 has the rest.
 
 ## Sign in to each network
 
-Open **Settings → Protocols → Matrix**. Under **Bridges on this server** the
+Open **Settings → Matrix**. Under **Bridges on this server** the
 app lists every bridge it finds on your homeserver, and who you are signed in
 as on each. **Connect** asks the bridge how it can sign you in and walks you
 through it:

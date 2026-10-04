@@ -45,9 +45,15 @@ export function ListItem({
   accessibilityLabel,
 }: ListItemProps) {
   const { pending, press } = usePress(onPress);
+  const pressable = Boolean(onPress || onLongPress);
 
   const body = (
-    <View className={cn('min-h-tap flex-row items-center gap-3 px-gutter py-2.5', className)}>
+    <View
+      className={cn(
+        'min-h-tap flex-row items-center gap-3 px-gutter py-2.5',
+        !pressable && 'mx-1',
+        className
+      )}>
       {leading}
       <View className="min-w-0 flex-1 gap-0.5">
         <View className="flex-row items-center gap-2">
@@ -81,7 +87,7 @@ export function ListItem({
     </View>
   );
 
-  if (!onPress && !onLongPress) return body;
+  if (!pressable) return body;
 
   /**
    * A pressable row is one accessibility element, so iOS stops exposing the

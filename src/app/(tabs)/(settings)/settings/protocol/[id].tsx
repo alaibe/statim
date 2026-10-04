@@ -77,7 +77,11 @@ function ProtocolSettings({ descriptor }: { descriptor: ProtocolDescriptor }) {
             {session.subscribeLogin ? (
               <SignedIn session={session} label={descriptor.label} />
             ) : (
-              <OwnAddress label={descriptor.label} address={session.self.address} />
+              <OwnAddress
+                label={descriptor.label}
+                address={session.self.address}
+                inboxId={descriptor.id === 'xmtp' ? session.self.participantId : undefined}
+              />
             )}
             {descriptor.id === 'matrix' ? (
               <MatrixBridges session={session as ChatSession & Partial<MatrixCapabilities>} />

@@ -143,7 +143,7 @@ Statim.
 Some commands stay in the terminal. An AI app cannot import an account or save
 an API key, so a recovery phrase or a key never passes through it, and it gets
 no `watch`, which never ends. When a sign-in asks for a password, or a protocol
-setting is secret, type it in Statim under **Settings › Protocols**.
+setting is secret, type it in Statim on that protocol's page in **Settings**.
 
 ## The app in the background
 

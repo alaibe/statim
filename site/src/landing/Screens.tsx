@@ -11,7 +11,7 @@ const screens = [
   ['chats', 'The chat list'],
   ['statim-chat', 'The Statim chat'],
   ['wallet', 'The Wallet chat'],
-  ['protocols', 'Settings → Protocols'],
+  ['protocols', 'Every protocol in Settings'],
   ['message-actions', 'Reactions, reply, copy, forward'],
   ['plugins', 'Settings → Plugins'],
   ['new-chat', 'Starting a new chat'],

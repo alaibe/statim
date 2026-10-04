@@ -1,11 +1,11 @@
 # Protocols
 
 Every chat runs over one protocol. The app tells you which, and what that
-protocol protects, on the chat itself and in full under **Settings →
-Protocols**, where each one is set up.
+protocol protects, on the chat itself and in full on its own page in **Settings**, where each one
+is set up.
 
 <div class="phones">
-  <figure><img src="/screenshots/protocols.png" alt="Settings → Protocols: the five protocols and their state"><figcaption>Settings → Protocols</figcaption></figure>
+  <figure><img src="/screenshots/protocols.png" alt="Settings, Messaging: the five protocols and their state"><figcaption>Every protocol in Settings, with its state</figcaption></figure>
   <figure><img src="/screenshots/protocol-matrix.png" alt="The Matrix settings screen: what it protects, homeserver and Matrix ID"><figcaption>Each protocol says what it protects before you connect</figcaption></figure>
 </div>
 
@@ -38,8 +38,9 @@ the chat.
 
 Nothing to set up. Two settings are there if you need them:
 
-- **Settings → XMTP environment** switches between the production environment
-  and the developer one. Two apps only see each other on the same one.
+- **Settings → XMTP → Environment** switches between the production
+  environment and the developer one. Two apps only see each other on the same
+  one.
 - **Settings → Devices** lists the phones and computers that share your inbox,
   and revokes one you no longer have.
 
@@ -64,7 +65,7 @@ Sealed DMs (NIP-17): relays deliver them without learning who sent them.
 
 ### Set up
 
-Under **Settings → Protocols → Nostr** you choose the relays, one per line. The
+Under **Settings → Nostr** you choose the relays, one per line. The
 defaults are public ones. More relays means better delivery, and also more
 servers that see when you receive something.
 
@@ -93,7 +94,7 @@ Nothing to set up. Your Status identity comes from your recovery phrase the
 same way the Status app derives it, so importing the phrase you use in Status
 makes you the same person in both apps.
 
-**Settings → Protocols → Status** shows your address, the `zQ3sh…` chat key
+**Settings → Status** shows your address, the `zQ3sh…` chat key
 Status users add you by. You can also set a **Display name** there, which
 Status users see instead of your chat key. It must be 5 to 24 letters, digits,
 spaces, `_` or `-`: Status drops every message whose sender name breaks those
@@ -185,7 +186,7 @@ app. Secret Chats are not opened here. Every Telegram chat says so.
    → *API development tools*. Telegram issues every developer their own pair.
    This app ships none, so each person registers theirs; it takes a minute and
    nothing about it is shared.
-2. Enter both under **Settings → Protocols → Telegram** and tap **Save and
+2. Enter both under **Settings → Telegram** and tap **Save and
    reconnect**.
 3. The screen then asks for your **phone number**, the **code** Telegram sends
    to your other devices or by SMS, and your **two-step verification password**
@@ -250,7 +251,7 @@ Check two things with whoever runs it:
 
 ### Set up
 
-1. Under **Settings → Protocols → Matrix**, enter your **homeserver** URL (the
+1. Under **Settings → Matrix**, enter your **homeserver** URL (the
    server's address, such as `https://matrix.example.org`) and your **Matrix
    ID** (`@you:example.org`), then **Save and reconnect**.
 2. Enter your **password** once. The app keeps a session token, not the

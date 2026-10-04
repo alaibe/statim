@@ -15,6 +15,13 @@
 - **Erase this account** is covered under
   [Your account](./account#erase-an-account).
 
+## Messaging
+
+Every protocol has its own row, marked **Connected**, **Sign in**, **Failed**
+or **Not set up**. Tap one to connect it, see your address on it or change
+its settings; [Protocols](./networks) covers each one. The XMTP page also
+shows your inbox id, which support and other XMTP apps can ask for.
+
 ## Security
 
 - **Require Face ID** asks for Face ID before the app shows anything when it
@@ -90,11 +97,6 @@ never sent anywhere.
 The full account of what leaves your device, and to whom, is on the
 [Privacy](../privacy) page.
 
-## Plugins and protocols
+## Plugins
 
-- **Plugins** is covered under [Plugins & slash commands](./plugins).
-- **Protocols** connects and configures each protocol; see
-  [Protocols](./networks).
-- **XMTP environment** picks production or the developer environment.
-- **Inbox id** is your XMTP inbox identifier, useful for support and for other
-  apps.
+**Plugins** is covered under [Plugins & slash commands](./plugins).

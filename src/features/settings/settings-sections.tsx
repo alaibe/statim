@@ -1,26 +1,22 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
-import { Chevron, ConfirmSheet, ListItem, RowIcon, Section } from '@/design';
+import { Badge, Chevron, ConfirmSheet, ListItem, RowIcon, Section } from '@/design';
 import { useAccountStore } from '@/core/account/account-store';
 import { readCredentials, type Credentials } from '@/core/account/credentials';
-import {
-  type ChatState,
-  connectionFor,
-  useChatStore,
-  xmtpSessionFor,
-} from '@/core/messaging/chat-store';
+import { connectionFor, useChatStore } from '@/core/messaging/chat-store';
+import { isProtocolId, type ProtocolId } from '@/core/messaging/namespace';
+import type { ProtocolDescriptor } from '@/core/messaging/registry';
 import { connectableProtocols } from '@/protocols';
-import { xmtpEnvironment } from '@/protocols/xmtp/shared';
 import { eraseAccount } from '@/core/app/erase-account';
 import { usePluginHost } from '@/core/plugins/host';
 import { openTab } from '@/features/navigation/open';
+import { connectionBadge, protocolIcon } from '@/features/protocols/presentation';
 import { SecuritySection } from '@/features/settings/security-section';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 import { useAction } from '@/features/use-action';
 
-/** The routes the sections open, so a layout showing both can mark the open one. */
-export const SETTINGS_PAGES = [
+const SETTINGS_PAGES = [
   'accounts',
   'recovery-phrase',
   'pin',
@@ -32,11 +28,21 @@ export const SETTINGS_PAGES = [
   'ai',
   'devices',
   'plugins',
-  'protocols',
   'command-line',
 ] as const;
 
-export type SettingsPage = (typeof SETTINGS_PAGES)[number];
+/** The pages the sections open, so a layout showing both can mark the open one. */
+export type SettingsPage = (typeof SETTINGS_PAGES)[number] | `protocol/${ProtocolId}`;
+
+export function settingsPageFor(
+  segments: readonly string[],
+  id: string | undefined
+): SettingsPage | undefined {
+  if (segments.includes('protocol')) return id && isProtocolId(id) ? `protocol/${id}` : undefined;
+  return segments.find((segment): segment is SettingsPage =>
+    (SETTINGS_PAGES as readonly string[]).includes(segment)
+  );
+}
 
 /**
  * Which optional keys the account has. Reloaded whenever `revision` changes,
@@ -63,8 +69,6 @@ export function SettingsSections({
   const chevron = compact ? undefined : <Chevron />;
   const hint = (text: string) => (compact ? undefined : text);
   const accounts = useAccountStore((s) => s.accounts);
-  const xmtp = useChatStore(xmtpSessionFor);
-  const protocols = useChatStore((s) => s.protocols);
   const { enabledIds, registry } = usePluginHost();
 
   const [confirmErase, setConfirmErase] = useState(false);
@@ -117,6 +121,17 @@ export function SettingsSections({
           leading={<RowIcon name="trash-outline" tone="red" />}
           onPress={() => setConfirmErase(true)}
         />
+      </Section>
+
+      <Section title="Messaging" surface="card" className="mb-6">
+        {connectableProtocols().map((descriptor) => (
+          <ProtocolRow
+            key={descriptor.id}
+            descriptor={descriptor}
+            compact={compact}
+            selected={selected === `protocol/${descriptor.id}`}
+          />
+        ))}
       </Section>
 
       <SecuritySection
@@ -211,35 +226,6 @@ export function SettingsSections({
         ) : null}
       </Section>
 
-      <Section title="Messaging" surface="card" className="mb-6">
-        <ListItem
-          testID="settings-protocols"
-          title="Protocols"
-          subtitle={hint(describeConnections(protocols))}
-          numberOfLinesSubtitle={2}
-          leading={<RowIcon name="git-network-outline" tone="blue" />}
-          trailing={chevron}
-          selected={selected === 'protocols'}
-          onPress={() => openTab('/settings/protocols')}
-        />
-        <ListItem
-          title="XMTP environment"
-          subtitle={
-            compact
-              ? xmtpEnvironment()
-              : `${xmtpEnvironment()}, reachable only from clients on the same environment`
-          }
-          numberOfLinesSubtitle={2}
-          leading={<RowIcon name="globe-outline" tone="teal" />}
-        />
-        <ListItem
-          title="Inbox id"
-          subtitle={xmtp?.self.participantId ?? 'Not connected'}
-          numberOfLinesSubtitle={1}
-          leading={<RowIcon name="finger-print-outline" tone="grey" />}
-        />
-      </Section>
-
       <ConfirmSheet
         visible={confirmErase}
         onClose={() => setConfirmErase(false)}
@@ -258,23 +244,29 @@ export function SettingsSections({
   );
 }
 
-function describeConnections(connections: ChatState['protocols']): string {
-  const connected = connectableProtocols().filter((p) => {
-    const { status, login } = connectionFor(connections, p.id);
-    return status === 'ready' && !login;
-  });
-  const failed = connectableProtocols().filter(
-    (p) => connectionFor(connections, p.id).status === 'error'
+function ProtocolRow({
+  descriptor,
+  compact,
+  selected,
+}: {
+  descriptor: ProtocolDescriptor;
+  compact: boolean;
+  selected: boolean;
+}) {
+  const connection = useChatStore((s) => connectionFor(s.protocols, descriptor.id));
+  const address = useChatStore((s) => s.sessions[descriptor.id]?.self.address);
+  const badge = connectionBadge(descriptor, connection);
+
+  return (
+    <ListItem
+      testID={`settings-protocol-${descriptor.id}`}
+      title={descriptor.label}
+      subtitle={compact ? undefined : (connection.error ?? (address || descriptor.description))}
+      leading={<RowIcon {...protocolIcon(descriptor.id)} />}
+      meta={<Badge label={badge.label} tone={badge.tone} />}
+      trailing={compact ? undefined : <Chevron />}
+      selected={selected}
+      onPress={() => openTab(`/settings/protocol/${descriptor.id}`)}
+    />
   );
-
-  if (connected.length === 0) {
-    return failed.length > 0
-      ? `Nothing connected: ${failed.map((p) => p.label).join(' and ')} failed`
-      : 'Nothing connected yet';
-  }
-
-  const summary = `${connected.map((p) => p.label).join(', ')} connected`;
-  return failed.length > 0
-    ? `${summary} · ${failed.map((p) => p.label).join(', ')} failed`
-    : summary;
 }

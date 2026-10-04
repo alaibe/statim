@@ -16,9 +16,8 @@ import { ContactList, type ContactSort } from '@/features/contacts/contact-list'
 import { SettingsAccount, useEnsName } from '@/features/settings/settings-account';
 import { openTab } from '@/features/navigation/open';
 import {
-  SETTINGS_PAGES,
-  type SettingsPage,
   SettingsSections,
+  settingsPageFor,
   useSettingsKeys,
 } from '@/features/settings/settings-sections';
 
@@ -67,9 +66,7 @@ export function DesktopSidebar() {
   if (routed && routed !== lastTab) setLastTab(routed);
   const tab = routed ?? lastTab;
   const selectedId = segments[0] === 'chat' ? params.id : undefined;
-  const settingsPage = segments.find((segment): segment is SettingsPage =>
-    (SETTINGS_PAGES as readonly string[]).includes(segment)
-  );
+  const settingsPage = settingsPageFor(segments, params.id);
 
   // Keys and the ENS name can only change on a settings page, so that is when they reload.
   const revision = tab === 'settings' ? (settingsPage ?? 'settings') : null;
