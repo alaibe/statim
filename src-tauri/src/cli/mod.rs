@@ -63,12 +63,17 @@ pub(crate) fn write_line(writer: &mut impl Write, message: &Value) -> std::io::R
 }
 
 /// Both builds share one data directory, so only one copy may run: a second
-/// launch, of either build, brings the running one forward and quits.
+/// launch, of either build, brings the running one forward and quits. On
+/// Windows and Linux a link to the app's URL scheme arrives this way too.
 pub fn show_running_copy() -> bool {
     let Ok(mut stream) = transport::connect() else {
         return false;
     };
-    let _ = write_line(&mut stream, &json!({ "type": "show" }));
+    let message = match std::env::args().skip(1).find(|arg| arg.contains("://")) {
+        Some(url) => json!({ "type": "opened", "url": url }),
+        None => json!({ "type": "show" }),
+    };
+    let _ = write_line(&mut stream, &message);
     eprintln!("Statim is already running; showing that copy instead.");
     true
 }
@@ -108,7 +113,12 @@ fn converse<R: Runtime>(app: AppHandle<R>, stream: Stream) {
         let Ok(message) = serde_json::from_str::<Value>(&line) else {
             continue;
         };
-        if message["type"] == "show" {
+        if message["type"] == "opened" {
+            if let Some(url) = message["url"].as_str() {
+                crate::sign_in::opened(&app, url);
+            }
+        }
+        if message["type"] == "show" || message["type"] == "opened" {
             let shown = app.clone();
             let _ = app.run_on_main_thread(move || show_main(&shown));
             continue;

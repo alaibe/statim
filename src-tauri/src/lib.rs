@@ -6,12 +6,12 @@ pub mod cli;
 mod contacts;
 mod db;
 mod ledger;
-mod loopback;
 mod matrix;
 mod media;
 mod paths;
 #[cfg(debug_assertions)]
 mod probe;
+mod sign_in;
 mod tdlib;
 mod tray;
 mod vault;
@@ -20,6 +20,7 @@ mod web_login;
 #[cfg(target_os = "macos")]
 use tauri::RunEvent;
 use tauri::{AppHandle, Manager, WindowEvent};
+use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_window_state::StateFlags;
 
 /// The unread count on the Dock icon and the tray; zero clears it.
@@ -78,6 +79,7 @@ pub fn run() {
 
     builder
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_http::init())
@@ -97,7 +99,7 @@ pub fn run() {
         .manage(tdlib::Telegram::default())
         .manage(matrix::Matrix::default())
         .manage(cli::Cli::default())
-        .manage(loopback::Loopback::default())
+        .manage(sign_in::SignIn::default())
         .invoke_handler(tauri::generate_handler![
             db::db_open,
             db::db_exec,
@@ -130,7 +132,7 @@ pub fn run() {
             tdlib::td_destroy,
             paths::account_dir,
             paths::erase_account_dir,
-            loopback::loopback_sign_in,
+            sign_in::browser_sign_in,
             web_login::web_login_open,
             web_login::web_login_poll,
             web_login::web_login_close,
@@ -204,6 +206,16 @@ pub fn run() {
             vault::preload(app.handle());
             paint_canvas(app.handle());
             cli::serve(app.handle());
+            let opened = app.handle().clone();
+            app.deep_link().on_open_url(move |event| {
+                for url in event.urls() {
+                    sign_in::opened(&opened, url.as_str());
+                }
+            });
+            #[cfg(any(windows, target_os = "linux"))]
+            if let Err(error) = app.deep_link().register_all() {
+                log::warn!("[deep-link] scheme not registered: {error}");
+            }
             if let Err(error) = tray::install(app.handle()) {
                 log::warn!("[tray] not shown: {error}");
             }

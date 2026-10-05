@@ -73,6 +73,11 @@
     }
   },
   "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["cloudkit-icloud.im.statim.app"]
+      }
+    },
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMzQzJDRUYzMjYzQjhGNkEKUldScWp6c204ODdDdzUrb1k3QmtnT1ZmM1AvcDVUMmN2aUxCaFFLTjJoblkxd3k0Um5pT01pMWIK",
       "endpoints": [

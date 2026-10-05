@@ -70,7 +70,7 @@ async function turnOn(accountId = 'acc1') {
   jest
     .mocked(invoke)
     .mockImplementation(async (command) =>
-      command === 'loopback_sign_in' ? '/icloud?ckWebAuthToken=signed%2Bin' : undefined
+      command === 'browser_sign_in' ? '/icloud?ckWebAuthToken=signed%2Bin' : undefined
     );
   await turnOnRelay(accountId);
 }
@@ -83,10 +83,9 @@ describe('notifying the iPhone through iCloud', () => {
 
   it('signs in on Apple’s page in the browser and says hello to the iPhone with the token', async () => {
     await turnOn();
-    expect(invoke).toHaveBeenCalledWith('loopback_sign_in', {
+    expect(invoke).toHaveBeenCalledWith('browser_sign_in', {
       url: 'https://idmsa.apple.com/sign-in',
-      port: 47219,
-      path: '/icloud',
+      callback: 'http://localhost:47219/icloud',
     });
     expect(call(0).token).toBe('signed+in');
     expect(opened(0)).toEqual([{ tag, title: 'Statim', body: expect.any(String) }]);

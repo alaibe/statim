@@ -1,47 +1,94 @@
-//! Signing in through the browser: the page sends it back to a port on this
-//! computer, so nothing it hands over passes through a website.
+//! Signing in through the browser. The page comes back to this computer, to a
+//! port on it or through the app's URL scheme, so what it hands over passes
+//! through no website.
 
 use std::io::{BufRead, BufReader, ErrorKind, Write};
 use std::net::{Ipv4Addr, Ipv6Addr, TcpListener, TcpStream};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, Runtime, State};
 use tauri_plugin_opener::OpenerExt;
+use tokio::sync::oneshot;
 
 const WAIT: Duration = Duration::from_secs(300);
 const PAGE: &str = "<!doctype html><meta charset=\"utf-8\"><title>Statim</title>\
 <p style=\"font:17px -apple-system,system-ui,sans-serif;text-align:center;margin-top:30vh\">\
 Signed in. You can close this tab and go back to Statim.</p>";
 
-/// Counts sign-ins, so a newer one takes the port from one left waiting.
-#[derive(Default)]
-pub struct Loopback(Arc<AtomicU64>);
+type Waiting = Mutex<Option<(String, oneshot::Sender<String>)>>;
 
-/// Opens `url` in the browser and returns the path and query of the request
-/// for `path` that the sign-in ends with, on `port` of this computer.
+/// Counts sign-ins, so a newer one takes over from one left waiting, and holds
+/// the callback a URL-scheme sign-in waits for.
+#[derive(Default)]
+pub struct SignIn {
+    turns: Arc<AtomicU64>,
+    waiting: Waiting,
+}
+
+/// Opens `url` in the browser and returns where the sign-in ended: the request
+/// for a `http://localhost:<port>/<path>` callback, or the URL the system
+/// handed back for any other.
 #[tauri::command]
-pub async fn loopback_sign_in(
+pub async fn browser_sign_in(
     app: AppHandle,
-    loopback: State<'_, Loopback>,
+    sign_in: State<'_, SignIn>,
     url: String,
-    port: u16,
-    path: String,
+    callback: String,
 ) -> Result<String, String> {
-    let turns = Arc::clone(&loopback.0);
-    let turn = turns.fetch_add(1, Ordering::SeqCst) + 1;
+    let turn = sign_in.turns.fetch_add(1, Ordering::SeqCst) + 1;
+    let Some((port, path)) = loopback(&callback) else {
+        let (sender, receiver) = oneshot::channel();
+        *sign_in.waiting.lock().unwrap() = Some((callback, sender));
+        open(&app, url)?;
+        return match tokio::time::timeout(WAIT, receiver).await {
+            Ok(Ok(url)) => Ok(url),
+            _ => Err(UNFINISHED.into()),
+        };
+    };
     let listeners = tauri::async_runtime::spawn_blocking(move || bind(port))
         .await
         .map_err(|e| e.to_string())??;
-    app.opener()
-        .open_url(url, None::<String>)
-        .map_err(|e| e.to_string())?;
+    open(&app, url)?;
+    let turns = Arc::clone(&sign_in.turns);
     tauri::async_runtime::spawn_blocking(move || {
         wait(&listeners, &path, || turns.load(Ordering::SeqCst) == turn)
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+/// A URL the system handed to the app, from the browser or a second launch.
+pub fn opened<R: Runtime>(app: &AppHandle<R>, url: &str) {
+    deliver(&app.state::<SignIn>().waiting, url);
+}
+
+const UNFINISHED: &str = "The sign-in in the browser did not finish.";
+
+fn open(app: &AppHandle, url: String) -> Result<(), String> {
+    app.opener()
+        .open_url(url, None::<String>)
+        .map_err(|e| e.to_string())
+}
+
+fn deliver(waiting: &Waiting, url: &str) {
+    let mut waiting = waiting.lock().unwrap();
+    if waiting
+        .as_ref()
+        .is_some_and(|(callback, _)| url.starts_with(callback.as_str()))
+    {
+        if let Some((_, sender)) = waiting.take() {
+            let _ = sender.send(url.to_string());
+        }
+    }
+}
+
+fn loopback(callback: &str) -> Option<(u16, String)> {
+    let (port, path) = callback
+        .strip_prefix("http://localhost:")?
+        .split_once('/')?;
+    Some((port.parse().ok()?, format!("/{path}")))
 }
 
 /// Both loopback addresses, since a browser may resolve `localhost` to either.
@@ -86,7 +133,7 @@ fn wait(
             std::thread::sleep(Duration::from_millis(100));
         }
     }
-    Err("The sign-in in the browser did not finish.".into())
+    Err(UNFINISHED.into())
 }
 
 /// The request's target when it is for `path`; anything else, such as the
@@ -133,6 +180,15 @@ mod tests {
     }
 
     #[test]
+    fn reads_a_loopback_callback() {
+        assert_eq!(
+            loopback("http://localhost:47219/icloud"),
+            Some((47219, "/icloud".into()))
+        );
+        assert_eq!(loopback("cloudkit-icloud.im.statim.app://signed-in"), None);
+    }
+
+    #[test]
     fn returns_the_callback_and_turns_away_the_rest() {
         let port = free_port();
         let listeners = bind(port).unwrap();
@@ -149,5 +205,20 @@ mod tests {
     fn gives_up_once_a_newer_sign_in_starts() {
         let listeners = bind(free_port()).unwrap();
         assert!(wait(&listeners, "/icloud", || false).is_err());
+    }
+
+    #[test]
+    fn hands_the_matching_url_to_the_sign_in_waiting_for_it() {
+        let waiting = Waiting::default();
+        let (sender, mut receiver) = oneshot::channel();
+        *waiting.lock().unwrap() = Some(("scheme://signed-in".into(), sender));
+        deliver(&waiting, "other://signed-in?ckWebAuthToken=x");
+        assert!(receiver.try_recv().is_err());
+        deliver(&waiting, "scheme://signed-in?ckWebAuthToken=t");
+        assert_eq!(
+            receiver.try_recv().unwrap(),
+            "scheme://signed-in?ckWebAuthToken=t"
+        );
+        assert!(waiting.lock().unwrap().is_none());
     }
 }

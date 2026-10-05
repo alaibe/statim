@@ -14,7 +14,7 @@ import {
   type Container,
   type SealedNote,
 } from './cloudkit';
-import { ICLOUD_CALLBACK, icloudContainer } from './container';
+import { icloudContainer, type IcloudSetup } from './container';
 import { sealNote, type Note, type NoteKey } from './note';
 import type { RelayState } from './relay';
 
@@ -156,12 +156,10 @@ function scheduleCleanUp(): void {
 }
 
 /** Apple's own page, in the browser, which hands the token back to this computer. */
-async function signIn(container: Container): Promise<string> {
-  const callback = new URL(ICLOUD_CALLBACK);
-  const target = await invoke<string>('loopback_sign_in', {
+async function signIn(container: IcloudSetup): Promise<string> {
+  const target = await invoke<string>('browser_sign_in', {
     url: await signInURL(container),
-    port: Number(callback.port),
-    path: callback.pathname,
+    callback: container.callback,
   });
   const token = /[?&]ckWebAuthToken=([^&#]+)/.exec(target)?.[1];
   if (!token) throw new Error('iCloud did not hand back a sign-in.');
