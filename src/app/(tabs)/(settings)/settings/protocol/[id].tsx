@@ -5,6 +5,7 @@ import { Badge, Button, Card, Note, Text } from '@/design';
 import { useAccountStore } from '@/core/account/account-store';
 import { connectionFor, useChatStore } from '@/core/messaging/chat-store';
 import { protocolById } from '@/protocols';
+import { LocalHomeserver } from '@/features/protocols/local-homeserver';
 import { LoginStep, SignedIn } from '@/features/protocols/login';
 import { MatrixBridges } from '@/features/protocols/matrix-bridges';
 import { OwnAddress } from '@/features/protocols/own-address';
@@ -60,6 +61,10 @@ function ProtocolSettings({ descriptor }: { descriptor: ProtocolDescriptor }) {
             />
           ) : null}
         </Card>
+
+        {descriptor.id === 'matrix' && accountId ? (
+          <LocalHomeserver accountId={accountId} signedOut={!!connection.login} />
+        ) : null}
 
         {connection.error ? (
           <Note tone="danger" title="Last connection failed">

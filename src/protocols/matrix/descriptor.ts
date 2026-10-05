@@ -1,5 +1,11 @@
 import { Platform } from 'react-native';
 
+import {
+  eraseHomeserver,
+  homeserverState,
+  startHomeserver,
+  stopHomeserver,
+} from '@/core/homeserver';
 import type { ProtocolDescriptor } from '@/core/messaging/registry';
 import { guideUrl } from '@/lib/guide';
 import { accountDirectory, eraseAccountDirectory } from '@/storage/media';
@@ -15,7 +21,7 @@ import type { MxSession } from './api';
 import { USER_ID } from './ids';
 
 /** What the homeserver lists for this app under Sessions. */
-const DEVICE_NAME = `Statim on ${Platform.select({ ios: 'iPhone', android: 'Android', default: 'Mac' })}`;
+export const DEVICE_NAME = `Statim on ${Platform.select({ ios: 'iPhone', android: 'Android', default: 'Mac' })}`;
 
 export const MATRIX_PROTOCOL = {
   id: 'matrix',
@@ -76,6 +82,10 @@ export const MATRIX_PROTOCOL = {
     const homeserverUrl = normaliseHomeserver(config.homeserver ?? '');
     const userId = config.userId?.trim() ?? '';
     if (!USER_ID.test(userId)) throw new Error('The Matrix ID must look like @you:example.org.');
+    // A homeserver on this computer runs only while its account's session is open.
+    const here = await homeserverState(accountId);
+    const local = here.available && homeserverUrl === here.url;
+    if (local) await startHomeserver(accountId);
 
     const sessionKey = accountMatrixSessionKey(accountId);
     const [{ MatrixSession }, { MatrixClient }, dataDirectory, storeKey, session] =
@@ -98,12 +108,14 @@ export const MATRIX_PROTOCOL = {
       },
       persistSession: (next) =>
         next ? vaultSet(sessionKey, JSON.stringify(next)) : vaultDelete(sessionKey),
+      afterClose: local ? stopHomeserver : undefined,
     });
   },
   // A live session erases through the SDK instead; this covers accounts that are not open.
   async eraseLocalData({ accountId }) {
     await vaultDelete(accountMatrixSessionKey(accountId));
     await eraseAccountDirectory('matrix', accountId);
+    await eraseHomeserver(accountId);
   },
 } satisfies ProtocolDescriptor;
 

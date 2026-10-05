@@ -6,6 +6,7 @@ mod artifacts;
 mod config;
 mod process;
 mod router;
+mod users;
 
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
@@ -31,6 +32,7 @@ pub struct Homeserver(Mutex<Option<Running>>);
 
 struct Running {
     account: String,
+    dir: PathBuf,
     server: Process,
     router: Router,
 }
@@ -108,12 +110,53 @@ pub async fn homeserver_start(
     Ok(url())
 }
 
+/// The account's own user on its running server, signed in from a new device
+/// named `device_name`; the first call creates the user as `localpart`.
+#[tauri::command]
+pub async fn homeserver_session(
+    state: State<'_, Homeserver>,
+    account_id: String,
+    localpart: String,
+    device_name: String,
+) -> Result<users::Session, String> {
+    let running = state.0.lock().await;
+    let Some(run) = running.as_ref().filter(|run| run.account == account_id) else {
+        return Err("The homeserver on this computer is not running for this account.".into());
+    };
+    let token = registration_token(&run.dir)?;
+    users::sign_in(&run.dir, &url(), &localpart, &token, &device_name).await
+}
+
 #[tauri::command]
 pub async fn homeserver_stop(state: State<'_, Homeserver>) -> Result<(), String> {
     if let Some(running) = state.0.lock().await.take() {
         running.stop();
     }
     Ok(())
+}
+
+/// Stops the account's server and deletes everything it held.
+#[tauri::command]
+pub async fn homeserver_erase(
+    app: AppHandle,
+    state: State<'_, Homeserver>,
+    account_id: String,
+) -> Result<(), String> {
+    safe_component(&account_id, "account id")?;
+    let mut running = state.0.lock().await;
+    if running
+        .as_ref()
+        .is_some_and(|run| run.account == account_id)
+    {
+        if let Some(run) = running.take() {
+            run.stop();
+        }
+    }
+    crate::paths::remove_dir(
+        &data_dir(&app, "homeserver")?
+            .join("accounts")
+            .join(&account_id),
+    )
 }
 
 /// The app is quitting; its children go with it.
@@ -171,6 +214,7 @@ async fn start(account: String, dir: PathBuf, bin: &Path) -> Result<Running, Str
     }
     Ok(Running {
         account,
+        dir,
         server,
         router,
     })
@@ -197,24 +241,27 @@ async fn answering(server: &mut Process, dir: &Path) -> Result<(), String> {
     Err("The homeserver did not answer within 30 seconds.".into())
 }
 
-/// Made once per account and readable only by this user; new Matrix users on
-/// the server need it.
+/// Made once per account; new Matrix users on the server need it.
 fn registration_token(dir: &Path) -> Result<String, String> {
     let path = dir.join("registration-token");
     if let Ok(token) = std::fs::read_to_string(&path) {
         return Ok(token.trim().to_string());
     }
-    let mut bytes = [0u8; 32];
-    getrandom::getrandom(&mut bytes).map_err(|e| e.to_string())?;
-    let token: String = bytes.iter().map(|byte| format!("{byte:02x}")).collect();
-    std::fs::write(&path, &token).map_err(|e| e.to_string())?;
+    let token = users::random_hex(32)?;
+    write_private(&path, &token)?;
+    Ok(token)
+}
+
+/// A secret file readable only by this user.
+fn write_private(path: &Path, contents: &str) -> Result<(), String> {
+    std::fs::write(path, contents).map_err(|e| e.to_string())?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600))
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))
             .map_err(|e| e.to_string())?;
     }
-    Ok(token)
+    Ok(())
 }
 
 #[cfg(test)]
@@ -235,6 +282,15 @@ mod tests {
             .unwrap();
         assert!(versions.status().is_success());
         assert_eq!(registration_token(&dir).unwrap().len(), 64);
+        let token = registration_token(&dir).unwrap();
+        let first = users::sign_in(&dir, &url(), "me", &token, "Test")
+            .await
+            .unwrap();
+        assert_eq!(first.user_id, format!("@me:{SERVER_NAME}"));
+        let second = users::sign_in(&dir, &url(), "me", &token, "Phone")
+            .await
+            .unwrap();
+        assert_ne!(first.device_id, second.device_id);
         running.stop();
         assert!(reqwest::get(format!("{}/_matrix/client/versions", url()))
             .await
