@@ -79,7 +79,7 @@ export function LocalHomeserver({
         <Text variant="headline">Matrix on this computer</Text>
         <Text variant="caption">
           No homeserver of your own? Statim can run one on this computer while it runs, with bridges
-          to WhatsApp, Signal and more. Your iPhone reaches it through Tailscale.
+          to WhatsApp, Signal and more. Your phone reaches it through Tailscale.
         </Text>
         <Button
           testID="matrix-run-here"
