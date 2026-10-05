@@ -30,6 +30,7 @@ const icons: Record<string, React.ComponentType<{ className?: string }>> = {
   messages: EnvelopeIcon,
   networks: ShapesIcon,
   bridges: LinkIcon,
+  'computer-matrix': PackageIcon,
   homeserver: PackageIcon,
   bots: FaceSmileIcon,
   wallet: BoltIcon,

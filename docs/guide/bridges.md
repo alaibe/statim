@@ -35,10 +35,13 @@ ask for:
 
 ## What you need
 
-A Matrix homeserver you control, with the bridge installed next to it: a small
-server, a VPS or a box at home, and an afternoon.
-[Your own homeserver](./homeserver) walks through one with Messenger, Instagram,
-Slack and Discord, and the mautrix documentation at
+A Matrix homeserver you control, with the bridge installed next to it. The
+desktop app can run one with WhatsApp, Signal, Messenger, Instagram, Slack and
+Discord on your computer: see [Matrix on your computer](./computer-matrix).
+
+For a server that stays on, use a small server, a VPS or a box at home, and an
+afternoon. [Your own homeserver](./homeserver) walks through one with
+Messenger, Instagram, Slack and Discord, and the mautrix documentation at
 [docs.mau.fi](https://docs.mau.fi/bridges/) covers every other bridge.
 
 If you would rather not run a homeserver, Beeper's

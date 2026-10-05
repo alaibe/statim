@@ -51,6 +51,16 @@ once; the app then keeps only a session token, and the SDK's local store
 (history, keys, downloaded media) is encrypted with its own key from the
 keychain. Both are deleted when you sign out or erase the account.
 
+On a computer, Statim can run that homeserver itself. It answers only on the
+computer and, once you connect your phone, on your own Tailscale network, and
+it talks to no other Matrix server. The first time you turn it or a bridge on,
+the app downloads that program from GitHub and checks it against a hash the app
+ships with. The server's database, the bridges' logins and their copies of your
+chats stay in the app's data folder on the computer. The app does not encrypt
+them itself, so they rely on the computer's disk encryption. They are deleted
+when you erase the account. Tailscale's HTTPS certificates put the computer's
+name on your tailnet in public certificate logs.
+
 ### Money
 
 Blockchain reads and transactions go from your device to a public endpoint for

@@ -263,6 +263,9 @@ Check two things with whoever runs it:
 2. Enter your **password** once. The app keeps a session token, not the
    password.
 
+No homeserver? On a computer, choose **Run Matrix on this computer** instead:
+see [Matrix on your computer](./computer-matrix).
+
 Invitations arrive as [requests](./chats#requests); accepting one joins the
 chat.
 

@@ -23,6 +23,7 @@ export const navigation: Array<NavGroup> = [
       { title: 'Messages', href: '/guide/messages' },
       { title: 'Protocols', href: '/guide/networks' },
       { title: 'WhatsApp, Signal & friends', href: '/guide/bridges' },
+      { title: 'Matrix on your computer', href: '/guide/computer-matrix' },
       { title: 'Your own homeserver', href: '/guide/homeserver' },
       { title: 'Your own bots', href: '/guide/bots' },
       { title: 'Wallet', href: '/guide/wallet' },
