@@ -190,7 +190,8 @@ statim.laibe.cc counts visits with Umami, which the developer runs on the
 developer's own server. It sets no cookies, and its statistics hold no network
 address. Each page view records the page, the referring page, browser,
 operating system, device type, screen size, language, and the country, region
-and city looked up from the network address. Page views are grouped into visits
+and city looked up from the network address. A click on a download link also
+records which platform's file it was. Page views are grouped into visits
 by an identifier derived from the address and browser that changes every month.
 
 Each count reaches that server through Cloudflare, and the server's access log
