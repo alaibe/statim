@@ -1,0 +1,64 @@
+name: Homeserver
+
+on:
+  workflow_dispatch:
+    inputs:
+      tuwunel:
+        description: tuwunel tag
+        default: v1.9.3
+      olm:
+        description: libolm tag
+        default: 3.2.16
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  mac:
+    runs-on: macos-15
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '15.0'
+    steps:
+      - name: tuwunel
+        run: |
+          git clone --depth 1 --branch "${{ inputs.tuwunel }}" \
+            https://github.com/matrix-construct/tuwunel.git "$RUNNER_TEMP/tuwunel"
+          cd "$RUNNER_TEMP/tuwunel"
+          cargo build --release --locked -p tuwunel --no-default-features \
+            --features brotli_compression,element_hacks,gzip_compression,media_thumbnail,release_max_log_level,url_preview,zstd_compression
+          mkdir -p "$RUNNER_TEMP/out"
+          cp target/release/tuwunel "$RUNNER_TEMP/out/tuwunel-macos-arm64"
+
+      - name: libolm
+        run: |
+          git clone --depth 1 --branch "${{ inputs.olm }}" \
+            https://gitlab.matrix.org/matrix-org/olm.git "$RUNNER_TEMP/olm"
+          cd "$RUNNER_TEMP/olm"
+          sed -i '' \
+            -e 's/T \* const other_pos = other._data;/T const * other_pos = other._data;/' \
+            -e 's/\*this_pos = \*other;/*this_pos = *other_pos;/' \
+            include/olm/list.hh
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DOLM_TESTS=OFF \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build build --config Release
+          cp build/libolm.3.dylib "$RUNNER_TEMP/out/libolm.3.dylib"
+          otool -D "$RUNNER_TEMP/out/libolm.3.dylib" | grep -q '@rpath/libolm.3.dylib'
+
+      - uses: actions/attest@v4
+        with:
+          subject-path: ${{ runner.temp }}/out/*
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd "$RUNNER_TEMP/out"
+          shasum -a 256 * > sha256sums.txt
+          cat sha256sums.txt
+          TAG="homeserver-${{ inputs.tuwunel }}"
+          gh release create "$TAG" --repo "${{ github.repository }}" --latest=false \
+            --title "Homeserver ${{ inputs.tuwunel }}" \
+            --notes "tuwunel ${{ inputs.tuwunel }} and libolm ${{ inputs.olm }} for Apple silicon, downloaded by the desktop app when Matrix runs on the computer." \
+            tuwunel-macos-arm64 libolm.3.dylib sha256sums.txt

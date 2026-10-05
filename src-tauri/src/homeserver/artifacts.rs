@@ -1,20 +1,21 @@
 //! The programs the server runs, downloaded once and checked against the
 //! SHA-256 pinned here before anything executes them.
 
-use std::io::Write;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
 
-/// One file and where it comes from. An empty `sha256` means it has not been
-/// published for this computer yet, and nothing downloads it.
+/// One file and where it comes from. `sha256` is the hash of the file that
+/// runs, after a `.zst` download is unpacked. An empty one means it has not
+/// been published for this computer yet, and nothing downloads it.
 pub struct Pin {
     pub file: &'static str,
     pub url: &'static str,
     pub sha256: &'static str,
 }
 
-/// tuwunel, and on a Mac the libolm the bridges link, from Statim's own release.
+/// tuwunel, and on a Mac the libolm the bridges link.
 pub fn server_pins() -> Option<&'static [Pin]> {
     if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
         Some(&[
@@ -29,14 +30,17 @@ pub fn server_pins() -> Option<&'static [Pin]> {
                 sha256: "",
             },
         ])
-    } else if cfg!(all(
-        target_os = "linux",
-        any(target_arch = "x86_64", target_arch = "aarch64")
-    )) {
+    } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
         Some(&[Pin {
             file: "tuwunel",
-            url: "",
-            sha256: "",
+            url: "https://github.com/matrix-construct/tuwunel/releases/download/v1.9.3/v1.9.3-release-all-x86_64-v1-linux-gnu-tuwunel.zst",
+            sha256: "825bf246641b80be441d4632f433a03045da330e75b33d508444ffd388d8cec9",
+        }])
+    } else if cfg!(all(target_os = "linux", target_arch = "aarch64")) {
+        Some(&[Pin {
+            file: "tuwunel",
+            url: "https://github.com/matrix-construct/tuwunel/releases/download/v1.9.3/v1.9.3-release-all-aarch64-v8-linux-gnu-tuwunel.zst",
+            sha256: "53658cb09df611dc117af03630b751ef0515eb7286db2cdc682ff6222a8bc2d8",
         }])
     } else {
         None
@@ -72,27 +76,37 @@ pub fn override_dir() -> Option<PathBuf> {
 }
 
 async fn download(pin: &Pin, path: &Path) -> Result<(), String> {
-    let partial = path.with_extension("partial");
-    let mut response = reqwest::get(pin.url)
+    let body = reqwest::get(pin.url)
         .await
         .and_then(reqwest::Response::error_for_status)
+        .map_err(|e| format!("Could not download {}: {e}", pin.file))?
+        .bytes()
+        .await
         .map_err(|e| format!("Could not download {}: {e}", pin.file))?;
-    let mut file = std::fs::File::create(&partial).map_err(|e| e.to_string())?;
-    let mut hasher = Sha256::new();
-    while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
-        hasher.update(&chunk);
-        file.write_all(&chunk).map_err(|e| e.to_string())?;
-    }
-    drop(file);
-    if hex(&hasher.finalize()) != pin.sha256 {
-        let _ = std::fs::remove_file(&partial);
+    let contents = if pin.url.ends_with(".zst") {
+        unpack(&body).map_err(|e| format!("Could not unpack {}: {e}", pin.file))?
+    } else {
+        body.to_vec()
+    };
+    if hex(&Sha256::digest(&contents)) != pin.sha256 {
         return Err(format!(
             "{} did not match its pinned SHA-256 and was not kept.",
             pin.file
         ));
     }
+    let partial = path.with_extension("partial");
+    std::fs::write(&partial, contents).map_err(|e| e.to_string())?;
     make_executable(&partial)?;
     std::fs::rename(&partial, path).map_err(|e| e.to_string())
+}
+
+fn unpack(zstd: &[u8]) -> Result<Vec<u8>, String> {
+    let mut decoder = ruzstd::decoding::StreamingDecoder::new(zstd).map_err(|e| e.to_string())?;
+    let mut contents = Vec::new();
+    decoder
+        .read_to_end(&mut contents)
+        .map_err(|e| e.to_string())?;
+    Ok(contents)
 }
 
 fn hash_of(path: &Path) -> Option<String> {
@@ -130,6 +144,16 @@ mod tests {
         }];
         let error = install(&dir, &pins).await.unwrap_err();
         assert_eq!(error, "tuwunel is not published for this computer yet.");
+    }
+
+    #[test]
+    fn unpacks_a_zstd_download() {
+        let packed = [
+            0x28, 0xb5, 0x2f, 0xfd, 0x04, 0x58, 0x31, 0x00, 0x00, 0x62, 0x69, 0x6e, 0x61, 0x72,
+            0x79, 0x54, 0xd9, 0x26, 0x77,
+        ];
+        assert_eq!(unpack(&packed).unwrap(), b"binary");
+        assert!(unpack(b"binary").is_err());
     }
 
     #[tokio::test]
