@@ -73,7 +73,6 @@ export interface ChainStrategy {
   explorer: {
     name: string;
     addressUrl(address: string): string;
-    aliases?: string[];
   };
 
   transfer?: {
@@ -86,7 +85,6 @@ export interface ChainStrategy {
     current(context: PluginContext): Promise<string>;
     isDefault(url: string): boolean;
     set(context: PluginContext, url: string | null): Promise<void>;
-    aliases?: string[];
     check(url: string): Promise<RpcCheck>;
     noun: string;
   };

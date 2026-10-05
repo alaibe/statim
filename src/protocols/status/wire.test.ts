@@ -10,7 +10,6 @@ import {
   recoverPublicKey,
   sharedSecret,
   sign,
-  symmetricKeyFromPassword,
 } from './crypto';
 import {
   ANY_INSTALLATION,
@@ -99,7 +98,6 @@ describe('primitives', () => {
   it('derives a negotiated topic and its key from a shared secret', () => {
     const password = vectors.negotiated.secret.slice(2);
     expect(contentTopic(password)).toBe(vectors.negotiated.contentTopic);
-    expect(hex(symmetricKeyFromPassword(password))).toBe(vectors.negotiated.symKey);
   });
 });
 

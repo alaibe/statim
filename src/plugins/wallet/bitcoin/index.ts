@@ -141,7 +141,6 @@ export function bitcoinStrategy(context: PluginContext): ChainStrategy {
     explorer: {
       name: 'mempool.space',
       addressUrl: (address) => `${EXPLORER}/address/${address}`,
-      aliases: ['btcexplorer', 'mempool'],
     },
     transfer: {
       symbol: 'BTC',
@@ -194,7 +193,6 @@ export function bitcoinStrategy(context: PluginContext): ChainStrategy {
         }
       },
       noun: 'indexer',
-      aliases: ['btcapi'],
     },
   };
 }

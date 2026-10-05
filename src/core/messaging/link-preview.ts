@@ -12,7 +12,6 @@ export interface LinkPreview {
 
 export interface FetchOptions {
   fetchImpl?: typeof fetch;
-  timeoutMs?: number;
 }
 
 // Sites gate their Open Graph tags on a crawler user agent.
@@ -44,12 +43,12 @@ export function isPreviewable(url: string): boolean {
 
 export async function fetchLinkPreview(
   url: string,
-  { fetchImpl = appFetch, timeoutMs = 10_000 }: FetchOptions = {}
+  { fetchImpl = appFetch }: FetchOptions = {}
 ): Promise<LinkPreview | null> {
   if (!isPreviewable(url)) return null;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const timer = setTimeout(() => controller.abort(), 10_000);
 
   const request = (target: string, accept: string) =>
     fetchImpl(target, {

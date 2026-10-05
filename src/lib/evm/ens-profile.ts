@@ -81,22 +81,3 @@ async function fetchProfile(address: Address): Promise<StoredEnsProfile | null> 
     paidUntil: paidUntil?.getTime() ?? null,
   };
 }
-
-export async function resolveEnsProfiles(
-  addresses: Address[],
-  batchSize = 5
-): Promise<Record<string, EnsProfile>> {
-  const unique = [...new Set(addresses.map((a) => a.toLowerCase() as Address))];
-  const out: Record<string, EnsProfile> = {};
-
-  for (let i = 0; i < unique.length; i += batchSize) {
-    const batch = unique.slice(i, i + batchSize);
-    const results = await Promise.all(batch.map((a) => resolveEnsProfile(a)));
-    batch.forEach((address, index) => {
-      const profile = results[index];
-      if (profile) out[address] = profile;
-    });
-  }
-
-  return out;
-}

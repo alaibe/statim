@@ -6,6 +6,7 @@ import { ActionSheet, Badge, Button, Eyebrow, Pressable, Text } from '../compone
 import { Icon } from '../icon';
 import { cn } from '../lib/cn';
 import { copyText } from '../copy-text';
+import { affordanceFor } from './affordance';
 import { FormWidget } from './form-widget';
 import { type Widget, type WidgetAction, type WidgetTone } from './schema';
 
@@ -68,15 +69,6 @@ export function WidgetView(props: WidgetViewProps) {
       ) : null}
     </>
   );
-}
-
-/**
- * Never an arrow and never an ellipsis: both promise a destination, and a row
- * either runs its action on the spot or opens a sheet of its own actions.
- */
-function affordanceFor(actions: WidgetAction[] | undefined): string | null {
-  if (!actions?.length) return null;
-  return actions.length === 1 ? actions[0].label : 'Options';
 }
 
 function Affordance({ actions }: { actions: WidgetAction[] | undefined }) {

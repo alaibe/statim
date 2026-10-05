@@ -115,7 +115,6 @@ describe('chats', () => {
     await store.upsertChat(
       chat('c1', STATUS, {
         title: 'Duo',
-        routingKey: '/app/1/chat/proto',
         participants: ['a', 'b', 'c'],
         hidden: true,
         blocked: true,
@@ -131,7 +130,6 @@ describe('chats', () => {
       createdAt: 5000,
       hidden: true,
       blocked: true,
-      routingKey: '/app/1/chat/proto',
     });
   });
 

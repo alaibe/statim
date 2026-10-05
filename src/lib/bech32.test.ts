@@ -1,14 +1,7 @@
 import { schnorr } from '@noble/curves/secp256k1';
 import { bytesToHex } from '@noble/hashes/utils';
 
-import {
-  bech32Decode,
-  bech32Encode,
-  encodeNpub,
-  encodeNsec,
-  npubFor,
-  parsePublicKey,
-} from '@/lib/bech32';
+import { bech32Decode, bech32Encode, encodeNpub, npubFor, parsePublicKey } from '@/lib/bech32';
 
 describe('bech32', () => {
   it('round-trips arbitrary bytes', () => {
@@ -46,10 +39,6 @@ describe('nostr entities', () => {
     expect(npub).toHaveLength(63);
   });
 
-  it('encodes an nsec', () => {
-    expect(encodeNsec(secret).startsWith('nsec1')).toBe(true);
-  });
-
   it('refuses a key of the wrong length rather than encoding nonsense', () => {
     expect(() => encodeNpub(new Uint8Array(31))).toThrow(/32 bytes/);
   });
@@ -73,7 +62,7 @@ describe('parsePublicKey', () => {
   });
 
   it('rejects an nsec, so a pasted secret key is never used as an address', () => {
-    expect(parsePublicKey(encodeNsec(secret))).toBeNull();
+    expect(parsePublicKey(bech32Encode('nsec', secret))).toBeNull();
   });
 
   it('rejects the TLV entities this deliberately does not implement', () => {

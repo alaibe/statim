@@ -84,7 +84,6 @@ export interface XmtpConnectOptions {
   dbEncryptionKey: Uint8Array;
   env?: XmtpEnvironment;
   codecs?: ContentCodec<any>[];
-  appVersion?: string;
 }
 
 export interface XmtpEraseOptions {
@@ -164,7 +163,6 @@ export class XmtpSession implements ChatSession {
       env,
       dbPath: databasePath(env, opts.account.address),
       dbEncryptionKey: opts.dbEncryptionKey,
-      appVersion: opts.appVersion,
       codecs,
     };
 

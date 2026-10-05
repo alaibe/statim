@@ -99,15 +99,6 @@ export class AccountRuntime {
     return synchronization;
   }
 
-  restart(): Promise<void> {
-    return this.serialize(async () => {
-      const current = this.current;
-      const generation = this.currentGeneration;
-      if (!current || !this.isCurrent(generation)) return;
-      await this.reconnect(current, generation);
-    });
-  }
-
   disconnect(): Promise<void> {
     return this.serialize(async () => {
       if (!this.current || !this.isCurrent(this.currentGeneration)) return;
@@ -202,10 +193,6 @@ export class AccountRuntime {
 
       if (active) clearChatProjection();
     });
-  }
-
-  runningBotIds(): string[] {
-    return this.bots.ids();
   }
 
   wasProactive(id: MessageId): boolean {

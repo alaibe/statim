@@ -21,7 +21,6 @@ export interface StoredChat<Id extends AnyChatId = AnyChatId> {
   hidden: boolean;
   /** A DM whose other participant you blocked. */
   blocked?: boolean;
-  routingKey?: string;
 }
 
 export type TransportChat = StoredChat<ProtocolChatId>;

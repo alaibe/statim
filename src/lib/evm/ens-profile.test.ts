@@ -1,5 +1,5 @@
 import { clearEnsCache, forgetEns, hydrateEnsCache } from './ens-cache';
-import { resolveEnsProfile, resolveEnsProfiles } from './ens-profile';
+import { resolveEnsProfile } from './ens-profile';
 import { lookupName } from './ens';
 import { publicClientFor } from './chains';
 
@@ -10,7 +10,6 @@ const mockLookup = lookupName as jest.MockedFunction<typeof lookupName>;
 const mockClientFor = publicClientFor as jest.MockedFunction<typeof publicClientFor>;
 
 const ADDRESS = '0x1111111111111111111111111111111111111111' as const;
-const OTHER = '0x2222222222222222222222222222222222222222' as const;
 
 function client(overrides: Partial<Record<string, unknown>> = {}) {
   return {
@@ -143,27 +142,6 @@ describe('across launches', () => {
     mockLookup.mockResolvedValue('alice.eth');
 
     expect((await resolveEnsProfile(ADDRESS))?.name).toBe('alice.eth');
-  });
-});
-
-describe('resolveEnsProfiles', () => {
-  it('resolves several and omits the ones without names', async () => {
-    mockLookup.mockImplementation(async (address) =>
-      address.toLowerCase() === ADDRESS ? 'alice.eth' : null
-    );
-
-    const out = await resolveEnsProfiles([ADDRESS, OTHER]);
-
-    expect(Object.keys(out)).toEqual([ADDRESS]);
-    expect(out[ADDRESS].name).toBe('alice.eth');
-  });
-
-  it('deduplicates before hitting the network', async () => {
-    mockLookup.mockResolvedValue('alice.eth');
-
-    await resolveEnsProfiles([ADDRESS, ADDRESS, ADDRESS]);
-
-    expect(mockLookup).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -36,12 +36,8 @@ export class StoreBackedTestTransport implements ChatTransport {
     return protocolChatId(`c:${[...participants].sort().join('+')}`);
   }
 
-  routingKeyFor(participants: ParticipantId[]): string {
-    return `topic:${[...participants].sort().join('+')}`;
-  }
-
   async openChat(chat: TransportChat, options?: { since?: number }): Promise<void> {
-    this.opened.push(chat.routingKey ?? chat.id);
+    this.opened.push(chat.id);
     this.openCursors.push(options?.since);
   }
 

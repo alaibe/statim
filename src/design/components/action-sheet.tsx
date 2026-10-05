@@ -20,7 +20,6 @@ export interface SheetAction {
   /** Shows a checkmark, for sheets that pick one of several. */
   selected?: boolean;
   onPress: PressHandler;
-  testID?: string;
 }
 
 export interface ActionSheetProps extends Omit<SheetProps, 'children'> {
@@ -76,7 +75,6 @@ export function ActionSheet({ actions, searchFor, ...sheet }: ActionSheetProps) 
             return (
               <ListItem
                 key={`${action.label}-${i}`}
-                testID={action.testID}
                 accessibilityLabel={action.label}
                 className={cn('px-4', i > 0 && 'border-t border-line')}
                 title={

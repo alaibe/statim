@@ -30,7 +30,6 @@ export interface RelayPoolOptions {
   /** Events handled on an earlier run. */
   handled?: Iterable<string>;
   authenticate?(url: string, challenge: string): NostrEvent;
-  onStatusChange?(states: RelayState[]): void;
   createSocket?(url: string): WebSocketLike;
 }
 
@@ -78,13 +77,11 @@ export class RelayPool {
   private closed = false;
 
   private readonly createSocket: (url: string) => WebSocketLike;
-  private readonly onStatusChange?: (states: RelayState[]) => void;
   private readonly authenticate?: RelayPoolOptions['authenticate'];
 
   constructor(options: RelayPoolOptions) {
     this.createSocket =
       options.createSocket ?? ((url) => new WebSocket(url) as unknown as WebSocketLike);
-    this.onStatusChange = options.onStatusChange;
     this.authenticate = options.authenticate;
     for (const id of options.handled ?? []) this.seen.add(id);
 
@@ -97,10 +94,6 @@ export class RelayPool {
       status: c.status,
       error: c.error,
     }));
-  }
-
-  get openCount(): number {
-    return [...this.connections.values()].filter((c) => c.status === 'open').length;
   }
 
   private addRelay(url: string) {
@@ -122,7 +115,6 @@ export class RelayPool {
     connection.status = 'connecting';
     connection.authChallenge = undefined;
     connection.authEventId = undefined;
-    this.notify();
 
     let socket: WebSocketLike;
     try {
@@ -138,7 +130,6 @@ export class RelayPool {
       connection.status = 'open';
       connection.attempts = 0;
       connection.error = undefined;
-      this.notify();
       for (const subscription of this.subscriptions.values()) {
         this.sendTo(connection, ['REQ', subscription.id, ...subscription.filters]);
       }
@@ -156,7 +147,6 @@ export class RelayPool {
       this.failPublicationsFor(connection.url, 'Relay disconnected before acknowledging the event');
       connection.socket = null;
       connection.status = 'closed';
-      this.notify();
       this.scheduleReconnect(connection);
     };
   }
@@ -203,7 +193,6 @@ export class RelayPool {
           this.sendTo(connection, ['AUTH', event]);
         } catch (error) {
           connection.error = describe(error);
-          this.notify();
         }
         return;
       }
@@ -249,7 +238,6 @@ export class RelayPool {
             }
           }
         }
-        this.notify();
         return;
       }
       case 'EVENT': {
@@ -272,7 +260,6 @@ export class RelayPool {
       case 'NOTICE':
       case 'CLOSED': {
         connection.error = String(message[message.length - 1] ?? '');
-        this.notify();
         return;
       }
       default:
@@ -380,19 +367,6 @@ export class RelayPool {
     }
   }
 
-  setRelays(urls: string[]) {
-    const next = new Set(dedupeUrls(urls));
-
-    for (const [url, connection] of this.connections) {
-      if (next.has(url)) continue;
-      this.failPublicationsFor(url, 'Relay removed before acknowledging the event');
-      this.teardown(connection);
-      this.connections.delete(url);
-    }
-    for (const url of next) this.addRelay(url);
-    this.notify();
-  }
-
   close() {
     this.closed = true;
     for (const eventId of [...this.publications.keys()]) {
@@ -421,10 +395,6 @@ export class RelayPool {
         socket.close();
       } catch {}
     }
-  }
-
-  private notify() {
-    this.onStatusChange?.(this.states);
   }
 }
 

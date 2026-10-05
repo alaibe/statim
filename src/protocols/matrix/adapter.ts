@@ -51,8 +51,6 @@ import { searchHomeserver } from './search';
 import { inviteLink, knocks } from './join-requests';
 import { BridgeProvisioning, type MatrixCapabilities } from './provisioning';
 
-export const MATRIX_PROTOCOL_ID = 'matrix';
-
 const UNFETCHED_LIMIT = 2_000;
 
 export interface MatrixConnectOptions {

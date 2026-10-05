@@ -15,10 +15,6 @@ export class BotRuntime {
   private proactiveIds: MessageId[] = [];
   private ready: Promise<unknown> = Promise.resolve();
 
-  ids(): string[] {
-    return [...this.running.keys()];
-  }
-
   wasProactive(id: MessageId): boolean {
     return this.proactiveIds.includes(id);
   }

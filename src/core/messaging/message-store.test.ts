@@ -47,7 +47,7 @@ describe('history across a restart', () => {
     await flushWrites();
 
     const second = await sessionOn(store);
-    expect(second.transport.opened).toEqual([`topic:${[ME, THEM].sort().join('+')}`]);
+    expect(second.transport.opened).toEqual([`c:${[ME, THEM].sort().join('+')}`]);
   });
 
   it('does not resurrect a chat that was left', async () => {

@@ -4,17 +4,12 @@ import { cn } from '../lib/cn';
 
 export interface CardProps extends ViewProps {
   className?: string;
-  tone?: 'flat' | 'raised';
 }
 
-export function Card({ className, tone = 'raised', ...props }: CardProps) {
+export function Card({ className, ...props }: CardProps) {
   return (
     <View
-      className={cn(
-        'rounded-card border border-line p-gutter',
-        tone === 'raised' ? 'bg-surface-raised' : 'bg-surface',
-        className
-      )}
+      className={cn('rounded-card border border-line bg-surface-raised p-gutter', className)}
       style={{ borderCurve: 'continuous' }}
       {...props}
     />

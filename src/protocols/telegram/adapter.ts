@@ -54,8 +54,6 @@ import type {
   TdUser,
 } from './types';
 
-export const TELEGRAM_PROTOCOL_ID = 'telegram';
-
 export interface TdParameters {
   databaseDirectory: string;
   apiId: number;

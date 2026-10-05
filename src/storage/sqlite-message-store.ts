@@ -274,7 +274,6 @@ function upsertChat(db: Queries, chat: StoredChat) {
     createdAt: chat.createdAt,
     hidden: chat.hidden,
     blocked: chat.blocked ?? false,
-    routingKey: chat.routingKey ?? null,
   };
   return db
     .insert(chats)
@@ -310,7 +309,6 @@ function toChat<Id extends AnyChatId>(row: typeof chats.$inferSelect): StoredCha
     createdAt: row.createdAt,
     hidden: row.hidden,
     ...(row.blocked ? { blocked: true } : {}),
-    routingKey: row.routingKey ?? undefined,
   };
 }
 

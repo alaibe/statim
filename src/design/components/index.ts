@@ -34,7 +34,6 @@ export { QrScanner, type QrScannerProps } from './qr-scanner';
 export { Pressable } from './pressable';
 export { Screen } from './screen';
 export { SearchField, type SearchFieldProps } from './search-field';
-export { ScreenTitle } from './screen-title';
 export { Section } from './section';
 export { Sheet } from './sheet';
 export { SwipeableRow, type SwipeAction } from './swipeable-row';

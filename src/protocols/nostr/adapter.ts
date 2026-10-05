@@ -22,7 +22,7 @@ import {
   unwrapGiftWrap,
   wrapForRecipients,
 } from './nip17';
-import { RelayPool, type RelayState, type WebSocketLike } from './relay-pool';
+import { RelayPool, type WebSocketLike } from './relay-pool';
 
 export const NOSTR_PROTOCOL_ID = 'nostr';
 
@@ -301,10 +301,7 @@ class NostrTransport implements ChatTransport {
 }
 
 export class NostrSession extends StoreBackedSession implements ChatSession {
-  private constructor(
-    private readonly nostr: NostrTransport,
-    store: MessageStore
-  ) {
+  private constructor(nostr: NostrTransport, store: MessageStore) {
     super(nostr, store);
     nostr.attach(this);
   }
@@ -340,14 +337,6 @@ export class NostrSession extends StoreBackedSession implements ChatSession {
     await session.hydrate();
     transport.listen(await session.newestSeenAt(Date.now()));
     return session;
-  }
-
-  get relays(): RelayState[] {
-    return this.nostr.pool.states;
-  }
-
-  get npub(): string {
-    return this.nostr.keys.npub;
   }
 }
 

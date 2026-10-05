@@ -112,12 +112,10 @@ export const APPEARANCE_STORE: Record<Actions<AppearanceState>, Covered> = {
 
 export const ACCOUNT_RUNTIME: Record<Actions<AccountRuntime>, Covered> = {
   synchronize: 'internal',
-  restart: 'internal',
   disconnect: 'internal',
   setPluginEnabled: 'plugins enable',
   updateProtocolConfig: 'protocols config',
   erase: 'accounts erase',
-  runningBotIds: 'internal',
   wasProactive: 'internal',
 };
 

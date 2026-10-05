@@ -27,7 +27,6 @@ export interface ButtonProps extends Omit<PressScaleProps, 'children' | 'onPress
   tone?: keyof typeof TONE;
   size?: keyof typeof SIZE;
   loading?: boolean;
-  haptic?: boolean;
   fullWidth?: boolean;
   onPress?: PressHandler;
 }
@@ -37,7 +36,6 @@ export function Button({
   tone = 'brand',
   size = 'md',
   loading = false,
-  haptic = true,
   fullWidth = false,
   disabled,
   onPress,
@@ -56,7 +54,7 @@ export function Button({
         isDisabled
           ? undefined
           : () => {
-              if (haptic && process.env.EXPO_OS === 'ios') {
+              if (process.env.EXPO_OS === 'ios') {
                 Haptics.selectionAsync().catch(() => {});
               }
               press?.();

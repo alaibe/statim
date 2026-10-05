@@ -19,7 +19,6 @@ export class StoreBackedSession implements ChatSession, TransportSink {
   readonly self: SelfParticipant;
 
   private readonly chats = new Map<ProtocolChatId, TransportChat>();
-  private readonly byRoutingKey = new Map<string, TransportChat>();
   private readonly messageListeners = new Set<(message: ProtocolMessage) => void>();
   private readonly chatListeners = new Set<(chat: ProtocolChat) => void>();
   private readonly history = new HistoryTracker();
@@ -41,14 +40,6 @@ export class StoreBackedSession implements ChatSession, TransportSink {
     for (const chat of this.chats.values()) {
       if (!chat.hidden) void this.open(chat)?.catch(() => {});
     }
-  }
-
-  deliverToRoutingKey(routingKey: string, incoming: IncomingMessage): Promise<void> {
-    if (!this.acceptingDeliveries) return Promise.resolve();
-    return this.enqueueDelivery(async () => {
-      const chat = this.byRoutingKey.get(routingKey);
-      if (chat) await this.deliver(chat, incoming, false);
-    });
   }
 
   deliverToParticipants(
@@ -123,12 +114,10 @@ export class StoreBackedSession implements ChatSession, TransportSink {
       title,
       createdAt: createdAt ?? Date.now(),
       hidden: false,
-      routingKey: this.transport.routingKeyFor?.(sorted),
     };
   }
   private remember(chat: TransportChat): void {
     this.chats.set(chat.id, chat);
-    if (chat.routingKey) this.byRoutingKey.set(chat.routingKey, chat);
   }
   private open(chat: TransportChat): Promise<void> | undefined {
     if (!this.transport.openChat) return;
@@ -138,7 +127,7 @@ export class StoreBackedSession implements ChatSession, TransportSink {
       .run(async () => {
         const since = await this.store.newestTransportTimestamp(
           this.transport.protocolId,
-          this.transport.cursorUpperBound?.() ?? Number.POSITIVE_INFINITY,
+          Number.POSITIVE_INFINITY,
           chat.id
         );
         await this.transport.openChat!(this.snapshot(chat), { since });
@@ -264,8 +253,6 @@ export class StoreBackedSession implements ChatSession, TransportSink {
     const chat = { ...this.require(id), hidden: true };
     await this.store.upsertChat(chat);
     this.remember(chat);
-    if (chat.routingKey) this.byRoutingKey.delete(chat.routingKey);
-    await this.transport.closeChat?.(this.snapshot(chat));
   }
 
   async send(id: ProtocolChatId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {

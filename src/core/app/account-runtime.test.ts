@@ -222,7 +222,6 @@ describe('AccountRuntime', () => {
     await switching;
 
     expect(dispose).toHaveBeenCalledTimes(1);
-    expect(runtime.runningBotIds()).toEqual([]);
     await runtime.synchronize(null);
   });
 

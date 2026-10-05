@@ -239,56 +239,6 @@ describe('dependent fields', () => {
   });
 });
 
-function affordanceFor(actions: { label: string; icon?: string }[] | undefined) {
-  if (!actions?.length) return null;
-  const primary = actions[0];
-  if (primary.icon) return { kind: 'icon' as const, icon: primary.icon, label: primary.label };
-  return { kind: 'text' as const, label: actions.length === 1 ? primary.label : 'Options' };
-}
-
-describe('what a row says a tap will do', () => {
-  it('says nothing when nothing happens', () => {
-    expect(affordanceFor(undefined)).toBeNull();
-    expect(affordanceFor([])).toBeNull();
-  });
-
-  it('names the single action, so the row reads as a sentence', () => {
-    expect(affordanceFor([{ label: 'Send ETH' }])).toEqual({ kind: 'text', label: 'Send ETH' });
-  });
-
-  it('names a destructive action too', () => {
-    expect(affordanceFor([{ label: 'Remove from group' }])).toEqual({
-      kind: 'text',
-      label: 'Remove from group',
-    });
-  });
-
-  it('uses a glyph only when the action supplied one, and keeps its words', () => {
-    expect(affordanceFor([{ label: 'Turn Bots off', icon: 'power' }])).toEqual({
-      kind: 'icon',
-      icon: 'power',
-      // Still required: it is the accessibility label, and the sheet's button.
-      label: 'Turn Bots off',
-    });
-  });
-
-  it('shows the primary action when several carry icons', () => {
-    expect(
-      affordanceFor([
-        { label: 'Make Base the default', icon: 'star-outline' },
-        { label: 'Switch Base off', icon: 'power' },
-      ])
-    ).toEqual({ kind: 'icon', icon: 'star-outline', label: 'Make Base the default' });
-  });
-
-  it('promises only options when several actions have no icon', () => {
-    expect(affordanceFor([{ label: 'Open' }, { label: 'Switch off' }])).toEqual({
-      kind: 'text',
-      label: 'Options',
-    });
-  });
-});
-
 describe('isWidget', () => {
   const wire = (value: unknown): unknown => JSON.parse(JSON.stringify(value));
 

@@ -7,8 +7,6 @@ import { apiBase } from './config';
 import { balanceChangeCard } from '../chains/balance-change';
 import type { Say } from '../chains/strategy';
 
-export const BITCOIN_BOT_ID = 'bitcoin';
-
 const STORAGE_SEEN = 'bot-seen-stats';
 
 interface SeenStats {

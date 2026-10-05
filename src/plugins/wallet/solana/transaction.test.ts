@@ -1,13 +1,7 @@
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { base58 } from '@scure/base';
 
-import {
-  buildTransferMessage,
-  encodeLength,
-  signTransaction,
-  transactionId,
-  transferData,
-} from './transaction';
+import { buildTransferMessage, encodeLength, signTransaction, transferData } from './transaction';
 
 const FROM = new Uint8Array(32).fill(1);
 const TO = new Uint8Array(32).fill(2);
@@ -109,10 +103,6 @@ describe('signTransaction', () => {
 
   it('produces a signature the sender’s public key verifies', () => {
     expect(ed25519.verify(signed.slice(1, 65), message, ed25519.getPublicKey(priv))).toBe(true);
-  });
-
-  it('reports the id a node will return', () => {
-    expect(transactionId(signed)).toBe(base58.encode(signed.slice(1, 65)));
   });
 });
 

@@ -74,11 +74,6 @@ export function segmentText(text: string): Segment[] {
   return segments;
 }
 
-export function firstUrl(text: string): string | null {
-  const link = segmentText(text).find((s) => s.kind === 'url');
-  return link && link.kind === 'url' ? link.href : null;
-}
-
 function classify(match: RegExpExecArray, text: string): LinkSegment | null {
   const [, email, url, bare, geo, evm, bech32, base58Token, ens, phone] = match;
   const before = text[match.index - 1] ?? '';

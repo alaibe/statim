@@ -1,10 +1,8 @@
 import { ctr, gcm } from '@noble/ciphers/aes';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import { hmac } from '@noble/hashes/hmac';
-import { pbkdf2 } from '@noble/hashes/pbkdf2';
 import { sha256 } from '@noble/hashes/sha2';
 import { keccak_256 } from '@noble/hashes/sha3';
-import { utf8ToBytes } from '@noble/hashes/utils';
 
 import { concat, timingSafeEqual } from '@/lib/bytes';
 import { randomBytes } from '@/lib/random';
@@ -85,9 +83,6 @@ export function decryptNonceFirst(key: Uint8Array, data: Uint8Array): Uint8Array
 }
 
 /** Waku's password-derived symmetric keys: PBKDF2-SHA256, no salt, 65356 rounds. */
-export function symmetricKeyFromPassword(password: string): Uint8Array {
-  return pbkdf2(sha256, utf8ToBytes(password), new Uint8Array(), { c: 65356, dkLen: 32 });
-}
 
 const ECIES_KEY_LENGTH = 16;
 const ECIES_BLOCK = 16;

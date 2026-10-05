@@ -51,7 +51,6 @@ describe('connecting', () => {
     expect(pool.states[0].status).toBe('connecting');
     factory.relays[0].open();
     expect(pool.states[0].status).toBe('open');
-    expect(pool.openCount).toBe(1);
   });
 });
 
@@ -305,18 +304,5 @@ describe('reconnecting', () => {
     pool.close();
     jest.advanceTimersByTime(60_000);
     expect(factory.relays).toHaveLength(1);
-  });
-
-  it('does not reconnect a relay removed by setRelays', () => {
-    // teardown() detaches the handlers first; without that, close() fires
-    // onclose and schedules a reconnect for a relay we just dropped.
-    const factory = fakeRelayFactory();
-    const pool = new RelayPool({ urls: ['wss://a.example'], createSocket: factory.create });
-    factory.relays[0].open();
-
-    pool.setRelays(['wss://b.example']);
-    jest.advanceTimersByTime(60_000);
-
-    expect(factory.relays.map((r) => r.url)).toEqual(['wss://a.example', 'wss://b.example']);
   });
 });

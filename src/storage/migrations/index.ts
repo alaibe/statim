@@ -30,5 +30,13 @@ export const MIGRATIONS: MigrationMeta[] = [
     "bps": true,
     "folderMillis": 1791011579306,
     "hash": "6db38086da10d370cee0984586ccd440002e1a02af9cf3295ac0de9f56705a92"
+  },
+  {
+    "sql": [
+      "ALTER TABLE `chats` DROP COLUMN `routing_key`;"
+    ],
+    "bps": true,
+    "folderMillis": 1791214386121,
+    "hash": "723f69b997d7e82973f85312fe7c0e3479fee2624683eb1cf1d342c231800727"
   }
 ];

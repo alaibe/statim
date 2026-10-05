@@ -1,4 +1,4 @@
-import { firstUrl, segmentText } from './links';
+import { segmentText } from './links';
 
 const links = (text: string) => segmentText(text).filter((s) => s.kind !== 'text');
 
@@ -82,15 +82,6 @@ describe('segmentText', () => {
     ]) {
       expect(links(text)).toEqual([]);
     }
-  });
-});
-
-describe('firstUrl', () => {
-  it('returns the first link as an absolute URL, ignoring phones and emails', () => {
-    expect(firstUrl('call 0612345678 or mail a@b.co, or see x.com/foo then github.com')).toBe(
-      'https://x.com/foo'
-    );
-    expect(firstUrl('nothing here')).toBeNull();
   });
 });
 

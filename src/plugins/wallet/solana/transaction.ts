@@ -73,7 +73,3 @@ export function signTransaction(message: Uint8Array, privateKey: Uint8Array): Ui
   const signature = ed25519.sign(message, privateKey);
   return concat([encodeLength(1), signature, message]);
 }
-
-export function transactionId(signed: Uint8Array): string {
-  return base58.encode(signed.slice(1, 65));
-}

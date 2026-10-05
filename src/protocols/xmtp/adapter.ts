@@ -91,7 +91,6 @@ export interface XmtpConnectOptions {
   dbEncryptionKey: Uint8Array;
   env?: XMTPEnvironment;
   codecs?: JSContentCodec<any>[];
-  appVersion?: string;
   /** Where the inbox id is remembered between launches. */
   storage?: AccountStorage;
 }
@@ -137,7 +136,6 @@ export class XmtpSession implements ChatSession {
     const options = {
       env: opts.env ?? xmtpEnvironment(),
       dbEncryptionKey: opts.dbEncryptionKey,
-      appVersion: opts.appVersion,
       codecs,
     };
 

@@ -9,8 +9,6 @@ import type { TransportChat } from './message-store';
 import type { ProtocolId } from './namespace';
 
 export interface TransportSink {
-  deliverToRoutingKey(routingKey: string, message: IncomingMessage): Promise<void>;
-
   deliverToParticipants(
     participants: ParticipantId[],
     message: IncomingMessage,
@@ -39,19 +37,14 @@ export interface SendResult {
 export interface ChatTransport {
   readonly protocolId: ProtocolId;
   readonly self: SelfParticipant;
-  cursorUpperBound?(): number;
 
   chatIdFor(participants: ParticipantId[]): ProtocolChatId;
-
-  routingKeyFor?(participants: ParticipantId[]): string;
 
   /**
    * `since` is the newest persisted message time, not the last delivery time.
    * It is undefined when the chat has no local history.
    */
   openChat?(chat: TransportChat, opts?: { since?: number }): Promise<void>;
-
-  closeChat?(chat: TransportChat): Promise<void>;
 
   send(chat: TransportChat, content: MessageContent): Promise<SendResult>;
   confirmSend?(chatId: ProtocolChatId, messageId: MessageId): void;

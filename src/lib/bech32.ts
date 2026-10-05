@@ -97,11 +97,6 @@ export function encodeNpub(publicKey: Uint8Array): string {
   return bech32Encode('npub', publicKey);
 }
 
-export function encodeNsec(secretKey: Uint8Array): string {
-  if (secretKey.length !== 32) throw new Error('A Nostr secret key is 32 bytes');
-  return bech32Encode('nsec', secretKey);
-}
-
 const HEX_PUBLIC_KEY = /^[0-9a-f]{64}$/i;
 
 export function parsePublicKey(value: string): string | null {
