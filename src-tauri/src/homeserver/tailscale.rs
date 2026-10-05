@@ -84,20 +84,36 @@ fn host_of(status: &str) -> Result<String, String> {
 
 /// Runs a Tailscale command, giving up after a while: one that waits for the
 /// person to enable something in the admin console prints a link and blocks.
+/// `/usr/local/bin/tailscale` is a script around the real binary, so the
+/// whole process group goes, or the binary would hold the output open.
 fn run(cli: &Path, args: &[&str]) -> Result<String, String> {
-    let mut child = Command::new(cli)
+    run_within(cli, args, Duration::from_secs(15))
+}
+
+fn run_within(cli: &Path, args: &[&str], limit: Duration) -> Result<String, String> {
+    let mut command = Command::new(cli);
+    command
         .args(args)
+        .stdin(Stdio::null())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stderr(Stdio::piped());
+    #[cfg(unix)]
+    std::os::unix::process::CommandExt::process_group(&mut command, 0);
+    let mut child = command
         .spawn()
         .map_err(|e| format!("Could not run Tailscale: {e}"))?;
-    let deadline = Instant::now() + Duration::from_secs(15);
+    let deadline = Instant::now() + limit;
     while Instant::now() < deadline {
         if child.try_wait().map_err(|e| e.to_string())?.is_some() {
             break;
         }
         std::thread::sleep(Duration::from_millis(100));
     }
+    #[cfg(unix)]
+    let _ = Command::new("kill")
+        .args(["-KILL", &format!("-{}", child.id())])
+        .stderr(Stdio::null())
+        .status();
     let _ = child.kill();
     let output = child.wait_with_output().map_err(|e| e.to_string())?;
     Ok(format!(
@@ -125,6 +141,28 @@ mod tests {
         assert_eq!(
             host_of(stopped).unwrap_err(),
             "Tailscale is not connected on this computer."
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn gives_up_on_a_script_whose_child_keeps_running() {
+        let dir = std::env::temp_dir().join("statim-tailscale-wrapper");
+        std::fs::create_dir_all(&dir).unwrap();
+        let script = dir.join("tailscale");
+        std::fs::write(
+            &script,
+            "#!/bin/sh\necho https://login.tailscale.com/f/serve?node=abc\nsleep 600\n",
+        )
+        .unwrap();
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let started = Instant::now();
+        let output = run_within(&script, &[], Duration::from_millis(500)).unwrap();
+        assert!(started.elapsed() < Duration::from_secs(5));
+        assert_eq!(
+            enable_link(&output),
+            Some("https://login.tailscale.com/f/serve?node=abc")
         );
     }
 
