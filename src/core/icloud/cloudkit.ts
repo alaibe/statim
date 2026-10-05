@@ -43,28 +43,51 @@ export async function currentUser(container: Container, token: string): Promise<
 }
 
 export interface SealedNote {
+  name: string;
   tag: string;
   sealed: string;
 }
 
-export async function saveNotes(
+export interface NotesChanged {
+  token: string;
+  /** Records still in iCloud that were meant to go; one already gone counts as deleted. */
+  undeleted: string[];
+}
+
+export async function changeNotes(
   container: Container,
   token: string,
-  notes: SealedNote[]
-): Promise<string> {
-  const answer = await call<{ records?: Reply[] }>(container, token, 'records/modify', {
-    atomic: false,
-    operations: notes.map((note) => ({
-      operationType: 'create',
-      record: {
-        recordType: 'Note',
-        fields: { tag: { value: note.tag }, sealed: { value: note.sealed } },
-      },
-    })),
-  });
-  const failed = answer.body.records?.find((record) => record.serverErrorCode);
+  notes: SealedNote[],
+  discard: string[] = []
+): Promise<NotesChanged> {
+  const answer = await call<{ records?: (Reply & { recordName?: string })[] }>(
+    container,
+    token,
+    'records/modify',
+    {
+      atomic: false,
+      operations: [
+        ...notes.map((note) => ({
+          operationType: 'create',
+          record: {
+            recordName: note.name,
+            recordType: 'Note',
+            fields: { tag: { value: note.tag }, sealed: { value: note.sealed } },
+          },
+        })),
+        ...discard.map((recordName) => ({ operationType: 'forceDelete', record: { recordName } })),
+      ],
+    }
+  );
+  const refused = (answer.body.records ?? []).filter(
+    (record) => record.serverErrorCode && record.serverErrorCode !== 'NOT_FOUND'
+  );
+  const failed = refused.find((record) => !discard.includes(record.recordName ?? ''));
   if (failed) throw new Error(failed.reason ?? failed.serverErrorCode);
-  return answer.token;
+  return {
+    token: answer.token,
+    undeleted: refused.flatMap((record) => (record.recordName ? [record.recordName] : [])),
+  };
 }
 
 async function call<T>(

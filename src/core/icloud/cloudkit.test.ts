@@ -1,4 +1,4 @@
-import { currentUser, saveNotes, signInURL, SignInRequired, type Container } from './cloudkit';
+import { changeNotes, currentUser, signInURL, SignInRequired, type Container } from './cloudkit';
 
 const mockFetch = jest.fn();
 jest.mock('@/lib/http', () => ({ appFetch: (...args: unknown[]) => mockFetch(...args) }));
@@ -19,6 +19,8 @@ function reply(status: number, body: object, token?: string) {
     },
   };
 }
+
+const NOTE = { name: 'n', tag: 't', sealed: 's' };
 
 beforeEach(() => mockFetch.mockReset());
 
@@ -47,9 +49,11 @@ describe('CloudKit web services', () => {
     await expect(currentUser(CONTAINER, 'same')).resolves.toBe('same');
   });
 
-  it('saves each note as a record with its tag and sealed text', async () => {
-    mockFetch.mockResolvedValueOnce(reply(200, { records: [{ recordName: 'r1' }] }, 'next'));
-    await expect(saveNotes(CONTAINER, 't', [{ tag: 'tag1', sealed: 'abc' }])).resolves.toBe('next');
+  it('saves each note under the name it chose and deletes the ones it is done with', async () => {
+    mockFetch.mockResolvedValueOnce(reply(200, { records: [{ recordName: 'n1' }] }, 'next'));
+    await expect(
+      changeNotes(CONTAINER, 't', [{ name: 'n1', tag: 'tag1', sealed: 'abc' }], ['old1'])
+    ).resolves.toEqual({ token: 'next', undeleted: [] });
     const [url, init] = mockFetch.mock.calls[0];
     expect(url).toContain('/private/records/modify?');
     expect(init.method).toBe('POST');
@@ -59,23 +63,36 @@ describe('CloudKit web services', () => {
         {
           operationType: 'create',
           record: {
+            recordName: 'n1',
             recordType: 'Note',
             fields: { tag: { value: 'tag1' }, sealed: { value: 'abc' } },
           },
         },
+        { operationType: 'forceDelete', record: { recordName: 'old1' } },
       ],
+    });
+  });
+
+  it('counts a note already gone as deleted and reports one it could not delete', async () => {
+    mockFetch.mockResolvedValueOnce(
+      reply(200, {
+        records: [
+          { recordName: 'old1', serverErrorCode: 'NOT_FOUND' },
+          { recordName: 'old2', serverErrorCode: 'SERVER_REJECTED_REQUEST' },
+        ],
+      })
+    );
+    await expect(changeNotes(CONTAINER, 't', [], ['old1', 'old2'])).resolves.toEqual({
+      token: 't',
+      undeleted: ['old2'],
     });
   });
 
   it('asks for a sign-in again once the token has expired', async () => {
     mockFetch.mockResolvedValueOnce(reply(421, { serverErrorCode: 'AUTHENTICATION_REQUIRED' }));
-    await expect(saveNotes(CONTAINER, 'old', [{ tag: 't', sealed: 's' }])).rejects.toBeInstanceOf(
-      SignInRequired
-    );
+    await expect(changeNotes(CONTAINER, 'old', [NOTE])).rejects.toBeInstanceOf(SignInRequired);
     mockFetch.mockResolvedValueOnce(reply(401, { serverErrorCode: 'AUTHENTICATION_FAILED' }));
-    await expect(saveNotes(CONTAINER, 'old', [{ tag: 't', sealed: 's' }])).rejects.toBeInstanceOf(
-      SignInRequired
-    );
+    await expect(changeNotes(CONTAINER, 'old', [NOTE])).rejects.toBeInstanceOf(SignInRequired);
   });
 
   it('says so when the build’s API token is wrong, which no sign-in fixes', async () => {
@@ -89,12 +106,12 @@ describe('CloudKit web services', () => {
     await expect(signInURL(CONTAINER)).rejects.toThrow('correct API Token');
   });
 
-  it('fails when a record is refused', async () => {
+  it('fails when a new note is refused', async () => {
     mockFetch.mockResolvedValueOnce(
-      reply(200, { records: [{ serverErrorCode: 'QUOTA_EXCEEDED', reason: 'Over quota' }] })
+      reply(200, {
+        records: [{ recordName: 'n', serverErrorCode: 'QUOTA_EXCEEDED', reason: 'Over quota' }],
+      })
     );
-    await expect(saveNotes(CONTAINER, 't', [{ tag: 't', sealed: 's' }])).rejects.toThrow(
-      'Over quota'
-    );
+    await expect(changeNotes(CONTAINER, 't', [NOTE])).rejects.toThrow('Over quota');
   });
 });

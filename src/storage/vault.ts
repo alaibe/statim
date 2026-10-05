@@ -13,6 +13,7 @@ export const VaultKey = {
   keyProtection: 'security.keyProtection',
   pushServer: 'notifications.pushServer',
   icloudSession: 'notifications.icloudSession',
+  icloudNotes: 'notifications.icloudNotes',
   pin: 'security.pin',
   pinAttempts: 'security.pinAttempts',
   version: 'vault.version',
