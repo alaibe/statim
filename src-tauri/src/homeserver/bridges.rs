@@ -1,5 +1,5 @@
-//! The mautrix bridges the server can run, from their projects' own releases,
-//! pinned by SHA-256. Each gets a short config: the bridge fills in every
+//! The bridges the server can run, from their projects' own releases, pinned
+//! by SHA-256. Each gets a short config: the bridge fills in every
 //! default it leaves out when it starts.
 
 use std::path::Path;
@@ -18,7 +18,8 @@ pub struct Bridge {
     pub port: u16,
     /// Configured the way bridges before mautrix's bridgev2 were.
     legacy: bool,
-    /// For an Apple-silicon Mac, Linux on x86-64, and Linux on ARM.
+    /// For an Apple-silicon Mac, Linux on x86-64, and Linux on ARM; an empty
+    /// one where it has no build.
     builds: [(&'static str, &'static str); 3],
 }
 
@@ -162,6 +163,22 @@ pub const BRIDGES: &[Bridge] = &[
             "033c115b7e5cd31b155a242ec372b0a862962baa5401690db2e0fa967689b9c9"
         ),
     },
+    Bridge {
+        id: "imessage",
+        bot: "imessagebot",
+        prefix: "imessage_",
+        binary: "corten-matrix",
+        port: 47296,
+        legacy: false,
+        builds: [
+            (
+                "https://github.com/lrhodin/corten-matrix/releases/download/1.3.2/corten-matrix-macos",
+                "1e0f5c60960cd2596ab18f04a7c6d329c982f94771a9319e2178bbd4afd01f62",
+            ),
+            ("", ""),
+            ("", ""),
+        ],
+    },
 ];
 
 pub fn bridge(id: &str) -> Option<&'static Bridge> {
@@ -218,6 +235,9 @@ impl Bridge {
         } else {
             return None;
         };
+        if build.0.is_empty() {
+            return None;
+        }
         Some(Pin {
             file: self.binary,
             url: build.0,
@@ -342,12 +362,20 @@ mod tests {
     }
 
     #[test]
-    fn every_bridge_has_a_build_for_each_computer_it_runs_on() {
+    fn pins_every_build_from_a_github_release() {
         for bridge in BRIDGES {
-            for (url, sha256) in bridge.builds {
-                assert!(url.starts_with("https://github.com/mautrix/"), "{url}");
+            for (url, sha256) in bridge.builds.iter().filter(|(url, _)| !url.is_empty()) {
+                assert!(url.starts_with("https://github.com/"), "{url}");
+                assert!(url.contains("/releases/download/"), "{url}");
                 assert_eq!(sha256.len(), 64, "{url}");
             }
         }
+    }
+
+    #[test]
+    fn runs_imessage_on_a_mac_only() {
+        let builds = bridge("imessage").unwrap().builds;
+        assert!(!builds[0].0.is_empty());
+        assert!(builds[1].0.is_empty() && builds[2].0.is_empty());
     }
 }

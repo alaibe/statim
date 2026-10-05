@@ -1,7 +1,8 @@
 # Matrix on your computer
 
 The desktop app can run a Matrix homeserver for you, with the bridges to
-WhatsApp, Signal, Messenger, Instagram, Slack and Discord next to it. You turn it
+WhatsApp, Signal, Messenger, Instagram, Slack and Discord next to it, and
+iMessage on a Mac. You turn it
 on in Settings, then turn on the bridges you want; there is no server to rent
 or configure. Your phone can use the same server through
 [Tailscale](https://tailscale.com).
@@ -35,6 +36,11 @@ with the bridge attached.
 Then use **Connect** under the bridges list to sign in to the network. WhatsApp
 and Signal link as a device; Messenger, Instagram, Slack and Discord ask for
 your login.
+
+iMessage uses [Corten](https://github.com/lrhodin/corten-matrix), which talks
+to Apple's servers directly from your Mac. It asks for your Apple ID and
+password, and skips the two-factor code when the Mac is signed in to iCloud
+with the same Apple ID. Contact Key Verification must be off for that Apple ID.
 
 A bridge decrypts everything it relays, and here it does that on your
 computer. [WhatsApp, Signal & friends](./bridges#what-to-know-before-you-rely-on-it)

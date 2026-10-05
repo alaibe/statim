@@ -379,7 +379,7 @@ async fn start(account: String, dir: PathBuf, bin: &Path) -> Result<Running, Str
                 bridge.id,
                 &bin.join(bridge.binary),
                 &bridge_dir,
-                &[],
+                &[("XDG_DATA_HOME", &bridge_dir)],
                 &["-c", "config.yaml"],
             )
         });
