@@ -1,21 +1,29 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { View } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
 
-import { Button, Card, ListItem, Text, Toggle } from '@/design';
+import { Button, Card, ErrorText, ListItem, Text, Toggle } from '@/design';
+import { errorMessage } from '@/core/errors';
 import {
   homeserverBridges,
+  homeserverPhoneLink,
   homeserverSession,
   homeserverState,
   setHomeserverBridge,
   startHomeserver,
+  type PhoneLink,
 } from '@/core/homeserver';
 import { loadProtocolConfig } from '@/core/messaging/config';
 import { BRIDGED_NETWORKS } from '@/core/messaging/networks';
 import { useAction } from '@/features/use-action';
+import { guideUrl } from '@/lib/guide';
+import { openExternal } from '@/lib/open-url';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 import { KNOWN_BRIDGES, provisioningName } from '@/protocols/matrix/bridges';
 import { DEVICE_NAME } from '@/protocols/matrix/descriptor';
-import { accountRuntime } from '@/runtime';
-import { accountMatrixSessionKey, vaultSet } from '@/storage/vault';
+
+import { adoptMatrixSession } from './matrix-session';
+import { phoneLinkCode } from './phone-link';
 
 /** Where this account's Matrix lives: on this computer, on a server it names, or nowhere yet. */
 type Here = 'unavailable' | 'elsewhere' | 'off' | 'on';
@@ -33,13 +41,8 @@ export async function hereState(accountId: string): Promise<Here> {
 
 /** Starts the account's server, signs its own user in, and points Matrix at it. */
 export async function runHere(accountId: string): Promise<void> {
-  const url = await startHomeserver(accountId);
-  const session = await homeserverSession(accountId, DEVICE_NAME);
-  await vaultSet(accountMatrixSessionKey(accountId), JSON.stringify(session));
-  await accountRuntime.updateProtocolConfig(accountId, 'matrix', {
-    homeserver: url,
-    userId: session.userId,
-  });
+  await startHomeserver(accountId);
+  await adoptMatrixSession(accountId, await homeserverSession(accountId, DEVICE_NAME));
 }
 
 /** What a bridge is called where people see it: Messenger for `facebook`. */
@@ -95,7 +98,12 @@ export function LocalHomeserver({
       <Text variant="caption">
         {"This account's Matrix runs on this computer, and only while Statim runs."}
       </Text>
-      {signedOut ? null : <LocalBridges accountId={accountId} onChanged={onBridgesChanged} />}
+      {signedOut ? null : (
+        <>
+          <LocalBridges accountId={accountId} onChanged={onBridgesChanged} />
+          <ConnectPhone accountId={accountId} />
+        </>
+      )}
       {signedOut ? (
         <Button
           testID="matrix-run-here"
@@ -155,6 +163,70 @@ function LocalBridges({ accountId, onChanged }: { accountId: string; onChanged: 
           }
         />
       ))}
+    </>
+  );
+}
+
+function ConnectPhone({ accountId }: { accountId: string }) {
+  const [link, setLink] = useState<PhoneLink | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!link) return;
+    const expire = setTimeout(() => setLink(null), link.expiresInMs);
+    return () => clearTimeout(expire);
+  }, [link]);
+
+  async function show() {
+    setBusy(true);
+    setError(null);
+    try {
+      setLink(await homeserverPhoneLink(accountId));
+    } catch (e) {
+      setError(errorMessage(e, 'Could not make a code for your phone'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <Text variant="footnote" className="font-semibold">
+        Your phone
+      </Text>
+      <Text variant="caption">
+        With Tailscale on this computer and on your phone, your phone can use this server too. In
+        Statim on the phone, open Settings › Matrix and scan the code.
+      </Text>
+      {link ? (
+        <View className="items-center gap-2">
+          <View className="rounded-card bg-white p-3">
+            <QRCode
+              value={phoneLinkCode(link)}
+              size={200}
+              backgroundColor="#ffffff"
+              color="#000000"
+            />
+          </View>
+          <Text variant="caption">The code works once, for two minutes.</Text>
+        </View>
+      ) : null}
+      {error ? <ErrorText>{error}</ErrorText> : null}
+      <Button
+        testID="matrix-connect-phone"
+        label={link ? 'Show a new code' : 'Connect your phone'}
+        tone="neutral"
+        size="sm"
+        loading={busy}
+        onPress={() => void show()}
+      />
+      <Button
+        label="How to set up Tailscale"
+        tone="neutral"
+        size="sm"
+        onPress={() => void openExternal(guideUrl('computer-matrix', 'your-phone')).catch(() => {})}
+      />
     </>
   );
 }

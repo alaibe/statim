@@ -7,6 +7,7 @@ mod bridges;
 mod config;
 mod process;
 mod router;
+mod tailscale;
 mod users;
 
 use std::path::{Path, PathBuf};
@@ -39,10 +40,15 @@ struct Running {
     server: Process,
     bridges: Vec<Process>,
     router: Router,
+    /// The Tailscale command, once it serves the server to the person's phone.
+    served: Option<PathBuf>,
 }
 
 impl Running {
     fn stop(self) {
+        if let Some(cli) = &self.served {
+            tailscale::stop(cli);
+        }
         self.router.stop();
         for bridge in self.bridges {
             bridge.stop();
@@ -122,6 +128,50 @@ pub async fn homeserver_session(
     };
     let token = registration_token(&run.dir)?;
     users::sign_in(&run.dir, &url(), OWNER, &token, &device_name).await
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PhoneLink {
+    /// The server's address on the tailnet.
+    homeserver: String,
+    user_id: String,
+    /// Traded once for a session, within `expires_in_ms`.
+    login_token: String,
+    expires_in_ms: u64,
+}
+
+/// What another device of the owner needs to sign in to the account's server:
+/// its Tailscale address, served from now on, and a one-time code.
+#[tauri::command]
+pub async fn homeserver_phone_link(
+    state: State<'_, Homeserver>,
+    account_id: String,
+) -> Result<PhoneLink, String> {
+    let mut running = state.0.lock().await;
+    let Some(run) = running.as_mut().filter(|run| run.account == account_id) else {
+        return Err("The homeserver on this computer is not running for this account.".into());
+    };
+    let cli = tailscale::cli().ok_or(
+        "Tailscale is not installed on this computer. Install it here and on your phone, then try again.",
+    )?;
+    let homeserver = serve(&cli).await?;
+    std::fs::write(run.dir.join("served"), &homeserver).map_err(|e| e.to_string())?;
+    run.served = Some(cli);
+    let (login_token, expires_in_ms) = users::login_token(&run.dir, &url(), OWNER).await?;
+    Ok(PhoneLink {
+        homeserver,
+        user_id: format!("@{OWNER}:{SERVER_NAME}"),
+        login_token,
+        expires_in_ms,
+    })
+}
+
+async fn serve(cli: &Path) -> Result<String, String> {
+    let cli = cli.to_path_buf();
+    tauri::async_runtime::spawn_blocking(move || tailscale::serve(&cli, ROUTER_PORT))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -315,6 +365,7 @@ async fn start(account: String, dir: PathBuf, bin: &Path) -> Result<Running, Str
         server,
         bridges: Vec::new(),
         router,
+        served: None,
     };
     for (bridge, bridge_tokens) in enabled.iter().zip(&tokens) {
         let bridge_dir = running.dir.join("bridges").join(bridge.id);
@@ -337,6 +388,15 @@ async fn start(account: String, dir: PathBuf, bin: &Path) -> Result<Running, Str
             Err(error) => {
                 running.stop();
                 return Err(error);
+            }
+        }
+    }
+    // A phone linked before keeps reaching the server whenever it runs.
+    if running.dir.join("served").exists() {
+        if let Some(cli) = tailscale::cli() {
+            match serve(&cli).await {
+                Ok(_) => running.served = Some(cli),
+                Err(error) => log::warn!("[homeserver] not served to the tailnet: {error}"),
             }
         }
     }
@@ -416,6 +476,18 @@ mod tests {
             .await
             .unwrap();
         assert_ne!(first.device_id, second.device_id);
+        let (code, expires_in_ms) = users::login_token(&dir, &url(), OWNER).await.unwrap();
+        assert!(expires_in_ms > 0);
+        let traded: serde_json::Value = reqwest::Client::new()
+            .post(format!("{}/_matrix/client/v3/login", url()))
+            .json(&serde_json::json!({ "type": "m.login.token", "token": code }))
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+        assert_eq!(traded["user_id"], first.user_id.as_str());
         running.stop();
         assert!(reqwest::get(format!("{}/_matrix/client/versions", url()))
             .await

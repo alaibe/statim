@@ -13,6 +13,14 @@ export interface HomeserverBridge {
   enabled: boolean;
 }
 
+/** What another device of the owner scans to sign in to the server on the computer. */
+export interface PhoneLink {
+  homeserver: string;
+  userId: string;
+  loginToken: string;
+  expiresInMs: number;
+}
+
 export interface HomeserverSession {
   accessToken: string;
   userId: string;
@@ -32,6 +40,10 @@ export async function homeserverSession(
   _accountId: string,
   _deviceName: string
 ): Promise<HomeserverSession> {
+  throw new Error('Only the desktop app runs a homeserver.');
+}
+
+export async function homeserverPhoneLink(_accountId: string): Promise<PhoneLink> {
   throw new Error('Only the desktop app runs a homeserver.');
 }
 

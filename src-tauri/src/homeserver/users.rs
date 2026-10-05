@@ -42,7 +42,88 @@ pub async fn sign_in(
             password
         }
     };
-    let response = reqwest::Client::new()
+    let logged_in = login(
+        &reqwest::Client::new(),
+        server,
+        localpart,
+        &password,
+        device_name,
+    )
+    .await?;
+    Ok(Session {
+        access_token: logged_in.access_token,
+        user_id: logged_in.user_id,
+        device_id: logged_in.device_id,
+        homeserver_url: server.to_string(),
+    })
+}
+
+/// A code another device of the owner trades for its own session, once and
+/// within `expires_in_ms`. A session opened only to ask for it is closed again.
+pub async fn login_token(
+    dir: &Path,
+    server: &str,
+    localpart: &str,
+) -> Result<(String, u64), String> {
+    let password = std::fs::read_to_string(dir.join("password"))
+        .map_err(|_| "Sign in to Matrix on this computer first.".to_string())?;
+    let password = password.trim();
+    let client = reqwest::Client::new();
+    let asking = login(
+        &client,
+        server,
+        localpart,
+        password,
+        "Statim, linking a device",
+    )
+    .await?;
+    let url = format!("{server}/_matrix/client/v1/login/get_token");
+    let mut response = client
+        .post(&url)
+        .bearer_auth(&asking.access_token)
+        .json(&json!({}))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    if response.status() == reqwest::StatusCode::UNAUTHORIZED {
+        let challenge: Value = response.json().await.map_err(|e| e.to_string())?;
+        response = client
+            .post(&url)
+            .bearer_auth(&asking.access_token)
+            .json(&json!({ "auth": {
+                "type": "m.login.password",
+                "identifier": { "type": "m.id.user", "user": localpart },
+                "password": password,
+                "session": challenge["session"],
+            }}))
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+    let ok = response.status().is_success();
+    let body: Option<Value> = response.json().await.ok();
+    let _ = client
+        .post(format!("{server}/_matrix/client/v3/logout"))
+        .bearer_auth(&asking.access_token)
+        .send()
+        .await;
+    let token = body.as_ref().filter(|_| ok).and_then(|body| {
+        Some((
+            body["login_token"].as_str()?.to_string(),
+            body["expires_in_ms"].as_u64()?,
+        ))
+    });
+    token.ok_or_else(|| matrix_error(body, "make a sign-in code"))
+}
+
+async fn login(
+    client: &reqwest::Client,
+    server: &str,
+    localpart: &str,
+    password: &str,
+    device_name: &str,
+) -> Result<LoggedIn, String> {
+    let response = client
         .post(format!("{server}/_matrix/client/v3/login"))
         .json(&json!({
             "type": "m.login.password",
@@ -56,13 +137,7 @@ pub async fn sign_in(
     if !response.status().is_success() {
         return Err(matrix_error(response.json().await.ok(), "sign in"));
     }
-    let logged_in: LoggedIn = response.json().await.map_err(|e| e.to_string())?;
-    Ok(Session {
-        access_token: logged_in.access_token,
-        user_id: logged_in.user_id,
-        device_id: logged_in.device_id,
-        homeserver_url: server.to_string(),
-    })
+    response.json().await.map_err(|e| e.to_string())
 }
 
 /// The two rounds registration by token takes: the first opens a session, the

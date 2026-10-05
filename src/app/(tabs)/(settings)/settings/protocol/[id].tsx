@@ -10,6 +10,7 @@ import { LocalHomeserver } from '@/features/protocols/local-homeserver';
 import { LoginStep, SignedIn } from '@/features/protocols/login';
 import { MatrixBridges } from '@/features/protocols/matrix-bridges';
 import { OwnAddress } from '@/features/protocols/own-address';
+import { ScanFromComputer } from '@/features/protocols/scan-from-computer';
 import type { ChatSession } from '@/core/messaging/protocol';
 import type { ProtocolDescriptor } from '@/core/messaging/registry';
 import type { MatrixCapabilities } from '@/protocols/matrix/provisioning';
@@ -70,6 +71,13 @@ function ProtocolSettings({ descriptor }: { descriptor: ProtocolDescriptor }) {
             signedOut={!!connection.login}
             onBridgesChanged={() => setBridgesSeen((n) => n + 1)}
           />
+        ) : null}
+
+        {descriptor.id === 'matrix' &&
+        accountId &&
+        process.env.EXPO_OS !== 'web' &&
+        !session?.self.address ? (
+          <ScanFromComputer accountId={accountId} />
         ) : null}
 
         {connection.error ? (

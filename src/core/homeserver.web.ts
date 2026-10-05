@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 
-import type { HomeserverBridge, HomeserverSession, HomeserverState } from './homeserver';
+import type { HomeserverBridge, HomeserverSession, HomeserverState, PhoneLink } from './homeserver';
 
 export function homeserverState(accountId: string): Promise<HomeserverState> {
   return invoke('homeserver_state', { accountId });
@@ -15,6 +15,10 @@ export function homeserverSession(
   deviceName: string
 ): Promise<HomeserverSession> {
   return invoke('homeserver_session', { accountId, deviceName });
+}
+
+export function homeserverPhoneLink(accountId: string): Promise<PhoneLink> {
+  return invoke('homeserver_phone_link', { accountId });
 }
 
 export function homeserverBridges(accountId: string): Promise<HomeserverBridge[]> {
