@@ -2,6 +2,9 @@ import type { Container } from './cloudkit';
 
 export const ICLOUD_CONTAINER = 'iCloud.im.statim.app';
 
+/** The API token's sign-in callback. The sign-in window stops there without loading it. */
+export const ICLOUD_CALLBACK = 'https://statim.laibe.cc/icloud';
+
 /**
  * Development builds of the iPhone app reach CloudKit's development
  * environment and store builds its production one, so the desktop follows the

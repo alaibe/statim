@@ -13,7 +13,7 @@ import {
   type Container,
   type SealedNote,
 } from './cloudkit';
-import { icloudContainer } from './container';
+import { ICLOUD_CALLBACK, icloudContainer } from './container';
 import { sealNote, type Note } from './note';
 import type { RelayState } from './relay';
 
@@ -99,7 +99,7 @@ interface WindowSnapshot {
   url: string;
 }
 
-/** Apple's own page, in the sign-in window; it ends on the API token's callback address. */
+/** Apple's own page, in the sign-in window, which stops at the callback so the token never leaves this computer. */
 async function signIn(container: Container): Promise<string> {
   await invoke('web_login_open', {
     url: await signInURL(container),
@@ -107,6 +107,7 @@ async function signIn(container: Container): Promise<string> {
     userAgent: null,
     script: '',
     hidden: false,
+    stopAt: ICLOUD_CALLBACK,
   });
   try {
     for (;;) {

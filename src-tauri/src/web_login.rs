@@ -1,5 +1,5 @@
-//! The window where the user signs in to a website for a Matrix bridge. The page
-//! gets no IPC: the capabilities only cover `main`.
+//! The window where the user signs in to a website for a Matrix bridge, or to
+//! iCloud. The page gets no IPC: the capabilities only cover `main`.
 
 use std::sync::Mutex;
 use std::time::Duration;
@@ -10,6 +10,9 @@ use tauri::{AppHandle, Manager, Url, WebviewUrl, WebviewWindowBuilder};
 use tokio::sync::oneshot;
 
 const LABEL: &str = "web-login";
+
+/// Where a sign-in ended, caught before the window loaded it.
+static STOPPED_AT: Mutex<Option<String>> = Mutex::new(None);
 
 /// Sites like Slack refuse a web view they take for an old or unknown browser,
 /// so the window says it is the browser this system ships.
@@ -65,9 +68,13 @@ pub async fn web_login_open(
     user_agent: Option<String>,
     script: String,
     hidden: bool,
+    stop_at: Option<String>,
 ) -> Result<(), String> {
     if let Some(existing) = app.get_webview_window(LABEL) {
         existing.destroy().map_err(|e| e.to_string())?;
+    }
+    if let Ok(mut stopped) = STOPPED_AT.lock() {
+        *stopped = None;
     }
     let url = Url::parse(&url).map_err(|e| e.to_string())?;
     if url.scheme() != "https" {
@@ -79,6 +86,18 @@ pub async fn web_login_open(
         .incognito(true)
         .visible(!hidden)
         .initialization_script(script)
+        .on_navigation(move |url| {
+            let Some(prefix) = stop_at.as_deref() else {
+                return true;
+            };
+            if !url.as_str().starts_with(prefix) {
+                return true;
+            }
+            if let Ok(mut stopped) = STOPPED_AT.lock() {
+                *stopped = Some(url.to_string());
+            }
+            false
+        })
         .on_new_window({
             let app = app.clone();
             move |url, _| {
@@ -108,7 +127,12 @@ pub async fn web_login_poll(app: AppHandle, readback: String) -> Result<WebLogin
             page: None,
         });
     };
-    let url = window.url().map(|url| url.to_string()).unwrap_or_default();
+    let url = STOPPED_AT
+        .lock()
+        .ok()
+        .and_then(|stopped| stopped.clone())
+        .or_else(|| window.url().ok().map(|url| url.to_string()))
+        .unwrap_or_default();
     let cookies = window
         .cookies()
         .map_err(|e| e.to_string())?

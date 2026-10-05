@@ -74,7 +74,10 @@ describe('notifying the iPhone through iCloud', () => {
     await turnOn();
     expect(invoke).toHaveBeenCalledWith(
       'web_login_open',
-      expect.objectContaining({ url: 'https://idmsa.apple.com/sign-in' })
+      expect.objectContaining({
+        url: 'https://idmsa.apple.com/sign-in',
+        stopAt: 'https://statim.laibe.cc/icloud',
+      })
     );
     expect(invoke).toHaveBeenCalledWith('web_login_close');
     expect(jest.mocked(currentUser).mock.calls[0][1]).toBe('signed+in');
