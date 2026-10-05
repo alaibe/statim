@@ -209,6 +209,41 @@ describe('MatrixSession chats', () => {
     });
   });
 
+  it('reads the roster of a portal whose bridge bot has no power, and finds a DM', async () => {
+    const bot = '@discordbot:example.org';
+    const puppet = '@discord_1022:example.org';
+    const portal = room('!discord-dm:example.org', {
+      name: 'dlipicar',
+      elevated: [puppet],
+      memberCount: 3,
+    });
+    const invited = room('!discord-invite:example.org', {
+      name: 'Noelia',
+      membership: 'invited',
+      elevated: [puppet],
+      memberCount: 3,
+    });
+    const { chat, api } = await connect(SESSION, (api) => {
+      api.roomsById.set(portal.id, portal);
+      api.roomsById.set(invited.id, invited);
+      api.roomMembers.set(portal.id, [
+        { userId: puppet, role: 'admin' },
+        { userId: ME, role: 'member' },
+        { userId: bot, role: 'member' },
+      ]);
+    });
+    const chats: ProtocolChat[] = [];
+    await chat.streamChats((c) => chats.push(c));
+    await flush();
+
+    expect(api.named('members')).toEqual([[portal.id]]);
+    expect(chats.findLast((c) => c.id === chatIdOf(portal.id))).toMatchObject({
+      kind: 'dm',
+      network: 'discord',
+      memberIds: [puppet, ME],
+    });
+  });
+
   it('announces room updates with their preview and streams events as messages', async () => {
     const { content: _, ...rest } = textEvent('$x', DM.id, BOB, 'hello');
     const latest = {

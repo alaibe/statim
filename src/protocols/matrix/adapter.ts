@@ -747,7 +747,11 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
       this.networks.set(room.id, network);
     }
 
-    const isDm = room.isDm || (!!network && isBridgedDm(room));
+    const humans = network ? humansIn(room, roster) : undefined;
+    // mautrix-discord leaves its bot at default power, so only the roster tells it apart.
+    if (humans === 3 && !roster && !room.isDm && room.membership === 'joined')
+      void this.membersOf(room.id);
+    const isDm = room.isDm || (humans === 2 && !room.name.startsWith('#'));
     const participant = this.participantOf(room, roster ?? []);
     const presence = isDm && participant ? this.presence.get(participant) : undefined;
     const memberIds = isDm
@@ -878,7 +882,7 @@ function describeLoginError(error: unknown): string {
  * A bridge that doesn't mark its one-to-one portals as direct still leaves
  * just you, the other person and its bot in them. Slack channels keep their `#`.
  */
-function isBridgedDm(room: MxRoom): boolean {
-  const humans = (room.memberCount ?? 0) - room.elevated.filter(isBridgeBot).length;
-  return humans === 2 && !room.name.startsWith('#');
+function humansIn(room: MxRoom, roster: readonly string[] = []): number {
+  const bots = new Set([...room.elevated, ...room.heroes, ...roster].filter(isBridgeBot));
+  return (room.memberCount ?? 0) - bots.size;
 }
