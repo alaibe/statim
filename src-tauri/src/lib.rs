@@ -5,6 +5,7 @@ mod biometrics;
 pub mod cli;
 mod contacts;
 mod db;
+mod homeserver;
 mod ledger;
 mod matrix;
 mod media;
@@ -100,6 +101,7 @@ pub fn run() {
         .manage(matrix::Matrix::default())
         .manage(cli::Cli::default())
         .manage(sign_in::SignIn::default())
+        .manage(homeserver::Homeserver::default())
         .invoke_handler(tauri::generate_handler![
             db::db_open,
             db::db_exec,
@@ -133,6 +135,9 @@ pub fn run() {
             paths::account_dir,
             paths::erase_account_dir,
             sign_in::browser_sign_in,
+            homeserver::homeserver_state,
+            homeserver::homeserver_start,
+            homeserver::homeserver_stop,
             web_login::web_login_open,
             web_login::web_login_poll,
             web_login::web_login_close,
@@ -229,10 +234,13 @@ pub fn run() {
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|_app, _event| {
+        .run(|app, event| {
+            if let RunEvent::Exit = event {
+                homeserver::stop_on_exit(app);
+            }
             #[cfg(target_os = "macos")]
-            if let RunEvent::Reopen { .. } = _event {
-                cli::show_main(_app);
+            if let RunEvent::Reopen { .. } = event {
+                cli::show_main(app);
             }
         });
 }
