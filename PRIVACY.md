@@ -20,8 +20,9 @@ follows from the update check described below. It is a number on a dashboard,
 with no way back to a person.
 
 That is the entire list. There is no analytics SDK, no advertising, no crash
-reporter that captures what you write, and no push service that registers your
-device with anyone. Notifications are generated locally.
+reporter that captures what you write, and no push service run by the developer.
+Notifications are generated on the device, except the iPhone notifications your
+computer sends through your own iCloud, described below.
 
 ## What leaves your device, and who sees it
 
@@ -103,6 +104,34 @@ people's in a group. Translation also falls back to that server when the device
 has no translator for a language. The address and the key you enter stay on
 this device.
 
+### Notifications from your computer
+
+iOS stops Statim soon after you leave it, so an iPhone can hear about new
+messages from Statim on your computer instead. It is off until you turn it on in
+two places: **Notify my iPhone** on the computer and **Notifications from your
+computer** on the iPhone.
+
+Turning it on opens Apple's sign-in in your browser on the computer. Your
+password stays between you and Apple. Statim receives a token that opens only
+its own space in your iCloud and keeps it in the vault on that computer; Apple
+replaces the token with each request.
+
+For each message that would notify on the computer while its window is in the
+background, the computer saves a note in the private iCloud database of your
+Apple Account. The note holds which chat it is, the chat's name and up to 300
+characters of the message preview, encrypted with a key derived from the
+account's recovery phrase. Next to it is a tag, derived from the same phrase,
+that names the account without revealing its address. Apple stores the note and
+wakes your iPhone with it through its push service. Apple can see that your
+Apple Account uses Statim, when notes arrive, how large they are and the tag,
+but it cannot read them. The developer has no access to your private iCloud
+database.
+
+The iPhone decrypts the note itself, with the key it derives from the same
+recovery phrase, and fetches nothing else. The computer deletes each note about
+five minutes after saving it. Turning the feature off deletes the notes that
+are left and signs the computer out of iCloud.
+
 ### App updates
 
 On iPhone and Android, the app asks Expo's update service (`u.expo.dev`) at
@@ -128,15 +157,17 @@ never uploaded.
 ## What stays on your device
 
 Your recovery phrase and keys, in the system keychain, optionally sealed behind
-Face ID or the device passcode. Message history, in an encrypted database per
+Face ID or the device passcode. On an iPhone that hears from your computer, the
+key that opens those notes also sits in a keychain group shared with Statim's
+notification extension. Message history, in an encrypted database per
 account. Downloaded media, in per-account directories. Preferences, per account.
 
 ## Deleting your data
 
 There is no server-side account to delete, because there is none to begin with.
 **Settings → Erase this account** removes the keys, the databases, the media and
-the settings from this device, and signs out of Telegram and Matrix if they were
-connected. It does not delete anything held by those networks, and it does not
+the settings from this device, signs out of Telegram and Matrix if they were
+connected, and stops notifications from the computer for that account. It does not delete anything held by those networks, and it does not
 affect the recovery phrase you wrote down. The same phrase restores the same
 account later.
 
@@ -161,4 +192,4 @@ For anything security-sensitive, use the private route in
 [SECURITY.md](https://github.com/alaibe/statim/blob/main/SECURITY.md)
 instead.
 
-Last updated 2026-09-22.
+Last updated 2026-10-05.

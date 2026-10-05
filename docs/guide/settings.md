@@ -60,13 +60,23 @@ write the recovery phrase down before you set a PIN.
 ## Preferences
 
 - **Appearance** sets light, dark or system, and the chat wallpaper.
-- **Notifications** (desktop and Android). On the desktop, **Open at login**
-  starts Statim without a window when you log in, so messages and
-  notifications arrive before you open it. On Android, **Stay connected**
-  keeps Statim running after you leave it, which Android otherwise stops
-  soon after, so messages keep arriving and notifying. Android shows a
-  **Connected** notification while it is on, and it costs some battery. Both
-  are off by default.
+- **Notifications**. On the desktop, **Open at login** starts Statim without
+  a window when you log in, so messages and notifications arrive before you
+  open it. On Android, **Stay connected** keeps Statim running after you
+  leave it, which Android otherwise stops soon after, so messages keep
+  arriving and notifying. Android shows a **Connected** notification while it
+  is on, and it costs some battery. All of these are off by default.
+- **Notifications on the iPhone** come from your computer, because iOS stops
+  Statim soon after you leave it. Turn on **Notify my iPhone** on the
+  computer first: it opens Apple's sign-in in your browser, where you sign in
+  with the Apple Account your iPhone uses and tick **Keep me signed in**. Then
+  turn on **Notifications from your computer** on the iPhone. Both devices
+  need the same Statim account, restored from the same recovery phrase, so a
+  Ledger or Keystone account cannot use it. While the computer's window is in the
+  background, each new message reaches the iPhone through your own iCloud,
+  encrypted so that Apple cannot read it; [Privacy](../privacy) has the
+  details. If Apple signs the computer out, the switch says so and turning it
+  on signs in again.
 - **Privacy** is below.
 - **Trades** takes a LI.FI key for swaps and bridges. They work without one;
   the key only raises how often you can ask for a quote. See
