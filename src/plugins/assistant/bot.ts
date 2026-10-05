@@ -1,6 +1,7 @@
 import type { Bot } from '@/core/messaging/bots';
 import type { WidgetContent } from '@/core/messaging/types';
 import { W } from '@/design/widgets';
+import { guideUrl } from '@/lib/guide';
 
 export const STATIM_BOT_ID = 'statim';
 
@@ -23,17 +24,26 @@ function greeting(): ReturnType<Bot['greeting']> {
     {
       kind: 'widget',
       fallback:
-        'Get started: /commands for slash commands, /plugins for plugins. Messaging protocols: XMTP, Nostr and Status.',
+        'Get started: /commands for slash commands, /plugins for plugins. XMTP, Nostr and Status work from the start; sign in to Telegram and Matrix in Settings. Matrix bridges bring in WhatsApp, Signal and more, and a computer can run Matrix for you.',
       widget: W.card(
         [
           W.actions([
             { label: 'Commands', command: '/commands' },
             { label: 'Plugins', command: '/plugins' },
           ]),
+          W.text(
+            'XMTP, Nostr and Status work from the start. Telegram and Matrix join once you sign in to them in Settings.'
+          ),
+          W.text(
+            'Through Matrix, bridges bring in WhatsApp, Signal, Messenger, Instagram, Slack, Discord and iMessage. On a computer, Statim can run Matrix and the bridges for you.'
+          ),
+          W.link('How bridges work', guideUrl('bridges')),
           W.text('Learn about the messaging protocols:'),
           W.link('XMTP', 'https://xmtp.org'),
           W.link('Nostr', 'https://nostr.com'),
           W.link('Status', 'https://status.app'),
+          W.link('Telegram', 'https://telegram.org'),
+          W.link('Matrix', 'https://matrix.org'),
         ],
         { title: 'Get started', icon: 'sparkles-outline' }
       ),
