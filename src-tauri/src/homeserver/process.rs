@@ -40,7 +40,6 @@ impl Process {
         Ok(Self { child, pidfile })
     }
 
-    /// Whether it has stopped on its own, and how.
     pub fn exited(&mut self) -> Option<String> {
         self.child
             .try_wait()

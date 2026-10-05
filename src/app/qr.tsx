@@ -1,8 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Share, View } from 'react-native';
-import QRCode from 'react-native-qrcode-svg';
 
-import { Button, Card, copyText, IconButton, Screen, Text } from '@/design';
+import { Button, Card, copyText, IconButton, QrCode, Screen, Text } from '@/design';
 import { activeAccount, useAccountStore } from '@/core/account/account-store';
 import { shortAddress } from '@/core/account/keyring';
 
@@ -33,9 +32,7 @@ export default function QrScreen() {
 
       <View className="items-center gap-6">
         <Card className="items-center gap-4 p-6">
-          <View className="rounded-card bg-white p-4">
-            <QRCode value={keyring.address} size={220} backgroundColor="#ffffff" color="#000000" />
-          </View>
+          <QrCode value={keyring.address} />
           <View className="items-center gap-1">
             <Text className="font-semibold">{account.label}</Text>
             <Text variant="mono" selectable>

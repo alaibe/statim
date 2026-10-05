@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import QRCode from 'react-native-qrcode-svg';
 
-import { Badge, Button, Card, Chip, Field, ListItem, Text, useThemeColors } from '@/design';
+import { Badge, Button, Card, Chip, Field, ListItem, QrCode, Text, useThemeColors } from '@/design';
 import type { InputField, LoginStep, Whoami } from '@/protocols/matrix/provisioning';
 
 export function InputStep({
@@ -81,9 +80,7 @@ export function WaitStep({ step }: { step: LoginStep }) {
   return (
     <View className="items-center gap-4">
       {display?.type === 'qr' && display.data ? (
-        <View className="rounded-card bg-white p-4">
-          <QRCode value={display.data} size={220} backgroundColor="#ffffff" color="#000000" />
-        </View>
+        <QrCode value={display.data} />
       ) : display?.data ? (
         <Text variant="title" className="text-center" selectable>
           {display.data}

@@ -22,11 +22,10 @@ const START_TIMEOUT: Duration = Duration::from_secs(90);
 /// to be the app.
 pub fn run() -> Option<i32> {
     let args: Vec<String> = env::args().skip(1).collect();
-    // Windows and Linux open a link to the app's URL scheme by launching it with the link.
     let app_launch = args.is_empty()
         || args.iter().all(|arg| arg == BACKGROUND)
         || args[0].starts_with("-psn_")
-        || (args.len() == 1 && args[0].contains("://"));
+        || (args.len() == 1 && super::is_link(&args[0]));
     if app_launch {
         return None;
     }

@@ -17,7 +17,8 @@ use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
 use tokio::sync::Mutex;
 
-use crate::paths::{data_dir, safe_component};
+use crate::paths::{data_dir, safe_component, write_private};
+use bridges::Bridge;
 use process::Process;
 use router::{Router, Routes};
 
@@ -30,6 +31,7 @@ pub const OWNER: &str = "me";
 const ROUTER_PORT: u16 = 47280;
 const SERVER_PORT: u16 = 47281;
 const START_TIMEOUT: Duration = Duration::from_secs(30);
+const NOT_RUNNING: &str = "The homeserver on this computer is not running for this account.";
 
 #[derive(Default)]
 pub struct Homeserver(Mutex<Option<Running>>);
@@ -45,49 +47,45 @@ struct Running {
 }
 
 impl Running {
-    fn stop(self) {
-        if let Some(cli) = &self.served {
-            tailscale::stop(cli);
-        }
+    /// Stops the programs; Tailscale keeps serving the port for a restart.
+    fn stop(self) -> Option<PathBuf> {
         self.router.stop();
         for bridge in self.bridges {
             bridge.stop();
         }
         self.server.stop();
+        self.served
+    }
+
+    fn close(self) {
+        if let Some(cli) = self.stop() {
+            tailscale::stop(&cli);
+        }
     }
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct HomeserverState {
-    /// Off in the Mac App Store build and on computers nothing is built for.
-    available: bool,
-    running: bool,
-    url: String,
+fn running_for<'a>(
+    running: &'a mut Option<Running>,
+    account_id: &str,
+) -> Result<&'a mut Running, String> {
+    running
+        .as_mut()
+        .filter(|run| run.account == account_id)
+        .ok_or_else(|| NOT_RUNNING.to_string())
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BridgeState {
     id: &'static str,
-    /// Whether it has a build for this computer.
     available: bool,
     enabled: bool,
 }
 
+/// The server's address, in a build that can run one on this computer.
 #[tauri::command]
-pub async fn homeserver_state(
-    state: State<'_, Homeserver>,
-    account_id: String,
-) -> Result<HomeserverState, String> {
-    let running = state.0.lock().await;
-    Ok(HomeserverState {
-        available: available(),
-        running: running
-            .as_ref()
-            .is_some_and(|run| run.account == account_id),
-        url: url(),
-    })
+pub fn homeserver_url() -> Option<String> {
+    available().then(url)
 }
 
 /// Starts the server of `account_id`, stopping another account's, and returns
@@ -100,17 +98,22 @@ pub async fn homeserver_start(
 ) -> Result<String, String> {
     let dir = account_dir(&app, &account_id)?;
     let mut running = state.0.lock().await;
-    if running
-        .as_ref()
-        .is_some_and(|run| run.account == account_id)
-    {
+    if running_for(&mut running, &account_id).is_ok() {
         return Ok(url());
     }
     if let Some(previous) = running.take() {
-        previous.stop();
+        previous.close();
     }
-    let bin = bin_dir(&app).await?;
-    *running = Some(start(account_id, dir, &bin).await?);
+    let mut started = start(account_id, dir, &bin_dir(&app).await?).await?;
+    if started.dir.join("served").exists() {
+        if let Some(cli) = tailscale::cli() {
+            match serve(&cli).await {
+                Ok(_) => started.served = Some(cli),
+                Err(error) => log::warn!("[homeserver] not served to the tailnet: {error}"),
+            }
+        }
+    }
+    *running = Some(started);
     Ok(url())
 }
 
@@ -122,10 +125,8 @@ pub async fn homeserver_session(
     account_id: String,
     device_name: String,
 ) -> Result<users::Session, String> {
-    let running = state.0.lock().await;
-    let Some(run) = running.as_ref().filter(|run| run.account == account_id) else {
-        return Err("The homeserver on this computer is not running for this account.".into());
-    };
+    let mut running = state.0.lock().await;
+    let run = running_for(&mut running, &account_id)?;
     let token = registration_token(&run.dir)?;
     users::sign_in(&run.dir, &url(), OWNER, &token, &device_name).await
 }
@@ -135,7 +136,6 @@ pub async fn homeserver_session(
 pub struct PhoneLink {
     /// The server's address on the tailnet.
     homeserver: String,
-    user_id: String,
     /// Traded once for a session, within `expires_in_ms`.
     login_token: String,
     expires_in_ms: u64,
@@ -149,19 +149,23 @@ pub async fn homeserver_phone_link(
     account_id: String,
 ) -> Result<PhoneLink, String> {
     let mut running = state.0.lock().await;
-    let Some(run) = running.as_mut().filter(|run| run.account == account_id) else {
-        return Err("The homeserver on this computer is not running for this account.".into());
+    let run = running_for(&mut running, &account_id)?;
+    let served = run.dir.join("served");
+    let homeserver = match (&run.served, std::fs::read_to_string(&served)) {
+        (Some(_), Ok(homeserver)) => homeserver,
+        _ => {
+            let cli = tailscale::cli().ok_or(
+                "Tailscale is not installed on this computer. Install it here and on your phone, then try again.",
+            )?;
+            let homeserver = serve(&cli).await?;
+            std::fs::write(&served, &homeserver).map_err(|e| e.to_string())?;
+            run.served = Some(cli);
+            homeserver
+        }
     };
-    let cli = tailscale::cli().ok_or(
-        "Tailscale is not installed on this computer. Install it here and on your phone, then try again.",
-    )?;
-    let homeserver = serve(&cli).await?;
-    std::fs::write(run.dir.join("served"), &homeserver).map_err(|e| e.to_string())?;
-    run.served = Some(cli);
     let (login_token, expires_in_ms) = users::login_token(&run.dir, &url(), OWNER).await?;
     Ok(PhoneLink {
         homeserver,
-        user_id: format!("@{OWNER}:{SERVER_NAME}"),
         login_token,
         expires_in_ms,
     })
@@ -185,7 +189,7 @@ pub async fn homeserver_bridges(
         .map(|bridge| BridgeState {
             id: bridge.id,
             available: bridge.pin().is_some(),
-            enabled: enabled.contains(&bridge.id),
+            enabled: enabled.iter().any(|on| on.id == bridge.id),
         })
         .collect())
 }
@@ -203,36 +207,33 @@ pub async fn homeserver_set_bridge(
     let dir = account_dir(&app, &account_id)?;
     let bridge = bridges::bridge(&bridge).ok_or_else(|| format!("No bridge called {bridge}."))?;
     let mut running = state.0.lock().await;
-    let bin = bin_dir(&app).await?;
     if enabled {
         let pin = bridge
             .pin()
             .ok_or("This bridge has no build for this computer.")?;
-        artifacts::install(&bin, std::slice::from_ref(&pin)).await?;
+        artifacts::install(&bin_dir(&app).await?, &[pin]).await?;
     }
-    let mut ids = enabled_bridges(&dir);
+    let mut ids: Vec<_> = enabled_bridges(&dir).iter().map(|on| on.id).collect();
     ids.retain(|id| *id != bridge.id);
     if enabled {
         ids.push(bridge.id);
     }
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     std::fs::write(dir.join("enabled-bridges"), ids.join("\n")).map_err(|e| e.to_string())?;
-    if running
-        .as_ref()
-        .is_some_and(|run| run.account == account_id)
-    {
-        if let Some(run) = running.take() {
-            run.stop();
+    if running_for(&mut running, &account_id).is_ok() {
+        let served = running.take().and_then(Running::stop);
+        match start(account_id, dir, &bin_dir(&app).await?).await {
+            Ok(mut restarted) => {
+                restarted.served = served;
+                *running = Some(restarted);
+            }
+            Err(error) => {
+                if let Some(cli) = served {
+                    tailscale::stop(&cli);
+                }
+                return Err(error);
+            }
         }
-        *running = Some(start(account_id, dir, &bin).await?);
-    }
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn homeserver_stop(state: State<'_, Homeserver>) -> Result<(), String> {
-    if let Some(running) = state.0.lock().await.take() {
-        running.stop();
     }
     Ok(())
 }
@@ -245,12 +246,9 @@ pub async fn homeserver_erase(
 ) -> Result<(), String> {
     let dir = account_dir(&app, &account_id)?;
     let mut running = state.0.lock().await;
-    if running
-        .as_ref()
-        .is_some_and(|run| run.account == account_id)
-    {
+    if running_for(&mut running, &account_id).is_ok() {
         if let Some(run) = running.take() {
-            run.stop();
+            run.close();
         }
     }
     crate::paths::remove_dir(&dir)
@@ -258,12 +256,13 @@ pub async fn homeserver_erase(
 
 pub fn stop_on_exit(app: &AppHandle) {
     if let Some(running) = app.state::<Homeserver>().0.blocking_lock().take() {
-        running.stop();
+        running.close();
     }
 }
 
 fn available() -> bool {
-    cfg!(feature = "homeserver") && artifacts::server_pins().is_some()
+    cfg!(feature = "homeserver")
+        && (artifacts::override_dir().is_some() || artifacts::server_pins().is_some())
 }
 
 fn url() -> String {
@@ -290,30 +289,31 @@ async fn bin_dir(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(dir)
 }
 
-fn enabled_bridges(dir: &Path) -> Vec<&'static str> {
+fn enabled_bridges(dir: &Path) -> Vec<&'static Bridge> {
     let saved = std::fs::read_to_string(dir.join("enabled-bridges")).unwrap_or_default();
     bridges::BRIDGES
         .iter()
         .filter(|bridge| saved.lines().any(|line| line.trim() == bridge.id))
-        .map(|bridge| bridge.id)
         .collect()
 }
 
 async fn start(account: String, dir: PathBuf, bin: &Path) -> Result<Running, String> {
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    let enabled: Vec<_> = enabled_bridges(&dir)
-        .into_iter()
-        .filter_map(bridges::bridge)
-        .filter(|bridge| bin.join(bridge.binary).exists())
-        .collect();
     let double_puppet = bridges::Tokens::of(&dir.join("doublepuppet"))?;
-    let mut appservices = Vec::new();
-    let mut tokens = Vec::new();
-    for bridge in &enabled {
-        let bridge_tokens = bridges::Tokens::of(&dir.join("bridges").join(bridge.id))?;
-        appservices.push(bridge.appservice(&bridge_tokens));
-        tokens.push(bridge_tokens);
-    }
+    let enabled = enabled_bridges(&dir)
+        .into_iter()
+        .filter(|bridge| bin.join(bridge.binary).exists())
+        .map(|bridge| {
+            Ok((
+                bridge,
+                bridges::Tokens::of(&dir.join("bridges").join(bridge.id))?,
+            ))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    let mut appservices: Vec<_> = enabled
+        .iter()
+        .map(|(bridge, tokens)| bridge.appservice(tokens))
+        .collect();
     if !enabled.is_empty() {
         appservices.push(bridges::double_puppet(&double_puppet));
     }
@@ -335,7 +335,7 @@ async fn start(account: String, dir: PathBuf, bin: &Path) -> Result<Running, Str
             server: SERVER_PORT,
             bridges: enabled
                 .iter()
-                .map(|bridge| (bridge.id.to_string(), bridge.port))
+                .map(|(bridge, _)| (bridge.id, bridge.port))
                 .collect(),
         },
     )?;
@@ -365,11 +365,11 @@ async fn start(account: String, dir: PathBuf, bin: &Path) -> Result<Running, Str
         router,
         served: None,
     };
-    for (bridge, bridge_tokens) in enabled.iter().zip(&tokens) {
+    for (bridge, tokens) in &enabled {
         let bridge_dir = running.dir.join("bridges").join(bridge.id);
         let spawned = std::fs::write(
             bridge_dir.join("config.yaml"),
-            bridge.config(SERVER_PORT, bridge_tokens, &double_puppet.as_token),
+            bridge.config(SERVER_PORT, tokens, &double_puppet.as_token),
         )
         .map_err(|e| e.to_string())
         .and_then(|()| {
@@ -389,19 +389,12 @@ async fn start(account: String, dir: PathBuf, bin: &Path) -> Result<Running, Str
             }
         }
     }
-    if running.dir.join("served").exists() {
-        if let Some(cli) = tailscale::cli() {
-            match serve(&cli).await {
-                Ok(_) => running.served = Some(cli),
-                Err(error) => log::warn!("[homeserver] not served to the tailnet: {error}"),
-            }
-        }
-    }
     Ok(running)
 }
 
 async fn answering(server: &mut Process, dir: &Path) -> Result<(), String> {
     let versions = format!("http://127.0.0.1:{SERVER_PORT}/_matrix/client/versions");
+    let client = reqwest::Client::new();
     let deadline = Instant::now() + START_TIMEOUT;
     while Instant::now() < deadline {
         if let Some(status) = server.exited() {
@@ -410,7 +403,9 @@ async fn answering(server: &mut Process, dir: &Path) -> Result<(), String> {
                 dir.join("tuwunel.log").display()
             ));
         }
-        if reqwest::get(&versions)
+        if client
+            .get(&versions)
+            .send()
             .await
             .is_ok_and(|response| response.status().is_success())
         {
@@ -430,17 +425,6 @@ fn registration_token(dir: &Path) -> Result<String, String> {
     let token = users::random_hex(32)?;
     write_private(&path, &token)?;
     Ok(token)
-}
-
-fn write_private(path: &Path, contents: &str) -> Result<(), String> {
-    std::fs::write(path, contents).map_err(|e| e.to_string())?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))
-            .map_err(|e| e.to_string())?;
-    }
-    Ok(())
 }
 
 #[cfg(test)]

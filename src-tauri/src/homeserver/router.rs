@@ -19,14 +19,14 @@ use tauri::async_runtime::JoinHandle;
 /// Where requests go: the server's port, and each bridge's port by its name.
 pub struct Routes {
     pub server: u16,
-    pub bridges: Vec<(String, u16)>,
+    pub bridges: Vec<(&'static str, u16)>,
 }
 
 /// The port and path a request for `path` goes to.
-pub fn route(routes: &Routes, path: &str) -> (u16, String) {
+fn route(routes: &Routes, path: &str) -> (u16, String) {
     if let Some(rest) = path.strip_prefix("/_matrix/provision/") {
         let (name, tail) = rest.split_once('/').unwrap_or((rest, ""));
-        if let Some((_, port)) = routes.bridges.iter().find(|(bridge, _)| bridge == name) {
+        if let Some((_, port)) = routes.bridges.iter().find(|(bridge, _)| *bridge == name) {
             return (*port, format!("/_matrix/provision/{tail}"));
         }
     }
@@ -105,7 +105,7 @@ mod tests {
     fn routes() -> Routes {
         Routes {
             server: 47281,
-            bridges: vec![("whatsapp".into(), 47290), ("slack".into(), 47291)],
+            bridges: vec![("whatsapp", 47290), ("slack", 47291)],
         }
     }
 

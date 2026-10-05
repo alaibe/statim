@@ -3,18 +3,29 @@ import { useState } from 'react';
 import { Button, Card, QrScanner, Text } from '@/design';
 import { errorMessage } from '@/core/errors';
 import { DEVICE_NAME } from '@/protocols/matrix/descriptor';
+import { loginWithToken } from '@/protocols/matrix/token-login';
 
 import { adoptMatrixSession } from './matrix-session';
-import { readPhoneLink, signInWithLink } from './phone-link';
+import { readPhoneLink } from './phone-link';
 
-export function ScanFromComputer({ accountId }: { accountId: string }) {
+export interface MatrixOnComputerProps {
+  accountId: string;
+  signedIn: boolean;
+  signedOut: boolean;
+  onBridgesChanged(): void;
+}
+
+export function MatrixOnComputer({ accountId, signedIn }: MatrixOnComputerProps) {
   const [scanning, setScanning] = useState(false);
 
   const signIn = async (data: string) => {
     const link = readPhoneLink(data);
     if (!link) return 'That is not a code from Statim on your computer.';
     try {
-      await adoptMatrixSession(accountId, await signInWithLink(link, DEVICE_NAME));
+      await adoptMatrixSession(
+        accountId,
+        await loginWithToken(link.homeserver, link.loginToken, DEVICE_NAME)
+      );
     } catch (e) {
       return errorMessage(e, 'Could not sign in with that code');
     }
@@ -22,6 +33,7 @@ export function ScanFromComputer({ accountId }: { accountId: string }) {
     return null;
   };
 
+  if (signedIn) return null;
   return (
     <Card className="gap-2">
       <Text variant="headline">Matrix on your computer</Text>

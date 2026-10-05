@@ -7,13 +7,7 @@ import { randomBytes } from '@/lib/random';
 import { VaultKey, vaultDelete, vaultGet, vaultSet } from '@/storage/vault';
 
 import { forgetNoteKey, noteKeyInUse, rememberNoteKey, storedNoteKey } from './account-key';
-import {
-  changeNotes,
-  signInURL,
-  SignInRequired,
-  type Container,
-  type SealedNote,
-} from './cloudkit';
+import { changeNotes, signInURL, SignInRequired, type SealedNote } from './cloudkit';
 import { icloudContainer, type IcloudSetup } from './container';
 import { sealNote, type Note, type NoteKey } from './note';
 import type { RelayState } from './relay';
@@ -84,26 +78,6 @@ function serial<T>(task: () => Promise<T>): Promise<T> {
   return run;
 }
 
-/**
- * Each web auth token is good for one request and the reply carries the next,
- * so requests run inside `serial` and the token is replaced after each.
- */
-async function spend<T extends { token: string }>(
-  request: (container: Container, token: string) => Promise<T>
-): Promise<T | null> {
-  const container = icloudContainer();
-  const token = container ? await vaultGet(VaultKey.icloudSession) : null;
-  if (!container || !token) return null;
-  try {
-    const answer = await request(container, token);
-    await vaultSet(VaultKey.icloudSession, answer.token);
-    return answer;
-  } catch (error) {
-    if (error instanceof SignInRequired) await vaultDelete(VaultKey.icloudSession);
-    throw error;
-  }
-}
-
 async function deliver(items: Item[]): Promise<void> {
   const keys = new Map<string, NoteKey | null>();
   const notes: SealedNote[] = [];
@@ -126,11 +100,18 @@ async function exchange(notes: SealedNote[], all = false): Promise<void> {
     .slice(0, MAX_OPERATIONS - notes.length)
     .map((note) => note.name);
   if (notes.length === 0 && discard.length === 0) return;
-  const changed = await spend(async (container, token) => {
-    if (notes.length > 0) await vaultSet(VaultKey.icloudNotes, JSON.stringify(saved));
-    return changeNotes(container, token, notes, discard);
-  });
-  if (!changed) return;
+  const container = icloudContainer();
+  const token = container ? await vaultGet(VaultKey.icloudSession) : null;
+  if (!container || !token) return;
+  if (notes.length > 0) await vaultSet(VaultKey.icloudNotes, JSON.stringify(saved));
+  let changed;
+  try {
+    changed = await changeNotes(container, token, notes, discard);
+  } catch (error) {
+    if (error instanceof SignInRequired) await vaultDelete(VaultKey.icloudSession);
+    throw error;
+  }
+  await vaultSet(VaultKey.icloudSession, changed.token);
   const gone = new Set(discard.filter((name) => !changed.undeleted.includes(name)));
   const left = saved.filter((note) => !gone.has(note.name));
   if (gone.size > 0) await vaultSet(VaultKey.icloudNotes, JSON.stringify(left));

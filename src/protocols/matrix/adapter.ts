@@ -60,8 +60,6 @@ export interface MatrixConnectOptions {
   parameters: MxStartParams;
   /** Called with the session after sign-in and with null after sign-out. */
   persistSession(session: MxSession | null): Promise<void>;
-  /** Called once the session has closed, as a server that runs only for it stops then. */
-  afterClose?(): Promise<void>;
 }
 
 /**
@@ -637,7 +635,6 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     this.unsubscribe?.();
     this.unsubscribe = null;
     await this.api.close();
-    await this.options.afterClose?.();
   }
 
   async eraseLocalDatabase(): Promise<void> {

@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
-import QRCode from 'react-native-qrcode-svg';
 
-import { Button, Card, ErrorText, ListItem, Text, Toggle } from '@/design';
+import { Button, Card, ErrorText, ListItem, QrCode, Text, Toggle } from '@/design';
 import { errorMessage } from '@/core/errors';
 import {
   homeserverBridges,
   homeserverPhoneLink,
   homeserverSession,
-  homeserverState,
+  localHomeserverUrl,
   setHomeserverBridge,
   startHomeserver,
   type PhoneLink,
@@ -19,8 +18,8 @@ import { useAction } from '@/features/use-action';
 import { guideUrl } from '@/lib/guide';
 import { openExternal } from '@/lib/open-url';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
-import { KNOWN_BRIDGES, provisioningName } from '@/protocols/matrix/bridges';
-import { DEVICE_NAME } from '@/protocols/matrix/descriptor';
+import { knownBridge } from '@/protocols/matrix/bridges';
+import { DEVICE_NAME, normaliseHomeserver } from '@/protocols/matrix/descriptor';
 
 import { adoptMatrixSession } from './matrix-session';
 import { phoneLinkCode } from './phone-link';
@@ -29,17 +28,16 @@ import { phoneLinkCode } from './phone-link';
 type Here = 'unavailable' | 'elsewhere' | 'off' | 'on';
 
 export async function hereState(accountId: string): Promise<Here> {
-  const [state, config] = await Promise.all([
-    homeserverState(accountId),
+  const [url, config] = await Promise.all([
+    localHomeserverUrl(),
     loadProtocolConfig(accountId, 'matrix'),
   ]);
-  if (!state.available) return 'unavailable';
-  const homeserver = config.homeserver?.trim().replace(/\/+$/, '');
+  if (!url) return 'unavailable';
+  const homeserver = normaliseHomeserver(config.homeserver ?? '');
   if (!homeserver) return 'off';
-  return homeserver === state.url ? 'on' : 'elsewhere';
+  return homeserver === url ? 'on' : 'elsewhere';
 }
 
-/** Starts the account's server, signs its own user in, and points Matrix at it. */
 export async function runHere(accountId: string): Promise<void> {
   await startHomeserver(accountId);
   await adoptMatrixSession(accountId, await homeserverSession(accountId, DEVICE_NAME));
@@ -47,7 +45,7 @@ export async function runHere(accountId: string): Promise<void> {
 
 /** What a bridge is called where people see it: Messenger for `facebook`. */
 export function networkOf(bridge: string): string {
-  const known = KNOWN_BRIDGES.find((candidate) => provisioningName(candidate) === bridge);
+  const known = knownBridge(`${bridge}bot`);
   return known ? BRIDGED_NETWORKS[known.network] : bridge;
 }
 
@@ -98,12 +96,6 @@ export function LocalHomeserver({
       <Text variant="caption">
         {"This account's Matrix runs on this computer, and only while Statim runs."}
       </Text>
-      {signedOut ? null : (
-        <>
-          <LocalBridges accountId={accountId} onChanged={onBridgesChanged} />
-          <ConnectPhone accountId={accountId} />
-        </>
-      )}
       {signedOut ? (
         <Button
           testID="matrix-run-here"
@@ -113,7 +105,12 @@ export function LocalHomeserver({
           loading={run.busy}
           onPress={() => void run.run()}
         />
-      ) : null}
+      ) : (
+        <>
+          <LocalBridges accountId={accountId} onChanged={onBridgesChanged} />
+          <ConnectPhone accountId={accountId} />
+        </>
+      )}
     </Card>
   );
 }
@@ -201,14 +198,7 @@ function ConnectPhone({ accountId }: { accountId: string }) {
       </Text>
       {link ? (
         <View className="items-center gap-2">
-          <View className="rounded-card bg-white p-3">
-            <QRCode
-              value={phoneLinkCode(link)}
-              size={200}
-              backgroundColor="#ffffff"
-              color="#000000"
-            />
-          </View>
+          <QrCode value={phoneLinkCode(link)} size={200} />
           <Text variant="caption">The code works once, for two minutes.</Text>
         </View>
       ) : null}

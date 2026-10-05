@@ -1,7 +1,8 @@
 import { act, type ComponentType, createElement } from 'react';
 import { create, type ReactTestRenderer } from 'react-test-renderer';
 
-import { OpenAtLogin, StayConnected } from '@/features/settings/notification-settings';
+import { NotificationSettings as OnAndroid } from '@/features/settings/notification-settings.android';
+import { NotificationSettings as OnDesktop } from '@/features/settings/notification-settings.web';
 
 jest.mock('@/design', () => ({
   Icon: 'Icon',
@@ -15,6 +16,10 @@ const mockLogin = { opensAtLogin: jest.fn(), setOpenAtLogin: jest.fn() };
 jest.mock('@/features/settings/open-at-login', () => ({
   opensAtLogin: () => mockLogin.opensAtLogin(),
   setOpenAtLogin: (on: boolean) => mockLogin.setOpenAtLogin(on),
+}));
+
+jest.mock('@/features/settings/use-account-switch', () => ({
+  useAccountSwitch: () => ({ state: 'unavailable', change: {} }),
 }));
 
 const mockStay = { staysConnected: jest.fn(), setStayConnected: jest.fn() };
@@ -41,14 +46,14 @@ const toggle = (testID: string) => tree.root.findByProps({ testID }).props.trail
 describe('Open at login', () => {
   it('shows whether the computer opens the app at login', async () => {
     mockLogin.opensAtLogin.mockResolvedValue(true);
-    await render(OpenAtLogin);
+    await render(OnDesktop);
     expect(toggle('open-at-login').props.value).toBe(true);
   });
 
   it('turns the switch back when the computer refuses', async () => {
     mockLogin.opensAtLogin.mockResolvedValue(false);
     mockLogin.setOpenAtLogin.mockRejectedValue(new Error('denied'));
-    await render(OpenAtLogin);
+    await render(OnDesktop);
 
     await act(async () => toggle('open-at-login').props.onValueChange(true));
 
@@ -60,7 +65,7 @@ describe('Open at login', () => {
 describe('Stay connected', () => {
   it('starts from the saved choice and saves a new one', async () => {
     mockStay.staysConnected.mockReturnValue(true);
-    await render(StayConnected);
+    await render(OnAndroid);
     expect(toggle('stay-connected').props.value).toBe(true);
 
     await act(async () => toggle('stay-connected').props.onValueChange(false));

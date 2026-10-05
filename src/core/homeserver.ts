@@ -1,10 +1,4 @@
 /** Only the desktop runs a homeserver (`homeserver.web.ts`). */
-export interface HomeserverState {
-  available: boolean;
-  running: boolean;
-  url: string;
-}
-
 export interface HomeserverBridge {
   /** The name its login API sits under: `facebook` for Messenger. */
   id: string;
@@ -16,7 +10,6 @@ export interface HomeserverBridge {
 /** What another device of the owner scans to sign in to the server on the computer. */
 export interface PhoneLink {
   homeserver: string;
-  userId: string;
   loginToken: string;
   expiresInMs: number;
 }
@@ -28,8 +21,9 @@ export interface HomeserverSession {
   homeserverUrl: string;
 }
 
-export async function homeserverState(_accountId: string): Promise<HomeserverState> {
-  return { available: false, running: false, url: '' };
+/** The server's address, where this build can run one. */
+export async function localHomeserverUrl(): Promise<string | null> {
+  return null;
 }
 
 export async function startHomeserver(_accountId: string): Promise<string> {
@@ -56,7 +50,5 @@ export async function setHomeserverBridge(
   _bridge: string,
   _enabled: boolean
 ): Promise<void> {}
-
-export async function stopHomeserver(): Promise<void> {}
 
 export async function eraseHomeserver(_accountId: string): Promise<void> {}

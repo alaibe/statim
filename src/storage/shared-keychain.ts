@@ -8,7 +8,7 @@ import * as SecureStore from 'expo-secure-store';
 function options(): SecureStore.SecureStoreOptions {
   const ios = Constants.expoConfig?.ios;
   return {
-    keychainService: 'statim.push',
+    keychainService: 'statim.notes',
     accessGroup: `${ios?.appleTeamId}.${ios?.bundleIdentifier}.shared`,
     keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
   };

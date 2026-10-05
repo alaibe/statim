@@ -1,6 +1,6 @@
 //! Where the app keeps its files, and the names the page may choose for them.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use tauri::{AppHandle, Manager};
 
@@ -15,6 +15,18 @@ pub fn safe_component(value: &str, what: &str) -> Result<(), String> {
     } else {
         Err(format!("Invalid {what}: {value}"))
     }
+}
+
+/// Writes a secret file only this user can read.
+pub fn write_private(path: &Path, contents: &str) -> Result<(), String> {
+    std::fs::write(path, contents).map_err(|e| e.to_string())?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 pub fn app_data_dir(app: &AppHandle) -> Result<PathBuf, String> {

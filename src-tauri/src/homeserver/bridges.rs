@@ -4,64 +4,33 @@
 
 use std::path::Path;
 
-use super::artifacts::Pin;
+use super::artifacts::{build_index, Pin};
 use super::config::Appservice;
-use super::{users::random_hex, write_private, OWNER, SERVER_NAME};
+use super::{users::random_hex, OWNER, SERVER_NAME};
+use crate::paths::write_private;
 
+/// A bridge whose bot is `<id>bot` and whose users for people on the other
+/// network start with `<id>_`.
 pub struct Bridge {
     /// Its appservice id, and the name its login API sits under in the router.
     pub id: &'static str,
-    pub bot: &'static str,
-    /// What its users for people on the other network start with.
-    prefix: &'static str,
     pub binary: &'static str,
     pub port: u16,
     /// Configured the way bridges before mautrix's bridgev2 were.
     legacy: bool,
-    /// For an Apple-silicon Mac, Linux on x86-64, and Linux on ARM; an empty
-    /// one where it has no build.
-    builds: [(&'static str, &'static str); 3],
+    /// For each of `build_index`'s computers, where it has one.
+    builds: [Option<(&'static str, &'static str)>; 3],
 }
 
 macro_rules! release {
+    (@url $repo:literal, $tag:literal, $asset:literal, $suffix:literal) => {
+        concat!("https://github.com/mautrix/", $repo, "/releases/download/", $tag, "/", $asset, $suffix)
+    };
     ($repo:literal, $tag:literal, $asset:literal, $mac:literal, $amd64:literal, $arm64:literal) => {
         [
-            (
-                concat!(
-                    "https://github.com/mautrix/",
-                    $repo,
-                    "/releases/download/",
-                    $tag,
-                    "/",
-                    $asset,
-                    "-darwin-arm64"
-                ),
-                $mac,
-            ),
-            (
-                concat!(
-                    "https://github.com/mautrix/",
-                    $repo,
-                    "/releases/download/",
-                    $tag,
-                    "/",
-                    $asset,
-                    "-amd64"
-                ),
-                $amd64,
-            ),
-            (
-                concat!(
-                    "https://github.com/mautrix/",
-                    $repo,
-                    "/releases/download/",
-                    $tag,
-                    "/",
-                    $asset,
-                    "-arm64"
-                ),
-                $arm64,
-            ),
+            Some((release!(@url $repo, $tag, $asset, "-darwin-arm64"), $mac)),
+            Some((release!(@url $repo, $tag, $asset, "-amd64"), $amd64)),
+            Some((release!(@url $repo, $tag, $asset, "-arm64"), $arm64)),
         ]
     };
 }
@@ -69,8 +38,6 @@ macro_rules! release {
 pub const BRIDGES: &[Bridge] = &[
     Bridge {
         id: "whatsapp",
-        bot: "whatsappbot",
-        prefix: "whatsapp_",
         binary: "mautrix-whatsapp",
         port: 47290,
         legacy: false,
@@ -85,8 +52,6 @@ pub const BRIDGES: &[Bridge] = &[
     },
     Bridge {
         id: "signal",
-        bot: "signalbot",
-        prefix: "signal_",
         binary: "mautrix-signal",
         port: 47291,
         legacy: false,
@@ -101,8 +66,6 @@ pub const BRIDGES: &[Bridge] = &[
     },
     Bridge {
         id: "facebook",
-        bot: "facebookbot",
-        prefix: "facebook_",
         binary: "mautrix-meta",
         port: 47292,
         legacy: false,
@@ -117,8 +80,6 @@ pub const BRIDGES: &[Bridge] = &[
     },
     Bridge {
         id: "instagram",
-        bot: "instagrambot",
-        prefix: "instagram_",
         binary: "mautrix-instagram",
         port: 47293,
         legacy: false,
@@ -133,8 +94,6 @@ pub const BRIDGES: &[Bridge] = &[
     },
     Bridge {
         id: "slack",
-        bot: "slackbot",
-        prefix: "slack_",
         binary: "mautrix-slack",
         port: 47294,
         legacy: false,
@@ -149,8 +108,6 @@ pub const BRIDGES: &[Bridge] = &[
     },
     Bridge {
         id: "discord",
-        bot: "discordbot",
-        prefix: "discord_",
         binary: "mautrix-discord",
         port: 47295,
         legacy: true,
@@ -165,18 +122,16 @@ pub const BRIDGES: &[Bridge] = &[
     },
     Bridge {
         id: "imessage",
-        bot: "imessagebot",
-        prefix: "imessage_",
         binary: "corten-matrix",
         port: 47296,
         legacy: false,
         builds: [
-            (
+            Some((
                 "https://github.com/lrhodin/corten-matrix/releases/download/1.3.2/corten-matrix-macos",
                 "1e0f5c60960cd2596ab18f04a7c6d329c982f94771a9319e2178bbd4afd01f62",
-            ),
-            ("", ""),
-            ("", ""),
+            )),
+            None,
+            None,
         ],
     },
 ];
@@ -224,24 +179,12 @@ impl Tokens {
 }
 
 impl Bridge {
-    /// Its build for this computer, if there is one.
     pub fn pin(&self) -> Option<Pin> {
-        let build = if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
-            self.builds[0]
-        } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
-            self.builds[1]
-        } else if cfg!(all(target_os = "linux", target_arch = "aarch64")) {
-            self.builds[2]
-        } else {
-            return None;
-        };
-        if build.0.is_empty() {
-            return None;
-        }
+        let (url, sha256) = self.builds[build_index()?]?;
         Some(Pin {
             file: self.binary,
-            url: build.0,
-            sha256: build.1,
+            url,
+            sha256,
         })
     }
 
@@ -253,8 +196,8 @@ impl Bridge {
             hs_token: tokens.hs_token.clone(),
             sender_localpart: tokens.sender.clone(),
             users: vec![
-                format!("^@{}:{SERVER_NAME}$", self.bot),
-                format!("^@{}.*:{SERVER_NAME}$", self.prefix),
+                format!("^@{}bot:{SERVER_NAME}$", self.id),
+                format!("^@{}_.*:{SERVER_NAME}$", self.id),
             ],
             exclusive: true,
         }
@@ -262,13 +205,12 @@ impl Bridge {
 
     /// What the bridge reads; `double_puppet` lets it post as the owner.
     pub fn config(&self, server_port: u16, tokens: &Tokens, double_puppet: &str) -> String {
-        let (id, port, prefix) = (self.id, self.port, self.prefix);
+        let (id, port) = (self.id, self.port);
         let homeserver = format!(
             "homeserver:\n    address: http://127.0.0.1:{server_port}\n    domain: {SERVER_NAME}\n"
         );
         let appservice = format!(
-            "appservice:\n    address: http://127.0.0.1:{port}\n    hostname: 127.0.0.1\n    port: {port}\n    id: {id}\n    bot:\n        username: {bot}\n    as_token: {as_token}\n    hs_token: {hs_token}\n",
-            bot = self.bot,
+            "appservice:\n    address: http://127.0.0.1:{port}\n    hostname: 127.0.0.1\n    port: {port}\n    id: {id}\n    bot:\n        username: {id}bot\n    as_token: {as_token}\n    hs_token: {hs_token}\n",
             as_token = tokens.as_token,
             hs_token = tokens.hs_token,
         );
@@ -280,12 +222,12 @@ impl Bridge {
         };
         if self.legacy {
             format!(
-                "{homeserver}{appservice}    database:\n        {database}bridge:\n    username_template: {prefix}{{{{.}}}}\n{permissions}    login_shared_secret_map:\n        {SERVER_NAME}: \"as_token:{double_puppet}\"\n",
+                "{homeserver}{appservice}    database:\n        {database}bridge:\n    username_template: {id}_{{{{.}}}}\n{permissions}    login_shared_secret_map:\n        {SERVER_NAME}: \"as_token:{double_puppet}\"\n",
                 database = database("        "),
             )
         } else {
             format!(
-                "{homeserver}{appservice}    username_template: {prefix}{{{{.}}}}\ndatabase:\n    {database}bridge:\n{permissions}double_puppet:\n    secrets:\n        {SERVER_NAME}: \"as_token:{double_puppet}\"\n",
+                "{homeserver}{appservice}    username_template: {id}_{{{{.}}}}\ndatabase:\n    {database}bridge:\n{permissions}double_puppet:\n    secrets:\n        {SERVER_NAME}: \"as_token:{double_puppet}\"\n",
                 database = database("    "),
             )
         }
@@ -364,7 +306,7 @@ mod tests {
     #[test]
     fn pins_every_build_from_a_github_release() {
         for bridge in BRIDGES {
-            for (url, sha256) in bridge.builds.iter().filter(|(url, _)| !url.is_empty()) {
+            for (url, sha256) in bridge.builds.iter().flatten() {
                 assert!(url.starts_with("https://github.com/"), "{url}");
                 assert!(url.contains("/releases/download/"), "{url}");
                 assert_eq!(sha256.len(), 64, "{url}");
@@ -375,7 +317,7 @@ mod tests {
     #[test]
     fn runs_imessage_on_a_mac_only() {
         let builds = bridge("imessage").unwrap().builds;
-        assert!(!builds[0].0.is_empty());
-        assert!(builds[1].0.is_empty() && builds[2].0.is_empty());
+        assert!(builds[0].is_some());
+        assert!(builds[1].is_none() && builds[2].is_none());
     }
 }

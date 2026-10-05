@@ -1,12 +1,12 @@
 import { hereState, networkOf, runHere } from './local-homeserver';
 
-const mockState = { available: true, running: false, url: 'http://127.0.0.1:47280' };
+const mockState = { available: true, url: 'http://127.0.0.1:47280' };
 let mockConfig: Record<string, string> = {};
 const mockVault = new Map<string, string>();
 const mockUpdate = jest.fn();
 
 jest.mock('@/core/homeserver', () => ({
-  homeserverState: async () => mockState,
+  localHomeserverUrl: async () => (mockState.available ? mockState.url : null),
   startHomeserver: async () => mockState.url,
   homeserverSession: async () => ({
     accessToken: 'token',

@@ -6,11 +6,10 @@ import { Badge, Button, Card, Note, Text } from '@/design';
 import { useAccountStore } from '@/core/account/account-store';
 import { connectionFor, useChatStore } from '@/core/messaging/chat-store';
 import { protocolById } from '@/protocols';
-import { LocalHomeserver } from '@/features/protocols/local-homeserver';
 import { LoginStep, SignedIn } from '@/features/protocols/login';
 import { MatrixBridges } from '@/features/protocols/matrix-bridges';
 import { OwnAddress } from '@/features/protocols/own-address';
-import { ScanFromComputer } from '@/features/protocols/scan-from-computer';
+import { MatrixOnComputer } from '@/features/protocols/matrix-on-computer';
 import type { ChatSession } from '@/core/messaging/protocol';
 import type { ProtocolDescriptor } from '@/core/messaging/registry';
 import type { MatrixCapabilities } from '@/protocols/matrix/provisioning';
@@ -66,18 +65,12 @@ function ProtocolSettings({ descriptor }: { descriptor: ProtocolDescriptor }) {
         </Card>
 
         {descriptor.id === 'matrix' && accountId ? (
-          <LocalHomeserver
+          <MatrixOnComputer
             accountId={accountId}
+            signedIn={!!session?.self.address}
             signedOut={!!connection.login}
             onBridgesChanged={() => setBridgesSeen((n) => n + 1)}
           />
-        ) : null}
-
-        {descriptor.id === 'matrix' &&
-        accountId &&
-        process.env.EXPO_OS !== 'web' &&
-        !session?.self.address ? (
-          <ScanFromComputer accountId={accountId} />
         ) : null}
 
         {connection.error ? (

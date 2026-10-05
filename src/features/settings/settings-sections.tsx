@@ -9,7 +9,7 @@ import { isProtocolId, type ProtocolId } from '@/core/messaging/namespace';
 import type { ProtocolDescriptor } from '@/core/messaging/registry';
 import { connectableProtocols } from '@/protocols';
 import { eraseAccount } from '@/core/app/erase-account';
-import { icloudContainer } from '@/core/icloud/container';
+import { notificationsHint } from '@/features/settings/notification-settings';
 import { usePluginHost } from '@/core/plugins/host';
 import { openTab } from '@/features/navigation/open';
 import { connectionBadge, protocolIcon } from '@/features/protocols/presentation';
@@ -32,16 +32,6 @@ const SETTINGS_PAGES = [
   'plugins',
   'command-line',
 ] as const;
-
-/** On the iPhone the page holds only the switch for notifications from the computer, which needs iCloud in the build. */
-const NOTIFICATIONS_HINT =
-  process.env.EXPO_OS === 'web'
-    ? 'Open at login'
-    : process.env.EXPO_OS === 'android'
-      ? 'Stay connected'
-      : icloudContainer()
-        ? 'From your computer'
-        : null;
 
 /** The pages the sections open, so a layout showing both can mark the open one. */
 export type SettingsPage = (typeof SETTINGS_PAGES)[number] | `protocol/${ProtocolId}`;
@@ -162,11 +152,11 @@ export function SettingsSections({
           selected={selected === 'appearance'}
           onPress={() => openTab('/settings/appearance')}
         />
-        {NOTIFICATIONS_HINT ? (
+        {notificationsHint ? (
           <ListItem
             testID="settings-notifications"
             title="Notifications"
-            subtitle={hint(NOTIFICATIONS_HINT)}
+            subtitle={hint(notificationsHint)}
             leading={<RowIcon name="notifications-outline" tone="red" />}
             trailing={chevron}
             selected={selected === 'notifications'}

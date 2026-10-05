@@ -1110,19 +1110,6 @@ describe('MatrixSession messages', () => {
     await second.chat.eraseLocalDatabase();
     expect(second.api.erased).toBe(true);
   });
-
-  it('lets a server that runs only for the session stop once it has closed', async () => {
-    const api = new FakeMatrix();
-    const closedFirst: boolean[] = [];
-    const chat = await MatrixSession.connect({
-      createApi: async () => api,
-      parameters: { ...PARAMETERS, session: SESSION },
-      persistSession: async () => {},
-      afterClose: async () => void closedFirst.push(api.closed),
-    });
-    await chat.disconnect();
-    expect(closedFirst).toEqual([true]);
-  });
 });
 
 describe('ids', () => {

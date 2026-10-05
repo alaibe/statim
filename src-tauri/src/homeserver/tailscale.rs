@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 use serde::Deserialize;
 
-pub const PORT: u16 = 8448;
+const PORT: u16 = 8448;
 
 const CANDIDATES: &[&str] = &[
     "/usr/local/bin/tailscale",

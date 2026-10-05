@@ -135,13 +135,12 @@ pub fn run() {
             paths::account_dir,
             paths::erase_account_dir,
             sign_in::browser_sign_in,
-            homeserver::homeserver_state,
+            homeserver::homeserver_url,
             homeserver::homeserver_start,
             homeserver::homeserver_session,
             homeserver::homeserver_phone_link,
             homeserver::homeserver_bridges,
             homeserver::homeserver_set_bridge,
-            homeserver::homeserver_stop,
             homeserver::homeserver_erase,
             web_login::web_login_open,
             web_login::web_login_poll,
@@ -223,8 +222,13 @@ pub fn run() {
                 }
             });
             #[cfg(any(windows, target_os = "linux"))]
-            if let Err(error) = app.deep_link().register_all() {
-                log::warn!("[deep-link] scheme not registered: {error}");
+            {
+                let handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    if let Err(error) = handle.deep_link().register_all() {
+                        log::warn!("[deep-link] scheme not registered: {error}");
+                    }
+                });
             }
             if let Err(error) = tray::install(app.handle()) {
                 log::warn!("[tray] not shown: {error}");

@@ -12,7 +12,7 @@ use aes_gcm::{Aes256Gcm, Key, Nonce};
 use base64::prelude::*;
 use tauri::{AppHandle, Manager, State};
 
-use crate::paths::app_data_dir;
+use crate::paths::{app_data_dir, write_private};
 
 const SERVICE: &str = "im.statim.app";
 const MASTER_KEY_ENTRY: &str = "vault-key";
@@ -84,13 +84,7 @@ fn debug_key(app: &AppHandle) -> Result<Vec<u8>, String> {
         Ok(Some(key)) => key,
         _ => fresh_key()?,
     };
-    std::fs::write(&path, BASE64_STANDARD.encode(&key)).map_err(|e| e.to_string())?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600))
-            .map_err(|e| e.to_string())?;
-    }
+    write_private(&path, &BASE64_STANDARD.encode(&key))?;
     Ok(key)
 }
 

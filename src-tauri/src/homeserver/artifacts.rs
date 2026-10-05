@@ -3,65 +3,70 @@
 
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 use sha2::{Digest, Sha256};
 
 /// One file and where it comes from. `sha256` is the hash of the file that
-/// runs, after a `.zst` download is unpacked. An empty one means it has not
-/// been published for this computer yet, and nothing downloads it.
+/// runs, after a `.zst` download is unpacked.
 pub struct Pin {
     pub file: &'static str,
     pub url: &'static str,
     pub sha256: &'static str,
 }
 
-/// tuwunel, and on a Mac the libolm the bridges link.
-pub fn server_pins() -> Option<&'static [Pin]> {
+/// Which of a release's builds this computer runs: an Apple-silicon Mac,
+/// Linux on x86-64, or Linux on ARM.
+pub fn build_index() -> Option<usize> {
     if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
-        Some(&[
-            Pin {
-                file: "tuwunel",
-                url: "",
-                sha256: "",
-            },
-            Pin {
-                file: "libolm.3.dylib",
-                url: "",
-                sha256: "",
-            },
-        ])
+        Some(0)
     } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
-        Some(&[Pin {
-            file: "tuwunel",
-            url: "https://github.com/matrix-construct/tuwunel/releases/download/v1.9.3/v1.9.3-release-all-x86_64-v1-linux-gnu-tuwunel.zst",
-            sha256: "825bf246641b80be441d4632f433a03045da330e75b33d508444ffd388d8cec9",
-        }])
+        Some(1)
     } else if cfg!(all(target_os = "linux", target_arch = "aarch64")) {
-        Some(&[Pin {
-            file: "tuwunel",
-            url: "https://github.com/matrix-construct/tuwunel/releases/download/v1.9.3/v1.9.3-release-all-aarch64-v8-linux-gnu-tuwunel.zst",
-            sha256: "53658cb09df611dc117af03630b751ef0515eb7286db2cdc682ff6222a8bc2d8",
-        }])
+        Some(2)
     } else {
         None
     }
 }
 
-/// Puts every pinned file in `dir`, reusing one whose hash already matches.
+/// tuwunel, and on a Mac the libolm the bridges link.
+const SERVER: [Option<&[Pin]>; 3] = [
+    None,
+    Some(&[Pin {
+        file: "tuwunel",
+        url: "https://github.com/matrix-construct/tuwunel/releases/download/v1.9.3/v1.9.3-release-all-x86_64-v1-linux-gnu-tuwunel.zst",
+        sha256: "825bf246641b80be441d4632f433a03045da330e75b33d508444ffd388d8cec9",
+    }]),
+    Some(&[Pin {
+        file: "tuwunel",
+        url: "https://github.com/matrix-construct/tuwunel/releases/download/v1.9.3/v1.9.3-release-all-aarch64-v8-linux-gnu-tuwunel.zst",
+        sha256: "53658cb09df611dc117af03630b751ef0515eb7286db2cdc682ff6222a8bc2d8",
+    }]),
+];
+
+pub fn server_pins() -> Option<&'static [Pin]> {
+    SERVER[build_index()?]
+}
+
+/// Files already checked by this run of the app.
+static VERIFIED: Mutex<Vec<(PathBuf, &str)>> = Mutex::new(Vec::new());
+
 pub async fn install(dir: &Path, pins: &[Pin]) -> Result<(), String> {
     std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
     for pin in pins {
-        if pin.sha256.is_empty() || pin.url.is_empty() {
-            return Err(format!(
-                "{} is not published for this computer yet.",
-                pin.file
-            ));
-        }
         let path = dir.join(pin.file);
-        if hash_of(&path).as_deref() == Some(pin.sha256) {
+        let checked = (path.clone(), pin.sha256);
+        if VERIFIED
+            .lock()
+            .map_err(|e| e.to_string())?
+            .contains(&checked)
+        {
             continue;
         }
-        download(pin, &path).await?;
+        if hash_of(&path).as_deref() != Some(pin.sha256) {
+            download(pin, &path).await?;
+        }
+        VERIFIED.lock().map_err(|e| e.to_string())?.push(checked);
     }
     Ok(())
 }
@@ -83,12 +88,14 @@ async fn download(pin: &Pin, path: &Path) -> Result<(), String> {
         .bytes()
         .await
         .map_err(|e| format!("Could not download {}: {e}", pin.file))?;
-    let contents = if pin.url.ends_with(".zst") {
-        unpack(&body).map_err(|e| format!("Could not unpack {}: {e}", pin.file))?
+    let unpacked;
+    let contents: &[u8] = if pin.url.ends_with(".zst") {
+        unpacked = unpack(&body).map_err(|e| format!("Could not unpack {}: {e}", pin.file))?;
+        &unpacked
     } else {
-        body.to_vec()
+        &body
     };
-    if hex(&Sha256::digest(&contents)) != pin.sha256 {
+    if format!("{:x}", Sha256::digest(contents)) != pin.sha256 {
         return Err(format!(
             "{} did not match its pinned SHA-256 and was not kept.",
             pin.file
@@ -110,12 +117,10 @@ fn unpack(zstd: &[u8]) -> Result<Vec<u8>, String> {
 }
 
 fn hash_of(path: &Path) -> Option<String> {
-    let bytes = std::fs::read(path).ok()?;
-    Some(hex(&Sha256::digest(bytes)))
-}
-
-fn hex(bytes: &[u8]) -> String {
-    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+    let mut file = std::fs::File::open(path).ok()?;
+    let mut hasher = Sha256::new();
+    std::io::copy(&mut file, &mut hasher).ok()?;
+    Some(format!("{:x}", hasher.finalize()))
 }
 
 #[cfg(unix)]
@@ -133,18 +138,6 @@ fn make_executable(_path: &Path) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[tokio::test]
-    async fn refuses_a_file_that_has_no_pin_yet() {
-        let dir = std::env::temp_dir().join("statim-pins-test");
-        let pins = [Pin {
-            file: "tuwunel",
-            url: "https://example.org/tuwunel",
-            sha256: "",
-        }];
-        let error = install(&dir, &pins).await.unwrap_err();
-        assert_eq!(error, "tuwunel is not published for this computer yet.");
-    }
 
     #[test]
     fn unpacks_a_zstd_download() {
@@ -167,5 +160,15 @@ mod tests {
             sha256: "9a3a45d01531a20e89ac6ae10b0b0beb0492acd7216a368aa062d1a5fecaf9cd",
         }];
         assert_eq!(install(&dir, &pins).await, Ok(()));
+    }
+
+    #[test]
+    fn pins_every_server_build_from_a_github_release() {
+        for pins in SERVER.iter().flatten() {
+            for pin in *pins {
+                assert!(pin.url.starts_with("https://github.com/"), "{}", pin.url);
+                assert_eq!(pin.sha256.len(), 64, "{}", pin.url);
+            }
+        }
     }
 }

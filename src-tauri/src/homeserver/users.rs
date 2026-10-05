@@ -32,24 +32,18 @@ pub async fn sign_in(
     registration_token: &str,
     device_name: &str,
 ) -> Result<Session, String> {
+    let client = reqwest::Client::new();
     let password_file = dir.join("password");
     let password = match std::fs::read_to_string(&password_file) {
         Ok(password) => password.trim().to_string(),
         Err(_) => {
             let password = random_hex(24)?;
-            register(server, localpart, &password, registration_token).await?;
-            super::write_private(&password_file, &password)?;
+            register(&client, server, localpart, &password, registration_token).await?;
+            crate::paths::write_private(&password_file, &password)?;
             password
         }
     };
-    let logged_in = login(
-        &reqwest::Client::new(),
-        server,
-        localpart,
-        &password,
-        device_name,
-    )
-    .await?;
+    let logged_in = login(&client, server, localpart, &password, device_name).await?;
     Ok(Session {
         access_token: logged_in.access_token,
         user_id: logged_in.user_id,
@@ -143,12 +137,12 @@ async fn login(
 /// The two rounds registration by token takes: the first opens a session, the
 /// second answers it with the token.
 async fn register(
+    client: &reqwest::Client,
     server: &str,
     localpart: &str,
     password: &str,
     token: &str,
 ) -> Result<(), String> {
-    let client = reqwest::Client::new();
     let url = format!("{server}/_matrix/client/v3/register");
     let opened: Value = client
         .post(&url)

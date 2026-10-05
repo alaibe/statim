@@ -1,11 +1,6 @@
 import { Platform } from 'react-native';
 
-import {
-  eraseHomeserver,
-  homeserverState,
-  startHomeserver,
-  stopHomeserver,
-} from '@/core/homeserver';
+import { localHomeserverUrl, startHomeserver } from '@/core/homeserver';
 import type { ProtocolDescriptor } from '@/core/messaging/registry';
 import { guideUrl } from '@/lib/guide';
 import { accountDirectory, eraseAccountDirectory } from '@/storage/media';
@@ -82,10 +77,7 @@ export const MATRIX_PROTOCOL = {
     const homeserverUrl = normaliseHomeserver(config.homeserver ?? '');
     const userId = config.userId?.trim() ?? '';
     if (!USER_ID.test(userId)) throw new Error('The Matrix ID must look like @you:example.org.');
-    // A homeserver on this computer runs only while its account's session is open.
-    const here = await homeserverState(accountId);
-    const local = here.available && homeserverUrl === here.url;
-    if (local) await startHomeserver(accountId);
+    const local = homeserverUrl === (await localHomeserverUrl());
 
     const sessionKey = accountMatrixSessionKey(accountId);
     const [{ MatrixSession }, { MatrixClient }, dataDirectory, storeKey, session] =
@@ -95,6 +87,7 @@ export const MATRIX_PROTOCOL = {
         accountDirectory('matrix', accountId),
         accountMatrixStoreKey(accountId),
         readSession(sessionKey, userId, homeserverUrl),
+        local && startHomeserver(accountId),
       ]);
     return MatrixSession.connect({
       createApi: () => MatrixClient.create(),
@@ -106,20 +99,22 @@ export const MATRIX_PROTOCOL = {
         deviceName: DEVICE_NAME,
         session,
       },
-      persistSession: (next) =>
-        next ? vaultSet(sessionKey, JSON.stringify(next)) : vaultDelete(sessionKey),
-      afterClose: local ? stopHomeserver : undefined,
+      persistSession: (next) => (next ? saveSession(accountId, next) : vaultDelete(sessionKey)),
     });
   },
   // A live session erases through the SDK instead; this covers accounts that are not open.
   async eraseLocalData({ accountId }) {
     await vaultDelete(accountMatrixSessionKey(accountId));
     await eraseAccountDirectory('matrix', accountId);
-    await eraseHomeserver(accountId);
   },
 } satisfies ProtocolDescriptor;
 
-function normaliseHomeserver(value: string): string {
+/** Keeps a session for `connect` to restore, including one made outside its sign-in. */
+export function saveSession(accountId: string, session: MxSession): Promise<void> {
+  return vaultSet(accountMatrixSessionKey(accountId), JSON.stringify(session));
+}
+
+export function normaliseHomeserver(value: string): string {
   const trimmed = value.trim().replace(/\/+$/, '');
   if (!trimmed) return '';
   return /^https?:\/\//.test(trimmed) ? trimmed : `https://${trimmed}`;

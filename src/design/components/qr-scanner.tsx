@@ -1,5 +1,5 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AppState, Linking, Modal, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -34,6 +34,7 @@ function Scanner({ title, closeLabel, purpose, hint, onScanned, onClose }: QrSca
   const [permission, requestPermission, getPermission] = useCameraPermissions();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const rejected = useRef<string | null>(null);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
@@ -54,8 +55,10 @@ function Scanner({ title, closeLabel, purpose, hint, onScanned, onClose }: QrSca
   };
 
   const scanned = async ({ data }: { data: string }) => {
+    if (data === rejected.current) return;
     setBusy(true);
     const problem = await onScanned(data);
+    rejected.current = problem ? data : null;
     setError(problem);
     if (problem) setBusy(false);
   };

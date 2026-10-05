@@ -29,6 +29,7 @@ export { ListItem } from './list-item';
 export { Loading } from './loading';
 export { ModalHeader } from './modal-header';
 export { PinDots, PinPad, type PinPadProps } from './pin-pad';
+export { QrCode } from './qr-code';
 export { QrScanner, type QrScannerProps } from './qr-scanner';
 export { Pressable } from './pressable';
 export { Screen } from './screen';
