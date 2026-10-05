@@ -26,6 +26,7 @@ import { loadPluginPrefs, resolveEnabledIds, savePluginPrefs } from '../plugins/
 import type { Plugin, PluginContext, PluginId, PluginLease } from '../plugins/types';
 import { createAccountStorage, type AccountStorage } from '@/storage/account';
 import { eraseAccountStorage } from '@/storage/erase';
+import { eraseHomeserver } from '../homeserver';
 import { BotRuntime } from './bot-runtime';
 import { ProtocolRuntime, type SessionFactory } from './protocol-runtime';
 
@@ -191,6 +192,7 @@ export class AccountRuntime {
             });
           }
         }
+        await eraseHomeserver(account.id);
         await eraseAccountStorage(account.id);
         this.eraseSessions.delete(account.id);
       } catch (error) {
