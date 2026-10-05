@@ -168,6 +168,7 @@ function ConnectPhone({ accountId }: { accountId: string }) {
   const [link, setLink] = useState<PhoneLink | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const enableLink = error?.match(/https:\/\/login\.tailscale\.com\/[^\s,]+/)?.[0];
 
   useEffect(() => {
     if (!link) return;
@@ -203,6 +204,13 @@ function ConnectPhone({ accountId }: { accountId: string }) {
         </View>
       ) : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
+      {enableLink ? (
+        <Button
+          label="Turn it on in Tailscale"
+          size="sm"
+          onPress={() => void openExternal(enableLink).catch(() => {})}
+        />
+      ) : null}
       <Button
         testID="matrix-connect-phone"
         label={link ? 'Show a new code' : 'Connect your phone'}
