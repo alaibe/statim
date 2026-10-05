@@ -2,8 +2,6 @@ import { useAccountStore } from '../account/account-store';
 import { useLockStore } from '../account/lock-store';
 import { stopListening } from '../icloud/phone';
 import { turnOffRelay } from '../icloud/relay';
-import { useChatStore } from '../messaging/chat-store';
-import { forgetPushSecrets } from '@/storage/shared-keychain';
 import { vaultWipe } from '@/storage/vault';
 import { accountRuntime } from '@/runtime';
 
@@ -15,13 +13,8 @@ export async function eraseAccount(accountId?: string): Promise<void> {
   const account = accountState.accounts.find((candidate) => candidate.id === targetId);
   if (!account) throw new Error(`Account ${targetId} does not exist.`);
 
-  if (useChatStore.getState().accountId === targetId) {
-    const sessions = Object.values(useChatStore.getState().sessions);
-    await Promise.all(sessions.map((session) => session?.registerPush?.(null).catch(() => {})));
-  }
   await Promise.all([stopListening(targetId), turnOffRelay(targetId)]).catch(() => {});
   await accountRuntime.erase(account);
-  await forgetPushSecrets(targetId);
   await useAccountStore.getState().removeErasedAccount(targetId);
 }
 

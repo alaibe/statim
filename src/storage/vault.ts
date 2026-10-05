@@ -11,7 +11,6 @@ export const VaultKey = {
   biometricLock: 'security.biometricLock',
   commandLine: 'security.commandLine',
   keyProtection: 'security.keyProtection',
-  pushServer: 'notifications.pushServer',
   icloudSession: 'notifications.icloudSession',
   icloudNotes: 'notifications.icloudNotes',
   pin: 'security.pin',

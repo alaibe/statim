@@ -1,15 +1,11 @@
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
 
-import { Button, Field, Icon, ListItem, Note, Section, Text, Toggle } from '@/design';
+import { Icon, ListItem, Section, Text, Toggle } from '@/design';
 import { useAccountStore } from '@/core/account/account-store';
-import { pushServer, setPushServer } from '@/core/app/push';
 import { listenToComputer, listeningState, stopListening } from '@/core/icloud/phone';
 import { relayState, turnOffRelay, turnOnRelay } from '@/core/icloud/relay';
 import { setStayConnected, staysConnected } from '@/core/stay-connected';
 import { useAction } from '@/features/use-action';
-import { guideUrl } from '@/lib/guide';
-import { openExternal } from '@/lib/open-url';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 import { opensAtLogin, setOpenAtLogin } from '@/features/settings/open-at-login';
 
@@ -108,23 +104,30 @@ export function FromComputer() {
 
   if (!state || state === 'unavailable') return null;
   return (
-    <Section title="From your computer" surface="card" className="mb-6">
-      <ListItem
-        testID="from-computer"
-        title="Notifications from your computer"
-        subtitle="Statim on your computer wakes this iPhone through your iCloud when a message arrives. It needs the same iCloud and this account on the computer. Off by default."
-        numberOfLinesSubtitle={4}
-        leading={<Icon name="notifications-outline" size={20} tone="muted" />}
-        trailing={
-          <Toggle
-            label="Notifications from your computer"
-            value={state === 'on'}
-            disabled={change.busy}
-            onValueChange={(next) => void change.run(next)}
-          />
-        }
-      />
-    </Section>
+    <>
+      <Text variant="body" className="px-gutter pb-6">
+        Statim notifies you while it runs. iOS stops it soon after you leave it, so Statim on your
+        computer can wake this iPhone instead.
+      </Text>
+
+      <Section title="From your computer" surface="card" className="mb-6">
+        <ListItem
+          testID="from-computer"
+          title="Notifications from your computer"
+          subtitle="Statim on your computer wakes this iPhone through your iCloud when a message arrives. It needs the same iCloud and this account on the computer. Off by default."
+          numberOfLinesSubtitle={4}
+          leading={<Icon name="notifications-outline" size={20} tone="muted" />}
+          trailing={
+            <Toggle
+              label="Notifications from your computer"
+              value={state === 'on'}
+              disabled={change.busy}
+              onValueChange={(next) => void change.run(next)}
+            />
+          }
+        />
+      </Section>
+    </>
   );
 }
 
@@ -153,99 +156,6 @@ export function StayConnected() {
           trailing={<Toggle label="Stay connected" value={on} onValueChange={toggle} />}
         />
       </Section>
-    </>
-  );
-}
-
-export function PushServer() {
-  const [saved, setSaved] = useState<string | null | undefined>(undefined);
-  const [draft, setDraft] = useState('');
-
-  useEffect(() => {
-    pushServer()
-      .then((server) => {
-        setSaved(server);
-        setDraft(server ?? '');
-      })
-      .catch(() => setSaved(null));
-  }, []);
-
-  const save = useAction(
-    async (value: string) => {
-      const server = value.trim().replace(/\/+$/, '') || null;
-      if (server && !/^https?:\/\/[^/\s]+/.test(server)) {
-        throw new Error('A push server is an address that starts with https://.');
-      }
-      await setPushServer(server);
-      setSaved(server);
-      setDraft(server ?? '');
-    },
-    { failure: 'Could not change the push server' }
-  );
-
-  return (
-    <>
-      <Text variant="body" className="px-gutter pb-6">
-        Statim notifies you while it runs. iOS stops it soon after you leave it, so a push server
-        wakes it when a Matrix or Telegram message arrives.
-      </Text>
-
-      {saved === undefined ? null : (
-        <Section title="Push server" surface="card" className="mb-6">
-          <View className="gap-3 px-gutter py-4">
-            <Field
-              testID="push-server"
-              value={draft}
-              onChangeText={setDraft}
-              placeholder="https://push.example.org"
-              autoCorrect={false}
-              autoCapitalize="none"
-              keyboardType="url"
-              hint={saved ? `Matrix and Telegram wake this phone through ${saved}.` : 'Off.'}
-            />
-            <View className="flex-row gap-2">
-              <View className="flex-1">
-                <Button
-                  testID="push-server-save"
-                  label="Save"
-                  fullWidth
-                  loading={save.busy}
-                  disabled={save.busy || draft.trim() === (saved ?? '')}
-                  onPress={() => save.run(draft)}
-                />
-              </View>
-              {saved ? (
-                <View className="flex-1">
-                  <Button
-                    testID="push-server-off"
-                    label="Turn off"
-                    tone="neutral"
-                    fullWidth
-                    disabled={save.busy}
-                    onPress={() => save.run('')}
-                  />
-                </View>
-              ) : null}
-            </View>
-          </View>
-        </Section>
-      )}
-
-      <Note className="mx-gutter" icon="information-circle-outline">
-        <Text variant="footnote">
-          The server learns the push token of this phone and when a message arrives. Matrix gives it
-          the room and event ids only, and Telegram messages reach it encrypted for this phone. The
-          notification shows who wrote and what once this phone has fetched or decrypted it. XMTP,
-          Nostr and Status messages wait until you open the app.
-        </Text>
-        <Button
-          label="Run a push server"
-          tone="neutral"
-          onPress={() =>
-            openExternal(guideUrl('homeserver', 'notifications-on-iphone')).catch(() => {})
-          }
-        />
-      </Note>
     </>
   );
 }

@@ -2,7 +2,6 @@ import {
   FromComputer,
   NotifyIphone,
   OpenAtLogin,
-  PushServer,
   StayConnected,
 } from '@/features/settings/notification-settings';
 import { SettingsScreen } from '@/features/settings/settings-screen';
@@ -18,10 +17,7 @@ export default function NotificationsScreen() {
       ) : process.env.EXPO_OS === 'android' ? (
         <StayConnected />
       ) : (
-        <>
-          <FromComputer />
-          <PushServer />
-        </>
+        <FromComputer />
       )}
     </SettingsScreen>
   );

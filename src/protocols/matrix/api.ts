@@ -198,15 +198,6 @@ export type MxUpdate =
   /** The homeserver no longer accepts the session: signed out elsewhere, or the token expired. */
   | { type: 'signedOut' };
 
-export interface MxPusher {
-  pushkey: string;
-  appId: string;
-  /** A push gateway's `/_matrix/push/v1/notify`. */
-  url: string;
-  /** Added to every push; the gateway passes it to the device. */
-  payload: Record<string, string>;
-}
-
 export interface MatrixApi {
   /** Restores the saved session when there is one; `null` means sign in first. Rooms arrive as updates. */
   start(params: MxStartParams): Promise<MxSession | null>;
@@ -254,10 +245,6 @@ export interface MatrixApi {
   setTyping(roomId: string, typing: boolean): Promise<void>;
   createPoll(roomId: string, question: string, options: string[]): Promise<void>;
   votePoll(roomId: string, eventId: string, answerIds: string[]): Promise<void>;
-
-  /** Event ids only: the homeserver never sends the gateway what was said. */
-  setPusher(pusher: MxPusher): Promise<void>;
-  deletePusher(pushkey: string, appId: string): Promise<void>;
 
   /** Downloads once and returns a local path the app can display. */
   media(media: MxMedia): Promise<string>;

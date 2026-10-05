@@ -5,7 +5,6 @@ import type {
   LoginState,
   MentionCandidate,
   PublicChatPreview,
-  PushTarget,
 } from '@/core/messaging/protocol';
 import type { StickerChoice, StickerContent, StickerPack } from '@/core/messaging/stickers';
 import type {
@@ -41,7 +40,6 @@ import { TelegramStickers } from './stickers';
 import { download, localUriOf } from './files';
 import { patchChat, TypingTracker } from './updates';
 import { Outbox } from './outbox';
-import { forgetWebPushKeys, registerDevice, UNREGISTER_DEVICE } from './push';
 import { type MappingContext, toMessage } from './mapping';
 import { addressOf, nameOf } from './users';
 import { UnsupportedError } from '@/core/errors';
@@ -96,7 +94,6 @@ export class TelegramSession implements ChatSession {
   private api!: TdApi;
   private unsubscribe: Unsubscribe | null = null;
   private me: TdUser | null = null;
-  private pushTarget: PushTarget | null = null;
   private login: LoginState | null = null;
   private loginErrorAfterRestart: string | undefined;
   private readonly loginListeners = new Set<(login: LoginState | null) => void>();
@@ -205,20 +202,8 @@ export class TelegramSession implements ChatSession {
     }
   }
 
-  async registerPush(target: PushTarget | null): Promise<void> {
-    const previous = this.pushTarget;
-    this.pushTarget = target;
-    if (target) {
-      await this.api.send(await registerDevice(target));
-    } else if (previous) {
-      await this.api.send(UNREGISTER_DEVICE);
-      await forgetWebPushKeys(previous.accountId);
-    }
-  }
-
   /** Ends the session on Telegram's side too; TDLib then wipes its database. */
   async signOut(): Promise<void> {
-    if (this.pushTarget) await forgetWebPushKeys(this.pushTarget.accountId);
     await this.api.send({ '@type': 'logOut' });
   }
 

@@ -89,16 +89,6 @@ describe('signOut', () => {
     expect(session.disconnected).toBe(true);
   });
 
-  it('stops push for the account before erasing it', async () => {
-    const session = await connected();
-    const targets: unknown[] = [];
-    Object.assign(session, { registerPush: async (target: unknown) => void targets.push(target) });
-
-    await eraseAccount();
-
-    expect(targets).toEqual([null]);
-  });
-
   it('clears the account settings', async () => {
     await createAccountStorage('test-account').set('chat.readAt', {});
     await createAccountStorage('test-account').plugin('ethereum').set('watched', []);

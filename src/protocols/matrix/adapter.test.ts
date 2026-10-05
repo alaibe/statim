@@ -16,13 +16,6 @@ import {
   textEvent,
 } from './testing/fake-matrix';
 
-const mockShared = new Map<string, string>();
-jest.mock('@/storage/shared-keychain', () => ({
-  pushSecretKey: (protocol: string, accountId: string) => `push.${protocol}.${accountId}`,
-  shareWithExtension: async (key: string, value: string) => void mockShared.set(key, value),
-  unshare: async (key: string) => void mockShared.delete(key),
-}));
-
 /**
  * The Matrix adapter against a scripted SDK. What matters here is the
  * mapping and the sign-in state machine; matrix-rust-sdk is not under test.
@@ -1137,44 +1130,5 @@ describe('parseUserId', () => {
     expect(parseUserId('!room:b.org')).toBeNull();
     expect(parseUserId('@a')).toBeNull();
     expect(parseUserId('')).toBeNull();
-  });
-});
-
-describe('MatrixSession push', () => {
-  const TARGET = {
-    server: 'https://push.example.org',
-    deviceToken: 'ab'.repeat(32),
-    topic: 'im.statim.app',
-    accountId: 'acc1',
-  };
-
-  it('registers a pusher and shares the session the notification extension needs', async () => {
-    const { chat, api } = await connect();
-    await chat.registerPush(TARGET);
-
-    expect(api.named('setPusher')).toEqual([
-      [
-        {
-          pushkey: TARGET.deviceToken,
-          appId: 'im.statim.app',
-          url: 'https://push.example.org/_matrix/push/v1/notify',
-          payload: { statim_account: 'acc1' },
-        },
-      ],
-    ]);
-    expect(JSON.parse(mockShared.get('push.matrix.acc1')!)).toEqual({
-      homeserverUrl: SESSION.homeserverUrl,
-      accessToken: SESSION.accessToken,
-      userId: SESSION.userId,
-    });
-  });
-
-  it('removes both when push is turned off', async () => {
-    const { chat, api } = await connect();
-    await chat.registerPush(TARGET);
-    await chat.registerPush(null);
-
-    expect(api.named('deletePusher')).toEqual([[TARGET.deviceToken, 'im.statim.app']]);
-    expect(mockShared.has('push.matrix.acc1')).toBe(false);
   });
 });
