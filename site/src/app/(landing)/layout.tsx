@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 
 import { Footer } from '@/landing/Footer';
 import { Header } from '@/landing/Header';
+import { Analytics } from '@/lib/analytics';
 import { siteMetadata } from '@/lib/metadata';
 
 import '@/styles/landing.css';
@@ -24,6 +25,7 @@ export default function LandingLayout({ children }: { children: React.ReactNode 
         <Header />
         <main className="flex-auto">{children}</main>
         <Footer />
+        <Analytics />
       </body>
     </html>
   );

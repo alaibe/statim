@@ -184,6 +184,24 @@ account later.
 Messages already delivered to relays or to other people are beyond the
 developer's reach, as they are with any messenger.
 
+## This website
+
+statim.laibe.cc counts visits with Umami, which the developer runs on the
+developer's own server. It sets no cookies, and its statistics hold no network
+address. Each page view records the page, the referring page, browser,
+operating system, device type, screen size, language, and the country, region
+and city looked up from the network address. Page views are grouped into visits
+by an identifier derived from the address and browser that changes every month.
+
+Each count reaches that server through Cloudflare, and the server's access log
+keeps the request with its network address for a short time, to run and protect
+the service. That log is capped by size rather than by a number of days. The site itself is hosted on GitHub Pages, so GitHub also sees each
+visitor's network address, under
+[its privacy statement](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement).
+
+The app sends nothing to the site on its own. A guide link opened from the app
+loads the page in a browser view, where it counts as a visit like any other.
+
 ## Children
 
 The app is not directed at children and collects nothing that would identify

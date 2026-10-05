@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import { Providers } from '@/app/(docs)/providers';
 import { Layout } from '@/docs/Layout';
 import { allPages } from '@/lib/docs';
+import { Analytics } from '@/lib/analytics';
 import { siteMetadata } from '@/lib/metadata';
 
 import '@/styles/docs.css';
@@ -29,6 +30,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
             <Layout allSections={allSections}>{children}</Layout>
           </div>
         </Providers>
+        <Analytics />
       </body>
     </html>
   );
