@@ -8,12 +8,9 @@ export interface IcloudSetup extends Container {
 }
 
 /**
- * Store builds of the iPhone app reach CloudKit's production environment and
- * development builds its development one, so the desktop follows the same
- * split. Each environment has its own token, which only identifies the app;
- * each person still signs in. Production returns to the app's URL scheme.
- * Apple allows localhost only in development, which suits a desktop build run
- * from the repository, as macOS hands URL-scheme links to installed apps only.
+ * The CloudKit environment an iPhone build of the same kind uses. Each API
+ * token identifies the app, not a person. Apple accepts a localhost callback
+ * only in development; production comes back through the app's URL scheme.
  */
 export function icloudContainer(): IcloudSetup | null {
   if (!__DEV__) {

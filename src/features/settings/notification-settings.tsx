@@ -7,7 +7,7 @@ import { useAccountSwitch } from './use-account-switch';
 export const notificationsIntro =
   'Statim notifies you while it runs. iOS stops it soon after you leave it, so Statim on your computer can wake this iPhone instead.';
 
-/** The page holds only the switch for notifications from the computer, which needs iCloud in the build. */
+/** Hidden without an iCloud container in the build, since the page's one switch needs it. */
 export const notificationsHint = icloudContainer() ? 'From your computer' : null;
 
 export function NotificationSettings() {

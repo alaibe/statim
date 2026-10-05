@@ -117,8 +117,8 @@ pub async fn homeserver_start(
     Ok(url())
 }
 
-/// The owner signed in on the account's running server from a new device
-/// named `device_name`; the first call creates the owner.
+/// Signs the owner in on the account's running server as a new device,
+/// creating the owner on the first call.
 #[tauri::command]
 pub async fn homeserver_session(
     state: State<'_, Homeserver>,
@@ -279,7 +279,7 @@ fn account_dir(app: &AppHandle, account_id: &str) -> Result<PathBuf, String> {
         .join(account_id))
 }
 
-/// Where the programs are, with the server's own installed first.
+/// The folder the programs run from, after downloading the server if needed.
 async fn bin_dir(app: &AppHandle) -> Result<PathBuf, String> {
     if let Some(dir) = artifacts::override_dir() {
         return Ok(dir);
@@ -433,7 +433,7 @@ mod tests {
 
     /// Runs the real server from `STATIM_HOMESERVER_ARTIFACTS`, with the pinned
     /// WhatsApp bridge downloaded into it: `cargo test --lib homeserver -- --ignored`.
-    /// One test, since the ports are fixed.
+    /// One test, since the ports are fixed; it cannot run while the app's own server does.
     #[tokio::test(flavor = "multi_thread")]
     #[ignore]
     async fn runs_the_server_and_a_bridge_behind_the_router() {

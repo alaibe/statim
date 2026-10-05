@@ -5,7 +5,6 @@ import { forgetNoteKey, noteKeyInUse, rememberNoteKey, storedNoteKey } from './a
 import { ICLOUD_CONTAINER, icloudContainer } from './container';
 import type { ListeningState } from './phone';
 
-/** Offered only in builds whose desktop counterpart can write notes. */
 export async function listeningState(accountId: string): Promise<ListeningState> {
   if (!ICloudNotes || !icloudContainer()) return 'unavailable';
   return (await storedNoteKey(accountId)) ? 'on' : 'off';

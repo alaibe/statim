@@ -29,7 +29,8 @@ pub fn build_index() -> Option<usize> {
     }
 }
 
-/// tuwunel, and on a Mac the libolm the bridges link.
+/// Per `build_index`. The Mac's, with the libolm its mautrix bridges link,
+/// comes from `.github/workflows/homeserver.yml`.
 const SERVER: [Option<&[Pin]>; 3] = [
     None,
     Some(&[Pin {

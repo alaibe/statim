@@ -22,7 +22,6 @@ pub struct Routes {
     pub bridges: Vec<(&'static str, u16)>,
 }
 
-/// The port and path a request for `path` goes to.
 fn route(routes: &Routes, path: &str) -> (u16, String) {
     if let Some(rest) = path.strip_prefix("/_matrix/provision/") {
         let (name, tail) = rest.split_once('/').unwrap_or((rest, ""));

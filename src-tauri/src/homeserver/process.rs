@@ -12,7 +12,6 @@ pub struct Process {
 }
 
 impl Process {
-    /// Runs `program` in `dir`, logging to `<name>.log` there.
     pub fn spawn(
         name: &str,
         program: &Path,

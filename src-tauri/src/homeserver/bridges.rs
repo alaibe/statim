@@ -203,7 +203,7 @@ impl Bridge {
         }
     }
 
-    /// What the bridge reads; `double_puppet` lets it post as the owner.
+    /// `double_puppet` is the token that lets it post as the owner.
     pub fn config(&self, server_port: u16, tokens: &Tokens, double_puppet: &str) -> String {
         let (id, port) = (self.id, self.port);
         let homeserver = format!(

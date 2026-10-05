@@ -24,7 +24,7 @@ interface Saved {
 
 const isSavedList = arrayOf(shape<Saved>({ name: isString, at: isNumber }));
 
-/** iCloud copies a note into its push straight away; after this the record is litter. */
+/** iCloud copies a note into its push at once, so the record is deleted after this. */
 const NOTE_LIFETIME = 5 * 60_000;
 const MAX_OPERATIONS = 200;
 
@@ -62,7 +62,7 @@ export async function turnOffRelay(accountId: string): Promise<void> {
   await vaultDelete(VaultKey.icloudSession);
 }
 
-/** You are at the computer while its window has focus, so the iPhone stays quiet. */
+/** The iPhone stays quiet while this window has focus, since you are at the computer. */
 export function relayToPhone(accountId: string, notification: MessageNotification): void {
   if (!icloudContainer() || appFocused()) return;
   const note = { chat: notification.chatId, title: notification.title, body: notification.body };
@@ -91,7 +91,7 @@ async function deliver(items: Item[]): Promise<void> {
   if (notes.length > 0) await exchange(notes);
 }
 
-/** Names are written down before the request, so a reply lost on the way back leaves nothing behind for good. */
+/** Note names are saved before the request, so a reply lost on the way back cannot leave notes in iCloud for good. */
 async function exchange(notes: SealedNote[], all = false): Promise<void> {
   const now = Date.now();
   const saved = [...(await savedNotes()), ...notes.map((note) => ({ name: note.name, at: now }))];
@@ -136,7 +136,7 @@ function scheduleCleanUp(): void {
   }, NOTE_LIFETIME);
 }
 
-/** Apple's own page, in the browser, which hands the token back to this computer. */
+/** Signs in on Apple's page in the browser, which hands the token back to this computer. */
 async function signIn(container: IcloudSetup): Promise<string> {
   const target = await invoke<string>('browser_sign_in', {
     url: await signInURL(container),

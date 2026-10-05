@@ -2,8 +2,8 @@ import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 
 /**
- * Items the notification service extension reads to show who wrote and what.
- * It runs while the phone may be locked, so they open after the first unlock.
+ * Shared with the notification service extension, which may run while the
+ * phone is locked, so items open after the first unlock.
  */
 function options(): SecureStore.SecureStoreOptions {
   const ios = Constants.expoConfig?.ios;
