@@ -11,4 +11,8 @@ export function pushSecretKey(protocol: 'matrix' | 'telegram', accountId: string
   return `push.${protocol}.${accountId}`;
 }
 
+export function noteSecretKey(tag: string): string {
+  return `icloud.${tag}`;
+}
+
 export async function forgetPushSecrets(_accountId: string): Promise<void> {}

@@ -4,13 +4,13 @@ import { View } from 'react-native';
 import { Button, Field, Icon, ListItem, Note, Section, Text, Toggle } from '@/design';
 import { useAccountStore } from '@/core/account/account-store';
 import { pushServer, setPushServer } from '@/core/app/push';
-import { icloudContainer } from '@/core/icloud/container';
-import { hearsFromComputer, listenToComputer, stopListening } from '@/core/icloud/phone';
-import { relayState, turnOffRelay, turnOnRelay, type RelayState } from '@/core/icloud/relay';
+import { listenToComputer, listeningState, stopListening } from '@/core/icloud/phone';
+import { relayState, turnOffRelay, turnOnRelay } from '@/core/icloud/relay';
 import { setStayConnected, staysConnected } from '@/core/stay-connected';
 import { useAction } from '@/features/use-action';
 import { guideUrl } from '@/lib/guide';
 import { openExternal } from '@/lib/open-url';
+import { useKeyedLoad } from '@/lib/use-keyed-load';
 import { opensAtLogin, setOpenAtLogin } from '@/features/settings/open-at-login';
 
 export function OpenAtLogin() {
@@ -50,25 +50,21 @@ export function OpenAtLogin() {
 
 export function NotifyIphone() {
   const accountId = useAccountStore((s) => s.activeAccountId);
-  const [state, setState] = useState<RelayState>();
-
-  useEffect(() => {
-    if (!accountId) return;
-    relayState(accountId)
-      .then(setState)
-      .catch(() => setState('unavailable'));
-  }, [accountId]);
-
+  const [version, setVersion] = useState(0);
+  const { value: state } = useKeyedLoad(accountId, relayState, version);
   const change = useAction(
     async (on: boolean) => {
       if (!accountId) return;
-      await (on ? turnOnRelay(accountId) : turnOffRelay(accountId));
-      setState(await relayState(accountId));
+      try {
+        await (on ? turnOnRelay(accountId) : turnOffRelay(accountId));
+      } finally {
+        setVersion((v) => v + 1);
+      }
     },
     { failure: 'Could not change iPhone notifications' }
   );
 
-  if (!accountId || !state || state === 'unavailable') return null;
+  if (!state || state === 'unavailable') return null;
   return (
     <Section title="Your iPhone" surface="card" className="mb-6">
       <ListItem
@@ -96,25 +92,21 @@ export function NotifyIphone() {
 
 export function FromComputer() {
   const accountId = useAccountStore((s) => s.activeAccountId);
-  const [on, setOn] = useState<boolean>();
-
-  useEffect(() => {
-    if (!accountId) return;
-    hearsFromComputer(accountId)
-      .then(setOn)
-      .catch(() => setOn(false));
-  }, [accountId]);
-
+  const [version, setVersion] = useState(0);
+  const { value: state } = useKeyedLoad(accountId, listeningState, version);
   const change = useAction(
-    async (next: boolean) => {
+    async (on: boolean) => {
       if (!accountId) return;
-      await (next ? listenToComputer(accountId) : stopListening(accountId));
-      setOn(next);
+      try {
+        await (on ? listenToComputer(accountId) : stopListening(accountId));
+      } finally {
+        setVersion((v) => v + 1);
+      }
     },
     { failure: 'Could not change notifications from your computer' }
   );
 
-  if (!accountId || on === undefined || !icloudContainer()) return null;
+  if (!state || state === 'unavailable') return null;
   return (
     <Section title="From your computer" surface="card" className="mb-6">
       <ListItem
@@ -126,7 +118,7 @@ export function FromComputer() {
         trailing={
           <Toggle
             label="Notifications from your computer"
-            value={on}
+            value={state === 'on'}
             disabled={change.busy}
             onValueChange={(next) => void change.run(next)}
           />

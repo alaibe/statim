@@ -1,4 +1,4 @@
-import { changeNotes, currentUser, signInURL, SignInRequired, type Container } from './cloudkit';
+import { changeNotes, signInURL, SignInRequired, type Container } from './cloudkit';
 
 const mockFetch = jest.fn();
 jest.mock('@/lib/http', () => ({ appFetch: (...args: unknown[]) => mockFetch(...args) }));
@@ -39,14 +39,18 @@ describe('CloudKit web services', () => {
   });
 
   it('sends the token encoded and keeps the one the reply hands back', async () => {
-    mockFetch.mockResolvedValueOnce(reply(200, { userRecordName: '_u' }, 'next+/='));
-    await expect(currentUser(CONTAINER, 'a+b/c=')).resolves.toBe('next+/=');
+    mockFetch.mockResolvedValueOnce(reply(200, { records: [] }, 'next+/='));
+    await expect(changeNotes(CONTAINER, 'a+b/c=', [NOTE], [])).resolves.toMatchObject({
+      token: 'next+/=',
+    });
     expect(mockFetch.mock.calls[0][0]).toContain('&ckWebAuthToken=a%2Bb%2Fc%3D');
   });
 
   it('keeps the old token when the reply carries none', async () => {
-    mockFetch.mockResolvedValueOnce(reply(200, { userRecordName: '_u' }));
-    await expect(currentUser(CONTAINER, 'same')).resolves.toBe('same');
+    mockFetch.mockResolvedValueOnce(reply(200, { records: [] }));
+    await expect(changeNotes(CONTAINER, 'same', [NOTE], [])).resolves.toMatchObject({
+      token: 'same',
+    });
   });
 
   it('saves each note under the name it chose and deletes the ones it is done with', async () => {
@@ -90,9 +94,9 @@ describe('CloudKit web services', () => {
 
   it('asks for a sign-in again once the token has expired', async () => {
     mockFetch.mockResolvedValueOnce(reply(421, { serverErrorCode: 'AUTHENTICATION_REQUIRED' }));
-    await expect(changeNotes(CONTAINER, 'old', [NOTE])).rejects.toBeInstanceOf(SignInRequired);
+    await expect(changeNotes(CONTAINER, 'old', [NOTE], [])).rejects.toBeInstanceOf(SignInRequired);
     mockFetch.mockResolvedValueOnce(reply(401, { serverErrorCode: 'AUTHENTICATION_FAILED' }));
-    await expect(changeNotes(CONTAINER, 'old', [NOTE])).rejects.toBeInstanceOf(SignInRequired);
+    await expect(changeNotes(CONTAINER, 'old', [NOTE], [])).rejects.toBeInstanceOf(SignInRequired);
   });
 
   it('says so when the build’s API token is wrong, which no sign-in fixes', async () => {
@@ -112,6 +116,6 @@ describe('CloudKit web services', () => {
         records: [{ recordName: 'n', serverErrorCode: 'QUOTA_EXCEEDED', reason: 'Over quota' }],
       })
     );
-    await expect(changeNotes(CONTAINER, 't', [NOTE])).rejects.toThrow('Over quota');
+    await expect(changeNotes(CONTAINER, 't', [NOTE], [])).rejects.toThrow('Over quota');
   });
 });

@@ -1,6 +1,9 @@
 import { invoke } from '@tauri-apps/api/core';
 
-import { changeNotes, currentUser, signInURL, SignInRequired } from './cloudkit';
+import { VaultKey } from '@/storage/vault';
+import { asChatId } from '@/core/messaging/testing/ids';
+
+import { changeNotes, signInURL, SignInRequired } from './cloudkit';
 import { noteKey, openNote } from './note';
 import { relayState, relayToPhone, turnOffRelay, turnOnRelay } from './relay.web';
 
@@ -26,24 +29,27 @@ jest.mock('@/storage/vault', () => ({
 jest.mock('./cloudkit', () => ({
   ...jest.requireActual('./cloudkit'),
   signInURL: jest.fn(),
-  currentUser: jest.fn(),
   changeNotes: jest.fn(),
 }));
 
-const SESSION = 'notifications.icloudSession';
 const MINUTE = 60_000;
 const { key, tag } = noteKey(PHRASE);
 const call = (index: number) => {
   const [, token, notes, discard] = jest.mocked(changeNotes).mock.calls[index];
-  return { token, notes, discard: discard ?? [] };
+  return { token, notes, discard };
 };
 const opened = (index: number) =>
   call(index).notes.map((note) => ({ tag: note.tag, ...openNote(key, note.sealed) }));
 const savedNames = () =>
-  (JSON.parse(mockVault.get('notifications.icloudNotes') ?? '[]') as { name: string }[]).map(
+  (JSON.parse(mockVault.get(VaultKey.icloudNotes) ?? '[]') as { name: string }[]).map(
     (note) => note.name
   );
 const flush = () => jest.advanceTimersByTimeAsync(0);
+const arrival = (chat: string, title: string, body: string) => ({
+  chatId: asChatId(chat),
+  title,
+  body,
+});
 
 beforeEach(() => {
   jest.useFakeTimers();
@@ -52,7 +58,6 @@ beforeEach(() => {
   mockFocused = false;
   jest.mocked(invoke).mockReset();
   jest.mocked(signInURL).mockReset().mockResolvedValue('https://idmsa.apple.com/sign-in');
-  jest.mocked(currentUser).mockReset().mockResolvedValue('rolled');
   jest.mocked(changeNotes).mockReset().mockResolvedValue({ token: 'after-save', undeleted: [] });
 });
 
@@ -80,7 +85,7 @@ describe('notifying the iPhone through iCloud', () => {
     expect(await relayState('acc1')).toBe('unavailable');
   });
 
-  it('signs in on Apple’s page, keeps the rolled token and says hello to the iPhone', async () => {
+  it('signs in on Apple’s page and says hello to the iPhone with the token it got', async () => {
     await turnOn();
     expect(invoke).toHaveBeenCalledWith(
       'web_login_open',
@@ -90,17 +95,16 @@ describe('notifying the iPhone through iCloud', () => {
       })
     );
     expect(invoke).toHaveBeenCalledWith('web_login_close');
-    expect(jest.mocked(currentUser).mock.calls[0][1]).toBe('signed+in');
-    expect(call(0).token).toBe('rolled');
-    expect(opened(0)).toEqual([expect.objectContaining({ tag, chat: '', title: 'Statim' })]);
-    expect(mockVault.get(SESSION)).toBe('after-save');
+    expect(call(0).token).toBe('signed+in');
+    expect(opened(0)).toEqual([{ tag, title: 'Statim', body: expect.any(String) }]);
+    expect(mockVault.get(VaultKey.icloudSession)).toBe('after-save');
     expect(await relayState('acc1')).toBe('on');
   });
 
   it('stays quiet while the window has focus', async () => {
     await turnOn();
     mockFocused = true;
-    relayToPhone('acc1', { chat: 'xmtp:a', title: 'Alice', body: 'Hi' });
+    relayToPhone('acc1', arrival('xmtp-a', 'Alice', 'Hi'));
     await flush();
     expect(changeNotes).toHaveBeenCalledTimes(1);
   });
@@ -111,10 +115,10 @@ describe('notifying the iPhone through iCloud', () => {
     jest
       .mocked(changeNotes)
       .mockImplementationOnce(() => new Promise((resolve) => (finish = resolve)));
-    relayToPhone('acc1', { chat: 'xmtp:a', title: 'Alice', body: 'one' });
+    relayToPhone('acc1', arrival('xmtp-a', 'Alice', 'one'));
     await flush();
-    relayToPhone('acc1', { chat: 'xmtp:b', title: 'Bob', body: 'two' });
-    relayToPhone('acc1', { chat: 'xmtp:a', title: 'Alice', body: 'three' });
+    relayToPhone('acc1', arrival('xmtp-b', 'Bob', 'two'));
+    relayToPhone('acc1', arrival('xmtp-a', 'Alice', 'three'));
     finish({ token: 't2', undeleted: [] });
     await flush();
     expect(opened(1).map((note) => note.body)).toEqual(['one']);
@@ -137,7 +141,7 @@ describe('notifying the iPhone through iCloud', () => {
     const hello = call(0).notes[0].name;
     jest.clearAllTimers();
     jest.setSystemTime(Date.now() + 6 * MINUTE);
-    relayToPhone('acc1', { chat: 'xmtp:a', title: 'Alice', body: 'Hi' });
+    relayToPhone('acc1', arrival('xmtp-a', 'Alice', 'Hi'));
     await flush();
     expect(call(1).discard).toEqual([hello]);
     expect(savedNames()).toEqual([call(1).notes[0].name]);
@@ -158,7 +162,7 @@ describe('notifying the iPhone through iCloud', () => {
     await turnOn();
     jest.mocked(changeNotes).mockRejectedValueOnce(new SignInRequired(null));
     jest.spyOn(console, 'warn').mockImplementation(() => {});
-    relayToPhone('acc1', { chat: 'xmtp:a', title: 'Alice', body: 'Hi' });
+    relayToPhone('acc1', arrival('xmtp-a', 'Alice', 'Hi'));
     await flush();
     expect(await relayState('acc1')).toBe('signed-out');
   });
@@ -168,7 +172,7 @@ describe('notifying the iPhone through iCloud', () => {
     await turnOn('acc2');
     expect(signInURL).toHaveBeenCalledTimes(1);
     await turnOffRelay('acc1');
-    expect(mockVault.has(SESSION)).toBe(true);
+    expect(mockVault.has(VaultKey.icloudSession)).toBe(true);
     expect(changeNotes).toHaveBeenCalledTimes(2);
 
     await turnOffRelay('acc2');
@@ -177,7 +181,7 @@ describe('notifying the iPhone through iCloud', () => {
       discard: [call(0).notes[0].name, call(1).notes[0].name],
     });
     expect(savedNames()).toEqual([]);
-    expect(mockVault.has(SESSION)).toBe(false);
+    expect(mockVault.has(VaultKey.icloudSession)).toBe(false);
     expect(jest.getTimerCount()).toBe(0);
     expect(await relayState('acc2')).toBe('off');
   });

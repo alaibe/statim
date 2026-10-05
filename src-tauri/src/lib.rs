@@ -96,6 +96,7 @@ pub fn run() {
         .manage(tdlib::Telegram::default())
         .manage(matrix::Matrix::default())
         .manage(cli::Cli::default())
+        .manage(web_login::WebLogin::default())
         .invoke_handler(tauri::generate_handler![
             db::db_open,
             db::db_exec,

@@ -31,6 +31,11 @@ export function pushSecretKey(protocol: 'matrix' | 'telegram', accountId: string
   return `push.${protocol}.${accountId}`;
 }
 
+/** What the extension reads to open a note the desktop left in iCloud, named by the note's tag. */
+export function noteSecretKey(tag: string): string {
+  return `icloud.${tag}`;
+}
+
 export async function forgetPushSecrets(accountId: string): Promise<void> {
   await unshare(pushSecretKey('matrix', accountId));
   await unshare(pushSecretKey('telegram', accountId));

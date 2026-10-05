@@ -55,7 +55,7 @@ extension Preview {
       let note = try? JSONSerialization.jsonObject(with: plaintext) as? [String: String],
       let title = note["title"], let body = note["body"]
     else { return nil }
-    return Preview(title: title, body: body, chat: note["chat"].flatMap { $0.isEmpty ? nil : $0 })
+    return Preview(title: title, body: body, chat: note["chat"])
   }
 }
 

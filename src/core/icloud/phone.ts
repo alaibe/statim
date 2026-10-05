@@ -1,6 +1,8 @@
 /** Only the iPhone listens for the desktop's notes (`phone.ios.ts`). */
-export async function hearsFromComputer(_accountId: string): Promise<boolean> {
-  return false;
+export type ListeningState = 'unavailable' | 'off' | 'on';
+
+export async function listeningState(_accountId: string): Promise<ListeningState> {
+  return 'unavailable';
 }
 
 export async function listenToComputer(_accountId: string): Promise<void> {}

@@ -37,18 +37,13 @@ export async function signInURL(container: Container): Promise<string> {
   throw new Error('iCloud did not ask for a sign-in.');
 }
 
-/** Checks the token and rolls it forward. */
-export async function currentUser(container: Container, token: string): Promise<string> {
-  return (await call(container, token, 'users/current')).token;
-}
-
 export interface SealedNote {
   name: string;
   tag: string;
   sealed: string;
 }
 
-export interface NotesChanged {
+interface NotesChanged {
   token: string;
   /** Records still in iCloud that were meant to go; one already gone counts as deleted. */
   undeleted: string[];
@@ -58,7 +53,7 @@ export async function changeNotes(
   container: Container,
   token: string,
   notes: SealedNote[],
-  discard: string[] = []
+  discard: string[]
 ): Promise<NotesChanged> {
   const answer = await call<{ records?: (Reply & { recordName?: string })[] }>(
     container,

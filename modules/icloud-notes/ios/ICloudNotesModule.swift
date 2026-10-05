@@ -8,14 +8,8 @@ public class ICloudNotesModule: Module {
   public func definition() -> ModuleDefinition {
     Name("ICloudNotes")
 
-    AsyncFunction("accountStatus") { (container: String) async throws -> String in
-      switch try await CKContainer(identifier: container).accountStatus() {
-      case .available: return "available"
-      case .noAccount: return "noAccount"
-      case .restricted: return "restricted"
-      case .temporarilyUnavailable: return "temporarilyUnavailable"
-      default: return "couldNotDetermine"
-      }
+    AsyncFunction("available") { (container: String) async throws -> Bool in
+      try await CKContainer(identifier: container).accountStatus() == .available
     }
 
     AsyncFunction("subscribe") { (container: String) async throws in

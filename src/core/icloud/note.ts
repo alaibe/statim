@@ -9,7 +9,7 @@ import { randomBytes } from '@/lib/random';
 
 /** What the desktop tells the iPhone about one message, through the user's iCloud. */
 export interface Note {
-  chat: string;
+  chat?: string;
   title: string;
   body: string;
 }

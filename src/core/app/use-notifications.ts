@@ -46,10 +46,13 @@ function watchArrivals(): void {
     const open = appFocused() ? onScreen : undefined;
     for (const { chat, message } of arrivals(previous.chats, state.chats, since)) {
       if (!worthNotifying(chat, message, state.chatPrefs, open)) continue;
-      const body = contentPreview(message.content);
-      void notifyMessage({ chatId: chat.id, title: chat.title, body });
-      if (state.accountId)
-        relayToPhone(state.accountId, { chat: chat.id, title: chat.title, body });
+      const notification = {
+        chatId: chat.id,
+        title: chat.title,
+        body: contentPreview(message.content),
+      };
+      void notifyMessage(notification);
+      if (state.accountId) relayToPhone(state.accountId, notification);
     }
   });
 }
