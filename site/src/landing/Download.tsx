@@ -113,6 +113,8 @@ export function Download({ release }: { release: Release }) {
                       <li key={file.url}>
                         <a
                           href={file.url}
+                          data-umami-event={`download-${platform}`}
+                          data-umami-event-file={file.detail}
                           className="group flex items-start gap-2 text-sm text-gray-300 hover:text-white">
                           <DownloadIcon className="mt-0.5 h-4 w-4 flex-none text-brand-300 group-hover:text-white" />
                           <span>

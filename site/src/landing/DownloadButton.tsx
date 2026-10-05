@@ -74,6 +74,7 @@ export function DownloadButton({
   return (
     <a
       href={href}
+      data-umami-event={download ? `download-${download.platform}` : undefined}
       className={clsx(
         'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors',
         color === 'brand'
