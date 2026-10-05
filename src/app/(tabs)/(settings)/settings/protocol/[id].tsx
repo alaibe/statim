@@ -1,4 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { View } from 'react-native';
 
 import { Badge, Button, Card, Note, Text } from '@/design';
@@ -36,6 +37,7 @@ function ProtocolSettings({ descriptor }: { descriptor: ProtocolDescriptor }) {
   const accountId = useAccountStore((s) => s.activeAccountId);
   const connection = useChatStore((s) => connectionFor(s.protocols, descriptor.id));
   const session = useChatStore((s): ChatSession | undefined => s.sessions[descriptor.id]);
+  const [bridgesSeen, setBridgesSeen] = useState(0);
 
   return (
     <SettingsScreen title={descriptor.label} intro={descriptor.description}>
@@ -63,7 +65,11 @@ function ProtocolSettings({ descriptor }: { descriptor: ProtocolDescriptor }) {
         </Card>
 
         {descriptor.id === 'matrix' && accountId ? (
-          <LocalHomeserver accountId={accountId} signedOut={!!connection.login} />
+          <LocalHomeserver
+            accountId={accountId}
+            signedOut={!!connection.login}
+            onBridgesChanged={() => setBridgesSeen((n) => n + 1)}
+          />
         ) : null}
 
         {connection.error ? (
@@ -91,7 +97,10 @@ function ProtocolSettings({ descriptor }: { descriptor: ProtocolDescriptor }) {
               />
             )}
             {descriptor.id === 'matrix' ? (
-              <MatrixBridges session={session as ChatSession & Partial<MatrixCapabilities>} />
+              <MatrixBridges
+                key={bridgesSeen}
+                session={session as ChatSession & Partial<MatrixCapabilities>}
+              />
             ) : null}
           </>
         ) : null}

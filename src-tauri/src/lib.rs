@@ -138,6 +138,8 @@ pub fn run() {
             homeserver::homeserver_state,
             homeserver::homeserver_start,
             homeserver::homeserver_session,
+            homeserver::homeserver_bridges,
+            homeserver::homeserver_set_bridge,
             homeserver::homeserver_stop,
             homeserver::homeserver_erase,
             web_login::web_login_open,

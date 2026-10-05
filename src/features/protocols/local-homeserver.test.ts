@@ -1,4 +1,4 @@
-import { hereState, runHere } from './local-homeserver';
+import { hereState, networkOf, runHere } from './local-homeserver';
 
 const mockState = { available: true, running: false, url: 'http://127.0.0.1:47280' };
 let mockConfig: Record<string, string> = {};
@@ -54,5 +54,14 @@ describe('Matrix on this computer', () => {
       homeserver: 'http://127.0.0.1:47280',
       userId: '@me:statim',
     });
+  });
+
+  it('names each bridge by the network it brings in', () => {
+    expect(['whatsapp', 'facebook', 'instagram', 'discord'].map(networkOf)).toEqual([
+      'WhatsApp',
+      'Messenger',
+      'Instagram',
+      'Discord',
+    ]);
   });
 });

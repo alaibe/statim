@@ -3,6 +3,7 @@
 //! it runs, behind one local address the account's Matrix session keeps.
 
 mod artifacts;
+mod bridges;
 mod config;
 mod process;
 mod router;
@@ -22,6 +23,8 @@ use router::{Router, Routes};
 /// Every ID on the server ends with it. It can never be a hostname, and it is
 /// permanent: changing it means starting again from an empty server.
 pub const SERVER_NAME: &str = "statim";
+/// The person's own user on their server: `@me:statim`.
+pub const OWNER: &str = "me";
 /// Fixed, so the address an account's Matrix session keeps stays valid.
 const ROUTER_PORT: u16 = 47280;
 const SERVER_PORT: u16 = 47281;
@@ -34,12 +37,16 @@ struct Running {
     account: String,
     dir: PathBuf,
     server: Process,
+    bridges: Vec<Process>,
     router: Router,
 }
 
 impl Running {
     fn stop(self) {
         self.router.stop();
+        for bridge in self.bridges {
+            bridge.stop();
+        }
         self.server.stop();
     }
 }
@@ -51,6 +58,15 @@ pub struct HomeserverState {
     available: bool,
     running: bool,
     url: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BridgeState {
+    id: &'static str,
+    /// Whether it has a build for this computer.
+    available: bool,
+    enabled: bool,
 }
 
 #[tauri::command]
@@ -76,10 +92,7 @@ pub async fn homeserver_start(
     state: State<'_, Homeserver>,
     account_id: String,
 ) -> Result<String, String> {
-    if !available() {
-        return Err("A homeserver on this computer is not available in this build.".into());
-    }
-    safe_component(&account_id, "account id")?;
+    let dir = account_dir(&app, &account_id)?;
     let mut running = state.0.lock().await;
     if running
         .as_ref()
@@ -90,33 +103,17 @@ pub async fn homeserver_start(
     if let Some(previous) = running.take() {
         previous.stop();
     }
-    let root = data_dir(&app, "homeserver")?;
-    let bin = match artifacts::override_dir() {
-        Some(dir) => dir,
-        None => {
-            let dir = root.join("bin");
-            artifacts::install(&dir, artifacts::server_pins().unwrap_or_default()).await?;
-            dir
-        }
-    };
-    *running = Some(
-        start(
-            account_id.clone(),
-            root.join("accounts").join(&account_id),
-            &bin,
-        )
-        .await?,
-    );
+    let bin = bin_dir(&app).await?;
+    *running = Some(start(account_id, dir, &bin).await?);
     Ok(url())
 }
 
-/// The account's own user on its running server, signed in from a new device
-/// named `device_name`; the first call creates the user as `localpart`.
+/// The owner signed in on the account's running server from a new device
+/// named `device_name`; the first call creates the owner.
 #[tauri::command]
 pub async fn homeserver_session(
     state: State<'_, Homeserver>,
     account_id: String,
-    localpart: String,
     device_name: String,
 ) -> Result<users::Session, String> {
     let running = state.0.lock().await;
@@ -124,7 +121,62 @@ pub async fn homeserver_session(
         return Err("The homeserver on this computer is not running for this account.".into());
     };
     let token = registration_token(&run.dir)?;
-    users::sign_in(&run.dir, &url(), &localpart, &token, &device_name).await
+    users::sign_in(&run.dir, &url(), OWNER, &token, &device_name).await
+}
+
+#[tauri::command]
+pub async fn homeserver_bridges(
+    app: AppHandle,
+    account_id: String,
+) -> Result<Vec<BridgeState>, String> {
+    let enabled = enabled_bridges(&account_dir(&app, &account_id)?);
+    Ok(bridges::BRIDGES
+        .iter()
+        .map(|bridge| BridgeState {
+            id: bridge.id,
+            available: bridge.pin().is_some(),
+            enabled: enabled.contains(&bridge.id),
+        })
+        .collect())
+}
+
+/// Turns a bridge on or off for the account, downloading it the first time,
+/// and restarts the account's server if it runs.
+#[tauri::command]
+pub async fn homeserver_set_bridge(
+    app: AppHandle,
+    state: State<'_, Homeserver>,
+    account_id: String,
+    bridge: String,
+    enabled: bool,
+) -> Result<(), String> {
+    let dir = account_dir(&app, &account_id)?;
+    let bridge = bridges::bridge(&bridge).ok_or_else(|| format!("No bridge called {bridge}."))?;
+    let mut running = state.0.lock().await;
+    let bin = bin_dir(&app).await?;
+    if enabled {
+        let pin = bridge
+            .pin()
+            .ok_or("This bridge has no build for this computer.")?;
+        artifacts::install(&bin, std::slice::from_ref(&pin)).await?;
+    }
+    let mut ids = enabled_bridges(&dir);
+    ids.retain(|id| *id != bridge.id);
+    if enabled {
+        ids.push(bridge.id);
+    }
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    std::fs::write(dir.join("enabled-bridges"), ids.join("\n")).map_err(|e| e.to_string())?;
+    if running
+        .as_ref()
+        .is_some_and(|run| run.account == account_id)
+    {
+        if let Some(run) = running.take() {
+            run.stop();
+        }
+        *running = Some(start(account_id, dir, &bin).await?);
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -142,7 +194,7 @@ pub async fn homeserver_erase(
     state: State<'_, Homeserver>,
     account_id: String,
 ) -> Result<(), String> {
-    safe_component(&account_id, "account id")?;
+    let dir = account_dir(&app, &account_id)?;
     let mut running = state.0.lock().await;
     if running
         .as_ref()
@@ -152,11 +204,7 @@ pub async fn homeserver_erase(
             run.stop();
         }
     }
-    crate::paths::remove_dir(
-        &data_dir(&app, "homeserver")?
-            .join("accounts")
-            .join(&account_id),
-    )
+    crate::paths::remove_dir(&dir)
 }
 
 /// The app is quitting; its children go with it.
@@ -174,8 +222,53 @@ fn url() -> String {
     format!("http://127.0.0.1:{ROUTER_PORT}")
 }
 
+fn account_dir(app: &AppHandle, account_id: &str) -> Result<PathBuf, String> {
+    if !available() {
+        return Err("A homeserver on this computer is not available in this build.".into());
+    }
+    safe_component(account_id, "account id")?;
+    Ok(data_dir(app, "homeserver")?
+        .join("accounts")
+        .join(account_id))
+}
+
+/// Where the programs are, with the server's own installed first.
+async fn bin_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    if let Some(dir) = artifacts::override_dir() {
+        return Ok(dir);
+    }
+    let dir = data_dir(app, "homeserver")?.join("bin");
+    artifacts::install(&dir, artifacts::server_pins().unwrap_or_default()).await?;
+    Ok(dir)
+}
+
+fn enabled_bridges(dir: &Path) -> Vec<&'static str> {
+    let saved = std::fs::read_to_string(dir.join("enabled-bridges")).unwrap_or_default();
+    bridges::BRIDGES
+        .iter()
+        .filter(|bridge| saved.lines().any(|line| line.trim() == bridge.id))
+        .map(|bridge| bridge.id)
+        .collect()
+}
+
 async fn start(account: String, dir: PathBuf, bin: &Path) -> Result<Running, String> {
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let enabled: Vec<_> = enabled_bridges(&dir)
+        .into_iter()
+        .filter_map(bridges::bridge)
+        .filter(|bridge| bin.join(bridge.binary).exists())
+        .collect();
+    let double_puppet = bridges::Tokens::of(&dir.join("doublepuppet"))?;
+    let mut appservices = Vec::new();
+    let mut tokens = Vec::new();
+    for bridge in &enabled {
+        let bridge_tokens = bridges::Tokens::of(&dir.join("bridges").join(bridge.id))?;
+        appservices.push(bridge.appservice(&bridge_tokens));
+        tokens.push(bridge_tokens);
+    }
+    if !enabled.is_empty() {
+        appservices.push(bridges::double_puppet(&double_puppet));
+    }
     let config = dir.join("tuwunel.toml");
     std::fs::write(
         &config,
@@ -184,7 +277,7 @@ async fn start(account: String, dir: PathBuf, bin: &Path) -> Result<Running, Str
             &dir.join("db"),
             SERVER_PORT,
             &registration_token(&dir)?,
-            &[],
+            &appservices,
         ),
     )
     .map_err(|e| e.to_string())?;
@@ -192,7 +285,10 @@ async fn start(account: String, dir: PathBuf, bin: &Path) -> Result<Running, Str
         ROUTER_PORT,
         Routes {
             server: SERVER_PORT,
-            bridges: Vec::new(),
+            bridges: enabled
+                .iter()
+                .map(|bridge| (bridge.id.to_string(), bridge.port))
+                .collect(),
         },
     )?;
     let mut server = match Process::spawn(
@@ -200,6 +296,7 @@ async fn start(account: String, dir: PathBuf, bin: &Path) -> Result<Running, Str
         &bin.join("tuwunel"),
         &dir,
         &[("TUWUNEL_CONFIG", &config)],
+        &[],
     ) {
         Ok(server) => server,
         Err(error) => {
@@ -212,12 +309,38 @@ async fn start(account: String, dir: PathBuf, bin: &Path) -> Result<Running, Str
         server.stop();
         return Err(error);
     }
-    Ok(Running {
+    let mut running = Running {
         account,
         dir,
         server,
+        bridges: Vec::new(),
         router,
-    })
+    };
+    for (bridge, bridge_tokens) in enabled.iter().zip(&tokens) {
+        let bridge_dir = running.dir.join("bridges").join(bridge.id);
+        let spawned = std::fs::write(
+            bridge_dir.join("config.yaml"),
+            bridge.config(SERVER_PORT, bridge_tokens, &double_puppet.as_token),
+        )
+        .map_err(|e| e.to_string())
+        .and_then(|()| {
+            Process::spawn(
+                bridge.id,
+                &bin.join(bridge.binary),
+                &bridge_dir,
+                &[],
+                &["-c", "config.yaml"],
+            )
+        });
+        match spawned {
+            Ok(process) => running.bridges.push(process),
+            Err(error) => {
+                running.stop();
+                return Err(error);
+            }
+        }
+    }
+    Ok(running)
 }
 
 async fn answering(server: &mut Process, dir: &Path) -> Result<(), String> {
@@ -268,26 +391,28 @@ fn write_private(path: &Path, contents: &str) -> Result<(), String> {
 mod tests {
     use super::*;
 
-    /// Runs the real server from `STATIM_HOMESERVER_ARTIFACTS`:
-    /// `cargo test --lib homeserver -- --ignored`.
+    /// Runs the real server from `STATIM_HOMESERVER_ARTIFACTS`, with the pinned
+    /// WhatsApp bridge downloaded into it: `cargo test --lib homeserver -- --ignored`.
+    /// One test, since the ports are fixed.
     #[tokio::test(flavor = "multi_thread")]
     #[ignore]
-    async fn starts_answers_through_the_router_and_stops() {
+    async fn runs_the_server_and_a_bridge_behind_the_router() {
         let bin = artifacts::override_dir().expect("STATIM_HOMESERVER_ARTIFACTS");
         let dir = std::env::temp_dir().join("statim-homeserver-test");
         let _ = std::fs::remove_dir_all(&dir);
+
         let running = start("test".into(), dir.clone(), &bin).await.unwrap();
         let versions = reqwest::get(format!("{}/_matrix/client/versions", url()))
             .await
             .unwrap();
         assert!(versions.status().is_success());
-        assert_eq!(registration_token(&dir).unwrap().len(), 64);
         let token = registration_token(&dir).unwrap();
-        let first = users::sign_in(&dir, &url(), "me", &token, "Test")
+        assert_eq!(token.len(), 64);
+        let first = users::sign_in(&dir, &url(), OWNER, &token, "Test")
             .await
             .unwrap();
-        assert_eq!(first.user_id, format!("@me:{SERVER_NAME}"));
-        let second = users::sign_in(&dir, &url(), "me", &token, "Phone")
+        assert_eq!(first.user_id, format!("@{OWNER}:{SERVER_NAME}"));
+        let second = users::sign_in(&dir, &url(), OWNER, &token, "Phone")
             .await
             .unwrap();
         assert_ne!(first.device_id, second.device_id);
@@ -296,5 +421,34 @@ mod tests {
             .await
             .is_err());
         assert!(!dir.join("tuwunel.pid").exists());
+
+        let whatsapp = bridges::bridge("whatsapp").unwrap();
+        artifacts::install(&bin, &[whatsapp.pin().unwrap()])
+            .await
+            .unwrap();
+        std::fs::write(dir.join("enabled-bridges"), "whatsapp").unwrap();
+        let running = start("test".into(), dir.clone(), &bin).await.unwrap();
+        let mut flows = None;
+        for _ in 0..50 {
+            let response = reqwest::Client::new()
+                .get(format!(
+                    "{}/_matrix/provision/whatsapp/v3/login/flows?user_id={}",
+                    url(),
+                    first.user_id
+                ))
+                .bearer_auth(&first.access_token)
+                .send()
+                .await;
+            if let Ok(response) = response {
+                if response.status().is_success() {
+                    flows = response.text().await.ok();
+                    break;
+                }
+            }
+            tokio::time::sleep(Duration::from_millis(200)).await;
+        }
+        running.stop();
+        let flows = flows.expect("the bridge's login API answered through the router");
+        assert!(flows.contains("\"qr\""), "{flows}");
     }
 }

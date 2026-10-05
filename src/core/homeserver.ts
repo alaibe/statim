@@ -5,6 +5,14 @@ export interface HomeserverState {
   url: string;
 }
 
+export interface HomeserverBridge {
+  /** The name its login API sits under: `facebook` for Messenger. */
+  id: string;
+  /** Whether it has a build for this computer. */
+  available: boolean;
+  enabled: boolean;
+}
+
 export interface HomeserverSession {
   accessToken: string;
   userId: string;
@@ -22,11 +30,20 @@ export async function startHomeserver(_accountId: string): Promise<string> {
 
 export async function homeserverSession(
   _accountId: string,
-  _localpart: string,
   _deviceName: string
 ): Promise<HomeserverSession> {
   throw new Error('Only the desktop app runs a homeserver.');
 }
+
+export async function homeserverBridges(_accountId: string): Promise<HomeserverBridge[]> {
+  return [];
+}
+
+export async function setHomeserverBridge(
+  _accountId: string,
+  _bridge: string,
+  _enabled: boolean
+): Promise<void> {}
 
 export async function stopHomeserver(): Promise<void> {}
 

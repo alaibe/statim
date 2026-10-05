@@ -1,10 +1,18 @@
 import { useState } from 'react';
 
-import { Button, Card, Text } from '@/design';
-import { homeserverSession, homeserverState, startHomeserver } from '@/core/homeserver';
+import { Button, Card, ListItem, Text, Toggle } from '@/design';
+import {
+  homeserverBridges,
+  homeserverSession,
+  homeserverState,
+  setHomeserverBridge,
+  startHomeserver,
+} from '@/core/homeserver';
 import { loadProtocolConfig } from '@/core/messaging/config';
+import { BRIDGED_NETWORKS } from '@/core/messaging/networks';
 import { useAction } from '@/features/use-action';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
+import { KNOWN_BRIDGES, provisioningName } from '@/protocols/matrix/bridges';
 import { DEVICE_NAME } from '@/protocols/matrix/descriptor';
 import { accountRuntime } from '@/runtime';
 import { accountMatrixSessionKey, vaultSet } from '@/storage/vault';
@@ -26,7 +34,7 @@ export async function hereState(accountId: string): Promise<Here> {
 /** Starts the account's server, signs its own user in, and points Matrix at it. */
 export async function runHere(accountId: string): Promise<void> {
   const url = await startHomeserver(accountId);
-  const session = await homeserverSession(accountId, 'me', DEVICE_NAME);
+  const session = await homeserverSession(accountId, DEVICE_NAME);
   await vaultSet(accountMatrixSessionKey(accountId), JSON.stringify(session));
   await accountRuntime.updateProtocolConfig(accountId, 'matrix', {
     homeserver: url,
@@ -34,12 +42,20 @@ export async function runHere(accountId: string): Promise<void> {
   });
 }
 
+/** What a bridge is called where people see it: Messenger for `facebook`. */
+export function networkOf(bridge: string): string {
+  const known = KNOWN_BRIDGES.find((candidate) => provisioningName(candidate) === bridge);
+  return known ? BRIDGED_NETWORKS[known.network] : bridge;
+}
+
 export function LocalHomeserver({
   accountId,
   signedOut,
+  onBridgesChanged,
 }: {
   accountId: string;
   signedOut: boolean;
+  onBridgesChanged: () => void;
 }) {
   const [version, setVersion] = useState(0);
   const { value: here } = useKeyedLoad(accountId, hereState, version);
@@ -79,6 +95,7 @@ export function LocalHomeserver({
       <Text variant="caption">
         {"This account's Matrix runs on this computer, and only while Statim runs."}
       </Text>
+      {signedOut ? null : <LocalBridges accountId={accountId} onChanged={onBridgesChanged} />}
       {signedOut ? (
         <Button
           testID="matrix-run-here"
@@ -90,5 +107,54 @@ export function LocalHomeserver({
         />
       ) : null}
     </Card>
+  );
+}
+
+function LocalBridges({ accountId, onChanged }: { accountId: string; onChanged: () => void }) {
+  const [version, setVersion] = useState(0);
+  const [changing, setChanging] = useState<string | null>(null);
+  const { value: bridges } = useKeyedLoad(accountId, homeserverBridges, version);
+  const change = useAction(
+    async (bridge: string, enabled: boolean) => {
+      setChanging(bridge);
+      try {
+        await setHomeserverBridge(accountId, bridge, enabled);
+      } finally {
+        setChanging(null);
+        setVersion((v) => v + 1);
+        onChanged();
+      }
+    },
+    { failure: 'Could not change that bridge' }
+  );
+
+  const offered = bridges?.filter((bridge) => bridge.available) ?? [];
+  if (offered.length === 0) return null;
+  return (
+    <>
+      <Text variant="footnote" className="font-semibold">
+        Bridges on this computer
+      </Text>
+      <Text variant="caption">
+        Turning one on downloads it the first time and restarts the server. Then connect it below to
+        sign in to that network.
+      </Text>
+      {offered.map((bridge) => (
+        <ListItem
+          key={bridge.id}
+          testID={`local-bridge-${bridge.id}`}
+          title={networkOf(bridge.id)}
+          subtitle={changing === bridge.id ? 'Restarting the server…' : undefined}
+          trailing={
+            <Toggle
+              label={networkOf(bridge.id)}
+              value={bridge.enabled}
+              disabled={change.busy}
+              onValueChange={(next) => void change.run(bridge.id, next)}
+            />
+          }
+        />
+      ))}
+    </>
   );
 }

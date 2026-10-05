@@ -18,12 +18,14 @@ impl Process {
         program: &Path,
         dir: &Path,
         env: &[(&str, &Path)],
+        args: &[&str],
     ) -> Result<Self, String> {
         let pidfile = dir.join(format!("{name}.pid"));
         stop_left_behind(&pidfile, program);
         let log = File::create(dir.join(format!("{name}.log"))).map_err(|e| e.to_string())?;
         let mut command = Command::new(program);
         command
+            .args(args)
             .current_dir(dir)
             .stdin(Stdio::null())
             .stdout(log.try_clone().map_err(|e| e.to_string())?)

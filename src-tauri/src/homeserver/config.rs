@@ -7,12 +7,15 @@ use std::path::Path;
 /// A bridge as tuwunel sees it: the appservice block its registration describes.
 pub struct Appservice {
     pub id: String,
-    pub url: String,
+    /// Where the server sends it events; none for one that needs no traffic.
+    pub url: Option<String>,
     pub as_token: String,
     pub hs_token: String,
     pub sender_localpart: String,
-    /// Regular expressions of the users it owns exclusively.
+    /// Regular expressions of the users it acts for.
     pub users: Vec<String>,
+    /// Whether nobody else may hold those users.
+    pub exclusive: bool,
 }
 
 pub fn tuwunel(
@@ -39,16 +42,16 @@ pub fn tuwunel(
         token = quoted(registration_token),
     );
     for service in appservices {
+        let _ = write!(toml, "\n[global.appservice.{}]\n", service.id);
+        if let Some(url) = &service.url {
+            let _ = writeln!(toml, "url = {}", quoted(url));
+        }
         let _ = write!(
             toml,
-            "\n[global.appservice.{id}]\n\
-             url = {url}\n\
-             as_token = {as_token}\n\
+            "as_token = {as_token}\n\
              hs_token = {hs_token}\n\
              sender_localpart = {sender}\n\
              receive_ephemeral = true\n",
-            id = service.id,
-            url = quoted(&service.url),
             as_token = quoted(&service.as_token),
             hs_token = quoted(&service.hs_token),
             sender = quoted(&service.sender_localpart),
@@ -57,8 +60,9 @@ pub fn tuwunel(
             // A literal string, so a regex's backslashes need no escaping.
             let _ = write!(
                 toml,
-                "\n[[global.appservice.{id}.users]]\nexclusive = true\nregex = '{regex}'\n",
+                "\n[[global.appservice.{id}.users]]\nexclusive = {exclusive}\nregex = '{regex}'\n",
                 id = service.id,
+                exclusive = service.exclusive,
             );
         }
     }
@@ -76,7 +80,7 @@ mod tests {
     fn bridge() -> Appservice {
         Appservice {
             id: "whatsapp".into(),
-            url: "http://127.0.0.1:47290".into(),
+            url: Some("http://127.0.0.1:47290".into()),
             as_token: "as".into(),
             hs_token: "hs".into(),
             sender_localpart: "sender".into(),
@@ -84,6 +88,7 @@ mod tests {
                 r"^@whatsappbot:statim$".into(),
                 r"^@whatsapp_.*:statim$".into(),
             ],
+            exclusive: true,
         }
     }
 
@@ -121,5 +126,18 @@ mod tests {
     fn escapes_quotes_and_backslashes_in_strings() {
         let toml = tuwunel("statim", Path::new(r#"C:\a "b""#), 1, "t", &[]);
         assert!(toml.contains(r#"database_path = "C:\\a \"b\"""#));
+    }
+
+    #[test]
+    fn leaves_out_the_url_of_a_service_that_gets_no_traffic() {
+        let service = Appservice {
+            id: "doublepuppet".into(),
+            url: None,
+            exclusive: false,
+            ..bridge()
+        };
+        let toml = tuwunel("statim", Path::new("/db"), 1, "t", &[service]);
+        assert!(toml.contains("[global.appservice.doublepuppet]\nas_token = \"as\""));
+        assert!(toml.contains("exclusive = false"));
     }
 }
