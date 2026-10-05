@@ -155,27 +155,15 @@ function scheduleCleanUp(): void {
   }, NOTE_LIFETIME);
 }
 
-/** Apple's own page, in the sign-in window, which stops at the callback so the token never leaves this computer. */
+/** Apple's own page, in the browser, which hands the token back to this computer. */
 async function signIn(container: Container): Promise<string> {
-  await invoke('web_login_open', {
+  const callback = new URL(ICLOUD_CALLBACK);
+  const target = await invoke<string>('loopback_sign_in', {
     url: await signInURL(container),
-    title: 'Sign in to iCloud',
-    userAgent: null,
-    script: '',
-    hidden: false,
-    stopAt: ICLOUD_CALLBACK,
+    port: Number(callback.port),
+    path: callback.pathname,
   });
-  try {
-    for (;;) {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const seen = await invoke<{ open: boolean; url: string }>('web_login_poll', {
-        readback: 'null',
-      });
-      if (!seen.open) throw new Error('The iCloud sign-in was closed before it finished.');
-      const token = /[?&#]ckWebAuthToken=([^&#]+)/.exec(seen.url)?.[1];
-      if (token) return decodeURIComponent(token);
-    }
-  } finally {
-    await invoke('web_login_close').catch(() => {});
-  }
+  const token = /[?&]ckWebAuthToken=([^&#]+)/.exec(target)?.[1];
+  if (!token) throw new Error('iCloud did not hand back a sign-in.');
+  return decodeURIComponent(token);
 }

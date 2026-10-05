@@ -2,8 +2,8 @@ import type { Container } from './cloudkit';
 
 export const ICLOUD_CONTAINER = 'iCloud.im.statim.app';
 
-/** The API token's sign-in callback. The sign-in window stops there without loading it. */
-export const ICLOUD_CALLBACK = 'https://statim.laibe.cc/icloud';
+/** The API token's sign-in callback: a port on the person's own computer, where the desktop waits. */
+export const ICLOUD_CALLBACK = 'http://localhost:47219/icloud';
 
 /**
  * Development builds of the iPhone app reach CloudKit's development

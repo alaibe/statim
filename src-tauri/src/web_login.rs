@@ -1,5 +1,5 @@
-//! The window where the user signs in to a website for a Matrix bridge, or to
-//! iCloud. The page gets no IPC: the capabilities only cover `main`.
+//! The window where the user signs in to a website for a Matrix bridge. The page
+//! gets no IPC: the capabilities only cover `main`.
 
 use std::sync::Mutex;
 use std::time::Duration;
@@ -10,16 +10,6 @@ use tauri::{AppHandle, Manager, Url, WebviewUrl, WebviewWindowBuilder};
 use tokio::sync::oneshot;
 
 const LABEL: &str = "web-login";
-
-/// Where a sign-in ended, caught before the window loaded it.
-#[derive(Default)]
-pub struct WebLogin(Mutex<Option<String>>);
-
-fn stopped_at(app: &AppHandle, url: Option<String>) {
-    if let Ok(mut stopped) = app.state::<WebLogin>().0.lock() {
-        *stopped = url;
-    }
-}
 
 /// Sites like Slack refuse a web view they take for an old or unknown browser,
 /// so the window says it is the browser this system ships.
@@ -75,12 +65,10 @@ pub async fn web_login_open(
     user_agent: Option<String>,
     script: String,
     hidden: bool,
-    stop_at: Option<String>,
 ) -> Result<(), String> {
     if let Some(existing) = app.get_webview_window(LABEL) {
         existing.destroy().map_err(|e| e.to_string())?;
     }
-    stopped_at(&app, None);
     let url = Url::parse(&url).map_err(|e| e.to_string())?;
     if url.scheme() != "https" {
         return Err("A sign-in page must use https.".into());
@@ -91,19 +79,6 @@ pub async fn web_login_open(
         .incognito(true)
         .visible(!hidden)
         .initialization_script(script)
-        .on_navigation({
-            let app = app.clone();
-            move |url| {
-                if !stop_at
-                    .as_deref()
-                    .is_some_and(|prefix| url.as_str().starts_with(prefix))
-                {
-                    return true;
-                }
-                stopped_at(&app, Some(url.to_string()));
-                false
-            }
-        })
         .on_new_window({
             let app = app.clone();
             move |url, _| {
@@ -133,14 +108,7 @@ pub async fn web_login_poll(app: AppHandle, readback: String) -> Result<WebLogin
             page: None,
         });
     };
-    let url = app
-        .state::<WebLogin>()
-        .0
-        .lock()
-        .ok()
-        .and_then(|stopped| stopped.clone())
-        .or_else(|| window.url().ok().map(|url| url.to_string()))
-        .unwrap_or_default();
+    let url = window.url().map(|url| url.to_string()).unwrap_or_default();
     let cookies = window
         .cookies()
         .map_err(|e| e.to_string())?

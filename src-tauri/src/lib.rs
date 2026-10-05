@@ -6,6 +6,7 @@ pub mod cli;
 mod contacts;
 mod db;
 mod ledger;
+mod loopback;
 mod matrix;
 mod media;
 mod paths;
@@ -96,7 +97,7 @@ pub fn run() {
         .manage(tdlib::Telegram::default())
         .manage(matrix::Matrix::default())
         .manage(cli::Cli::default())
-        .manage(web_login::WebLogin::default())
+        .manage(loopback::Loopback::default())
         .invoke_handler(tauri::generate_handler![
             db::db_open,
             db::db_exec,
@@ -129,6 +130,7 @@ pub fn run() {
             tdlib::td_destroy,
             paths::account_dir,
             paths::erase_account_dir,
+            loopback::loopback_sign_in,
             web_login::web_login_open,
             web_login::web_login_poll,
             web_login::web_login_close,

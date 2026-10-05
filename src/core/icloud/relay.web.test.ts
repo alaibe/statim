@@ -70,13 +70,9 @@ async function turnOn(accountId = 'acc1') {
   jest
     .mocked(invoke)
     .mockImplementation(async (command) =>
-      command === 'web_login_poll'
-        ? { open: true, url: 'https://statim.laibe.cc/icloud?ckWebAuthToken=signed%2Bin' }
-        : undefined
+      command === 'loopback_sign_in' ? '/icloud?ckWebAuthToken=signed%2Bin' : undefined
     );
-  const done = turnOnRelay(accountId);
-  await jest.advanceTimersByTimeAsync(1000);
-  await done;
+  await turnOnRelay(accountId);
 }
 
 describe('notifying the iPhone through iCloud', () => {
@@ -85,16 +81,13 @@ describe('notifying the iPhone through iCloud', () => {
     expect(await relayState('acc1')).toBe('unavailable');
   });
 
-  it('signs in on Apple’s page and says hello to the iPhone with the token it got', async () => {
+  it('signs in on Apple’s page in the browser and says hello to the iPhone with the token', async () => {
     await turnOn();
-    expect(invoke).toHaveBeenCalledWith(
-      'web_login_open',
-      expect.objectContaining({
-        url: 'https://idmsa.apple.com/sign-in',
-        stopAt: 'https://statim.laibe.cc/icloud',
-      })
-    );
-    expect(invoke).toHaveBeenCalledWith('web_login_close');
+    expect(invoke).toHaveBeenCalledWith('loopback_sign_in', {
+      url: 'https://idmsa.apple.com/sign-in',
+      port: 47219,
+      path: '/icloud',
+    });
     expect(call(0).token).toBe('signed+in');
     expect(opened(0)).toEqual([{ tag, title: 'Statim', body: expect.any(String) }]);
     expect(mockVault.get(VaultKey.icloudSession)).toBe('after-save');
