@@ -1,10 +1,6 @@
 import { openPath, openUrl } from '@tauri-apps/plugin-opener';
 
-/** `convertFileSrc` turns a path into `asset://localhost/<encoded path>`. */
-function assetPath(uri: string): string | null {
-  if (!uri.startsWith('asset://')) return null;
-  return decodeURIComponent(new URL(uri).pathname.replace(/^\//, ''));
-}
+import { assetPath } from './asset-url';
 
 // The desktop window has no in-app browser: everything goes to the system,
 // and a stored attachment opens in whatever handles its type.

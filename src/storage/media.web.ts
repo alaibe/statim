@@ -1,5 +1,7 @@
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 
+import { assetPath } from '@/lib/asset-url';
+
 import { pathOfFileUri as filePath } from './file-uri';
 import type { FileArea } from './inventory';
 
@@ -19,9 +21,7 @@ export function localFileUri(path: string): string {
   return convertFileSrc(path);
 }
 
-const ASSET_URL = /^(?:asset:\/\/localhost|https?:\/\/asset\.localhost)\//;
-
 /** Media the window shows through Tauri's asset protocol is still a file on disk. */
 export function pathOfFileUri(uri: string): string {
-  return ASSET_URL.test(uri) ? decodeURIComponent(uri.replace(ASSET_URL, '')) : filePath(uri);
+  return assetPath(uri) ?? filePath(uri);
 }
