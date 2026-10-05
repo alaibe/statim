@@ -1,6 +1,6 @@
 import UserNotifications
 
-/// Turns the forwarder's "New message" into who wrote and what, from what the app shared.
+/// Turns the "New message" of a push into who wrote and what, from what the app shared.
 class NotificationService: UNNotificationServiceExtension {
   private let lock = NSLock()
   private var deliver: ((UNNotificationContent) -> Void)?
@@ -20,6 +20,10 @@ class NotificationService: UNNotificationServiceExtension {
       if let preview = await Preview.of(info) {
         content.title = preview.title
         content.body = preview.body
+        if let chat = preview.chat {
+          content.threadIdentifier = chat
+          content.userInfo["body"] = ["chatId": chat]
+        }
       }
       finish(with: content)
     }

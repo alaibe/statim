@@ -56,7 +56,9 @@
         "keychain-access-groups": [
           "$(AppIdentifierPrefix)im.statim.app",
           "$(AppIdentifierPrefix)im.statim.app.shared"
-        ]
+        ],
+        "com.apple.developer.icloud-container-identifiers": ["iCloud.im.statim.app"],
+        "com.apple.developer.icloud-services": ["CloudKit"]
       }
     },
     "android": {

@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { Button, Field, Icon, ListItem, Note, Section, Text, Toggle } from '@/design';
+import { useAccountStore } from '@/core/account/account-store';
 import { pushServer, setPushServer } from '@/core/app/push';
+import { icloudContainer } from '@/core/icloud/container';
+import { hearsFromComputer, listenToComputer, stopListening } from '@/core/icloud/phone';
+import { relayState, turnOffRelay, turnOnRelay, type RelayState } from '@/core/icloud/relay';
 import { setStayConnected, staysConnected } from '@/core/stay-connected';
 import { useAction } from '@/features/use-action';
 import { guideUrl } from '@/lib/guide';
@@ -41,6 +45,94 @@ export function OpenAtLogin() {
         />
       </Section>
     </>
+  );
+}
+
+export function NotifyIphone() {
+  const accountId = useAccountStore((s) => s.activeAccountId);
+  const [state, setState] = useState<RelayState>();
+
+  useEffect(() => {
+    if (!accountId) return;
+    relayState(accountId)
+      .then(setState)
+      .catch(() => setState('unavailable'));
+  }, [accountId]);
+
+  const change = useAction(
+    async (on: boolean) => {
+      if (!accountId) return;
+      await (on ? turnOnRelay(accountId) : turnOffRelay(accountId));
+      setState(await relayState(accountId));
+    },
+    { failure: 'Could not change iPhone notifications' }
+  );
+
+  if (!accountId || !state || state === 'unavailable') return null;
+  return (
+    <Section title="Your iPhone" surface="card" className="mb-6">
+      <ListItem
+        testID="notify-iphone"
+        title="Notify my iPhone"
+        subtitle={
+          state === 'signed-out'
+            ? 'iCloud signed this computer out. Turn it on to sign in again.'
+            : 'While this window is in the background, new messages wake your iPhone through your own iCloud, encrypted with a key from this account. Off by default.'
+        }
+        numberOfLinesSubtitle={4}
+        leading={<Icon name="phone-portrait-outline" size={20} tone="muted" />}
+        trailing={
+          <Toggle
+            label="Notify my iPhone"
+            value={state === 'on'}
+            disabled={change.busy}
+            onValueChange={(next) => void change.run(next)}
+          />
+        }
+      />
+    </Section>
+  );
+}
+
+export function FromComputer() {
+  const accountId = useAccountStore((s) => s.activeAccountId);
+  const [on, setOn] = useState<boolean>();
+
+  useEffect(() => {
+    if (!accountId) return;
+    hearsFromComputer(accountId)
+      .then(setOn)
+      .catch(() => setOn(false));
+  }, [accountId]);
+
+  const change = useAction(
+    async (next: boolean) => {
+      if (!accountId) return;
+      await (next ? listenToComputer(accountId) : stopListening(accountId));
+      setOn(next);
+    },
+    { failure: 'Could not change notifications from your computer' }
+  );
+
+  if (!accountId || on === undefined || !icloudContainer()) return null;
+  return (
+    <Section title="From your computer" surface="card" className="mb-6">
+      <ListItem
+        testID="from-computer"
+        title="Notifications from your computer"
+        subtitle="Statim on your computer wakes this iPhone through your iCloud when a message arrives. It needs the same iCloud and this account on the computer. Off by default."
+        numberOfLinesSubtitle={4}
+        leading={<Icon name="notifications-outline" size={20} tone="muted" />}
+        trailing={
+          <Toggle
+            label="Notifications from your computer"
+            value={on}
+            disabled={change.busy}
+            onValueChange={(next) => void change.run(next)}
+          />
+        }
+      />
+    </Section>
   );
 }
 

@@ -12,6 +12,7 @@ export const VaultKey = {
   commandLine: 'security.commandLine',
   keyProtection: 'security.keyProtection',
   pushServer: 'notifications.pushServer',
+  icloudSession: 'notifications.icloudSession',
   pin: 'security.pin',
   pinAttempts: 'security.pinAttempts',
   version: 'vault.version',
@@ -28,7 +29,8 @@ type AccountScopedKey = `account.${string}.${
   | 'matrixSession'
   | 'protocols'
   | 'credentials'
-  | 'ai'}`;
+  | 'ai'
+  | 'icloudKey'}`;
 
 export function accountMnemonicKey(accountId: string): AccountScopedKey {
   return `account.${accountId}.mnemonic`;
@@ -69,6 +71,10 @@ export function accountAiConfigKey(accountId: string): AccountScopedKey {
   return `account.${accountId}.ai`;
 }
 
+export function accountIcloudKeyName(accountId: string): AccountScopedKey {
+  return `account.${accountId}.icloudKey`;
+}
+
 export function accountScopedKeys(accountId: string): VaultKeyName[] {
   return [
     accountMnemonicKey(accountId),
@@ -80,6 +86,7 @@ export function accountScopedKeys(accountId: string): VaultKeyName[] {
     accountProtocolConfigsKey(accountId),
     accountCredentialsKey(accountId),
     accountAiConfigKey(accountId),
+    accountIcloudKeyName(accountId),
   ];
 }
 

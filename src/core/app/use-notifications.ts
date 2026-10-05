@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { wasProactive } from '@/runtime';
 import { useAccountStore } from '../account/account-store';
 import { useLockStore } from '../account/lock-store';
+import { relayToPhone } from '../icloud/relay';
 import { isLocalChat } from '../messaging/bots';
 import type { ChatPrefsMap } from '../messaging/chat-prefs';
 import { useChatStore, type ChatState } from '../messaging/chat-store';
@@ -45,11 +46,10 @@ function watchArrivals(): void {
     const open = appFocused() ? onScreen : undefined;
     for (const { chat, message } of arrivals(previous.chats, state.chats, since)) {
       if (!worthNotifying(chat, message, state.chatPrefs, open)) continue;
-      void notifyMessage({
-        chatId: chat.id,
-        title: chat.title,
-        body: contentPreview(message.content),
-      });
+      const body = contentPreview(message.content);
+      void notifyMessage({ chatId: chat.id, title: chat.title, body });
+      if (state.accountId)
+        relayToPhone(state.accountId, { chat: chat.id, title: chat.title, body });
     }
   });
 }

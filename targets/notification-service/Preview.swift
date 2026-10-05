@@ -1,3 +1,4 @@
+import CloudKit
 import CryptoKit
 import Foundation
 import Security
@@ -5,8 +6,10 @@ import Security
 struct Preview: Equatable {
   var title: String
   var body: String
+  var chat: String? = nil
 
   static func of(_ info: [AnyHashable: Any]) async -> Preview? {
+    if info["ck"] != nil { return icloud(info) }
     guard let account = info["statim_account"] as? String else { return nil }
     if let sealed = info["telegram"] as? [String: Any] {
       return telegram(sealed, keys: Shared.read("push.telegram.\(account)"))
@@ -32,6 +35,27 @@ enum Shared {
       let data = result as? Data
     else { return nil }
     return try? JSONSerialization.jsonObject(with: data) as? [String: String]
+  }
+}
+
+// MARK: - iCloud
+
+extension Preview {
+  /// A note the desktop saved in the user's iCloud, sealed with the key of the account it is for.
+  static func icloud(_ info: [AnyHashable: Any]) -> Preview? {
+    guard
+      let notification = CKNotification(fromRemoteNotificationDictionary: info)
+        as? CKQueryNotification,
+      let tag = notification.recordFields?["tag"] as? String,
+      let sealed = (notification.recordFields?["sealed"] as? String)
+        .flatMap({ Data(base64Encoded: $0) }),
+      let key = Shared.read("icloud.\(tag)")?["key"].flatMap({ Data(base64Encoded: $0) }),
+      let box = try? AES.GCM.SealedBox(combined: sealed),
+      let plaintext = try? AES.GCM.open(box, using: SymmetricKey(data: key)),
+      let note = try? JSONSerialization.jsonObject(with: plaintext) as? [String: String],
+      let title = note["title"], let body = note["body"]
+    else { return nil }
+    return Preview(title: title, body: body, chat: note["chat"].flatMap { $0.isEmpty ? nil : $0 })
   }
 }
 
