@@ -242,12 +242,6 @@ describe('sending', () => {
     expect(session.sent).toEqual([{ chatId: 'c1', content: { kind: 'text', text: 'hi' } }]);
   });
 
-  /**
-   * A failed send is reported on the message, not thrown. Throwing would put
-   * an error banner over the composer as well as the red mark on the bubble,
-   * and leave the text in the input, so the obvious next move is to press
-   * send again and end up with the same message in the thread twice.
-   */
   it('marks a failed send rather than throwing', async () => {
     const session = new InMemoryChatSession();
     session.seedChat({ id: 'c1' });
@@ -260,7 +254,6 @@ describe('sending', () => {
       useChatStore.getState().sendMessage(ns('c1'), { kind: 'text', text: 'nope' })
     ).resolves.toMatchObject({ sent: false, error: new Error('rejected') });
 
-    // The bubble stays, flagged: losing the user's text would be worse.
     const messages = useChatStore.getState().messages[ns('c1')];
     expect(messages).toHaveLength(1);
     expect(messages[0].status).toBe('failed');
@@ -281,8 +274,6 @@ describe('sending', () => {
     await useChatStore.getState().retryMessage(ns('c1'), failed.id);
 
     const after = useChatStore.getState().messages[ns('c1')];
-    // Same message, same place in the thread: a retry is this message getting
-    // through, not a new one at the bottom.
     expect(after).toHaveLength(1);
     expect(after[0].id).toBe(failed.id);
     expect(after[0].status).toBe('sent');
@@ -299,8 +290,6 @@ describe('sending', () => {
     const delivered = useChatStore.getState().messages[ns('c1')][0];
     await useChatStore.getState().retryMessage(ns('c1'), delivered.id);
 
-    // One send, not two. Re-sending something already delivered would put it
-    // in the other person's thread twice.
     expect(session.sent).toHaveLength(1);
   });
 
@@ -984,7 +973,6 @@ describe('disconnecting', () => {
 });
 
 describe('consent', () => {
-  /** A stranger's chat: present, but not yet replied to. */
   const withRequest = async () => {
     const session = new InMemoryChatSession();
     session.seedChat({ id: 'spam', title: 'Stranger', consent: 'request' });
@@ -1008,8 +996,6 @@ describe('consent', () => {
 
     await useChatStore.getState().setConsent(ns('spam'), 'declined');
 
-    // The point of routing this through the session rather than a local flag:
-    // a reinstall, and this account's other phone, both have to see it.
     expect((await session.listChats()).find((c) => c.id === 'spam')?.consent).toBe('declined');
   });
 
@@ -1023,8 +1009,7 @@ describe('consent', () => {
       'offline'
     );
 
-    // The update is optimistic, so a failure has to undo it; otherwise the row
-    // stays gone and the stranger silently reappears on the next sync.
+    // The update is optimistic, so a failure has to undo it.
     expect(useChatStore.getState().chats.find((c) => c.id === ns('spam'))?.consent).toBe('request');
   });
 
@@ -1087,9 +1072,8 @@ describe('consent', () => {
 
   it('says so when the protocol has no notion of consent', async () => {
     const session = await withRequest();
-    // Nostr has no roster and no stranger, so it omits the method
-    // rather than pretending to honour it. Assigned rather than deleted: it
-    // lives on the prototype, which `delete` on the instance does not touch.
+    // Assigned rather than deleted: the method lives on the prototype, which `delete` on the
+    // instance does not touch.
     (session as { setConsent?: unknown }).setConsent = undefined;
 
     await expect(useChatStore.getState().setConsent(ns('spam'), 'declined')).rejects.toThrow(

@@ -11,7 +11,6 @@ import type { BiometricCapability } from './biometrics';
 
 export type { BiometricCapability } from './biometrics';
 
-/** Touch ID on a Mac that has it, through the Rust side (src-tauri/src/biometrics.rs). */
 export async function biometricCapability(): Promise<BiometricCapability> {
   const { available, enrolled } = await invoke<{ available: boolean; enrolled: boolean }>(
     'biometric_capability'

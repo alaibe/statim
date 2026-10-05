@@ -3,17 +3,11 @@ module.exports = {
   preset: 'jest-expo',
   setupFiles: ['<rootDir>/jest.setup.js'],
   /**
-   * react-native-worklets ships this resolver so its `.native.ts` variants —
-   * which bind to JSI on import — are skipped under Jest. Without it, any
-   * module that transitively touches Reanimated cannot be required in Node,
-   * which would put every plugin contributing a component out of test reach.
+   * Skips react-native-worklets' `.native.ts` variants, which bind to JSI on
+   * import. Without it no module that touches Reanimated loads in Node.
    */
   resolver: '<rootDir>/node_modules/react-native-worklets/jest/resolver.js',
-  /**
-   * Agent worktrees live under .claude/ and contain a full copy of this
-   * project. Without this, every suite runs once per worktree — inflating the
-   * counts and reporting on code that is not in this tree.
-   */
+  /** Agent worktrees under .claude/ hold full copies of the project. */
   testPathIgnorePatterns: ['/node_modules/', '/.claude/', '<rootDir>/site/'],
   modulePathIgnorePatterns: ['/.claude/', '<rootDir>/site/'],
   // Mirrors the "@/assets/*" and "@/*" aliases from tsconfig.json, in that order.

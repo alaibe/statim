@@ -14,7 +14,6 @@ export interface FieldProps extends TextInputProps {
   containerClassName?: string;
 }
 
-/** Worn by anything that has to look like a field. */
 export const FIELD_BOX = 'min-h-tap rounded-field border bg-surface-raised px-3 py-2.5';
 
 /** The control is the input below, or a pressable where a value is chosen. */

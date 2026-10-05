@@ -5,23 +5,17 @@ const path = require('path');
 /**
  * Lets a target use the system SQLite while SQLCipher is also linked.
  *
- * SQLCipher — pulled in by the XMTP SDK — is an sqlite3 amalgamation, and
+ * SQLCipher, pulled in by the XMTP SDK, is an sqlite3 amalgamation, and
  * CocoaPods propagates its include guards (`_SQLITE3_H_`, `_SQLITE3RTREE_H_`)
  * to every target that links it, the app target included. With those already
  * defined, the iOS SDK's own `sqlite3.h` expands to nothing, so any target that
- * builds the system `SQLite3` module gets `sqlite3ext.h` with no `sqlite3` type
- * behind it and fails with 19 "unknown type name" errors.
- *
- * Nothing imported SQLite3 until expo-observe arrived — `expo-app-metrics`
- * keeps its metrics in one — which is why this only started mattering then.
+ * builds the system `SQLite3` module (expo-app-metrics does) gets
+ * `sqlite3ext.h` with no `sqlite3` type behind it and fails with "unknown type
+ * name" errors.
  *
  * Stripping the guards from the *app* target is safe: they exist to stop
  * SQLCipher's amalgamation re-including itself while SQLCipher is compiled,
  * which happens in SQLCipher's own target and is untouched here.
- *
- * This lives in a config plugin rather than in `ios/Podfile` because `ios/` is
- * generated — a hand-edited Podfile is lost on the next prebuild, and the build
- * breaks again with an error that says nothing about SQLCipher.
  */
 const HOOK = `
     # Added by plugins/with-sqlcipher-sqlite-fix.js — see that file for why.
@@ -79,7 +73,6 @@ module.exports = function withSqlcipherSqliteFix(config) {
       const podfile = path.join(modConfig.modRequest.platformProjectRoot, 'Podfile');
       const contents = fs.readFileSync(podfile, 'utf8');
 
-      // Idempotent: prebuild runs this on a Podfile that may already carry it.
       if (contents.includes(MARKER)) return modConfig;
 
       const opener = '  post_install do |installer|\n';
@@ -91,10 +84,8 @@ module.exports = function withSqlcipherSqliteFix(config) {
         );
       }
 
-      // Appended at the *end* of post_install, not the start:
-      // `react_native_post_install` rewrites the same xcconfigs, so a strip that
-      // runs before it is simply overwritten and the build fails exactly as it
-      // did without the plugin.
+      // At the end of post_install: `react_native_post_install` rewrites the
+      // same xcconfigs and would undo a strip that ran before it.
       const closer = contents.lastIndexOf('\n  end');
       if (closer === -1 || closer < contents.indexOf(opener)) {
         throw new Error(

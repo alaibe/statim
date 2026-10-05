@@ -55,7 +55,6 @@ describe('hardwareAccount', () => {
   });
 
   it('matches what a local key would have produced', async () => {
-    // The point of the seam: nothing downstream can tell the difference.
     const device = signer();
     const address = await device.getAddress(DEFAULT_EVM_PATH);
 
@@ -75,8 +74,6 @@ describe('hardwareAccount', () => {
   });
 
   it('surfaces a refusal instead of swallowing it', async () => {
-    // Someone pressing cancel is a normal outcome the app must not hide; the
-    // send paths already have to handle a failed signature.
     const device = signer();
     const address = await device.getAddress(DEFAULT_EVM_PATH);
     device.refuse = true;
@@ -87,9 +84,8 @@ describe('hardwareAccount', () => {
   });
 
   it('hands the device the message, not a hash', async () => {
-    // Devices apply EIP-191 themselves, because the prefix is part of what
-    // they show. One that signed opaque hashes would be a blind-signing
-    // machine, which is the thing they exist to prevent.
+    // Devices apply EIP-191 themselves because the prefix is part of what they
+    // show. A device that signed opaque hashes would be signing blind.
     const device = signer();
     const address = await device.getAddress(DEFAULT_EVM_PATH);
 

@@ -202,7 +202,6 @@ export interface MatrixApi {
   /** Restores the saved session when there is one; `null` means sign in first. Rooms arrive as updates. */
   start(params: MxStartParams): Promise<MxSession | null>;
   login(password: string): Promise<MxSession>;
-  /** Ends the session on the homeserver. */
   logout(): Promise<void>;
 
   room(id: string): Promise<MxRoom | null>;
@@ -227,8 +226,11 @@ export interface MatrixApi {
   join(roomId: string): Promise<void>;
   leave(roomId: string): Promise<void>;
 
-  /** Resolves once the homeserver has the message; it then arrives as an `event` update. */
-  /** The new event's id, where the SDK gives it back; the phone's does not. */
+  /**
+   * Resolves once the homeserver has the message, which then arrives as an `event` update; on
+   * the phone an attachment resolves once queued. Returns the new event's id where the SDK
+   * gives it back, which the phone's does not.
+   */
   send(
     roomId: string,
     content: MxOutgoing,

@@ -36,21 +36,19 @@ export function accountMnemonicKey(accountId: string): AccountScopedKey {
   return `account.${accountId}.mnemonic`;
 }
 
+// Each database has a key of its own; no two share key material.
 export function accountDbKeyName(accountId: string): AccountScopedKey {
   return `account.${accountId}.dbKey`;
 }
 
-// The app database and XMTP database must not share key material.
 export function accountAppDbKeyName(accountId: string): AccountScopedKey {
   return `account.${accountId}.appDbKey`;
 }
 
-// Telegram's TDLib database has its own key, kept apart from the XMTP one.
 export function accountTdlibDbKeyName(accountId: string): AccountScopedKey {
   return `account.${accountId}.tdlibDbKey`;
 }
 
-// Matrix's SDK store has its own passphrase; the session (access token) sits beside it.
 export function accountMatrixStoreKeyName(accountId: string): AccountScopedKey {
   return `account.${accountId}.matrixStoreKey`;
 }

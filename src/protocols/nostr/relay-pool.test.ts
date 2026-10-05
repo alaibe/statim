@@ -123,8 +123,6 @@ describe('subscriptions', () => {
     factory.relays[0].deliver('sub1', event);
     factory.relays[1].deliver('sub1', event);
 
-    // The same event arrives from every relay holding it; the caller wants it
-    // once.
     expect(seen).toHaveLength(1);
   });
 
@@ -177,7 +175,6 @@ describe('publishing', () => {
       createSocket: factory.create,
     });
     factory.relays[0].open();
-    // b stays closed.
 
     const event = anEvent();
     await expect(pool.publish(event)).resolves.toBeUndefined();
@@ -293,7 +290,7 @@ describe('reconnecting', () => {
     jest.advanceTimersByTime(1_100);
     factory.relays[1].close();
 
-    // The second window starts at 2s, so the first second is not enough.
+    // The second delay falls between 1s and 2s.
     jest.advanceTimersByTime(900);
     expect(factory.relays).toHaveLength(2);
     jest.advanceTimersByTime(1_200);

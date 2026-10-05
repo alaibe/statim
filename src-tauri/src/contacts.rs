@@ -129,7 +129,7 @@ mod platform {
     }
 }
 
-/// `unknown` until asked, then `all`, `limited`, `none`, or `unavailable` here.
+/// `unknown` until asked, then `all`, `limited` or `none`; `unavailable` off macOS.
 #[tauri::command]
 pub fn contacts_access() -> &'static str {
     platform::access()

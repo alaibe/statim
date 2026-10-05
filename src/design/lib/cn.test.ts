@@ -1,4 +1,3 @@
-// The config is plain JS with loose Tailwind types; narrow it to what we assert on.
 import { cn, FONT_SIZE_NAMES } from './cn';
 
 // The Tailwind config is CommonJS, which is what Tailwind itself requires.
@@ -9,9 +8,7 @@ const tailwindConfig = require('../../../tailwind.config.js') as {
 
 describe('cn', () => {
   it('lets a later colour override an earlier one', () => {
-    // The bug this guards: unconfigured tailwind-merge classified
-    // `text-brand-on` as a font size, dropped both colours, and every button
-    // label rendered in the default colour instead of white.
+    // Unconfigured, tailwind-merge reads `text-brand-on` as a font size.
     expect(cn('text-content', 'text-brand-on')).toBe('text-brand-on');
     expect(cn('text-content', 'text-brand')).toBe('text-brand');
   });

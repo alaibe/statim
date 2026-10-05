@@ -10,7 +10,6 @@ export function openChatFromSheet(id: string): void {
   router.dismissTo(`/chat/${id}`);
 }
 
-/** From a profile: the chat replaces it. */
 export function openChatFromProfile(id: string): void {
   router.replace(`/chat/${id}`);
 }

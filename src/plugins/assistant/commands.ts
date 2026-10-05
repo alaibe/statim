@@ -98,8 +98,7 @@ export function assistantCommands(views: { plugins: PluginView }): SlashCommand[
           return { type: 'error', message: 'No account loaded yet.' };
         }
 
-        // Reverse lookup: a name is only yours if the address points back at
-        // it, and that record is what anybody else can check.
+        // Reverse lookup: a name is yours only if this address points back at it.
         const name = await lookupName(address as `0x${string}`).catch(() => null);
 
         await respond({
@@ -120,9 +119,7 @@ export function assistantCommands(views: { plugins: PluginView }): SlashCommand[
               W.actions([
                 { label: 'Which plugins are on?', command: '/plugins', tone: 'neutral' as const },
               ]),
-              // A link: `/open` belongs to the Browser's own chat, so a button
-              // running it from here would answer "that belongs to Browser". The
-              // link opens the site with no plugin switched on.
+              // A link, not `/open`: that command runs only in the Browser's chat.
               W.link(
                 name ? `${name} on ENS` : 'Get a name at app.ens.domains',
                 'https://app.ens.domains'

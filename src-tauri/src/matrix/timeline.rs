@@ -8,7 +8,8 @@ impl Session {
         if let Some(existing) = self.touch_live(room_id).await {
             return Ok(existing);
         }
-        // Built without holding the lock: the SDK may need the sync tasks, which also announce rooms.
+        // Built without holding the lock: the SDK may need the sync tasks, which also announce
+        // rooms.
         let room = self.room(room_id.as_str())?;
         // The app shows no receipts, and tracking them re-emits every message whenever one moves.
         let timeline = Arc::new(

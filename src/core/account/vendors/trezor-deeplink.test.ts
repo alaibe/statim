@@ -3,9 +3,6 @@ import { handleTrezorCallback } from './trezor-deeplink';
 /**
  * Only the callback routing is testable here. Everything else opens Trezor
  * Suite, which needs the app installed and a device plugged into it.
- *
- * This half is worth testing on its own: a deep link is a URL the OS hands
- * over, and anything that can register the scheme could send a fake one.
  */
 describe('handleTrezorCallback', () => {
   it('ignores a link nothing is waiting for', () => {
@@ -21,9 +18,6 @@ describe('handleTrezorCallback', () => {
 
 describe('parsing the callback', () => {
   it('reads a payload out of a custom-scheme URL', () => {
-    // Not `new URL` and not `Linking.parse`: the first is unreliable for
-    // custom schemes across engines, the second needs a native module in what
-    // should be a pure function.
     expect(handleTrezorCallback('statim://trezor?id=x&payload=0xabc')).toBe(false);
   });
 

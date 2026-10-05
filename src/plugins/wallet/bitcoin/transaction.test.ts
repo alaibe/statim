@@ -35,8 +35,7 @@ describe('scriptPubKey', () => {
   });
 
   it('refuses Taproot rather than decoding it wrongly', () => {
-    // A v1 address is bech32m; decoding it as bech32 yields a plausible and
-    // completely wrong script, so the money would go nowhere recoverable.
+    // A v1 address is bech32m; decoded as bech32 it yields a plausible but wrong script.
     expect(() => scriptPubKey('bc1p' + 'q'.repeat(58))).toThrow();
   });
 
@@ -64,8 +63,6 @@ describe('sighash', () => {
     const b = sighash([{ ...inputs[0], value: 100_001n }], outputs, 0, pub);
 
     expect(a).toHaveLength(32);
-    // BIP-143's whole point: the pre-image commits to what is being spent, so
-    // a wallet cannot be lied to about the amount.
     expect(toHex(a)).not.toBe(toHex(b));
   });
 
@@ -86,17 +83,14 @@ describe('buildTransaction', () => {
   });
 
   it('serialises the outpoint little-endian', () => {
-    // txids are shown big-endian and serialised reversed; getting this
-    // backwards spends an input that does not exist.
+    // txids are shown big-endian and serialised reversed.
     const at = 6 + 1;
     expect(toHex(tx.slice(at, at + 32))).toBe('11'.repeat(32));
     expect([...tx.slice(at + 32, at + 36)]).toEqual([1, 0, 0, 0]);
   });
 
   it('carries a signature the public key verifies against the sighash', () => {
-    // Parsed from the tail rather than at a fixed offset: DER signatures are
-    // 70-72 bytes depending on the values, so an assumed length is a test that
-    // passes or fails by luck.
+    // Parsed from the tail: a DER signature's length depends on its values.
     const end = tx.length - 4; // before the locktime
     const pubkey = tx.slice(end - 33, end);
     expect(toHex(pubkey)).toBe(toHex(pub));
@@ -129,8 +123,7 @@ describe('buildTransaction', () => {
 
 describe('virtualSize', () => {
   it('discounts witness bytes fourfold', () => {
-    // A one-in two-out P2WPKH spend is ~141 vbytes. Charging the raw byte
-    // length would overpay by roughly a third.
+    // A one-in two-out P2WPKH spend is ~141 vbytes.
     expect(virtualSize(1, 2)).toBeGreaterThan(130);
     expect(virtualSize(1, 2)).toBeLessThan(155);
   });

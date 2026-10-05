@@ -3,14 +3,12 @@ import { virtualSize, type Utxo } from './transaction';
 
 const utxo = (value: bigint, i = 0): Utxo => ({ txid: 'ab'.repeat(32), vout: i, value });
 
-/** What the plan pays out, which must never exceed what went in. */
 const conserved = (inputs: Utxo[], send: bigint, change: bigint | null, fee: bigint) =>
   inputs.reduce((n, u) => n + u.value, 0n) === send + (change ?? 0n) + fee;
 
 describe('planSpend', () => {
   it('conserves every satoshi', () => {
-    // The invariant that matters most: inputs = sent + change + fee, exactly.
-    // Any gap is money silently paid to a miner.
+    // Input value that no output claims goes to the miner.
     for (const amount of [1_000n, 50_000n, 999_999n]) {
       const result = planSpend([utxo(2_000_000n)], amount, 10);
       expect(result.ok).toBe(true);
@@ -25,8 +23,7 @@ describe('planSpend', () => {
     const result = planSpend([utxo(1_000_000n)], 100_000n, 7);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    // Witness bytes are discounted fourfold; charging byte length would
-    // overpay by roughly a third on every send.
+    // Witness bytes count a quarter toward virtual size.
     expect(result.plan.vsize).toBe(virtualSize(1, 2));
     expect(result.plan.fee).toBe(BigInt(result.plan.vsize) * 7n);
   });
@@ -42,7 +39,6 @@ describe('planSpend', () => {
     if (!result.ok) return;
     expect(result.plan.change).toBeNull();
     expect(conserved(result.plan.inputs, result.plan.send, null, result.plan.fee)).toBe(true);
-    // The recipient still gets exactly what was asked for.
     expect(result.plan.send).toBe(100_000n);
   });
 
@@ -74,7 +70,6 @@ describe('planSpend', () => {
   });
 
   it('refuses when the balance covers the amount but not the fee', () => {
-    // The nastiest near-miss: it looks affordable until the fee is counted.
     const result = planSpend([utxo(100_010n)], 100_000n, 50);
     expect(result).toEqual({ ok: false, reason: 'Not enough bitcoin, once the fee is counted.' });
   });

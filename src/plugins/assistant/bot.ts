@@ -58,9 +58,8 @@ export interface LockDevice {
 }
 
 /**
- * A greeting is built synchronously, before the device can say which
- * biometrics it has, so they are named by platform. A Mac is told about
- * Touch ID, since most have it.
+ * The greeting is built synchronously, before the device can report its biometrics, so they are
+ * named by platform. Most Macs have Touch ID.
  */
 export function thisDevice(os = process.env.EXPO_OS): LockDevice {
   if (os === 'ios') return { kind: 'phone', biometrics: 'Face ID or Touch ID' };

@@ -88,8 +88,6 @@ class RnMatrixClient implements MatrixApi {
     await this.client.logout();
   }
 
-  // ---- sync ----
-
   private async startSync(): Promise<void> {
     if (this.client.slidingSyncVersion() === sdk.SlidingSyncVersion.None) {
       throw new Error(
@@ -155,7 +153,6 @@ class RnMatrixClient implements MatrixApi {
         .catch(() => {});
     }
     for (const room of touched.values()) this.announce(room).catch(() => {});
-    // Fetch the next page while the list keeps growing.
     if (grew && this.entries.length > 0 && this.entries.length % ROOM_PAGE === 0)
       this.roomEntries?.controller().addOnePage();
   }
@@ -164,8 +161,6 @@ class RnMatrixClient implements MatrixApi {
     const mapped = await this.toMxRoom(room);
     if (mapped) this.emit({ type: 'room', room: mapped });
   }
-
-  // ---- rooms ----
 
   async room(id: string): Promise<MxRoom | null> {
     const room = this.client.getRoom(id);
@@ -230,8 +225,6 @@ class RnMatrixClient implements MatrixApi {
       defaultLevel: power ? Number(power.values().usersDefault) : undefined,
     };
   }
-
-  // ---- timelines ----
 
   private async liveTimeline(roomId: string): Promise<LiveTimeline> {
     const existing = this.live.get(roomId);
@@ -333,8 +326,6 @@ class RnMatrixClient implements MatrixApi {
         msgLike?.kind.tag === sdk.MsgLikeKind_Tags.Message && msgLike.kind.inner.content.isEdited,
     };
   }
-
-  // ---- people ----
 
   async members(roomId: string): Promise<MxMember[]> {
     const iterator = await this.requireRoom(roomId).members();
@@ -453,12 +444,6 @@ class RnMatrixClient implements MatrixApi {
     await this.requireRoom(roomId).leave();
   }
 
-  // ---- sending ----
-
-  /**
-   * Text goes straight to the homeserver, so a rejection rejects here.
-   * Attachments go through the SDK's send queue, which resolves once queued.
-   */
   /** Whom a reply notifies, as the desktop driver's `AddMentions::Yes` does. */
   private async senderOf(room: sdk.RoomLike, eventId: string): Promise<string | undefined> {
     try {
@@ -469,6 +454,10 @@ class RnMatrixClient implements MatrixApi {
     }
   }
 
+  /**
+   * Text and stickers go straight to the homeserver, so a rejection rejects here.
+   * Attachments go through the SDK's send queue, which resolves once queued.
+   */
   async send(
     roomId: string,
     content: MxOutgoing,
@@ -604,8 +593,6 @@ class RnMatrixClient implements MatrixApi {
     await (await this.liveTimeline(roomId)).timeline.sendPollResponse(eventId, answerIds);
   }
 
-  // ---- media ----
-
   async media(media: MxMedia): Promise<string> {
     const digest = await Crypto.digestStringAsync(
       Crypto.CryptoDigestAlgorithm.SHA256,
@@ -621,8 +608,6 @@ class RnMatrixClient implements MatrixApi {
     }
     return file.uri.replace(/^file:\/\//, '');
   }
-
-  // ---- lifecycle ----
 
   onUpdate(listener: (update: MxUpdate) => void): () => void {
     this.listeners.add(listener);

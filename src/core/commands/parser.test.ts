@@ -52,8 +52,7 @@ describe('completeCommandName', () => {
   });
 
   it('stops at what the candidates agree on', () => {
-    // `/w` matches watch, watched and whoami; only "w" is shared, so there is
-    // nothing to add and guessing one of them would be worse than waiting.
+    // `/w` matches watch, watched and whoami, which share only "w".
     expect(completeCommandName('/w', NAMES)).toBeNull();
     // `/wat` narrows to watch and watched, which agree as far as "watch".
     expect(completeCommandName('/wat', NAMES)).toBe('/watch');

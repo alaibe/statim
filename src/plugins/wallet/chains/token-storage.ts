@@ -8,11 +8,7 @@ const STORAGE_TOKENS = 'custom-tokens';
 
 type Saved = Record<string, ListedToken[]>;
 
-/**
- * One blob holds every chain's, and a balance command asks chain by chain, so
- * it is read once. Held against the context, not the module, so another
- * account cannot be handed this one's tokens.
- */
+/** Keyed by context, not held by the module, so another account is never handed these tokens. */
 const cached = new WeakMap<PluginContext, Promise<Saved>>();
 
 function all(context: PluginContext): Promise<Saved> {

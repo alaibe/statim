@@ -72,7 +72,6 @@ fn connection(dbs: &State<Databases>, name: &str) -> Result<Shared, String> {
         .ok_or_else(|| format!("Database {name} is not open."))
 }
 
-/// SQL blocks, so it runs off the async runtime, holding only its own connection.
 async fn query<T: Send + 'static>(
     conn: Shared,
     work: impl FnOnce(&Connection) -> rusqlite::Result<T> + Send + 'static,

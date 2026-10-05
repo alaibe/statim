@@ -49,7 +49,6 @@ describe('storage', () => {
   });
 
   it('returns an empty config rather than throwing on corrupt data', async () => {
-    // A settings screen the user can fix beats a launch that crashes.
     await vaultSet(accountProtocolConfigsKey('acct-a'), 'not json');
     expect(await loadProtocolConfig('acct-a', 'nostr')).toEqual({});
   });

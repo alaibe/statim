@@ -21,7 +21,6 @@ interface EthModule {
   default: new (transport: unknown) => AppEth;
 }
 
-/** Phones reach a Ledger over Bluetooth; see ledger.web.ts for USB. */
 export async function scanForLedgers(
   onFound: (device: LedgerDevice) => void,
   onError: (error: unknown) => void

@@ -27,7 +27,8 @@ pub(super) fn preview_of(latest: LatestEventValue) -> Option<MxPreview> {
     })
 }
 
-/// Local echoes and events the app never shows are skipped; our own sends surface once the homeserver has them.
+/// Local echoes and events the app never shows are skipped; our own sends surface once the
+/// homeserver has them.
 pub(super) fn to_mx_event(room_id: &RoomId, item: &TimelineItem) -> Option<MxEvent> {
     let event = item.as_event()?;
     let event_id = event.event_id()?;

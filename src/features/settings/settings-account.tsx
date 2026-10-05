@@ -11,7 +11,10 @@ import { forgetEns } from '@/lib/evm/ens-cache';
 import { openInBrowser } from '@/lib/open-url';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 
-/** Looked up again whenever `revision` changes; the ENS button forgets the kept name, so one claimed there shows on the way back. */
+/**
+ * Looked up again whenever `revision` changes. The ENS button forgets the kept name, so one
+ * claimed there shows on the way back.
+ */
 export function useEnsName(revision: unknown): string | null {
   const address = useAccountStore((s) => s.keyring?.address);
   const loaded = useKeyedLoad(address ?? null, lookupName, revision);
@@ -38,10 +41,9 @@ export function SettingsAccount({ ensName }: { ensName: string | null }) {
           onPress={() => router.push('/qr')}
         />
         {/*
-          Opens ENS in the browser, the only place the name other people
-          see can be changed: an ENS reverse record is an on-chain claim
-          this app reads and does not write. The label under the avatar,
-          which is only yours, is edited in Accounts.
+          The name other people see is an ENS record this app reads and never
+          writes, so it is changed on the ENS site. The label under the avatar
+          is edited in Accounts.
         */}
         <IconButton
           testID="settings-ens"

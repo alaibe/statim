@@ -38,6 +38,8 @@ export function handleTrezorCallback(url: string): boolean {
   return true;
 }
 
+// `new URL` is unreliable for custom schemes across engines, and `Linking.parse` would need
+// a native module in tests.
 function queryOf(url: string): Map<string, string> {
   const out = new Map<string, string>();
   const at = url.indexOf('?');

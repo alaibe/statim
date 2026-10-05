@@ -23,7 +23,7 @@ export interface ContactState {
   updatedAt: number;
   /** The id of the request message they sent, which accepting names. */
   requestId?: string;
-  /** They have written to us, so a chat with them is theirs until we add them. */
+  /** They have written to us, so their DM is a request until we add them. */
   heardFrom?: boolean;
   /** Their profile picture, saved on this device. */
   picture?: string;

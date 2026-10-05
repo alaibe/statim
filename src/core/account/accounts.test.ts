@@ -7,7 +7,7 @@ import { createAccountStorage } from '@/storage/account';
 import * as engine from '@/storage/sqlite-engine';
 import { accountMnemonicKey, VaultKey } from '@/storage/vault';
 
-/** Two valid BIP-39 phrases, so "same device, two accounts" is real. */
+/** Two valid BIP-39 phrases. */
 const PHRASE_A = 'legal winner thank year wave sausage worth useful legal winner thank yellow';
 const PHRASE_B = 'zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong';
 
@@ -30,7 +30,6 @@ describe('multiple accounts', () => {
 
     const { accounts, activeAccountId } = useAccountStore.getState();
     expect(accounts).toHaveLength(2);
-    // Adding an account switches to it.
     expect(activeAccountId).toBe(accounts[1].id);
   });
 
@@ -69,7 +68,6 @@ describe('multiple accounts', () => {
 
     await useAccountStore.getState().selectAccount(first.id);
 
-    // The second account's data is untouched but out of scope.
     expect(await createAccountStorage(second.id).get('chat.readAt')).toEqual({ x: 1 });
     expect(useAccountStore.getState().activeAccountId).toBe(first.id);
   });

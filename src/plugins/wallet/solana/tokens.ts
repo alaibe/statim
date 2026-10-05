@@ -21,7 +21,6 @@ function named(): Map<string, Entry> {
   return names;
 }
 
-/** A balance card is a list, not an inventory. */
 const MOST = 25;
 
 export interface SplBalance {
@@ -62,8 +61,7 @@ export async function fetchSplTokens(url: string, owner: string): Promise<SplBal
     )
   );
 
-  // One mint can sit in several accounts; what is held is their sum, so the
-  // raw amounts are added up before any of them is formatted.
+  // One mint can sit in several accounts, so raw amounts are summed before formatting.
   const held = new Map<string, { raw: bigint; decimals: number }>();
 
   for (const { value } of answers) {

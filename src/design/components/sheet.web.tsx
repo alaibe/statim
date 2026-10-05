@@ -28,10 +28,7 @@ export function closeSheetThen(sheet: Pick<SheetProps, 'onClose'>, action: () =>
 const WIDTH = 320;
 const MARGIN = 12;
 
-/**
- * On desktop a sheet is a popover: at the pointer when a right-click opened it,
- * centred when a button did. Esc and the backdrop close it.
- */
+/** On desktop a sheet is a popover: at `anchor` when there is one, else centred. */
 export function Sheet({
   visible,
   title,

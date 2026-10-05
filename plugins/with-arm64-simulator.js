@@ -6,15 +6,11 @@ const path = require('path');
  * Builds simulator slices for arm64 only.
  *
  * The XMTP SDK ships `LibXMTPSwiftFFI.xcframework` without an x86_64 simulator
- * slice, so its pod already excludes that architecture. Nothing depending on it
- * does, and a generic simulator build (what EAS runs) compiles every target for
+ * slice, so its pod excludes that architecture, but nothing depending on it
+ * does. A generic simulator build (what EAS runs) compiles every target for
  * both architectures, so `XMTPReactNative` fails on x86_64 with "could not find
  * module 'XMTP' for target 'x86_64-apple-ios-simulator'". A local build for one
- * Apple Silicon simulator never asks for x86_64, which is why it only shows up
- * on EAS.
- *
- * Lives in a config plugin for the same reason as with-sqlcipher-sqlite-fix:
- * `ios/` is generated, so a hand-edited Podfile does not survive prebuild.
+ * Apple-silicon simulator never asks for x86_64.
  */
 const MARKER = 'with-arm64-simulator.js';
 

@@ -1,8 +1,4 @@
-/**
- * Chat ids carry their own routing, `<protocol>-<native id>`. This is
- * what lets one chat list hold every protocol without anything downstream
- * filtering by protocol.
- */
+/** Chat ids carry their own routing: `<protocol>-<native id>`. */
 import { oneOf } from '@/lib/guards';
 
 import type {

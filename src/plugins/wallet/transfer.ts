@@ -12,9 +12,8 @@ export function chainOffMessage(label: string): string {
 export type CommitOutcome = { ok: true; hash: string } | { ok: false; message: string };
 
 /**
- * Signs and broadcasts, then posts a receipt when there is a chat to
- * post it in. Once the transfer is on the chain a later failure must never
- * read as "try again", so it gets the sent-but-unconfirmed message instead.
+ * Signs and broadcasts, then posts a receipt to `chatId` when there is one. Once the transfer is
+ * on the chain, a later failure must never read as "try again".
  */
 export async function commitTransfer(
   chain: ChainStrategy,

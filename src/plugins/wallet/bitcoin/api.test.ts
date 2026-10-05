@@ -9,8 +9,6 @@ describe('formatBtc', () => {
   });
 
   it('keeps precision that a JS number would lose', () => {
-    // 21M BTC in sats exceeds Number.MAX_SAFE_INTEGER, which is exactly why
-    // this works in bigint throughout.
     expect(formatBtc(2_100_000_000_000_000n)).toBe('21000000');
   });
 

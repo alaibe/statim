@@ -16,12 +16,6 @@ describe('resolveEnabledIds', () => {
 });
 
 describe('plugin preferences are per account', () => {
-  /**
-   * Without bound storage a freshly created account inherits the previous
-   * account's choices wholesale. Passing bound storage to both calls makes that
-   * impossible: what one account stores is invisible to another, whatever the
-   * ambient scope happens to say.
-   */
   it('does not let one account read or overwrite another', async () => {
     const accountA = createAccountStorage('account-a');
     const accountB = createAccountStorage('account-b');
@@ -35,7 +29,6 @@ describe('plugin preferences are per account', () => {
   });
 
   it('gives a brand-new account the defaults, not whatever was on before', () => {
-    // No prefs is the whole signal: it means nobody has chosen yet here.
     expect(
       resolveEnabledIds({
         all: ['assistant', 'profile', 'bitcoin', 'markets'],

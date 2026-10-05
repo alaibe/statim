@@ -29,8 +29,8 @@ pub fn build_index() -> Option<usize> {
     }
 }
 
-/// Per `build_index`. The Mac's, with the libolm its mautrix bridges link,
-/// comes from `.github/workflows/homeserver.yml`.
+/// Per `build_index`. The Mac has none yet: `.github/workflows/homeserver.yml` builds it,
+/// with the libolm its mautrix bridges link.
 const SERVER: [Option<&[Pin]>; 3] = [
     None,
     Some(&[Pin {

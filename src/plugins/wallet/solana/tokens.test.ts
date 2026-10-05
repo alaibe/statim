@@ -64,8 +64,6 @@ describe('fetchSplTokens', () => {
   });
 
   it('adds up a mint held in more than one account', async () => {
-    // A wallet can end up with several accounts for the same mint; showing one
-    // of them would understate the balance.
     stubRpc({
       [TOKEN]: [
         { mint: USDC, amount: '1000000', decimals: 6 },
@@ -92,7 +90,6 @@ describe('fetchSplTokens', () => {
 
     expect(known.symbol).toBe('USDC');
     expect(known.listed).toBe(true);
-    // Never a bare mint pretending to be a symbol, and never a guess.
     expect(unknown.symbol).toBe('Mint…1111');
     expect(unknown.name).toBe('Unknown token');
     expect(unknown.listed).toBe(false);

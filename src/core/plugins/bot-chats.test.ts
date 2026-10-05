@@ -29,8 +29,6 @@ const transcript = (...messages: ChatMessage[]): Record<ChatId, ChatMessage[]> =
 
 describe('what a plugin toggle costs', () => {
   it('says nothing about a chat the user never used', () => {
-    // Warning about a two-line greeting would train the user to dismiss the
-    // warning, which is worse than not showing one.
     const greeting = transcript(message('Welcome.', false), message('Set one with /alert.', false));
     expect(botChatLoss([BOT], greeting)).toBeNull();
   });
@@ -47,8 +45,6 @@ describe('what a plugin toggle costs', () => {
   });
 
   it('warns about history the bot itself accumulated', () => {
-    // The motivating case: a month of confirmations the user never replied to
-    // is exactly the history a switch must not silently empty.
     const loss = botChatLoss(
       [BOT],
       transcript(
@@ -81,7 +77,6 @@ describe('the words shown before the switch moves', () => {
     expect(copy.body).toContain('Markets');
     expect(copy.body).toContain('2 messages');
     expect(copy.body).toContain('1 of which is yours');
-    // The whole point of the sheet: recoverable, and said out loud.
     expect(copy.body).toContain('Nothing is deleted');
     expect(copy.confirmLabel).toBe('Turn off Markets');
   });

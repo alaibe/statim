@@ -33,8 +33,7 @@ describe('foldReactions', () => {
   });
 
   it('handles a reaction that arrives before its target', () => {
-    // A sync returns messages in whatever order the protocol had them, so this
-    // is normal rather than exceptional.
+    // A sync returns messages in whatever order the protocol had them.
     const out = foldReactions([reaction('r1', 'm1', '👍', 'added'), message({ id: 'm1' })]);
 
     expect(out).toHaveLength(1);
@@ -83,7 +82,7 @@ describe('foldReactions', () => {
   });
 
   it('ignores a reaction pointing at nothing', () => {
-    // The target may simply not be loaded yet; it must not crash or invent one.
+    // The target may not be loaded yet.
     const out = foldReactions([message({ id: 'm1' }), reaction('r1', 'ghost', '👍', 'added')]);
 
     expect(out).toHaveLength(1);

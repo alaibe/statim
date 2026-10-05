@@ -8,14 +8,6 @@ import { CHAINS, walletChainById } from './wallet/chain-list';
 import { botChatId } from '@/core/messaging/bots';
 import { asChatId } from '@/core/messaging/testing/ids';
 
-/**
- * Consistency guards for the plugin surface.
- *
- * These are cheap and catch the kind of drift that is invisible in review: a
- * new plugin that forgets a usage string, a command name that collides with an
- * existing one, an action pointing at a command nobody implements.
- */
-
 const allCommands = ALL_PLUGINS.flatMap((plugin) => {
   const contribution = plugin.setup(stubContext());
   return (contribution.commands ?? []).map((command) => ({
@@ -98,9 +90,6 @@ describe('every command', () => {
   });
 
   it('resolves a shared name to the chat you are standing in', async () => {
-    // Two plugins may declare the same name. What has to hold is that in any
-    // given chat the name resolves to the command you would expect
-    // and nothing is silently shadowed, so this asks the registry.
     const registry = new PluginRegistry(ALL_PLUGINS);
     await Promise.all(
       ALL_PLUGINS.map((plugin) => registry.activate(plugin.manifest.id, stubContext))
@@ -116,10 +105,7 @@ describe('every command', () => {
     for (const [key, owners] of duplicated) {
       if (owners.size === 1) continue;
 
-      // Inside a plugin's own chat, its own command wins. A plugin with no
-      // chat is skipped: there is no such chat, and an unowned channel
-      // offers everything by design, so the assertion would be about a thread
-      // nobody can open.
+      // Inside a plugin's own chat, its own command wins.
       for (const owner of owners) {
         const chat = channelIdOf(owner);
         if (!chat) continue;
@@ -127,8 +113,7 @@ describe('every command', () => {
         if (resolved) expect(resolved.pluginId).toBe(owner);
       }
 
-      // Outside every chat no plugin's chat breaks the tie, so at most one
-      // may claim the name.
+      // In a DM no plugin's chat breaks the tie, so at most one may claim the name.
       const inDm = [...owners].filter(
         (owner) => registry.commandsFor(asChatId('xmtp-abc'), 'dm').get(key)?.pluginId === owner
       );
@@ -136,15 +121,7 @@ describe('every command', () => {
     }
   });
 
-  /**
-   * Whatever a chat dispatches, it also offers. Both sides are read
-   * with the same scope, so a command typed in full cannot run somewhere it
-   * was never listed.
-   *
-   * `hidden` is the one sanctioned asymmetry, and it goes the safe way round:
-   * a hidden command runs but is never listed, so nothing can be offered that
-   * would not run.
-   */
+  /** A `hidden` command runs but is never listed. */
   it.each(['dm', 'group', 'channel'] as const)(
     'dispatches only what it offers in a %s',
     async (scope) => {
@@ -166,19 +143,13 @@ describe('every command', () => {
     }
   );
 
-  /**
-   * A chip is only offered where the command behind it works. The composer
-   * chip and the command it dispatches carry their own `showIn`, so the two
-   * can disagree and leave a chip that cannot do its one job.
-   */
+  /** A composer chip and the command it dispatches each carry their own `showIn`. */
   it.each(['dm', 'group', 'channel'] as const)(
     'only offers a chip in a %s when its command runs there',
     async (scope) => {
       const registry = await activeRegistry();
 
-      // Every chat, because a chip is gated by the plugin that owns the chat
-      // it sits in; checking a single channel would leave every other
-      // plugin's chips unchecked.
+      // Every plugin's chat: a chip is gated by the plugin that owns the chat it sits in.
       const chats =
         scope === 'channel'
           ? ALL_PLUGINS.flatMap((plugin) =>
@@ -233,14 +204,7 @@ describe('every command', () => {
     expect(respond).not.toHaveBeenCalled();
   });
 
-  /**
-   * A button in a chat runs in *that* chat. A command can exist somewhere and
-   * still belong to another plugin's chat, in which case tapping the button
-   * only answers "that belongs to X".
-   *
-   * Greetings are the part that can be checked statically: they are built at
-   * setup, before anything has been asked.
-   */
+  /** Greetings are built at setup, so their buttons can be checked statically. */
   it('never offers a button its own chat cannot run', async () => {
     const registry = await activeRegistry();
     const wrong: string[] = [];
@@ -269,16 +233,10 @@ describe('every command', () => {
     expect(wrong).toEqual([]);
   });
 
-  /**
-   * Inside a plugin's chat, every command belongs to that plugin or is app
-   * furniture. Checked as a property rather than a list so it holds for chats
-   * that do not exist yet. Additions that look local break it, such as a
-   * command marked global to satisfy its own chip.
-   */
   it('never leaks a foreign command into a plugin chat', async () => {
     const registry = await activeRegistry();
 
-    // The app's own furniture: reachable from every chat by design.
+    // Commands the app offers in every chat.
     const FURNITURE = ['commands'];
 
     for (const plugin of ALL_PLUGINS) {
@@ -295,24 +253,10 @@ describe('every command', () => {
     }
   });
 
-  /**
-   * What a chat with a person offers, pinned.
-   *
-   * Brittle on purpose: `showIn` is optional and "undefined means everywhere"
-   * is a default that fails quietly (market alerts in a DM, the plugin
-   * switchboard in someone's chat). Adding a command to this list should be a
-   * decision, and a decision leaves a diff.
-   */
+  /** Pinned on purpose: a command without `showIn` lands in every DM and group. */
   it.each([
+    ['dm', ['address', 'balance', 'commands', 'ens', 'move', 'profile', 'request', 'send']],
     [
-      // Everything here involves the person on the other side: pay them, ask
-      // them, tell them where to pay you, look up who they are.
-      'dm',
-      ['address', 'balance', 'commands', 'ens', 'move', 'profile', 'request', 'send'],
-    ],
-    [
-      // The same, plus the group's own management. That is core: you cannot
-      // opt out of seeing who is in a group.
       'group',
       [
         'address',
@@ -341,15 +285,7 @@ describe('every command', () => {
     expect(offered).toEqual([...expected]);
   });
 
-  /**
-   * Every chain that ships can be sent from, and says how. `/send` asks the
-   * strategy registry, so a chain that forgets to declare `transfer`
-   * disappears from the picker silently.
-   *
-   * Checked on the strategy rather than through `start()`, because chains
-   * are one plugin's setting, registered as a set when the Wallet plugin
-   * starts.
-   */
+  /** A chain whose strategy lacks `transfer` drops out of the `/send` picker silently. */
   it('lets every chain send its own coin', () => {
     expect(CHAINS.map((n) => n.id).sort()).toEqual([
       'arbitrum',
@@ -371,7 +307,6 @@ describe('every command', () => {
         id: chain.id,
         sends: 'function',
       });
-      // A balance a card cannot read is a chain the chat cannot show.
       expect({ id: chain.id, reads: typeof strategy.balance }).toEqual({
         id: chain.id,
         reads: 'function',
@@ -379,7 +314,6 @@ describe('every command', () => {
     }
   });
 
-  /** Every command string a widget's buttons carry, however deeply nested. */
   function commandsIn(widget: unknown): string[] {
     const node = widget as {
       kind?: string;
@@ -401,11 +335,6 @@ describe('every command', () => {
     ];
   }
 
-  /**
-   * The registry as the app builds it: every plugin active, plus the core
-   * commands the app contributes itself. A test that leaves those out is
-   * measuring a chat nobody has.
-   */
   async function activeRegistry(): Promise<PluginRegistry> {
     const registry = new PluginRegistry(ALL_PLUGINS, {
       commands: groupCommands,
@@ -419,7 +348,6 @@ describe('every command', () => {
     return registry;
   }
 
-  /** The plugin's own chat, or null when it has none. */
   function channelIdOf(pluginId: string): string | null {
     const plugin = ALL_PLUGINS.find((p) => p.manifest.id === pluginId);
     return plugin?.setup(stubContext()).bots?.[0]?.id ?? null;
@@ -432,8 +360,7 @@ const allBots = ALL_PLUGINS.flatMap((plugin) =>
 
 describe('every bot', () => {
   it('has a unique id', () => {
-    // A bot id becomes the chat id, so a collision silently hands two
-    // plugins the same thread and the same persisted transcript.
+    // A bot id becomes its chat id, so a collision gives two plugins one chat.
     const seen = new Map<string, string>();
     for (const { pluginId, bot } of allBots) {
       expect(seen.has(bot.id)).toBe(false);
@@ -447,8 +374,6 @@ describe('every bot', () => {
 
   it('introduces itself', () => {
     for (const { bot } of allBots) {
-      // The greeting is the only thing in the chat on first run; an
-      // empty one leaves a chat row that opens onto nothing.
       expect(bot.greeting().length).toBeGreaterThan(0);
       expect(bot.tagline.length).toBeGreaterThan(0);
     }
@@ -468,25 +393,12 @@ describe('defaults', () => {
     for (const id of DEFAULT_ENABLED_PLUGINS) expect(ids.has(id)).toBe(true);
   });
 
-  /**
-   * Nothing optional is on before anyone asks for it. Adding a plugin is
-   * exactly the moment someone reaches for this list, and a default that grows
-   * one plugin at a time is how an app that starts as a messenger ends up
-   * shipping ten chain chats nobody chose.
-   *
-   * The two here are not optional: `assistant` provides the Statim
-   * chat and `profile` the core account commands.
-   */
+  /** `assistant` provides the Statim chat and `profile` the core account commands. */
   it('starts with nothing optional switched on', () => {
     expect([...DEFAULT_ENABLED_PLUGINS].sort()).toEqual(['assistant', 'profile']);
   });
 });
 
-/**
- * Chains are one plugin's setting, so a command has to be told its chain,
- * and a chain that answers the wrong question (Bitcoin resolving a name to
- * its Ethereum record, say) costs real money.
- */
 describe('every chain', () => {
   function stub() {
     return stubContext() as never;
@@ -514,10 +426,8 @@ describe('every chain', () => {
   });
 
   /**
-   * ENSIP-9 gives a name one record per coin. Reading the Ethereum record and
-   * sending bitcoin to it would burn the money, so Bitcoin must not share the
-   * EVM resolver. This pins that they are different functions; checking that
-   * they return different values needs a chain.
+   * ENSIP-9 gives a name one record per coin, so Bitcoin must not share the EVM resolver.
+   * Comparing what they return would need a chain, so this compares the functions.
    */
   it('resolves names its own way, or not at all', () => {
     const resolvers = Object.fromEntries(CHAINS.map((n) => [n.id, n.strategy(stub()).resolve]));
@@ -525,7 +435,6 @@ describe('every chain', () => {
     expect(typeof resolvers.ethereum).toBe('function');
     expect(typeof resolvers.bitcoin).toBe('function');
     expect(resolvers.ethereum).not.toBe(resolvers.bitcoin);
-    // Solana has no ENS record to read, and guessing one would be worse.
     expect(resolvers.solana).toBeUndefined();
   });
 

@@ -6,12 +6,8 @@ const { withNativeWind } = require('nativewind/metro');
 const config = getDefaultConfig(__dirname);
 
 // WalletConnect, viem and the hardware-wallet SDKs reach for Node core
-// modules that React Native does not ship.
-//
-// `stream` is for Keystone: its UR registry depends on bs58check, which
-// depends on create-hash, which is a Node crypto shim from before the platform
-// had one. `readable-stream` is that module published standalone, so the shim
-// resolves and the whole chain works unchanged.
+// modules that React Native does not ship. `stream` is for Keystone's UR
+// registry, which needs it through bs58check and create-hash.
 config.resolver.extraNodeModules = {
   ...config.resolver.extraNodeModules,
   crypto: require.resolve('expo-crypto'),
@@ -38,12 +34,10 @@ const NODE_SHIMS = {
 const BROWSER_FIELD_OVER_EXPORTS = /^(uint8arrays|multiformats|@noble\/hashes)(\/|$)/;
 
 /**
- * On native, Metro follows Reanimated's `react-native` field to its TypeScript
- * source, so the JSX inside `createAnimatedComponent` is compiled with
- * NativeWind's JSX runtime and `className` reaches the wrapped component. On
- * web, Metro takes the precompiled `main`, which imports `react/jsx-runtime`
- * directly, and every `className` on an animated component is dropped. Giving
- * that one package the same runtime on web restores the native behaviour.
+ * On native, Metro follows Reanimated's `react-native` field to its source, so
+ * `createAnimatedComponent` is compiled with NativeWind's JSX runtime and
+ * passes `className` on. On web it takes the precompiled `main`, which imports
+ * `react/jsx-runtime` directly and drops every `className`.
  */
 const INTEROP_JSX_ON_WEB = /\/node_modules\/react-native-reanimated\//;
 

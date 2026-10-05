@@ -1,10 +1,5 @@
 name: Release
 
-# Push a tag to release the desktop apps:
-#   git tag v0.1.0 && git push github v0.1.0
-#
-# Desktop bundles are built by tauri-apps/tauri-action on a runner per OS and
-# attached to one draft release, published once every build has succeeded.
 on:
   push:
     tags: ['v*']
@@ -33,8 +28,6 @@ jobs:
       - id: version
         run: echo "version=$(jq -r .expo.version app.json)" >> "$GITHUB_OUTPUT"
 
-      # A tag that disagrees with a manifest ships a build whose in-app version
-      # is not the one people downloaded.
       - name: Manifests agree with the tag
         run: |
           V="${{ steps.version.outputs.version }}"
@@ -48,7 +41,6 @@ jobs:
           grep -q "^version = \"$V\"" src-tauri/Cargo.toml \
             || { echo "src-tauri/Cargo.toml is not $V" >&2; exit 1; }
 
-      # Created once so every job attaches to the same release.
       - id: release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -71,8 +63,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # One universal binary on macOS: libtdjson.dylib already carries both
-          # architectures, so two per-arch builds would gain nothing.
           - os: macos-15
             args: --target universal-apple-darwin
           - os: ubuntu-22.04
@@ -117,8 +107,6 @@ jobs:
 
       - run: npm ci
 
-      # macOS builds it from Swiftgram's xcframework, about 360 MB once; Linux
-      # and Windows download the same TDLib version already built.
       - name: Cache TDLib
         uses: actions/cache@v4
         with:
@@ -156,7 +144,6 @@ jobs:
           # Writes and merges latest.json across the matrix; installed copies read it.
           uploadUpdaterJson: true
 
-      # `gh attestation verify <file> --repo alaibe/statim` checks any download.
       - uses: actions/attest@v4
         with:
           subject-path: |

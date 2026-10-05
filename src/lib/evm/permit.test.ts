@@ -99,7 +99,7 @@ describe('detecting a token that signs its own permits', () => {
   });
 
   it('refuses a token whose separator does not match, rather than signing something it rejects', async () => {
-    // A salt or a chainless domain lands here; a signature would be wasted gas.
+    // A salt or a chainless domain lands here.
     stubChain({
       nonces: 0n,
       name: 'Odd',
@@ -111,8 +111,6 @@ describe('detecting a token that signs its own permits', () => {
   });
 
   it("reads a token's name and version once, not on every trade", async () => {
-    // Immutable for the life of the contract, and re-read three times a trade
-    // before this: plan, re-quote on confirm, then signing.
     let reads = 0;
     jest.mocked(publicClientFor).mockReturnValue({
       readContract: async ({ functionName }: { functionName: string }) => {
@@ -214,7 +212,6 @@ describe('the transaction a permit produces', () => {
     expect(typed.message.nonce).toBe(7n);
     expect(typed.message.deadline).toBeGreaterThan(BigInt(Math.floor(Date.now() / 1000)));
 
-    // It goes to the proxy, carrying the router's own calldata untouched.
     expect(call.to).toBe(PROXY);
     const { functionName, args } = decodeFunctionData({
       abi: PROXY_ABI,

@@ -173,8 +173,6 @@ export class TelegramSession implements ChatSession {
     });
   }
 
-  // ---- sign-in ----
-
   subscribeLogin(listener: (login: LoginState | null) => void): Unsubscribe {
     this.loginListeners.add(listener);
     listener(this.login);
@@ -300,8 +298,6 @@ export class TelegramSession implements ChatSession {
     await this.api.close();
     if (!this.stopped) await this.start();
   }
-
-  // ---- updates ----
 
   private async handleUpdate(raw: TdObject): Promise<void> {
     const update = raw as TdUpdate;
@@ -452,8 +448,6 @@ export class TelegramSession implements ChatSession {
     return pending;
   }
 
-  // ---- ChatSession ----
-
   async whenListed(): Promise<ProtocolChat[]> {
     await this.signedInAndLoaded;
     return this.listChats();
@@ -486,8 +480,7 @@ export class TelegramSession implements ChatSession {
     let from = boundary;
     const collected: TdMessage[] = [];
 
-    // TDLib may answer with fewer messages than asked for, one at a time from
-    // the server, so keep paging until the request is satisfied or history ends.
+    // TDLib may answer with fewer messages than asked for, one at a time from the server.
     while (collected.length < limit) {
       const { messages } = await this.api.send<TdMessages>({
         '@type': 'getChatHistory',
@@ -802,8 +795,6 @@ export class TelegramSession implements ChatSession {
     this.unsubscribe?.();
     this.unsubscribe = null;
   }
-
-  // ---- mapping ----
 
   private included(chat: TdChat): boolean {
     return chat.type['@type'] !== 'chatTypeSecret';

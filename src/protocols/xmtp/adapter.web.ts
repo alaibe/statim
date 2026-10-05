@@ -613,7 +613,6 @@ export class XmtpSession implements ChatSession {
     };
   }
 
-  // Attachments are written to disk by the Rust side, hence the promise.
   private async toContent(raw: DecodedMessage<any>): Promise<MessageContent> {
     const typeId = raw.contentType.typeId;
     const unsupported = (fallback?: string): MessageContent => ({

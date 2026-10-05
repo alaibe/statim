@@ -46,8 +46,7 @@ describe('the bundled token list', () => {
 
 describe('fetchTokens', () => {
   it('formats with the token’s own decimals, not 18', async () => {
-    // 1 USDC is 1_000_000, because USDC has six. Formatting it with 18 would
-    // report 0.000000000001, the kind of wrong that reads as "money gone".
+    // 1 USDC is 1_000_000: USDC has six decimals.
     stubMulticall({ [USDC.toLowerCase()]: 1_000_000n });
 
     const held = await fetchTokens(base.id, HOLDER);

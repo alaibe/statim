@@ -38,7 +38,6 @@ describe('the LI.FI client', () => {
     expect(url.searchParams.get('fromAmount')).toBe('1000000000000000');
     expect(url.searchParams.get('integrator')).toBe('statim');
     expect(url.searchParams.get('slippage')).toBe('0.005');
-    // Where the bought token lands is always stated, never left to a default.
     expect(url.searchParams.get('toAddress')).toBe(me);
     expect(calls[0].headers).toBeUndefined();
   });

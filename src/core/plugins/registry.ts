@@ -246,8 +246,7 @@ export class PluginRegistry {
       const seen = new Set<string>();
       const out: { command: SlashCommand; pluginId: PluginId }[] = [];
       for (const { command, pluginId } of this.entries(chatId, scope)) {
-        // Hidden only from the list. `commandsFor` still dispatches it, which is
-        // the point: a bot's buttons must keep working.
+        // Hidden only from the list: `commandsFor` still dispatches it, so a bot's buttons work.
         if (command.hidden || seen.has(command.name)) continue;
         seen.add(command.name);
         out.push({ command, pluginId });

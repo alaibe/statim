@@ -1,19 +1,8 @@
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 /**
- * The keychain, in memory.
- *
- * Identity, the account registry and per-account key isolation are exactly the
- * logic worth testing, and all of it goes through SecureStore. Without a
- * double the native module returns undefined and every read looks like "no
- * account on this device".
- *
- * Items are namespaced by `keychainService` because biometric-sealed values
- * live under their own service, and the two must not be able to read each
- * other. `__invalidateProtected` and `__denyProtected` model the two ways a
- * sealed read fails on a real device (the system discarding the key when
- * biometrics change, and the user refusing the prompt), neither of which a
- * simulator will ever produce on its own.
+ * The keychain, in memory. Biometric-sealed values live under their own
+ * `keychainService`, so each service gets a store the others cannot read.
  */
 jest.mock('expo-secure-store', () => {
   const stores = new Map();
@@ -68,9 +57,7 @@ jest.mock('expo-crypto', () => ({
   },
 }));
 
-// jest.fn() rather than plain functions: the lock's whole contract is what it
-// does when the OS prompt succeeds, fails, or is cancelled, so tests need to
-// drive those outcomes.
+// jest.fn() so tests can make the OS prompt succeed, fail or be cancelled.
 jest.mock('expo-local-authentication', () => ({
   AuthenticationType: { FINGERPRINT: 1, FACIAL_RECOGNITION: 2, IRIS: 3 },
   hasHardwareAsync: jest.fn(async () => true),
@@ -80,24 +67,15 @@ jest.mock('expo-local-authentication', () => ({
 }));
 
 /**
- * Navigation, for the handful of core commands that push a screen.
- *
- * `/profile` opens the profile route through the imperative router: it is a
- * core command, so it has no plugin context to go through. Importing the real
- * expo-router into a Node test pulls the whole navigator, which is neither
- * transformable nor the thing under test; what matters here is that the
- * command runs and asks for the right route.
+ * For core commands that push a screen. The real expo-router pulls in the
+ * whole navigator, which Jest cannot transform.
  */
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
 }));
 
 /**
- * SQLite, on Node's own engine.
- *
- * `expo-sqlite` is a native module, so without this the message store, which
- * holds every Nostr and Status message, could not be tested at all. See
- * src/storage/testing/expo-sqlite-mock.js for what this does and does
- * not cover (it is a real SQLite; it is not SQLCipher).
+ * SQLite on Node's own engine: real SQLite, not SQLCipher. See
+ * src/storage/testing/expo-sqlite-mock.js.
  */
 jest.mock('expo-sqlite', () => require('./src/storage/testing/expo-sqlite-mock'));

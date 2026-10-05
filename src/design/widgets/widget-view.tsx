@@ -83,10 +83,6 @@ function Affordance({ actions }: { actions: WidgetAction[] | undefined }) {
   const label = affordanceFor(actions);
   if (!label || !actions?.length) return null;
 
-  // Only ever a glyph an action asked for, and only the primary one (the
-  // first). A generic "…" would read as "opens something" when what opens is
-  // a sheet of the actions the row already has; a named icon at least says
-  // which one leads.
   const primary = actions[0];
   if (primary.icon) {
     return (

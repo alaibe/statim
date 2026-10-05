@@ -17,7 +17,6 @@ pub fn safe_component(value: &str, what: &str) -> Result<(), String> {
     }
 }
 
-/// Writes a secret file only this user can read.
 pub fn write_private(path: &Path, contents: &str) -> Result<(), String> {
     std::fs::write(path, contents).map_err(|e| e.to_string())?;
     #[cfg(unix)]

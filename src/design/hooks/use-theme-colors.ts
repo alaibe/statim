@@ -10,10 +10,8 @@ const THEMES: Record<ThemeName, ThemeColors> = {
 };
 
 /**
- * The JavaScript half of the palette `className` resolves from, so the two
- * have to agree. React Native's `useColorScheme` reports the OS setting, which
- * differs from the in-app choice whenever Settings overrides it; NativeWind's
- * reflects what the app set, override included.
+ * Colours for props that cannot take a class. NativeWind's `useColorScheme` follows the in-app
+ * theme; React Native's reports only the OS setting.
  */
 export function useThemeColors(): ThemeColors {
   const { colorScheme } = useColorScheme();

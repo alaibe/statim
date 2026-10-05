@@ -8,10 +8,8 @@ jest.mock('react-native-reanimated', () => jest.requireActual('react-native-rean
 jest.mock('@/core/app/report-error', () => ({ reportError: jest.fn() }));
 
 /**
- * `Button` takes `onPress`, `disabled` and `haptic` out of its props and
- * spreads what is left onto the Pressable, so anything it destructures and
- * forgets to hand over is dropped silently: the button renders, springs on
- * touch and does nothing.
+ * `Button` spreads its leftover props onto the Pressable, so a prop it destructures and does not
+ * forward is dropped silently.
  */
 let tree: ReactTestRenderer;
 
@@ -50,8 +48,6 @@ describe('Button', () => {
   });
 
   it('does not fire while loading', () => {
-    // A second tap on a button that is already working is the classic way to
-    // send the same thing twice.
     const onPress = jest.fn();
     const element = render({ label: 'Save', onPress, loading: true });
 

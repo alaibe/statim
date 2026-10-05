@@ -5,11 +5,6 @@ import { botChatId } from '@/core/messaging/bots';
 import { testChat } from '@/core/messaging/testing/chats';
 import { asChatId } from '@/core/messaging/testing/ids';
 
-/**
- * Pinned after React complained: the same contact appeared once per DM held with
- * them, which rendered as two rows with the same name and the same avatar and
- * reported "two children with the same key" in the console.
- */
 const dm = (over: Partial<Chat>): Chat =>
   testChat({ protocol: 'nostr', memberIds: ['me', 'them'], title: '', ...over });
 
@@ -37,10 +32,6 @@ describe('the people behind a list of chats', () => {
     expect(contacts[0].chatId).toBe('nostr-newest');
   });
 
-  /**
-   * Two protocols is two participants with two different keys. Collapsing them
-   * into one row would claim a link the app cannot verify.
-   */
   it('keeps the same name on two protocols apart', () => {
     const contacts = contactsOf(
       [
@@ -71,7 +62,6 @@ describe('the people behind a list of chats', () => {
     expect(contacts.map((p) => p.id)).toEqual(['c']);
   });
 
-  /** Every row needs a key React can tell apart. That was the reported bug. */
   it('produces one unique key per row', () => {
     const contacts = contactsOf(
       [

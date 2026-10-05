@@ -9,7 +9,6 @@ describe('chatScope', () => {
   it('reads a protocol chat from its kind', () => {
     expect(chatScope(asChatId('xmtp-abc'), 'dm')).toBe('dm');
     expect(chatScope(asChatId('xmtp-abc'), 'group')).toBe('group');
-    // No kind is the honest default: an id alone cannot tell them apart.
     expect(chatScope(asChatId('xmtp-abc'))).toBe('dm');
   });
 });

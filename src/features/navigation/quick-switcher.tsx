@@ -31,9 +31,9 @@ type Entry = {
 const RECENT = 6;
 
 /**
- * ⌘K on desktop: a search over chats and a few commands, driven from
- * the keyboard. Enter opens the highlighted row; Esc puts it away. Only the
- * shortcuts live here, so nothing is computed while the palette is closed.
+ * The desktop's keyboard shortcuts, ⌘K among them for a search over chats and a
+ * few commands. Only the shortcuts live here, so nothing is computed while the
+ * palette is closed.
  */
 export function QuickSwitcher() {
   const router = useRouter();

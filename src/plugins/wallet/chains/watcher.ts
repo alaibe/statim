@@ -74,9 +74,7 @@ function watchTargetsOf(
   return targets;
 }
 
-// Chain *and* address: one Wallet plugin holds every chain, so the same address
-// on Base and Arbitrum would otherwise share a reading and announce each
-// other's movements.
+// The same EVM address exists on every chain, so a reading is keyed by both.
 function balanceKey(chainId: number, address: Address): string {
   return `${chainId}:${address.toLowerCase()}`;
 }

@@ -8,8 +8,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Every colour is a CSS variable so a theme swap is one class change.
-        // `<alpha-value>` keeps `bg-surface/60` style opacity modifiers working.
+        // `<alpha-value>` keeps opacity modifiers such as `bg-surface/60` working.
         brand: {
           DEFAULT: 'rgb(var(--color-brand) / <alpha-value>)',
           soft: 'rgb(var(--color-brand-soft) / <alpha-value>)',
@@ -48,10 +47,8 @@ module.exports = {
         pill: '999px',
       },
       fontFamily: {
-        // React Native's `fontFamily` takes a single concrete family name — a
-        // CSS variable or a comma-separated stack is rejected at the native
-        // prop bridge ("Value is an object, expected a String"). So the web
-        // keeps its variable-driven stack and native gets real family names.
+        // React Native's `fontFamily` takes one concrete family name and rejects
+        // a CSS variable or a stack ("Value is an object, expected a String").
         sans: platformSelect({
           ios: 'System',
           android: 'sans-serif',
@@ -70,8 +67,7 @@ module.exports = {
         }),
       },
       fontSize: {
-        // A restrained type scale — messengers live in a narrow band.
-        // Body is 16px: the minimum for readable body copy on a phone. Only
+        // Body is 16px, the minimum for readable body copy on a phone. Only
         // metadata (timestamps, counts, labels) sits below it.
         micro: ['11px', { lineHeight: '14px' }],
         caption: ['13px', { lineHeight: '17px' }],

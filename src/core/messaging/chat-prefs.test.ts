@@ -40,8 +40,6 @@ describe('withPref', () => {
   });
 
   it('drops the entry when nothing is left to remember', () => {
-    // Otherwise un-pinning leaves `{ pinned: false }` behind forever and the
-    // map grows by one entry per chat ever touched.
     const prefs = withPref({}, C1, { pinned: true });
     expect(withPref(prefs, C1, { pinned: false })).toEqual({});
   });

@@ -279,7 +279,6 @@ fn account_dir(app: &AppHandle, account_id: &str) -> Result<PathBuf, String> {
         .join(account_id))
 }
 
-/// The folder the programs run from, after downloading the server if needed.
 async fn bin_dir(app: &AppHandle) -> Result<PathBuf, String> {
     if let Some(dir) = artifacts::override_dir() {
         return Ok(dir);

@@ -14,7 +14,7 @@ import type {
 } from '../api';
 
 /**
- * matrix-rust-sdk as a scripted peer: rooms, timelines and profiles are
+ * matrix-rust-sdk as a scripted stand-in: rooms, timelines and profiles are
  * plain maps the test fills in, calls are recorded, and tests push updates
  * with `emit`.
  */
@@ -32,7 +32,7 @@ export class FakeMatrix implements MatrixApi {
   erased = false;
   private readonly listeners = new Set<(update: MxUpdate) => void>();
 
-  /** Rooms the SDK would announce as soon as sync starts. */
+  /** With a session, announces every room in `roomsById`, as the SDK does once sync starts. */
   async start(params: MxStartParams): Promise<MxSession | null> {
     this.startParams = params;
     if (params.session) {

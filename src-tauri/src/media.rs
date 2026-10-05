@@ -24,7 +24,6 @@ fn media_path(
         .join(name))
 }
 
-/// Writes the file unless it already exists, and returns its path.
 #[tauri::command]
 pub async fn media_write(
     app: AppHandle,
@@ -63,8 +62,7 @@ pub async fn media_erase(app: AppHandle, account_id: String) -> Result<(), Strin
     remove_dir(&data_dir(&app, "media")?.join(&account_id))
 }
 
-/// Asks where to save a copy of a file the page can display, starting in
-/// Downloads. Returns false when the user cancels.
+/// `false` when the user cancels.
 #[tauri::command]
 pub async fn media_export(
     app: AppHandle,

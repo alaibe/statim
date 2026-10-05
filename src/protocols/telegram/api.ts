@@ -19,7 +19,7 @@ export class TdRequestError extends Error {
   }
 }
 
-/** What the adapter needs from TDLib; the fake in `testing/` implements it too. */
+/** What the adapter needs from TDLib. */
 export interface TdApi {
   send<T extends TdObject = TdObject>(request: TdObject): Promise<T>;
   onUpdate(listener: (update: TdObject) => void): () => void;

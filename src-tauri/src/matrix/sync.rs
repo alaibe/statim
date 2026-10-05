@@ -33,7 +33,8 @@ impl Session {
                 Box::new(new_filter_non_left()),
                 Box::new(new_filter_not(Box::new(new_filter_space()))),
             ])));
-            // Any change the SDK considers notable shows up here as a `Set`, so nothing else needs watching.
+            // Any change the SDK considers notable shows up here as a `Set`, so nothing else
+            // needs watching.
             let mut entries: Vector<Room> = Vector::new();
             let mut subscribed: HashSet<OwnedRoomId> = HashSet::new();
             futures_util::pin_mut!(diffs);
@@ -44,7 +45,8 @@ impl Session {
                     let diff = diff.map(|item| item.into_inner());
                     grew |= matches!(diff, VectorDiff::Append { .. } | VectorDiff::Reset { .. });
                     let changed = changed_by(&diff);
-                    // A `Set` or `Reset` brings fresh handles for the same rooms; only rooms that left the list are gone.
+                    // A `Set` or `Reset` brings fresh handles for the same rooms; only rooms that
+                    // left the list are gone.
                     for room in removed_by(&entries, &diff) {
                         if changed.iter().any(|kept| kept.room_id() == room.room_id()) {
                             continue;
@@ -123,7 +125,8 @@ impl Session {
             seen.insert(id.clone(), preview.timestamp);
             previous
         };
-        // A live timeline already reported it; otherwise the latest event stands in, with its real id.
+        // The first sighting is not a new message, and a live timeline reports its own;
+        // otherwise the latest event stands in, with its real id.
         if seen.is_none() || self.touch_live(&id).await.is_some() {
             return;
         }

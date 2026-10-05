@@ -56,8 +56,6 @@ describe('registering bots', () => {
   });
 
   it('works with no protocol session at all', async () => {
-    // The whole reason bots are local: the chat list is never empty while the
-    // protocol is still dialling, or offline.
     expect(useChatStore.getState().sessions).toEqual({});
     await useChatStore.getState().registerBots([makeBot()]);
     expect(useChatStore.getState().chats).toHaveLength(1);
@@ -174,12 +172,8 @@ describe('isLocalChat', () => {
 
 describe('registering several bots', () => {
   /**
-   * The chats arrive in one commit. Committed one at a time, the chat list
-   * grows a row at a time and re-sorts after each, so nine chats appearing
-   * over a second or two shuffle everything below them and a tap during that
-   * opens whichever chat slid into the place you aimed at. Counting the
-   * commits is the only way to hold that: the resulting list looks identical
-   * either way.
+   * One commit per chat re-sorts the list after each row, so a tap can open a chat that slid
+   * under it. The final list is the same either way; only the commit count shows it.
    */
   it('adds them in a single commit', async () => {
     const session = new InMemoryChatSession({ participantId: 'a'.repeat(64) });
@@ -198,8 +192,7 @@ describe('registering several bots', () => {
     unsubscribe();
 
     expect(useChatStore.getState().chats.filter((c) => isLocalChat(c.id))).toHaveLength(4);
-    // One for the batch. The cleanup pass that drops dead chats may add a
-    // second; four separate appends is the regression.
+    // One for the batch, and maybe one from the pass that drops dead chats.
     expect(commits).toBeLessThanOrEqual(2);
   });
 });

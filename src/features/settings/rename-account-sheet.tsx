@@ -32,9 +32,6 @@ export function RenameAccountSheet({
           autoFocus
           placeholder="Personal"
           maxLength={40}
-          // The same distinction the create screen draws. Without it the
-          // field looks like it sets what other people see, and it is the
-          // one name that never leaves the device.
           hint="Just for you, on this device. An ENS name is the one other people see."
         />
         <Button

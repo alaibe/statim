@@ -49,7 +49,7 @@ const SPLIT_FALLBACK = splitSpec('base')!;
 const SPLIT_NAMES = SPLIT_CHAINS.map((spec) => spec.name);
 const SPLITS_ON = `/split works on ${SPLIT_NAMES.slice(0, -1).join(', ')} and ${SPLIT_NAMES.at(-1)}.`;
 
-/** The chain `--chain` names, or else the wallet's default when a split can use it. */
+/** The chain `--chain` names, else the active chain if /split works there, else Base. */
 async function splitChain(
   context: PluginContext,
   named: string | undefined
@@ -88,7 +88,7 @@ export async function assetField(chains: ChainStrategy[], context: PluginContext
   const assets = await Promise.all(
     chains.map(async (c) => ({
       chain: c,
-      // A holding with no id is one the chain reports but cannot spend.
+      // A holding with no id cannot be sent.
       extra: (await holdingsOf(c, context).catch(() => [])).filter((t) => t.id !== undefined),
     }))
   );
@@ -269,8 +269,7 @@ export const walletCommands: SlashCommand[] = [
 
       if (!amount || !recipient) {
         const assets = await assetField(chains, context);
-        // The one recipient the app already knows. A hardware account that
-        // cannot derive this chain has none, and starts empty.
+        // The recipient defaults to your own address, which a hardware account may not have here.
         const self = selfAddressOf(chain, context);
         const mine = 'address' in self ? self.address : '';
 

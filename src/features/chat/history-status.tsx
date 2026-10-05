@@ -5,7 +5,6 @@ import { protocolEntries, type ProtocolId } from '@/core/messaging/namespace';
 import { Pressable, Text, useThemeColors } from '@/design';
 import { networkLabel } from '@/features/protocols/presentation';
 
-/** Shared by the chat list, a protocol's settings page and the oldest end of a chat's transcript. */
 export function HistoryStatus({
   protocol,
   compact = false,

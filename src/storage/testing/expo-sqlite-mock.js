@@ -1,19 +1,10 @@
 /**
- * `expo-sqlite`, backed by Node's own SQLite.
+ * `expo-sqlite`, backed by Node's own SQLite (`node:sqlite`, Node 22+).
  *
- * `SqliteMessageStore` needs a native module, so without this Jest cannot
- * reach it and the SQL is covered by nothing but the iOS build succeeding: a
- * schema typo, a wrong column order or a migration that never ran would not
- * fail a suite. Node 22+ ships `node:sqlite`, a real SQLite, so the store runs
- * against an actual engine rather than a hand-written fake that would only
- * ever agree with whatever the code already did.
- *
- * This does not cover SQLCipher. Node's build has no codec, so `PRAGMA key` is
- * an unknown pragma and SQLite ignores it. What it does model is that a
- * SQLCipher connection reads nothing until it has been given the key: every
- * other statement on a connection that has not run `PRAGMA key` fails, the
- * way an encrypted file does on a device. Schema, migrations, upserts,
- * ordering and limits are the real thing.
+ * Node's build has no SQLCipher codec, so `PRAGMA key` is ignored. What this
+ * does model is that a SQLCipher connection reads nothing until it has the
+ * key: every other statement on a connection that has not run `PRAGMA key`
+ * fails, the way an encrypted file does on a device.
  */
 const { DatabaseSync } = require('node:sqlite');
 const fs = require('node:fs');
@@ -105,7 +96,6 @@ module.exports = {
     throw new Error('openDatabaseSync is not used by this app; use openDatabaseAsync.');
   },
   deleteDatabaseAsync,
-  /** Drops every database between suites. */
   __reset: async () => {
     for (const name of [...open.keys()]) await deleteDatabaseAsync(name);
     cipherVersion = '4.6.1';

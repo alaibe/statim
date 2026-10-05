@@ -12,13 +12,6 @@ import { chatIdFor, wrapForRecipients } from './nip17';
 import { createAccountStorage } from '@/storage/account';
 import { fakeRelayFactory, type FakeRelay } from './testing/fake-relay';
 
-/**
- * The Nostr transport end to end, against in-memory relays.
- *
- * This is the same bargain InMemoryChatSession makes for the store: if a real
- * transport cannot be driven without a network, the seam has leaked.
- */
-
 const ALICE_SECRET = new Uint8Array(32).fill(1);
 const alice = keysFromSecretKey(ALICE_SECRET);
 const bob = keysFromSecretKey(new Uint8Array(32).fill(2));
@@ -44,7 +37,6 @@ async function connect(relayUrls = ['wss://a.example'], store = new InMemoryMess
   return { session, factory };
 }
 
-/** Delivers a message from `sender` as the relays would. */
 function deliverFrom(
   relay: FakeRelay,
   sender: typeof bob,
@@ -392,7 +384,6 @@ describe('sending', () => {
   });
 
   it('round-trips to the recipient', async () => {
-    // The real proof: what Alice publishes, Bob can open.
     const { session, factory } = await connect();
     const chat = await session.createDm(bob.publicKey);
     await session.send(chat.id, { kind: 'text', text: 'end to end' });
@@ -510,8 +501,7 @@ describe('groups, honestly', () => {
   });
 
   it('leaves locally, and un-hides when someone replies', async () => {
-    // Not XMTP's "rejoining needs a fresh invite": nobody is told, and any of
-    // them can address the next message to you again.
+    // Nobody is told you left, so anyone's next message to the group brings it back.
     const { session, factory } = await connect();
     const group = await session.createGroup([bob.publicKey], 'Duo');
 

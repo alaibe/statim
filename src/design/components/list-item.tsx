@@ -90,13 +90,9 @@ export function ListItem({
   if (!pressable) return body;
 
   /**
-   * A pressable row is one accessibility element, so iOS stops exposing the
-   * `Text` nodes inside it and VoiceOver would announce nothing. The label has
-   * to be rebuilt from the parts.
-   *
-   * `title` can be a node (a contact row bolds the family name), and there is
-   * nothing sensible to read out of one, so those keep whatever the caller
-   * passed.
+   * A pressable row is one accessibility element, so iOS hides the `Text` inside it from
+   * VoiceOver and the label is rebuilt from the parts. A `title` that is a node has nothing to
+   * read out, so it gets only the caller's label.
    */
   const label =
     accessibilityLabel ??

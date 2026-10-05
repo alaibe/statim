@@ -4,9 +4,8 @@
 //! or `libtdjson.so` as a bundled resource elsewhere. The prebuilt Linux and
 //! Windows builds export their static OpenSSL, so `Library::new` must stay on
 //! the default RTLD_LOCAL or it would interpose on SQLCipher's.
-//! The page drives `td_json_client_*` the way the phone does through
-//! react-native-tdlib: one client at a time, requests and replies correlated
-//! by `@extra` on the JavaScript side.
+//! The page drives `td_json_client_*` with one client at a time, and correlates
+//! requests and replies by `@extra` itself.
 
 use std::ffi::{c_char, c_void, CStr, CString};
 use std::path::PathBuf;

@@ -23,9 +23,6 @@ describe('namespacedId', () => {
   });
 
   it('splits on the first hyphen, so a native id may contain its own', () => {
-    // XMTP ids are hex, but the fake sessions and any future protocol may not
-    // be. Getting this wrong routes `xmtp-dm-abc` to a protocol called
-    // "xmtp-dm", which does not exist.
     expect(splitChatId(asChatId('xmtp-dm-abc'))).toEqual({
       protocol: 'xmtp',
       nativeId: 'dm-abc',
@@ -33,8 +30,7 @@ describe('namespacedId', () => {
   });
 
   it('refuses a native id that would not survive a URL path segment', () => {
-    // This is the bug the whole module exists to prevent: a chat id
-    // becomes `/chat/<id>`, and a slash or colon silently fails to route.
+    // A chat id becomes `/chat/<id>`, where a slash or colon fails to route.
     expect(() => namespacedId('status', protocolChatId('/waku/2/rs/1/0'))).toThrow(/URL-safe/);
     expect(() => namespacedId('nostr', protocolChatId('a:b'))).toThrow(/URL-safe/);
   });
@@ -58,8 +54,6 @@ describe('parseChatId', () => {
   });
 
   it('refuses a string with no recognisable prefix', () => {
-    // An id minted before namespacing existed. Guessing a protocol would send
-    // one protocol's message down another's wire.
     expect(parseChatId('a'.repeat(64))).toBeNull();
     expect(parseChatId('XMTP-abc')).toBeNull();
     expect(parseChatId('xmtp-')).toBeNull();
@@ -80,8 +74,6 @@ describe('parseChatRoute', () => {
 
 describe('local chats', () => {
   it('parse as the reserved "local" protocol without a special case', () => {
-    // bots.ts chose `local-` for the same URL-safety reason; this keeps the
-    // two consistent rather than making every caller test for both.
     expect(LOCAL_PROTOCOL).toBe('local');
     expect(protocolOf(STATIM_LOCAL_ID)).toBe('local');
     expect(isLocalChat(botChatId('statim'))).toBe(true);
@@ -121,7 +113,6 @@ describe('projection', () => {
     const namespaced = namespaceChat('status', chat);
     expect(namespaced.id).toBe('status-c1');
     expect(namespaced.protocol).toBe('status');
-    // The preview has to be rewritten too; the chat list keys rows off it.
     expect(namespaced.lastMessage?.chatId).toBe('status-c1');
   });
 });

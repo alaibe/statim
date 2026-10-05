@@ -55,7 +55,6 @@ export function chatTitle(
   return nameFor(participant);
 }
 
-/** Everyone in the chat but us. */
 export function chatParticipants(chat: Chat, selfId: ParticipantId): DisplayParticipant[] {
   return chat.memberIds
     .filter((id) => id !== selfId)

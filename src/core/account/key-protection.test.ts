@@ -46,9 +46,7 @@ describe('enabling key protection', () => {
     expect(await isKeyProtectionEnabled()).toBe(true);
 
     for (const account of accounts) {
-      // Gone from the ordinary keychain service…
       expect(await SecureStore.getItemAsync(accountMnemonicKey(account.id))).toBeNull();
-      // …and readable through the protected path.
       expect(await readMnemonic(account.id, true)).toEqual({
         status: 'ok',
         value: expect.any(String),
@@ -115,7 +113,6 @@ describe('when the system discards sealed keys', () => {
 
     expect(useAccountStore.getState().status).toBe('invalidated');
     expect(useAccountStore.getState().keyring).toBeNull();
-    // The accounts themselves survive; only the phrases were lost.
     expect(useAccountStore.getState().accounts).toHaveLength(2);
   });
 

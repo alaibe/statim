@@ -1,9 +1,9 @@
 import { invoke } from '@tauri-apps/api/core';
 
 /**
- * The operating system's credential store (Keychain on macOS, Credential
- * Manager on Windows, Secret Service on Linux), reached through the Rust side.
- * Desktop has no biometric prompt, so protected items are ordinary items.
+ * An encrypted file kept by the Rust side, whose key a release build holds in
+ * the operating system's credential store. Desktop has no biometric prompt, so
+ * protected items are ordinary items.
  */
 export function get(key: string): Promise<string | null> {
   return invoke<string | null>('vault_get', { key });

@@ -27,7 +27,7 @@ jest.mock('@/lib/evm/wallet', () => ({
   }),
 }));
 
-// Balances are read from the chain now, so a form listing assets needs one.
+// A form that lists assets reads balances from the chain.
 beforeEach(() => {
   clearTokenCache();
   stubMulticall();

@@ -14,8 +14,6 @@ const at = (spec: Parameters<typeof toAlert>[0], price = 100) =>
 
 describe('symbols', () => {
   it('accepts every spelling of the same market', () => {
-    // Making the user know which spelling the venue wants would be a poor
-    // command; "btc", "BTC/USDT" and "btcusdt" are one market.
     expect(normaliseSymbol('btc')).toBe('BTCUSDT');
     expect(normaliseSymbol('BTC/USDT')).toBe('BTCUSDT');
     expect(normaliseSymbol('btcusdt')).toBe('BTCUSDT');
@@ -23,8 +21,7 @@ describe('symbols', () => {
   });
 
   it('leaves a real cross-pair alone', () => {
-    // ETHBTC ends in a quote asset with a base in front of it, so it is
-    // already a pair; appending USDT would invent a market.
+    // ETHBTC already ends in a quote asset.
     expect(normaliseSymbol('ethbtc')).toBe('ETHBTC');
     expect(normaliseSymbol('btc')).not.toBe('BTC');
   });
@@ -93,8 +90,7 @@ describe('firing', () => {
   });
 
   it('stays quiet about a market it could not price', () => {
-    // fetchPrices drops markets it failed to read, and a missing price must
-    // never be treated as a zero, which would fire every `below` at once.
+    // fetchPrices drops a market it fails to read; read as zero, it would fire every `below`.
     expect(firedAlerts([above, below], { BTCUSDT: 100_001 })).toHaveLength(1);
     expect(firedAlerts([below], {})).toEqual([]);
   });

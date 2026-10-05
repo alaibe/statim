@@ -14,7 +14,6 @@ export interface BiometricCapability {
   label: string;
 }
 
-/** Face ID, Touch ID or the Android equivalents; see biometrics.web.ts for the Mac. */
 export async function biometricCapability(): Promise<BiometricCapability> {
   const [available, enrolled, types] = await Promise.all([
     LocalAuthentication.hasHardwareAsync(),

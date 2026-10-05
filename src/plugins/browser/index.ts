@@ -361,8 +361,7 @@ async function bookmarksCard(context: PluginContext) {
             icon: bookmark.icon,
             status: hostOf(bookmark.url),
             tone: 'brand' as const,
-            // Opening it is what you came for, so it leads and its glyph is
-            // what the row shows. Removing sits behind it.
+            // The row shows the first action's icon.
             actions: [
               {
                 label: `Open ${bookmark.name}`,

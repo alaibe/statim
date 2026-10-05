@@ -50,8 +50,6 @@ describe('resolveEnsProfile', () => {
   });
 
   it('never asks for records when there is no name', async () => {
-    // Avatar and text records hang off the name; asking anyway would be a
-    // wasted mainnet round trip on the overwhelmingly common case.
     mockLookup.mockResolvedValue(null);
     const c = client();
     mockClientFor.mockReturnValue(c as never);
@@ -88,8 +86,6 @@ describe('resolveEnsProfile', () => {
   });
 
   it('does not cache a resolver outage', async () => {
-    // Caching it would make a transient failure look permanent for the whole
-    // lifetime of the process.
     mockLookup.mockRejectedValueOnce(new Error('rpc down'));
     expect(await resolveEnsProfile(ADDRESS)).toBeNull();
 
@@ -173,8 +169,6 @@ describe('resolveEnsProfiles', () => {
 
 describe('onchain proof', () => {
   it('reports when the name is paid up to', async () => {
-    // The point of showing this rather than a tick: an impersonator would have
-    // to actually buy and renew the name to reproduce it.
     mockLookup.mockResolvedValue('alice.eth');
     const profile = await resolveEnsProfile(ADDRESS);
 

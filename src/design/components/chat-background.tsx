@@ -11,12 +11,9 @@ const SOURCES = Object.fromEntries(
 ) as Record<ChatPatternName, ImageURISource>;
 
 /**
- * Dark carries roughly twice the light opacity. The pattern is tinted with the
- * content colour, so in light it is near-black on white, where 5% is already a
- * visible mark, and in dark it is near-white on a canvas of rgb(9 9 13), where
- * the same figure disappears. Equal numbers would not look equal. A desktop
- * window shows far more wallpaper than a phone, and reads as flat grey at the
- * phone's strength, hence `vivid`.
+ * Equal opacities do not look equal: near-black on white shows at 5%, while near-white on the dark
+ * canvas needs about twice that. A desktop window shows far more wallpaper and reads as flat grey
+ * at `subtle`, hence `vivid`.
  */
 const PATTERN_OPACITY = {
   subtle: { light: 0.05, dark: 0.12 },

@@ -84,7 +84,7 @@ export async function describeToken(
 /** Long enough that a card and the form opened from it cost one scan. */
 const FRESH_MS = 30_000;
 
-/** A balance card is a list, not an inventory. */
+/** The most held tokens a balance card lists. */
 const MOST = 25;
 
 function withoutAny(listed: ListedToken[], extra: ListedToken[]): ListedToken[] {

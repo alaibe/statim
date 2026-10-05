@@ -285,9 +285,6 @@ export const EVM_CHAINS: ChainSpec[] = [
     description: 'A sidechain with its own coin for fees.',
   },
 
-  // Test chains sit in the same list as the rest, off until switched on,
-  // instead of behind a "developer mode": the app has no separate build for
-  // trying things out, and a faucet is how most people first send anything.
   {
     id: 'sepolia',
     name: 'Sepolia',

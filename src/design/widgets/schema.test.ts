@@ -27,7 +27,6 @@ describe('summariseWidget', () => {
   });
 
   it('walks nested cards so a preview is never empty', () => {
-    // The chat list shows this text, so every widget must degrade to prose.
     const widget = W.card([W.stat('21000000', { label: 'Supply' }), W.text('Fixed cap')], {
       title: 'Bitcoin',
     });
@@ -67,8 +66,6 @@ describe('follow-up actions', () => {
       },
     ]);
 
-    // Round-tripping through JSON is what lets a widget be persisted in a
-    // transcript and later sent to another participant. A callback could not survive this.
     expect(JSON.parse(JSON.stringify(widget))).toEqual(widget);
   });
 
@@ -94,8 +91,6 @@ describe('list', () => {
   });
 
   it('summarises without subtitles', () => {
-    // A participant whose app cannot render the widget needs the names; the subtitle only
-    // explains them.
     expect(summariseWidget(W.list([{ title: '/balance' }]))).toBe('/balance');
   });
 
@@ -126,15 +121,13 @@ describe('form', () => {
   });
 
   it('quotes a value containing a space', () => {
-    // The command parser splits on whitespace, so an unquoted note would
-    // arrive as several arguments and the command would read the wrong one.
+    // The command parser splits on whitespace.
     expect(fillCommand('/request {amount} {note}', { amount: '5', note: 'two coffees' })).toBe(
       '/request 5 "two coffees"'
     );
   });
 
   it('leaves an unfilled placeholder empty rather than literal', () => {
-    // A stray "{note}" reaching the parser would be read as an argument.
     expect(fillCommand('/request {amount} {note}', { amount: '5' })).toBe('/request 5 ');
   });
 
@@ -161,13 +154,6 @@ describe('decimal answers', () => {
   });
 });
 
-/**
- * Forms whose later questions depend on their earlier ones.
- *
- * The bug being pinned: a payment card asked for an amount "in SOL" before it
- * had asked which chain, so the unit came from whichever chain plugin happened
- * to start first and stayed wrong after the chain chip was changed.
- */
 describe('dependent fields', () => {
   const fields = [
     {
@@ -240,7 +226,6 @@ describe('dependent fields', () => {
   it('moves a stale choice onto the chain that is now selected', () => {
     const answers = resolveValues(fields, { chain: 'bitcoin', token: 'ETH', amount: '0.01' });
     expect(answers.token).toBe('BTC');
-    // Everything else is left exactly as typed.
     expect(answers.amount).toBe('0.01');
   });
 
@@ -254,15 +239,6 @@ describe('dependent fields', () => {
   });
 });
 
-/**
- * What the end of a tappable row promises: say what the tap does. A chevron
- * points off-screen and so promises a destination, but a row with one action
- * runs it on the spot and a row with several opens a sheet, and neither is
- * anywhere to go; an ellipsis reads as "opens something" for the same reason.
- * So the row shows an icon only when the action asked for one (a switch
- * beside a name that already has a state dot) and words otherwise, because
- * "Send ETH" beside a balance is a sentence and a glyph there would be a guess.
- */
 function affordanceFor(actions: { label: string; icon?: string }[] | undefined) {
   if (!actions?.length) return null;
   const primary = actions[0];
@@ -280,12 +256,6 @@ describe('what a row says a tap will do', () => {
     expect(affordanceFor([{ label: 'Send ETH' }])).toEqual({ kind: 'text', label: 'Send ETH' });
   });
 
-  /**
-   * Destructive actions included. The tap opens a confirming sheet rather than
-   * removing anything, so "Remove" is an honest description of what it starts.
-   * Behind a neutral glyph it would be a row that removes someone without
-   * saying so.
-   */
   it('names a destructive action too', () => {
     expect(affordanceFor([{ label: 'Remove from group' }])).toEqual({
       kind: 'text',
@@ -302,11 +272,6 @@ describe('what a row says a tap will do', () => {
     });
   });
 
-  /**
-   * With several actions the row shows the first one's glyph. A tap opens a
-   * sheet with all of them, so the glyph is not a promise that one tap does
-   * it, only a hint of which one leads, which a bare "…" cannot give.
-   */
   it('shows the primary action when several carry icons', () => {
     expect(
       affordanceFor([
@@ -316,10 +281,6 @@ describe('what a row says a tap will do', () => {
     ).toEqual({ kind: 'icon', icon: 'star-outline', label: 'Make Base the default' });
   });
 
-  /**
-   * Never a glyph nobody asked for. A generic "…" would look like a
-   * destination, and a sheet of the actions the row already has is not one.
-   */
   it('promises only options when several actions have no icon', () => {
     expect(affordanceFor([{ label: 'Open' }, { label: 'Switch off' }])).toEqual({
       kind: 'text',

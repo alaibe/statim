@@ -3,12 +3,6 @@ import { router } from 'expo-router';
 import { groupCommands } from './group';
 import { asChatId } from '@/core/messaging/testing/ids';
 
-/**
- * Core commands have no plugin context, and must not reach for one: the
- * registry hands them a proxy that throws on any access, so a `/profile` that
- * touched `context.ui.openProfile` would answer with that error in the thread
- * instead of opening anything.
- */
 describe('/profile', () => {
   const profile = groupCommands.find((c) => c.name === 'profile')!;
 

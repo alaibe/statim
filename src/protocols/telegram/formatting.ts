@@ -131,11 +131,11 @@ function encodeUrl(url: string): string {
   );
 }
 
-/** The Markdown the app writes, as the text and entities TDLib sends. */
 export function plainFormatted(text: string): TdFormattedText {
   return { '@type': 'formattedText', text, entities: [] };
 }
 
+/** The Markdown the app writes, as the text and entities TDLib sends. */
 export function markdownToFormatted(markdown: string): TdFormattedText {
   if (!hasMarkup(markdown)) return plainFormatted(markdown);
 

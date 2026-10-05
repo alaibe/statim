@@ -100,7 +100,10 @@ export async function whenAccountReady(): Promise<void> {
   settledFor = accountId;
 }
 
-/** Each account's protocols get one chance to connect and list their chats; a stuck one must not slow every command. */
+/**
+ * The account already waited for. Its protocols get one chance to connect and list their chats,
+ * so a stuck one does not slow every command.
+ */
 let settledFor: string | null = null;
 
 function describeChoices(items: string[]): string {
@@ -142,7 +145,7 @@ const participantCache = new Map<string, { name?: string; address?: string }>();
 
 let namingRegistry: PluginRegistry | undefined;
 
-/** The plugins whose names for people, such as bots you named, the next commands show. */
+/** Later commands show the names these plugins give people, such as bots you named. */
 export function nameWith(registry: PluginRegistry): void {
   namingRegistry = registry;
 }

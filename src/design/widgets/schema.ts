@@ -1,9 +1,7 @@
 /**
- * A widget is data: it can be stored in a transcript, summarised for the chat
- * list, sent to another participant, and rendered by a host that has never heard of the
- * plugin that produced it, none of which a React element could do. Keep the
- * union additive: an older build must be able to skip a node it does not
- * recognise without the message collapsing.
+ * A widget is data, so it can be stored, summarised for the chat list, sent to another
+ * participant and drawn by an app that lacks the plugin that made it. Keep the union additive: an
+ * older build must skip a node it does not recognise without losing the message.
  */
 import {
   arrayOf,
@@ -118,7 +116,7 @@ export const W = {
 
 const isTone = oneOf(...WIDGET_TONES);
 const isState = oneOf(...WIDGET_STATES);
-/** Any name: an icon this build lacks renders as nothing, which is no reason to drop the widget. */
+/** Any name: an icon this build lacks renders as nothing rather than dropping the widget. */
 const isIcon = (value: unknown): value is IconName => typeof value === 'string';
 const isStringRecord = (value: unknown): value is Record<string, string> =>
   isRecord(value) && Object.values(value).every(isString);

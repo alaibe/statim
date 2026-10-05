@@ -67,7 +67,10 @@ export interface ProtocolDescriptor {
   usesPluginContentTypes?: boolean;
   connect?(params: ProtocolConnectParams): Promise<ChatSession>;
   eraseLocalData?(params: ProtocolEraseParams): Promise<void>;
-  /** The account's installations, read and revoked without a session, as while a full inbox keeps one from connecting. */
+  /**
+   * The account's installations, read and revoked without a session, as when the installation
+   * limit keeps one from connecting.
+   */
   installations?: {
     list(params: ProtocolInstallationParams): Promise<XmtpInstallation[]>;
     revoke(params: ProtocolInstallationParams, ids: string[]): Promise<void>;

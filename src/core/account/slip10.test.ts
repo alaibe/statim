@@ -23,9 +23,8 @@ describe('deriveEd25519', () => {
   });
 
   it('refuses an unhardened segment instead of quietly hardening it', () => {
-    // The curve cannot do unhardened derivation at all. Hardening it silently
-    // would hand back a different key than the path names, which for an
-    // address someone funds is the worst possible kind of wrong.
+    // The curve cannot do unhardened derivation. Hardening the path silently would hand back a
+    // different key than the path names.
     expect(() => deriveEd25519(SEED, "m/44'/501'/0'/0")).toThrow(/hardened-only/);
   });
 

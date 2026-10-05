@@ -13,12 +13,6 @@ jest.mock('./bitcoin/config', () => ({ hydrateApiBase: jest.fn() }));
 jest.mock('./solana', () => ({ solanaStrategy: {} }));
 jest.mock('./chains/watcher', () => ({ checkBalances: jest.fn() }));
 
-/**
- * The arithmetic behind `/split`. A rounding slip here means everyone pays
- * slightly the wrong amount, and nobody notices until the person who fronted
- * the bill is short.
- */
-
 /** Wei per person, the exact figure the card asks each member for. */
 function shareWei(total: string, people: number): bigint {
   return parseEther(total) / BigInt(people);
@@ -36,17 +30,12 @@ describe('splitting a bill', () => {
   });
 
   it('counts the person who paid as one of the ways', () => {
-    // "Split four ways" among four people means the payer is one of the four,
-    // and is owed three shares rather than four.
     const share = shareOf('100', 4);
     expect(Number(share) * 4).toBeCloseTo(100, 6);
   });
 
   it('never rounds a share up past the total', () => {
-    // Integer division on wei always rounds down, so the collector can be a
-    // few wei short but never asks for more than the bill. Checked on the wei
-    // value rather than the printed one: the card rounds for legibility, and
-    // the rounded string can read a hair above the true share.
+    // Checked in wei: the printed share is rounded and can read a hair above the true one.
     for (const people of [3, 6, 7, 9]) {
       expect(shareWei('10', people) * BigInt(people)).toBeLessThanOrEqual(parseEther('10'));
     }

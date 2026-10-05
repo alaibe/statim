@@ -12,8 +12,6 @@ describe('findTransactionHash', () => {
   });
 
   it('ignores an address, which is half the length', () => {
-    // 40 hex characters is an address; treating one as a transaction would
-    // show a card that never resolves.
     expect(findTransactionHash('0x1234567890123456789012345678901234567890')).toBeNull();
   });
 

@@ -14,22 +14,16 @@ import {
 import { publicClientFor } from './chains';
 
 /**
- * Signing away an allowance instead of sending one.
+ * An EIP-712 signature in place of an `approve` transaction, taken by LI.FI's
+ * Permit2Proxy:
  *
- * A classic `approve` costs a transaction before every trade, and waiting for
- * it to be mined is the slowest, most failure-prone part of a swap. Both
- * permit standards replace it with an EIP-712 signature, which this app can
- * make on the device for nothing. LI.FI takes either through its Permit2Proxy:
- *
- *   eip2612  the token itself understands `permit`, so no allowance is ever
- *            needed. One transaction, no approval, ever.
- *   permit2  any ERC-20, once the account has approved the canonical Permit2
- *            contract. That approval happens once per token, to an immutable
- *            contract that can only move anything against a fresh signature
+ *   eip2612  the token itself understands `permit`; no approval at all.
+ *   permit2  any ERC-20, after one approval per token to the immutable Permit2
+ *            contract, which moves funds only against a fresh signature
  *            naming the amount, the spender and a deadline.
  *
- * A trade with no plan at all falls back to a plain approval: a chain with no
- * proxy, or a signer that cannot sign typed data.
+ * A trade with no plan falls back to a plain approval: a chain with no proxy,
+ * or a signer that cannot sign typed data.
  */
 export type PermitKind = 'eip2612' | 'permit2';
 
@@ -152,7 +146,6 @@ export async function supportsEip2612(
   return domain && { ...domain, nonce };
 }
 
-/** Forgets the probes, for tests that change what a token answers. */
 export function clearPermitCache(): void {
   probed.clear();
 }
@@ -172,9 +165,8 @@ async function permit2Allowance(
 }
 
 /**
- * Which lane a trade can take. `permit2` is preferred over an approval per
- * trade, and the one-off approval it may need is to Permit2, never to the
- * router itself.
+ * `eip2612` when the token supports it, otherwise `permit2`, whose one-off
+ * approval goes to Permit2, never to the router. Null means a plain approval.
  */
 export async function planPermit(
   chainId: number,

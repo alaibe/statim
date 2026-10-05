@@ -25,8 +25,6 @@ describe('capabilitiesOf', () => {
   });
 
   it('does not claim Bitcoin and Solana on hardware until they are wired up', () => {
-    // A Ledger does both, as separate apps with their own protocols. This is
-    // false because those protocols are not integrated here.
     expect(capabilitiesOf('hardware').otherChains).toBe(false);
   });
 });
@@ -55,8 +53,7 @@ describe('adding a hardware account', () => {
   });
 
   it('adopts an existing row rather than adding a second for one address', async () => {
-    // Two rows sharing an address would fight over one message database, which
-    // is also why importing a known phrase adopts the existing row.
+    // Two rows sharing an address would fight over one message database.
     const address = '0x2222222222222222222222222222222222222222' as const;
     await useAccountStore.getState().addHardwareAccount({ address, vendorId: 'ledger' });
     await useAccountStore.getState().addHardwareAccount({ address, vendorId: 'ledger' });

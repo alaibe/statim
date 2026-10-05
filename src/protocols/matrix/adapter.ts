@@ -85,8 +85,10 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   private readonly members = new Map<string, MxMember[]>();
   private readonly pendingMembers = new Map<string, Promise<MxMember[]>>();
   private readonly names = new Map<string, string>();
-  /** Once a room shows its bridge it keeps it, even after the bridged users fall out of the summary. */
-  /** null for a room no bridge carries, until its roster arrives. */
+  /**
+   * A room keeps the bridge it once showed, even after the bridged users fall out of the
+   * summary. null means none showed yet; the room is looked at again once its roster arrives.
+   */
   private readonly networks = new Map<string, BridgedNetwork | null>();
   private readonly mediaPaths = new Map<string, string>();
   private readonly awaitedMedia = new Map<string, MxEvent[]>();
@@ -140,8 +142,6 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     await this.start();
     if (error && this.login) this.setLogin({ ...this.login, error });
   }
-
-  // ---- sign-in ----
 
   subscribeLogin(listener: (login: LoginState | null) => void): Unsubscribe {
     this.loginListeners.add(listener);
@@ -216,8 +216,6 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     }
   }
 
-  // ---- updates ----
-
   private async handleUpdate(update: MxUpdate): Promise<void> {
     switch (update.type) {
       case 'room':
@@ -278,8 +276,6 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     const message = this.toMessage(raw, false);
     for (const listener of this.messageListeners) listener(message);
   }
-
-  // ---- ChatSession ----
 
   async listChats(): Promise<ProtocolChat[]> {
     if (!this.userId) return [];
@@ -642,8 +638,6 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     this.unsubscribe = null;
     await this.api.erase();
   }
-
-  // ---- mapping ----
 
   private async requireRoom(roomId: string): Promise<MxRoom> {
     const room = this.rooms.get(roomId) ?? (await this.api.room(roomId));

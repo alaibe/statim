@@ -188,7 +188,6 @@ describe('unwrapping refuses forgeries', () => {
   it('rejects a rumor whose id does not match its body', () => {
     const { wraps } = wrapForRecipients(alice, { recipients: [bob.publicKey], content: 'ok' });
     const forBob = wraps.find((w) => w.tags[0][1] === bob.publicKey)!;
-    // Sanity: the honest one opens.
     expect(unwrapGiftWrap(forBob, bob)).not.toBeNull();
 
     const tampered = { ...forBob, content: forBob.content.slice(0, -4) + 'AAAA' };
@@ -236,8 +235,6 @@ describe('chat id', () => {
     expect(participantsOf(rumor)).toEqual([alice.publicKey, bob.publicKey, carol.publicKey].sort());
   });
 });
-
-// --- helpers used only to build deliberately malformed events ---------------
 
 function encryptTo(plaintext: string, from: typeof alice, toPublicKey: string): string {
   // eslint-disable-next-line @typescript-eslint/no-require-imports

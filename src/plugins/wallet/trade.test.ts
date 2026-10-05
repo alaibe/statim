@@ -191,7 +191,6 @@ describe('/trade', () => {
     expect(form?.submit.command).toBe(
       '/trade {amount} {token} {receive} --from {from} --to {to} --recipient {recipient}'
     );
-    // Blank means your own address, so the form can be submitted without it.
     expect(field(form, 'recipient')?.optional).toBe(true);
     expect(links).toContainEqual(
       expect.objectContaining({ label: 'Powered by LI.FI', url: 'https://li.fi' })
@@ -203,7 +202,6 @@ describe('/trade', () => {
     const { rows } = await run(['0.001', 'native', 'usdc']);
 
     expect(quote).toHaveBeenCalledWith(expect.objectContaining({ toAddress: me }), null);
-    // Nothing on the card claims a destination when it is simply yours.
     expect(rows?.some((row) => row.label === 'Lands in')).toBe(false);
   });
 
@@ -213,7 +211,7 @@ describe('/trade', () => {
 
     expect(quote).toHaveBeenCalledWith(expect.objectContaining({ toAddress: other }), null);
     expect(rows).toContainEqual(expect.objectContaining({ label: 'Lands in', tone: 'warning' }));
-    // Confirming has to carry it, or the second quote would land in your own.
+    // Confirming quotes again, so the command has to carry it.
     expect(actions?.[0].command).toContain(`--recipient ${other}`);
   });
 
@@ -465,7 +463,7 @@ describe('/trade', () => {
 
     expect(result.type).toBe('error');
     expect(message).toMatch(/still waiting to confirm.*nothing was traded/i);
-    // The swap must not go out on an allowance that may not exist yet.
+    // Only the approval went out.
     expect(sendTransaction).toHaveBeenCalledTimes(1);
   });
 
@@ -491,7 +489,6 @@ describe('/trade', () => {
     ]);
 
     expect(result).toEqual({ type: 'handled' });
-    // One transaction, to the proxy, carrying the signature.
     expect(sendTransaction).toHaveBeenCalledTimes(1);
     expect(sendTransaction.mock.calls[0][0]).toEqual(
       expect.objectContaining({ to: PROXY, data: '0xfeed' })
@@ -520,7 +517,6 @@ describe('/trade', () => {
 
     const { texts } = await run(['5', USDC_BASE, 'native', '--from', 'base', '--to', 'base']);
 
-    // The review says which approval it is before anything is signed.
     expect(texts.join(' ')).toMatch(/one approval first, to Permit2, and never again/i);
   });
 

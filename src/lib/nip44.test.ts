@@ -12,14 +12,8 @@ import {
 } from '@/lib/nip44';
 
 /**
- * NIP-44 v2.
- *
- * These are round-trip and structural tests. They prove the implementation is
- * self-consistent and that its payload has the shape the spec describes. They
- * do not prove interoperability with any other Nostr client: that needs the
- * official test vectors or a real client on the other end, and inventing
- * vectors would be worse than having none, because a wrong one would look like
- * evidence.
+ * NIP-44 v2, round trip and payload shape only. Interoperability with other
+ * Nostr clients needs the official test vectors, not invented ones.
  */
 
 const ALICE_SECRET = new Uint8Array(32).fill(1);
@@ -88,7 +82,6 @@ describe('payload structure', () => {
   });
 
   it('hides the exact length of short messages', () => {
-    // The point of padding: "yes" and "no" must not be distinguishable by size.
     const yes = base64ToBytes(encrypt('yes', ALICE_SECRET, BOB_PUB)).length;
     const no = base64ToBytes(encrypt('no', ALICE_SECRET, BOB_PUB)).length;
     expect(yes).toBe(no);

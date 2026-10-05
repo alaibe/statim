@@ -4,10 +4,7 @@ import { Buffer } from 'buffer';
 // The Ledger libraries build APDUs with Node's Buffer.
 globalThis.Buffer ??= Buffer;
 
-/**
- * The window's own right-click menu (Back, Reload, Inspect) makes no sense in
- * a messenger. Text fields keep it: that is where copy and paste live.
- */
+/** The window's own right-click menu (Back, Reload, Inspect) stays only in text fields. */
 function editable(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return target.isContentEditable || target.closest('input, textarea, [contenteditable]') !== null;

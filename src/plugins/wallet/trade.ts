@@ -85,7 +85,6 @@ function receiveOptions(chains: TradeChain[], held: WidgetOption[]): WidgetOptio
 
 type TradeChain = ChainStrategy & { evm: Chain };
 
-/** LI.FI routes between EVM chains here; Bitcoin and Solana sit this one out. */
 const tradeChains = () => sendableChains().filter((c): c is TradeChain => c.evm !== undefined);
 
 function chainNamed(chains: TradeChain[], named: string): TradeChain | { error: string } {
@@ -235,8 +234,8 @@ async function resolveToken(
 }
 
 /**
- * Resolves both sides and quotes. The balance is read before the quote so a
- * short balance costs no request from LI.FI's small unauthenticated budget.
+ * The balance is read before quoting, so a short balance spends none of LI.FI's small
+ * unauthenticated request budget.
  */
 async function prepare(
   context: PluginContext,
@@ -328,7 +327,7 @@ async function prepare(
 
   if (quote.estimate.skipApproval) return { ...trade, needsApproval: false };
 
-  // Tried before an approval, which costs a transaction and a wait for it.
+  // Permit2 first: a plain approval costs a transaction and a wait.
   const targets = await lifiPermitTargets(from.evm.id).catch(() => null);
   const permit = await planPermit(from.evm.id, fromToken.address, address, fromAmount, targets, {
     canSignTypedData: canSign(context),
@@ -430,7 +429,6 @@ function reviewCard(
   );
 }
 
-/** Approves the route's contract when the allowance is short, then sends the quoted transaction. */
 /** Thrown while an approval is still in flight: the trade has not started. */
 class ApprovalPending extends Error {
   constructor(symbol: string, chain: string) {
@@ -469,8 +467,6 @@ async function execute(
       }),
     });
 
-    // Two transactions look like one long wait from here, so the first one says
-    // it is out rather than leaving the chat on a spinner.
     const follow = explorerUrlFor(from.evm.id, approval);
     await respond({
       kind: 'widget',

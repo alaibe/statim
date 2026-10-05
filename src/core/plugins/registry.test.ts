@@ -182,9 +182,6 @@ describe('PluginRegistry', () => {
     ]);
     await activate(registry, 'eth');
 
-    // Data, not codecs: handing back `JSContentCodec[]` would put one
-    // protocol's SDK type in the plugin system's public surface. Turning these
-    // into codecs is the protocol's job, and XMTP does it in its own adapter.
     const specs = registry.contentTypeSpecs();
     expect(specs).toHaveLength(1);
     expect(specs[0].typeId).toBe('eth.payment.request');
@@ -377,8 +374,6 @@ describe('channel scoping', () => {
   });
 
   it('does not answer another plugin’s command inside a channel', async () => {
-    // Otherwise Bitcoin's commands would work in the Ethereum channel, which
-    // would make the name at the top of the thread decorative.
     const inEthereum = (await withChannels()).commandsFor(botChatId('ethereum'));
 
     expect(inEthereum.has('ethereum-cmd')).toBe(true);
@@ -393,7 +388,6 @@ describe('channel scoping', () => {
   });
 
   it('scopes the autocomplete the same way it scopes dispatch', async () => {
-    // Suggesting a command that will not run is worse than not suggesting it.
     const names = (await withChannels())
       .commandListFor(botChatId('bitcoin'))
       .map((e) => e.command.name)
@@ -412,8 +406,6 @@ describe('channel scoping', () => {
   });
 
   it('scopes nothing outside a plugin channel', async () => {
-    // A DM is where /balance and /request belong; asking a person for money
-    // is the whole point.
     const registry = await withChannels();
 
     expect(registry.commandsFor(asChatId('xmtp-0xabc')).size).toBe(registry.commands().size);
@@ -428,8 +420,6 @@ describe('channel scoping', () => {
   });
 
   it('offers a group command only in a group', async () => {
-    // Otherwise a DM with one person would list /rename and /invite, which
-    // cannot mean anything there.
     const registry = new PluginRegistry([
       makePlugin('groups', {
         commands: [
@@ -453,7 +443,7 @@ describe('channel scoping', () => {
 
     expect(registry.commandsFor(asChatId('xmtp-abc'), 'group').has('rename')).toBe(true);
     expect(registry.commandsFor(asChatId('xmtp-abc'), 'dm').has('rename')).toBe(false);
-    // An undeclared command is universal, which is what most of them are.
+    // A command with no `showIn` is offered everywhere.
     expect(registry.commandsFor(asChatId('xmtp-abc'), 'dm').has('dm')).toBe(true);
   });
 
@@ -484,9 +474,7 @@ describe('channel scoping', () => {
   });
 
   it('needs both gates, not either', async () => {
-    // Ownership and `showIn` answer different questions, so passing one is not
-    // enough: a config command scoped to `channel` must still be refused in
-    // another plugin's channel.
+    // `ethereum-cmd` declares no `showIn`, so only ownership refuses it in Bitcoin's channel.
     const registry = await withChannels();
 
     expect(registry.commandsFor(botChatId('bitcoin'), 'channel').has('ethereum-cmd')).toBe(false);

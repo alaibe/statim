@@ -20,7 +20,7 @@ describe('encodeLength', () => {
   });
 
   it('continues into a second byte at 128', () => {
-    // Seven bits per byte, high bit set to continue, unlike LEB128's eight.
+    // Seven bits per byte, high bit set to continue.
     expect([...encodeLength(128)]).toEqual([0x80, 0x01]);
     expect([...encodeLength(0x1234)]).toEqual([0xb4, 0x24]);
   });
@@ -58,9 +58,8 @@ describe('buildTransferMessage', () => {
   });
 
   it('declares one signer and one read-only account', () => {
-    // [numRequiredSignatures, numReadonlySigned, numReadonlyUnsigned].
-    // The sender signs and pays, the recipient is written to, and the System
-    // Program is neither. Get this wrong and the node rejects it.
+    // [numRequiredSignatures, numReadonlySigned, numReadonlyUnsigned]: the sender signs and pays,
+    // the recipient is written to, and the System Program is read-only.
     expect([...message.slice(0, 3)]).toEqual([1, 0, 1]);
   });
 
@@ -109,8 +108,6 @@ describe('signTransaction', () => {
   });
 
   it('produces a signature the sender’s public key verifies', () => {
-    // A node checks this before it moves money, and a wrong byte anywhere
-    // above makes it fail.
     expect(ed25519.verify(signed.slice(1, 65), message, ed25519.getPublicKey(priv))).toBe(true);
   });
 
@@ -120,9 +117,7 @@ describe('signTransaction', () => {
 });
 
 describe('toLamports (via the plugin)', () => {
-  // Re-implemented here rather than exported: the invariant worth pinning is
-  // that no path through it touches a float, because 0.1 SOL is not
-  // representable and a rounding error here is lost money.
+  // A copy of the unexported toLamports in index.ts.
   const toLamports = (amount: string): bigint => {
     if (!/^\d+(\.\d{1,9})?$/.test(amount.trim())) throw new Error('bad');
     const [whole, fraction = ''] = amount.trim().split('.');

@@ -26,10 +26,7 @@ import { RelayPool, type RelayState, type WebSocketLike } from './relay-pool';
 
 export const NOSTR_PROTOCOL_ID = 'nostr';
 
-/**
- * How far back a first sync asks relays to go: applies only when there is no
- * stored cursor, otherwise the filter resumes from the last seen rumor.
- */
+/** How far back relays are asked to go when this device has no history yet. */
 const HISTORY_WINDOW_SECONDS = 30 * 24 * 60 * 60;
 
 /**
@@ -127,11 +124,8 @@ class NostrTransport implements ChatTransport {
   }
 
   /**
-   * One subscription for every chat.
-   *
-   * Nostr has no per-chat channel to join: a gift wrap is addressed to
-   * a pubkey, so the inbox filter is the whole of it. That is why
-   * `openChat` is not implemented here.
+   * One subscription for every chat: a gift wrap is addressed to a pubkey, not to a chat, so
+   * there is no `openChat`.
    */
   listen(newestSeenAt?: number): void {
     this.historyCursor = newestSeenAt;
@@ -229,8 +223,7 @@ class NostrTransport implements ChatTransport {
       await this.pool.publish(pending.remaining[0]);
       pending.remaining.shift();
     }
-    // Handed back rather than read off the relays: a gift wrap is sealed to
-    // its recipient, so we cannot open our own copy.
+    // Handed back at once rather than waiting for the self-addressed wrap to come back.
     return { id: pending.rumor.id, localMessage: this.toIncoming(pending.rumor) };
   }
 
@@ -358,12 +351,6 @@ export class NostrSession extends StoreBackedSession implements ChatSession {
   }
 }
 
-/**
- * Where the inbox filter starts.
- *
- * The last rumor we stored, less the jitter slack; on a device with no
- * history at all, the opening window.
- */
 function sinceFor(newestSeenAt?: number): number {
   if (newestSeenAt === undefined) {
     return nowSeconds() - HISTORY_WINDOW_SECONDS - JITTER_SLACK_SECONDS;

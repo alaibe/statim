@@ -88,8 +88,7 @@ export function bitcoinStrategy(context: PluginContext): ChainStrategy {
     selfAddress: (ctx) => p2wpkhAddress(ctx.account.derive(BIP84_ACCOUNT_PATH).publicKey),
     isAddress: isBitcoinAddress,
     addressHint: 'bc1…',
-    // A name's *Bitcoin* record, per ENSIP-9. Reading its Ethereum record
-    // instead would send bitcoin to an address nobody holds a key for.
+    // The name's Bitcoin record per ENSIP-9, never its Ethereum one.
     resolve: (input) =>
       looksLikeEnsName(input) ? resolveNameForCoin(input, CoinType.bitcoin) : Promise.resolve(null),
     unavailable: derivationUnavailable('Bitcoin'),

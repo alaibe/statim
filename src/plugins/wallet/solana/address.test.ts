@@ -20,8 +20,7 @@ describe('solanaAddress', () => {
   });
 
   it('uses the path the other Solana wallets use', () => {
-    // The value of matching is that the same phrase opens the same account in
-    // Phantom or the Solana CLI. Changing this silently strands funds.
+    // Phantom and the Solana CLI derive here; changing it strands funds.
     expect(SOLANA_ACCOUNT_PATH).toBe("m/44'/501'/0'/0'");
   });
 });

@@ -15,8 +15,7 @@ export interface FetchOptions {
   timeoutMs?: number;
 }
 
-// Sites gate their Open Graph tags on a crawler user agent; naming one is the
-// difference between a card and nothing. This is also what Telegram sends.
+// Sites gate their Open Graph tags on a crawler user agent.
 const USER_AGENT = 'Mozilla/5.0 (compatible; Statim; like TwitterBot)';
 const MAX_BYTES = 512 * 1024;
 const TITLE_LIMIT = 200;

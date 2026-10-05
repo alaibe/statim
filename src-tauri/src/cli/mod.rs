@@ -62,14 +62,14 @@ pub(crate) fn write_line(writer: &mut impl Write, message: &Value) -> std::io::R
     writer.write_all(&line)
 }
 
-/// Both builds share one data directory, so only one copy may run: a second
-/// launch, of either build, brings the running one forward and quits. On
-/// Windows and Linux a link to the app's URL scheme arrives this way too.
 /// A link to the app's URL scheme, which Windows and Linux pass as the only argument.
 pub fn is_link(arg: &str) -> bool {
     arg.contains("://")
 }
 
+/// Dev and release builds share one data directory, so only one copy may run: a
+/// second launch of either brings the running one forward and quits. On Windows
+/// and Linux a link to the app's URL scheme arrives this way too.
 pub fn show_running_copy() -> bool {
     let Ok(mut stream) = transport::connect() else {
         return false;
@@ -227,7 +227,7 @@ pub fn cli_install() -> Install {
     }
 }
 
-/// `false` when the person cancels macOS's administrator prompt.
+/// `false` when the user cancels macOS's administrator prompt.
 #[tauri::command(async)]
 #[allow(unreachable_code)]
 pub fn cli_link() -> Result<bool, String> {

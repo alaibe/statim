@@ -5,11 +5,6 @@ import { ListItem, type ListItemProps } from './list-item';
 
 jest.mock('react-native-reanimated', () => jest.requireActual('react-native-reanimated/mock'));
 
-/**
- * React Native makes a `Pressable` a single accessibility element, which stops
- * iOS exposing the `Text` inside it, so a row announces nothing to VoiceOver
- * unless its label is rebuilt from the parts.
- */
 let tree: ReactTestRenderer;
 
 function render(props: ListItemProps) {
@@ -45,10 +40,6 @@ describe('a tappable row', () => {
     expect(element.props.accessibilityLabel).toBe('Base, 0.4 ether');
   });
 
-  /**
-   * A chat row styles part of the name, so its title is a node. There is
-   * nothing sensible to read out of one, and guessing would announce markup.
-   */
   it('says nothing rather than guessing when the title is a node', () => {
     const element = render({ title: null, subtitle: 'Two people', onPress() {} });
     expect(element.props.accessibilityLabel).toBeUndefined();

@@ -26,8 +26,7 @@ describe('UR framing', () => {
   });
 
   it('splits something too big for one code into several', () => {
-    // A transaction does not fit in a single QR. Fountain-encoding it into a
-    // loop is the whole reason an air-gapped device is usable at all.
+    // A transaction does not fit in a single QR, so it is fountain-encoded into a loop.
     const big = new UR(Buffer.alloc(2_000, 7), 'bytes');
 
     expect(encodeUr(big, 100).length).toBeGreaterThan(1);
@@ -50,8 +49,7 @@ describe('readSignatureUr', () => {
 
 describe('keystoneSigner', () => {
   it('refuses to sign when no screen is showing QR codes', async () => {
-    // There is no connection to fall back on: without a camera and a screen
-    // there is literally no way to reach the device.
+    // A Keystone has no connection: QR codes on a screen are the only way to reach it.
     await expect(keystoneSigner(ACCOUNT).signMessage(ACCOUNT.path, 'hi')).rejects.toThrow(
       /Keystone screen/
     );

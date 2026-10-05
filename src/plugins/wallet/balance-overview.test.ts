@@ -100,7 +100,7 @@ describe('/balance with no argument', () => {
   });
 
   it('leaves a token alone when the chain cannot send it', async () => {
-    // Solana reports what it holds long before it can spend it.
+    // Solana lists its tokens without an id, so none can be sent.
     register(chain('solana', 'SOL', '3', [{ symbol: 'USDC', amount: '9' }]));
 
     const [, token] = await overview();

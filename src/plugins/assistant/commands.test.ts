@@ -64,7 +64,6 @@ const run = async (name: string, args: string[], context: PluginContext) => {
   return { result, said: said.join('\n'), widget };
 };
 
-/** Pulls every list item out of a widget tree, regardless of nesting. */
 function itemsOf(widget: unknown): {
   title: string;
   subtitle?: string;
@@ -75,7 +74,6 @@ function itemsOf(widget: unknown): {
   return (node?.children ?? []).flatMap(itemsOf);
 }
 
-/** Pulls every row out of a widget tree, regardless of nesting. */
 function rowsOf(widget: unknown): {
   label: string;
   value: string;

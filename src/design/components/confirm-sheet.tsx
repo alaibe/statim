@@ -10,7 +10,6 @@ export interface ConfirmSheetProps extends Omit<SheetProps, 'children'> {
   body?: string | (string | undefined)[];
   confirm: {
     label: string;
-    /** Shown in place of `label` while `busy`. */
     busyLabel?: string;
     /** `danger` for anything that destroys something. */
     tone?: 'brand' | 'danger';
@@ -23,11 +22,8 @@ export interface ConfirmSheetProps extends Omit<SheetProps, 'children'> {
 }
 
 /**
- * Cancel is `neutral`, never ghost: on a dialog whose other button destroys
- * something, the safe way out should not be the faintest thing on screen.
- *
- * The copy stays the caller's. What is lost differs every time, and a generic
- * "are you sure?" is what these sheets exist to avoid.
+ * Cancel is `neutral`, never ghost: beside a button that destroys something, the safe way out
+ * should not be the faintest thing on screen.
  */
 export function ConfirmSheet({
   body,

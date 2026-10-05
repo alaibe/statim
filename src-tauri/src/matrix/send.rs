@@ -84,7 +84,8 @@ pub(super) fn reply(event_id: OwnedEventId) -> Reply {
     }
 }
 
-/// In a thread, a message that replies to nothing still points at the root, as the fallback for clients without threads.
+/// In a thread, a message that replies to nothing still points at the root, as the fallback for
+/// clients without threads.
 fn relation(reply_to: Option<OwnedEventId>, thread_root: Option<OwnedEventId>) -> Option<Reply> {
     let Some(root) = thread_root else {
         return reply_to.map(reply);
@@ -101,7 +102,8 @@ fn relation(reply_to: Option<OwnedEventId>, thread_root: Option<OwnedEventId>) -
     })
 }
 
-/// The same fallback as `relation`, written into the event, since stickers skip the SDK's reply helper.
+/// The same fallback as `relation`, written into the event, since stickers skip the SDK's reply
+/// helper.
 fn sticker_relation(
     reply_to: Option<OwnedEventId>,
     thread_root: Option<OwnedEventId>,
@@ -116,7 +118,6 @@ fn sticker_relation(
     }
 }
 
-/// The page names files itself; the SDK would otherwise use the path's basename.
 pub(super) async fn attachment(
     content: MxOutgoing,
 ) -> Result<(String, mime::Mime, Vec<u8>, AttachmentInfo, Option<String>), String> {

@@ -38,7 +38,6 @@ describe('extractLinks', () => {
   });
 
   it('strips sentence punctuation from the end', () => {
-    // A wrong link in a links tab looks like the app inventing data.
     expect(extractLinks('see https://example.com/a.')).toEqual(['https://example.com/a']);
     expect(extractLinks('(https://example.com)')).toEqual(['https://example.com']);
   });
@@ -59,7 +58,6 @@ describe('entriesFor', () => {
   });
 
   it('separates gifs from photos', () => {
-    // People look for a gif separately from a photo, so the tabs do too.
     const [byMime] = entriesFor(
       message('m1', { kind: 'image', uri: 'file://a', mimeType: 'image/gif' })
     );

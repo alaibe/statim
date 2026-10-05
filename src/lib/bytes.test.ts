@@ -16,7 +16,6 @@ describe('hex', () => {
   });
 
   it('pads single digits, so byte boundaries survive', () => {
-    // Dropping the pad would turn 0x0a into "a" and shift every byte after it.
     expect(toHex(Uint8Array.from([0, 10, 255]))).toBe('000aff');
   });
 
@@ -29,8 +28,6 @@ describe('hex', () => {
 
 describe('little-endian numbers', () => {
   it('writes low byte first', () => {
-    // Both formats use little-endian; big-endian here would spend the wrong
-    // amount and reference the wrong output.
     expect([...u32le(1)]).toEqual([1, 0, 0, 0]);
     expect([...u64le(1n)]).toEqual([1, 0, 0, 0, 0, 0, 0, 0]);
   });

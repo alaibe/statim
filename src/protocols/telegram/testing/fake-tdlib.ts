@@ -4,7 +4,7 @@ import type { TdAuthorizationState, TdChat, TdChatPosition, TdMessage, TdUser } 
 type Handler = (request: TdObject) => TdObject;
 
 /**
- * TDLib as a scripted peer: requests are answered by handlers keyed on
+ * TDLib as a scripted stand-in: requests are answered by handlers keyed on
  * `@type`, and tests push updates with `emit`. Unhandled requests get `ok`.
  */
 export class FakeTdlib implements TdApi {
