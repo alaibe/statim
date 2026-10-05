@@ -4,7 +4,6 @@ import { errorMessage } from '@/core/errors';
 
 import { useWalletConnectStore } from '../walletconnect';
 
-/** Scanning the QR a site shows. A `wc:` URI is the only thing acted on. */
 export function makeScanOverlay(context: PluginContext) {
   return function ScanOverlay() {
     const scanning = useWalletConnectStore((s) => s.scanning);

@@ -39,7 +39,6 @@ struct Peer {
     dns_name: String,
 }
 
-/// Serves `local` to the tailnet and returns the address a phone opens.
 pub fn serve(cli: &Path, local: u16) -> Result<String, String> {
     let status = Command::new(cli)
         .args(["status", "--json"])

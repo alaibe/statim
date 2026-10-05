@@ -237,7 +237,6 @@ pub async fn homeserver_stop(state: State<'_, Homeserver>) -> Result<(), String>
     Ok(())
 }
 
-/// Stops the account's server and deletes everything it held.
 #[tauri::command]
 pub async fn homeserver_erase(
     app: AppHandle,
@@ -257,7 +256,6 @@ pub async fn homeserver_erase(
     crate::paths::remove_dir(&dir)
 }
 
-/// The app is quitting; its children go with it.
 pub fn stop_on_exit(app: &AppHandle) {
     if let Some(running) = app.state::<Homeserver>().0.blocking_lock().take() {
         running.stop();
@@ -391,7 +389,6 @@ async fn start(account: String, dir: PathBuf, bin: &Path) -> Result<Running, Str
             }
         }
     }
-    // A phone linked before keeps reaching the server whenever it runs.
     if running.dir.join("served").exists() {
         if let Some(cli) = tailscale::cli() {
             match serve(&cli).await {
@@ -435,7 +432,6 @@ fn registration_token(dir: &Path) -> Result<String, String> {
     Ok(token)
 }
 
-/// A secret file readable only by this user.
 fn write_private(path: &Path, contents: &str) -> Result<(), String> {
     std::fs::write(path, contents).map_err(|e| e.to_string())?;
     #[cfg(unix)]

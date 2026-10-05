@@ -7,7 +7,6 @@ import { DEVICE_NAME } from '@/protocols/matrix/descriptor';
 import { adoptMatrixSession } from './matrix-session';
 import { readPhoneLink, signInWithLink } from './phone-link';
 
-/** The phone's way onto the Matrix server Statim runs on the person's computer. */
 export function ScanFromComputer({ accountId }: { accountId: string }) {
   const [scanning, setScanning] = useState(false);
 

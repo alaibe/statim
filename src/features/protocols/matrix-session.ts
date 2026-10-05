@@ -2,7 +2,6 @@ import type { HomeserverSession } from '@/core/homeserver';
 import { accountRuntime } from '@/runtime';
 import { accountMatrixSessionKey, vaultSet } from '@/storage/vault';
 
-/** Keeps a session made outside the Matrix sign-in and points Matrix at its server, which restores it. */
 export async function adoptMatrixSession(
   accountId: string,
   session: HomeserverSession

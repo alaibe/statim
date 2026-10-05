@@ -3,7 +3,6 @@ import { USER_ID } from '@/protocols/matrix/ids';
 
 const KIND = 'statim-matrix';
 
-/** What the desktop puts in its QR code for a phone. */
 export function phoneLinkCode(link: PhoneLink): string {
   return JSON.stringify({
     kind: KIND,
@@ -13,18 +12,18 @@ export function phoneLinkCode(link: PhoneLink): string {
   });
 }
 
-/** A scanned code is a string anyone could have made, so only a well-formed one is read. */
 export function readPhoneLink(code: string): PhoneLink | null {
   try {
     const parsed: unknown = JSON.parse(code);
     if (typeof parsed !== 'object' || parsed === null) return null;
     const { kind, homeserver, userId, loginToken } = parsed as Record<string, unknown>;
-    if (kind !== KIND || typeof homeserver !== 'string' || typeof loginToken !== 'string')
-      return null;
     if (
+      kind !== KIND ||
+      typeof homeserver !== 'string' ||
       !/^https:\/\/[^/\s]+$/.test(homeserver) ||
       typeof userId !== 'string' ||
-      !USER_ID.test(userId)
+      !USER_ID.test(userId) ||
+      typeof loginToken !== 'string'
     )
       return null;
     return { homeserver, userId, loginToken, expiresInMs: 0 };
@@ -33,7 +32,6 @@ export function readPhoneLink(code: string): PhoneLink | null {
   }
 }
 
-/** Trades the code's one-time token for this device's own session on that server. */
 export async function signInWithLink(
   link: PhoneLink,
   deviceName: string

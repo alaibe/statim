@@ -20,7 +20,6 @@ export interface QrScannerProps {
   onClose(): void;
 }
 
-/** A full-screen camera that reads QR codes. A scanned code is a string a stranger may control. */
 export function QrScanner(props: QrScannerProps) {
   return (
     <Modal visible animationType="slide" onRequestClose={props.onClose}>
@@ -54,7 +53,6 @@ function Scanner({ title, closeLabel, purpose, hint, onScanned, onClose }: QrSca
     }
   };
 
-  // The camera reports a code on every frame it is in view, so one is handled at a time.
   const scanned = async ({ data }: { data: string }) => {
     setBusy(true);
     const problem = await onScanned(data);
