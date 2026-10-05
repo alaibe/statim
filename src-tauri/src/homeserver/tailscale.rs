@@ -84,7 +84,7 @@ fn host_of(status: &str) -> Result<String, String> {
 
 /// Runs a Tailscale command, giving up after a while: one that waits for the
 /// person to enable something in the admin console prints a link and blocks.
-/// `/usr/local/bin/tailscale` is a script around the real binary, so the
+/// The command can be a script around the real binary, as on a Mac, so the
 /// whole process group goes, or the binary would hold the output open.
 fn run(cli: &Path, args: &[&str]) -> Result<String, String> {
     run_within(cli, args, Duration::from_secs(15))
