@@ -15,10 +15,6 @@
     <key>com.apple.security.network.client</key>
     <true/>
 
-    <!-- Apple's sign-in in the browser comes back to a port on this computer. -->
-    <key>com.apple.security.network.server</key>
-    <true/>
-
     <!-- A Ledger connects over USB HID on the desktop. -->
     <key>com.apple.security.device.usb</key>
     <true/>
