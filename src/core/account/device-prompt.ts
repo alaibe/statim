@@ -1,27 +1,27 @@
-import type { Address } from 'viem';
+import type { UR } from '@ngraveio/bc-ur';
 import { create } from 'zustand';
 
-import type { HardwareSigner } from './hardware';
-import type { QrPurpose } from './vendors/keystone';
+import type { HardwareKey, HardwareSigner, HardwareVendor } from './hardware';
 
-/** What the person has to do on a hardware wallet before Statim can go on. */
+export type QrPurpose = 'message' | 'transaction' | 'typedData';
+
+export type LinkedVendor = Extract<HardwareVendor, { connection: 'bluetooth' | 'usb' }>;
+
 export type DevicePrompt =
   | {
       kind: 'connect';
-      vendorId: string;
-      label: string;
-      address: Address;
-      path: string;
+      vendor: LinkedVendor;
+      key: HardwareKey;
       settle(result: HardwareSigner | Error): void;
     }
   | {
       kind: 'qr';
-      label: string;
+      vendor: HardwareVendor;
       parts: string[];
       purpose: QrPurpose;
-      settle(result: string[] | Error): void;
+      settle(result: UR | Error): void;
     }
-  | { kind: 'confirm'; label: string; inApp: boolean; cancel?(): void };
+  | { kind: 'confirm'; vendor: HardwareVendor };
 
 export const useDevicePrompt = create<{ prompt: DevicePrompt | null }>(() => ({ prompt: null }));
 
@@ -32,45 +32,39 @@ export class Cancelled extends Error {
 }
 
 export function cancelPrompt(prompt: DevicePrompt): void {
-  if (prompt.kind === 'confirm') prompt.cancel?.();
-  else prompt.settle(new Cancelled());
+  if (prompt.kind !== 'confirm') prompt.settle(new Cancelled());
+  else if (prompt.vendor.connection === 'companion-app') prompt.vendor.cancel();
 }
 
 function ask<T>(prompt: (settle: (result: T | Error) => void) => DevicePrompt): Promise<T> {
+  const current = useDevicePrompt.getState().prompt;
+  if (current && current.kind !== 'confirm') {
+    return Promise.reject(new Error('Finish what the hardware wallet is asking first.'));
+  }
   return new Promise<T>((resolve, reject) => {
     const settle = (result: T | Error) => {
       useDevicePrompt.setState({ prompt: null });
       if (result instanceof Error) reject(result);
       else resolve(result);
     };
-    const current = useDevicePrompt.getState().prompt;
-    if (current && current.kind !== 'confirm') {
-      reject(new Error('Finish what the hardware wallet is asking first.'));
-      return;
-    }
     useDevicePrompt.setState({ prompt: prompt(settle) });
   });
 }
 
-export function askToConnect(request: {
-  vendorId: string;
-  label: string;
-  address: Address;
-  path: string;
-}): Promise<HardwareSigner> {
-  return ask<HardwareSigner>((settle) => ({ kind: 'connect', ...request, settle }));
+export function askToConnect(vendor: LinkedVendor, key: HardwareKey): Promise<HardwareSigner> {
+  return ask<HardwareSigner>((settle) => ({ kind: 'connect', vendor, key, settle }));
 }
 
 export function askToExchange(
-  label: string,
+  vendor: HardwareVendor,
   request: { parts: string[]; purpose: QrPurpose }
-): Promise<string[]> {
-  return ask<string[]>((settle) => ({ kind: 'qr', label, ...request, settle }));
+): Promise<UR> {
+  return ask<UR>((settle) => ({ kind: 'qr', vendor, ...request, settle }));
 }
 
-/** Says the device is waiting on the person; the returned function takes it back. */
-export function showConfirming(label: string, inApp: boolean, cancel?: () => void): () => void {
-  useDevicePrompt.setState({ prompt: { kind: 'confirm', label, inApp, cancel } });
+/** Says the wallet is waiting on the person; the returned function takes it back. */
+export function showConfirming(vendor: HardwareVendor): () => void {
+  useDevicePrompt.setState({ prompt: { kind: 'confirm', vendor } });
   return () => {
     if (useDevicePrompt.getState().prompt?.kind === 'confirm') {
       useDevicePrompt.setState({ prompt: null });

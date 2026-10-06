@@ -10,7 +10,7 @@ import {
 import { english, generateMnemonic, HDKey, mnemonicToAccount } from 'viem/accounts';
 import { mnemonicToSeedSync } from '@scure/bip39';
 
-import { decodeUr, encodeUr, keystoneSigner, readAccountUr, type QrExchange } from './keystone';
+import { encodeUr, keystoneSigner, readAccountUr, urReader } from './keystone';
 
 const MNEMONIC = generateMnemonic(english);
 const ACCOUNT = {
@@ -22,13 +22,22 @@ const ACCOUNT = {
 const signatureUr = (signature: Buffer) =>
   new ETHSignature(signature, Buffer.from('0'.repeat(32), 'hex')).toUR();
 
-function answering(signature: Buffer): { exchange: QrExchange; seen: EthSignRequest[] } {
+function readAll(frames: string[]): UR | null {
+  const reader = urReader();
+  for (const frame of frames) {
+    const result = reader.read(frame);
+    if (typeof result !== 'number') return result;
+  }
+  return null;
+}
+
+function answering(signature: Buffer) {
   const seen: EthSignRequest[] = [];
   return {
     seen,
-    exchange: async ({ parts }) => {
-      seen.push(EthSignRequest.fromCBOR(decodeUr(parts)!.cbor));
-      return encodeUr(signatureUr(signature));
+    exchange: async ({ parts }: { parts: string[] }) => {
+      seen.push(EthSignRequest.fromCBOR(readAll(parts)!.cbor));
+      return signatureUr(signature);
     },
   };
 }
@@ -38,13 +47,13 @@ describe('UR framing', () => {
     const big = new UR(Buffer.alloc(2_000, 7), 'bytes');
     const parts = encodeUr(big, 100);
     expect(parts.length).toBeGreaterThan(1);
-    expect(decodeUr(parts)?.cbor.equals(big.cbor)).toBe(true);
+    expect(readAll(parts)?.cbor.equals(big.cbor)).toBe(true);
   });
 
-  it('returns null from an incomplete or garbled scan rather than a partial result', () => {
+  it('reports progress on part of a scan and refuses what is not a UR', () => {
     const parts = encodeUr(new UR(Buffer.alloc(2_000, 7), 'bytes'), 100);
-    expect(decodeUr(parts.slice(0, 1))).toBeNull();
-    expect(decodeUr(['not a ur'])).toBeNull();
+    expect(typeof urReader().read(parts[0])).toBe('number');
+    expect(() => urReader().read('not a ur')).toThrow(/Keystone/);
   });
 });
 
@@ -125,8 +134,8 @@ describe('keystoneSigner', () => {
     });
     await expect(cancelled.signMessage('p', new Uint8Array([1]))).rejects.toThrow(/Cancelled/);
 
-    const garbled = keystoneSigner(ACCOUNT, async () => ['ur:bytes/not-a-frame']);
-    await expect(garbled.signMessage('p', new Uint8Array([1]))).rejects.toThrow(/signature/);
+    const garbled = keystoneSigner(ACCOUNT, async () => new UR(Buffer.alloc(4), 'bytes'));
+    await expect(garbled.signMessage('p', new Uint8Array([1]))).rejects.toThrow();
   });
 
   it('knows the address without asking, because it cannot ask', async () => {

@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 
 import { useAccountStore } from '../account/account-store';
 import { registerHardwareVendors } from '../account/vendors';
-import { isTrezorCallback } from '../account/vendors/trezor';
+import { handleTrezorCallback, isTrezorCallback } from '../account/vendors/trezor';
 import { useLockStore } from '../account/lock-store';
 import { usePluginHost } from '../plugins/host';
 import { reportError } from './report-error';
@@ -43,7 +43,11 @@ export function useDeepLinkRouter() {
 
   useEffect(() => {
     const consume = (url: string | null) => {
-      if (!url || isTrezorCallback(url)) return;
+      if (!url) return;
+      if (isTrezorCallback(url)) {
+        handleTrezorCallback(url);
+        return;
+      }
       const parsed = Linking.parse(url);
       const wrapped = typeof parsed.queryParams?.uri === 'string' ? parsed.queryParams.uri : null;
       handleUri(wrapped ?? url).catch((error) => {

@@ -99,8 +99,6 @@ describe('the wallet behind a hardware account', () => {
 
   it('reconnects once when the link dropped mid-request', async () => {
     const dropped: HardwareSigner = {
-      ...new FakeHardwareSigner(KEY),
-      label: 'Test',
       getAddress: async () => ADDRESS,
       signMessage: async () => {
         throw new Error('Device disconnected');

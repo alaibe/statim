@@ -9,9 +9,10 @@ import { privateKeyToAccount } from 'viem/accounts';
 
 import {
   DEFAULT_EVM_PATH,
+  deviceSignature,
   hardwareAccount,
   parityOf,
-  typedDataJson,
+  typedDataForDevice,
   type TypedData,
 } from './hardware';
 import { FakeHardwareSigner } from './testing/fake-hardware';
@@ -98,9 +99,17 @@ describe('parityOf', () => {
   });
 });
 
-describe('typedDataJson', () => {
+it('pads r and s to 32 bytes whatever prefix a device writes', () => {
+  expect(deviceSignature('0x01', '2', '0x1c')).toEqual({
+    r: `0x${'0'.repeat(63)}1`,
+    s: `0x${'0'.repeat(63)}2`,
+    yParity: 1,
+  });
+});
+
+describe('typedDataForDevice', () => {
   it('spells out the domain type and writes big numbers as text', () => {
-    const parsed = JSON.parse(typedDataJson(TYPED));
+    const parsed = typedDataForDevice(TYPED) as { types: any; message: any };
     expect(parsed.types.EIP712Domain.map((field: { name: string }) => field.name)).toEqual([
       'name',
       'chainId',

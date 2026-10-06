@@ -1,69 +1,55 @@
+import * as Crypto from 'expo-crypto';
 import * as Linking from 'expo-linking';
-import { bytesToHex, toHex, type Address, type Hex, type TransactionSerializable } from 'viem';
+import { toHex as quantity, type Address, type Hex, type TransactionSerializable } from 'viem';
 
-import { stripHex } from '@/lib/bytes';
-
-import { Cancelled } from '../device-prompt';
+import { stripHex, toHex } from '@/lib/bytes';
 import { openExternal } from '@/lib/open-url';
 
+import { Cancelled } from '../device-prompt';
 import {
-  parityOf,
+  DeviceAnswer,
+  deviceSignature,
   registerVendor,
+  typedDataForDevice,
   typedDataHashes,
-  typedDataJson,
   type HardwareSigner,
 } from '../hardware';
 
 /** Trezor Connect's deep link, as `@trezor/connect-mobile` 10 builds it; Trezor Suite answers it. */
 const CONNECT = 'https://connect.trezor.io/10/deeplink/1/';
 
-interface Answer {
-  success: boolean;
-  payload: Record<string, unknown>;
-}
+type Payload = Record<string, unknown>;
 
-const pending = new Map<string, { resolve(answer: Answer): void; reject(error: Error): void }>();
+const pending = new Map<string, { resolve(payload: Payload): void; reject(error: Error): void }>();
 
-// `new URL` is unreliable for custom schemes across engines, and `Linking.parse` would need
-// a native module in tests.
-function queryOf(url: string): Map<string, string> {
-  const out = new Map<string, string>();
-  const at = url.indexOf('?');
-  if (at === -1) return out;
-  for (const pair of url.slice(at + 1).split('&')) {
-    const eq = pair.indexOf('=');
-    if (eq === -1) continue;
-    const decode = (text: string) => decodeURIComponent(text.replace(/\+/g, ' '));
-    out.set(decode(pair.slice(0, eq)), decode(pair.slice(eq + 1)));
-  }
-  return out;
-}
+const queryOf = (url: string) => new URLSearchParams(url.slice(url.indexOf('?') + 1));
 
 export function isTrezorCallback(url: string): boolean {
-  return /^[a-z+.-]+:\/\/+trezor\b/i.test(url) && queryOf(url).has('id');
+  return /^[a-z+.-]+:\/\/+trezor\b/i.test(url) && url.includes('?') && queryOf(url).has('id');
 }
 
-/** Settles the request a Trezor Suite answer is for; false when it is not one. */
-export function handleTrezorCallback(url: string): boolean {
+/** Settles the request a Trezor Suite answer is for. */
+export function handleTrezorCallback(url: string): void {
   const query = queryOf(url);
-  const id = query.get('id');
-  const waiting = id ? pending.get(id) : undefined;
-  if (!id || !waiting) return false;
+  const id = query.get('id') ?? '';
+  const waiting = pending.get(id);
+  if (!waiting) return;
   pending.delete(id);
 
-  let answer: Answer | null = null;
+  let answer: { success?: boolean; payload?: Payload } | null = null;
   try {
-    answer = JSON.parse(query.get('response') ?? 'null') as Answer | null;
+    answer = JSON.parse(query.get('response') ?? 'null');
   } catch {}
-  if (!answer) {
+  if (!answer?.payload) {
     waiting.reject(new Error('Trezor Suite answered with nothing Statim can read.'));
   } else if (!answer.success) {
-    const error = answer.payload?.error;
-    waiting.reject(new Error(typeof error === 'string' ? error : 'Cancelled on the Trezor.'));
+    const error = answer.payload.error;
+    waiting.reject(
+      new DeviceAnswer(typeof error === 'string' ? error : 'Cancelled on the Trezor.')
+    );
   } else {
-    waiting.resolve(answer);
+    waiting.resolve(answer.payload);
   }
-  return true;
 }
 
 function cancelPending(): void {
@@ -71,59 +57,52 @@ function cancelPending(): void {
   pending.clear();
 }
 
-function newRequestId(): string {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
-}
-
-async function call(method: string, params: Record<string, unknown>): Promise<Answer['payload']> {
-  const id = newRequestId();
-  const callback = `${Linking.createURL('trezor')}?id=${encodeURIComponent(id)}`;
-  const url =
-    `${CONNECT}?method=${method}` +
-    `&params=${encodeURIComponent(JSON.stringify(params))}` +
-    `&callback=${encodeURIComponent(callback)}` +
-    `&appName=Statim`;
-
-  const answer = new Promise<Answer>((resolve, reject) => pending.set(id, { resolve, reject }));
+async function call(method: string, params: Payload): Promise<Payload> {
+  const id = Crypto.randomUUID();
+  const query = new URLSearchParams({
+    method,
+    params: JSON.stringify(params),
+    callback: `${Linking.createURL('trezor')}?id=${id}`,
+    appName: 'Statim',
+  });
+  const answer = new Promise<Payload>((resolve, reject) => pending.set(id, { resolve, reject }));
   try {
-    await openExternal(url);
+    await openExternal(`${CONNECT}?${query}`);
   } catch {
     pending.delete(id);
     throw new Error('Install Trezor Suite on this phone to use your Trezor here.');
   }
-  return (await answer).payload;
+  return answer;
 }
 
-function signatureOf(payload: Answer['payload']): Hex {
-  const signature = payload.signature;
-  if (typeof signature !== 'string') throw new Error('Trezor Suite returned no signature.');
-  return `0x${stripHex(signature)}` as Hex;
+function signatureOf(payload: Payload): Hex {
+  if (typeof payload.signature !== 'string') {
+    throw new Error('Trezor Suite returned no signature.');
+  }
+  return `0x${stripHex(payload.signature)}`;
 }
-
-const quantity = (value: bigint | number | undefined) =>
-  value === undefined ? undefined : toHex(value);
 
 function transactionFor(transaction: TransactionSerializable) {
+  const hex = (value: bigint | number | undefined) =>
+    value === undefined ? undefined : quantity(value);
   return {
     to: transaction.to ?? undefined,
-    value: quantity(transaction.value ?? 0n),
+    value: hex(transaction.value ?? 0n),
     data: transaction.data ?? '0x',
     chainId: transaction.chainId,
-    nonce: quantity(transaction.nonce ?? 0),
-    gasLimit: quantity(transaction.gas),
+    nonce: hex(transaction.nonce ?? 0),
+    gasLimit: hex(transaction.gas),
     ...('gasPrice' in transaction && transaction.gasPrice !== undefined
-      ? { gasPrice: quantity(transaction.gasPrice) }
+      ? { gasPrice: hex(transaction.gasPrice) }
       : {
-          maxFeePerGas: quantity(transaction.maxFeePerGas),
-          maxPriorityFeePerGas: quantity(transaction.maxPriorityFeePerGas),
+          maxFeePerGas: hex(transaction.maxFeePerGas),
+          maxPriorityFeePerGas: hex(transaction.maxPriorityFeePerGas),
         }),
   };
 }
 
-export function trezorSigner(): HardwareSigner {
+function trezorSigner(): HardwareSigner {
   return {
-    label: 'Trezor',
-
     async getAddress(path) {
       const payload = await call('ethereumGetAddress', { path, showOnTrezor: false });
       if (typeof payload.address !== 'string') throw new Error('Trezor Suite returned no address.');
@@ -131,12 +110,9 @@ export function trezorSigner(): HardwareSigner {
     },
 
     async signMessage(path, message) {
-      const payload = await call('ethereumSignMessage', {
-        path,
-        message: stripHex(bytesToHex(message)),
-        hex: true,
-      });
-      return signatureOf(payload);
+      return signatureOf(
+        await call('ethereumSignMessage', { path, message: toHex(message), hex: true })
+      );
     },
 
     async signTransaction(path, transaction) {
@@ -146,23 +122,20 @@ export function trezorSigner(): HardwareSigner {
       });
       const { r, s, v } = payload as { r?: string; s?: string; v?: string };
       if (!r || !s || !v) throw new Error('Trezor Suite returned no signature.');
-      return {
-        r: `0x${stripHex(r).padStart(64, '0')}` as Hex,
-        s: `0x${stripHex(s).padStart(64, '0')}` as Hex,
-        yParity: parityOf(parseInt(stripHex(v), 16), transaction),
-      };
+      return deviceSignature(r, s, v, transaction);
     },
 
     async signTypedData(path, typedData) {
       const hashes = typedDataHashes(typedData);
-      const payload = await call('ethereumSignTypedData', {
-        path,
-        data: JSON.parse(typedDataJson(typedData)),
-        metamask_v4_compat: true,
-        domain_separator_hash: stripHex(hashes.domain),
-        message_hash: stripHex(hashes.message),
-      });
-      return signatureOf(payload);
+      return signatureOf(
+        await call('ethereumSignTypedData', {
+          path,
+          data: typedDataForDevice(typedData),
+          metamask_v4_compat: true,
+          domain_separator_hash: stripHex(hashes.domain),
+          message_hash: stripHex(hashes.message),
+        })
+      );
     },
   };
 }
@@ -172,7 +145,7 @@ export function registerTrezor(): void {
     id: 'trezor',
     label: 'Trezor',
     connection: 'companion-app',
-    open: () => trezorSigner(),
+    open: trezorSigner,
     cancel: cancelPending,
   });
 }

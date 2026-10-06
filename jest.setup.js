@@ -55,6 +55,10 @@ jest.mock('expo-crypto', () => ({
     }
     return out;
   },
+  randomUUID: () => {
+    globalThis.__uuidSeed = (globalThis.__uuidSeed ?? 0) + 1;
+    return `00000000-0000-4000-8000-${String(globalThis.__uuidSeed).padStart(12, '0')}`;
+  },
 }));
 
 // jest.fn() so tests can make the OS prompt succeed, fail or be cancelled.

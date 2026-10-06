@@ -56,8 +56,7 @@ export interface HardwareAccountParams {
   signer: HardwareSigner;
 }
 
-/** Has the wallet sign the chat key message; its signature seeds the account's chat keys. */
-export async function signChatKeys(signer: HardwareSigner, path: string): Promise<Hex> {
+async function signChatKeys(signer: HardwareSigner, path: string): Promise<Hex> {
   return chatSeedFrom(await signer.signMessage(path, stringToBytes(CHAT_KEY_MESSAGE)));
 }
 
@@ -174,7 +173,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
       ? { ...duplicate, ...fields }
       : {
           id: createAccountId(),
-          label: params.label.trim() || `Account ${existing.length + 1}`,
+          label: params.label,
           createdAt: Date.now(),
           ...fields,
         };
@@ -182,13 +181,13 @@ export const useAccountStore = create<AccountState>((set, get) => ({
       ? existing.map((a) => (a.id === record.id ? record : a))
       : [...existing, record];
 
-    await deleteMnemonic(record.id);
+    if (duplicate) await deleteMnemonic(record.id);
     await writeMnemonic(record.id, seed);
     await saveAccounts(accounts);
     await setActiveAccountId(record.id);
     holdDevice(record.id, signer);
     set({ accounts });
-    await activate(record.id, set);
+    await activate(record.id, set, seed);
   },
 
   async setUpChatKeys() {
@@ -196,7 +195,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
     if (record?.kind !== 'hardware') return;
     const seed = await signChatKeys(deviceSigner(record), keyOf(record).path);
     await writeMnemonic(record.id, seed);
-    await activate(record.id, set);
+    await activate(record.id, set, seed);
   },
 
   async selectAccount(id: string) {
@@ -232,12 +231,17 @@ export const useAccountStore = create<AccountState>((set, get) => ({
   },
 }));
 
+/** `secret` is what was just written to the account's slot, so it need not be read back. */
 async function activate(
   accountId: string,
-  set: (partial: Partial<AccountStateSlice>) => void
+  set: (partial: Partial<AccountStateSlice>) => void,
+  secret?: string
 ): Promise<'ready' | 'blocked' | 'invalidated'> {
   const record = useAccountStore.getState().accounts.find((a) => a.id === accountId);
-  const result = await readMnemonic(accountId, true);
+  const result =
+    secret === undefined
+      ? await readMnemonic(accountId, true)
+      : ({ status: 'ok', value: secret } as const);
 
   if (record?.kind === 'hardware') {
     if (result.status === 'denied') {

@@ -11,7 +11,15 @@ export default function SheetRoute() {
   const current = useSheetStore((s) => s.current);
   const prompt = useDevicePrompt((s) => s.prompt);
   const insets = useSafeAreaInsets();
-  const title = prompt ? devicePromptTitle(prompt) : current?.title;
+  const shown = prompt
+    ? {
+        title: devicePromptTitle(prompt),
+        subtitle: undefined,
+        leading: undefined,
+        onClose: () => cancelPrompt(prompt),
+        children: <DevicePromptBody prompt={prompt} />,
+      }
+    : current;
 
   // Unmounting is how a swipe-to-dismiss reaches the owner.
   useEffect(
@@ -27,16 +35,16 @@ export default function SheetRoute() {
   return (
     <View className="bg-surface px-gutter" style={{ paddingBottom: insets.bottom + 8 }}>
       <View className="min-h-tap flex-row items-center gap-3 py-3">
-        {prompt ? null : current?.leading}
+        {shown?.leading}
         <View className="min-w-0 flex-1">
-          {title ? (
+          {shown?.title ? (
             <Text variant="title" numberOfLines={1}>
-              {title}
+              {shown.title}
             </Text>
           ) : null}
-          {!prompt && current?.subtitle ? (
+          {shown?.subtitle ? (
             <Text variant="caption" numberOfLines={1}>
-              {current.subtitle}
+              {shown.subtitle}
             </Text>
           ) : null}
         </View>
@@ -46,12 +54,10 @@ export default function SheetRoute() {
           label="Close"
           size={18}
           surface="sunken"
-          onPress={() => (prompt ? cancelPrompt(prompt) : current?.onClose())}
+          onPress={() => shown?.onClose()}
         />
       </View>
-      <View className="gap-3">
-        {prompt ? <DevicePromptBody prompt={prompt} /> : current?.children}
-      </View>
+      <View className="gap-3">{shown?.children}</View>
     </View>
   );
 }

@@ -1,70 +1,62 @@
-import { UR, UREncoder, URDecoder } from '@ngraveio/bc-ur';
+import type { UR } from '@ngraveio/bc-ur';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import * as Crypto from 'expo-crypto';
-import {
-  bytesToHex,
-  serializeTransaction,
-  type Address,
-  type Hex,
-  type TransactionSerializable,
-} from 'viem';
+import { bytesToHex, serializeTransaction, type TransactionSerializable } from 'viem';
 import { HDKey, publicKeyToAddress } from 'viem/accounts';
 
 import { toHex } from '@/lib/bytes';
 
-import { askToExchange } from '../device-prompt';
-import { parityOf, registerVendor, typedDataJson, type HardwareSigner } from '../hardware';
+import { askToExchange, type QrPurpose } from '../device-prompt';
+import {
+  deviceSignature,
+  registerVendor,
+  typedDataForDevice,
+  type HardwareKey,
+  type HardwareSigner,
+  type HardwareVendor,
+} from '../hardware';
 
+// `require`, not `import()`: both defer evaluation, but `import()` needs ESM
+// support Jest does not have, so this way the deferral stays testable.
 function registry(): typeof import('@keystonehq/bc-ur-registry-eth') {
-  // `require`, not `import()`: both defer evaluation, but `import()` needs ESM
-  // support Jest does not have, so this way the deferral stays testable.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   return require('@keystonehq/bc-ur-registry-eth');
 }
 
-export type QrPurpose = 'message' | 'transaction' | 'typedData';
+function bcUr(): typeof import('@ngraveio/bc-ur') {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return require('@ngraveio/bc-ur');
+}
 
-/** Shows `parts` as an animated QR code and resolves with the frames scanned back. */
-export type QrExchange = (request: { parts: string[]; purpose: QrPurpose }) => Promise<string[]>;
-
+/** The frames that show `ur`: a loop of several when it does not fit in one QR code. */
 export function encodeUr(ur: UR, maxFragment = 200): string[] {
-  const encoder = new UREncoder(ur, maxFragment);
-  const parts: string[] = [];
-  const seen = new Set<string>();
-  for (let i = 0; i < 256; i += 1) {
-    const part = encoder.nextPart();
-    if (seen.has(part)) break;
-    seen.add(part);
-    parts.push(part);
-  }
-  return parts;
+  const encoder = new (bcUr().UREncoder)(ur, maxFragment);
+  const count = encoder.fragmentsLength === 1 ? 1 : encoder.fragmentsLength * 3;
+  return Array.from({ length: count }, () => encoder.nextPart());
 }
 
-export function decodeUr(frames: string[]): UR | null {
-  const decoder = new URDecoder();
-  for (const frame of frames) {
-    try {
-      decoder.receivePart(frame.toLowerCase());
-    } catch {
-      return null;
-    }
-  }
-  return decoder.isComplete() && decoder.isSuccess() ? decoder.resultUR() : null;
-}
-
-export interface KeystoneAccount {
-  address: Address;
-  path: string;
-  xfp: string;
+/** Reads a UR one scanned frame at a time; `read` gives the UR once whole, else how far along. */
+export function urReader(): { read(frame: string): UR | number } {
+  const decoder = new (bcUr().URDecoder)();
+  return {
+    read(frame) {
+      try {
+        decoder.receivePart(frame.toLowerCase());
+      } catch {
+        throw new Error('That QR code is not one a Keystone shows.');
+      }
+      if (decoder.isError()) throw new Error(decoder.resultError());
+      return decoder.isComplete() ? decoder.resultUR() : decoder.estimatedPercentComplete();
+    },
+  };
 }
 
 /** The first account of the `crypto-hdkey` a Keystone shows under Connect Software Wallet › MetaMask. */
-export function readAccountUr(ur: UR): KeystoneAccount {
+export function readAccountUr(ur: UR): HardwareKey {
   if (ur.type !== 'crypto-hdkey') {
     throw new Error('On the Keystone, choose Connect Software Wallet, then MetaMask.');
   }
-  const { CryptoHDKey } = registry();
-  const hdKey = CryptoHDKey.fromCBOR(ur.cbor);
+  const hdKey = registry().CryptoHDKey.fromCBOR(ur.cbor);
   const origin = hdKey.getOrigin();
   const node = new HDKey({
     publicKey: new Uint8Array(hdKey.getKey()),
@@ -78,92 +70,82 @@ export function readAccountUr(ur: UR): KeystoneAccount {
   return {
     address: publicKeyToAddress(bytesToHex(uncompressed)),
     path: `m/${origin.getPath()}/0/0`,
-    xfp: Buffer.from(origin.getSourceFingerprint() ?? []).toString('hex'),
+    xfp: toHex(origin.getSourceFingerprint() ?? new Uint8Array()),
   };
 }
 
-function readSignature(ur: UR): Buffer {
-  const { ETHSignature } = registry();
-  const signature = Buffer.from(ETHSignature.fromCBOR(ur.cbor).getSignature());
-  if (signature.length !== 65) throw new Error('That QR was not a complete signature.');
-  return signature;
-}
+const PURPOSE = {
+  personalMessage: 'message',
+  transaction: 'transaction',
+  typedTransaction: 'transaction',
+  typedData: 'typedData',
+} as const satisfies Record<string, QrPurpose>;
 
-function requestId(): string {
-  const bytes = Crypto.getRandomBytes(16);
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = toHex(bytes);
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
-
-function isLegacy(transaction: TransactionSerializable): boolean {
-  return transaction.type === 'legacy' || (!transaction.type && 'gasPrice' in transaction);
-}
-
-export function keystoneSigner(account: KeystoneAccount, exchange: QrExchange): HardwareSigner {
+export function keystoneSigner(
+  key: HardwareKey,
+  exchange: (request: { parts: string[]; purpose: QrPurpose }) => Promise<UR>
+): HardwareSigner {
   const ask = async (
     payload: Buffer,
-    type: 'personalMessage' | 'transaction' | 'typedTransaction' | 'typedData',
-    purpose: QrPurpose,
+    type: keyof typeof PURPOSE,
     chainId?: number
-  ): Promise<Buffer> => {
-    const { DataType, EthSignRequest } = registry();
+  ): Promise<Uint8Array> => {
+    const { DataType, EthSignRequest, ETHSignature } = registry();
     const request = EthSignRequest.constructETHRequest(
       payload,
       DataType[type],
-      account.path,
-      account.xfp,
-      requestId(),
+      key.path,
+      key.xfp ?? '',
+      Crypto.randomUUID(),
       chainId,
-      account.address
+      key.address
     );
-    const ur = decodeUr(await exchange({ parts: encodeUr(request.toUR()), purpose }));
-    if (!ur) throw new Error('That QR was not a complete signature.');
-    return readSignature(ur);
+    const answer = await exchange({ parts: encodeUr(request.toUR()), purpose: PURPOSE[type] });
+    const signature = new Uint8Array(ETHSignature.fromCBOR(answer.cbor).getSignature());
+    if (signature.length !== 65) throw new Error('That QR was not a complete signature.');
+    return signature;
   };
 
   return {
-    label: 'Keystone',
-
     async getAddress() {
-      return account.address;
+      return key.address;
     },
 
     async signMessage(_path, message) {
-      return `0x${(await ask(Buffer.from(message), 'personalMessage', 'message')).toString('hex')}` as Hex;
+      return bytesToHex(await ask(Buffer.from(message), 'personalMessage'));
     },
 
-    async signTransaction(_path, transaction) {
+    async signTransaction(_path, transaction: TransactionSerializable) {
+      const legacy =
+        transaction.type === 'legacy' || (!transaction.type && 'gasPrice' in transaction);
       const unsigned = Buffer.from(serializeTransaction(transaction).slice(2), 'hex');
       const signature = await ask(
         unsigned,
-        isLegacy(transaction) ? 'transaction' : 'typedTransaction',
-        'transaction',
+        legacy ? 'transaction' : 'typedTransaction',
         transaction.chainId
       );
-      return {
-        r: `0x${signature.subarray(0, 32).toString('hex')}` as Hex,
-        s: `0x${signature.subarray(32, 64).toString('hex')}` as Hex,
-        yParity: parityOf(signature[64], transaction),
-      };
+      return deviceSignature(
+        bytesToHex(signature.subarray(0, 32)),
+        bytesToHex(signature.subarray(32, 64)),
+        signature[64],
+        transaction
+      );
     },
 
     async signTypedData(_path, typedData) {
-      const json = Buffer.from(typedDataJson(typedData), 'utf8');
-      return `0x${(await ask(json, 'typedData', 'typedData')).toString('hex')}` as Hex;
+      const json = Buffer.from(JSON.stringify(typedDataForDevice(typedData)), 'utf8');
+      return bytesToHex(await ask(json, 'typedData'));
     },
   };
 }
 
+const KEYSTONE: HardwareVendor = {
+  id: 'keystone',
+  label: 'Keystone',
+  connection: 'qr',
+  open: (key) => keystoneSigner(key, (request) => askToExchange(KEYSTONE, request)),
+};
+
 export function registerKeystone(): void {
-  registerVendor({
-    id: 'keystone',
-    label: 'Keystone',
-    connection: 'qr',
-    open: (key) =>
-      keystoneSigner({ address: key.address, path: key.path, xfp: key.xfp ?? '' }, (request) =>
-        askToExchange('Keystone', request)
-      ),
-  });
+  registerVendor(KEYSTONE);
 }

@@ -173,10 +173,6 @@ function AppShell() {
           <Stack.Screen name="search" options={SHEET_OPTIONS} />
           <Stack.Screen name="share" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen
-            name="trezor"
-            options={{ animation: 'none', presentation: 'transparentModal' }}
-          />
-          <Stack.Screen
             name="sheet"
             options={{
               presentation: 'formSheet',

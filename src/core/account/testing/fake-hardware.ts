@@ -2,11 +2,9 @@ import { keccak256, parseSignature, serializeTransaction } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import type { Address, Hex, Signature, TransactionSerializable } from 'viem';
 
-import type { HardwareSigner, TypedData } from '../hardware';
+import { DeviceAnswer, type HardwareSigner, type TypedData } from '../hardware';
 
 export class FakeHardwareSigner implements HardwareSigner {
-  readonly label = 'Test device';
-
   refuse = false;
   readonly calls: string[] = [];
 
@@ -42,6 +40,6 @@ export class FakeHardwareSigner implements HardwareSigner {
   }
 
   private guard(): void {
-    if (this.refuse) throw new Error('Rejected on the device');
+    if (this.refuse) throw new DeviceAnswer('Rejected on the device');
   }
 }

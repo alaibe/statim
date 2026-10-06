@@ -1,20 +1,16 @@
-import type { Hex } from 'viem';
-
 import type { AccountRecord } from './accounts';
-import { askToConnect, Cancelled, showConfirming } from './device-prompt';
+import { askToConnect, Cancelled, showConfirming, type LinkedVendor } from './device-prompt';
 import {
   DEFAULT_EVM_PATH,
-  findVendor,
+  DeviceAnswer,
   vendor,
   type HardwareKey,
   type HardwareSigner,
+  type HardwareVendor,
 } from './hardware';
 
 const live = new Map<string, HardwareSigner>();
 let queue: Promise<unknown> = Promise.resolve();
-
-/** Errors after which the wallet is still connected and ready for another try. */
-const STILL_CONNECTED = /Rejected on|Open the Ethereum app|Blind signing|Cancelled/;
 
 export function keyOf(record: AccountRecord): HardwareKey {
   return { address: record.address, path: record.path ?? DEFAULT_EVM_PATH, xfp: record.xfp };
@@ -28,29 +24,31 @@ export function releaseDevice(accountId: string): void {
   live.delete(accountId);
 }
 
-async function holds(signer: HardwareSigner, key: HardwareKey): Promise<boolean> {
-  return (await signer.getAddress(key.path)).toLowerCase() === key.address.toLowerCase();
+/** Connects to `deviceId` and makes sure it holds the account. */
+export async function connectTo(
+  wallet: LinkedVendor,
+  deviceId: string,
+  key: HardwareKey
+): Promise<HardwareSigner> {
+  const signer = await wallet.connect(deviceId);
+  if ((await signer.getAddress(key.path)).toLowerCase() !== key.address.toLowerCase()) {
+    throw new Error(`That ${wallet.label} holds a different account.`);
+  }
+  return signer;
 }
 
-async function signerFor(record: AccountRecord): Promise<HardwareSigner> {
+async function signerFor(record: AccountRecord, wallet: HardwareVendor): Promise<HardwareSigner> {
   const held = live.get(record.id);
   if (held) return held;
 
-  const found = vendor(record.vendorId ?? '');
   const key = keyOf(record);
-  let signer: HardwareSigner | null = found.open?.(key) ?? null;
-  if (!signer && found.connect && record.device) {
-    signer = await found
-      .connect(record.device)
-      .then(async (candidate) => ((await holds(candidate, key)) ? candidate : null))
-      .catch(() => null);
+  let signer: HardwareSigner | null;
+  if (wallet.connection === 'qr') signer = wallet.open(key);
+  else if (wallet.connection === 'companion-app') signer = wallet.open();
+  else {
+    signer = record.device ? await connectTo(wallet, record.device, key).catch(() => null) : null;
+    signer ??= await askToConnect(wallet, key);
   }
-  signer ??= await askToConnect({
-    vendorId: found.id,
-    label: found.label,
-    address: key.address,
-    path: key.path,
-  });
   live.set(record.id, signer);
   return signer;
 }
@@ -61,20 +59,17 @@ function onDevice<T>(
   task: (signer: HardwareSigner) => Promise<T>
 ): Promise<T> {
   const attempt = async (retried: boolean): Promise<T> => {
-    const signer = await signerFor(record);
-    const { connection, cancel } = vendor(record.vendorId ?? '');
-    const done =
-      connection === 'qr'
-        ? () => {}
-        : showConfirming(signer.label, connection === 'companion-app', cancel);
+    const wallet = vendor(record.vendorId ?? '');
+    const signer = await signerFor(record, wallet);
+    const done = wallet.connection === 'qr' ? () => {} : showConfirming(wallet);
     try {
       return await task(signer);
     } catch (error) {
-      if (error instanceof Cancelled) throw error;
-      const message = error instanceof Error ? error.message : String(error);
-      if (STILL_CONNECTED.test(message)) throw error;
+      if (error instanceof Cancelled || error instanceof DeviceAnswer) throw error;
       live.delete(record.id);
-      if (retried || connection === 'qr' || connection === 'companion-app') throw error;
+      if (retried || wallet.connection === 'qr' || wallet.connection === 'companion-app') {
+        throw error;
+      }
       return await attempt(true);
     } finally {
       done();
@@ -88,10 +83,8 @@ function onDevice<T>(
 /** The account's wallet as a signer that connects when it is first needed. */
 export function deviceSigner(record: AccountRecord): HardwareSigner {
   return {
-    label: findVendor(record.vendorId)?.label ?? record.label,
     getAddress: (path) => onDevice(record, (signer) => signer.getAddress(path)),
-    signMessage: (path, message): Promise<Hex> =>
-      onDevice(record, (signer) => signer.signMessage(path, message)),
+    signMessage: (path, message) => onDevice(record, (signer) => signer.signMessage(path, message)),
     signTransaction: (path, transaction) =>
       onDevice(record, (signer) => signer.signTransaction(path, transaction)),
     signTypedData: (path, typedData) =>

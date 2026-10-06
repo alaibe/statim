@@ -1,4 +1,4 @@
-import { URDecoder } from '@ngraveio/bc-ur';
+import type { UR } from '@ngraveio/bc-ur';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
 
@@ -16,31 +16,31 @@ import {
 } from '@/design';
 import { SHEET_DISMISS_MS, useSheetStore } from '@/design/components/sheet';
 import { errorMessage } from '@/core/errors';
-import { cancelPrompt, useDevicePrompt, type DevicePrompt } from '@/core/account/device-prompt';
-import { vendor, type HardwareConnection, type HardwareVendor } from '@/core/account/hardware';
+import {
+  cancelPrompt,
+  useDevicePrompt,
+  type DevicePrompt,
+  type LinkedVendor,
+} from '@/core/account/device-prompt';
+import { connectTo } from '@/core/account/device-session';
+import type { HardwareConnection } from '@/core/account/hardware';
+import { urReader } from '@/core/account/vendors/keystone';
 
-export const CONNECTION: Record<
-  HardwareConnection,
-  { icon: IconName; searching: string; how: string }
-> = {
+export const CONNECTION: Record<HardwareConnection, { icon: IconName; how: string }> = {
   bluetooth: {
     icon: 'bluetooth-outline',
-    searching: 'Looking for nearby wallets…',
     how: 'Unlock it and open the Ethereum app, then keep it nearby.',
   },
   usb: {
     icon: 'hardware-chip-outline',
-    searching: 'Looking for a plugged-in wallet…',
     how: 'Plug it in, unlock it and open the Ethereum app.',
   },
   qr: {
     icon: 'qr-code-outline',
-    searching: '',
     how: 'You scan a QR code from its screen, and it scans one from yours.',
   },
   'companion-app': {
     icon: 'phone-portrait-outline',
-    searching: '',
     how:
       Platform.OS === 'ios'
         ? 'Needs Trezor Suite and a Trezor Safe 7, which connects to it over Bluetooth.'
@@ -48,25 +48,26 @@ export const CONNECTION: Record<
   },
 };
 
-/** Wallets the vendor finds on its link, listed as they appear. */
+const SEARCHING = {
+  bluetooth: 'Looking for nearby wallets…',
+  usb: 'Looking for a plugged-in wallet…',
+};
+
 export function DeviceList({
-  vendor: chosen,
-  disabled,
+  vendor,
   onPick,
 }: {
-  vendor: HardwareVendor;
-  disabled: boolean;
+  vendor: LinkedVendor;
   onPick(deviceId: string): void;
 }) {
   const [devices, setDevices] = useState<{ id: string; name: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!chosen.scan) return;
     let stop: (() => void) | undefined;
     let cancelled = false;
     const failed = (e: unknown) => setError(errorMessage(e, 'Could not look for wallets'));
-    chosen
+    vendor
       .scan(
         (device) =>
           setDevices((prev) => (prev.some((d) => d.id === device.id) ? prev : [...prev, device])),
@@ -81,21 +82,20 @@ export function DeviceList({
       cancelled = true;
       stop?.();
     };
-  }, [chosen]);
+  }, [vendor]);
 
-  const connection = CONNECTION[chosen.connection];
   return (
     <>
       {devices.length === 0 ? (
-        <Text variant="caption">{connection.searching}</Text>
+        <Text variant="caption">{SEARCHING[vendor.connection]}</Text>
       ) : (
         devices.map((device) => (
           <ListItem
             key={device.id}
             testID={`hardware-device-${device.id}`}
             title={device.name || 'Unnamed wallet'}
-            leading={<RowIcon name={connection.icon} tone="blue" />}
-            onPress={disabled ? undefined : () => onPick(device.id)}
+            leading={<RowIcon name={CONNECTION[vendor.connection].icon} tone="blue" />}
+            onPress={() => onPick(device.id)}
           />
         ))
       )}
@@ -107,30 +107,27 @@ export function DeviceList({
 function Reconnect({ prompt }: { prompt: Extract<DevicePrompt, { kind: 'connect' }> }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const chosen = vendor(prompt.vendorId);
 
   const pick = async (deviceId: string) => {
     setBusy(true);
     setError(null);
     try {
-      const signer = await chosen.connect!(deviceId);
-      const address = await signer.getAddress(prompt.path);
-      if (address.toLowerCase() !== prompt.address.toLowerCase()) {
-        throw new Error(`That ${prompt.label} holds a different account.`);
-      }
-      prompt.settle(signer);
+      prompt.settle(await connectTo(prompt.vendor, deviceId, prompt.key));
     } catch (e) {
-      setError(errorMessage(e, `Could not reach your ${prompt.label}`));
+      setError(errorMessage(e, `Could not reach your ${prompt.vendor.label}`));
       setBusy(false);
     }
   };
 
   return (
     <>
-      <Text variant="footnote">{CONNECTION[chosen.connection].how}</Text>
-      <DeviceList vendor={chosen} disabled={busy} onPick={(id) => void pick(id)} />
+      <Text variant="footnote">{CONNECTION[prompt.vendor.connection].how}</Text>
+      {busy ? (
+        <Text variant="caption">Connecting…</Text>
+      ) : (
+        <DeviceList vendor={prompt.vendor} onPick={(id) => void pick(id)} />
+      )}
       <ErrorText>{error}</ErrorText>
-      <Button label="Cancel" tone="neutral" fullWidth onPress={() => cancelPrompt(prompt)} />
     </>
   );
 }
@@ -144,92 +141,95 @@ const PURPOSE = {
 function QrExchange({ prompt }: { prompt: Extract<DevicePrompt, { kind: 'qr' }> }) {
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState(0);
-  const decoder = useRef(new URDecoder());
-  const frames = useRef<string[]>([]);
+  const reader = useRef<ReturnType<typeof urReader> | null>(null);
+  const label = prompt.vendor.label;
 
   const read = async (data: string) => {
+    reader.current ??= urReader();
+    let result: UR | number;
     try {
-      decoder.current.receivePart(data.toLowerCase());
-    } catch {
-      return `That is not the signature your ${prompt.label} shows.`;
+      result = reader.current.read(data);
+    } catch (e) {
+      reader.current = null;
+      return errorMessage(e, `That is not the signature your ${label} shows.`);
     }
-    frames.current.push(data);
-    if (decoder.current.isComplete()) {
-      prompt.settle(frames.current);
-      return null;
+    if (typeof result === 'number') {
+      setProgress(Math.round(result * 100));
+      return undefined;
     }
-    setProgress(Math.round(decoder.current.estimatedPercentComplete() * 100));
-    return undefined;
+    prompt.settle(result);
+    return null;
   };
 
-  return (
+  return scanning ? (
     <>
-      {scanning ? (
-        <>
-          <Text variant="footnote">Scan the signature your {prompt.label} shows.</Text>
-          <QrReader
-            purpose={`The camera reads the signature from your ${prompt.label}, and nothing else.`}
-            onScanned={read}
-            className="h-72"
-          />
-          {progress > 0 ? <Text variant="caption">Keep it in view: {progress}%</Text> : null}
-        </>
-      ) : (
-        <>
-          <Text variant="footnote">
-            Scan this with your {prompt.label} to sign {PURPOSE[prompt.purpose]}, and check what it
-            shows before you approve.
-          </Text>
-          <View className="items-center">
-            <AnimatedQrCode parts={prompt.parts} />
-          </View>
-          <Button label="Scan the signature" fullWidth onPress={() => setScanning(true)} />
-        </>
-      )}
-      <Button label="Cancel" tone="neutral" fullWidth onPress={() => cancelPrompt(prompt)} />
+      <Text variant="footnote">Scan the signature your {label} shows.</Text>
+      <QrReader
+        purpose={`The camera reads the signature from your ${label}, and nothing else.`}
+        onScanned={read}
+        className="h-72"
+      />
+      {progress > 0 ? <Text variant="caption">Keep it in view: {progress}%</Text> : null}
+    </>
+  ) : (
+    <>
+      <Text variant="footnote">
+        Scan this with your {label} to sign {PURPOSE[prompt.purpose]}, and check what it shows
+        before you approve.
+      </Text>
+      <View className="items-center">
+        <AnimatedQrCode parts={prompt.parts} />
+      </View>
+      <Button label="Scan the signature" fullWidth onPress={() => setScanning(true)} />
     </>
   );
 }
 
 function Confirming({ prompt }: { prompt: Extract<DevicePrompt, { kind: 'confirm' }> }) {
   const colors = useThemeColors();
+  const { label, connection } = prompt.vendor;
   return (
-    <>
-      <View className="flex-row items-center gap-3">
-        <ActivityIndicator color={colors.content} />
-        <Text variant="footnote" className="flex-1">
-          {prompt.inApp
-            ? `Finish in ${prompt.label} Suite, then come back to Statim.`
-            : `Check the details on your ${prompt.label} and approve them there.`}
-        </Text>
-      </View>
-      {prompt.cancel ? (
-        <Button label="Cancel" tone="neutral" fullWidth onPress={() => cancelPrompt(prompt)} />
-      ) : null}
-    </>
+    <View className="flex-row items-center gap-3">
+      <ActivityIndicator color={colors.content} />
+      <Text variant="footnote" className="flex-1">
+        {connection === 'companion-app'
+          ? `Finish in ${label} Suite, then come back to Statim.`
+          : `Check the details on your ${label} and approve them there.`}
+      </Text>
+    </View>
   );
 }
 
 export function devicePromptTitle(prompt: DevicePrompt): string {
+  const { label, connection } = prompt.vendor;
   switch (prompt.kind) {
     case 'connect':
-      return `Connect your ${prompt.label}`;
+      return `Connect your ${label}`;
     case 'qr':
-      return `Sign on your ${prompt.label}`;
+      return `Sign on your ${label}`;
     case 'confirm':
-      return prompt.inApp ? `Waiting for ${prompt.label} Suite` : `Confirm on your ${prompt.label}`;
+      return connection === 'companion-app'
+        ? `Waiting for ${label} Suite`
+        : `Confirm on your ${label}`;
   }
 }
 
 export function DevicePromptBody({ prompt }: { prompt: DevicePrompt }) {
-  switch (prompt.kind) {
-    case 'connect':
-      return <Reconnect prompt={prompt} />;
-    case 'qr':
-      return <QrExchange prompt={prompt} />;
-    case 'confirm':
-      return <Confirming prompt={prompt} />;
-  }
+  const cancellable = prompt.kind !== 'confirm' || prompt.vendor.connection === 'companion-app';
+  return (
+    <>
+      {prompt.kind === 'connect' ? (
+        <Reconnect prompt={prompt} />
+      ) : prompt.kind === 'qr' ? (
+        <QrExchange prompt={prompt} />
+      ) : (
+        <Confirming prompt={prompt} />
+      )}
+      {cancellable ? (
+        <Button label="Cancel" tone="neutral" fullWidth onPress={() => cancelPrompt(prompt)} />
+      ) : null}
+    </>
+  );
 }
 
 /**
@@ -238,54 +238,46 @@ export function DevicePromptBody({ prompt }: { prompt: DevicePrompt }) {
  * time is all a phone presents.
  */
 export function DevicePromptHost() {
-  const prompt = useDevicePrompt((s) => s.prompt);
-  const [lingering, setLingering] = useState<DevicePrompt | null>(null);
-  const [mine, setMine] = useState(false);
+  const [hosted, setHosted] = useState<DevicePrompt | null>(null);
 
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    let closing: ReturnType<typeof setTimeout> | undefined;
     let opening: ReturnType<typeof setTimeout> | undefined;
     // A sheet that just closed may still be animating, and nothing else can present until then.
     const open = () => {
       clearTimeout(opening);
-      opening = setTimeout(() => {
-        if (useDevicePrompt.getState().prompt) setMine(true);
-      }, SHEET_DISMISS_MS);
+      opening = setTimeout(() => setHosted(useDevicePrompt.getState().prompt), SHEET_DISMISS_MS);
     };
     const stopPrompt = useDevicePrompt.subscribe(({ prompt: next }, { prompt: before }) => {
-      clearTimeout(timer);
+      clearTimeout(closing);
       if (next) {
-        setLingering(next);
+        setHosted((current) => (current ? next : current));
         if (!before && useSheetStore.getState().current === null) open();
         return;
       }
       // One request often follows another, as connecting does before confirming.
-      timer = setTimeout(() => {
-        setLingering(null);
-        setMine(false);
-      }, 400);
+      closing = setTimeout(() => setHosted(null), 400);
     });
     const stopSheet = useSheetStore.subscribe(({ current }) => {
       if (current === null && useDevicePrompt.getState().prompt) open();
     });
     return () => {
-      clearTimeout(timer);
+      clearTimeout(closing);
       clearTimeout(opening);
       stopPrompt();
       stopSheet();
     };
   }, []);
 
-  const shown = prompt ?? lingering;
   return (
     <Sheet
-      visible={mine && shown !== null}
-      title={shown ? devicePromptTitle(shown) : undefined}
+      visible={hosted !== null}
+      title={hosted ? devicePromptTitle(hosted) : undefined}
       onClose={() => {
         const current = useDevicePrompt.getState().prompt;
         if (current) cancelPrompt(current);
       }}>
-      {shown ? <DevicePromptBody prompt={shown} /> : null}
+      {hosted ? <DevicePromptBody prompt={hosted} /> : null}
     </Sheet>
   );
 }

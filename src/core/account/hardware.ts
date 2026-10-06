@@ -3,7 +3,9 @@ import {
   hashDomain,
   hashStruct,
   hexToBytes,
+  pad,
   serializeTransaction,
+  stringify,
   stringToBytes,
   type Address,
   type CustomSource,
@@ -17,7 +19,6 @@ import {
 import { toAccount } from 'viem/accounts';
 
 export interface HardwareSigner {
-  readonly label: string;
   getAddress(path: string): Promise<Address>;
   /** EIP-191 personal_sign of `message`; a 65-byte signature with v of 27 or 28. */
   signMessage(path: string, message: Uint8Array): Promise<Hex>;
@@ -27,8 +28,6 @@ export interface HardwareSigner {
 
 export type TypedData = TypedDataDefinition & { primaryType: string };
 
-export type HardwareConnection = 'bluetooth' | 'usb' | 'qr' | 'companion-app';
-
 /** Where an account lives on its wallet. `xfp` is the master fingerprint a Keystone asks for. */
 export interface HardwareKey {
   address: Address;
@@ -36,21 +35,23 @@ export interface HardwareKey {
   xfp?: string;
 }
 
-export interface HardwareVendor {
-  id: string;
-  label: string;
-  connection: HardwareConnection;
-  /** For wallets on a link: finds them, then `connect` opens one. */
-  scan?(
-    onFound: (device: { id: string; name: string }) => void,
-    onError: (e: unknown) => void
-  ): Promise<() => void>;
-  connect?(deviceId: string): Promise<HardwareSigner>;
-  /** For wallets reached another way each time, by QR codes or through their own app. */
-  open?(key: HardwareKey): HardwareSigner;
-  /** Gives up on the request its app was opened for, when the person does not come back. */
-  cancel?(): void;
-}
+export type HardwareVendor = { id: string; label: string } & (
+  | {
+      connection: 'bluetooth' | 'usb';
+      scan(
+        onFound: (device: { id: string; name: string }) => void,
+        onError: (e: unknown) => void
+      ): Promise<() => void>;
+      connect(deviceId: string): Promise<HardwareSigner>;
+    }
+  | { connection: 'qr'; open(key: HardwareKey): HardwareSigner }
+  | { connection: 'companion-app'; open(): HardwareSigner; cancel(): void }
+);
+
+export type HardwareConnection = HardwareVendor['connection'];
+
+/** The wallet answered: it refused, or it needs something done on it. The link is still up. */
+export class DeviceAnswer extends Error {}
 
 const vendors = new Map<string, HardwareVendor>();
 
@@ -60,10 +61,6 @@ export function registerVendor(vendor: HardwareVendor): void {
 
 export function hardwareVendors(): HardwareVendor[] {
   return [...vendors.values()];
-}
-
-export function findVendor(id: string | undefined): HardwareVendor | undefined {
-  return id ? vendors.get(id) : undefined;
 }
 
 export function vendor(id: string): HardwareVendor {
@@ -86,22 +83,35 @@ export function parityOf(v: number, transaction: Pick<TransactionSerializable, '
   return ((((v - 35 - 2 * (transaction.chainId ?? 0)) % 256) + 256) % 256) & 1;
 }
 
-/** EIP-712 data with its domain type spelled out, as devices want it, and bigints as text. */
-export function typedDataJson(typedData: TypedData): string {
-  const types = {
+/** A device's r, s and v as viem wants them, however the device wrote v. */
+export function deviceSignature(
+  r: string,
+  s: string,
+  v: number | string,
+  transaction: Pick<TransactionSerializable, 'chainId'> = {}
+): Signature {
+  const word = (hex: string) => pad(`0x${hex.replace(/^0x/, '')}` as Hex);
+  return {
+    r: word(r),
+    s: word(s),
+    yParity: parityOf(typeof v === 'number' ? v : parseInt(v, 16), transaction),
+  };
+}
+
+function withDomainType(typedData: TypedData) {
+  return {
     EIP712Domain: getTypesForEIP712Domain({ domain: typedData.domain }),
     ...typedData.types,
   };
-  return JSON.stringify({ ...typedData, types }, (_key, value) =>
-    typeof value === 'bigint' ? value.toString() : value
-  );
+}
+
+/** EIP-712 data with its domain type spelled out, as devices want it, and bigints as text. */
+export function typedDataForDevice(typedData: TypedData): Record<string, unknown> {
+  return JSON.parse(stringify({ ...typedData, types: withDomainType(typedData) }));
 }
 
 export function typedDataHashes(typedData: TypedData): { domain: Hex; message: Hex } {
-  const types = {
-    EIP712Domain: getTypesForEIP712Domain({ domain: typedData.domain }),
-    ...typedData.types,
-  } as never;
+  const types = withDomainType(typedData) as never;
   return {
     domain: hashDomain({ domain: typedData.domain ?? {}, types } as never),
     message: hashStruct({

@@ -22,8 +22,9 @@ export interface QrReaderProps {
 export function QrReader({ purpose, onScanned, className }: QrReaderProps) {
   const [permission, requestPermission, getPermission] = useCameraPermissions();
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const last = useRef<string | null>(null);
+  const [done, setDone] = useState(false);
+  const busy = useRef(false);
+  const seen = useRef(new Set<string>());
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
@@ -44,13 +45,13 @@ export function QrReader({ purpose, onScanned, className }: QrReaderProps) {
   };
 
   const scanned = async ({ data }: { data: string }) => {
-    if (data === last.current) return;
-    last.current = data;
-    setBusy(true);
+    if (busy.current || seen.current.has(data)) return;
+    seen.current.add(data);
+    busy.current = true;
     const result = await onScanned(data);
-    if (result === null) return;
-    setError(result ?? null);
-    setBusy(false);
+    busy.current = false;
+    if (result === null) setDone(true);
+    else setError(result ?? null);
   };
 
   return (
@@ -61,7 +62,7 @@ export function QrReader({ purpose, onScanned, className }: QrReaderProps) {
             style={{ flex: 1 }}
             facing="back"
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            onBarcodeScanned={busy ? undefined : (scan) => void scanned(scan)}
+            onBarcodeScanned={done ? undefined : (scan) => void scanned(scan)}
             onMountError={({ message }) => setError(message)}
           />
         </View>

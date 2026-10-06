@@ -26,6 +26,14 @@ export interface Keyring {
   deriveEd25519(path: string): Ed25519Key;
 }
 
+export function deriveKey(root: HDKey, path: string): DerivedKey {
+  const node = root.derive(path);
+  if (!node.privateKey || !node.publicKey) {
+    throw new Error(`Could not derive a key at "${path}"`);
+  }
+  return { path, privateKey: node.privateKey, publicKey: node.publicKey };
+}
+
 export function createMnemonic(): string {
   return generateMnemonic(english);
 }
@@ -53,13 +61,7 @@ export function keyringFromMnemonic(phrase: string, addressIndex = 0): Keyring {
     mnemonic,
     account,
     address: account.address,
-    derive(path: string): DerivedKey {
-      const node = root.derive(path);
-      if (!node.privateKey || !node.publicKey) {
-        throw new Error(`Could not derive a key at "${path}"`);
-      }
-      return { path, privateKey: node.privateKey, publicKey: node.publicKey };
-    },
+    derive: (path: string) => deriveKey(root, path),
     deriveEd25519(path: string): Ed25519Key {
       return deriveEd25519(seed, path);
     },

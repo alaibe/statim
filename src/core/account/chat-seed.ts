@@ -3,7 +3,7 @@ import { sha256 } from '@noble/hashes/sha2';
 import { bytesToHex, hexToBytes, stringToBytes, type Hex, type LocalAccount } from 'viem';
 import { HDKey } from 'viem/accounts';
 
-import type { DerivedKey, Keyring } from './keyring';
+import { deriveKey, type DerivedKey, type Keyring } from './keyring';
 
 /**
  * What a hardware wallet signs once per account. Its devices sign
@@ -35,11 +35,7 @@ export function hardwareKeyring(account: LocalAccount, seed: Hex | null): Keyrin
     address: account.address,
     derive(path: string): DerivedKey {
       if (!root) throw new Error('Set up chat keys for this account in Settings › Accounts.');
-      const node = root.derive(path);
-      if (!node.privateKey || !node.publicKey) {
-        throw new Error(`Could not derive a key at "${path}"`);
-      }
-      return { path, privateKey: node.privateKey, publicKey: node.publicKey };
+      return deriveKey(root, path);
     },
     deriveEd25519(): never {
       throw new Error('Solana needs an account with a recovery phrase.');

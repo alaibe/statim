@@ -20,5 +20,15 @@ export function AnimatedQrCode({ parts, size = 220 }: { parts: string[]; size?: 
     return () => clearInterval(timer);
   }, [parts.length]);
 
-  return <QrCode value={parts[tick % parts.length].toUpperCase()} size={size} />;
+  return (
+    <View>
+      {parts.map((part, i) => (
+        <View key={part} style={i === tick % parts.length ? undefined : HIDDEN}>
+          <QrCode value={part.toUpperCase()} size={size} />
+        </View>
+      ))}
+    </View>
+  );
 }
+
+const HIDDEN = { position: 'absolute', opacity: 0 } as const;

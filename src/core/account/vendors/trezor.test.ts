@@ -1,4 +1,5 @@
-import { handleTrezorCallback, isTrezorCallback, trezorSigner } from './trezor';
+import { vendor } from '../hardware';
+import { handleTrezorCallback, isTrezorCallback, registerTrezor } from './trezor';
 
 const mockOpened: string[] = [];
 jest.mock('@/lib/open-url', () => ({
@@ -6,7 +7,14 @@ jest.mock('@/lib/open-url', () => ({
 }));
 jest.mock('expo-linking', () => ({ createURL: (path: string) => `statim://${path}` }));
 
+beforeAll(registerTrezor);
 beforeEach(() => mockOpened.splice(0));
+
+function trezorSigner() {
+  const trezor = vendor('trezor');
+  if (trezor.connection !== 'companion-app') throw new Error('not Trezor');
+  return trezor.open();
+}
 
 function lastRequest() {
   const url = new URL(mockOpened.at(-1)!);
@@ -37,7 +45,7 @@ describe('Trezor through Trezor Suite', () => {
     expect(request.url.searchParams.get('appName')).toBe('Statim');
     expect(isTrezorCallback(request.callback)).toBe(true);
 
-    expect(answer(request.callback, { success: true, payload: { address: '0xabc' } })).toBe(true);
+    answer(request.callback, { success: true, payload: { address: '0xabc' } });
     await expect(address).resolves.toBe('0xabc');
   });
 
@@ -70,6 +78,6 @@ describe('Trezor through Trezor Suite', () => {
 
   it('ignores links that are not an answer it waits for', () => {
     expect(isTrezorCallback('statim://chat/abc')).toBe(false);
-    expect(handleTrezorCallback('statim://trezor?id=nobody&response=%7B%7D')).toBe(false);
+    expect(() => handleTrezorCallback('statim://trezor?id=nobody&response=%7B%7D')).not.toThrow();
   });
 });

@@ -1,18 +1,15 @@
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { Chat, ChatId, ChatMessage } from '@/core/messaging/types';
-import { handleTrezorCallback, isTrezorCallback } from '@/core/account/vendors/trezor';
+import { isTrezorCallback } from '@/core/account/vendors/trezor';
 import { moveInviteText } from '@/plugins/profile/move-invite';
 
 /**
  * `statim://fixture/<name>` opens a made-up chat in a debug build, for the
  * guide's screenshots of what a fresh account cannot have yet.
  */
-export function redirectSystemPath({ path }: { path: string; initial: boolean }): string {
+export function redirectSystemPath({ path }: { path: string; initial: boolean }): string | null {
   if (path.startsWith('statim://expo-sharing')) return '/share';
-  if (isTrezorCallback(path)) {
-    handleTrezorCallback(path);
-    return '/trezor';
-  }
+  if (isTrezorCallback(path)) return null;
   if (!__DEV__) return path;
   try {
     const name = /fixture\/([\w-]+)/.exec(path)?.[1];
