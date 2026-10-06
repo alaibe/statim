@@ -29,10 +29,11 @@ type Entry = {
 } & ({ kind: 'chat'; chat: Chat; selfId: string } | { kind: 'command'; icon: IconName });
 
 const RECENT = 6;
+const MOD = /Mac/.test(navigator.userAgent) ? '⌘' : 'Ctrl+';
 
 /**
- * The desktop's keyboard shortcuts, ⌘K among them for a search over chats and a
- * few commands. Only the shortcuts live here, so nothing is computed while the
+ * The desktop's keyboard shortcuts, ⌘K (Ctrl+K off the Mac) among them for a
+ * search over chats and a few commands. Only the shortcuts live here, so nothing is computed while the
  * palette is closed.
  */
 export function QuickSwitcher() {
@@ -112,7 +113,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
         kind: 'command',
         id: 'new',
         title: 'New message',
-        subtitle: '⌘N',
+        subtitle: `${MOD}N`,
         icon: 'create-outline',
         run: () => router.push('/new-chat'),
       },
@@ -120,7 +121,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
         kind: 'command',
         id: 'search',
         title: 'Search messages',
-        subtitle: '⌘F',
+        subtitle: `${MOD}F`,
         icon: 'search-outline',
         run: () => router.push('/search'),
       },
@@ -128,7 +129,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
         kind: 'command',
         id: 'contacts',
         title: 'Contacts',
-        subtitle: '⌘2',
+        subtitle: `${MOD}2`,
         icon: 'people-outline',
         run: () => openTab('/contacts'),
       },
@@ -136,7 +137,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
         kind: 'command',
         id: 'settings',
         title: 'Settings',
-        subtitle: '⌘,',
+        subtitle: `${MOD},`,
         icon: 'hardware-chip-outline',
         run: () => openTab('/settings'),
       },

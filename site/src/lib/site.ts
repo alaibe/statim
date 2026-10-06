@@ -31,6 +31,7 @@ export const navigation: Array<NavGroup> = [
       { title: 'AI', href: '/guide/ai' },
       { title: 'Settings', href: '/guide/settings' },
       { title: 'On the Mac', href: '/guide/mac' },
+      { title: 'On Windows and Linux', href: '/guide/windows-linux' },
       { title: 'Command line', href: '/guide/command-line' },
     ],
   },

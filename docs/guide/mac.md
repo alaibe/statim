@@ -3,7 +3,7 @@
 The desktop app is the same app in a window: every screen, every protocol, every
 plugin. The layout puts a sidebar of chats beside the open chat,
 the way Telegram for macOS does, and a keyboard and a pointer take over from
-taps.
+taps. Windows and Linux have [their own page](windows-linux.md).
 
 ## Installing
 
@@ -22,7 +22,9 @@ and drag Statim into Applications.
 - **⌘K** opens the switcher: type a few letters of a chat and press Enter.
 - **⌘F** searches messages: inside a chat it searches only that chat.
 - **⌘N** starts a new message, **⌘,** opens settings, **⌘1/2/3** switch tabs.
-- **Enter** sends; **Shift-Enter** makes a new line.
+- **Enter** sends; **Shift-Enter** makes a new line. **⌘B**, **⌘I** and
+  **Shift-⌘X** make the selected text bold, italic or struck through, and **⌘E**
+  makes it code.
 - **Right-click** a message for what long-press does on the phone.
 - **Esc** closes whatever is on top: a sheet, a picker, the emoji panel.
 - Settings pages open beside the list rather than over it; new chat, QR and
@@ -36,9 +38,7 @@ and drag Statim into Applications.
 - Closing the window leaves Statim running, so messages and notifications
   keep arriving. The Dock icon keeps its badge, and an icon in the menu bar
   shows the unread count. Click the Dock icon, or choose Open Statim from the
-  menu bar icon, to bring the window back; **⌘Q** quits. On Windows and Linux
-  the icon sits in the system tray with Open Statim and Quit in its menu, and
-  **Ctrl+Q** also quits. Turn on **Settings → Notifications → Open at login**
+  menu bar icon, to bring the window back; **⌘Q** quits. Turn on **Settings → Notifications → Open at login**
   to have it start that way, without a window, each time you log in.
 - **Settings → Security** locks the app with Touch ID, on a Mac that has it,
   or with a PIN, which the lock screen also takes from the keyboard.

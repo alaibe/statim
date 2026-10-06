@@ -86,7 +86,8 @@ searches that chat. Telegram searches its whole history. Matrix searches the
 homeserver's history for chats without encryption, and for encrypted chats what
 this device holds. The other protocols search what is stored on this device.
 
-On the Mac, **⌘K** jumps to a chat by name, unread chats first.
+On a computer, **⌘K** (**Ctrl+K** on Windows and Linux) jumps to a chat by
+name, unread chats first.
 
 ## Pin, archive, mute, mark unread
 
