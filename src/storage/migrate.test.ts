@@ -58,3 +58,19 @@ it('rolls a failing migration back whole, unrecorded', async () => {
   expect(await tables()).not.toContain('extra');
   expect(await applied()).toHaveLength(MIGRATIONS.length);
 });
+
+it('records a migration generated again with the same SQL without running it twice', async () => {
+  const { db } = await openAccountDatabase(ID);
+  const drop = ['ALTER TABLE extra DROP COLUMN gone'];
+  await migrate(db, [...MIGRATIONS, later('extra', ['CREATE TABLE extra (id text, gone text)'])]);
+  const first = { ...later('drop', drop), folderMillis: later('', []).folderMillis + 1 };
+  await migrate(db, [...MIGRATIONS, later('extra', []), first]);
+
+  const again = { ...first, folderMillis: first.folderMillis + 1 };
+  await migrate(db, [...MIGRATIONS, later('extra', []), again]);
+
+  expect((await applied()).slice(-2)).toEqual([
+    ['drop', first.folderMillis],
+    ['drop', again.folderMillis],
+  ]);
+});
