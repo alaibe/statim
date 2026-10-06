@@ -21,6 +21,11 @@ jest.mock('@/core/messaging/config', () => ({
 jest.mock('@/runtime', () => ({
   accountRuntime: { updateProtocolConfig: (...args: unknown[]) => mockUpdate(...args) },
 }));
+const mockErased: string[] = [];
+jest.mock('@/storage/media', () => ({
+  eraseAccountDirectory: async (area: string, accountId: string) =>
+    void mockErased.push(`${area}/${accountId}`),
+}));
 jest.mock('@/storage/vault', () => ({
   ...jest.requireActual('@/storage/vault'),
   vaultSet: async (key: string, value: string) => void mockVault.set(key, value),
@@ -31,6 +36,7 @@ beforeEach(() => {
   mockConfig = {};
   mockVault.clear();
   mockUpdate.mockReset();
+  mockErased.length = 0;
 });
 
 describe('Matrix on this computer', () => {
@@ -44,8 +50,9 @@ describe('Matrix on this computer', () => {
     expect(await hereState('acc1')).toBe('unavailable');
   });
 
-  it('saves the signed-in session and points Matrix at this computer', async () => {
+  it('starts a new store, saves the signed-in session and points Matrix at this computer', async () => {
     await runHere('acc1');
+    expect(mockErased).toEqual(['matrix/acc1']);
     expect(JSON.parse(mockVault.get('account.acc1.matrixSession')!)).toMatchObject({
       userId: '@me:statim',
       homeserverUrl: 'http://127.0.0.1:47280',
