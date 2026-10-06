@@ -97,8 +97,11 @@ export const TEST_KEYRING = {
   mnemonic: null,
   account: {} as LocalAccount,
   address: '0x0000000000000000000000000000000000000000',
-  derive: () => ({ path: '', privateKey: new Uint8Array(), publicKey: new Uint8Array() }),
-  deriveEd25519: () => ({ path: '', privateKey: new Uint8Array(), publicKey: new Uint8Array() }),
+  chatKey: () => ({ path: '', privateKey: new Uint8Array(), publicKey: new Uint8Array() }),
+  wallet: {
+    derive: () => ({ path: '', privateKey: new Uint8Array(), publicKey: new Uint8Array() }),
+    deriveEd25519: () => ({ path: '', privateKey: new Uint8Array(), publicKey: new Uint8Array() }),
+  },
 } as Keyring;
 
 export const flushWrites = () => new Promise<void>((resolve) => setImmediate(resolve));

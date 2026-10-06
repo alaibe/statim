@@ -75,10 +75,10 @@ describe('shortAddress', () => {
 describe('derive', () => {
   it('matches the BIP-84 test vector for the first native-segwit key', () => {
     // From the BIP-84 spec's "Test vectors" section, m/84'/0'/0'/0/0.
-    const { derive } = keyringFromMnemonic(
+    const { wallet } = keyringFromMnemonic(
       'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'
     );
-    const key = derive("m/84'/0'/0'/0/0");
+    const key = wallet!.derive("m/84'/0'/0'/0/0");
 
     expect(Buffer.from(key.publicKey).toString('hex')).toBe(
       '0330d54fd0dd420a6e5f8d3624f5f3482cae350f79d5f0753bf5beef9c2d91af3c'
@@ -87,9 +87,9 @@ describe('derive', () => {
   });
 
   it('gives different keys for different paths', () => {
-    const { derive } = keyringFromMnemonic(VECTOR.mnemonic);
-    const a = derive("m/84'/0'/0'/0/0");
-    const b = derive("m/84'/0'/0'/0/1");
+    const { chatKey } = keyringFromMnemonic(VECTOR.mnemonic);
+    const a = chatKey!("m/84'/0'/0'/0/0");
+    const b = chatKey!("m/84'/0'/0'/0/1");
     expect(Buffer.from(a.privateKey)).not.toEqual(Buffer.from(b.privateKey));
   });
 });

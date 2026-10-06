@@ -3,11 +3,15 @@ import { capabilitiesOf, describeKind } from './account-kind';
 import { privateKeyToAccount } from 'viem/accounts';
 
 import { useAccountStore } from './account-store';
+import type { WalletKeys } from './keyring';
 import { FakeHardwareSigner } from './testing/fake-hardware';
+
+const PHRASE = { kind: 'phrase', wallet: {} as WalletKeys } as const;
+const WALLET = { kind: 'hardware', wallet: null } as const;
 
 describe('capabilitiesOf', () => {
   it('lets a phrase account do everything', () => {
-    expect(capabilitiesOf('phrase')).toEqual({
+    expect(capabilitiesOf(PHRASE)).toEqual({
       chat: true,
       evm: true,
       otherChains: true,
@@ -19,16 +23,16 @@ describe('capabilitiesOf', () => {
     // The signature XMTP asks for registers an installation. After that the
     // installation key signs, and `Client.build` reopens it with no signer,
     // so a Ledger signs once at setup and never per message or per launch.
-    expect(capabilitiesOf('hardware').chat).toBe(true);
+    expect(capabilitiesOf(WALLET).chat).toBe(true);
   });
 
   it('lets a hardware account spend, on the device', () => {
-    expect(capabilitiesOf('hardware').evm).toBe(true);
-    expect(capabilitiesOf('hardware').confirmsOnDevice).toBe(true);
+    expect(capabilitiesOf(WALLET).evm).toBe(true);
+    expect(capabilitiesOf(WALLET).confirmsOnDevice).toBe(true);
   });
 
   it('does not claim Bitcoin and Solana on hardware until they are wired up', () => {
-    expect(capabilitiesOf('hardware').otherChains).toBe(false);
+    expect(capabilitiesOf(WALLET).otherChains).toBe(false);
   });
 });
 
@@ -77,13 +81,13 @@ describe('adding a hardware account', () => {
     expect(state.status).toBe('ready');
     expect(state.keyring?.kind).toBe('hardware');
     expect(state.keyring?.address).toBe(ADDRESS);
-    expect(state.chatKeys).toBe(true);
-    expect(state.keyring?.derive("m/44'/1237'/0'/0/0").privateKey).toHaveLength(32);
+    expect(state.keyring?.wallet).toBeNull();
+    expect(state.keyring?.chatKey?.("m/44'/1237'/0'/0/0").privateKey).toHaveLength(32);
   });
 
   it('opens again after a relaunch instead of asking for a recovery phrase', async () => {
     await add();
-    const before = useAccountStore.getState().keyring?.derive("m/44'/1237'/0'/0/0").privateKey;
+    const before = useAccountStore.getState().keyring?.chatKey?.("m/44'/1237'/0'/0/0").privateKey;
     useAccountStore.setState({
       status: 'loading',
       keyring: null,
@@ -96,7 +100,7 @@ describe('adding a hardware account', () => {
     const state = useAccountStore.getState();
     expect(state.status).toBe('ready');
     expect(state.keyring?.kind).toBe('hardware');
-    expect(state.keyring?.derive("m/44'/1237'/0'/0/0").privateKey).toEqual(before);
+    expect(state.keyring?.chatKey?.("m/44'/1237'/0'/0/0").privateKey).toEqual(before);
   });
 
   it('never turns a phrase account into a wallet one, which would drop its phrase', async () => {

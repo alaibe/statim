@@ -1,3 +1,5 @@
+import type { Keyring } from './keyring';
+
 export type AccountKind = 'phrase' | 'hardware';
 
 export interface AccountCapabilities {
@@ -7,10 +9,13 @@ export interface AccountCapabilities {
   confirmsOnDevice: boolean;
 }
 
-export function capabilitiesOf(kind: AccountKind): AccountCapabilities {
-  return kind === 'hardware'
-    ? { chat: true, evm: true, otherChains: false, confirmsOnDevice: true }
-    : { chat: true, evm: true, otherChains: true, confirmsOnDevice: false };
+export function capabilitiesOf(keyring: Pick<Keyring, 'kind' | 'wallet'>): AccountCapabilities {
+  return {
+    chat: true,
+    evm: true,
+    otherChains: keyring.wallet !== null,
+    confirmsOnDevice: keyring.kind === 'hardware',
+  };
 }
 
 export function describeKind(kind: AccountKind): string {

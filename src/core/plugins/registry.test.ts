@@ -1,6 +1,7 @@
 import { isRecord, isString, shape } from '@/lib/guards';
 
 import { capabilitiesOf } from '../account/account-kind';
+import type { WalletKeys } from '../account/keyring';
 
 import { PluginRegistry, worksOn } from './registry';
 import { contentType, type Plugin, type PluginContext } from './types';
@@ -20,7 +21,7 @@ function stubContext(): PluginContext {
     storage: { get: async () => null, set: async () => {}, remove: async () => {} },
     account: {
       accountId: 'test-account',
-      capabilities: capabilitiesOf('phrase'),
+      capabilities: capabilitiesOf({ kind: 'phrase', wallet: {} as WalletKeys }),
       address: '0x0000000000000000000000000000000000000000',
       participantId: 'inbox',
       signMessage: async () => '0x',

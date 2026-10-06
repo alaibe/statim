@@ -17,13 +17,30 @@ export interface DerivedKey {
   publicKey: Uint8Array;
 }
 
+/** Keys for funds beyond Ethereum, which only an account whose phrase is here has. */
+export interface WalletKeys {
+  derive(path: string): DerivedKey;
+  deriveEd25519(path: string): Ed25519Key;
+}
+
 export interface Keyring {
   kind: AccountKind;
   mnemonic: string | null;
   account: LocalAccount;
   address: Address;
-  derive(path: string): DerivedKey;
-  deriveEd25519(path: string): Ed25519Key;
+  /** Keys for chat protocols; null for a hardware account that has not set them up. */
+  chatKey: ((path: string) => DerivedKey) | null;
+  wallet: WalletKeys | null;
+}
+
+/** The chat key derivation a protocol connects with, which says what is missing when it is. */
+export function chatKeys(keyring: Pick<Keyring, 'chatKey'>): (path: string) => DerivedKey {
+  return (
+    keyring.chatKey ??
+    (() => {
+      throw new Error('Set up chat keys for this account in Settings › Accounts.');
+    })
+  );
 }
 
 export function deriveKey(root: HDKey, path: string): DerivedKey {
@@ -61,9 +78,10 @@ export function keyringFromMnemonic(phrase: string, addressIndex = 0): Keyring {
     mnemonic,
     account,
     address: account.address,
-    derive: (path: string) => deriveKey(root, path),
-    deriveEd25519(path: string): Ed25519Key {
-      return deriveEd25519(seed, path);
+    chatKey: (path) => deriveKey(root, path),
+    wallet: {
+      derive: (path) => deriveKey(root, path),
+      deriveEd25519: (path) => deriveEd25519(seed, path),
     },
   };
 }

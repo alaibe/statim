@@ -3,6 +3,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 
 import { CHAT_KEY_MESSAGE, chatSeedFrom, hardwareKeyring } from './chat-seed';
 import { hardwareAccount } from './hardware';
+import { chatKeys } from './keyring';
 import { FakeHardwareSigner } from './testing/fake-hardware';
 
 const KEY = `0x${'22'.repeat(32)}` as const;
@@ -21,8 +22,8 @@ describe('chat keys of a hardware account', () => {
 
     expect(keyring.kind).toBe('hardware');
     expect(keyring.mnemonic).toBeNull();
-    expect(keyring.derive("m/44'/1237'/0'/0/0").privateKey).toHaveLength(32);
-    expect(() => keyring.deriveEd25519("m/44'/501'/0'/0'")).toThrow(/recovery phrase/);
+    expect(keyring.chatKey?.("m/44'/1237'/0'/0/0").privateKey).toHaveLength(32);
+    expect(keyring.wallet).toBeNull();
 
     await keyring.account.signMessage({ message: 'x' });
     expect(device.calls).toContain("signMessage:m/44'/60'/0'/0/0");
@@ -30,6 +31,7 @@ describe('chat keys of a hardware account', () => {
 
   it('say where to set them up when the seed is missing', () => {
     const keyring = hardwareKeyring(hardwareAccount(new FakeHardwareSigner(KEY), ADDRESS), null);
-    expect(() => keyring.derive("m/44'/1237'/0'/0/0")).toThrow(/Settings › Accounts/);
+    expect(keyring.chatKey).toBeNull();
+    expect(() => chatKeys(keyring)("m/44'/1237'/0'/0/0")).toThrow(/Settings › Accounts/);
   });
 });

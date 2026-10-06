@@ -1,7 +1,7 @@
 import type { LocalAccount } from 'viem';
 
 import { errorMessage } from '../errors';
-import type { DerivedKey, Keyring } from '../account/keyring';
+import { chatKeys, type DerivedKey, type Keyring } from '../account/keyring';
 import {
   connectionFor,
   NO_CONNECTION,
@@ -37,7 +37,7 @@ export type SessionFactory = (params: {
 
 interface ProtocolAccount {
   accountId: string;
-  keyring: Pick<Keyring, 'account' | 'derive'>;
+  keyring: Pick<Keyring, 'account' | 'chatKey'>;
   contentTypes(): CustomContentType[];
   createSession?: SessionFactory;
   only?: ProtocolId[];
@@ -84,7 +84,7 @@ export class ProtocolRuntime {
             session = await input.createSession({
               protocolId,
               account: input.keyring.account,
-              derive: input.keyring.derive,
+              derive: chatKeys(input.keyring),
               contentTypes: input.contentTypes(),
             });
           } else {
@@ -99,7 +99,7 @@ export class ProtocolRuntime {
             session = await descriptor.connect!({
               accountId: input.accountId,
               account: input.keyring.account,
-              derive: input.keyring.derive,
+              derive: chatKeys(input.keyring),
               contentTypes: input.contentTypes(),
               config,
               storage,

@@ -36,8 +36,6 @@ export interface AccountState {
   accounts: AccountRecord[];
   activeAccountId: string | null;
   keyring: Keyring | null;
-  /** False for a hardware account whose wallet has not signed the chat key message here yet. */
-  chatKeys: boolean;
   error: string | null;
 
   restore(): Promise<void>;
@@ -78,7 +76,6 @@ export const useAccountStore = create<AccountState>((set, get) => ({
   accounts: [],
   activeAccountId: null,
   keyring: null,
-  chatKeys: true,
   error: null,
 
   async restore() {
@@ -263,7 +260,6 @@ async function activate(
       status: 'ready',
       activeAccountId: accountId,
       keyring: hardwareKeyring(hardwareAccount(deviceSigner(record), key.address, key.path), seed),
-      chatKeys: seed !== null,
       error: null,
     });
     return 'ready';
@@ -279,7 +275,6 @@ async function activate(
     status: 'ready',
     activeAccountId: accountId,
     keyring: keyringFromMnemonic(result.secret.phrase),
-    chatKeys: true,
     error: null,
   });
   return 'ready';
@@ -287,5 +282,5 @@ async function activate(
 
 type AccountStateSlice = Pick<
   AccountState,
-  'status' | 'accounts' | 'activeAccountId' | 'keyring' | 'chatKeys' | 'error'
+  'status' | 'accounts' | 'activeAccountId' | 'keyring' | 'error'
 >;

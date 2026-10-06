@@ -3,7 +3,7 @@ import { sha256 } from '@noble/hashes/sha2';
 import { bytesToHex, hexToBytes, stringToBytes, type Hex, type LocalAccount } from 'viem';
 import { HDKey } from 'viem/accounts';
 
-import { deriveKey, type DerivedKey, type Keyring } from './keyring';
+import { deriveKey, type Keyring } from './keyring';
 
 /**
  * What a hardware wallet signs once per account. Its devices sign
@@ -25,7 +25,7 @@ export function chatSeedFrom(signature: Hex): Hex {
   return bytesToHex(secret);
 }
 
-/** Ethereum signs on the device; only chat keys come from the seed, and funds never do. */
+/** Ethereum signs on the device and chat keys come from the seed; funds keys never do. */
 export function hardwareKeyring(account: LocalAccount, seed: Hex | null): Keyring {
   const root = seed ? HDKey.fromMasterSeed(hexToBytes(seed)) : null;
   return {
@@ -33,12 +33,7 @@ export function hardwareKeyring(account: LocalAccount, seed: Hex | null): Keyrin
     mnemonic: null,
     account,
     address: account.address,
-    derive(path: string): DerivedKey {
-      if (!root) throw new Error('Set up chat keys for this account in Settings › Accounts.');
-      return deriveKey(root, path);
-    },
-    deriveEd25519(): never {
-      throw new Error('Solana needs an account with a recovery phrase.');
-    },
+    chatKey: root ? (path) => deriveKey(root, path) : null,
+    wallet: null,
   };
 }

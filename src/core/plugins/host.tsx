@@ -79,10 +79,11 @@ function makePluginContext(
       throw new Error(`Plugin "${manifest.id}" used ${permission} without declaring it.`);
     }
   };
-  const onDevice = () => {
-    if (keyring.kind === 'hardware') {
+  const wallet = () => {
+    if (!keyring.wallet) {
       throw new Error('This account keeps its keys on a hardware wallet, which signs for it.');
     }
+    return keyring.wallet;
   };
   const accountChat = () => {
     active();
@@ -118,7 +119,7 @@ function makePluginContext(
       },
       get capabilities() {
         active();
-        return capabilitiesOf(keyring.kind);
+        return capabilitiesOf(keyring);
       },
       get address() {
         active();
@@ -140,14 +141,12 @@ function makePluginContext(
       derive(path: string) {
         active();
         require('account.sign');
-        onDevice();
-        return keyring.derive(path);
+        return wallet().derive(path);
       },
       deriveEd25519(path: string) {
         active();
         require('account.sign');
-        onDevice();
-        return keyring.deriveEd25519(path);
+        return wallet().deriveEd25519(path);
       },
     },
 

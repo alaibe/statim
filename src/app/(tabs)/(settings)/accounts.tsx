@@ -31,7 +31,7 @@ export default function AccountsScreen() {
   const accounts = useAccountStore((s) => s.accounts);
   const activeAccountId = useAccountStore((s) => s.activeAccountId);
   const selectAccount = useAccountStore((s) => s.selectAccount);
-  const needsChatKeys = useAccountStore((s) => !s.chatKeys);
+  const needsChatKeys = useAccountStore((s) => s.keyring !== null && s.keyring.chatKey === null);
   const setUpChatKeys = useAction(useAccountStore.getState().setUpChatKeys, {
     failure: 'Could not set up chat keys',
   });
