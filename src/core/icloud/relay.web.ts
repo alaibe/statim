@@ -51,6 +51,9 @@ export async function turnOnRelay(accountId: string): Promise<void> {
   await serial(async () => {
     if (token) await vaultSet(VaultKey.icloudSession, token);
     await deliver([{ accountId, note: HELLO }]);
+  }).catch(async (error: unknown) => {
+    await turnOffRelay(accountId);
+    throw error;
   });
 }
 

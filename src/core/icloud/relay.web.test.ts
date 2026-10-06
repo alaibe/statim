@@ -93,6 +93,13 @@ describe('notifying the iPhone through iCloud', () => {
     expect(await relayState('acc1')).toBe('on');
   });
 
+  it('stays off when iCloud refuses the hello', async () => {
+    jest.mocked(changeNotes).mockRejectedValueOnce(new Error('Did not find record type: Note'));
+    await expect(turnOn()).rejects.toThrow('Did not find record type: Note');
+    expect(await relayState('acc1')).toBe('off');
+    expect(mockVault.has(VaultKey.icloudSession)).toBe(false);
+  });
+
   it('stays quiet while the window has focus', async () => {
     await turnOn();
     mockFocused = true;
