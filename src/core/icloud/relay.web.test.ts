@@ -39,7 +39,7 @@ const call = (index: number) => {
 };
 const opened = (index: number) =>
   call(index).notes.map((note) => ({ tag: note.tag, ...openNote(key, note.sealed) }));
-const flush = () => jest.advanceTimersByTimeAsync(0);
+const flush = () => new Promise(setImmediate);
 const arrival = (chat: string, title: string, body: string) => ({
   chatId: asChatId(chat),
   title,
@@ -47,18 +47,12 @@ const arrival = (chat: string, title: string, body: string) => ({
 });
 
 beforeEach(() => {
-  jest.useFakeTimers();
   process.env.EXPO_PUBLIC_ICLOUD_API_TOKEN = 'api-token';
   mockVault.clear();
   mockFocused = false;
   jest.mocked(invoke).mockReset();
   jest.mocked(signInURL).mockReset().mockResolvedValue('https://idmsa.apple.com/sign-in');
   jest.mocked(saveNotes).mockReset().mockResolvedValue('after-save');
-});
-
-afterEach(() => {
-  jest.clearAllTimers();
-  jest.useRealTimers();
 });
 
 async function turnOn(accountId = 'acc1') {

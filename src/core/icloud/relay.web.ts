@@ -77,9 +77,10 @@ async function deliver(items: Item[]): Promise<void> {
       notes.push({ name: toHex(randomBytes(16)), tag: key.tag, sealed: sealNote(key.key, note) });
     }
   }
+  if (notes.length === 0) return;
   const container = icloudContainer();
   const token = container ? await vaultGet(VaultKey.icloudSession) : null;
-  if (notes.length === 0 || !container || !token) return;
+  if (!container || !token) return;
   try {
     await vaultSet(VaultKey.icloudSession, await saveNotes(container, token, notes));
   } catch (error) {

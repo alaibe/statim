@@ -47,13 +47,12 @@ export interface SealedNote {
 const NOTES_ZONE = 'notes';
 const ZONE_NOT_FOUND = 'ZONE_NOT_FOUND';
 
-/** Saves the notes where the iPhone looks for them and hands back the next token. */
 export async function saveNotes(
   container: Container,
   token: string,
   notes: SealedNote[]
 ): Promise<string> {
-  const answer = await call<{ records?: (Reply & { recordName?: string })[] }>(
+  const answer = await call<{ records?: Reply[] }>(
     container,
     token,
     'records/modify',

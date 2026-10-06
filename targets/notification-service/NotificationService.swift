@@ -3,8 +3,7 @@ import UserNotifications
 
 /// Turns the "New message" of an iCloud push into who wrote and what.
 class NotificationService: UNNotificationServiceExtension {
-  private var deliver: ((UNNotificationContent) -> Void)?
-  private var content: UNMutableNotificationContent?
+  private var deliver: (() -> Void)?
 
   override func didReceive(
     _ request: UNNotificationRequest,
@@ -17,8 +16,7 @@ class NotificationService: UNNotificationServiceExtension {
       let zone = notification.recordZoneID, zone.zoneName == Inbox.zoneName,
       let container = notification.containerIdentifier
     else { return contentHandler(content) }
-    self.content = content
-    deliver = contentHandler
+    deliver = { contentHandler(content) }
     Task { @MainActor in
       if let preview = await Inbox.shared.take(zone, in: container) {
         content.title = preview.title
@@ -41,8 +39,7 @@ class NotificationService: UNNotificationServiceExtension {
   }
 
   @MainActor private func finish() {
-    guard let deliver, let content else { return }
-    self.deliver = nil
-    deliver(content)
+    deliver?()
+    deliver = nil
   }
 }
