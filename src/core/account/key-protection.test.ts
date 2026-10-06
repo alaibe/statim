@@ -4,7 +4,8 @@ import {
   disableKeyProtection,
   enableKeyProtection,
   isKeyProtectionEnabled,
-  readMnemonic,
+  readAccountSecret,
+  writeAccountSecret,
 } from './key-protection';
 import { useAccountStore } from './account-store';
 import { eraseAccount, eraseEverything } from '../app/erase-account';
@@ -47,9 +48,9 @@ describe('enabling key protection', () => {
 
     for (const account of accounts) {
       expect(await SecureStore.getItemAsync(accountMnemonicKey(account.id))).toBeNull();
-      expect(await readMnemonic(account.id, true)).toEqual({
+      expect(await readAccountSecret(account.id, true)).toEqual({
         status: 'ok',
-        value: expect.any(String),
+        secret: { kind: 'phrase', phrase: expect.any(String) },
       });
     }
   });
@@ -60,7 +61,7 @@ describe('enabling key protection', () => {
     const accounts = await withTwoAccounts();
     await enableKeyProtection(accounts.map((a) => a.id));
 
-    const sealed = await Promise.all(accounts.map((a) => readMnemonic(a.id, true)));
+    const sealed = await Promise.all(accounts.map((a) => readAccountSecret(a.id, true)));
     expect(sealed.every((r) => r.status === 'ok')).toBe(true);
   });
 });
@@ -88,7 +89,7 @@ describe('disabling key protection', () => {
     // Still sealed: a half-unsealed device is worse than an unchanged one.
     expect(await isKeyProtectionEnabled()).toBe(true);
     keychain.__denyProtected(false);
-    expect((await readMnemonic(accounts[0].id, true)).status).toBe('ok');
+    expect((await readAccountSecret(accounts[0].id, true)).status).toBe('ok');
   });
 });
 
@@ -101,7 +102,7 @@ describe('when the system discards sealed keys', () => {
 
     keychain.__invalidateProtected();
 
-    expect(await readMnemonic(accounts[0].id, true)).toEqual({ status: 'invalidated' });
+    expect(await readAccountSecret(accounts[0].id, true)).toEqual({ status: 'invalidated' });
   });
 
   it('puts the account store into the invalidated state on restore', async () => {
@@ -156,8 +157,8 @@ describe('erasing', () => {
 
     await eraseAccount(accounts[0].id);
 
-    expect(await readMnemonic(accounts[0].id, false)).toEqual({ status: 'absent' });
-    expect((await readMnemonic(accounts[1].id, true)).status).toBe('ok');
+    expect(await readAccountSecret(accounts[0].id, false)).toEqual({ status: 'absent' });
+    expect((await readAccountSecret(accounts[1].id, true)).status).toBe('ok');
   });
 
   it('leaves nothing behind on a full wipe', async () => {
@@ -167,8 +168,24 @@ describe('erasing', () => {
     await eraseEverything();
 
     for (const account of accounts) {
-      expect(await readMnemonic(account.id, false)).toEqual({ status: 'absent' });
+      expect(await readAccountSecret(account.id, false)).toEqual({ status: 'absent' });
     }
     expect(await SecureStore.getItemAsync(VaultKey.keyProtection)).toBeNull();
+  });
+});
+
+describe('the account secret', () => {
+  it('keeps a hardware wallet’s chat seed apart from a recovery phrase', async () => {
+    await writeAccountSecret('wallet', { kind: 'chatSeed', seed: '0xabcd' });
+    await writeAccountSecret('phrase', { kind: 'phrase', phrase: 'one two three' });
+
+    expect(await readAccountSecret('wallet', true)).toEqual({
+      status: 'ok',
+      secret: { kind: 'chatSeed', seed: '0xabcd' },
+    });
+    expect(await readAccountSecret('phrase', true)).toEqual({
+      status: 'ok',
+      secret: { kind: 'phrase', phrase: 'one two three' },
+    });
   });
 });

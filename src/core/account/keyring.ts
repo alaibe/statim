@@ -7,7 +7,7 @@ import { deriveEd25519, type Ed25519Key } from './slip10';
 import * as Crypto from 'expo-crypto';
 import { english, generateMnemonic, HDKey, hdKeyToAccount } from 'viem/accounts';
 
-import { writeMnemonic } from './key-protection';
+import { writeAccountSecret } from './key-protection';
 import { base64ToBytes, bytesToBase64 } from '@/lib/bytes';
 import { accountDbKeyName, vaultGet, vaultSet } from '@/storage/vault';
 
@@ -69,7 +69,7 @@ export function keyringFromMnemonic(phrase: string, addressIndex = 0): Keyring {
 }
 
 export async function persistAccountMnemonic(accountId: string, phrase: string): Promise<void> {
-  await writeMnemonic(accountId, normalizeMnemonic(phrase));
+  await writeAccountSecret(accountId, { kind: 'phrase', phrase: normalizeMnemonic(phrase) });
 }
 
 export async function loadOrCreateDbEncryptionKey(accountId: string): Promise<Uint8Array> {

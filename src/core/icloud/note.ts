@@ -3,8 +3,9 @@ import { hkdf } from '@noble/hashes/hkdf';
 import { sha256 } from '@noble/hashes/sha2';
 import { utf8ToBytes } from '@noble/hashes/utils';
 
+import type { AccountSecret } from '@/core/account/key-protection';
 import { normalizeMnemonic } from '@/core/account/keyring';
-import { base64ToBytes, bytesToBase64, concat, toHex } from '@/lib/bytes';
+import { base64ToBytes, bytesToBase64, concat, fromHex, toHex } from '@/lib/bytes';
 import { randomBytes } from '@/lib/random';
 
 /** What the desktop tells the iPhone about one message, through the user's iCloud. */
@@ -15,9 +16,9 @@ export interface Note {
 }
 
 /**
- * Both devices holding an account derive the same key from its recovery
- * phrase, so they agree without pairing. The tag names the account in iCloud
- * without giving away its address.
+ * Both devices holding an account derive the same key from its secret, so they
+ * agree without pairing. The tag names the account in iCloud without giving
+ * away its address.
  */
 export interface NoteKey {
   key: string;
@@ -27,10 +28,12 @@ export interface NoteKey {
 const TITLE_LIMIT = 100;
 const BODY_LIMIT = 300;
 
-export function noteKey(mnemonic: string): NoteKey {
+export function noteKey(account: AccountSecret): NoteKey {
   const secret = hkdf(
     sha256,
-    utf8ToBytes(normalizeMnemonic(mnemonic)),
+    account.kind === 'phrase'
+      ? utf8ToBytes(normalizeMnemonic(account.phrase))
+      : fromHex(account.seed),
     utf8ToBytes('statim'),
     utf8ToBytes('icloud notes v1'),
     40

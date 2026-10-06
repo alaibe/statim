@@ -1,5 +1,5 @@
 import { loadAccounts } from '@/core/account/accounts';
-import { readMnemonic } from '@/core/account/key-protection';
+import { readAccountSecret } from '@/core/account/key-protection';
 import { isString, shape } from '@/lib/guards';
 import { accountIcloudKeyName, vaultDelete, vaultGet, vaultSet } from '@/storage/vault';
 
@@ -17,14 +17,14 @@ export async function storedNoteKey(accountId: string): Promise<NoteKey | null> 
 }
 
 export async function rememberNoteKey(accountId: string): Promise<NoteKey> {
-  const phrase = await readMnemonic(accountId, true);
-  if (phrase.status === 'denied') throw new Error('Statim could not read the recovery phrase.');
-  if (phrase.status !== 'ok') {
+  const read = await readAccountSecret(accountId, true);
+  if (read.status === 'denied') throw new Error('Statim could not read the account keys.');
+  if (read.status !== 'ok') {
     throw new Error(
       'This account has no keys in Statim to encrypt notifications with yet. For a hardware wallet, set up chat keys in Settings › Accounts.'
     );
   }
-  const key = noteKey(phrase.value);
+  const key = noteKey(read.secret);
   await vaultSet(accountIcloudKeyName(accountId), JSON.stringify(key));
   return key;
 }

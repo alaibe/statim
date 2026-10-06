@@ -14,7 +14,12 @@ import {
 import { CHAT_KEY_MESSAGE, chatSeedFrom, hardwareKeyring } from './chat-seed';
 import { deviceSigner, holdDevice, keyOf, releaseDevice } from './device-session';
 import { hardwareAccount, type HardwareSigner } from './hardware';
-import { deleteMnemonic, readMnemonic, writeMnemonic } from './key-protection';
+import {
+  deleteAccountSecret,
+  readAccountSecret,
+  writeAccountSecret,
+  type AccountSecret,
+} from './key-protection';
 import {
   isValidMnemonic,
   keyringFromMnemonic,
@@ -123,7 +128,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
 
     const duplicate = existing.find((a) => a.address.toLowerCase() === address.toLowerCase());
     if (duplicate) {
-      await deleteMnemonic(duplicate.id);
+      await deleteAccountSecret(duplicate.id);
       await persistAccountMnemonic(duplicate.id, normalized);
       await setActiveAccountId(duplicate.id);
       set({ accounts: existing });
@@ -181,21 +186,25 @@ export const useAccountStore = create<AccountState>((set, get) => ({
       ? existing.map((a) => (a.id === record.id ? record : a))
       : [...existing, record];
 
-    if (duplicate) await deleteMnemonic(record.id);
-    await writeMnemonic(record.id, seed);
+    const secret = { kind: 'chatSeed', seed } as const;
+    if (duplicate) await deleteAccountSecret(record.id);
+    await writeAccountSecret(record.id, secret);
     await saveAccounts(accounts);
     await setActiveAccountId(record.id);
     holdDevice(record.id, signer);
     set({ accounts });
-    await activate(record.id, set, seed);
+    await activate(record.id, set, secret);
   },
 
   async setUpChatKeys() {
     const record = activeAccount(get());
     if (record?.kind !== 'hardware') return;
-    const seed = await signChatKeys(deviceSigner(record), keyOf(record).path);
-    await writeMnemonic(record.id, seed);
-    await activate(record.id, set, seed);
+    const secret = {
+      kind: 'chatSeed',
+      seed: await signChatKeys(deviceSigner(record), keyOf(record).path),
+    } as const;
+    await writeAccountSecret(record.id, secret);
+    await activate(record.id, set, secret);
   },
 
   async selectAccount(id: string) {
@@ -235,20 +244,20 @@ export const useAccountStore = create<AccountState>((set, get) => ({
 async function activate(
   accountId: string,
   set: (partial: Partial<AccountStateSlice>) => void,
-  secret?: string
+  secret?: AccountSecret
 ): Promise<'ready' | 'blocked' | 'invalidated'> {
   const record = useAccountStore.getState().accounts.find((a) => a.id === accountId);
-  const result =
-    secret === undefined
-      ? await readMnemonic(accountId, true)
-      : ({ status: 'ok', value: secret } as const);
+  const result = secret
+    ? ({ status: 'ok', secret } as const)
+    : await readAccountSecret(accountId, true);
 
   if (record?.kind === 'hardware') {
     if (result.status === 'denied') {
       set({ status: 'blocked', activeAccountId: accountId, keyring: null, error: null });
       return 'blocked';
     }
-    const seed = result.status === 'ok' ? (result.value as Hex) : null;
+    const seed =
+      result.status === 'ok' && result.secret.kind === 'chatSeed' ? result.secret.seed : null;
     const key = keyOf(record);
     set({
       status: 'ready',
@@ -260,7 +269,7 @@ async function activate(
     return 'ready';
   }
 
-  if (result.status !== 'ok') {
+  if (result.status !== 'ok' || result.secret.kind !== 'phrase') {
     const status = result.status === 'denied' ? 'blocked' : 'invalidated';
     set({ status, activeAccountId: accountId, keyring: null, error: null });
     return status;
@@ -269,7 +278,7 @@ async function activate(
   set({
     status: 'ready',
     activeAccountId: accountId,
-    keyring: keyringFromMnemonic(result.value),
+    keyring: keyringFromMnemonic(result.secret.phrase),
     chatKeys: true,
     error: null,
   });

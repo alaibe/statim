@@ -15,7 +15,7 @@ let mockFocused = false;
 jest.mock('@tauri-apps/api/core', () => ({ invoke: jest.fn() }));
 jest.mock('@/core/notifications', () => ({ appFocused: () => mockFocused }));
 jest.mock('@/core/account/key-protection', () => ({
-  readMnemonic: async () => ({ status: 'ok', value: PHRASE }),
+  readAccountSecret: async () => ({ status: 'ok', secret: { kind: 'phrase', phrase: PHRASE } }),
 }));
 jest.mock('@/core/account/accounts', () => ({
   loadAccounts: async () => [{ id: 'acc1' }, { id: 'acc2' }],
@@ -33,7 +33,7 @@ jest.mock('./cloudkit', () => ({
 }));
 
 const MINUTE = 60_000;
-const { key, tag } = noteKey(PHRASE);
+const { key, tag } = noteKey({ kind: 'phrase', phrase: PHRASE });
 const call = (index: number) => {
   const [, token, notes, discard] = jest.mocked(changeNotes).mock.calls[index];
   return { token, notes, discard };

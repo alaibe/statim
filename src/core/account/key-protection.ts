@@ -1,3 +1,5 @@
+import type { Hex } from 'viem';
+
 import {
   accountMnemonicKey,
   VaultKey,
@@ -12,14 +14,30 @@ import {
 
 const PROMPT = 'Confirm to unlock your account';
 
+/** What an account keeps in its secret slot: its recovery phrase, or a hardware wallet's chat seed. */
+export type AccountSecret = { kind: 'phrase'; phrase: string } | { kind: 'chatSeed'; seed: Hex };
+
+export type SecretRead =
+  | { status: 'ok'; secret: AccountSecret }
+  | { status: 'absent' | 'invalidated' | 'denied' };
+
+const CHAT_SEED = 'chat-seed:';
+
+function encodeSecret(secret: AccountSecret): string {
+  return secret.kind === 'phrase' ? secret.phrase : `${CHAT_SEED}${secret.seed}`;
+}
+
+function decodeSecret(value: string): AccountSecret {
+  return value.startsWith(CHAT_SEED)
+    ? { kind: 'chatSeed', seed: value.slice(CHAT_SEED.length) as Hex }
+    : { kind: 'phrase', phrase: value };
+}
+
 export async function isKeyProtectionEnabled(): Promise<boolean> {
   return (await vaultGet(VaultKey.keyProtection)) === '1';
 }
 
-export async function readMnemonic(
-  accountId: string,
-  expectExisting: boolean
-): Promise<ProtectedRead> {
+async function readSlot(accountId: string, expectExisting: boolean): Promise<ProtectedRead> {
   const [sealed, value] = await Promise.all([
     isKeyProtectionEnabled(),
     vaultGet(accountMnemonicKey(accountId)),
@@ -28,15 +46,24 @@ export async function readMnemonic(
   return vaultGetProtected(accountMnemonicKey(accountId), PROMPT, expectExisting);
 }
 
-export async function writeMnemonic(accountId: string, phrase: string): Promise<void> {
-  if (await isKeyProtectionEnabled()) {
-    await vaultSetProtected(accountMnemonicKey(accountId), phrase);
-    return;
-  }
-  await vaultSet(accountMnemonicKey(accountId), phrase);
+export async function readAccountSecret(
+  accountId: string,
+  expectExisting: boolean
+): Promise<SecretRead> {
+  const read = await readSlot(accountId, expectExisting);
+  return read.status === 'ok' ? { status: 'ok', secret: decodeSecret(read.value) } : read;
 }
 
-export async function deleteMnemonic(accountId: string): Promise<void> {
+export async function writeAccountSecret(accountId: string, secret: AccountSecret): Promise<void> {
+  const value = encodeSecret(secret);
+  if (await isKeyProtectionEnabled()) {
+    await vaultSetProtected(accountMnemonicKey(accountId), value);
+    return;
+  }
+  await vaultSet(accountMnemonicKey(accountId), value);
+}
+
+export async function deleteAccountSecret(accountId: string): Promise<void> {
   await vaultDelete(accountMnemonicKey(accountId));
   await vaultDeleteProtected(accountMnemonicKey(accountId)).catch(() => {});
 }
