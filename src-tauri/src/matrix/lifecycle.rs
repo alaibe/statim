@@ -50,28 +50,52 @@ pub async fn mx_start(
     if let Some(previous) = previous {
         previous.stop_sync().await;
     }
-    let session = build_session(app, params).await?;
+    let mut session = build_session(app.clone(), params.clone()).await?;
     *state.0.lock().unwrap() = Some(session.clone());
 
-    let Some(saved) = session.params.session.clone() else {
+    let Some(saved) = params.session.clone() else {
         return Ok(None);
     };
+    if let Err(error) = restore(&session, &saved).await {
+        if !belongs_to_another_device(&error) {
+            return Err(err(error));
+        }
+        // The store was made for another user or device, as when an account moves homeserver.
+        state.0.lock().unwrap().take();
+        drop(session);
+        remove_dir(Path::new(&params.data_directory))?;
+        session = build_session(app, params).await?;
+        *state.0.lock().unwrap() = Some(session.clone());
+        restore(&session, &saved).await.map_err(err)?;
+    }
+    session.start_sync().await?;
+    Ok(Some(session.session()?))
+}
+
+async fn restore(session: &Session, saved: &MxSession) -> Result<(), matrix_sdk::Error> {
+    let user_id =
+        UserId::parse(&saved.user_id).map_err(|e| matrix_sdk::Error::UnknownError(e.into()))?;
     session
         .client
         .restore_session(MatrixSession {
             meta: SessionMeta {
-                user_id: UserId::parse(&saved.user_id).map_err(err)?,
-                device_id: saved.device_id.into(),
+                user_id,
+                device_id: saved.device_id.clone().into(),
             },
             tokens: SessionTokens {
-                access_token: saved.access_token,
-                refresh_token: saved.refresh_token,
+                access_token: saved.access_token.clone(),
+                refresh_token: saved.refresh_token.clone(),
             },
         })
         .await
-        .map_err(err)?;
-    session.start_sync().await?;
-    Ok(Some(session.session()?))
+}
+
+fn belongs_to_another_device(error: &matrix_sdk::Error) -> bool {
+    matches!(
+        error,
+        matrix_sdk::Error::CryptoStoreError(store)
+            if matches!(**store, matrix_sdk::encryption::CryptoStoreError::MismatchedAccount { .. })
+    )
 }
 
 #[tauri::command]
