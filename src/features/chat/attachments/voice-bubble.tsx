@@ -6,7 +6,7 @@ import { reportError } from '@/core/app/report-error';
 import { formatDuration } from '@/core/messaging/preview';
 import { waveformBars } from './format';
 
-export interface VoiceBubbleProps {
+interface VoiceBubbleProps {
   uri: string;
   durationMs: number;
   fromMe: boolean;

@@ -3,7 +3,7 @@ import type { MessageContent } from './types';
 
 export const INLINE_LIMIT_BYTES = 700 * 1024;
 
-export type AttachmentKind = 'image' | 'voice' | 'file';
+type AttachmentKind = 'image' | 'voice' | 'file';
 
 export function classifyAttachment(mimeType?: string, filename?: string): AttachmentKind {
   const type = (mimeType ?? '').toLowerCase();
@@ -26,13 +26,13 @@ export interface AttachedFile {
 export const attachedFile = (content: MessageContent): AttachedFile | undefined =>
   'uri' in content ? content : undefined;
 
-export interface InlineAttachment {
+interface InlineAttachment {
   filename: string;
   mimeType: string;
   data: string;
 }
 
-export class AttachmentTooLargeError extends Error {
+class AttachmentTooLargeError extends Error {
   constructor(readonly size: number) {
     super(
       `That file is ${Math.round(size / 1024)}KB. Files over ` +
@@ -78,7 +78,7 @@ export function fallbackMimeType(filename: string): string {
   return MIME_BY_EXTENSION[ext] ?? 'application/octet-stream';
 }
 
-export const ATTACHMENT_AREA = 'attachments';
+const ATTACHMENT_AREA = 'attachments';
 
 const fileSafe = (value: string) => value.replace(/[^A-Za-z0-9._-]/g, '_');
 

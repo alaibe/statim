@@ -3,12 +3,12 @@ import type { Medium } from './inventory';
 import { eraseMedia } from './media';
 import { accountScopedKeys, vaultDelete, vaultDeleteProtected, accountMnemonicKey } from './vault';
 
-export interface EraseReport {
+interface EraseReport {
   erased: string[];
   failures: { medium: string; error: unknown }[];
 }
 
-export class AccountEraseError extends Error {
+class AccountEraseError extends Error {
   constructor(readonly report: EraseReport) {
     super(`Could not erase: ${report.failures.map((failure) => failure.medium).join(', ')}`);
     this.name = 'AccountEraseError';

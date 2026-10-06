@@ -3,7 +3,7 @@ import type { PluginId } from './types';
 
 const PREFS_KEY = 'plugins.prefs';
 
-export interface PluginPrefs {
+interface PluginPrefs {
   enabled: PluginId[];
 }
 

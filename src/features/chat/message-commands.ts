@@ -105,7 +105,7 @@ export function messageActions(
   return menu.filter((action): action is MessageAction => action !== false);
 }
 
-export function copyableText(content: ChatMessage['content']): string | undefined {
+function copyableText(content: ChatMessage['content']): string | undefined {
   switch (content.kind) {
     case 'text':
       return plainText(content.text);

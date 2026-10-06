@@ -4,7 +4,7 @@ import { mentionIdOf } from './mentions';
 import { replaceShortcodes, SHORTCODE } from './shortcodes';
 import type { ParticipantId } from './types';
 
-export interface SpanStyle {
+interface SpanStyle {
   readonly bold?: boolean;
   readonly italic?: boolean;
   readonly strike?: boolean;

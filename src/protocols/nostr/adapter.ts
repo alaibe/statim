@@ -24,7 +24,7 @@ import {
 } from './nip17';
 import { RelayPool, type WebSocketLike } from './relay-pool';
 
-export const NOSTR_PROTOCOL_ID = 'nostr';
+const NOSTR_PROTOCOL_ID = 'nostr';
 
 /** How far back relays are asked to go when this device has no history yet. */
 const HISTORY_WINDOW_SECONDS = 30 * 24 * 60 * 60;
@@ -37,7 +37,7 @@ const HISTORY_WINDOW_SECONDS = 30 * 24 * 60 * 60;
  */
 const JITTER_SLACK_SECONDS = 3 * 24 * 60 * 60;
 
-export interface NostrConnectOptions {
+interface NostrConnectOptions {
   derive(path: string): DerivedKey;
   relays: string[];
   createSocket?(url: string): WebSocketLike;

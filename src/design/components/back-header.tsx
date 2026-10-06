@@ -2,7 +2,7 @@ import { Pressable } from './pressable';
 import { Text } from './text';
 import { Icon } from '../icon';
 
-export interface BackHeaderProps {
+interface BackHeaderProps {
   label: string;
   onPress: () => void;
 }

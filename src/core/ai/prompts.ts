@@ -21,7 +21,7 @@ export const STYLES = {
   friendly: 'warm and friendly',
 } as const;
 
-export type Style = keyof typeof STYLES;
+type Style = keyof typeof STYLES;
 
 export function parseStyle(word: string | undefined): Style | null {
   const key = word?.toLowerCase();

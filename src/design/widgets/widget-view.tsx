@@ -10,7 +10,7 @@ import { affordanceFor } from './affordance';
 import { FormWidget } from './form-widget';
 import { type Widget, type WidgetAction, type WidgetTone } from './schema';
 
-export interface WidgetViewProps {
+interface WidgetViewProps {
   widget: Widget;
   onCommand?: (command: string) => void;
   onOpenUrl?: (url: string) => void;

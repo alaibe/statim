@@ -85,7 +85,7 @@ export async function revokeInboxInstallations(
   );
 }
 
-export interface XmtpConnectOptions {
+interface XmtpConnectOptions {
   accountId: string;
   account: LocalAccount;
   dbEncryptionKey: Uint8Array;
@@ -95,7 +95,7 @@ export interface XmtpConnectOptions {
   storage?: AccountStorage;
 }
 
-export interface XmtpEraseOptions {
+interface XmtpEraseOptions {
   address: string;
   dbEncryptionKey: Uint8Array;
   env?: XMTPEnvironment;

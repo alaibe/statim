@@ -1,4 +1,4 @@
-export const CLIENT_API = '/_matrix/client/v3';
+const CLIENT_API = '/_matrix/client/v3';
 
 export class Homeserver {
   constructor(

@@ -36,7 +36,7 @@ function jitteredTimestamp(): number {
   return nowSeconds() - randomInt(MAX_JITTER_SECONDS);
 }
 
-export interface DirectMessage {
+interface DirectMessage {
   recipients: string[];
   content: string;
   subject?: string;

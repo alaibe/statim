@@ -4,9 +4,9 @@ import { isProtocolId, type ProtocolId } from './namespace';
 
 export type ProtocolConfig = Record<string, string>;
 
-export type ConfigFieldKind = 'text' | 'secret' | 'lines';
+type ConfigFieldKind = 'text' | 'secret' | 'lines';
 
-export interface ProtocolConfigField {
+interface ProtocolConfigField {
   key: string;
   label: string;
   kind: ConfigFieldKind;

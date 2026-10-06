@@ -4,7 +4,7 @@ import type { Homeserver } from './homeserver';
 
 const POLL_MS = 60_000;
 
-export interface Presence {
+interface Presence {
   online: boolean;
   lastSeenAt?: number;
 }

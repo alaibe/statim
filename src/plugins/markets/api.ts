@@ -1,10 +1,10 @@
 export const DEFAULT_API_BASE = 'https://api.binance.com/api/v3';
 
-export const DEFAULT_QUOTE = 'USDT';
+const DEFAULT_QUOTE = 'USDT';
 
 const QUOTE_ASSETS = ['USDT', 'USDC', 'FDUSD', 'BUSD', 'TUSD', 'BTC', 'ETH', 'BNB', 'EUR', 'TRY'];
 
-export interface Ticker {
+interface Ticker {
   symbol: string;
   price: number;
   changePercent: number;

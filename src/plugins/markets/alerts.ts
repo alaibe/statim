@@ -1,6 +1,6 @@
 import { displaySymbol, formatPrice, normaliseSymbol } from './api';
 
-export interface ThresholdAlert {
+interface ThresholdAlert {
   id: string;
   symbol: string;
   kind: 'above' | 'below';
@@ -8,7 +8,7 @@ export interface ThresholdAlert {
   createdAt: number;
 }
 
-export interface MoveAlert {
+interface MoveAlert {
   id: string;
   symbol: string;
   kind: 'move';
@@ -19,7 +19,7 @@ export interface MoveAlert {
 
 export type MarketAlert = ThresholdAlert | MoveAlert;
 
-export type AlertSpec =
+type AlertSpec =
   | { kind: 'above' | 'below'; symbol: string; price: number }
   | { kind: 'move'; symbol: string; percent: number };
 

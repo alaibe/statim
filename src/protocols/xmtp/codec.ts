@@ -2,14 +2,14 @@ import type { ContentTypeId, EncodedContent, JSContentCodec } from '@xmtp/react-
 
 export const PLUGIN_AUTHORITY = 'statim.plugin';
 
-export interface PluginContentType<T> {
+interface PluginContentType<T> {
   typeId: string;
   versionMajor?: number;
   versionMinor?: number;
   fallback: (content: T) => string;
 }
 
-export function contentTypeIdFor(typeId: string, major = 1, minor = 0): ContentTypeId {
+function contentTypeIdFor(typeId: string, major = 1, minor = 0): ContentTypeId {
   return {
     authorityId: PLUGIN_AUTHORITY,
     typeId,

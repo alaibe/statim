@@ -21,9 +21,9 @@ const SIZE_MASK = 3;
 const SIGNATURE_LENGTH = 65;
 const PADDING_BLOCK = 256;
 
-export type PayloadKey = { recipient: Uint8Array } | { symmetricKey: Uint8Array };
+type PayloadKey = { recipient: Uint8Array } | { symmetricKey: Uint8Array };
 
-export interface DecodedPayload {
+interface DecodedPayload {
   data: Uint8Array;
   signer: Uint8Array;
 }

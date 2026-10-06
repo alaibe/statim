@@ -25,7 +25,7 @@ import { useRecentEmoji } from './use-recent-emoji';
 const PAD = 8;
 const EMOJI_SIZE = 26;
 
-export interface EmojiGridProps {
+interface EmojiGridProps {
   width: number;
   onEmoji(emoji: string): void;
   autoFocusSearch?: boolean;

@@ -9,11 +9,11 @@ import { keccak256 } from './crypto';
 import { ProtoFields, ProtoWriter } from './proto';
 
 /** Small enough that a sealed segment fits nwaku's default 150 KiB limit. */
-export const SEGMENT_SIZE = 100_000;
+const SEGMENT_SIZE = 100_000;
 const PENDING_LIMIT = 64;
 const COMPLETED_LIMIT = 1_000;
 
-export interface Segment {
+interface Segment {
   hash: Uint8Array;
   index: number;
   count: number;

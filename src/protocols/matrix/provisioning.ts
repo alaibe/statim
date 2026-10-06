@@ -4,7 +4,7 @@
  * https://github.com/mautrix/go/blob/main/bridgev2/matrix/provisioning.yaml
  */
 
-export interface LoginFlow {
+interface LoginFlow {
   id: string;
   name: string;
   description: string;
@@ -30,13 +30,13 @@ export interface InputField {
   options?: string[];
 }
 
-export interface CookieSource {
+interface CookieSource {
   type: 'cookie' | 'local_storage' | 'request_header' | 'request_body' | 'special';
   name: string;
   cookie_domain?: string;
 }
 
-export interface CookieField {
+interface CookieField {
   id: string;
   required: boolean;
   sources: CookieSource[];
@@ -99,7 +99,7 @@ export interface RemotePerson {
   mxid?: string;
 }
 
-export type ProvisionRequest = (
+type ProvisionRequest = (
   path: string,
   init?: { method?: 'GET' | 'POST'; body?: unknown }
 ) => Promise<unknown>;

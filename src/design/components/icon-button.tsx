@@ -9,7 +9,7 @@ const SURFACE = {
   brand: 'bg-brand',
 } as const;
 
-export interface IconButtonProps extends Omit<PressScaleProps, 'children'> {
+interface IconButtonProps extends Omit<PressScaleProps, 'children'> {
   icon: IconName;
   label: string;
   tone?: IconTone;

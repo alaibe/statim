@@ -34,7 +34,7 @@ const SETTINGS_PAGES = [
 ] as const;
 
 /** The pages the sections open, so a layout showing both can mark the open one. */
-export type SettingsPage = (typeof SETTINGS_PAGES)[number] | `protocol/${ProtocolId}`;
+type SettingsPage = (typeof SETTINGS_PAGES)[number] | `protocol/${ProtocolId}`;
 
 export function settingsPageFor(
   segments: readonly string[],

@@ -9,7 +9,7 @@ import { useKeyedLoad } from '@/lib/use-keyed-load';
 import { SettingsScreen } from './settings-screen';
 import { useAction } from '@/features/use-action';
 
-export interface ApiKeyScreenProps {
+interface ApiKeyScreenProps {
   title: string;
   sectionTitle: string;
   testIdPrefix: string;

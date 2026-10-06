@@ -18,7 +18,7 @@ const NAME_EXPIRES_ABI = [
   },
 ] as const;
 
-export async function ensPaidUntil(name: string): Promise<Date | null> {
+async function ensPaidUntil(name: string): Promise<Date | null> {
   const parts = name.toLowerCase().split('.');
   if (parts.length !== 2 || parts[1] !== 'eth') return null;
 
@@ -36,7 +36,7 @@ export async function ensPaidUntil(name: string): Promise<Date | null> {
   }
 }
 
-export interface EnsProfile {
+interface EnsProfile {
   name: string;
   avatar: string | null;
   description: string | null;

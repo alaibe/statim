@@ -3,7 +3,7 @@ import { W } from '@/design/widgets';
 
 import { readBots } from './types';
 
-export const BOTS_BOT_ID = 'bots';
+const BOTS_BOT_ID = 'bots';
 
 export function makeBotsBot(context: PluginContext): Bot {
   return {

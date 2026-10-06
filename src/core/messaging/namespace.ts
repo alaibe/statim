@@ -39,7 +39,7 @@ export function namespacedId(protocol: ProtocolId, nativeId: ProtocolChatId): Ch
   return `${protocol}-${nativeId}` as ChatId;
 }
 
-export interface SplitId {
+interface SplitId {
   protocol: ProtocolId;
   nativeId: ProtocolChatId;
 }

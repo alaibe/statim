@@ -53,7 +53,7 @@ export interface CoreFeature {
   subscribe(listener: () => void): () => void;
 }
 
-export interface CoreContribution {
+interface CoreContribution {
   commands?: SlashCommand[];
   composerActions?: ComposerAction[];
   features?: CoreFeature[];

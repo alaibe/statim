@@ -53,7 +53,7 @@ import { BridgeProvisioning, type MatrixCapabilities } from './provisioning';
 
 const UNFETCHED_LIMIT = 2_000;
 
-export interface MatrixConnectOptions {
+interface MatrixConnectOptions {
   createApi(): Promise<MatrixApi>;
   parameters: MxStartParams;
   /** Called with the session after sign-in and with null after sign-out. */

@@ -55,7 +55,7 @@ export interface PropagatedState {
   remoteState: number;
 }
 
-export interface WireImage {
+interface WireImage {
   payload: Uint8Array;
   format: number;
   width: number;
@@ -87,7 +87,7 @@ export interface WireReaction {
   retracted: boolean;
 }
 
-export interface WireMembershipUpdate {
+interface WireMembershipUpdate {
   chatId: string;
   events: Uint8Array[];
   message?: WireChatMessage;
@@ -103,7 +103,7 @@ export interface WireGroupEvent {
   image?: Uint8Array;
 }
 
-export interface WireContactUpdate {
+interface WireContactUpdate {
   clock: number;
   displayName: string;
   contactRequestClock: number;
@@ -117,7 +117,7 @@ export interface WireEncrypted {
   ratchet?: { key: Uint8Array; n: number; pn: number; id: Uint8Array };
 }
 
-export interface WireProtocolMessage {
+interface WireProtocolMessage {
   installationId: string;
   encrypted: Map<string, WireEncrypted>;
   publicMessage?: Uint8Array;
@@ -129,13 +129,13 @@ export interface MvdsMessage {
   body: Uint8Array;
 }
 
-export interface MvdsPayload {
+interface MvdsPayload {
   acks: Uint8Array[];
   messages: MvdsMessage[];
   others: number;
 }
 
-export interface WireApplicationMessage {
+interface WireApplicationMessage {
   signature: Uint8Array;
   payload: Uint8Array;
   type: number;

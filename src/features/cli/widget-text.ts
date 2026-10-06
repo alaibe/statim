@@ -10,11 +10,7 @@ function actionLines(
 }
 
 /** A widget as terminal lines. Buttons become the command that pressing them would run. */
-export function widgetLines(
-  widget: Widget,
-  run: (command: string) => string,
-  indent = ''
-): string[] {
+function widgetLines(widget: Widget, run: (command: string) => string, indent = ''): string[] {
   switch (widget.kind) {
     case 'stat':
       return [

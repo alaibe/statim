@@ -1,6 +1,6 @@
 import type { NostrEvent } from './events';
 
-export type RelayStatus = 'connecting' | 'open' | 'closed';
+type RelayStatus = 'connecting' | 'open' | 'closed';
 
 export interface RelayState {
   url: string;
@@ -8,7 +8,7 @@ export interface RelayState {
   error?: string;
 }
 
-export interface Filter {
+interface Filter {
   ids?: string[];
   authors?: string[];
   kinds?: number[];
@@ -18,14 +18,14 @@ export interface Filter {
   [tagFilter: `#${string}`]: string[] | undefined;
 }
 
-export interface Subscription {
+interface Subscription {
   id: string;
   filters: Filter[];
   onEvent(event: NostrEvent): unknown;
   onEose?(url: string): void;
 }
 
-export interface RelayPoolOptions {
+interface RelayPoolOptions {
   urls: string[];
   /** Events handled on an earlier run. */
   handled?: Iterable<string>;
@@ -398,7 +398,7 @@ export class RelayPool {
   }
 }
 
-export function dedupeUrls(urls: string[]): string[] {
+function dedupeUrls(urls: string[]): string[] {
   const out = new Map<string, string>();
   for (const raw of urls) {
     const url = normalizeRelayUrl(raw);

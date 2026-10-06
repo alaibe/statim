@@ -8,7 +8,7 @@ const TONE = {
   danger: 'text-danger',
 } as const;
 
-export interface EyebrowProps {
+interface EyebrowProps {
   children: string;
   tone?: keyof typeof TONE;
   className?: string;

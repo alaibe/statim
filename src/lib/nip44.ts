@@ -18,7 +18,7 @@ export function conversationKey(secretKey: Uint8Array, publicKeyHex: string): Ui
   return conversationKeyFromSharedX(shared.subarray(1, 33));
 }
 
-export function conversationKeyFromSharedX(sharedX: Uint8Array): Uint8Array {
+function conversationKeyFromSharedX(sharedX: Uint8Array): Uint8Array {
   return hkdfExtract(sha256, sharedX, SALT);
 }
 

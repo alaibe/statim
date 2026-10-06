@@ -78,7 +78,7 @@ function databasePath(env: XmtpEnv, address: string): string {
   return `xmtp-${env}-${address.toLowerCase()}.db3`;
 }
 
-export interface XmtpConnectOptions {
+interface XmtpConnectOptions {
   accountId: string;
   account: LocalAccount;
   dbEncryptionKey: Uint8Array;
@@ -86,7 +86,7 @@ export interface XmtpConnectOptions {
   codecs?: ContentCodec<any>[];
 }
 
-export interface XmtpEraseOptions {
+interface XmtpEraseOptions {
   address: string;
   dbEncryptionKey: Uint8Array;
   env?: XmtpEnvironment;

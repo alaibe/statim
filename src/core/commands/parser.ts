@@ -1,4 +1,4 @@
-export interface ParsedCommand {
+interface ParsedCommand {
   name: string;
   rest: string;
   args: string[];

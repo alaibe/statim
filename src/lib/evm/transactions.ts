@@ -2,7 +2,7 @@ import { formatEther, type Address, type Hex } from 'viem';
 
 import { chainById, publicClientFor, trimDecimals } from './chains';
 
-export interface TransactionSummary {
+interface TransactionSummary {
   hash: Hex;
   chainId: number;
   chainName: string;
@@ -27,10 +27,7 @@ export function explorerUrlFor(chainId: number, hash: Hex): string | undefined {
   return explorer ? `${explorer}/tx/${hash}` : undefined;
 }
 
-export async function readTransaction(
-  hash: Hex,
-  chainId: number
-): Promise<TransactionSummary | null> {
+async function readTransaction(hash: Hex, chainId: number): Promise<TransactionSummary | null> {
   const chain = chainById(chainId);
   if (!chain) return null;
 

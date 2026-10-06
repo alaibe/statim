@@ -37,7 +37,7 @@ export interface WakuNode {
   close?(): Promise<void>;
 }
 
-export interface NodeOptions {
+interface NodeOptions {
   nodeUrl: string;
   fetchImpl?: typeof fetch;
 }

@@ -44,7 +44,7 @@ import { chatListContents, isFolded } from './chat-list-contents';
 
 const NO_IDS: ReadonlySet<string> = new Set();
 
-export interface ChatListProps {
+interface ChatListProps {
   query: string;
   /** The chat open beside the list, on layouts that show both. */
   selectedId?: string;

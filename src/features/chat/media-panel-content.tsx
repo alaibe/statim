@@ -34,7 +34,7 @@ export interface MediaPanelProps {
   onSend(content: MessageContent): void;
 }
 
-export type MediaPanelContentProps = Omit<MediaPanelProps, 'anchor' | 'onClose'> & {
+type MediaPanelContentProps = Omit<MediaPanelProps, 'anchor' | 'onClose'> & {
   onTab(tab: MediaTab): void;
   /** A popover has the keyboard already; a bottom sheet would raise it over itself. */
   autoFocusSearch?: boolean;

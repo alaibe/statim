@@ -1,7 +1,7 @@
 import { LOCAL_PROTOCOL, namespacedId, protocolChatId } from './namespace';
 import type { ChatId, MessageContent } from './types';
 
-export const LOCAL_PREFIX = `${LOCAL_PROTOCOL}-`;
+const LOCAL_PREFIX = `${LOCAL_PROTOCOL}-`;
 
 export function botChatId(botId: string): ChatId {
   return namespacedId(LOCAL_PROTOCOL, protocolChatId(botId));

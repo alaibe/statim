@@ -42,7 +42,7 @@ export interface CliEnv {
   host: PluginHostValue;
 }
 
-export type CliOutput = { data: unknown; text?: string | string[] } | void;
+type CliOutput = { data: unknown; text?: string | string[] } | void;
 
 export type CliHandler = (input: ParsedArgs, env: CliEnv) => Promise<CliOutput>;
 
@@ -112,7 +112,7 @@ function describeChoices(items: string[]): string {
   return shown.join('\n');
 }
 
-export function pick<T>(
+function pick<T>(
   items: T[],
   ref: string,
   keys: (item: T) => (string | undefined)[],
@@ -139,7 +139,7 @@ export interface ChatLabel {
   address?: string;
 }
 
-export type FoundChat = Chat & { label: string; participant?: ParticipantId; address?: string };
+type FoundChat = Chat & { label: string; participant?: ParticipantId; address?: string };
 
 const participantCache = new Map<string, { name?: string; address?: string }>();
 

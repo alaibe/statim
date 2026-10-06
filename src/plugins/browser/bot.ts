@@ -4,7 +4,7 @@ import { W } from '@/design/widgets';
 import { walletConnectProjectId } from './config';
 import { bookmarks } from './bookmarks';
 
-export const BROWSER_BOT_ID = 'browser';
+const BROWSER_BOT_ID = 'browser';
 
 export function makeBrowserBot(context: PluginContext): Bot {
   return {

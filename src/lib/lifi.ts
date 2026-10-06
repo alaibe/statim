@@ -164,7 +164,7 @@ export async function lifiPermitTargets(
     : null;
 }
 
-export interface LifiQuoteParams {
+interface LifiQuoteParams {
   fromChain: number;
   toChain: number;
   fromToken: Address;

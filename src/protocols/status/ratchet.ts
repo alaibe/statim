@@ -22,7 +22,7 @@ const MAX_KEPT_KEYS = 2000;
 const TAG_LENGTH = 32;
 const IV_LENGTH = 16;
 
-export interface Chain {
+interface Chain {
   key: string;
   n: number;
 }
@@ -92,7 +92,7 @@ function openWithMessageKey(
   );
 }
 
-export function passiveX3dh(
+function passiveX3dh(
   identity: Uint8Array,
   signedPreKey: Uint8Array,
   theirIdentity: Uint8Array,
@@ -105,7 +105,7 @@ export function passiveX3dh(
   );
 }
 
-export function startSession(
+function startSession(
   sharedKey: Uint8Array,
   signedPreKey: SignedPreKey,
   ephemeral: Uint8Array
@@ -153,7 +153,7 @@ function turn(session: RatchetSession, theirs: string): RatchetSession {
 }
 
 /** status-go's `RatchetDecrypt`: the session to keep, or null when the message is not for it. */
-export function ratchetDecrypt(
+function ratchetDecrypt(
   session: RatchetSession,
   header: { key: Uint8Array; n: number; pn: number },
   ciphertext: Uint8Array

@@ -145,7 +145,7 @@ export interface StatusMedia {
   load(uri: string, name: string, mimeType: string): Promise<Uint8Array>;
 }
 
-export interface StatusConnectOptions {
+interface StatusConnectOptions {
   derive(path: string): DerivedKey;
   /** An nwaku node's REST address; without one, Status's own nodes are used. */
   nodeUrl?: string;

@@ -2,7 +2,7 @@ import { Switch, View, type SwitchProps } from 'react-native';
 
 import { useThemeColors } from '../hooks/use-theme-colors';
 
-export interface ToggleProps extends Pick<SwitchProps, 'value' | 'onValueChange' | 'disabled'> {
+interface ToggleProps extends Pick<SwitchProps, 'value' | 'onValueChange' | 'disabled'> {
   label: string;
 }
 

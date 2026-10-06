@@ -6,7 +6,7 @@ import type { ChatProtocolMeta } from '@/core/messaging/protocol';
 import type { ProtocolDescriptor } from '@/core/messaging/registry';
 import { connectableProtocols, protocolById } from '@/protocols';
 
-export type ProtocolTone = 'neutral' | 'brand' | 'success' | 'warning' | 'danger';
+type ProtocolTone = 'neutral' | 'brand' | 'success' | 'warning' | 'danger';
 
 export function toneFor(meta: ChatProtocolMeta): ProtocolTone {
   if (!meta.properties.endToEndEncrypted) return 'danger';

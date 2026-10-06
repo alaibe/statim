@@ -8,7 +8,7 @@ import type { MessageContent } from '@/core/messaging/types';
 
 const PHOTO_QUALITY = 0.5;
 
-export class AttachmentRejected extends Error {}
+class AttachmentRejected extends Error {}
 
 export function assertFits(size: number | undefined, what: string): void {
   if (size !== undefined && size > INLINE_LIMIT_BYTES) {

@@ -10,7 +10,7 @@ const TONE = {
   danger: { box: 'border-danger/40 bg-danger/10', title: 'text-danger', body: 'text-danger' },
 } as const;
 
-export interface NoteProps {
+interface NoteProps {
   title?: string;
   icon?: IconName;
   tone?: keyof typeof TONE;

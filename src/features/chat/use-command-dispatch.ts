@@ -35,7 +35,7 @@ export function elsewhereMessage(
     : `/${name} belongs to ${home}. Open that chat to use it.`;
 }
 
-export interface CommandDispatchOptions {
+interface CommandDispatchOptions {
   chatId: ChatId;
   scope: ChatScope;
   onSendText(text: string): Promise<string>;

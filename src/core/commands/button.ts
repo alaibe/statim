@@ -3,7 +3,7 @@
  * types them, and `/reply <text>` is the published shape third-party bots
  * build inline keyboards from.
  */
-export type ButtonCommand =
+type ButtonCommand =
   | { kind: 'draft'; text: string }
   | { kind: 'reply'; text: string }
   | { kind: 'command'; text: string };

@@ -22,7 +22,7 @@ export function walletClientFor(account: LocalAccount, chainId: number): WalletC
   });
 }
 
-export interface SendNativeParams {
+interface SendNativeParams {
   account: LocalAccount;
   chainId: number;
   to: Address;

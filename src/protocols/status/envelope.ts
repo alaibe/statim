@@ -40,7 +40,7 @@ export interface Keys {
   publicKey: Uint8Array;
 }
 
-export interface OpenedEnvelope {
+interface OpenedEnvelope {
   signer: Uint8Array;
   /** Application messages, with the data-sync record that carried each, if any. */
   records: { body: Uint8Array; sync?: MvdsMessage }[];
@@ -84,7 +84,7 @@ export function wrapApplication(
   return { bytes, id: messageIdFor(signer.publicKey, bytes) };
 }
 
-export function messageIdFor(author: Uint8Array, applicationBytes: Uint8Array): string {
+function messageIdFor(author: Uint8Array, applicationBytes: Uint8Array): string {
   return `0x${toHex(keccak256(author, applicationBytes))}`;
 }
 

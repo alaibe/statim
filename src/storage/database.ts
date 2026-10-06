@@ -8,7 +8,7 @@ import { accountDatabaseKey } from './vault';
 
 export type Database = SqliteRemoteDatabase;
 
-export interface AccountDatabase {
+interface AccountDatabase {
   db: Database;
   connection: SqliteConnection;
 }
@@ -57,7 +57,7 @@ function withoutQuery(error: unknown): never {
   throw error instanceof DrizzleQueryError && error.cause !== undefined ? error.cause : error;
 }
 
-export function databaseNameFor(accountId: string): string {
+function databaseNameFor(accountId: string): string {
   return `account-${accountId}.db`;
 }
 

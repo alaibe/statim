@@ -1,4 +1,4 @@
-export type BindValue = string | number | null;
+type BindValue = string | number | null;
 
 /** One SQLite connection: expo-sqlite on iOS and Android, Tauri commands on the desktop. */
 export interface SqliteConnection {

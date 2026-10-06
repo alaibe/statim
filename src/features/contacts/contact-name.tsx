@@ -1,5 +1,5 @@
 import { Text } from '@/design';
-export interface ContactNameProps {
+interface ContactNameProps {
   given?: string | null;
   family?: string | null;
 }

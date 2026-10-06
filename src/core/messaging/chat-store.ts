@@ -57,7 +57,7 @@ import type {
 import { errorMessage, NotConnectedError } from '../errors';
 import { sameValue } from '@/lib/same-value';
 
-export type ConnectionStatus = 'idle' | 'connecting' | 'ready' | 'error' | 'erasing';
+type ConnectionStatus = 'idle' | 'connecting' | 'ready' | 'error' | 'erasing';
 
 export interface ProtocolConnection {
   status: ConnectionStatus;
@@ -192,7 +192,7 @@ const FIRST_PAGE = 50;
 const EMPTY = Object.freeze({});
 const NONE = Object.freeze([]);
 
-export const EMPTY_PROJECTION = Object.freeze({
+const EMPTY_PROJECTION = Object.freeze({
   status: 'idle',
   error: null,
   sessions: EMPTY,

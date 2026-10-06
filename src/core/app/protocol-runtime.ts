@@ -35,7 +35,7 @@ export type SessionFactory = (params: {
   contentTypes: CustomContentType[];
 }) => Promise<ChatSession>;
 
-export interface ProtocolAccount {
+interface ProtocolAccount {
   accountId: string;
   keyring: Pick<Keyring, 'account' | 'derive'>;
   contentTypes(): CustomContentType[];

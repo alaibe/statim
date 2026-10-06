@@ -6,7 +6,7 @@ import { afterFiring, describeAlert, firedAlerts, symbolsToPoll, type FiredAlert
 import { displaySymbol, fetchPrices, formatPrice } from './api';
 import { apiBase, readAlerts, writeAlerts } from './storage';
 
-export const MARKETS_BOT_ID = 'markets';
+const MARKETS_BOT_ID = 'markets';
 
 const POLL_MS = 60_000;
 
@@ -55,7 +55,7 @@ async function checkAlerts(context: PluginContext, ctx: BotContext): Promise<voi
   for (const hit of fired) await ctx.say(alertMessage(hit));
 }
 
-export function alertMessage({ alert, price }: FiredAlert): MessageContent {
+function alertMessage({ alert, price }: FiredAlert): MessageContent {
   const market = displaySymbol(alert.symbol);
   const headline = `${market} ${formatPrice(price)}`;
 

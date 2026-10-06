@@ -4,7 +4,7 @@ import { formatBytes } from './format';
 import { Icon, type IconName, Pressable, Text, useThemeColors } from '@/design';
 import { openUrlQuietly } from '../link-actions';
 
-export interface FileBubbleProps {
+interface FileBubbleProps {
   uri: string;
   name: string;
   mimeType?: string;

@@ -19,7 +19,7 @@ const LABEL = {
   danger: 'text-danger',
 } as const;
 
-export interface BadgeProps {
+interface BadgeProps {
   label: string;
   tone?: keyof typeof TONE;
   className?: string;

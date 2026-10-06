@@ -1,4 +1,4 @@
-export type AiErrorCode =
+type AiErrorCode =
   | 'unavailable'
   | 'refused'
   | 'too-long'

@@ -2,7 +2,7 @@ import { cn } from '../lib/cn';
 import { Pressable } from './pressable';
 import { Text } from './text';
 
-export interface ChipProps {
+interface ChipProps {
   label: string;
   selected: boolean;
   onPress: () => void;

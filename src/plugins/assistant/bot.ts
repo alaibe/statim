@@ -51,7 +51,7 @@ function greeting(): ReturnType<Bot['greeting']> {
   ];
 }
 
-export interface LockDevice {
+interface LockDevice {
   kind: 'phone' | 'computer';
   /** What unlocks it besides a PIN, if anything. */
   biometrics: string | null;

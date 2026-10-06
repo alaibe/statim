@@ -21,7 +21,7 @@ import { openChat } from '@/features/navigation/open';
 
 export type ContactSort = 'name' | 'recent';
 
-export interface ContactListProps {
+interface ContactListProps {
   query: string;
   sortBy: ContactSort;
   /** Opens the sort picker; the caller owns the trigger. */

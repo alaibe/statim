@@ -41,7 +41,7 @@ export async function findBookmark(
   );
 }
 
-export type AddResult = { bookmark: Bookmark; restored?: boolean } | { error: string };
+type AddResult = { bookmark: Bookmark; restored?: boolean } | { error: string };
 
 /** Adds a site, or brings back a suggested one that was removed. */
 export async function addBookmark(

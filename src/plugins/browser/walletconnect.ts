@@ -9,7 +9,7 @@ import { APP_METADATA, walletConnectProjectId } from './config';
 import { handleSessionRequest } from './rpc';
 import { errorMessage } from '@/core/errors';
 
-export const SUPPORTED_METHODS = [
+const SUPPORTED_METHODS = [
   'personal_sign',
   'eth_sign',
   'eth_signTypedData',
@@ -19,7 +19,7 @@ export const SUPPORTED_METHODS = [
   'eth_chainId',
 ] as const;
 
-export const SUPPORTED_EVENTS = ['chainChanged', 'accountsChanged'] as const;
+const SUPPORTED_EVENTS = ['chainChanged', 'accountsChanged'] as const;
 
 type Kit = Awaited<ReturnType<typeof WalletKit.init>>;
 

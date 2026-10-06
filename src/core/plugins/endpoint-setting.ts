@@ -1,6 +1,6 @@
 import type { PluginContext } from '@/core/plugins/types';
 
-export interface EndpointSetting {
+interface EndpointSetting {
   hydrate(context: PluginContext): Promise<void>;
   current(): string;
   save(context: PluginContext, url: string | null): Promise<void>;

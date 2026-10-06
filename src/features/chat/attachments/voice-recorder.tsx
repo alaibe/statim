@@ -12,7 +12,7 @@ import { IconButton, Text } from '@/design';
 import { formatDuration } from '@/core/messaging/preview';
 import type { MessageContent } from '@/core/messaging/types';
 
-export interface VoiceRecorderProps {
+interface VoiceRecorderProps {
   onRecorded(content: MessageContent): void;
   onError(message: string): void;
 }

@@ -250,7 +250,7 @@ const MAPPERS: Record<string, (input: Input) => MessageContent> = {
   }),
 };
 
-export function toContent(raw: TdMessage, context: MappingContext): MessageContent {
+function toContent(raw: TdMessage, context: MappingContext): MessageContent {
   const content = raw.content;
   const type = content['@type'];
   if (SYSTEM_TEXT[type]) return { kind: 'system', text: SYSTEM_TEXT[type] };

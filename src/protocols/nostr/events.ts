@@ -4,7 +4,7 @@ import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils';
 
 export type Tag = string[];
 
-export interface UnsignedEvent {
+interface UnsignedEvent {
   pubkey: string;
   created_at: number;
   kind: number;

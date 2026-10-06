@@ -4,7 +4,7 @@ import { cn } from '../lib/cn';
 import { IconButton } from './icon-button';
 import { Text } from './text';
 
-export interface ModalHeaderProps {
+interface ModalHeaderProps {
   title: string;
   onClose: () => void;
   closeLabel?: string;

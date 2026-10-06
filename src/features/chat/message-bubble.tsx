@@ -34,7 +34,7 @@ import { mediaSaver } from './message-commands';
 
 export type { ReplyPreview } from './bubble-shell';
 
-export interface MessageBubbleProps {
+interface MessageBubbleProps {
   message: ChatMessage;
   grouped: boolean;
   tail: boolean;

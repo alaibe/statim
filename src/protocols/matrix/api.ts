@@ -84,7 +84,7 @@ export interface MxPublicRoom {
   canRequestJoin: boolean;
 }
 
-export interface MxReaction {
+interface MxReaction {
   key: string;
   senders: string[];
 }

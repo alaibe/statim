@@ -5,7 +5,7 @@ type RetentionAreas = {
 
 export type Medium = 'vault' | 'files' | 'database';
 
-export const STORAGE_INVENTORY = {
+const STORAGE_INVENTORY = {
   vault: {
     account: ['account.'],
     device: ['accounts.', 'security.'],

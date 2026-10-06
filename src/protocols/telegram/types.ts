@@ -16,7 +16,7 @@ export interface TdUser extends TdObject {
   type: { '@type': 'userTypeRegular' | 'userTypeBot' | 'userTypeDeleted' | 'userTypeUnknown' };
 }
 
-export type TdUserStatus =
+type TdUserStatus =
   | { '@type': 'userStatusOffline'; was_online: number }
   | {
       '@type':
@@ -27,7 +27,7 @@ export type TdUserStatus =
         | 'userStatusLastMonth';
     };
 
-export type TdChatType =
+type TdChatType =
   | { '@type': 'chatTypePrivate'; user_id: number }
   | { '@type': 'chatTypeBasicGroup'; basic_group_id: number }
   | { '@type': 'chatTypeSupergroup'; supergroup_id: number; is_channel: boolean }
@@ -43,7 +43,7 @@ export interface TdDraftMessage {
 }
 
 /** Main stops their messages and calls; Stories only hides your stories from them. */
-export type TdBlockList = { '@type': 'blockListMain' | 'blockListStories' };
+type TdBlockList = { '@type': 'blockListMain' | 'blockListStories' };
 
 export interface TdChat extends TdObject {
   '@type': 'chat';
@@ -71,7 +71,7 @@ export type TdMemberStatus =
   | 'chatMemberStatusLeft'
   | 'chatMemberStatusBanned';
 
-export interface TdPermissions {
+interface TdPermissions {
   can_send_basic_messages: boolean;
   can_pin_messages?: boolean;
 }
@@ -159,7 +159,7 @@ export interface TdMessage extends TdObject {
   content: TdObject;
 }
 
-export interface TdReaction {
+interface TdReaction {
   type: { '@type': 'reactionTypeEmoji'; emoji: string } | { '@type': string };
   total_count: number;
   is_chosen: boolean;

@@ -19,7 +19,7 @@ export function folderProtocol(folder: Folder | null): ProtocolId | undefined {
 
 export type ChatFilter = 'all' | 'unread' | 'mentions' | 'dms' | 'groups';
 
-export interface FilterContext {
+interface FilterContext {
   prefs: ChatPrefsMap;
   readAt: Record<ChatId, number>;
 }

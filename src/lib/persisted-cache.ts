@@ -3,7 +3,7 @@ export interface CacheStorage {
   set<T>(name: string, value: T): Promise<void>;
 }
 
-export interface PersistedCacheOptions {
+interface PersistedCacheOptions {
   name: string;
   limit: number;
   ttlMs: number;

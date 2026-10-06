@@ -3,7 +3,7 @@
  * step was written. Protected entries (a recovery phrase behind biometrics)
  * are out of reach: reading one needs the user.
  */
-export interface VaultEntries {
+interface VaultEntries {
   get(key: string): Promise<string | null>;
   set(key: string, value: string): Promise<void>;
   remove(key: string): Promise<void>;

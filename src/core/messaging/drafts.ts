@@ -3,7 +3,7 @@ import { deferredWrite } from '@/storage/deferred-write';
 import type { ChatId, MessageId } from './types';
 
 declare const draftKeyBrand: unique symbol;
-export type DraftKey = string & { readonly [draftKeyBrand]: true };
+type DraftKey = string & { readonly [draftKeyBrand]: true };
 
 export type Drafts = Record<DraftKey, string>;
 

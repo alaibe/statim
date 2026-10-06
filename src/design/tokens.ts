@@ -57,9 +57,9 @@ export const Palette = {
 } as const;
 
 export type ThemeName = keyof typeof Palette;
-export type TokenName = keyof (typeof Palette)['light'];
+type TokenName = keyof (typeof Palette)['light'];
 
-export function rgb(channels: string, alpha?: number) {
+function rgb(channels: string, alpha?: number) {
   return alpha === undefined ? `rgb(${channels})` : `rgb(${channels} / ${alpha})`;
 }
 

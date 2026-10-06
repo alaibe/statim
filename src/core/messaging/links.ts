@@ -1,10 +1,10 @@
 import { base58 } from '@scure/base';
 
-export type AddressFamily = 'evm' | 'bitcoin' | 'solana';
+type AddressFamily = 'evm' | 'bitcoin' | 'solana';
 
-export type LinkKind = 'url' | 'phone' | 'email' | 'location' | 'ens';
+type LinkKind = 'url' | 'phone' | 'email' | 'location' | 'ens';
 
-export type Segment =
+type Segment =
   | { kind: 'text'; text: string }
   | { kind: LinkKind; text: string; href: string }
   | { kind: 'address'; family: AddressFamily; text: string; href: string };
@@ -45,7 +45,7 @@ export const EXPLORERS: Record<AddressFamily, { name: string; url: (address: str
     solana: { name: 'Solscan', url: (a) => `https://solscan.io/account/${a}` },
   };
 
-export const ENS_APP = 'https://app.ens.domains/';
+const ENS_APP = 'https://app.ens.domains/';
 
 export function segmentText(text: string): Segment[] {
   const segments: Segment[] = [];

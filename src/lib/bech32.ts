@@ -64,7 +64,7 @@ export function bech32Encode(hrp: string, data: Uint8Array): string {
   return `${hrp}1${[...words, ...check].map((w) => CHARSET[w]).join('')}`;
 }
 
-export interface Bech32Decoded {
+interface Bech32Decoded {
   hrp: string;
   data: Uint8Array;
 }

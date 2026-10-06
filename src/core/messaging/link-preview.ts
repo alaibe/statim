@@ -10,7 +10,7 @@ export interface LinkPreview {
   video?: boolean;
 }
 
-export interface FetchOptions {
+interface FetchOptions {
   fetchImpl?: typeof fetch;
 }
 

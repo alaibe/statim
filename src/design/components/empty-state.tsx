@@ -6,7 +6,7 @@ import { Enter } from '../motion';
 import { Button } from './button';
 import { Text } from './text';
 
-export interface EmptyStateProps {
+interface EmptyStateProps {
   icon?: IconName;
   title: string;
   description?: string;

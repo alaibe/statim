@@ -5,7 +5,7 @@ import { Eyebrow } from './eyebrow';
 import { Text } from './text';
 import { cn } from '../lib/cn';
 
-export interface SectionProps extends ViewProps {
+interface SectionProps extends ViewProps {
   title?: string;
   surface?: 'plain' | 'list' | 'card';
   /** False when the card already sits inside padding, as in a sheet. */

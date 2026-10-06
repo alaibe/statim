@@ -44,7 +44,7 @@ import { useMentionSuggestions } from './use-mention-suggestions';
 import { useSupports } from './use-supports';
 import { useTypingAnnouncer } from './use-typing-announcer';
 
-export interface ComposerProps {
+interface ComposerProps {
   chatId: ChatId;
   kind: ChatKind;
   /** Writes into this thread, with a draft of its own. */

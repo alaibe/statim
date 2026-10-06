@@ -22,7 +22,7 @@ export interface PublicChatsCopy {
   placeholder: string;
 }
 
-export interface ProtocolConnectParams {
+interface ProtocolConnectParams {
   accountId: string;
   account: LocalAccount;
   derive(path: string): DerivedKey;
@@ -31,19 +31,19 @@ export interface ProtocolConnectParams {
   storage: AccountStorage;
 }
 
-export interface ProtocolInstallationParams {
+interface ProtocolInstallationParams {
   account: LocalAccount;
   config: ProtocolConfig;
 }
 
-export interface ProtocolEraseParams {
+interface ProtocolEraseParams {
   accountId: string;
   address: `0x${string}`;
   config: ProtocolConfig;
 }
 
 /** How the new-chat screen asks for, and fails to find, someone on this protocol. */
-export interface AddressCopy {
+interface AddressCopy {
   label: string;
   placeholder: string;
   /** With its article, for prose: "Paste an address below". */

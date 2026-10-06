@@ -6,7 +6,7 @@ import { MessageText } from '../message-text';
 import { MediaViewer } from './media-viewer';
 import { HoverSave } from './save-button';
 
-export interface ImageBubbleProps {
+interface ImageBubbleProps {
   uri: string;
   width?: number;
   height?: number;

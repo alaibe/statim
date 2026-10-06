@@ -18,7 +18,7 @@ export const VaultKey = {
   version: 'vault.version',
 } as const;
 
-export type VaultKeyName = (typeof VaultKey)[keyof typeof VaultKey] | AccountScopedKey;
+type VaultKeyName = (typeof VaultKey)[keyof typeof VaultKey] | AccountScopedKey;
 
 type AccountScopedKey = `account.${string}.${
   | 'mnemonic'
@@ -41,15 +41,15 @@ export function accountDbKeyName(accountId: string): AccountScopedKey {
   return `account.${accountId}.dbKey`;
 }
 
-export function accountAppDbKeyName(accountId: string): AccountScopedKey {
+function accountAppDbKeyName(accountId: string): AccountScopedKey {
   return `account.${accountId}.appDbKey`;
 }
 
-export function accountTdlibDbKeyName(accountId: string): AccountScopedKey {
+function accountTdlibDbKeyName(accountId: string): AccountScopedKey {
   return `account.${accountId}.tdlibDbKey`;
 }
 
-export function accountMatrixStoreKeyName(accountId: string): AccountScopedKey {
+function accountMatrixStoreKeyName(accountId: string): AccountScopedKey {
   return `account.${accountId}.matrixStoreKey`;
 }
 

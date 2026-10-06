@@ -25,7 +25,7 @@ import { publicClientFor } from './chains';
  * A trade with no plan falls back to a plain approval: a chain with no proxy,
  * or a signer that cannot sign typed data.
  */
-export type PermitKind = 'eip2612' | 'permit2';
+type PermitKind = 'eip2612' | 'permit2';
 
 /** Canonical on most chains; LI.FI reports the exception per chain. */
 export const PERMIT2 = '0x000000000022D473030F116dDEE9F6B43aC78BA3' as const;
@@ -81,7 +81,7 @@ export interface PermitPlan {
 
 const deadlineFromNow = () => BigInt(Math.floor(Date.now() / 1000) + MINUTES_VALID * 60);
 
-export interface NativePermit {
+interface NativePermit {
   name: string;
   version: string;
   /** Read during the probe, and still current for the signature that follows. */

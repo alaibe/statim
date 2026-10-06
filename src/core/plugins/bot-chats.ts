@@ -32,7 +32,7 @@ export function botChatLoss(
   return loss.chatIds.length > 0 ? loss : null;
 }
 
-export interface BotChatLossCopy {
+interface BotChatLossCopy {
   title: string;
   body: string;
   confirmLabel: string;

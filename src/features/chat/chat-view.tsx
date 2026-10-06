@@ -49,7 +49,7 @@ import { ChatHeader, PendingChatHeader } from './chat-header';
 import { DeleteMessageSheet, type DeleteTarget } from './delete-message-sheet';
 import { MessageRow, replyPreview } from './message-row';
 
-export interface ChatViewProps {
+interface ChatViewProps {
   id: ChatId;
   /** Shows this thread: the message that started it and the replies to it. */
   thread?: MessageId;

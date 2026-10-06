@@ -15,9 +15,9 @@ const VARIANTS = {
   mono: 'text-footnote font-mono text-content-muted',
 } as const;
 
-export type TextVariant = keyof typeof VARIANTS;
+type TextVariant = keyof typeof VARIANTS;
 
-export interface TextProps extends RNTextProps {
+interface TextProps extends RNTextProps {
   variant?: TextVariant;
   className?: string;
 }

@@ -5,7 +5,7 @@ import { cn } from '../lib/cn';
 import { ErrorText } from './error-text';
 import { Text } from './text';
 
-export interface FieldProps extends TextInputProps {
+interface FieldProps extends TextInputProps {
   ref?: React.Ref<TextInput>;
   label?: string;
   hint?: string;

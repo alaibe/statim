@@ -2,7 +2,7 @@ import { concat } from '@/lib/bytes';
 
 import { AudioType } from './messages';
 
-export interface StatusAudio {
+interface StatusAudio {
   payload: Uint8Array;
   type: number;
 }

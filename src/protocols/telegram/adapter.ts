@@ -54,7 +54,7 @@ import type {
   TdUser,
 } from './types';
 
-export interface TdParameters {
+interface TdParameters {
   databaseDirectory: string;
   apiId: number;
   apiHash: string;
@@ -65,7 +65,7 @@ export interface TdParameters {
   applicationVersion: string;
 }
 
-export interface TelegramConnectOptions {
+interface TelegramConnectOptions {
   createApi(): Promise<TdApi>;
   parameters: TdParameters;
 }

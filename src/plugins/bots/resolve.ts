@@ -2,7 +2,7 @@ import { isAddress } from 'viem';
 
 import { looksLikeEnsName, resolveName } from '@/lib/evm/ens';
 
-export interface ResolvedBot {
+interface ResolvedBot {
   address: string;
   name?: string;
   description?: string;

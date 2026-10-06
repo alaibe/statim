@@ -2,7 +2,7 @@ import { View, type ViewStyle } from 'react-native';
 
 import { cn } from '../lib/cn';
 
-export interface GlowProps {
+interface GlowProps {
   size: number;
   color: string;
   intensity?: number;
