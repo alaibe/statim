@@ -1,10 +1,13 @@
 import { router } from 'expo-router';
 
+import { useChatStore } from '@/core/messaging/chat-store';
 import type { ChatFilter } from '@/core/messaging/folders';
+import type { ChatId } from '@/core/messaging/types';
 import { crossesFolders } from '@/features/chat/chat-list-contents';
 import { useChatListStore } from '@/features/chat/chat-list-store';
 
-import { openTab } from './open';
+import { useChatHistory } from './chat-history';
+import { openChat, openTab } from './open';
 
 /** The command each ⌘ or Ctrl shortcut runs; the app menu shows the same keys. */
 export const SHORTCUTS: Record<string, string> = {
@@ -15,6 +18,8 @@ export const SHORTCUTS: Record<string, string> = {
   '1': 'tab-chats',
   '2': 'tab-contacts',
   '3': 'tab-settings',
+  '[': 'back',
+  ']': 'forward',
 };
 
 const FILTERS: readonly ChatFilter[] = ['all', 'unread', 'mentions', 'dms', 'groups'];
@@ -53,5 +58,11 @@ export function runCommand(command: string, segments: readonly string[], chatId?
     openTab('/contacts');
   } else if (command === 'requests') {
     openTab('/requests');
+  } else if (command === 'back' || command === 'forward') {
+    const exists = (id: ChatId) => useChatStore.getState().chats.some((chat) => chat.id === id);
+    const id = useChatHistory.getState().step(command, exists);
+    if (id) openChat(id);
+  } else if (command.startsWith('chat:')) {
+    openChat(command.slice('chat:'.length));
   }
 }

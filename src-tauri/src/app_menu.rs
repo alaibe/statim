@@ -1,4 +1,5 @@
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::OnceLock;
 
 use tauri::menu::{AboutMetadata, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::{AppHandle, Emitter, Manager, Wry};
@@ -20,10 +21,26 @@ const REPORT: &str = "report";
 
 const HIDDEN_FLAG: &str = "menu-bar-hidden";
 
-/// Whether the window's menu bar on Windows and Linux stays out of sight until Alt.
 #[derive(Default)]
-pub struct MenuBar {
+pub struct AppMenu {
+    /// Whether the window's menu bar on Windows and Linux stays out of sight until Alt.
     hidden: AtomicBool,
+    history: OnceLock<History>,
+}
+
+struct History {
+    submenu: Submenu<Wry>,
+    back: MenuItem<Wry>,
+    forward: MenuItem<Wry>,
+}
+
+/// Back and Forward stay; the chats after them change.
+const HISTORY_FIXED: usize = 2;
+
+#[derive(serde::Deserialize)]
+pub struct VisitedChat {
+    id: String,
+    title: String,
 }
 
 pub fn install(app: &AppHandle) -> tauri::Result<()> {
@@ -32,7 +49,7 @@ pub fn install(app: &AppHandle) -> tauri::Result<()> {
     } else if let Some(window) = app.get_webview_window("main") {
         window.set_menu(window_menu(app)?)?;
         let hidden = app_data_dir(app).is_ok_and(|dir| dir.join(HIDDEN_FLAG).exists());
-        app.state::<MenuBar>()
+        app.state::<AppMenu>()
             .hidden
             .store(hidden, Ordering::Relaxed);
         if hidden {
@@ -145,6 +162,30 @@ fn go(app: &AppHandle) -> tauri::Result<Submenu<Wry>> {
     )
 }
 
+fn history(app: &AppHandle) -> tauri::Result<Submenu<Wry>> {
+    let back = MenuItem::with_id(
+        app,
+        format!("{PAGE}back"),
+        "Back",
+        false,
+        Some("CmdOrCtrl+["),
+    )?;
+    let forward = MenuItem::with_id(
+        app,
+        format!("{PAGE}forward"),
+        "Forward",
+        false,
+        Some("CmdOrCtrl+]"),
+    )?;
+    let submenu = Submenu::with_items(app, "History", true, &[&back, &forward])?;
+    let _ = app.state::<AppMenu>().history.set(History {
+        submenu: submenu.clone(),
+        back,
+        forward,
+    });
+    Ok(submenu)
+}
+
 fn new_chat_items(app: &AppHandle) -> tauri::Result<[MenuItem<Wry>; 2]> {
     Ok([
         page(app, "new-message", "New Message…", Some("CmdOrCtrl+N"))?,
@@ -211,6 +252,7 @@ fn mac_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
                 )?],
             )?,
             &go(app)?,
+            &history(app)?,
             &Submenu::with_items(
                 app,
                 "Window",
@@ -254,6 +296,7 @@ fn window_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
             )?,
             &edit(app)?,
             &go(app)?,
+            &history(app)?,
             &Submenu::with_items(
                 app,
                 "Help",
@@ -274,7 +317,7 @@ fn window_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
 }
 
 fn peek(app: &AppHandle, show: bool) {
-    if !app.state::<MenuBar>().hidden.load(Ordering::Relaxed) {
+    if !app.state::<AppMenu>().hidden.load(Ordering::Relaxed) {
         return;
     }
     if let Some(window) = app.get_webview_window("main") {
@@ -287,14 +330,14 @@ fn peek(app: &AppHandle, show: bool) {
 }
 
 #[tauri::command]
-pub fn menu_bar_hidden(state: tauri::State<'_, MenuBar>) -> bool {
+pub fn menu_bar_hidden(state: tauri::State<'_, AppMenu>) -> bool {
     state.hidden.load(Ordering::Relaxed)
 }
 
 #[tauri::command]
 pub fn menu_bar_set_hidden(
     app: AppHandle,
-    state: tauri::State<'_, MenuBar>,
+    state: tauri::State<'_, AppMenu>,
     hidden: bool,
 ) -> Result<(), String> {
     let flag = app_data_dir(&app)?.join(HIDDEN_FLAG);
@@ -319,4 +362,38 @@ pub fn menu_bar_set_hidden(
 #[tauri::command]
 pub fn menu_bar_peek(app: AppHandle, show: bool) {
     peek(&app, show);
+}
+
+/// The chats opened most recently, newest first, and whether Back and Forward lead anywhere.
+#[tauri::command]
+pub fn menu_history(
+    app: AppHandle,
+    state: tauri::State<'_, AppMenu>,
+    back: bool,
+    forward: bool,
+    chats: Vec<VisitedChat>,
+) -> Result<(), String> {
+    let Some(history) = state.history.get() else {
+        return Ok(());
+    };
+    let update = || -> tauri::Result<()> {
+        history.back.set_enabled(back)?;
+        history.forward.set_enabled(forward)?;
+        while history.submenu.items()?.len() > HISTORY_FIXED {
+            history.submenu.remove_at(HISTORY_FIXED)?;
+        }
+        if !chats.is_empty() {
+            history.submenu.append(&separator(&app)?)?;
+        }
+        for chat in chats {
+            // Menus read a single & as the mark of a keyboard mnemonic.
+            let title = chat.title.replace('&', "&&");
+            let id = format!("{PAGE}chat:{}", chat.id);
+            history
+                .submenu
+                .append(&MenuItem::with_id(&app, id, title, true, None::<&str>)?)?;
+        }
+        Ok(())
+    };
+    update().map_err(|e| e.to_string())
 }

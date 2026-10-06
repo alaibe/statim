@@ -22,6 +22,8 @@ and drag Statim into Applications.
 - **⌘K** opens the switcher: type a few letters of a chat and press Enter.
 - **⌘F** searches messages: inside a chat it searches only that chat.
 - **⌘N** starts a new message, **⌘,** opens settings, **⌘1/2/3** switch tabs.
+- **⌘[** and **⌘]** go back and forward through the chats you opened, which
+  the **History** menu lists.
 - The menu bar lists these shortcuts too. **Go** also opens a filter or folder
   of the chat list, and **Statim → Check for Updates…** looks for a new
   version.

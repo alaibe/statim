@@ -1,12 +1,19 @@
+import { useChatStore } from '@/core/messaging/chat-store';
+import type { Chat, ChatId } from '@/core/messaging/types';
 import { useChatListStore } from '@/features/chat/chat-list-store';
 
+import { useChatHistory } from './chat-history';
 import { runCommand } from './desktop-commands';
 
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({ router: { push: (href: string) => mockPush(href) } }));
 
 const mockOpenTab = jest.fn();
-jest.mock('./open', () => ({ openTab: (href: string) => mockOpenTab(href) }));
+const mockOpenChat = jest.fn();
+jest.mock('./open', () => ({
+  openTab: (href: string) => mockOpenTab(href),
+  openChat: (id: string) => mockOpenChat(id),
+}));
 
 const IN_CHAT = ['chat', '[id]'];
 const ON_CONTACTS = ['(tabs)', '(contacts)', 'contacts'];
@@ -14,6 +21,7 @@ const ON_CONTACTS = ['(tabs)', '(contacts)', 'contacts'];
 beforeEach(() => {
   mockPush.mockClear();
   mockOpenTab.mockClear();
+  mockOpenChat.mockClear();
   useChatListStore.setState({ folder: null, filter: 'all' });
 });
 
@@ -41,6 +49,19 @@ describe('desktop commands', () => {
     runCommand('find', ['search']);
 
     expect(mockPush.mock.calls).toEqual([['/search?chatId=xmtp-abc']]);
+  });
+
+  it('go back to the chat opened before, and open one from History', () => {
+    const [a, b] = ['xmtp-a', 'xmtp-b'] as ChatId[];
+    useChatStore.setState({ chats: [{ id: a }, { id: b }] as Chat[] });
+    useChatHistory.setState({ back: [], current: null, forward: [], recent: [] });
+    useChatHistory.getState().visit(a);
+    useChatHistory.getState().visit(b);
+
+    runCommand('back', IN_CHAT, b);
+    runCommand('chat:xmtp-b', IN_CHAT, a);
+
+    expect(mockOpenChat.mock.calls).toEqual([[a], [b]]);
   });
 
   it('ignore a command they do not know', () => {

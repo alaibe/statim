@@ -31,6 +31,8 @@ on your PATH. With the AppImage, [add it from the app](command-line.md#installin
 - **Ctrl+F** searches messages: inside a chat it searches only that chat.
 - **Ctrl+N** starts a new message, **Ctrl+,** opens settings, **Ctrl+1/2/3**
   switch tabs.
+- **Ctrl+[** and **Ctrl+]** go back and forward through the chats you opened,
+  which the **History** menu lists.
 - The menu bar under the title bar lists these shortcuts too. **Go** also
   opens a filter or folder of the chat list, and **Help → Check for Updates…**
   looks for a new version. To hide the menu bar, turn on

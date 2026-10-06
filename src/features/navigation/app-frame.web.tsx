@@ -6,6 +6,7 @@ import { ChatBackground, DRAG_REGION, LayoutInsetsContext } from '@/design';
 import { useAppearanceStore } from '@/core/app/appearance';
 
 import { DesktopSidebar } from './desktop-sidebar';
+import { HistoryMenu } from './history-menu';
 import { QuickSwitcher } from './quick-switcher';
 import { FULL_WINDOW_ROUTES } from './routes';
 
@@ -66,6 +67,7 @@ export function AppFrame({ children }: PropsWithChildren) {
         <View className="min-w-0 flex-1">{children}</View>
         <DragStrip />
         <QuickSwitcher />
+        <HistoryMenu />
       </View>
     </LayoutInsetsContext.Provider>
   );

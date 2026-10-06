@@ -101,7 +101,7 @@ pub fn run() {
         .manage(cli::Cli::default())
         .manage(sign_in::SignIn::default())
         .manage(homeserver::Homeserver::default())
-        .manage(app_menu::MenuBar::default())
+        .manage(app_menu::AppMenu::default())
         .invoke_handler(tauri::generate_handler![
             db::db_open,
             db::db_exec,
@@ -188,6 +188,7 @@ pub fn run() {
             app_menu::menu_bar_hidden,
             app_menu::menu_bar_set_hidden,
             app_menu::menu_bar_peek,
+            app_menu::menu_history,
             set_badge,
         ])
         .on_window_event(|window, event| {
