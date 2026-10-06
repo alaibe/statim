@@ -9,9 +9,11 @@ import { accountRuntime } from '@/runtime';
 export function ProtocolConfigForm({
   accountId,
   descriptor,
+  onSaved,
 }: {
   accountId: string;
   descriptor: ProtocolDescriptor;
+  onSaved(): void;
 }) {
   const loaded = useKeyedLoad(`${accountId}/${descriptor.id}`, () =>
     loadProtocolConfig(accountId, descriptor.id).then((stored) =>
@@ -21,7 +23,9 @@ export function ProtocolConfigForm({
   const config = loaded.value;
   const save = useAction(
     async () => {
-      if (config) await accountRuntime.updateProtocolConfig(accountId, descriptor.id, config);
+      if (!config) return;
+      await accountRuntime.updateProtocolConfig(accountId, descriptor.id, config);
+      onSaved();
     },
     { success: `${descriptor.label} settings saved`, failure: 'Could not save those settings' }
   );

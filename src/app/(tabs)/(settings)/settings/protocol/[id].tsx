@@ -38,6 +38,7 @@ function ProtocolSettings({ descriptor }: { descriptor: ProtocolDescriptor }) {
   const connection = useChatStore((s) => connectionFor(s.protocols, descriptor.id));
   const session = useChatStore((s): ChatSession | undefined => s.sessions[descriptor.id]);
   const [bridgesSeen, setBridgesSeen] = useState(0);
+  const [configSaved, setConfigSaved] = useState(0);
 
   return (
     <SettingsScreen title={descriptor.label} intro={descriptor.description}>
@@ -66,6 +67,7 @@ function ProtocolSettings({ descriptor }: { descriptor: ProtocolDescriptor }) {
 
         {descriptor.id === 'matrix' && accountId ? (
           <MatrixOnComputer
+            key={configSaved}
             accountId={accountId}
             signedIn={!!session?.self.address}
             signedOut={!!connection.login}
@@ -106,7 +108,13 @@ function ProtocolSettings({ descriptor }: { descriptor: ProtocolDescriptor }) {
           </>
         ) : null}
 
-        {accountId ? <ProtocolConfigForm accountId={accountId} descriptor={descriptor} /> : null}
+        {accountId ? (
+          <ProtocolConfigForm
+            accountId={accountId}
+            descriptor={descriptor}
+            onSaved={() => setConfigSaved((n) => n + 1)}
+          />
+        ) : null}
       </View>
     </SettingsScreen>
   );
