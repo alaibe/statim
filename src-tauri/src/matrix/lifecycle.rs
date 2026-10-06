@@ -91,11 +91,16 @@ async fn restore(session: &Session, saved: &MxSession) -> Result<(), matrix_sdk:
 }
 
 fn belongs_to_another_device(error: &matrix_sdk::Error) -> bool {
-    matches!(
-        error,
-        matrix_sdk::Error::CryptoStoreError(store)
-            if matches!(**store, matrix_sdk::encryption::CryptoStoreError::MismatchedAccount { .. })
-    )
+    use matrix_sdk::encryption::{CryptoStoreError, OlmError};
+    let store = match error {
+        matrix_sdk::Error::CryptoStoreError(store) => &**store,
+        matrix_sdk::Error::OlmError(olm) => match &**olm {
+            OlmError::Store(store) => store,
+            _ => return false,
+        },
+        _ => return false,
+    };
+    matches!(store, CryptoStoreError::MismatchedAccount { .. })
 }
 
 #[tauri::command]
@@ -130,5 +135,40 @@ pub async fn mx_erase(state: State<'_, Matrix>) -> Result<(), String> {
     match take(&state).await {
         Some(dir) => remove_dir(&dir),
         None => Ok(()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use matrix_sdk::encryption::{CryptoStoreError, OlmError};
+    use matrix_sdk::ruma::{owned_device_id, owned_user_id};
+
+    fn mismatched() -> CryptoStoreError {
+        CryptoStoreError::MismatchedAccount {
+            expected: (
+                owned_user_id!("@anthony:laibe.cc"),
+                owned_device_id!("UWDKCLTOSO"),
+            ),
+            got: (owned_user_id!("@me:statim"), owned_device_id!("TnlTGg0PjJ")),
+        }
+    }
+
+    #[test]
+    fn knows_a_store_made_for_another_device_however_the_sdk_wraps_it() {
+        let restored = matrix_sdk::Error::OlmError(Box::new(OlmError::Store(mismatched())));
+        assert_eq!(
+            restored.to_string(),
+            "failed to read or write to the crypto store the account in the store doesn't match \
+             the account in the constructor: expected @anthony:laibe.cc:UWDKCLTOSO, got \
+             @me:statim:TnlTGg0PjJ"
+        );
+        assert!(belongs_to_another_device(&restored));
+        assert!(belongs_to_another_device(
+            &matrix_sdk::Error::CryptoStoreError(Box::new(mismatched()))
+        ));
+        assert!(!belongs_to_another_device(
+            &matrix_sdk::Error::CryptoStoreError(Box::new(CryptoStoreError::AccountUnset))
+        ));
     }
 }
