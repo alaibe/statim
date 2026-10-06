@@ -145,6 +145,8 @@ pub struct Tokens {
     pub as_token: String,
     pub hs_token: String,
     pub sender: String,
+    /// What the bridge locks its encryption keys with.
+    pub pickle_key: String,
 }
 
 impl Tokens {
@@ -152,26 +154,34 @@ impl Tokens {
         let path = dir.join("tokens");
         let saved = std::fs::read_to_string(&path).unwrap_or_default();
         let mut lines = saved.lines().map(str::to_string);
-        if let (Some(as_token), Some(hs_token), Some(sender)) =
-            (lines.next(), lines.next(), lines.next())
-        {
-            return Ok(Self {
+        let tokens = match (lines.next(), lines.next(), lines.next(), lines.next()) {
+            (Some(as_token), Some(hs_token), Some(sender), Some(pickle_key)) => {
+                return Ok(Self {
+                    as_token,
+                    hs_token,
+                    sender,
+                    pickle_key,
+                })
+            }
+            (Some(as_token), Some(hs_token), Some(sender), None) => Self {
                 as_token,
                 hs_token,
                 sender,
-            });
-        }
-        let tokens = Self {
-            as_token: random_hex(32)?,
-            hs_token: random_hex(32)?,
-            sender: random_hex(16)?,
+                pickle_key: random_hex(32)?,
+            },
+            _ => Self {
+                as_token: random_hex(32)?,
+                hs_token: random_hex(32)?,
+                sender: random_hex(16)?,
+                pickle_key: random_hex(32)?,
+            },
         };
         std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
         write_private(
             &path,
             &format!(
-                "{}\n{}\n{}\n",
-                tokens.as_token, tokens.hs_token, tokens.sender
+                "{}\n{}\n{}\n{}\n",
+                tokens.as_token, tokens.hs_token, tokens.sender, tokens.pickle_key
             ),
         )?;
         Ok(tokens)
@@ -220,15 +230,18 @@ impl Bridge {
         let database = |indent: &str| {
             format!("type: sqlite3-fk-wal\n{indent}uri: file:{id}.db?_txlock=immediate\n")
         };
+        // Encryption, because Statim starts every DM encrypted, the one with the bot included;
+        // backfill, so a chat arrives with its latest messages instead of empty.
         if self.legacy {
             format!(
-                "{homeserver}{appservice}    database:\n        {database}bridge:\n    username_template: {id}_{{{{.}}}}\n{permissions}    login_shared_secret_map:\n        {SERVER_NAME}: \"as_token:{double_puppet}\"\n",
+                "{homeserver}{appservice}    database:\n        {database}bridge:\n    username_template: {id}_{{{{.}}}}\n{permissions}    login_shared_secret_map:\n        {SERVER_NAME}: \"as_token:{double_puppet}\"\n    encryption:\n        allow: true\n    backfill:\n        forward_limits:\n            initial:\n                dm: 50\n                channel: 50\n                thread: 50\n            missed:\n                dm: 500\n                channel: 500\n                thread: 500\n",
                 database = database("        "),
             )
         } else {
             format!(
-                "{homeserver}{appservice}    username_template: {id}_{{{{.}}}}\ndatabase:\n    {database}bridge:\n{permissions}double_puppet:\n    secrets:\n        {SERVER_NAME}: \"as_token:{double_puppet}\"\n",
+                "{homeserver}{appservice}    username_template: {id}_{{{{.}}}}\ndatabase:\n    {database}bridge:\n{permissions}double_puppet:\n    secrets:\n        {SERVER_NAME}: \"as_token:{double_puppet}\"\nencryption:\n    allow: true\n    pickle_key: {pickle_key}\nbackfill:\n    enabled: true\n",
                 database = database("    "),
+                pickle_key = tokens.pickle_key,
             )
         }
     }
@@ -257,6 +270,7 @@ mod tests {
             as_token: "as".into(),
             hs_token: "hs".into(),
             sender: "sender".into(),
+            pickle_key: "pickle".into(),
         }
     }
 
@@ -269,7 +283,9 @@ mod tests {
              appservice:\n    address: http://127.0.0.1:47290\n    hostname: 127.0.0.1\n    port: 47290\n    id: whatsapp\n    bot:\n        username: whatsappbot\n    as_token: as\n    hs_token: hs\n    username_template: whatsapp_{{.}}\n\
              database:\n    type: sqlite3-fk-wal\n    uri: file:whatsapp.db?_txlock=immediate\n\
              bridge:\n    permissions:\n        \"statim\": user\n        \"@me:statim\": admin\n\
-             double_puppet:\n    secrets:\n        statim: \"as_token:dp\"\n"
+             double_puppet:\n    secrets:\n        statim: \"as_token:dp\"\n\
+             encryption:\n    allow: true\n    pickle_key: pickle\n\
+             backfill:\n    enabled: true\n"
         );
     }
 
@@ -281,6 +297,8 @@ mod tests {
         ));
         assert!(config.contains("bridge:\n    username_template: discord_{{.}}\n"));
         assert!(config.contains("    login_shared_secret_map:\n        statim: \"as_token:dp\"\n"));
+        assert!(config.contains("    encryption:\n        allow: true\n"));
+        assert!(config.contains("            initial:\n                dm: 50\n"));
         assert!(!config.contains("double_puppet:"));
     }
 
@@ -300,7 +318,27 @@ mod tests {
         let first = Tokens::of(&dir).unwrap();
         let again = Tokens::of(&dir).unwrap();
         assert_eq!(first.as_token, again.as_token);
+        assert_eq!(first.pickle_key, again.pickle_key);
         assert_eq!(first.as_token.len(), 64);
+    }
+
+    #[test]
+    fn gives_tokens_made_before_encryption_a_pickle_key_and_keeps_the_rest() {
+        let dir = std::env::temp_dir().join("statim-bridge-tokens-old");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("tokens"), "as\nhs\nsender\n").unwrap();
+        let upgraded = Tokens::of(&dir).unwrap();
+        assert_eq!(
+            (
+                upgraded.as_token.as_str(),
+                upgraded.hs_token.as_str(),
+                upgraded.sender.as_str()
+            ),
+            ("as", "hs", "sender")
+        );
+        assert_eq!(upgraded.pickle_key.len(), 64);
+        assert_eq!(Tokens::of(&dir).unwrap().pickle_key, upgraded.pickle_key);
     }
 
     #[test]
