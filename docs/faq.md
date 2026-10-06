@@ -99,10 +99,10 @@ On the phone it fetches its own improvements when you open it, and uses them
 the next time. Anything that changes the parts of the app Apple and Google
 review still arrives as a normal store update.
 
-On a computer it looks for a new version each time it opens and downloads it in
-the background. It checks the download's signature first and refuses one that
-doesn't match. When the update is ready, a Restart button shows at the bottom of
-the sidebar.
+On a computer it looks for a new version each time it opens, or when you
+choose **Check for Updates…** in the menu, and downloads it in the background.
+It checks the download's signature first and refuses one that doesn't match.
+When the update is ready, a Restart button shows at the bottom of the sidebar.
 
 ## Why does my computer warn me when I install it?
 

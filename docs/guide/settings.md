@@ -59,7 +59,8 @@ write the recovery phrase down before you set a PIN.
 
 ## Preferences
 
-- **Appearance** sets light, dark or system, and the chat wallpaper.
+- **Appearance** sets light, dark or system, and the chat wallpaper. On
+  Windows and Linux it can also hide the window's menu bar.
 - **Notifications**. On the desktop, **Open at login** starts Statim without
   a window when you log in, so messages and notifications arrive before you
   open it. On Android, **Stay connected** keeps Statim running after you

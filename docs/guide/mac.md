@@ -22,6 +22,9 @@ and drag Statim into Applications.
 - **⌘K** opens the switcher: type a few letters of a chat and press Enter.
 - **⌘F** searches messages: inside a chat it searches only that chat.
 - **⌘N** starts a new message, **⌘,** opens settings, **⌘1/2/3** switch tabs.
+- The menu bar lists these shortcuts too. **Go** also opens a filter or folder
+  of the chat list, and **Statim → Check for Updates…** looks for a new
+  version.
 - **Enter** sends; **Shift-Enter** makes a new line. **⌘B**, **⌘I** and
   **Shift-⌘X** make the selected text bold, italic or struck through, and **⌘E**
   makes it code.

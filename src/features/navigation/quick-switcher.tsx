@@ -1,5 +1,6 @@
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { useGlobalSearchParams, useRouter, useSegments } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
 
 import { ChatAvatar } from '@/features/chat/chat-avatar';
@@ -21,6 +22,8 @@ import type { Chat } from '@/core/messaging/types';
 import { useChatTitles } from '@/features/chat/use-display-names';
 import { openChat, openTab } from '@/features/navigation/open';
 
+import { runCommand, SHORTCUTS } from './desktop-commands';
+
 type Entry = {
   id: string;
   title: string;
@@ -31,49 +34,56 @@ type Entry = {
 const RECENT = 6;
 const MOD = /Mac/.test(navigator.userAgent) ? '⌘' : 'Ctrl+';
 
+// A shortcut the menu also shows can arrive twice: once as the page's keydown
+// and once as the menu item.
+let last = { command: '', at: 0 };
+
 /**
- * The desktop's keyboard shortcuts, ⌘K (Ctrl+K off the Mac) among them for a
- * search over chats and a few commands. Only the shortcuts live here, so nothing is computed while the
- * palette is closed.
+ * The desktop's keyboard shortcuts and app menu commands, ⌘K (Ctrl+K off the
+ * Mac) among them for a search over chats and a few commands. Only the
+ * shortcuts live here, so nothing is computed while the palette is closed.
  */
 export function QuickSwitcher() {
-  const router = useRouter();
   const segments = useSegments() as string[];
   const { id } = useGlobalSearchParams<{ id?: string }>();
   const chatId = segments[0] === 'chat' ? id : undefined;
-  const searching = segments[0] === 'search';
   const [open, setOpen] = useState(false);
+
+  const run = useEffectEvent((command: string) => {
+    if (useLockStore.getState().status !== 'open') return;
+    const now = Date.now();
+    if (command === last.command && now - last.at < 150) return;
+    last = { command, at: now };
+    if (command === 'switcher') {
+      setOpen((value) => !value);
+      return;
+    }
+    setOpen(false);
+    runCommand(command, segments, chatId);
+  });
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (useLockStore.getState().status !== 'open') return;
-      const command = event.metaKey || event.ctrlKey;
-      if (command && event.key.toLowerCase() === 'k') {
-        event.preventDefault();
-        setOpen((value) => !value);
-        return;
-      }
-      if (!command || open) return;
-      if (event.key.toLowerCase() === 'n') {
-        event.preventDefault();
-        router.push('/new-chat');
-      } else if (event.key.toLowerCase() === 'f') {
-        event.preventDefault();
-        if (!searching) {
-          router.push(chatId ? `/search?chatId=${encodeURIComponent(chatId)}` : '/search');
-        }
-      } else if (event.key === ',') {
-        event.preventDefault();
-        openTab('/settings');
-      } else if (event.key === '1' || event.key === '2' || event.key === '3') {
-        event.preventDefault();
-        openTab(event.key === '1' ? '/chats' : event.key === '2' ? '/contacts' : '/settings');
-      }
+      if (!(event.metaKey || event.ctrlKey)) return;
+      const command = SHORTCUTS[event.key.toLowerCase()];
+      if (!command) return;
+      event.preventDefault();
+      run(command);
     };
     // Capture phase: react-native-web stops keydown from bubbling out of inputs.
     window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
-  }, [chatId, open, router, searching]);
+    let stop: UnlistenFn | undefined;
+    let cancelled = false;
+    void listen<string>('app-menu', ({ payload }) => run(payload)).then((unlisten) => {
+      if (cancelled) unlisten();
+      else stop = unlisten;
+    });
+    return () => {
+      cancelled = true;
+      stop?.();
+      window.removeEventListener('keydown', onKey, true);
+    };
+  }, []);
 
   return open ? <QuickSwitcherPanel onClose={() => setOpen(false)} /> : null;
 }

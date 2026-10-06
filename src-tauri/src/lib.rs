@@ -1,6 +1,7 @@
 #![recursion_limit = "256"]
 
 mod ai;
+mod app_menu;
 mod biometrics;
 pub mod cli;
 mod contacts;
@@ -100,6 +101,7 @@ pub fn run() {
         .manage(cli::Cli::default())
         .manage(sign_in::SignIn::default())
         .manage(homeserver::Homeserver::default())
+        .manage(app_menu::MenuBar::default())
         .invoke_handler(tauri::generate_handler![
             db::db_open,
             db::db_exec,
@@ -183,6 +185,9 @@ pub fn run() {
             cli::cli_ready,
             cli::cli_send,
             cli::cli_show,
+            app_menu::menu_bar_hidden,
+            app_menu::menu_bar_set_hidden,
+            app_menu::menu_bar_peek,
             set_badge,
         ])
         .on_window_event(|window, event| {
@@ -227,6 +232,9 @@ pub fn run() {
                         log::warn!("[deep-link] scheme not registered: {error}");
                     }
                 });
+            }
+            if let Err(error) = app_menu::install(app.handle()) {
+                log::warn!("[menu] not shown: {error}");
             }
             if let Err(error) = tray::install(app.handle()) {
                 log::warn!("[tray] not shown: {error}");

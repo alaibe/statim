@@ -83,6 +83,7 @@ const ICONS = {
   'logo-bitcoin': glyph('bitcoinsign.circle', 'currency_bitcoin'),
   'mail-outline': glyph('envelope', 'mail'),
   'mail-unread-outline': glyph('envelope.badge', 'mark_email_unread'),
+  'menu-outline': glyph('line.3.horizontal', 'menu'),
   'mic-off-outline': glyph('mic.slash', 'mic_off'),
   'mic-outline': glyph('mic', 'mic'),
   'musical-notes-outline': glyph('music.note', 'music_note'),

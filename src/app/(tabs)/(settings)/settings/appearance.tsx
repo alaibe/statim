@@ -11,6 +11,7 @@ import {
   Text,
 } from '@/design';
 import { useAppearanceStore, type ThemeChoice } from '@/core/app/appearance';
+import { MenuBarSetting } from '@/features/settings/menu-bar-setting';
 import { SettingsScreen } from '@/features/settings/settings-screen';
 
 const THEMES: { id: ThemeChoice; label: string; hint: string }[] = [
@@ -47,6 +48,8 @@ export default function AppearanceScreen() {
           />
         ))}
       </Section>
+
+      <MenuBarSetting />
 
       <Section title="Chat wallpaper" className="mb-6">
         <View className="flex-row gap-3 px-gutter">

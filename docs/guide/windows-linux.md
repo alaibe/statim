@@ -31,6 +31,11 @@ on your PATH. With the AppImage, [add it from the app](command-line.md#installin
 - **Ctrl+F** searches messages: inside a chat it searches only that chat.
 - **Ctrl+N** starts a new message, **Ctrl+,** opens settings, **Ctrl+1/2/3**
   switch tabs.
+- The menu bar under the title bar lists these shortcuts too. **Go** also
+  opens a filter or folder of the chat list, and **Help → Check for Updates…**
+  looks for a new version. To hide the menu bar, turn on
+  **Settings → Appearance → Hide menu bar**; Alt then shows it until your next
+  click.
 - **Enter** sends; **Shift+Enter** makes a new line. **Ctrl+B**, **Ctrl+I** and
   **Ctrl+Shift+X** make the selected text bold, italic or struck through, and
   **Ctrl+E** makes it code.

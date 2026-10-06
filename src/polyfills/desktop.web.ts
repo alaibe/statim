@@ -1,3 +1,4 @@
+import { invoke } from '@tauri-apps/api/core';
 import { exit } from '@tauri-apps/plugin-process';
 import { Buffer } from 'buffer';
 
@@ -14,16 +15,40 @@ document.addEventListener('contextmenu', (event) => {
   if (!editable(event.target)) event.preventDefault();
 });
 
-// Closing the window leaves the app running; macOS quits from its app menu,
-// Windows and Linux with Ctrl+Q as well as from the tray.
+// Closing the window leaves the app running; Ctrl+Q quits, as Quit Statim
+// does in the menu and the tray. Alt on its own shows a hidden menu bar until
+// the next click.
 if (!/Mac/.test(navigator.userAgent)) {
+  let altAlone = false;
+  let peeking = false;
   document.addEventListener(
     'keydown',
     (event) => {
+      altAlone = event.key === 'Alt';
       if (event.ctrlKey && event.key.toLowerCase() === 'q') {
         event.preventDefault();
         void exit(0);
       }
+    },
+    true
+  );
+  document.addEventListener(
+    'keyup',
+    (event) => {
+      if (event.key === 'Alt' && altAlone) {
+        peeking = true;
+        void invoke('menu_bar_peek', { show: true });
+      }
+      altAlone = false;
+    },
+    true
+  );
+  document.addEventListener(
+    'pointerdown',
+    () => {
+      if (!peeking) return;
+      peeking = false;
+      void invoke('menu_bar_peek', { show: false });
     },
     true
   );
