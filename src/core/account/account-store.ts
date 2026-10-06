@@ -1,4 +1,4 @@
-import type { Address } from 'viem';
+import { stringToBytes, type Address, type Hex } from 'viem';
 import { create } from 'zustand';
 
 import {
@@ -11,7 +11,10 @@ import {
   forgetAccount,
   type AccountRecord,
 } from './accounts';
-import { deleteMnemonic, readMnemonic } from './key-protection';
+import { CHAT_KEY_MESSAGE, chatSeedFrom, hardwareKeyring } from './chat-seed';
+import { deviceSigner, holdDevice, keyOf, releaseDevice } from './device-session';
+import { hardwareAccount, type HardwareSigner } from './hardware';
+import { deleteMnemonic, readMnemonic, writeMnemonic } from './key-protection';
 import {
   isValidMnemonic,
   keyringFromMnemonic,
@@ -28,15 +31,34 @@ export interface AccountState {
   accounts: AccountRecord[];
   activeAccountId: string | null;
   keyring: Keyring | null;
+  /** False for a hardware account whose wallet has not signed the chat key message here yet. */
+  chatKeys: boolean;
   error: string | null;
 
   restore(): Promise<void>;
   retryUnlock(): Promise<boolean>;
   adoptAccount(phrase: string, label?: string): Promise<void>;
-  addHardwareAccount(params: { address: Address; vendorId: string; label?: string }): Promise<void>;
+  addHardwareAccount(params: HardwareAccountParams): Promise<void>;
+  setUpChatKeys(): Promise<void>;
   selectAccount(id: string): Promise<void>;
   renameAccount(id: string, label: string): Promise<void>;
   removeErasedAccount(id: string): Promise<void>;
+}
+
+export interface HardwareAccountParams {
+  address: Address;
+  vendorId: string;
+  label: string;
+  path: string;
+  device?: string;
+  xfp?: string;
+  /** The wallet just used, kept open for what the account does next. */
+  signer: HardwareSigner;
+}
+
+/** Has the wallet sign the chat key message; its signature seeds the account's chat keys. */
+export async function signChatKeys(signer: HardwareSigner, path: string): Promise<Hex> {
+  return chatSeedFrom(await signer.signMessage(path, stringToBytes(CHAT_KEY_MESSAGE)));
 }
 
 export function activeAccount(
@@ -52,6 +74,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
   accounts: [],
   activeAccountId: null,
   keyring: null,
+  chatKeys: true,
   error: null,
 
   async restore() {
@@ -127,38 +150,48 @@ export const useAccountStore = create<AccountState>((set, get) => ({
     await activate(id, set);
   },
 
-  async addHardwareAccount({
-    address,
-    vendorId,
-    label,
-  }: {
-    address: Address;
-    vendorId: string;
-    label?: string;
-  }) {
+  async addHardwareAccount({ signer, ...params }: HardwareAccountParams) {
     const existing = get().accounts;
-
-    const duplicate = existing.find((a) => a.address.toLowerCase() === address.toLowerCase());
-    if (duplicate) {
-      await setActiveAccountId(duplicate.id);
-      await activate(duplicate.id, set);
-      return;
-    }
-
-    const id = createAccountId();
-    const record: AccountRecord = {
-      id,
-      label: label?.trim() || `Account ${existing.length + 1}`,
-      address,
-      createdAt: Date.now(),
-      kind: 'hardware',
-      vendorId,
+    const seed = await signChatKeys(signer, params.path);
+    const fields = {
+      address: params.address,
+      kind: 'hardware' as const,
+      vendorId: params.vendorId,
+      path: params.path,
+      device: params.device,
+      xfp: params.xfp,
     };
 
-    const accounts = [...existing, record];
+    const duplicate = existing.find(
+      (a) => a.address.toLowerCase() === params.address.toLowerCase()
+    );
+    const record: AccountRecord = duplicate
+      ? { ...duplicate, ...fields }
+      : {
+          id: createAccountId(),
+          label: params.label.trim() || `Account ${existing.length + 1}`,
+          createdAt: Date.now(),
+          ...fields,
+        };
+    const accounts = duplicate
+      ? existing.map((a) => (a.id === record.id ? record : a))
+      : [...existing, record];
+
+    await deleteMnemonic(record.id);
+    await writeMnemonic(record.id, seed);
     await saveAccounts(accounts);
-    await setActiveAccountId(id);
+    await setActiveAccountId(record.id);
+    holdDevice(record.id, signer);
     set({ accounts });
+    await activate(record.id, set);
+  },
+
+  async setUpChatKeys() {
+    const record = activeAccount(get());
+    if (record?.kind !== 'hardware') return;
+    const seed = await signChatKeys(deviceSigner(record), keyOf(record).path);
+    await writeMnemonic(record.id, seed);
+    await activate(record.id, set);
   },
 
   async selectAccount(id: string) {
@@ -179,6 +212,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
   },
 
   async removeErasedAccount(id: string) {
+    releaseDevice(id);
     const remaining = await forgetAccount(id);
 
     if (remaining.length === 0) {
@@ -197,7 +231,25 @@ async function activate(
   accountId: string,
   set: (partial: Partial<AccountStateSlice>) => void
 ): Promise<'ready' | 'blocked' | 'invalidated'> {
+  const record = useAccountStore.getState().accounts.find((a) => a.id === accountId);
   const result = await readMnemonic(accountId, true);
+
+  if (record?.kind === 'hardware') {
+    if (result.status === 'denied') {
+      set({ status: 'blocked', activeAccountId: accountId, keyring: null, error: null });
+      return 'blocked';
+    }
+    const seed = result.status === 'ok' ? (result.value as Hex) : null;
+    const key = keyOf(record);
+    set({
+      status: 'ready',
+      activeAccountId: accountId,
+      keyring: hardwareKeyring(hardwareAccount(deviceSigner(record), key.address, key.path), seed),
+      chatKeys: seed !== null,
+      error: null,
+    });
+    return 'ready';
+  }
 
   if (result.status !== 'ok') {
     const status = result.status === 'denied' ? 'blocked' : 'invalidated';
@@ -209,6 +261,7 @@ async function activate(
     status: 'ready',
     activeAccountId: accountId,
     keyring: keyringFromMnemonic(result.value),
+    chatKeys: true,
     error: null,
   });
   return 'ready';
@@ -216,5 +269,5 @@ async function activate(
 
 type AccountStateSlice = Pick<
   AccountState,
-  'status' | 'accounts' | 'activeAccountId' | 'keyring' | 'error'
+  'status' | 'accounts' | 'activeAccountId' | 'keyring' | 'chatKeys' | 'error'
 >;

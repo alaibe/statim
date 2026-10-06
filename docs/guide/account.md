@@ -39,18 +39,30 @@ servers, Nostr and Status only what their relays and store nodes still hold.
 
 ## Use a hardware wallet
 
-Tap **Connect a hardware wallet** for an account whose key lives on a Ledger,
-Trezor or Keystone rather than the phone. Messaging works as usual; anything
-that needs a signature happens on the device, and the key never touches the
-phone.
+Tap **Connect a hardware wallet** for an account whose Ethereum key lives on a
+wallet rather than the phone:
 
-Some things a hardware account cannot do. Bitcoin and Solana need the device's
-own apps for those chains, which this app does not drive, so those chains are
-unavailable on a hardware account. The app says so where it matters and
-suggests a phrase-based account for them.
+- A Ledger connects over Bluetooth on the phone and over USB on a computer.
+  Open its Ethereum app first.
+- A Keystone works by QR codes. On the Keystone, open **Connect Software
+  Wallet**, choose **MetaMask** and scan the code it shows. To sign, it scans a
+  code from your screen and you scan its answer.
+- A Trezor works through the Trezor Suite app on the same phone, which opens
+  to confirm each request and sends you back.
 
-On a Mac a Ledger connects over USB. Keystone signs by showing and scanning QR
-codes, so it needs a camera. Use the phone for a Keystone account.
+While connecting, the wallet signs one message, "Statim chat keys". It moves no
+funds. Its signature, the same every time for that wallet, gives the account
+the keys Nostr, Status and notifications from your computer use, so the same
+wallet gets the same keys on every device. Those chat keys are kept on the
+device like a recovery phrase would be; the key that holds your funds never
+leaves the wallet.
+
+Every payment and every signature is then confirmed on the wallet. When the
+wallet is not connected, Statim asks you to connect it at that moment.
+
+Bitcoin and Solana need the wallet's own apps for those chains, which Statim
+does not drive yet, so they are unavailable on a hardware account. Keystone and
+Trezor accounts work on the phone; on a computer, use a Ledger.
 
 ## Several accounts
 

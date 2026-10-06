@@ -25,7 +25,7 @@ class TauriHidTransport extends Transport {
 }
 
 /** USB has no discovery events: the list is polled while the sheet is open. */
-export async function scanForLedgers(
+async function scanForLedgers(
   onFound: (device: { id: string; name: string }) => void,
   onError: (error: unknown) => void
 ): Promise<() => void> {
@@ -43,7 +43,7 @@ export async function scanForLedgers(
   return () => clearInterval(timer);
 }
 
-export async function connectLedger(deviceId: string): Promise<HardwareSigner> {
+async function connectLedger(deviceId: string): Promise<HardwareSigner> {
   const { default: AppEth } = await import('@ledgerhq/hw-app-eth');
 
   await invoke('ledger_open', { path: deviceId });
@@ -56,9 +56,6 @@ export function registerLedger(): void {
     label: 'Ledger',
     connection: 'usb',
     scan: scanForLedgers,
-    connect: (deviceId) => {
-      if (!deviceId) throw new Error('Plug in a Ledger and pick it from the list first.');
-      return connectLedger(deviceId);
-    },
+    connect: connectLedger,
   });
 }

@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
 import { Badge, Chevron, ConfirmSheet, ListItem, RowIcon, Section } from '@/design';
-import { useAccountStore } from '@/core/account/account-store';
+import { activeAccount, useAccountStore } from '@/core/account/account-store';
 import { readCredentials, type Credentials } from '@/core/account/credentials';
 import { connectionFor, useChatStore } from '@/core/messaging/chat-store';
 import { isProtocolId, type ProtocolId } from '@/core/messaging/namespace';
@@ -71,6 +71,7 @@ export function SettingsSections({
   const chevron = compact ? undefined : <Chevron />;
   const hint = (text: string) => (compact ? undefined : text);
   const accounts = useAccountStore((s) => s.accounts);
+  const onWallet = useAccountStore((s) => activeAccount(s)?.kind === 'hardware');
   const { enabledIds, registry } = usePluginHost();
 
   const [confirmErase, setConfirmErase] = useState(false);
@@ -103,21 +104,25 @@ export function SettingsSections({
           trailing={chevron}
           onPress={() => router.push('/qr')}
         />
-        <ListItem
-          testID="settings-recovery-phrase"
-          title="Recovery phrase"
-          subtitle={hint('View the words that control this account')}
-          numberOfLinesSubtitle={2}
-          leading={<RowIcon name="key-outline" tone="orange" />}
-          trailing={chevron}
-          selected={selected === 'recovery-phrase'}
-          onPress={() => openTab('/settings/recovery-phrase')}
-        />
+        {onWallet ? null : (
+          <ListItem
+            testID="settings-recovery-phrase"
+            title="Recovery phrase"
+            subtitle={hint('View the words that control this account')}
+            numberOfLinesSubtitle={2}
+            leading={<RowIcon name="key-outline" tone="orange" />}
+            trailing={chevron}
+            selected={selected === 'recovery-phrase'}
+            onPress={() => openTab('/settings/recovery-phrase')}
+          />
+        )}
         <ListItem
           testID="settings-erase-account"
           title="Erase this account"
           subtitle={hint(
-            'Removes its keys and every message kept here. Only the recovery phrase brings it back.'
+            onWallet
+              ? 'Removes every message kept here. Connecting the wallet again brings the account back.'
+              : 'Removes its keys and every message kept here. Only the recovery phrase brings it back.'
           )}
           numberOfLinesSubtitle={2}
           leading={<RowIcon name="trash-outline" tone="red" />}

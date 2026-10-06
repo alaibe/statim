@@ -1,6 +1,9 @@
 import { capabilitiesOf, describeKind } from './account-kind';
 
+import { privateKeyToAccount } from 'viem/accounts';
+
 import { useAccountStore } from './account-store';
+import { FakeHardwareSigner } from './testing/fake-hardware';
 
 describe('capabilitiesOf', () => {
   it('lets a phrase account do everything', () => {
@@ -36,28 +39,70 @@ describe('describeKind', () => {
   });
 });
 
-describe('adding a hardware account', () => {
-  beforeEach(() => useAccountStore.setState({ accounts: [], activeAccountId: null }));
+const KEY = `0x${'55'.repeat(32)}` as const;
+const ADDRESS = privateKeyToAccount(KEY).address;
+const PATH = "m/44'/60'/0'/0/0";
 
-  it('stores the address and the vendor, and no secret', async () => {
-    await useAccountStore.getState().addHardwareAccount({
-      address: '0x1111111111111111111111111111111111111111',
+const add = (label = 'My Ledger') =>
+  useAccountStore.getState().addHardwareAccount({
+    address: ADDRESS,
+    vendorId: 'ledger',
+    label,
+    path: PATH,
+    device: 'usb-1',
+    signer: new FakeHardwareSigner(KEY),
+  });
+
+describe('adding a hardware account', () => {
+  beforeEach(() =>
+    useAccountStore.setState({
+      accounts: [],
+      activeAccountId: null,
+      keyring: null,
+      status: 'absent',
+    })
+  );
+
+  it('opens it at once, with the wallet signing and chat keys from its signature', async () => {
+    await add();
+
+    const state = useAccountStore.getState();
+    const [record] = state.accounts;
+    expect(record).toMatchObject({
+      kind: 'hardware',
       vendorId: 'ledger',
-      label: 'My Ledger',
+      path: PATH,
+      device: 'usb-1',
+    });
+    expect(state.status).toBe('ready');
+    expect(state.keyring?.kind).toBe('hardware');
+    expect(state.keyring?.address).toBe(ADDRESS);
+    expect(state.chatKeys).toBe(true);
+    expect(state.keyring?.derive("m/44'/1237'/0'/0/0").privateKey).toHaveLength(32);
+  });
+
+  it('opens again after a relaunch instead of asking for a recovery phrase', async () => {
+    await add();
+    const before = useAccountStore.getState().keyring?.derive("m/44'/1237'/0'/0/0").privateKey;
+    useAccountStore.setState({
+      status: 'loading',
+      keyring: null,
+      accounts: [],
+      activeAccountId: null,
     });
 
-    const [record] = useAccountStore.getState().accounts;
-    expect(record.kind).toBe('hardware');
-    expect(record.vendorId).toBe('ledger');
-    expect(record.label).toBe('My Ledger');
+    await useAccountStore.getState().restore();
+
+    const state = useAccountStore.getState();
+    expect(state.status).toBe('ready');
+    expect(state.keyring?.kind).toBe('hardware');
+    expect(state.keyring?.derive("m/44'/1237'/0'/0/0").privateKey).toEqual(before);
   });
 
   it('adopts an existing row rather than adding a second for one address', async () => {
     // Two rows sharing an address would fight over one message database.
-    const address = '0x2222222222222222222222222222222222222222' as const;
-    await useAccountStore.getState().addHardwareAccount({ address, vendorId: 'ledger' });
-    await useAccountStore.getState().addHardwareAccount({ address, vendorId: 'ledger' });
-
+    await add();
+    await add('Again');
     expect(useAccountStore.getState().accounts).toHaveLength(1);
   });
 });

@@ -1,44 +1,55 @@
 import {
+  getTypesForEIP712Domain,
   hashDomain,
   hashStruct,
-  parseSignature,
+  hexToBytes,
   serializeTransaction,
+  stringToBytes,
   type Address,
+  type CustomSource,
   type Hex,
   type LocalAccount,
-  type CustomSource,
+  type Signature,
   type SignableMessage,
   type TransactionSerializable,
+  type TypedDataDefinition,
 } from 'viem';
 import { toAccount } from 'viem/accounts';
 
-import type { DerivedKey, Keyring } from './keyring';
-import type { Ed25519Key } from './slip10';
-
 export interface HardwareSigner {
-  readonly id: string;
   readonly label: string;
-
   getAddress(path: string): Promise<Address>;
-
-  signMessage(path: string, message: string): Promise<Hex>;
-
-  signTransaction(path: string, serialized: Hex): Promise<Hex>;
-
-  signTypedDataHashes?(path: string, domainHash: Hex, messageHash: Hex): Promise<Hex>;
+  /** EIP-191 personal_sign of `message`; a 65-byte signature with v of 27 or 28. */
+  signMessage(path: string, message: Uint8Array): Promise<Hex>;
+  signTransaction(path: string, transaction: TransactionSerializable): Promise<Signature>;
+  signTypedData(path: string, typedData: TypedData): Promise<Hex>;
 }
 
+export type TypedData = TypedDataDefinition & { primaryType: string };
+
 export type HardwareConnection = 'bluetooth' | 'usb' | 'qr' | 'companion-app';
+
+/** Where an account lives on its wallet. `xfp` is the master fingerprint a Keystone asks for. */
+export interface HardwareKey {
+  address: Address;
+  path: string;
+  xfp?: string;
+}
 
 export interface HardwareVendor {
   id: string;
   label: string;
   connection: HardwareConnection;
+  /** For wallets on a link: finds them, then `connect` opens one. */
   scan?(
     onFound: (device: { id: string; name: string }) => void,
     onError: (e: unknown) => void
   ): Promise<() => void>;
-  connect(deviceId?: string): Promise<HardwareSigner>;
+  connect?(deviceId: string): Promise<HardwareSigner>;
+  /** For wallets reached another way each time, by QR codes or through their own app. */
+  open?(key: HardwareKey): HardwareSigner;
+  /** Gives up on the request its app was opened for, when the person does not come back. */
+  cancel?(): void;
 }
 
 const vendors = new Map<string, HardwareVendor>();
@@ -51,21 +62,55 @@ export function hardwareVendors(): HardwareVendor[] {
   return [...vendors.values()];
 }
 
-export function vendorIds(): string[] {
-  return [...vendors.keys()];
+export function findVendor(id: string | undefined): HardwareVendor | undefined {
+  return id ? vendors.get(id) : undefined;
 }
 
 export function vendor(id: string): HardwareVendor {
   const found = vendors.get(id);
-  if (!found) throw new Error(`No hardware wallet called "${id}" is available.`);
+  if (!found) throw new Error(`No hardware wallet called "${id}" is available here.`);
   return found;
 }
 
-export async function connectVendor(id: string, deviceId?: string): Promise<HardwareSigner> {
-  return vendor(id).connect(deviceId);
+export const DEFAULT_EVM_PATH = "m/44'/60'/0'/0/0";
+
+function messageBytes(message: SignableMessage): Uint8Array {
+  if (typeof message === 'string') return stringToBytes(message);
+  return typeof message.raw === 'string' ? hexToBytes(message.raw) : message.raw;
 }
 
-export const DEFAULT_EVM_PATH = "m/44'/60'/0'/0/0";
+/** The y parity behind a device's v, which a Ledger truncates to one byte for EIP-155. */
+export function parityOf(v: number, transaction: Pick<TransactionSerializable, 'chainId'>): number {
+  if (v === 0 || v === 1) return v;
+  if (v === 27 || v === 28) return v - 27;
+  return ((((v - 35 - 2 * (transaction.chainId ?? 0)) % 256) + 256) % 256) & 1;
+}
+
+/** EIP-712 data with its domain type spelled out, as devices want it, and bigints as text. */
+export function typedDataJson(typedData: TypedData): string {
+  const types = {
+    EIP712Domain: getTypesForEIP712Domain({ domain: typedData.domain }),
+    ...typedData.types,
+  };
+  return JSON.stringify({ ...typedData, types }, (_key, value) =>
+    typeof value === 'bigint' ? value.toString() : value
+  );
+}
+
+export function typedDataHashes(typedData: TypedData): { domain: Hex; message: Hex } {
+  const types = {
+    EIP712Domain: getTypesForEIP712Domain({ domain: typedData.domain }),
+    ...typedData.types,
+  } as never;
+  return {
+    domain: hashDomain({ domain: typedData.domain ?? {}, types } as never),
+    message: hashStruct({
+      data: typedData.message,
+      primaryType: typedData.primaryType,
+      types,
+    } as never),
+  };
+}
 
 export function hardwareAccount(
   signer: HardwareSigner,
@@ -74,51 +119,12 @@ export function hardwareAccount(
 ): LocalAccount {
   const source: CustomSource = {
     address,
-    async signMessage({ message }: { message: SignableMessage }) {
-      const text = typeof message === 'string' ? message : message.raw.toString();
-      return signer.signMessage(path, text);
+    signMessage: ({ message }) => signer.signMessage(path, messageBytes(message)),
+    async signTransaction(transaction, options) {
+      const signature = await signer.signTransaction(path, transaction);
+      return (options?.serializer ?? serializeTransaction)(transaction, signature);
     },
-    async signTransaction(transaction: TransactionSerializable) {
-      const unsigned = serializeTransaction(transaction);
-      const signature = await signer.signTransaction(path, unsigned);
-      return serializeTransaction(transaction, parseSignature(signature));
-    },
-    async signTypedData(typedData) {
-      if (!signer.signTypedDataHashes) {
-        throw new Error(`${signer.label} cannot show typed data, so it will not sign it.`);
-      }
-      const data = typedData as never;
-      return signer.signTypedDataHashes(
-        path,
-        hashDomain({
-          domain: (data as { domain: never }).domain,
-          types: (data as { types: never }).types,
-        }),
-        hashStruct(data)
-      );
-    },
+    signTypedData: (typedData) => signer.signTypedData(path, typedData as TypedData),
   };
-
   return toAccount(source);
-}
-
-export function hardwareKeyring(
-  signer: HardwareSigner,
-  address: Address,
-  path: string = DEFAULT_EVM_PATH
-): Keyring {
-  const unavailable = (chain: string) => (): never => {
-    throw new Error(
-      `${chain} on a ${signer.label} needs its own app on the device, which this app does not speak yet.`
-    );
-  };
-
-  return {
-    kind: 'hardware',
-    mnemonic: null,
-    address,
-    account: hardwareAccount(signer, address, path),
-    derive: unavailable('Bitcoin') as (p: string) => DerivedKey,
-    deriveEd25519: unavailable('Solana') as (p: string) => Ed25519Key,
-  };
 }

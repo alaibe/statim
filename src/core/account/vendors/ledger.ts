@@ -1,7 +1,9 @@
+import { PermissionsAndroid, Platform } from 'react-native';
+
 import { registerVendor, type HardwareSigner } from '../hardware';
 import { ledgerSigner, type AppEth } from './ledger-signer';
 
-export interface LedgerDevice {
+interface LedgerDevice {
   id: string;
   name: string;
 }
@@ -21,10 +23,22 @@ interface EthModule {
   default: new (transport: unknown) => AppEth;
 }
 
-export async function scanForLedgers(
+async function allowBluetooth(): Promise<void> {
+  if (Platform.OS !== 'android' || Platform.Version < 31) return;
+  const granted = await PermissionsAndroid.requestMultiple([
+    PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+    PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+  ]);
+  if (Object.values(granted).some((answer) => answer !== PermissionsAndroid.RESULTS.GRANTED)) {
+    throw new Error('Allow Nearby devices for Statim in Android Settings to find your Ledger.');
+  }
+}
+
+async function scanForLedgers(
   onFound: (device: LedgerDevice) => void,
   onError: (error: unknown) => void
 ): Promise<() => void> {
+  await allowBluetooth();
   const { default: Transport } = (await import(
     '@ledgerhq/react-native-hw-transport-ble'
   )) as unknown as TransportModule;
@@ -40,7 +54,8 @@ export async function scanForLedgers(
   return () => subscription.unsubscribe();
 }
 
-export async function connectLedger(deviceId: string): Promise<HardwareSigner> {
+async function connectLedger(deviceId: string): Promise<HardwareSigner> {
+  await allowBluetooth();
   const [{ default: Transport }, { default: AppEth }] = await Promise.all([
     import('@ledgerhq/react-native-hw-transport-ble') as unknown as Promise<TransportModule>,
     import('@ledgerhq/hw-app-eth') as unknown as Promise<EthModule>,
@@ -55,9 +70,6 @@ export function registerLedger(): void {
     label: 'Ledger',
     connection: 'bluetooth',
     scan: scanForLedgers,
-    connect: (deviceId) => {
-      if (!deviceId) throw new Error('Pick a Ledger from the list first.');
-      return connectLedger(deviceId);
-    },
+    connect: connectLedger,
   });
 }

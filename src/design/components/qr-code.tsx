@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
@@ -7,4 +8,17 @@ export function QrCode({ value, size = 220 }: { value: string; size?: number }) 
       <QRCode value={value} size={size} backgroundColor="#ffffff" color="#000000" />
     </View>
   );
+}
+
+/** Cycles through the frames of a payload too big for one code. */
+export function AnimatedQrCode({ parts, size = 220 }: { parts: string[]; size?: number }) {
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (parts.length < 2) return;
+    const timer = setInterval(() => setTick((t) => t + 1), 250);
+    return () => clearInterval(timer);
+  }, [parts.length]);
+
+  return <QrCode value={parts[tick % parts.length].toUpperCase()} size={size} />;
 }

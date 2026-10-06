@@ -1,154 +1,165 @@
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { View } from 'react-native';
 
-import { Button, ErrorText, ListItem, Note, RowIcon, Sheet, Text, toast } from '@/design';
+import { Button, ErrorText, ListItem, Note, QrReader, RowIcon, Sheet, Text, toast } from '@/design';
 import { errorMessage } from '@/core/errors';
+import { Cancelled } from '@/core/account/device-prompt';
 import {
   DEFAULT_EVM_PATH,
   hardwareVendors,
-  type HardwareConnection,
+  type HardwareSigner,
   type HardwareVendor,
 } from '@/core/account/hardware';
 import { useAccountStore } from '@/core/account/account-store';
-import type { IconName } from '@/design';
+import { decodeUr, readAccountUr } from '@/core/account/vendors/keystone';
 
-const CONNECTION: Record<HardwareConnection, { icon: IconName; searching: string; how: string }> = {
-  bluetooth: {
-    icon: 'bluetooth-outline',
-    searching: 'Looking for nearby wallets…',
-    how: 'Unlock it and open the Ethereum app, then keep it nearby.',
-  },
-  usb: {
-    icon: 'hardware-chip-outline',
-    searching: 'Looking for a plugged-in wallet…',
-    how: 'Plug it in, unlock it and open the Ethereum app.',
-  },
-  qr: {
-    icon: 'qr-code-outline',
-    searching: '',
-    how: 'You will scan a QR code from its screen, and it will scan one from yours.',
-  },
-  'companion-app': {
-    icon: 'phone-portrait-outline',
-    searching: '',
-    how: 'Its own app opens to confirm; you come back here when it is done.',
-  },
-};
+import { CONNECTION, DeviceList } from './device-prompt';
 
 export function ConnectHardware({ visible, onClose }: { visible: boolean; onClose(): void }) {
   const addHardwareAccount = useAccountStore((s) => s.addHardwareAccount);
-
-  const [vendor, setVendor] = useState<HardwareVendor | null>(null);
-  const [devices, setDevices] = useState<{ id: string; name: string }[]>([]);
-  const [busy, setBusy] = useState(false);
+  const [chosen, setChosen] = useState<HardwareVendor | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const frames = useRef<string[]>([]);
 
-  useEffect(() => {
-    if (!vendor?.scan) return;
-    let stop: (() => void) | undefined;
-    let cancelled = false;
-
-    vendor
-      .scan(
-        (device) =>
-          setDevices((prev) => (prev.some((d) => d.id === device.id) ? prev : [...prev, device])),
-        (e) => setError(errorMessage(e, 'Could not scan for devices'))
-      )
-      .then((unsubscribe) => {
-        if (cancelled) unsubscribe();
-        else stop = unsubscribe;
-      })
-      .catch((e) => setError(errorMessage(e, 'Could not scan for devices')));
-
-    return () => {
-      cancelled = true;
-      stop?.();
-    };
-  }, [vendor]);
-
-  const connect = async (chosen: HardwareVendor, deviceId?: string) => {
-    setBusy(true);
+  const reset = () => {
+    frames.current = [];
+    setChosen(null);
+    setBusy(null);
     setError(null);
-    try {
-      const signer = await chosen.connect(deviceId);
-      const address = await signer.getAddress(DEFAULT_EVM_PATH);
-      await addHardwareAccount({ address, vendorId: chosen.id, label: chosen.label });
-      toast.success(`${chosen.label} connected`);
-      onClose();
-    } catch (e) {
-      setError(errorMessage(e, `Could not connect to your ${chosen.label}`));
-    }
-    setBusy(false);
   };
 
-  const vendors = hardwareVendors();
+  const finish = async (
+    wallet: HardwareVendor,
+    signer: HardwareSigner,
+    key: { path: string; device?: string; xfp?: string }
+  ) => {
+    setBusy(
+      wallet.connection === 'companion-app'
+        ? 'Finish in Trezor Suite: it asks for your address, then to sign Statim’s chat key message.'
+        : `Approve on your ${wallet.label}: it signs Statim’s chat key message, which moves no funds.`
+    );
+    setError(null);
+    try {
+      const address = await signer.getAddress(key.path);
+      await addHardwareAccount({
+        address,
+        vendorId: wallet.id,
+        label: wallet.label,
+        signer,
+        ...key,
+      });
+      toast.success(`${wallet.label} connected`);
+      reset();
+      onClose();
+    } catch (e) {
+      if (!(e instanceof Cancelled)) {
+        setError(errorMessage(e, `Could not connect your ${wallet.label}`));
+      }
+      setBusy(null);
+    }
+  };
+
+  const pickDevice = async (wallet: HardwareVendor, deviceId: string) => {
+    setBusy(`Connecting to your ${wallet.label}…`);
+    try {
+      const signer = await wallet.connect!(deviceId);
+      await finish(wallet, signer, { path: DEFAULT_EVM_PATH, device: deviceId });
+    } catch (e) {
+      setError(errorMessage(e, `Could not reach your ${wallet.label}`));
+      setBusy(null);
+    }
+  };
+
+  const readPairing = async (wallet: HardwareVendor, data: string) => {
+    frames.current.push(data);
+    const ur = decodeUr(frames.current);
+    if (!ur) return undefined;
+    try {
+      const account = readAccountUr(ur);
+      void finish(wallet, wallet.open!(account), { path: account.path, xfp: account.xfp });
+      return null;
+    } catch (e) {
+      frames.current = [];
+      return errorMessage(e, 'That QR is not a Keystone account.');
+    }
+  };
+
+  const choose = (wallet: HardwareVendor) => {
+    setError(null);
+    setChosen(wallet);
+    if (wallet.connection === 'companion-app') {
+      void finish(wallet, wallet.open!({ address: '0x', path: DEFAULT_EVM_PATH }), {
+        path: DEFAULT_EVM_PATH,
+      });
+    }
+  };
 
   return (
     <Sheet
       visible={visible}
-      onClose={onClose}
-      title={vendor ? `Connect your ${vendor.label}` : 'Connect a hardware wallet'}>
+      onClose={() => {
+        reset();
+        onClose();
+      }}
+      title={chosen ? `Connect your ${chosen.label}` : 'Connect a hardware wallet'}>
       <View className="gap-3">
-        {vendor === null ? (
+        {chosen === null ? (
           <>
             <Note icon="hardware-chip-outline">
               <Text variant="footnote">
-                The key stays on the device and never reaches this phone. Every transaction is
-                confirmed on the wallet itself, so this app can ask but never sign.
+                The key stays on the device. Every payment is confirmed on the wallet itself, so
+                Statim can ask but never sign on its own.
               </Text>
             </Note>
-
-            {vendors.map((entry) => (
+            {hardwareVendors().map((wallet) => (
               <ListItem
-                key={entry.id}
-                testID={`connect-${entry.id}`}
-                title={entry.label}
-                subtitle={CONNECTION[entry.connection].how}
+                key={wallet.id}
+                testID={`connect-${wallet.id}`}
+                title={wallet.label}
+                subtitle={CONNECTION[wallet.connection].how}
                 numberOfLinesSubtitle={2}
-                leading={<RowIcon name={CONNECTION[entry.connection].icon} tone="grey" />}
-                onPress={async () => {
-                  setError(null);
-                  setDevices([]);
-                  if (entry.scan) setVendor(entry);
-                  else await connect(entry);
-                }}
+                leading={<RowIcon name={CONNECTION[wallet.connection].icon} tone="grey" />}
+                onPress={() => choose(wallet)}
               />
             ))}
           </>
-        ) : (
+        ) : busy ? (
+          <Text variant="footnote">{busy}</Text>
+        ) : chosen.connection === 'qr' ? (
           <>
-            <Text variant="footnote">{CONNECTION[vendor.connection].how}</Text>
-
-            {devices.length === 0 ? (
-              <Text variant="caption">{CONNECTION[vendor.connection].searching}</Text>
-            ) : (
-              devices.map((device) => (
-                <ListItem
-                  key={device.id}
-                  testID={`hardware-device-${device.id}`}
-                  title={device.name || 'Unnamed wallet'}
-                  leading={<RowIcon name={CONNECTION[vendor.connection].icon} tone="blue" />}
-                  onPress={() => connect(vendor, device.id)}
-                />
-              ))
-            )}
+            <Text variant="footnote">
+              On your {chosen.label}, open Connect Software Wallet, choose MetaMask, and scan the QR
+              code it shows.
+            </Text>
+            <QrReader
+              purpose={`The camera reads the account QR from your ${chosen.label}, and nothing else.`}
+              onScanned={(data) => readPairing(chosen, data)}
+              className="h-72"
+            />
           </>
-        )}
+        ) : chosen.scan ? (
+          <>
+            <Text variant="footnote">{CONNECTION[chosen.connection].how}</Text>
+            <DeviceList
+              vendor={chosen}
+              disabled={busy !== null}
+              onPick={(id) => void pickDevice(chosen, id)}
+            />
+          </>
+        ) : null}
 
-        <ErrorText className="text-footnote">{error}</ErrorText>
+        <ErrorText>{error}</ErrorText>
 
-        {busy ? <Text variant="caption">Confirm on the device…</Text> : null}
-
-        {vendor ? (
+        {chosen ? (
           <Button
             label="Back"
             tone="neutral"
             fullWidth
-            disabled={busy}
+            disabled={busy !== null && !chosen.cancel}
             onPress={() => {
-              setDevices([]);
-              setError(null);
-              setVendor(null);
+              chosen.cancel?.();
+              reset();
             }}
           />
         ) : null}

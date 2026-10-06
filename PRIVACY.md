@@ -82,6 +82,12 @@ trade already does.
 Prices come from a public market data endpoint (Binance's, by default; `/marketapi`
 changes it) with no account and no identifier attached.
 
+A hardware wallet signs on the device. A Ledger talks to the app over Bluetooth
+or USB and a Keystone over QR codes, with nothing in between. A Trezor request
+travels as a `connect.trezor.io` link that the phone hands to the Trezor Suite
+app; if Trezor Suite is not installed, the link opens Trezor's website instead,
+which then sees the request.
+
 ### Links and attachments
 
 Link previews fetch the page behind a link directly from that site, to show its
@@ -167,7 +173,8 @@ never uploaded.
 ## What stays on your device
 
 Your recovery phrase and keys, in the system keychain, optionally sealed behind
-Face ID or the device passcode. On an iPhone that hears from your computer, the
+Face ID or the device passcode. For a hardware wallet account, that is the chat
+key seed its wallet's signature produced, never the wallet's own key. On an iPhone that hears from your computer, the
 key that opens those notes also sits in a keychain group shared with Statim's
 notification extension. Message history, in an encrypted database per
 account. Downloaded media, in per-account directories. Preferences, per account.

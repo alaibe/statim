@@ -56,5 +56,5 @@ Erasing an account from Settings removes all of it.
 
 ## Hardware wallets
 
-A Ledger connects over USB. Keystone signs by showing and scanning QR codes,
-which needs a camera, so use the phone for a Keystone account.
+A Ledger connects over USB; open its Ethereum app first. Keystone and Trezor
+accounts work on the phone, not on a computer.

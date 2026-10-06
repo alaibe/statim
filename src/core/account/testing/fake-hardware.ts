@@ -1,11 +1,10 @@
-import { concatHex, keccak256 } from 'viem';
+import { keccak256, parseSignature, serializeTransaction } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import type { Address, Hex } from 'viem';
+import type { Address, Hex, Signature, TransactionSerializable } from 'viem';
 
-import type { HardwareSigner } from '../hardware';
+import type { HardwareSigner, TypedData } from '../hardware';
 
 export class FakeHardwareSigner implements HardwareSigner {
-  readonly id = 'fake';
   readonly label = 'Test device';
 
   refuse = false;
@@ -22,25 +21,27 @@ export class FakeHardwareSigner implements HardwareSigner {
     return this.account().address;
   }
 
-  async signMessage(path: string, message: string): Promise<Hex> {
+  async signMessage(path: string, message: Uint8Array): Promise<Hex> {
     this.calls.push(`signMessage:${path}`);
     this.guard();
-    return this.account().signMessage({ message });
+    return this.account().signMessage({ message: { raw: message } });
   }
 
-  async signTypedDataHashes(path: string, domainHash: Hex, messageHash: Hex): Promise<Hex> {
-    this.calls.push(`signTypedDataHashes:${path}`);
-    this.guard();
-    return this.account().sign({ hash: keccak256(concatHex(['0x1901', domainHash, messageHash])) });
-  }
-
-  async signTransaction(path: string, serialized: Hex): Promise<Hex> {
+  async signTransaction(path: string, transaction: TransactionSerializable): Promise<Signature> {
     this.calls.push(`signTransaction:${path}`);
     this.guard();
-    return this.account().sign({ hash: keccak256(serialized) });
+    return parseSignature(
+      await this.account().sign({ hash: keccak256(serializeTransaction(transaction)) })
+    );
+  }
+
+  async signTypedData(path: string, typedData: TypedData): Promise<Hex> {
+    this.calls.push(`signTypedData:${path}`);
+    this.guard();
+    return this.account().signTypedData(typedData as never);
   }
 
   private guard(): void {
-    if (this.refuse) throw new Error('Rejected on device');
+    if (this.refuse) throw new Error('Rejected on the device');
   }
 }

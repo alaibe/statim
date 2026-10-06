@@ -81,6 +81,7 @@ export const ACCOUNT_STORE: Record<Actions<AccountState>, Covered> = {
   retryUnlock: 'app: the lock screen asks the system to unlock the keys',
   adoptAccount: 'accounts import',
   addHardwareAccount: 'app: pairing needs the hardware wallet and its screen',
+  setUpChatKeys: 'app: the hardware wallet signs on its own screen',
   selectAccount: 'accounts use',
   renameAccount: 'accounts rename',
   removeErasedAccount: 'accounts erase',

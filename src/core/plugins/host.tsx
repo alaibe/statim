@@ -79,6 +79,11 @@ function makePluginContext(
       throw new Error(`Plugin "${manifest.id}" used ${permission} without declaring it.`);
     }
   };
+  const onDevice = () => {
+    if (keyring.kind === 'hardware') {
+      throw new Error('This account keeps its keys on a hardware wallet, which signs for it.');
+    }
+  };
   const accountChat = () => {
     active();
     const chat = useChatStore.getState();
@@ -135,11 +140,13 @@ function makePluginContext(
       derive(path: string) {
         active();
         require('account.sign');
+        onDevice();
         return keyring.derive(path);
       },
       deriveEd25519(path: string) {
         active();
         require('account.sign');
+        onDevice();
         return keyring.deriveEd25519(path);
       },
     },

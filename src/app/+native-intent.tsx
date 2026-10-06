@@ -1,5 +1,6 @@
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { Chat, ChatId, ChatMessage } from '@/core/messaging/types';
+import { handleTrezorCallback, isTrezorCallback } from '@/core/account/vendors/trezor';
 import { moveInviteText } from '@/plugins/profile/move-invite';
 
 /**
@@ -8,6 +9,10 @@ import { moveInviteText } from '@/plugins/profile/move-invite';
  */
 export function redirectSystemPath({ path }: { path: string; initial: boolean }): string {
   if (path.startsWith('statim://expo-sharing')) return '/share';
+  if (isTrezorCallback(path)) {
+    handleTrezorCallback(path);
+    return '/trezor';
+  }
   if (!__DEV__) return path;
   try {
     const name = /fixture\/([\w-]+)/.exec(path)?.[1];

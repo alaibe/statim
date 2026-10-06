@@ -15,6 +15,11 @@ export interface AccountRecord {
   createdAt: number;
   kind: AccountKind;
   vendorId?: string;
+  /** The derivation path of a hardware account; the standard first account when absent. */
+  path?: string;
+  /** The link a hardware wallet was last reached over, tried first next time. */
+  device?: string;
+  xfp?: string;
 }
 
 export function createAccountId(): string {

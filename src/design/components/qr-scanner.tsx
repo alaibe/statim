@@ -1,96 +1,35 @@
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useEffect, useRef, useState } from 'react';
-import { AppState, Linking, Modal, View } from 'react-native';
+import { Modal, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { Button } from './button';
-import { ErrorText } from './error-text';
 import { ModalHeader } from './modal-header';
+import { QrReader, type QrReaderProps } from './qr-reader';
 import { Screen } from './screen';
 import { Text } from './text';
 
-export interface QrScannerProps {
+export interface QrScannerProps extends Omit<QrReaderProps, 'className'> {
   title: string;
   closeLabel?: string;
-  /** Shown until the camera is allowed: what the camera is for. */
-  purpose: string;
   hint: string;
-  /** Resolves to what went wrong, which keeps the camera open, or to null when the scan is used. */
-  onScanned(data: string): Promise<string | null>;
   onClose(): void;
 }
 
-export function QrScanner(props: QrScannerProps) {
+export function QrScanner({ title, closeLabel, hint, onClose, ...reader }: QrScannerProps) {
   return (
-    <Modal visible animationType="slide" onRequestClose={props.onClose}>
+    <Modal visible animationType="slide" onRequestClose={onClose}>
       <SafeAreaProvider>
-        <Scanner {...props} />
+        <Screen className="px-0" edges={['top', 'bottom']}>
+          <ModalHeader
+            title={title}
+            closeLabel={closeLabel}
+            onClose={onClose}
+            className="px-gutter"
+          />
+          <QrReader {...reader} className="flex-1 px-gutter" />
+          <View className="px-gutter pt-1">
+            <Text variant="caption">{hint}</Text>
+          </View>
+        </Screen>
       </SafeAreaProvider>
     </Modal>
-  );
-}
-
-function Scanner({ title, closeLabel, purpose, hint, onScanned, onClose }: QrScannerProps) {
-  const [permission, requestPermission, getPermission] = useCameraPermissions();
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const rejected = useRef<string | null>(null);
-
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') {
-        getPermission().catch(() => setError('Could not check camera permission'));
-      }
-    });
-    return () => subscription.remove();
-  }, [getPermission]);
-
-  const allowCamera = async () => {
-    try {
-      if (permission?.canAskAgain === false) await Linking.openSettings();
-      else await requestPermission();
-    } catch {
-      setError('Could not request camera access');
-    }
-  };
-
-  const scanned = async ({ data }: { data: string }) => {
-    if (data === rejected.current) return;
-    setBusy(true);
-    const problem = await onScanned(data);
-    rejected.current = problem ? data : null;
-    setError(problem);
-    if (problem) setBusy(false);
-  };
-
-  return (
-    <Screen className="px-0" edges={['top', 'bottom']}>
-      <ModalHeader title={title} closeLabel={closeLabel} onClose={onClose} className="px-gutter" />
-
-      {permission?.granted ? (
-        <View className="flex-1 overflow-hidden">
-          <CameraView
-            style={{ flex: 1 }}
-            facing="back"
-            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            onBarcodeScanned={busy ? undefined : (scan) => void scanned(scan)}
-            onMountError={({ message }) => setError(message)}
-          />
-        </View>
-      ) : (
-        <View className="flex-1 justify-center gap-4 px-gutter">
-          <Text variant="bodyMuted">{purpose}</Text>
-          <Button
-            label={permission?.canAskAgain === false ? 'Open Settings' : 'Allow the camera'}
-            fullWidth
-            onPress={allowCamera}
-          />
-        </View>
-      )}
-
-      <View className="gap-2 px-gutter pt-3">
-        {error ? <ErrorText>{error}</ErrorText> : <Text variant="caption">{hint}</Text>}
-      </View>
-    </Screen>
   );
 }

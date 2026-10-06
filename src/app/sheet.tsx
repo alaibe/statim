@@ -4,10 +4,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IconButton, Text } from '@/design';
 import { SHEET_DISMISS_MS, useSheetStore } from '@/design/components/sheet';
+import { cancelPrompt, useDevicePrompt } from '@/core/account/device-prompt';
+import { DevicePromptBody, devicePromptTitle } from '@/features/account/device-prompt';
 
 export default function SheetRoute() {
   const current = useSheetStore((s) => s.current);
+  const prompt = useDevicePrompt((s) => s.prompt);
   const insets = useSafeAreaInsets();
+  const title = prompt ? devicePromptTitle(prompt) : current?.title;
 
   // Unmounting is how a swipe-to-dismiss reaches the owner.
   useEffect(
@@ -23,14 +27,14 @@ export default function SheetRoute() {
   return (
     <View className="bg-surface px-gutter" style={{ paddingBottom: insets.bottom + 8 }}>
       <View className="min-h-tap flex-row items-center gap-3 py-3">
-        {current?.leading}
+        {prompt ? null : current?.leading}
         <View className="min-w-0 flex-1">
-          {current?.title ? (
+          {title ? (
             <Text variant="title" numberOfLines={1}>
-              {current.title}
+              {title}
             </Text>
           ) : null}
-          {current?.subtitle ? (
+          {!prompt && current?.subtitle ? (
             <Text variant="caption" numberOfLines={1}>
               {current.subtitle}
             </Text>
@@ -42,10 +46,12 @@ export default function SheetRoute() {
           label="Close"
           size={18}
           surface="sunken"
-          onPress={() => current?.onClose()}
+          onPress={() => (prompt ? cancelPrompt(prompt) : current?.onClose())}
         />
       </View>
-      <View className="gap-3">{current?.children}</View>
+      <View className="gap-3">
+        {prompt ? <DevicePromptBody prompt={prompt} /> : current?.children}
+      </View>
     </View>
   );
 }

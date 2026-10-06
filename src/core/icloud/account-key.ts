@@ -20,7 +20,9 @@ export async function rememberNoteKey(accountId: string): Promise<NoteKey> {
   const phrase = await readMnemonic(accountId, true);
   if (phrase.status === 'denied') throw new Error('Statim could not read the recovery phrase.');
   if (phrase.status !== 'ok') {
-    throw new Error('This account has no recovery phrase in Statim to encrypt notifications with.');
+    throw new Error(
+      'This account has no keys in Statim to encrypt notifications with yet. For a hardware wallet, set up chat keys in Settings › Accounts.'
+    );
   }
   const key = noteKey(phrase.value);
   await vaultSet(accountIcloudKeyName(accountId), JSON.stringify(key));

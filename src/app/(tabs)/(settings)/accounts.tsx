@@ -9,8 +9,10 @@ import {
   Checkmark,
   ConfirmSheet,
   ListItem,
+  Note,
   Section,
   SwipeableRow,
+  Text,
 } from '@/design';
 import { eraseAccount } from '@/core/app/erase-account';
 import { useAccountStore } from '@/core/account/account-store';
@@ -29,6 +31,10 @@ export default function AccountsScreen() {
   const accounts = useAccountStore((s) => s.accounts);
   const activeAccountId = useAccountStore((s) => s.activeAccountId);
   const selectAccount = useAccountStore((s) => s.selectAccount);
+  const needsChatKeys = useAccountStore((s) => !s.chatKeys);
+  const setUpChatKeys = useAction(useAccountStore.getState().setUpChatKeys, {
+    failure: 'Could not set up chat keys',
+  });
 
   const [managing, setManaging] = useState<AccountRecord | null>(null);
   const [renaming, setRenaming] = useState<AccountRecord | null>(null);
@@ -83,6 +89,24 @@ export default function AccountsScreen() {
           </SwipeableRow>
         ))}
       </Section>
+
+      {needsChatKeys ? (
+        <View className="mb-6 gap-2 px-gutter">
+          <Note icon="key-outline">
+            <Text variant="footnote">
+              Nostr, Status and notifications from your computer need chat keys for this account.
+              Your wallet makes them by signing one message, which moves no funds.
+            </Text>
+          </Note>
+          <Button
+            testID="set-up-chat-keys"
+            label="Set up chat keys"
+            fullWidth
+            loading={setUpChatKeys.busy}
+            onPress={() => void setUpChatKeys.run()}
+          />
+        </View>
+      ) : null}
 
       <View className="gap-2 px-gutter">
         <Button
