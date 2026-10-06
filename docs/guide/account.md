@@ -48,7 +48,8 @@ wallet rather than the phone:
   Wallet**, choose **MetaMask** and scan the code it shows. To sign, it scans a
   code from your screen and you scan its answer.
 - A Trezor works through the Trezor Suite app on the same phone, which opens
-  to confirm each request and sends you back.
+  to confirm each request and sends you back. On Android any Trezor connects
+  to it over USB; on an iPhone only a Trezor Safe 7 can, over Bluetooth.
 
 While connecting, the wallet signs one message, "Statim chat keys". It moves no
 funds. Its signature, the same every time for that wallet, gives the account

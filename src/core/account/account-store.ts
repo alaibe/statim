@@ -152,6 +152,14 @@ export const useAccountStore = create<AccountState>((set, get) => ({
 
   async addHardwareAccount({ signer, ...params }: HardwareAccountParams) {
     const existing = get().accounts;
+    const duplicate = existing.find(
+      (a) => a.address.toLowerCase() === params.address.toLowerCase()
+    );
+    if (duplicate?.kind === 'phrase') {
+      throw new Error(
+        `This wallet's account is already here as ${duplicate.label}, with its recovery phrase.`
+      );
+    }
     const seed = await signChatKeys(signer, params.path);
     const fields = {
       address: params.address,
@@ -162,9 +170,6 @@ export const useAccountStore = create<AccountState>((set, get) => ({
       xfp: params.xfp,
     };
 
-    const duplicate = existing.find(
-      (a) => a.address.toLowerCase() === params.address.toLowerCase()
-    );
     const record: AccountRecord = duplicate
       ? { ...duplicate, ...fields }
       : {

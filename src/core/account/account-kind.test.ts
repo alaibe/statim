@@ -99,6 +99,24 @@ describe('adding a hardware account', () => {
     expect(state.keyring?.derive("m/44'/1237'/0'/0/0").privateKey).toEqual(before);
   });
 
+  it('never turns a phrase account into a wallet one, which would drop its phrase', async () => {
+    useAccountStore.setState({
+      accounts: [{ id: 'p', label: 'Main', address: ADDRESS, createdAt: 0, kind: 'phrase' }],
+    });
+    const signer = new FakeHardwareSigner(KEY);
+    await expect(
+      useAccountStore.getState().addHardwareAccount({
+        address: ADDRESS,
+        vendorId: 'ledger',
+        label: 'Ledger',
+        path: PATH,
+        signer,
+      })
+    ).rejects.toThrow(/already here as Main/);
+    expect(signer.calls).toEqual([]);
+    expect(useAccountStore.getState().accounts[0].kind).toBe('phrase');
+  });
+
   it('adopts an existing row rather than adding a second for one address', async () => {
     // Two rows sharing an address would fight over one message database.
     await add();

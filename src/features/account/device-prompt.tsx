@@ -1,6 +1,6 @@
 import { URDecoder } from '@ngraveio/bc-ur';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Platform, View } from 'react-native';
 
 import {
   AnimatedQrCode,
@@ -41,7 +41,10 @@ export const CONNECTION: Record<
   'companion-app': {
     icon: 'phone-portrait-outline',
     searching: '',
-    how: 'Trezor Suite opens to confirm; you come back here when it is done.',
+    how:
+      Platform.OS === 'ios'
+        ? 'Needs Trezor Suite and a Trezor Safe 7, which connects to it over Bluetooth.'
+        : 'Trezor Suite opens to confirm; you come back here when it is done.',
   },
 };
 

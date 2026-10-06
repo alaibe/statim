@@ -3,7 +3,6 @@ import {
   recoverMessageAddress,
   recoverTransactionAddress,
   recoverTypedDataAddress,
-  serializeTransaction,
   type TransactionSerializable,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -109,10 +108,4 @@ describe('typedDataJson', () => {
     ]);
     expect(parsed.message.amount).toBe('1000000000000000000');
   });
-});
-
-it('keeps the unsigned form a device hashes for EIP-155', () => {
-  expect(serializeTransaction({ chainId: 1, gasPrice: 1n, nonce: 0, type: 'legacy' })).toMatch(
-    /^0x/
-  );
 });
