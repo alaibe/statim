@@ -3,6 +3,7 @@ import Transport from '@ledgerhq/hw-transport';
 
 import { registerVendor, type HardwareSigner } from '../hardware';
 import { ledgerSigner } from './ledger-signer';
+import { SPECULOS, speculosRunning, speculosTransport } from './speculos';
 
 interface LedgerDevice {
   path: string;
@@ -29,6 +30,7 @@ async function scanForLedgers(
   onFound: (device: { id: string; name: string }) => void,
   onError: (error: unknown) => void
 ): Promise<() => void> {
+  void speculosRunning().then((running) => running && onFound(SPECULOS));
   const poll = async () => {
     try {
       for (const device of await invoke<LedgerDevice[]>('ledger_list')) {
@@ -45,6 +47,7 @@ async function scanForLedgers(
 
 async function connectLedger(deviceId: string): Promise<HardwareSigner> {
   const { default: AppEth } = await import('@ledgerhq/hw-app-eth');
+  if (deviceId === SPECULOS.id) return ledgerSigner(new AppEth(speculosTransport()));
 
   await invoke('ledger_open', { path: deviceId });
   return ledgerSigner(new AppEth(new TauriHidTransport()));

@@ -103,6 +103,7 @@ it('pads r and s to 32 bytes whatever prefix a device writes', () => {
   expect(deviceSignature('0x01', '2', '0x1c')).toEqual({
     r: `0x${'0'.repeat(63)}1`,
     s: `0x${'0'.repeat(63)}2`,
+    v: 28n,
     yParity: 1,
   });
 });

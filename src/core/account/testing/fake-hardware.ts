@@ -2,7 +2,7 @@ import { keccak256, parseSignature, serializeTransaction } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import type { Address, Hex, Signature, TransactionSerializable } from 'viem';
 
-import { DeviceAnswer, type HardwareSigner, type TypedData } from '../hardware';
+import { DeviceAnswer, deviceSignature, type HardwareSigner, type TypedData } from '../hardware';
 
 export class FakeHardwareSigner implements HardwareSigner {
   refuse = false;
@@ -28,9 +28,10 @@ export class FakeHardwareSigner implements HardwareSigner {
   async signTransaction(path: string, transaction: TransactionSerializable): Promise<Signature> {
     this.calls.push(`signTransaction:${path}`);
     this.guard();
-    return parseSignature(
+    const { r, s, yParity } = parseSignature(
       await this.account().sign({ hash: keccak256(serializeTransaction(transaction)) })
     );
+    return deviceSignature(r, s, yParity ?? 0, transaction);
   }
 
   async signTypedData(path: string, typedData: TypedData): Promise<Hex> {

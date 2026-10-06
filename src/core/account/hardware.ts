@@ -91,11 +91,9 @@ export function deviceSignature(
   transaction: Pick<TransactionSerializable, 'chainId'> = {}
 ): Signature {
   const word = (hex: string) => pad(`0x${hex.replace(/^0x/, '')}` as Hex);
-  return {
-    r: word(r),
-    s: word(s),
-    yParity: parityOf(typeof v === 'number' ? v : parseInt(v, 16), transaction),
-  };
+  const yParity = parityOf(typeof v === 'number' ? v : parseInt(v, 16), transaction);
+  // viem's legacy serializer works out EIP-155's v from this one.
+  return { r: word(r), s: word(s), v: BigInt(27 + yParity), yParity };
 }
 
 function withDomainType(typedData: TypedData) {
