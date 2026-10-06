@@ -29,10 +29,21 @@ pub fn build_index() -> Option<usize> {
     }
 }
 
-/// Per `build_index`. The Mac has none yet: `.github/workflows/homeserver.yml` builds it,
-/// with the libolm its mautrix bridges link.
+/// Per `build_index`. `.github/workflows/homeserver.yml` builds the Mac's, with the
+/// libolm its mautrix bridges link.
 const SERVER: [Option<&[Pin]>; 3] = [
-    None,
+    Some(&[
+        Pin {
+            file: "tuwunel",
+            url: "https://github.com/alaibe/statim/releases/download/homeserver-v1.9.3/tuwunel-macos-arm64",
+            sha256: "57f5e797a4e1d9ceddba24d09dfa8d6b828d49855a7ae37a2a5b19a230967f98",
+        },
+        Pin {
+            file: "libolm.3.dylib",
+            url: "https://github.com/alaibe/statim/releases/download/homeserver-v1.9.3/libolm.3.dylib",
+            sha256: "477811be5ff2d7aebf932021c4d22c1193a7fcd4e45f4c62fc2c0df89e694719",
+        },
+    ]),
     Some(&[Pin {
         file: "tuwunel",
         url: "https://github.com/matrix-construct/tuwunel/releases/download/v1.9.3/v1.9.3-release-all-x86_64-v1-linux-gnu-tuwunel.zst",
