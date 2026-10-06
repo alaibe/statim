@@ -1,6 +1,6 @@
 [package]
 name = "statim"
-version = "0.7.1"
+version = "0.7.2"
 description = "A self-custodial messenger."
 edition = "2021"
 rust-version = "1.77.2"
