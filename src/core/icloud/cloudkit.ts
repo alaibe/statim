@@ -43,53 +43,47 @@ export interface SealedNote {
   sealed: string;
 }
 
-interface NotesChanged {
-  token: string;
-  /** Records still in iCloud that were meant to go; one already gone counts as deleted. */
-  undeleted: string[];
-}
+/** The zone the iPhone creates and watches while it listens; without it, nobody is listening. */
+const NOTES_ZONE = 'notes';
+const ZONE_NOT_FOUND = 'ZONE_NOT_FOUND';
 
-export async function changeNotes(
+/** Saves the notes where the iPhone looks for them and hands back the next token. */
+export async function saveNotes(
   container: Container,
   token: string,
-  notes: SealedNote[],
-  discard: string[]
-): Promise<NotesChanged> {
+  notes: SealedNote[]
+): Promise<string> {
   const answer = await call<{ records?: (Reply & { recordName?: string })[] }>(
     container,
     token,
     'records/modify',
     {
+      zoneID: { zoneName: NOTES_ZONE },
       atomic: false,
-      operations: [
-        ...notes.map((note) => ({
-          operationType: 'create',
-          record: {
-            recordName: note.name,
-            recordType: 'Note',
-            fields: { tag: { value: note.tag }, sealed: { value: note.sealed } },
-          },
-        })),
-        ...discard.map((recordName) => ({ operationType: 'forceDelete', record: { recordName } })),
-      ],
-    }
+      operations: notes.map((note) => ({
+        operationType: 'create',
+        record: {
+          recordName: note.name,
+          recordType: 'Note',
+          fields: { tag: { value: note.tag }, sealed: { value: note.sealed } },
+        },
+      })),
+    },
+    ZONE_NOT_FOUND
   );
-  const refused = (answer.body.records ?? []).filter(
-    (record) => record.serverErrorCode && record.serverErrorCode !== 'NOT_FOUND'
+  const failed = (answer.body.records ?? []).find(
+    (record) => record.serverErrorCode && record.serverErrorCode !== ZONE_NOT_FOUND
   );
-  const failed = refused.find((record) => !discard.includes(record.recordName ?? ''));
   if (failed) throw new Error(failed.reason ?? failed.serverErrorCode);
-  return {
-    token: answer.token,
-    undeleted: refused.flatMap((record) => (record.recordName ? [record.recordName] : [])),
-  };
+  return answer.token;
 }
 
 async function call<T>(
   container: Container,
   token: string | null,
   path: string,
-  body?: unknown
+  body?: unknown,
+  tolerated?: string
 ): Promise<Answer<T>> {
   let url = `${API}/${container.id}/${container.environment}/private/${path}?ckAPIToken=${encodeURIComponent(container.apiToken)}`;
   if (token) url += `&ckWebAuthToken=${encodeURIComponent(token)}`;
@@ -111,7 +105,7 @@ async function call<T>(
   ) {
     throw new SignInRequired(reply.redirectURL ?? null);
   }
-  if (!response.ok || reply.serverErrorCode) {
+  if ((!response.ok || reply.serverErrorCode) && reply.serverErrorCode !== tolerated) {
     throw new Error(reply.reason ?? `iCloud answered ${response.status}.`);
   }
   return {

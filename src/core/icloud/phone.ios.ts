@@ -20,7 +20,7 @@ export async function listenToComputer(accountId: string): Promise<void> {
     await shareWithExtension(noteSecretKey(key.tag), JSON.stringify({ key: key.key }));
     await ICloudNotes.subscribe(ICLOUD_CONTAINER);
   } catch (error) {
-    await forget(accountId, key.tag);
+    await stopListening(accountId).catch(() => {});
     throw error;
   }
 }
@@ -28,10 +28,6 @@ export async function listenToComputer(accountId: string): Promise<void> {
 export async function stopListening(accountId: string): Promise<void> {
   const key = await storedNoteKey(accountId);
   if (!key) return;
-  await forget(accountId, key.tag);
+  await Promise.all([unshare(noteSecretKey(key.tag)), forgetNoteKey(accountId)]);
   if (!(await noteKeyInUse())) await ICloudNotes?.unsubscribe(ICLOUD_CONTAINER);
-}
-
-async function forget(accountId: string, tag: string): Promise<void> {
-  await Promise.all([unshare(noteSecretKey(tag)), forgetNoteKey(accountId)]);
 }

@@ -2,12 +2,11 @@ import { invoke } from '@tauri-apps/api/core';
 
 import { appFocused, type MessageNotification } from '@/core/notifications';
 import { toHex } from '@/lib/bytes';
-import { arrayOf, isNumber, isString, shape } from '@/lib/guards';
 import { randomBytes } from '@/lib/random';
 import { VaultKey, vaultDelete, vaultGet, vaultSet } from '@/storage/vault';
 
 import { forgetNoteKey, noteKeyInUse, rememberNoteKey, storedNoteKey } from './account-key';
-import { changeNotes, signInURL, SignInRequired, type SealedNote } from './cloudkit';
+import { saveNotes, signInURL, SignInRequired, type SealedNote } from './cloudkit';
 import { icloudContainer, type IcloudSetup } from './container';
 import { sealNote, type Note, type NoteKey } from './note';
 import type { RelayState } from './relay';
@@ -17,17 +16,6 @@ interface Item {
   note: Note;
 }
 
-interface Saved {
-  name: string;
-  at: number;
-}
-
-const isSavedList = arrayOf(shape<Saved>({ name: isString, at: isNumber }));
-
-/** iCloud copies a note into its push at once, so the record is deleted after this. */
-const NOTE_LIFETIME = 5 * 60_000;
-const MAX_OPERATIONS = 200;
-
 const HELLO: Note = {
   title: 'Statim',
   body: 'This computer now tells your iPhone about new messages.',
@@ -35,7 +23,6 @@ const HELLO: Note = {
 
 let chain: Promise<unknown> = Promise.resolve();
 const pending: Item[] = [];
-let cleanUp: ReturnType<typeof setTimeout> | undefined;
 
 export async function relayState(accountId: string): Promise<RelayState> {
   if (!icloudContainer()) return 'unavailable';
@@ -60,9 +47,7 @@ export async function turnOnRelay(accountId: string): Promise<void> {
 export async function turnOffRelay(accountId: string): Promise<void> {
   await forgetNoteKey(accountId);
   if (await noteKeyInUse()) return;
-  clearTimeout(cleanUp);
-  await serial(() => exchange([], true)).catch(() => {});
-  await vaultDelete(VaultKey.icloudSession);
+  await serial(() => vaultDelete(VaultKey.icloudSession));
 }
 
 /** The iPhone stays quiet while this window has focus, since you are at the computer. */
@@ -81,6 +66,7 @@ function serial<T>(task: () => Promise<T>): Promise<T> {
   return run;
 }
 
+/** The iPhone reads each note and deletes it, so the computer only ever adds them. */
 async function deliver(items: Item[]): Promise<void> {
   const keys = new Map<string, NoteKey | null>();
   const notes: SealedNote[] = [];
@@ -91,52 +77,15 @@ async function deliver(items: Item[]): Promise<void> {
       notes.push({ name: toHex(randomBytes(16)), tag: key.tag, sealed: sealNote(key.key, note) });
     }
   }
-  if (notes.length > 0) await exchange(notes);
-}
-
-/** Note names are saved before the request, so a reply lost on the way back cannot leave notes in iCloud for good. */
-async function exchange(notes: SealedNote[], all = false): Promise<void> {
-  const now = Date.now();
-  const saved = [...(await savedNotes()), ...notes.map((note) => ({ name: note.name, at: now }))];
-  const discard = saved
-    .filter((note) => all || now - note.at >= NOTE_LIFETIME)
-    .slice(0, MAX_OPERATIONS - notes.length)
-    .map((note) => note.name);
-  if (notes.length === 0 && discard.length === 0) return;
   const container = icloudContainer();
   const token = container ? await vaultGet(VaultKey.icloudSession) : null;
-  if (!container || !token) return;
-  if (notes.length > 0) await vaultSet(VaultKey.icloudNotes, JSON.stringify(saved));
-  let changed;
+  if (notes.length === 0 || !container || !token) return;
   try {
-    changed = await changeNotes(container, token, notes, discard);
+    await vaultSet(VaultKey.icloudSession, await saveNotes(container, token, notes));
   } catch (error) {
     if (error instanceof SignInRequired) await vaultDelete(VaultKey.icloudSession);
     throw error;
   }
-  await vaultSet(VaultKey.icloudSession, changed.token);
-  const gone = new Set(discard.filter((name) => !changed.undeleted.includes(name)));
-  const left = saved.filter((note) => !gone.has(note.name));
-  if (gone.size > 0) await vaultSet(VaultKey.icloudNotes, JSON.stringify(left));
-  if (left.length > 0 && !all) scheduleCleanUp();
-}
-
-async function savedNotes(): Promise<Saved[]> {
-  try {
-    const parsed: unknown = JSON.parse((await vaultGet(VaultKey.icloudNotes)) ?? '[]');
-    return isSavedList(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function scheduleCleanUp(): void {
-  clearTimeout(cleanUp);
-  cleanUp = setTimeout(() => {
-    serial(() => exchange([])).catch((error: unknown) =>
-      console.warn('[icloud] could not delete old notes', error)
-    );
-  }, NOTE_LIFETIME);
 }
 
 /** Signs in on Apple's page in the browser, which hands the token back to this computer. */

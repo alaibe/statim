@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { VaultKey } from '@/storage/vault';
 import { asChatId } from '@/core/messaging/testing/ids';
 
-import { changeNotes, signInURL, SignInRequired } from './cloudkit';
+import { saveNotes, signInURL, SignInRequired } from './cloudkit';
 import { noteKey, openNote } from './note';
 import { relayState, relayToPhone, turnOffRelay, turnOnRelay } from './relay.web';
 
@@ -29,21 +29,16 @@ jest.mock('@/storage/vault', () => ({
 jest.mock('./cloudkit', () => ({
   ...jest.requireActual('./cloudkit'),
   signInURL: jest.fn(),
-  changeNotes: jest.fn(),
+  saveNotes: jest.fn(),
 }));
 
-const MINUTE = 60_000;
 const { key, tag } = noteKey({ kind: 'phrase', phrase: PHRASE });
 const call = (index: number) => {
-  const [, token, notes, discard] = jest.mocked(changeNotes).mock.calls[index];
-  return { token, notes, discard };
+  const [, token, notes] = jest.mocked(saveNotes).mock.calls[index];
+  return { token, notes };
 };
 const opened = (index: number) =>
   call(index).notes.map((note) => ({ tag: note.tag, ...openNote(key, note.sealed) }));
-const savedNames = () =>
-  (JSON.parse(mockVault.get(VaultKey.icloudNotes) ?? '[]') as { name: string }[]).map(
-    (note) => note.name
-  );
 const flush = () => jest.advanceTimersByTimeAsync(0);
 const arrival = (chat: string, title: string, body: string) => ({
   chatId: asChatId(chat),
@@ -58,7 +53,7 @@ beforeEach(() => {
   mockFocused = false;
   jest.mocked(invoke).mockReset();
   jest.mocked(signInURL).mockReset().mockResolvedValue('https://idmsa.apple.com/sign-in');
-  jest.mocked(changeNotes).mockReset().mockResolvedValue({ token: 'after-save', undeleted: [] });
+  jest.mocked(saveNotes).mockReset().mockResolvedValue('after-save');
 });
 
 afterEach(() => {
@@ -94,7 +89,7 @@ describe('notifying the iPhone through iCloud', () => {
   });
 
   it('stays off when iCloud refuses the hello', async () => {
-    jest.mocked(changeNotes).mockRejectedValueOnce(new Error('Did not find record type: Note'));
+    jest.mocked(saveNotes).mockRejectedValueOnce(new Error('Did not find record type: Note'));
     await expect(turnOn()).rejects.toThrow('Did not find record type: Note');
     expect(await relayState('acc1')).toBe('off');
     expect(mockVault.has(VaultKey.icloudSession)).toBe(false);
@@ -105,83 +100,45 @@ describe('notifying the iPhone through iCloud', () => {
     mockFocused = true;
     relayToPhone('acc1', arrival('xmtp-a', 'Alice', 'Hi'));
     await flush();
-    expect(changeNotes).toHaveBeenCalledTimes(1);
+    expect(saveNotes).toHaveBeenCalledTimes(1);
   });
 
   it('sends what arrives during a save together in the next one', async () => {
     await turnOn();
-    let finish: (changed: { token: string; undeleted: string[] }) => void = () => {};
+    let finish: (token: string) => void = () => {};
     jest
-      .mocked(changeNotes)
+      .mocked(saveNotes)
       .mockImplementationOnce(() => new Promise((resolve) => (finish = resolve)));
     relayToPhone('acc1', arrival('xmtp-a', 'Alice', 'one'));
     await flush();
     relayToPhone('acc1', arrival('xmtp-b', 'Bob', 'two'));
     relayToPhone('acc1', arrival('xmtp-a', 'Alice', 'three'));
-    finish({ token: 't2', undeleted: [] });
+    finish('t2');
     await flush();
     expect(opened(1).map((note) => note.body)).toEqual(['one']);
     expect(opened(2).map((note) => note.body)).toEqual(['two', 'three']);
     expect(call(2).token).toBe('t2');
   });
 
-  it('deletes each note five minutes after saving it', async () => {
-    await turnOn();
-    const hello = call(0).notes[0].name;
-    expect(savedNames()).toEqual([hello]);
-    await jest.advanceTimersByTimeAsync(5 * MINUTE);
-    expect(call(1)).toMatchObject({ notes: [], discard: [hello] });
-    expect(savedNames()).toEqual([]);
-    expect(jest.getTimerCount()).toBe(0);
-  });
-
-  it('deletes notes a previous run left with the next save', async () => {
-    await turnOn();
-    const hello = call(0).notes[0].name;
-    jest.clearAllTimers();
-    jest.setSystemTime(Date.now() + 6 * MINUTE);
-    relayToPhone('acc1', arrival('xmtp-a', 'Alice', 'Hi'));
-    await flush();
-    expect(call(1).discard).toEqual([hello]);
-    expect(savedNames()).toEqual([call(1).notes[0].name]);
-  });
-
-  it('tries again later to delete a note iCloud kept', async () => {
-    await turnOn();
-    const hello = call(0).notes[0].name;
-    jest.mocked(changeNotes).mockResolvedValueOnce({ token: 't', undeleted: [hello] });
-    await jest.advanceTimersByTimeAsync(5 * MINUTE);
-    expect(savedNames()).toEqual([hello]);
-    await jest.advanceTimersByTimeAsync(5 * MINUTE);
-    expect(call(2).discard).toEqual([hello]);
-    expect(savedNames()).toEqual([]);
-  });
-
   it('notes the sign-out when iCloud drops the token', async () => {
     await turnOn();
-    jest.mocked(changeNotes).mockRejectedValueOnce(new SignInRequired(null));
+    jest.mocked(saveNotes).mockRejectedValueOnce(new SignInRequired(null));
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     relayToPhone('acc1', arrival('xmtp-a', 'Alice', 'Hi'));
     await flush();
     expect(await relayState('acc1')).toBe('signed-out');
   });
 
-  it('deletes every note left and signs out once no account uses it', async () => {
+  it('signs out once no account uses it', async () => {
     await turnOn('acc1');
     await turnOn('acc2');
     expect(signInURL).toHaveBeenCalledTimes(1);
     await turnOffRelay('acc1');
     expect(mockVault.has(VaultKey.icloudSession)).toBe(true);
-    expect(changeNotes).toHaveBeenCalledTimes(2);
 
     await turnOffRelay('acc2');
-    expect(call(2)).toMatchObject({
-      notes: [],
-      discard: [call(0).notes[0].name, call(1).notes[0].name],
-    });
-    expect(savedNames()).toEqual([]);
+    expect(saveNotes).toHaveBeenCalledTimes(2);
     expect(mockVault.has(VaultKey.icloudSession)).toBe(false);
-    expect(jest.getTimerCount()).toBe(0);
     expect(await relayState('acc2')).toBe('off');
   });
 });

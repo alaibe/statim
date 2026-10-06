@@ -12,7 +12,6 @@ export const VaultKey = {
   commandLine: 'security.commandLine',
   keyProtection: 'security.keyProtection',
   icloudSession: 'notifications.icloudSession',
-  icloudNotes: 'notifications.icloudNotes',
   pin: 'security.pin',
   pinAttempts: 'security.pinAttempts',
   version: 'vault.version',

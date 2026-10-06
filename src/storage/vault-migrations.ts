@@ -16,4 +16,7 @@ export type VaultStep = (vault: VaultEntries) => Promise<void>;
  * run again if the app stops halfway through it, so it must leave entries it
  * already moved as they are.
  */
-export const VAULT_MIGRATIONS: readonly VaultStep[] = [];
+export const VAULT_MIGRATIONS: readonly VaultStep[] = [
+  // The desktop no longer deletes the notes it leaves in iCloud; the iPhone does.
+  (vault) => vault.remove('notifications.icloudNotes'),
+];

@@ -5,5 +5,7 @@ module.exports = {
   deploymentTarget: '18.1',
   entitlements: {
     'keychain-access-groups': ['$(AppIdentifierPrefix)im.statim.app.shared'],
+    'com.apple.developer.icloud-container-identifiers': ['iCloud.im.statim.app'],
+    'com.apple.developer.icloud-services': ['CloudKit'],
   },
 };
