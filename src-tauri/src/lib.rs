@@ -18,9 +18,7 @@ mod tray;
 mod vault;
 mod web_login;
 
-#[cfg(target_os = "macos")]
-use tauri::RunEvent;
-use tauri::{AppHandle, Manager, WindowEvent};
+use tauri::{AppHandle, Manager, RunEvent, WindowEvent};
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_window_state::StateFlags;
 
