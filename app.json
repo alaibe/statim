@@ -154,7 +154,8 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "Record a voice note to send in a message. Audio is recorded on this device and sent inside the encrypted message."
+          "microphonePermission": "Record a voice note to send in a message. Audio is recorded on this device and sent inside the encrypted message.",
+          "enableBackgroundPlayback": false
         }
       ],
       [
