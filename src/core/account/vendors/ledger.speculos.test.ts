@@ -12,8 +12,8 @@ import { ledgerSigner } from './ledger-signer';
 import { speculosTransport } from './speculos';
 
 /**
- * Ledger's own Ethereum app in Speculos, started by `priv/local-net/speculos.sh`:
- * `SPECULOS=1 npx jest ledger.speculos`.
+ * Ledger's own Ethereum app in Speculos on port 5000, with Hardhat's test phrase
+ * and Blind signing on: `SPECULOS=1 npx jest ledger.speculos`.
  */
 const API = 'http://127.0.0.1:5000';
 const ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';

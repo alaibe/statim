@@ -5,7 +5,7 @@ import { appFetch } from '@/lib/http';
 
 const API = Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://127.0.0.1:5000';
 
-/** In a debug build, the emulator `priv/local-net/speculos.sh` starts is listed like a Ledger. */
+/** In a debug build, Speculos running on this computer is listed like a Ledger. */
 export const SPECULOS = { id: 'speculos', name: 'Speculos (emulator)' };
 
 class SpeculosTransport extends Transport {
