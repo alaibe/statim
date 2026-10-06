@@ -202,6 +202,24 @@ describe('MatrixSession chats', () => {
     });
   });
 
+  it('finds the bridge of a room first seen before its bridge bot shows', async () => {
+    const bot = '@slackbot:example.org';
+    const early = room('!early:example.org', { name: '#team_ops', memberCount: 3 });
+    const { chat, api } = await connect(SESSION, (api) => {
+      api.roomsById.set(early.id, early);
+    });
+    const chats: ProtocolChat[] = [];
+    await chat.streamChats((c) => chats.push(c));
+    expect(
+      (await chat.listChats()).find((c) => c.id === chatIdOf(early.id))?.network
+    ).toBeUndefined();
+
+    api.emit({ type: 'room', room: { ...early, elevated: [ME, bot] } });
+    await flush();
+
+    expect(chats.findLast((c) => c.id === chatIdOf(early.id))).toMatchObject({ network: 'slack' });
+  });
+
   it('reads the roster of a portal whose bridge bot has no power, and finds a DM', async () => {
     const bot = '@discordbot:example.org';
     const puppet = '@discord_1022:example.org';

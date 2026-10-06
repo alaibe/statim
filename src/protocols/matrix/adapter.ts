@@ -87,7 +87,8 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
    * A room keeps the bridge it once showed, even after the bridged users fall out of the
    * summary. null means none showed yet; the room is looked at again once its roster arrives.
    */
-  private readonly networks = new Map<string, BridgedNetwork | null>();
+  /** Only networks found: a room seen before its bridge shows is looked at again. */
+  private readonly networks = new Map<string, BridgedNetwork>();
   private readonly mediaPaths = new Map<string, string>();
   private readonly awaitedMedia = new Map<string, MxEvent[]>();
   private readonly unfetched = new Map<MessageId, { raw: MxEvent; media: MxMedia }>();
@@ -657,7 +658,6 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
             if (member.displayName) this.names.set(member.userId, member.displayName);
           }
           this.members.set(roomId, members);
-          if (this.networks.get(roomId) === null) this.networks.delete(roomId);
           const room = this.rooms.get(roomId);
           if (room && members.length > 0) this.announce(room);
           return members;
@@ -693,17 +693,16 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     const selfId = this.self.participantId;
     const roster = this.rosterOf(room.id);
     let network = this.networks.get(room.id);
-    if (network === undefined) {
-      network =
-        bridgedNetwork([
-          room.peer,
-          room.latest?.sender,
-          room.inviter,
-          ...room.heroes,
-          ...room.elevated,
-          ...(roster ?? []),
-        ]) ?? null;
-      this.networks.set(room.id, network);
+    if (!network) {
+      network = bridgedNetwork([
+        room.peer,
+        room.latest?.sender,
+        room.inviter,
+        ...room.heroes,
+        ...room.elevated,
+        ...(roster ?? []),
+      ]);
+      if (network) this.networks.set(room.id, network);
     }
 
     const humans = network ? humansIn(room, roster) : undefined;
