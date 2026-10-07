@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { buttonCommand } from '@/core/commands/button';
-import { parseCommand } from '@/core/commands/parser';
+import { type ParsedCommand, parseCommand } from '@/core/commands/parser';
 import { toast } from '@/design';
 import { isLocalChat, toContent } from '@/core/messaging/bots';
 import { inScope, type ChatScope } from '@/core/messaging/chat-scope';
 import { useChatStore } from '@/core/messaging/chat-store';
+import type { ChatSession } from '@/core/messaging/protocol';
 import type { ChatId, MessageContent } from '@/core/messaging/types';
 import { usePluginHost } from '@/core/plugins/host';
-import { worksOn } from '@/core/plugins/registry';
+import { type CommandEntry, type PluginRegistry, worksOn } from '@/core/plugins/registry';
+import type { CommandResult } from '@/core/plugins/types';
 import { errorMessage } from '@/core/errors';
 
 import { useSupports } from './use-supports';
@@ -33,6 +35,38 @@ export function elsewhereMessage(
   return !inScope(showIn, scope) && places.length > 0
     ? `/${name} works in ${places.join(' and ')}.`
     : `/${name} belongs to ${home}. Open that chat to use it.`;
+}
+
+function refusalFor(
+  parsed: ParsedCommand,
+  entry: CommandEntry | undefined,
+  registry: PluginRegistry,
+  scope: ChatScope,
+  session: ChatSession | undefined
+): string | null {
+  if (entry) {
+    return worksOn(entry.command, session)
+      ? null
+      : `/${parsed.name} does not work on this protocol.`;
+  }
+  const elsewhere = registry.commands().get(parsed.name);
+  const home = elsewhere ? registry.get(elsewhere.pluginId)?.manifest.name : undefined;
+  return elsewhere && home
+    ? elsewhereMessage(parsed.name, elsewhere.command.showIn, scope, home)
+    : `Unknown slash command /${parsed.name}. Type / to see what's available.`;
+}
+
+async function settle(
+  result: CommandResult,
+  from: 'typed' | 'action',
+  respond: (content: string) => Promise<void>,
+  setDraft: (text: string) => void
+) {
+  if (result.type === 'error') await respond(result.message);
+  if (result.type === 'notice') toast[result.tone ?? 'info'](result.message);
+  // A chip runs beside the draft rather than from it, so only a typed command clears it.
+  if (result.type === 'setComposer') setDraft(result.text);
+  else if (from === 'typed') setDraft('');
 }
 
 interface CommandDispatchOptions {
@@ -83,18 +117,9 @@ export function useCommandDispatch({
 
       const parsed = commands.length > 0 ? parseCommand(text) : null;
       const entry = parsed ? registry.commandsFor(chatId, scope).get(parsed.name) : undefined;
-      if (parsed && entry && !worksOn(entry.command, session)) {
-        setError(`/${parsed.name} does not work on this protocol.`);
-        return;
-      }
-      if (parsed && !entry) {
-        const elsewhere = registry.commands().get(parsed.name);
-        const home = elsewhere ? registry.get(elsewhere.pluginId)?.manifest.name : undefined;
-        setError(
-          elsewhere && home
-            ? elsewhereMessage(parsed.name, elsewhere.command.showIn, scope, home)
-            : `Unknown slash command /${parsed.name}. Type / to see what's available.`
-        );
+      const refusal = parsed ? refusalFor(parsed, entry, registry, scope, session) : null;
+      if (refusal) {
+        setError(refusal);
         return;
       }
 
@@ -109,11 +134,7 @@ export function useCommandDispatch({
             context: entry.context,
             respond,
           });
-          if (result.type === 'error') await respond(result.message);
-          if (result.type === 'notice') toast[result.tone ?? 'info'](result.message);
-          // A chip runs beside the draft rather than from it, so only a typed command clears it.
-          if (result.type === 'setComposer') setDraft(result.text);
-          else if (from === 'typed') setDraft('');
+          await settle(result, from, respond, setDraft);
         } else {
           setDraft(await onSendText(text));
         }
