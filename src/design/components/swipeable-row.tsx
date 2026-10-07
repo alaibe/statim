@@ -104,8 +104,8 @@ function ActionButton({
 
   const content = colors['brand-on'];
 
-  const outer = side === 'right' ? last : first;
-  const inner = side === 'right' ? first : last;
+  const leftRadius = first ? ACTION_RADIUS : 0;
+  const rightRadius = last ? ACTION_RADIUS : 0;
 
   return (
     <Pressable
@@ -117,14 +117,10 @@ function ActionButton({
         width: ACTION_WIDTH,
         backgroundColor: fill,
         borderCurve: 'continuous',
-        borderTopLeftRadius:
-          side === 'right' ? (inner ? ACTION_RADIUS : 0) : outer ? ACTION_RADIUS : 0,
-        borderBottomLeftRadius:
-          side === 'right' ? (inner ? ACTION_RADIUS : 0) : outer ? ACTION_RADIUS : 0,
-        borderTopRightRadius:
-          side === 'right' ? (outer ? ACTION_RADIUS : 0) : inner ? ACTION_RADIUS : 0,
-        borderBottomRightRadius:
-          side === 'right' ? (outer ? ACTION_RADIUS : 0) : inner ? ACTION_RADIUS : 0,
+        borderTopLeftRadius: leftRadius,
+        borderBottomLeftRadius: leftRadius,
+        borderTopRightRadius: rightRadius,
+        borderBottomRightRadius: rightRadius,
         marginLeft: side === 'right' && !first ? 2 : 0,
         marginRight: side === 'left' && !last ? 2 : 0,
       }}
