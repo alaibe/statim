@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { KeyboardAvoidingView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -21,7 +21,11 @@ import {
 } from '@/core/messaging/chat-store';
 import { readByPeer } from '@/core/messaging/unread';
 import { protocolOf, type ProtocolId } from '@/core/messaging/namespace';
-import { chatPermissions, NO_PERMISSIONS } from '@/core/messaging/permissions';
+import {
+  type ChatPermissions,
+  chatPermissions,
+  NO_PERMISSIONS,
+} from '@/core/messaging/permissions';
 import type { ChatMessage, Chat, ChatId, MessageContent, MessageId } from '@/core/messaging/types';
 import { useAppearanceStore } from '@/core/app/appearance';
 import { errorMessage } from '@/core/errors';
@@ -217,38 +221,26 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
         )}
 
         <View style={{ paddingBottom: insets.bottom }}>
-          {!chat ? null : chat.blocked ? (
-            <BlockedBar chatId={id} />
-          ) : chat.consent === 'request' ? (
-            <RequestBar
-              chatId={id}
-              name={chatTitle(chat, selfId, nameFor)}
-              canBlock={permissions.block}
-            />
-          ) : chat.kind === 'channel' && !permissions.send ? (
-            <ChannelMuteBar id={id} />
-          ) : !permissions.send ? (
-            <View className="mx-gutter mb-2 min-h-tap items-center justify-center rounded-pill border border-line bg-surface-raised px-4">
-              <Text variant="caption">You cannot send messages in this chat.</Text>
-            </View>
-          ) : (
-            <Composer
-              chatId={id}
-              kind={chat.kind}
-              thread={thread}
-              onSendText={(text) => composer.submit(text)}
-              onSendContent={onSendContent}
-              editing={composer.mode.kind === 'edit'}
-              banner={composer.banner(previewOf)}
-              onCancelBanner={() => composer.cancel()}
-              pendingCommand={pendingCommand}
-              onPendingCommandHandled={clearPendingCommand}
-              onRunningChange={(command) => {
-                setRunning(command);
-                if (command) followNewest();
-              }}
-            />
-          )}
+          {chat ? (
+            <ChatBar chat={chat} permissions={permissions} selfId={selfId} nameFor={nameFor}>
+              <Composer
+                chatId={id}
+                kind={chat.kind}
+                thread={thread}
+                onSendText={(text) => composer.submit(text)}
+                onSendContent={onSendContent}
+                editing={composer.mode.kind === 'edit'}
+                banner={composer.banner(previewOf)}
+                onCancelBanner={() => composer.cancel()}
+                pendingCommand={pendingCommand}
+                onPendingCommandHandled={clearPendingCommand}
+                onRunningChange={(command) => {
+                  setRunning(command);
+                  if (command) followNewest();
+                }}
+              />
+            </ChatBar>
+          ) : null}
         </View>
       </KeyboardAvoidingView>
 
@@ -323,6 +315,38 @@ function LoadEarlierButton({
             : 'Load earlier messages'}
       </Text>
     </Pressable>
+  );
+}
+
+function ChatBar({
+  chat,
+  permissions,
+  selfId,
+  nameFor,
+  children,
+}: {
+  chat: Chat;
+  permissions: ChatPermissions;
+  selfId: string;
+  nameFor: (id: string) => string;
+  children: ReactNode;
+}) {
+  if (chat.blocked) return <BlockedBar chatId={chat.id} />;
+  if (chat.consent === 'request') {
+    return (
+      <RequestBar
+        chatId={chat.id}
+        name={chatTitle(chat, selfId, nameFor)}
+        canBlock={permissions.block}
+      />
+    );
+  }
+  if (permissions.send) return children;
+  if (chat.kind === 'channel') return <ChannelMuteBar id={chat.id} />;
+  return (
+    <View className="mx-gutter mb-2 min-h-tap items-center justify-center rounded-pill border border-line bg-surface-raised px-4">
+      <Text variant="caption">You cannot send messages in this chat.</Text>
+    </View>
   );
 }
 
