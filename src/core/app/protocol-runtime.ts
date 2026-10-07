@@ -77,35 +77,8 @@ export class ProtocolRuntime {
         this.subscriptions.set(protocolId, subscriptions);
         this.setProtocol(protocolId, { ...NO_CONNECTION, status: 'connecting' });
         try {
-          if (descriptor.usesPluginContentTypes) await input.plugins;
-          if (!active()) return;
-          let session: ChatSession;
-          if (input.createSession) {
-            session = await input.createSession({
-              protocolId,
-              account: input.keyring.account,
-              derive: chatKeys(input.keyring),
-              contentTypes: input.contentTypes(),
-            });
-          } else {
-            const stored = (await configs)?.[protocolId] ?? {};
-            if (!active()) return;
-            const config = effectiveConfig(descriptor, stored);
-            if (!isConfigured(descriptor, config)) {
-              this.cache?.forget(protocolId);
-              this.setProtocol(protocolId, NO_CONNECTION);
-              return;
-            }
-            session = await descriptor.connect!({
-              accountId: input.accountId,
-              account: input.keyring.account,
-              derive: chatKeys(input.keyring),
-              contentTypes: input.contentTypes(),
-              config,
-              storage,
-            });
-          }
-
+          const session = await this.open(descriptor, input, storage, configs, active);
+          if (!session) return;
           if (!active()) {
             await session.disconnect().catch(() => {});
             return;
@@ -117,72 +90,15 @@ export class ProtocolRuntime {
           this.setProtocol(protocolId, { ...NO_CONNECTION, status: 'ready' });
           const live = () => active() && this.sessions.get(protocolId) === session;
 
-          if (session.subscribeHistory) {
-            subscriptions.push(
-              session.subscribeHistory((history) => {
-                if (!live()) return;
-                this.setProtocol(protocolId, {
-                  ...connectionFor(useChatStore.getState().protocols, protocolId),
-                  history,
-                });
-              })
-            );
-          }
-          if (session.subscribeLogin) {
-            subscriptions.push(
-              session.subscribeLogin((login) => {
-                if (!live()) return;
-                if (login) this.cache?.forget(protocolId);
-                this.setProtocol(protocolId, {
-                  ...connectionFor(useChatStore.getState().protocols, protocolId),
-                  login,
-                });
-              })
-            );
-          }
-          const streamed: Chat[] = [];
-          const streams = await Promise.all([
-            session.streamMessages((message) => {
-              if (live())
-                useChatStore.getState().ingestMessage(namespaceMessage(protocolId, message));
-            }),
-            session.streamDeletedMessages?.((id, messageIds) => {
-              if (live())
-                useChatStore.getState().removeMessages(namespacedId(protocolId, id), messageIds);
-            }),
-            session.streamChats((chat) => {
-              if (streamed.length === 0) {
-                queueMicrotask(() => {
-                  const batch = streamed.splice(0);
-                  if (live()) useChatStore.getState().ingestChats(batch);
-                });
-              }
-              streamed.push(namespaceChat(protocolId, chat));
-            }),
-          ]);
+          subscriptions.push(...this.watch(protocolId, session, live));
+          const streams = await this.stream(protocolId, session, live);
           if (!live()) {
             for (const stop of streams) stop?.();
             await session.disconnect().catch(() => {});
             return;
           }
           for (const stop of streams) if (stop) subscriptions.push(stop);
-          const first = await session.listChats();
-          if (!live()) return;
-          const namespaced = (list: ProtocolChat[]) =>
-            list.map((chat) => namespaceChat(protocolId, chat));
-          const chats = namespaced(first);
-          useChatStore.getState().ingestChats(chats);
-          if (session.whenListed && this.cache) {
-            void session
-              .whenListed(first)
-              .then((everything) => {
-                if (!live()) return;
-                const listed = everything === first ? chats : namespaced(everything);
-                if (listed !== chats) useChatStore.getState().ingestChats(listed);
-                this.cache?.listed(protocolId, listed);
-              })
-              .catch(() => {});
-          }
+          if (!(await this.list(protocolId, session, live))) return;
           await useChatStore.getState().syncProtocol(protocolId);
         } catch (error) {
           if (active()) {
@@ -197,6 +113,119 @@ export class ProtocolRuntime {
     );
 
     if (active()) this.rollUpStatus();
+  }
+
+  /** A session for `descriptor`, or null when the account changed or the protocol is not set up. */
+  private async open(
+    descriptor: ProtocolDescriptor,
+    input: ProtocolAccount,
+    storage: AccountStorage,
+    configs: ReturnType<typeof loadProtocolConfigs> | undefined,
+    active: () => boolean
+  ): Promise<ChatSession | null> {
+    const protocolId = descriptor.id;
+    if (descriptor.usesPluginContentTypes) await input.plugins;
+    if (!active()) return null;
+    if (input.createSession) {
+      return input.createSession({
+        protocolId,
+        account: input.keyring.account,
+        derive: chatKeys(input.keyring),
+        contentTypes: input.contentTypes(),
+      });
+    }
+    const stored = (await configs)?.[protocolId] ?? {};
+    if (!active()) return null;
+    const config = effectiveConfig(descriptor, stored);
+    if (!isConfigured(descriptor, config)) {
+      this.cache?.forget(protocolId);
+      this.setProtocol(protocolId, NO_CONNECTION);
+      return null;
+    }
+    return descriptor.connect!({
+      accountId: input.accountId,
+      account: input.keyring.account,
+      derive: chatKeys(input.keyring),
+      contentTypes: input.contentTypes(),
+      config,
+      storage,
+    });
+  }
+
+  private watch(protocolId: ProtocolId, session: ChatSession, live: () => boolean): Unsubscribe[] {
+    const subscriptions: Unsubscribe[] = [];
+    if (session.subscribeHistory) {
+      subscriptions.push(
+        session.subscribeHistory((history) => {
+          if (!live()) return;
+          this.setProtocol(protocolId, {
+            ...connectionFor(useChatStore.getState().protocols, protocolId),
+            history,
+          });
+        })
+      );
+    }
+    if (session.subscribeLogin) {
+      subscriptions.push(
+        session.subscribeLogin((login) => {
+          if (!live()) return;
+          if (login) this.cache?.forget(protocolId);
+          this.setProtocol(protocolId, {
+            ...connectionFor(useChatStore.getState().protocols, protocolId),
+            login,
+          });
+        })
+      );
+    }
+    return subscriptions;
+  }
+
+  private stream(protocolId: ProtocolId, session: ChatSession, live: () => boolean) {
+    const streamed: Chat[] = [];
+    return Promise.all([
+      session.streamMessages((message) => {
+        if (live()) useChatStore.getState().ingestMessage(namespaceMessage(protocolId, message));
+      }),
+      session.streamDeletedMessages?.((id, messageIds) => {
+        if (live())
+          useChatStore.getState().removeMessages(namespacedId(protocolId, id), messageIds);
+      }),
+      session.streamChats((chat) => {
+        if (streamed.length === 0) {
+          queueMicrotask(() => {
+            const batch = streamed.splice(0);
+            if (live()) useChatStore.getState().ingestChats(batch);
+          });
+        }
+        streamed.push(namespaceChat(protocolId, chat));
+      }),
+    ]);
+  }
+
+  /** Lists the session's chats; false when the session went stale meanwhile. */
+  private async list(
+    protocolId: ProtocolId,
+    session: ChatSession,
+    live: () => boolean
+  ): Promise<boolean> {
+    const first = await session.listChats();
+    if (!live()) return false;
+    const namespaced = (list: ProtocolChat[]) =>
+      list.map((chat) => namespaceChat(protocolId, chat));
+    const chats = namespaced(first);
+    useChatStore.getState().ingestChats(chats);
+    if (session.whenListed && this.cache) {
+      void session
+        .whenListed(first)
+        .then((everything) => {
+          if (!live()) return;
+          const listed = everything === first ? chats : namespaced(everything);
+          if (listed !== chats) useChatStore.getState().ingestChats(listed);
+          this.cache?.listed(protocolId, listed);
+        })
+        .catch(() => {});
+    }
+    return true;
   }
 
   /** Drops the protocol projection of `only` (every protocol by default) but keeps local chats. */
