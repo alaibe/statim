@@ -1,6 +1,7 @@
 import {
   COMMANDS,
   GLOBAL_FLAGS,
+  type CliArg,
   type CliCommandSpec,
   type CliFlag,
   type CommandPath,
@@ -35,17 +36,32 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
       'usage'
     );
   }
-  const known = new Map([...GLOBAL_FLAGS, ...(spec.flags ?? [])].map((f) => [f.name, f]));
+  const { positionals, flags } = splitTokens(spec, argv.slice(spec.path.split(' ').length));
+  const declared = spec.args ?? [];
+  const { args, rest, extra } = bindArgs(declared, positionals);
+  const help = flags.help === true;
+  if (!help) {
+    const missing = declared.find((a) => !a.optional && args[a.name] === undefined);
+    if (missing) throw new CliError(`Missing <${missing.name}>. ${usage(spec)}`, 'usage');
+    if (extra !== undefined) throw new CliError(`Unexpected "${extra}". ${usage(spec)}`, 'usage');
+  }
 
+  return { spec, args, rest, flags, help };
+}
+
+function splitTokens(spec: Spec, tail: readonly string[]) {
+  const known = new Map([...GLOBAL_FLAGS, ...(spec.flags ?? [])].map((f) => [f.name, f]));
   const positionals: string[] = [];
   const flags: Record<string, string | true> = {};
-  const tail = argv.slice(spec.path.split(' ').length);
   let literal = false;
   for (let i = 0; i < tail.length; i++) {
     const token = tail[i];
-    if (literal || !token.startsWith('--') || token === '--') {
-      if (token === '--' && !literal) literal = true;
-      else positionals.push(token);
+    if (token === '--' && !literal) {
+      literal = true;
+      continue;
+    }
+    if (literal || !token.startsWith('--')) {
+      positionals.push(token);
       continue;
     }
     const [name, inline] = splitFlag(token.slice(2));
@@ -63,11 +79,12 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
     if (value === undefined) throw new CliError(`--${name} needs a ${flag.value}.`, 'usage');
     flags[name] = value;
   }
+  return { positionals, flags };
+}
 
-  const help = flags.help === true;
+function bindArgs(declared: readonly CliArg[], positionals: readonly string[]) {
   const args: Record<string, string | undefined> = {};
   let rest: string[] = [];
-  const declared = spec.args ?? [];
   const required = declared.filter((a) => !a.optional).length;
   // An optional argument before a required one is only filled when there are enough words for both.
   let spare = Math.max(0, positionals.length - required);
@@ -85,15 +102,7 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
     }
     args[arg.name] = positionals[at++];
   }
-  if (!help) {
-    const missing = declared.find((a) => !a.optional && args[a.name] === undefined);
-    if (missing) throw new CliError(`Missing <${missing.name}>. ${usage(spec)}`, 'usage');
-    if (at < positionals.length) {
-      throw new CliError(`Unexpected "${positionals[at]}". ${usage(spec)}`, 'usage');
-    }
-  }
-
-  return { spec, args, rest, flags, help };
+  return { args, rest, extra: positionals.at(at) };
 }
 
 function splitFlag(body: string): [string, string | undefined] {
