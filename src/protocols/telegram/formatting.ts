@@ -30,71 +30,79 @@ const INLINE: Record<string, string> = {
 export function formattedToMarkdown(formatted: { text: string; entities?: TdObject[] }): string {
   const { text } = formatted;
   const entities = (formatted.entities ?? []) as unknown as Entity[];
-  const marks: Mark[] = [];
-  const pair = (start: number, end: number, open: string, close: string, extra?: Partial<Mark>) => {
-    marks.push({ at: start, open: true, rank: -end, text: open, ...extra });
-    marks.push({ at: end, open: false, rank: -start, text: close, ...extra });
-  };
+  const marks = entities
+    .flatMap((entity) => entityMarks(text, entity))
+    .sort((a, b) => a.at - b.at || Number(a.open) - Number(b.open) || a.rank - b.rank);
+  return render(text, marks);
+}
 
-  for (const { offset, length, type } of entities) {
-    let start = offset;
-    let end = offset + length;
-    const kind = type['@type'] as string;
+function entityMarks(text: string, { offset, length, type }: Entity): Mark[] {
+  const kind = type['@type'] as string;
+  const end = offset + length;
 
-    if (kind === 'textEntityTypePre' || kind === 'textEntityTypePreCode') {
-      const before = start > 0 && text[start - 1] !== '\n' ? '\n' : '';
-      const after = end < text.length && text[end] !== '\n' ? '\n' : '';
-      const language = (type.language as string | undefined) ?? '';
-      pair(start, end, `${before}\`\`\`${language}\n`, `\n\`\`\`${after}`, { verbatim: true });
-      continue;
-    }
-    if (kind === 'textEntityTypeBlockQuote' || kind === 'textEntityTypeExpandableBlockQuote') {
-      const before = start > 0 && text[start - 1] !== '\n' ? '\n' : '';
-      const after = end >= text.length ? '' : text[end] === '\n' ? '\n' : '\n\n';
-      pair(start, end, before, after, { quote: true });
-      continue;
-    }
-
-    while (start < end && /\s/.test(text[start])) start++;
-    while (end > start && /\s/.test(text[end - 1])) end--;
-    if (start === end) continue;
-
-    if (kind === 'textEntityTypeCode') {
-      const fence = text.slice(start, end).includes('`') ? '`` ' : '`';
-      pair(start, end, fence, [...fence].reverse().join(''), { verbatim: true });
-    } else if (kind === 'textEntityTypeTextUrl') {
-      pair(start, end, '[', `](${encodeUrl(type.url as string)})`);
-    } else if (kind === 'textEntityTypeMentionName') {
-      pair(start, end, '[', `](${mentionHref(String(type.user_id))})`);
-    } else if (INLINE[kind]) {
-      pair(start, end, INLINE[kind], INLINE[kind]);
-    }
+  if (kind === 'textEntityTypePre' || kind === 'textEntityTypePreCode') {
+    const language = (type.language as string | undefined) ?? '';
+    const before = newlineBefore(text, offset);
+    const after = end < text.length && text[end] !== '\n' ? '\n' : '';
+    return pair(offset, end, `${before}\`\`\`${language}\n`, `\n\`\`\`${after}`, {
+      verbatim: true,
+    });
+  }
+  if (kind === 'textEntityTypeBlockQuote' || kind === 'textEntityTypeExpandableBlockQuote') {
+    const after = end >= text.length ? '' : text[end] === '\n' ? '\n' : '\n\n';
+    return pair(offset, end, newlineBefore(text, offset), after, { quote: true });
   }
 
-  marks.sort((a, b) => a.at - b.at || Number(a.open) - Number(b.open) || a.rank - b.rank);
+  let start = offset;
+  let stop = end;
+  while (start < stop && /\s/.test(text[start])) start++;
+  while (stop > start && /\s/.test(text[stop - 1])) stop--;
+  if (start === stop) return [];
 
+  if (kind === 'textEntityTypeCode') {
+    const fence = text.slice(start, stop).includes('`') ? '`` ' : '`';
+    return pair(start, stop, fence, [...fence].reverse().join(''), { verbatim: true });
+  }
+  if (kind === 'textEntityTypeTextUrl') {
+    return pair(start, stop, '[', `](${encodeUrl(type.url as string)})`);
+  }
+  if (kind === 'textEntityTypeMentionName') {
+    return pair(start, stop, '[', `](${mentionHref(String(type.user_id))})`);
+  }
+  return INLINE[kind] ? pair(start, stop, INLINE[kind], INLINE[kind]) : [];
+}
+
+function pair(start: number, end: number, open: string, close: string, extra?: Partial<Mark>) {
+  return [
+    { at: start, open: true, rank: -end, text: open, ...extra },
+    { at: end, open: false, rank: -start, text: close, ...extra },
+  ];
+}
+
+function newlineBefore(text: string, at: number): string {
+  return at > 0 && text[at - 1] !== '\n' ? '\n' : '';
+}
+
+function render(text: string, marks: readonly Mark[]): string {
   let out = '';
   let verbatim = 0;
   let quote = 0;
-  let next = 0;
   let escapeAt = -1;
   const atLineStart = () => out === '' || out.endsWith('\n');
 
-  for (let i = 0; i <= text.length; i++) {
-    for (; next < marks.length && marks[next].at === i; next++) {
-      const mark = marks[next];
-      if (mark.quote) {
-        out += mark.text;
-        quote += mark.open ? 1 : -1;
-        if (mark.open) out += '> ';
-        continue;
-      }
-      out += mark.text;
-      if (mark.verbatim) verbatim += mark.open ? 1 : -1;
-      if (quote > 0 && mark.open && mark.verbatim && out.endsWith('\n')) out += '> ';
+  const applyMark = (mark: Mark) => {
+    out += mark.text;
+    const depth = mark.open ? 1 : -1;
+    if (mark.quote) {
+      quote += depth;
+      if (mark.open) out += '> ';
+      return;
     }
-    if (i === text.length) break;
+    if (mark.verbatim) verbatim += depth;
+    if (quote > 0 && mark.open && mark.verbatim && out.endsWith('\n')) out += '> ';
+  };
 
+  const writeChar = (i: number) => {
     const char = text[i];
     if (verbatim > 0) {
       out += char;
@@ -106,6 +114,12 @@ export function formattedToMarkdown(formatted: { text: string; entities?: TdObje
       out += escapeChar(text, i, atLineStart()) || (i === escapeAt ? `\\${char}` : char);
     }
     if (char === '\n' && quote > 0) out += '> ';
+  };
+
+  let next = 0;
+  for (let i = 0; i <= text.length; i++) {
+    for (; next < marks.length && marks[next].at === i; next++) applyMark(marks[next]);
+    if (i < text.length) writeChar(i);
   }
   return out;
 }
