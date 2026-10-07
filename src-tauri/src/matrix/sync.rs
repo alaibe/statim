@@ -9,14 +9,10 @@ impl Session {
             );
         }
         let session = self.clone();
-        self.tasks.lock().unwrap().push(tokio::spawn(async move {
-            let mut changes = session.client.subscribe_to_session_changes();
-            while let Ok(change) = changes.recv().await {
-                if let SessionChange::UnknownToken { .. } = change {
-                    session.emit(MxUpdate::SignedOut);
-                }
-            }
-        }));
+        self.tasks
+            .lock()
+            .unwrap()
+            .push(tokio::spawn(async move { session.watch_sign_out().await }));
 
         let sync = Arc::new(
             SyncService::builder(self.client.clone())
@@ -28,66 +24,88 @@ impl Session {
         let session = self.clone();
         let service = sync.room_list_service();
         self.tasks.lock().unwrap().push(tokio::spawn(async move {
-            let (diffs, controller) = room_list.entries_with_dynamic_adapters(ROOM_PAGE);
-            controller.set_filter(Box::new(new_filter_all(vec![
-                Box::new(new_filter_non_left()),
-                Box::new(new_filter_not(Box::new(new_filter_space()))),
-            ])));
-            // Any change the SDK considers notable shows up here as a `Set`, so nothing else
-            // needs watching.
-            let mut entries: Vector<Room> = Vector::new();
-            let mut subscribed: HashSet<OwnedRoomId> = HashSet::new();
-            futures_util::pin_mut!(diffs);
-            while let Some(batch) = diffs.next().await {
-                let mut touched: HashMap<OwnedRoomId, Room> = HashMap::new();
-                let mut grew = false;
-                for diff in batch {
-                    let diff = diff.map(|item| item.into_inner());
-                    grew |= matches!(diff, VectorDiff::Append { .. } | VectorDiff::Reset { .. });
-                    let changed = changed_by(&diff);
-                    // A `Set` or `Reset` brings fresh handles for the same rooms; only rooms that
-                    // left the list are gone.
-                    for room in removed_by(&entries, &diff) {
-                        if changed.iter().any(|kept| kept.room_id() == room.room_id()) {
-                            continue;
-                        }
-                        touched.remove(room.room_id());
-                        session.emit(MxUpdate::RoomGone {
-                            room_id: room.room_id().to_string(),
-                        });
-                    }
-                    for room in changed {
-                        touched.insert(room.room_id().to_owned(), room);
-                    }
-                    diff.apply(&mut entries);
-                }
-                let fresh: Vec<OwnedRoomId> = touched
-                    .keys()
-                    .filter(|id| subscribed.insert((*id).clone()))
-                    .cloned()
-                    .collect();
-                stream::iter(touched.into_values())
-                    .for_each_concurrent(ANNOUNCE_CONCURRENCY, |room| {
-                        let session = session.clone();
-                        async move { session.announce(&room).await }
-                    })
-                    .await;
-                // The SDK computes a room's latest event only once it is subscribed to.
-                if !fresh.is_empty() {
-                    service
-                        .set_room_subscriptions(
-                            &fresh.iter().map(|id| id.as_ref()).collect::<Vec<_>>(),
-                        )
-                        .await;
-                }
-                if grew && !entries.is_empty() && entries.len() % ROOM_PAGE == 0 {
-                    controller.add_one_page();
-                }
-            }
+            session.follow_rooms(room_list, service).await
         }));
         sync.start().await;
         *self.sync.lock().unwrap() = Some(sync);
         Ok(())
+    }
+
+    async fn watch_sign_out(&self) {
+        let mut changes = self.client.subscribe_to_session_changes();
+        while let Ok(change) = changes.recv().await {
+            if let SessionChange::UnknownToken { .. } = change {
+                self.emit(MxUpdate::SignedOut);
+            }
+        }
+    }
+
+    async fn follow_rooms(self: Arc<Self>, room_list: RoomList, service: Arc<RoomListService>) {
+        let (diffs, controller) = room_list.entries_with_dynamic_adapters(ROOM_PAGE);
+        controller.set_filter(Box::new(new_filter_all(vec![
+            Box::new(new_filter_non_left()),
+            Box::new(new_filter_not(Box::new(new_filter_space()))),
+        ])));
+        // Any change the SDK considers notable shows up here as a `Set`, so nothing else
+        // needs watching.
+        let mut entries: Vector<Room> = Vector::new();
+        let mut subscribed: HashSet<OwnedRoomId> = HashSet::new();
+        futures_util::pin_mut!(diffs);
+        while let Some(batch) = diffs.next().await {
+            let (touched, grew) = self.apply_room_diffs(&mut entries, batch);
+            let fresh: Vec<OwnedRoomId> = touched
+                .keys()
+                .filter(|id| subscribed.insert((*id).clone()))
+                .cloned()
+                .collect();
+            stream::iter(touched.into_values())
+                .for_each_concurrent(ANNOUNCE_CONCURRENCY, |room| {
+                    let session = self.clone();
+                    async move { session.announce(&room).await }
+                })
+                .await;
+            // The SDK computes a room's latest event only once it is subscribed to.
+            if !fresh.is_empty() {
+                service
+                    .set_room_subscriptions(&fresh.iter().map(|id| id.as_ref()).collect::<Vec<_>>())
+                    .await;
+            }
+            if grew && !entries.is_empty() && entries.len() % ROOM_PAGE == 0 {
+                controller.add_one_page();
+            }
+        }
+    }
+
+    /// Applies one batch to `entries`, announcing the rooms that left; returns the rooms it
+    /// touched and whether the list grew.
+    fn apply_room_diffs(
+        &self,
+        entries: &mut Vector<Room>,
+        batch: Vec<VectorDiff<RoomListItem>>,
+    ) -> (HashMap<OwnedRoomId, Room>, bool) {
+        let mut touched: HashMap<OwnedRoomId, Room> = HashMap::new();
+        let mut grew = false;
+        for diff in batch {
+            let diff = diff.map(|item| item.into_inner());
+            grew |= matches!(diff, VectorDiff::Append { .. } | VectorDiff::Reset { .. });
+            let changed = changed_by(&diff);
+            // A `Set` or `Reset` brings fresh handles for the same rooms; only rooms that
+            // left the list are gone.
+            for room in removed_by(entries, &diff) {
+                if changed.iter().any(|kept| kept.room_id() == room.room_id()) {
+                    continue;
+                }
+                touched.remove(room.room_id());
+                self.emit(MxUpdate::RoomGone {
+                    room_id: room.room_id().to_string(),
+                });
+            }
+            for room in changed {
+                touched.insert(room.room_id().to_owned(), room);
+            }
+            diff.apply(entries);
+        }
+        (touched, grew)
     }
 
     pub(super) async fn stop_sync(&self) {

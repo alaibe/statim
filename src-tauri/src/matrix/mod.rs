@@ -41,6 +41,7 @@ use matrix_sdk_ui::eyeball_im::{Vector, VectorDiff};
 use matrix_sdk_ui::room_list_service::filters::{
     new_filter_all, new_filter_non_left, new_filter_not, new_filter_space,
 };
+use matrix_sdk_ui::room_list_service::{RoomList, RoomListItem, RoomListService};
 use matrix_sdk_ui::sync_service::SyncService;
 use matrix_sdk_ui::timeline::{
     AnyOtherStateEventContentChange, EventSendState, LatestEventValue, MembershipChange,
