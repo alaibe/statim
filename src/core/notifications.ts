@@ -43,6 +43,8 @@ export async function askForNotifications(): Promise<void> {
 }
 
 export interface MessageNotification {
+  /** The same for every notification of one message, here and through iCloud, so it shows once. */
+  id: string;
   chatId: ChatId;
   title: string;
   body: string;
@@ -50,7 +52,17 @@ export interface MessageNotification {
 
 export async function notifyMessage(notification: MessageNotification): Promise<void> {
   try {
+    const shown = await Notifications.getPresentedNotificationsAsync();
+    if (
+      shown.some(
+        ({ request }) =>
+          request.identifier === notification.id || request.content.data?.id === notification.id
+      )
+    ) {
+      return;
+    }
     await Notifications.scheduleNotificationAsync({
+      identifier: notification.id,
       content: {
         title: notification.title,
         body: notification.body,

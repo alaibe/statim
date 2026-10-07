@@ -41,6 +41,7 @@ const opened = (index: number) =>
   call(index).notes.map((note) => ({ tag: note.tag, ...openNote(key, note.sealed) }));
 const flush = () => new Promise(setImmediate);
 const arrival = (chat: string, title: string, body: string) => ({
+  id: `${chat}@1`,
   chatId: asChatId(chat),
   title,
   body,
@@ -109,7 +110,9 @@ describe('notifying the iPhone through iCloud', () => {
     relayToPhone('acc1', arrival('xmtp-a', 'Alice', 'three'));
     finish('t2');
     await flush();
-    expect(opened(1).map((note) => note.body)).toEqual(['one']);
+    expect(opened(1)).toEqual([
+      { id: 'xmtp-a@1', chat: 'xmtp-a', tag, title: 'Alice', body: 'one' },
+    ]);
     expect(opened(2).map((note) => note.body)).toEqual(['two', 'three']);
     expect(call(2).token).toBe('t2');
   });

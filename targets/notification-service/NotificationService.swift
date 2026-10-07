@@ -18,20 +18,30 @@ class NotificationService: UNNotificationServiceExtension {
     else { return contentHandler(content) }
     deliver = { contentHandler(content) }
     Task { @MainActor in
-      if let preview = await Inbox.shared.take(zone, in: container) {
+      let preview = await Inbox.shared.take(zone, in: container)
+      if let preview {
         content.title = preview.title
         content.body = preview.body
-        if let chat = preview.chat {
-          content.threadIdentifier = chat
-          content.userInfo["body"] = ["chatId": chat]
-        }
-      } else {
-        // An earlier push already showed what this one was for.
+        if let chat = preview.chat { content.threadIdentifier = chat }
+        content.userInfo["body"] = ["chatId": preview.chat, "id": preview.id].compactMapValues { $0 }
+        if let id = preview.id { await Self.dismiss(id) }
+      }
+      if preview == nil || preview?.repeated == true {
         content.sound = nil
         content.interruptionLevel = .passive
       }
       self.finish()
     }
+  }
+
+  /// The app notifies for messages it sees itself, under the same id, and an earlier push may have shown this one.
+  private static func dismiss(_ id: String) async {
+    let center = UNUserNotificationCenter.current()
+    let same = await center.deliveredNotifications().filter {
+      $0.request.identifier == id
+        || ($0.request.content.userInfo["body"] as? [String: Any])?["id"] as? String == id
+    }
+    center.removeDeliveredNotifications(withIdentifiers: same.map(\.request.identifier))
   }
 
   override func serviceExtensionTimeWillExpire() {

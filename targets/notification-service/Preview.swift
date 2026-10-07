@@ -4,9 +4,12 @@ import Foundation
 import Security
 
 struct Preview {
+  var id: String?
   var title: String
   var body: String
-  var chat: String? = nil
+  var chat: String?
+  /// Shown again for a push whose note an earlier push already read.
+  var repeated = false
 
   /// A note the desktop saved in the user's iCloud, sealed with the key of the account it is for.
   static func of(_ note: CKRecord) -> Preview? {
@@ -19,7 +22,7 @@ struct Preview {
       let opened = try? JSONSerialization.jsonObject(with: plaintext) as? [String: String],
       let title = opened["title"], let body = opened["body"]
     else { return nil }
-    return Preview(title: title, body: body, chat: opened["chat"])
+    return Preview(id: opened["id"], title: title, body: body, chat: opened["chat"])
   }
 }
 
@@ -30,14 +33,25 @@ actor Inbox {
   static let shared = Inbox()
 
   private static let abandoned: TimeInterval = 24 * 60 * 60
+  private static let recent: TimeInterval = 60
   private var last: Task<Preview?, Never>?
+  private var shown: (preview: Preview, at: Date)?
 
-  /// The newest note waiting, after deleting every note read. One push at a time, so two never show the same note.
+  /// The newest note waiting, after deleting every note read. One push at a time, so two never show the same note;
+  /// a push that finds nothing new repeats the last one, which then replaces its earlier notification.
   func take(_ zone: CKRecordZone.ID, in container: String) async -> Preview? {
     let previous = last
     let next = Task { () -> Preview? in
       _ = await previous?.value
-      return await Self.read(zone, CKContainer(identifier: container).privateCloudDatabase)
+      if let preview = await Self.read(zone, CKContainer(identifier: container).privateCloudDatabase) {
+        self.shown = (preview, Date())
+        return preview
+      }
+      guard var again = self.shown?.preview, let at = self.shown?.at,
+        -at.timeIntervalSinceNow < Self.recent
+      else { return nil }
+      again.repeated = true
+      return again
     }
     last = next
     return await next.value

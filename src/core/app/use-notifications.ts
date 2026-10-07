@@ -46,6 +46,7 @@ function watchArrivals(): void {
     for (const { chat, message } of arrivals(previous.chats, state.chats, since)) {
       if (!worthNotifying(chat, message, state.chatPrefs, open)) continue;
       const notification = {
+        id: `${chat.id}@${message.sentAt}`,
         chatId: chat.id,
         title: chat.title,
         body: contentPreview(message.content),

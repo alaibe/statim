@@ -18,7 +18,7 @@ describe('notes for the iPhone', () => {
   });
 
   it('opens what it sealed, and nothing with another key', () => {
-    const note = { chat: 'xmtp:abc', title: 'Alice', body: 'Hi 👋' };
+    const note = { id: 'xmtp:abc@1', chat: 'xmtp:abc', title: 'Alice', body: 'Hi 👋' };
     const sealed = sealNote(noteKey(phrase(PHRASE)).key, note);
     expect(openNote(noteKey(phrase(PHRASE)).key, sealed)).toEqual(note);
     expect(openNote(noteKey(phrase(PHRASE.replace('about', 'above'))).key, sealed)).toBeNull();

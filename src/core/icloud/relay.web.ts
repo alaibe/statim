@@ -53,7 +53,12 @@ export async function turnOffRelay(accountId: string): Promise<void> {
 /** The iPhone stays quiet while this window has focus, since you are at the computer. */
 export function relayToPhone(accountId: string, notification: MessageNotification): void {
   if (!icloudContainer() || appFocused()) return;
-  const note = { chat: notification.chatId, title: notification.title, body: notification.body };
+  const note = {
+    id: notification.id,
+    chat: notification.chatId,
+    title: notification.title,
+    body: notification.body,
+  };
   if (pending.push({ accountId, note }) > 1) return;
   serial(() => deliver(pending.splice(0))).catch((error: unknown) =>
     console.warn('[icloud] could not notify the iPhone', error)

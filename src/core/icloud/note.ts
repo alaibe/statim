@@ -10,6 +10,7 @@ import { randomBytes } from '@/lib/random';
 
 /** What the desktop tells the iPhone about one message, through the user's iCloud. */
 export interface Note {
+  id?: string;
   chat?: string;
   title: string;
   body: string;
@@ -45,6 +46,7 @@ export function noteKey(account: AccountSecret): NoteKey {
 export function sealNote(key: string, note: Note, nonce = randomBytes(12)): string {
   const plaintext = utf8ToBytes(
     JSON.stringify({
+      id: note.id,
       chat: note.chat,
       title: clip(note.title, TITLE_LIMIT),
       body: clip(note.body, BODY_LIMIT),
