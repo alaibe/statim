@@ -616,6 +616,102 @@ async function statusCard(
   return { type: 'handled' };
 }
 
+function tradeArgs(args: string[]) {
+  const [amount, token, receive] = withoutConfirm(
+    ['--from', '--to', '--status', '--recipient'].reduce(
+      (rest, flag) => withoutFlag(rest, flag),
+      args
+    )
+  );
+  const given: Given = { amount, token, receive, recipient: flagValue(args, '--recipient') };
+  return {
+    fromId: flagValue(args, '--from'),
+    toId: flagValue(args, '--to'),
+    status: flagValue(args, '--status'),
+    confirmed: args.includes('--confirm'),
+    given,
+  };
+}
+
+async function tradeRoute(
+  chains: TradeChain[],
+  fromId: string | undefined,
+  toId: string | undefined,
+  context: PluginContext
+): Promise<{ from: TradeChain; to: TradeChain } | { error: string }> {
+  const from = fromId
+    ? chainNamed(chains, fromId)
+    : defaultChain(chains, undefined, (await activeChain(context))?.id);
+  if ('error' in from) return from;
+  const to = toId ? chainNamed(chains, toId) : from;
+  if ('error' in to) return to;
+  return { from, to };
+}
+
+async function checkStatus(
+  hash: string,
+  from: TradeChain,
+  to: TradeChain,
+  key: string | null,
+  respond: Respond
+): Promise<CommandResult> {
+  try {
+    return await statusCard(hash, from, to, key, respond);
+  } catch (error) {
+    return {
+      type: 'error',
+      message:
+        error instanceof LifiError ? error.message : walletErrorMessage(error, from, 'status'),
+    };
+  }
+}
+
+async function quoteOrTrade(
+  context: PluginContext,
+  from: TradeChain,
+  to: TradeChain,
+  given: Given,
+  key: string | null,
+  confirmed: boolean,
+  respond: Respond
+): Promise<CommandResult> {
+  let prepared: Prepared;
+  try {
+    prepared = await prepare(context, from, to, given, key);
+  } catch (error) {
+    return { type: 'error', message: walletErrorMessage(error, from, 'quote') };
+  }
+  if ('error' in prepared) return { type: 'error', message: `${prepared.error} Nothing was sent.` };
+
+  if (!confirmed) {
+    await respond({
+      kind: 'widget',
+      fallback: `Trade ${given.amount} ${prepared.fromToken.symbol} for ${prepared.toToken.symbol}?`,
+      widget: reviewCard(from, to, given, prepared),
+    });
+    return { type: 'handled' };
+  }
+
+  let sent: { approval?: Hex; hash: Hex } | undefined;
+  try {
+    sent = await execute(context, from, prepared, respond);
+    await respond({
+      kind: 'widget',
+      fallback: `Sent ${given.amount} ${prepared.fromToken.symbol} for ${prepared.toToken.symbol}`,
+      widget: sentCard(from, to, prepared, sent),
+    });
+    return { type: 'handled' };
+  } catch (error) {
+    if (error instanceof ApprovalPending) return { type: 'error', message: error.message };
+    return {
+      type: 'error',
+      message: sent
+        ? sentPaymentErrorMessage(from.name, sent.hash, 'trade')
+        : walletErrorMessage(error, from, 'trade'),
+    };
+  }
+}
+
 export const tradeCommand: SlashCommand = {
   name: 'trade',
   aliases: ['swap', 'bridge'],
@@ -635,80 +731,18 @@ export const tradeCommand: SlashCommand = {
       };
     }
 
-    const fromId = flagValue(args, '--from');
-    const toId = flagValue(args, '--to');
-    const status = flagValue(args, '--status');
-    const recipient = flagValue(args, '--recipient');
-    const confirmed = args.includes('--confirm');
-    const [amount, token, receive] = withoutConfirm(
-      ['--from', '--to', '--status', '--recipient'].reduce(
-        (rest, flag) => withoutFlag(rest, flag),
-        args
-      )
-    );
+    const { fromId, toId, status, confirmed, given } = tradeArgs(args);
+    const route = await tradeRoute(chains, fromId, toId, context);
+    if ('error' in route) return { type: 'error', message: route.error };
+    const { from, to } = route;
 
-    const from = fromId
-      ? chainNamed(chains, fromId)
-      : defaultChain(chains, undefined, (await activeChain(context))?.id);
-    if ('error' in from) return { type: 'error', message: from.error };
-    const to = toId ? chainNamed(chains, toId) : from;
-    if ('error' in to) return { type: 'error', message: to.error };
-
-    const given: Given = { amount, token, receive, recipient };
-    if (!status && (!amount || !token || !receive)) {
+    if (!status && (!given.amount || !given.token || !given.receive)) {
       return tradeForm(chains, from, to, given, context, respond);
     }
 
     const accountId = context.account.accountId;
     const key = accountId ? await loadTradeKey(accountId) : null;
-
-    if (status) {
-      try {
-        return await statusCard(status, from, to, key, respond);
-      } catch (error) {
-        return {
-          type: 'error',
-          message:
-            error instanceof LifiError ? error.message : walletErrorMessage(error, from, 'status'),
-        };
-      }
-    }
-
-    let prepared: Prepared;
-    try {
-      prepared = await prepare(context, from, to, given, key);
-    } catch (error) {
-      return { type: 'error', message: walletErrorMessage(error, from, 'quote') };
-    }
-    if ('error' in prepared)
-      return { type: 'error', message: `${prepared.error} Nothing was sent.` };
-
-    if (!confirmed) {
-      await respond({
-        kind: 'widget',
-        fallback: `Trade ${amount} ${prepared.fromToken.symbol} for ${prepared.toToken.symbol}?`,
-        widget: reviewCard(from, to, given, prepared),
-      });
-      return { type: 'handled' };
-    }
-
-    let sent: { approval?: Hex; hash: Hex } | undefined;
-    try {
-      sent = await execute(context, from, prepared, respond);
-      await respond({
-        kind: 'widget',
-        fallback: `Sent ${amount} ${prepared.fromToken.symbol} for ${prepared.toToken.symbol}`,
-        widget: sentCard(from, to, prepared, sent),
-      });
-      return { type: 'handled' };
-    } catch (error) {
-      if (error instanceof ApprovalPending) return { type: 'error', message: error.message };
-      return {
-        type: 'error',
-        message: sent
-          ? sentPaymentErrorMessage(from.name, sent.hash, 'trade')
-          : walletErrorMessage(error, from, 'trade'),
-      };
-    }
+    if (status) return checkStatus(status, from, to, key, respond);
+    return quoteOrTrade(context, from, to, given, key, confirmed, respond);
   },
 };
