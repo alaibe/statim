@@ -203,6 +203,23 @@ export function reactionEmoji(code: string): string {
   return emojiFromCodePoints(points);
 }
 
+/** The events of an update not seen yet, or null when one cannot be read or is out of time. */
+function freshEvents(
+  chatId: string,
+  events: readonly Uint8Array[],
+  state: GroupState | undefined,
+  wakuMs: number
+): GroupEvent[] | null {
+  const fresh: GroupEvent[] = [];
+  for (const bytes of events) {
+    if (state?.has(bytes)) continue;
+    const event = readGroupEvent(chatId, bytes);
+    if (!event || !validClock(event.clock, wakuMs)) return null;
+    fresh.push(event);
+  }
+  return fresh;
+}
+
 function validClock(clock: number, wakuMs: number): boolean {
   return clock > 0 && clock <= wakuMs + MAX_CLOCK_DRIFT_MS;
 }
@@ -881,27 +898,12 @@ export class StatusSession implements ChatSession {
   ): Promise<void> {
     const update = decodeMembershipUpdate(message.payload);
     const known = this.groups.get(update.chatId);
-    const fresh: GroupEvent[] = [];
-    for (const bytes of update.events) {
-      if (known?.state.has(bytes)) continue;
-      const event = readGroupEvent(update.chatId, bytes);
-      if (!event || !validClock(event.clock, wakuMs)) return;
-      fresh.push(event);
-    }
-
+    const fresh = freshEvents(update.chatId, update.events, known?.state, wakuMs);
+    if (!fresh) return;
+    const next = this.nextGroup(update.chatId, known, fresh, author);
+    if (!next) return;
+    const { group, consent } = next;
     const me = this.self.participantId;
-    let group: GroupState | null;
-    let consent: Consent;
-    if (known) {
-      group = known.state.merged(fresh);
-      if (!group) return;
-      const readded = !known.state.members.has(me) && group.members.has(me);
-      consent = readded && this.trusts(author, group) ? 'accepted' : known.consent;
-    } else {
-      group = GroupState.replay(update.chatId, fresh);
-      if (!group?.wasEverMember(me)) return;
-      consent = this.trusts(author, group) ? 'accepted' : 'request';
-    }
 
     if (group !== known?.state || consent !== known?.consent) {
       await this.saveGroup(group, consent);
@@ -915,6 +917,25 @@ export class StatusSession implements ChatSession {
     } else if (update.reaction) {
       await this.onReaction(message, update.reaction, wakuMs, author);
     }
+  }
+
+  /** The group after `fresh` events and your consent to it, or null when they do not apply. */
+  private nextGroup(
+    chatId: string,
+    known: Group | undefined,
+    fresh: GroupEvent[],
+    author: ParticipantId
+  ): { group: GroupState; consent: Consent } | null {
+    const me = this.self.participantId;
+    if (!known) {
+      const group = GroupState.replay(chatId, fresh);
+      if (!group?.wasEverMember(me)) return null;
+      return { group, consent: this.trusts(author, group) ? 'accepted' : 'request' };
+    }
+    const group = known.state.merged(fresh);
+    if (!group) return null;
+    const readded = !known.state.members.has(me) && group.members.has(me);
+    return { group, consent: readded && this.trusts(author, group) ? 'accepted' : known.consent };
   }
 
   /** status-go shows a group straight away when someone you added adds you, or its creator is a mutual contact. */
