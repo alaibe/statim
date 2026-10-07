@@ -11,6 +11,7 @@ import { htmlToMarkdown } from '@/core/messaging/html-markdown';
 import { markdownHtml } from '@/core/messaging/markdown';
 
 import type { ComposerInputProps } from './composer-input';
+import { isCommand, typedEmoji } from './typed-emoji';
 
 export type { ComposerInputHandle, ComposerInputProps } from './composer-input';
 
@@ -84,6 +85,7 @@ export function ComposerInput({
     if (event.key === 'Enter') {
       event.preventDefault();
       if (event.shiftKey) {
+        applyTypedEmoji('\n');
         document.execCommand('insertLineBreak');
         emit();
       } else {
@@ -113,6 +115,8 @@ export function ComposerInput({
     const input = event.nativeEvent as InputEvent;
     if (input.inputType === 'insertText' && input.data && '*_~`'.includes(input.data)) {
       applyTypedMarkdown();
+    } else if (input.inputType === 'insertText' && input.data && /^(:|\s)$/.test(input.data)) {
+      applyTypedEmoji();
     }
     const el = field.current;
     if (el && el.innerText.trim() === '' && el.innerHTML !== '') el.innerHTML = '';
@@ -255,6 +259,22 @@ function applyTypedMarkdown() {
     placeCaretAfter(element);
     return;
   }
+}
+
+/** Replaces the emoticon or shortcode the caret has just closed, or that `closing` is about to. */
+function applyTypedEmoji(closing = '') {
+  const selection = window.getSelection();
+  const node = selection?.anchorNode;
+  if (!selection?.isCollapsed || !node || node.nodeType !== Node.TEXT_NODE) return;
+  const field = node.parentElement?.closest('.composer-rich');
+  if (!field || node.parentElement?.closest('code, pre') || isCommand(field.textContent ?? '')) {
+    return;
+  }
+  const offset = selection.anchorOffset;
+  const found = typedEmoji((node.textContent ?? '').slice(0, offset) + closing);
+  if (!found) return;
+  (node as Text).replaceData(found.from, found.to - found.from, found.emoji);
+  selection.collapse(node, offset - (found.to - found.from) + found.emoji.length);
 }
 
 /** Files dropped anywhere in the window go to `onFile`; true while some are dragged over it. */

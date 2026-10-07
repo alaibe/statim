@@ -42,6 +42,7 @@ import { SuggestionPopover } from './suggestion-popover';
 import { useCommandDispatch } from './use-command-dispatch';
 import { useMentionSuggestions } from './use-mention-suggestions';
 import { useChatPermissions } from './use-chat-permissions';
+import { withFinalEmoji } from './typed-emoji';
 import { useTypingAnnouncer } from './use-typing-announcer';
 
 interface ComposerProps {
@@ -140,7 +141,7 @@ export function Composer({
 
   const submit = () => {
     if (busy) return;
-    return dispatch(value);
+    return dispatch(withFinalEmoji(value));
   };
 
   useEffect(() => {

@@ -1,6 +1,8 @@
 import { type Ref, useImperativeHandle, useRef } from 'react';
 import { TextInput } from 'react-native';
 
+import { withTypedEmoji } from './typed-emoji';
+
 export interface ComposerInputHandle {
   focus(): void;
 }
@@ -32,7 +34,7 @@ export function ComposerInput({
       testID="composer-input"
       ref={input}
       value={value}
-      onChangeText={onChangeText}
+      onChangeText={(text) => onChangeText(withTypedEmoji(value, text))}
       placeholder={placeholder}
       placeholderTextColor={placeholderColor}
       multiline

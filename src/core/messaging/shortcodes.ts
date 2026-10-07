@@ -19,6 +19,10 @@ function names(): Map<string, string> {
 
 export const SHORTCODE = /:([a-z0-9_+-]+):/g;
 
+export function emojiNamed(name: string): string | undefined {
+  return names().get(name);
+}
+
 /** Slack-style `:name:` shortcodes as the emoji they stand for; unknown names stay as typed. */
 export function replaceShortcodes(text: string): string {
   if (!text.includes(':')) return text;
