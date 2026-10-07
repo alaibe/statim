@@ -692,26 +692,9 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   private toChat(room: MxRoom): ProtocolChat {
     const selfId = this.self.participantId;
     const roster = this.rosterOf(room.id);
-    let network = this.networks.get(room.id);
-    if (!network) {
-      network = bridgedNetwork([
-        room.peer,
-        room.latest?.sender,
-        room.inviter,
-        ...room.heroes,
-        ...room.elevated,
-        ...(roster ?? []),
-      ]);
-      if (network) this.networks.set(room.id, network);
-    }
-
-    const humans = network ? humansIn(room, roster) : undefined;
-    // mautrix-discord leaves its bot at default power, so only the roster tells it apart.
-    if (humans === 3 && !roster && !room.isDm && room.membership === 'joined')
-      void this.membersOf(room.id);
-    const isDm = room.isDm || (humans === 2 && !room.name.startsWith('#'));
+    const network = this.networkOf(room, roster);
+    const isDm = this.isDirect(room, roster, network);
     const participant = this.participantOf(room, roster ?? []);
-    const presence = isDm && participant ? this.presence.get(participant) : undefined;
     const memberIds = isDm
       ? participant
         ? [participant, selfId]
@@ -723,9 +706,8 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
       kind: isDm ? 'dm' : room.broadcast ? 'channel' : 'group',
       canSend: room.canSend,
       typing: this.typing.get(room.id) ?? false,
-      ...(presence?.online ? { online: true } : {}),
-      ...(presence?.lastSeenAt ? { lastSeenAt: presence.lastSeenAt } : {}),
-      network: network ?? undefined,
+      ...(isDm && participant ? this.peerState(participant) : {}),
+      network,
       title: room.name || (isDm ? (participant ?? room.id) : 'Untitled chat'),
       avatarUri: this.avatarOf(room),
       memberIds,
@@ -739,8 +721,44 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
       canPin: room.canPin,
       canDeleteOthers: room.canDeleteOthers,
       consent: room.membership === 'invited' ? 'request' : 'accepted',
-      ...(isDm && participant && this.ignored.has(participant) ? { blocked: true } : {}),
       selfRole: isDm ? undefined : room.selfRole,
+    };
+  }
+
+  private networkOf(room: MxRoom, roster: string[] | undefined): BridgedNetwork | undefined {
+    const known = this.networks.get(room.id);
+    if (known) return known;
+    const network = bridgedNetwork([
+      room.peer,
+      room.latest?.sender,
+      room.inviter,
+      ...room.heroes,
+      ...room.elevated,
+      ...(roster ?? []),
+    ]);
+    if (network) this.networks.set(room.id, network);
+    return network;
+  }
+
+  private isDirect(
+    room: MxRoom,
+    roster: string[] | undefined,
+    network: BridgedNetwork | undefined
+  ): boolean {
+    if (room.isDm) return true;
+    if (!network) return false;
+    const humans = humansIn(room, roster);
+    // mautrix-discord leaves its bot at default power, so only the roster tells it apart.
+    if (humans === 3 && !roster && room.membership === 'joined') void this.membersOf(room.id);
+    return humans === 2 && !room.name.startsWith('#');
+  }
+
+  private peerState(participant: string): Partial<ProtocolChat> {
+    const presence = this.presence.get(participant);
+    return {
+      ...(presence?.online ? { online: true } : {}),
+      ...(presence?.lastSeenAt ? { lastSeenAt: presence.lastSeenAt } : {}),
+      ...(this.ignored.has(participant) ? { blocked: true } : {}),
     };
   }
 
