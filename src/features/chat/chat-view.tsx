@@ -1,4 +1,4 @@
-import { type ReactElement, type ReactNode, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { KeyboardAvoidingView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -118,16 +118,18 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
   const isGroup = chat?.kind === 'group';
   const botName = chat?.title ?? 'Bot';
   const permissions = chat ? chatPermissions(chat, session) : NO_PERMISSIONS;
-  const { actionsFor, onReactTo, onVote, togglePin } = useMessageActions({
-    id,
-    permissions,
-    threads: threads && onOpenThread !== undefined,
-    votes: supports('votePoll'),
-    composer,
-    onOpenThread,
-    onForward: setForwarding,
-    onDelete: setDeleting,
-  });
+  const { retry, onReactTo, onVote, togglePin } = useMessageStore(id, supports('votePoll'));
+  const handlers: ChatActions = {
+    reply: (message) => composer.reply(message),
+    openThread: (message) => onOpenThread?.(message.threadRoot ?? message.id),
+    forward: setForwarding,
+    edit: (message) => composer.edit(message),
+    remove: (message, forEveryone) => setDeleting({ message, forEveryone }),
+    retry,
+    togglePin: (message) => void togglePin(message),
+  };
+  const can: ActionSupport = { ...permissions, thread: threads && onOpenThread !== undefined };
+  const actionsFor = (message: ChatMessage) => messageActions(message, handlers, can);
 
   const renderItem = (item: ChatMessage, index: number) => (
     <MessageRow
@@ -170,24 +172,37 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
       />
 
       <KeyboardAvoidingView behavior="padding" className="flex-1">
-        <Transcript
-          id={id}
-          protocol={protocol}
-          isBot={isBot}
-          thread={thread}
-          messages={messages}
-          renderMessage={renderItem}
-          list={list}
-          onStartReached={loadEarlier}
-          history={messageHistory}
-          onLoadOlder={() => void loadOlderMessages(id)}
-          running={running}
-          topInset={insets.top + frame.top + (pinnedMessages.length ? 116 : 62)}
-        />
+        {messages.length === 0 ? (
+          <View className="flex-1">
+            <HistoryStatus protocol={protocol} />
+            {messageHistory || isBot ? <EmptyTranscript protocol={protocol} isBot={isBot} /> : null}
+          </View>
+        ) : (
+          <MessageList
+            key={id}
+            ref={list}
+            messages={messages}
+            renderMessage={renderItem}
+            onStartReached={loadEarlier}
+            header={
+              <View>
+                {!thread && messageHistory?.hasOlder ? (
+                  <LoadEarlierButton
+                    history={messageHistory}
+                    onPress={() => void loadOlderMessages(id)}
+                  />
+                ) : null}
+                {!isBot ? <HistoryStatus protocol={protocol} /> : null}
+              </View>
+            }
+            footer={running ? <CommandPending label={`Running ${running}…`} /> : null}
+            topInset={insets.top + frame.top + (pinnedMessages.length ? 116 : 62)}
+          />
+        )}
 
         <View style={{ paddingBottom: insets.bottom }}>
           {chat ? (
-            <ChatBar chat={chat} permissions={permissions} selfId={selfId} nameFor={nameFor}>
+            <ChatBar chat={chat} permissions={permissions} title={chatTitle(chat, selfId, nameFor)}>
               <Composer
                 chatId={id}
                 kind={chat.kind}
@@ -224,116 +239,30 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
   );
 }
 
-function useMessageActions({
-  id,
-  permissions,
-  threads,
-  votes,
-  composer,
-  onOpenThread,
-  onForward,
-  onDelete,
-}: {
-  id: ChatId;
-  permissions: ChatPermissions;
-  threads: boolean;
-  votes: boolean;
-  composer: ReturnType<typeof useComposerMode>;
-  onOpenThread: ((root: MessageId) => void) | undefined;
-  onForward: (message: ChatMessage) => void;
-  onDelete: (target: DeleteTarget) => void;
-}) {
+function useMessageStore(id: ChatId, votes: boolean) {
   const retryMessage = useChatStore((s) => s.retryMessage);
   const react = useChatStore((s) => s.react);
   const votePoll = useChatStore((s) => s.votePoll);
   const setMessagePinned = useChatStore((s) => s.setMessagePinned);
   const ingestMessage = useChatStore((s) => s.ingestMessage);
-
-  const togglePin = async (message: ChatMessage) => {
-    try {
-      const isPinned = !message.isPinned;
-      await setMessagePinned(id, message.id, isPinned);
-      ingestMessage({ ...message, isPinned });
-    } catch (error) {
-      toast.error(errorMessage(error, 'Could not change pinned message'));
-    }
-  };
-  const handlers: ChatActions = {
-    reply: (message) => composer.reply(message),
-    openThread: (message) => onOpenThread?.(message.threadRoot ?? message.id),
-    forward: onForward,
-    edit: (message) => composer.edit(message),
-    remove: (message, forEveryone) => onDelete({ message, forEveryone }),
-    retry: (message) => void retryMessage(id, message.id),
-    togglePin: (message) => void togglePin(message),
-  };
-  const can: ActionSupport = { ...permissions, thread: threads };
   return {
-    actionsFor: (message: ChatMessage) => messageActions(message, handlers, can),
+    retry: (message: ChatMessage) => void retryMessage(id, message.id),
     onReactTo: (messageId: string, emoji: string) => {
       react(id, messageId, emoji).catch((e) => toast.error(errorMessage(e, 'Could not react')));
     },
     onVote: votes
       ? (messageId: MessageId, optionIds: number[]) => votePoll(id, messageId, optionIds)
       : undefined,
-    togglePin,
-  };
-}
-
-function Transcript({
-  id,
-  protocol,
-  isBot,
-  thread,
-  messages,
-  renderMessage,
-  list,
-  onStartReached,
-  history,
-  onLoadOlder,
-  running,
-  topInset,
-}: {
-  id: ChatId;
-  protocol: ProtocolId;
-  isBot: boolean;
-  thread: MessageId | undefined;
-  messages: ChatMessage[];
-  renderMessage: (item: ChatMessage, index: number) => ReactElement;
-  list: ReturnType<typeof useChatTimeline>['list'];
-  onStartReached: () => void;
-  history: MessageHistoryState | undefined;
-  onLoadOlder: () => void;
-  running: string | null;
-  topInset: number;
-}) {
-  if (messages.length === 0) {
-    return (
-      <View className="flex-1">
-        <HistoryStatus protocol={protocol} />
-        {history || isBot ? <EmptyTranscript protocol={protocol} isBot={isBot} /> : null}
-      </View>
-    );
-  }
-  return (
-    <MessageList
-      key={id}
-      ref={list}
-      messages={messages}
-      renderMessage={renderMessage}
-      onStartReached={onStartReached}
-      header={
-        <View>
-          {!thread && history?.hasOlder ? (
-            <LoadEarlierButton history={history} onPress={onLoadOlder} />
-          ) : null}
-          {!isBot ? <HistoryStatus protocol={protocol} /> : null}
-        </View>
+    togglePin: async (message: ChatMessage) => {
+      try {
+        const isPinned = !message.isPinned;
+        await setMessagePinned(id, message.id, isPinned);
+        ingestMessage({ ...message, isPinned });
+      } catch (error) {
+        toast.error(errorMessage(error, 'Could not change pinned message'));
       }
-      footer={running ? <CommandPending label={`Running ${running}…`} /> : null}
-      topInset={topInset}
-    />
-  );
+    },
+  };
 }
 
 function chatPeople(
@@ -398,25 +327,17 @@ function LoadEarlierButton({
 function ChatBar({
   chat,
   permissions,
-  selfId,
-  nameFor,
+  title,
   children,
 }: {
   chat: Chat;
   permissions: ChatPermissions;
-  selfId: string;
-  nameFor: (id: string) => string;
+  title: string;
   children: ReactNode;
 }) {
   if (chat.blocked) return <BlockedBar chatId={chat.id} />;
   if (chat.consent === 'request') {
-    return (
-      <RequestBar
-        chatId={chat.id}
-        name={chatTitle(chat, selfId, nameFor)}
-        canBlock={permissions.block}
-      />
-    );
+    return <RequestBar chatId={chat.id} name={title} canBlock={permissions.block} />;
   }
   if (permissions.send) return children;
   if (chat.kind === 'channel') return <ChannelMuteBar id={chat.id} />;

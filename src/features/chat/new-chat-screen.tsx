@@ -86,7 +86,7 @@ function NewChatForm({
     start,
   } = useNewChat(destination, contacts);
   const { descriptor, adding } = destination;
-  const input = participantInput(destination);
+  const { hint, nobody, input } = addingFor(destination);
 
   return (
     <Screen className="px-gutter" edges={['top', 'bottom']}>
@@ -98,14 +98,15 @@ function NewChatForm({
             <ProtocolPicker destination={destination} available={available} onChoose={onChoose} />
           ) : null}
 
-          <Text variant="bodyMuted">{hintFor(destination)}</Text>
+          <Text variant="bodyMuted">{hint}</Text>
 
           {adding === 'address' && descriptor.publicChats && canJoinPublic ? (
             <JoinPublicChat protocol={descriptor.id} copy={descriptor.publicChats} />
           ) : null}
 
           <KnownPeople
-            destination={destination}
+            network={destination.label}
+            nobody={nobody}
             known={known}
             selectedIds={selectedIds}
             onToggle={toggle}
@@ -128,11 +129,11 @@ function NewChatForm({
               />
               <IconButton
                 testID="new-chat-add"
-                icon={input.icon}
-                label={input.action}
+                icon={input.search ? 'search-outline' : 'add'}
+                label={input.search ? 'Search' : 'Add participant'}
                 tone="brand"
                 onPress={() => void addParticipant()}
-                disabled={draft.trim().length < input.minLength || busy}
+                disabled={draft.trim().length < (input.search ? 2 : 3) || busy}
                 className="mb-0.5"
               />
             </View>
@@ -179,35 +180,35 @@ function NewChatForm({
   );
 }
 
-function participantInput(destination: Destination) {
-  const { address } = destination.descriptor;
+function addingFor(destination: Destination) {
+  const { label, descriptor } = destination;
+  const { address } = descriptor;
+  const bridged = 'Chats you have there show up here once the bridge has brought them over.';
   switch (destination.adding) {
     case 'address':
       return {
-        label: address.label,
-        placeholder: address.placeholder,
-        icon: 'add',
-        action: 'Add participant',
-        minLength: 3,
-      } as const;
+        hint: `${address.hint} Add more than one to make it a group.`,
+        nobody: `Paste ${address.noun} below to start the first one. People you talk to on another protocol are listed under that protocol, because an id only means something to the network that made it.`,
+        input: { label: address.label, placeholder: address.placeholder, search: false },
+      };
     case 'search':
       return {
-        label: `Search ${destination.label}`,
-        placeholder: undefined,
-        icon: 'search-outline',
-        action: 'Search',
-        minLength: 2,
-      } as const;
+        hint: `Search ${label} for someone, or pick someone you have talked to. Chats started here are one to one.`,
+        nobody: bridged,
+        input: { label: `Search ${label}`, placeholder: undefined, search: true },
+      };
     case 'lookup':
       return {
-        label: 'Username, phone or email',
-        placeholder: undefined,
-        icon: 'add',
-        action: 'Add participant',
-        minLength: 3,
-      } as const;
+        hint: `Add someone by their ${label} username, phone or email, or pick someone you have talked to. Chats started here are one to one.`,
+        nobody: bridged,
+        input: { label: 'Username, phone or email', placeholder: undefined, search: false },
+      };
     case null:
-      return null;
+      return {
+        hint: `Pick someone you have talked to on ${label}. The bridge cannot start new chats there.`,
+        nobody: bridged,
+        input: null,
+      };
   }
 }
 
@@ -260,12 +261,14 @@ function ProtocolPicker({
 }
 
 function KnownPeople({
-  destination,
+  network,
+  nobody,
   known,
   selectedIds,
   onToggle,
 }: {
-  destination: Destination;
+  network: string;
+  nobody: string;
   known: ReturnType<typeof useNewChat>['known'];
   selectedIds: ReadonlySet<string>;
   onToggle: (person: Candidate) => void;
@@ -273,18 +276,14 @@ function KnownPeople({
   if (known.length === 0) {
     return (
       <View className="gap-1">
-        <Eyebrow>{`Nobody yet on ${destination.label}`}</Eyebrow>
-        <Text variant="caption">
-          {destination.adding === 'address'
-            ? `Paste ${destination.descriptor.address.noun} below to start the first one. People you talk to on another protocol are listed under that protocol, because an id only means something to the network that made it.`
-            : 'Chats you have there show up here once the bridge has brought them over.'}
-        </Text>
+        <Eyebrow>{`Nobody yet on ${network}`}</Eyebrow>
+        <Text variant="caption">{nobody}</Text>
       </View>
     );
   }
   return (
     <View className="gap-1">
-      <Eyebrow>{`People you have talked to on ${destination.label}`}</Eyebrow>
+      <Eyebrow>{`People you have talked to on ${network}`}</Eyebrow>
       {known.map((entry) =>
         entry.kind === 'header' ? (
           <Text key={`h-${entry.letter}`} variant="micro" className="pl-1 pt-2">
@@ -412,16 +411,3 @@ const GROUP_BADGE = {
       'The group is whoever a message is addressed to. Nobody can be added or removed afterwards, and leaving is only local to your device.',
   },
 };
-
-function hintFor(destination: Destination): string {
-  switch (destination.adding) {
-    case 'address':
-      return `${destination.descriptor.address.hint} Add more than one to make it a group.`;
-    case 'search':
-      return `Search ${destination.label} for someone, or pick someone you have talked to. Chats started here are one to one.`;
-    case 'lookup':
-      return `Add someone by their ${destination.label} username, phone or email, or pick someone you have talked to. Chats started here are one to one.`;
-    case null:
-      return `Pick someone you have talked to on ${destination.label}. The bridge cannot start new chats there.`;
-  }
-}

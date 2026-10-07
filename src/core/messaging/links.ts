@@ -51,14 +51,16 @@ interface Place {
 
 const LINKS: {
   pattern: string;
-  standalone?: boolean;
+  /** Nothing word-like may touch the match: before it, or on both sides. */
+  bounded?: 'before' | 'both';
   link: (token: string, place: Place) => LinkSegment | null;
 }[] = [
   { pattern: EMAIL, link: (email) => ({ kind: 'email', text: email, href: `mailto:${email}` }) },
-  { pattern: URL, link: (url, place) => (glued(place) ? null : webLink(url)) },
+  { pattern: URL, bounded: 'before', link: webLink },
   {
     pattern: BARE_DOMAIN,
-    link: (domain, place) => (glued(place) || matrixServer(place) ? null : webLink(domain)),
+    bounded: 'before',
+    link: (domain, place) => (matrixServer(place) ? null : webLink(domain)),
   },
   {
     pattern: GEO,
@@ -67,16 +69,16 @@ const LINKS: {
       return { kind: 'location', text: trimmed, href: trimmed };
     },
   },
-  { pattern: EVM, standalone: true, link: (evm) => address('evm', evm) },
+  { pattern: EVM, bounded: 'both', link: (evm) => address('evm', evm) },
   {
     pattern: BECH32,
-    standalone: true,
+    bounded: 'both',
     link: (bech32) =>
       /[a-z]/.test(bech32) && /[A-Z]/.test(bech32) ? null : address('bitcoin', bech32),
   },
   {
     pattern: BASE58,
-    standalone: true,
+    bounded: 'both',
     link: (token) => {
       const family = base58Family(token);
       return family ? address(family, token) : null;
@@ -84,7 +86,7 @@ const LINKS: {
   },
   {
     pattern: ENS,
-    standalone: true,
+    bounded: 'both',
     link: (ens) => ({ kind: 'ens', text: ens, href: `${ENS_APP}${ens.toLowerCase()}` }),
   },
   {
@@ -127,7 +129,7 @@ export function segmentText(text: string): Segment[] {
 
 function classify(match: RegExpExecArray, text: string): LinkSegment | null {
   const group = match.findIndex((value, i) => i > 0 && value !== undefined);
-  const { standalone, link } = LINKS[group - 1];
+  const { bounded, link } = LINKS[group - 1];
   const end = match.index + match[0].length;
   const place = {
     text,
@@ -135,12 +137,9 @@ function classify(match: RegExpExecArray, text: string): LinkSegment | null {
     before: text[match.index - 1] ?? '',
     after: text.slice(end, end + 2),
   };
-  if (standalone && (glued(place) || /^\w/.test(place.after))) return null;
+  if (bounded && /[\w@/.-]/.test(place.before)) return null;
+  if (bounded === 'both' && /^\w/.test(place.after)) return null;
   return link(match[group], place);
-}
-
-function glued({ before }: Place): boolean {
-  return /[\w@/.-]/.test(before);
 }
 
 // The server of a Matrix id, @name:server.

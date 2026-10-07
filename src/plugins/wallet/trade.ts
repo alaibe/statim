@@ -574,46 +574,54 @@ async function statusCard(
   key: string | null,
   respond: Respond
 ): Promise<CommandResult> {
-  const status = await lifiStatus(
-    { txHash: hash, fromChain: from.evm.id, toChain: to.evm.id },
-    key
-  );
-  const { label, tone } = STATUS_LABEL[status.status] ?? STATUS_LABEL.INVALID;
-  const leg = (name: string, l: LifiStatus['sending']): WidgetRow[] =>
-    l?.token && l.amount
-      ? [
-          {
-            label: name,
-            value: `${amountOf(l.amount, l.token)} ${l.token.symbol} on ${chainName(l.chainId)}`,
-          },
-        ]
-      : [];
-  const open = status.status === 'PENDING' || status.status === 'NOT_FOUND';
+  try {
+    const status = await lifiStatus(
+      { txHash: hash, fromChain: from.evm.id, toChain: to.evm.id },
+      key
+    );
+    const { label, tone } = STATUS_LABEL[status.status] ?? STATUS_LABEL.INVALID;
+    const leg = (name: string, l: LifiStatus['sending']): WidgetRow[] =>
+      l?.token && l.amount
+        ? [
+            {
+              label: name,
+              value: `${amountOf(l.amount, l.token)} ${l.token.symbol} on ${chainName(l.chainId)}`,
+            },
+          ]
+        : [];
+    const open = status.status === 'PENDING' || status.status === 'NOT_FOUND';
 
-  await respond({
-    kind: 'widget',
-    fallback: `Bridge ${label.toLowerCase()}`,
-    widget: W.card(
-      [
-        W.stat(label, {
-          label: `Bridge ${from.name} → ${to.name}`,
-          caption: status.substatusMessage,
-          tone,
-        }),
-        W.rows([...leg('Sent', status.sending), ...leg('Received', status.receiving)]),
-        ...(status.receiving?.txLink
-          ? [W.link(`View on ${chainName(status.receiving.chainId)}`, status.receiving.txLink)]
-          : []),
-        W.link('Track on LI.FI', status.lifiExplorerLink ?? lifiExplorerUrl(hash)),
-        ...(open
-          ? [W.actions([{ label: 'Check again', command: statusCommand(hash, from, to) }])]
-          : []),
-        POWERED_BY,
-      ],
-      { title: 'Bridge status', icon: 'swap-horizontal-outline', tone }
-    ),
-  });
-  return { type: 'handled' };
+    await respond({
+      kind: 'widget',
+      fallback: `Bridge ${label.toLowerCase()}`,
+      widget: W.card(
+        [
+          W.stat(label, {
+            label: `Bridge ${from.name} → ${to.name}`,
+            caption: status.substatusMessage,
+            tone,
+          }),
+          W.rows([...leg('Sent', status.sending), ...leg('Received', status.receiving)]),
+          ...(status.receiving?.txLink
+            ? [W.link(`View on ${chainName(status.receiving.chainId)}`, status.receiving.txLink)]
+            : []),
+          W.link('Track on LI.FI', status.lifiExplorerLink ?? lifiExplorerUrl(hash)),
+          ...(open
+            ? [W.actions([{ label: 'Check again', command: statusCommand(hash, from, to) }])]
+            : []),
+          POWERED_BY,
+        ],
+        { title: 'Bridge status', icon: 'swap-horizontal-outline', tone }
+      ),
+    });
+    return { type: 'handled' };
+  } catch (error) {
+    return {
+      type: 'error',
+      message:
+        error instanceof LifiError ? error.message : walletErrorMessage(error, from, 'status'),
+    };
+  }
 }
 
 function tradeArgs(args: string[]) {
@@ -648,28 +656,9 @@ async function tradeRoute(
   return { from, to };
 }
 
-async function checkStatus(
-  hash: string,
-  from: TradeChain,
-  to: TradeChain,
-  key: string | null,
-  respond: Respond
-): Promise<CommandResult> {
-  try {
-    return await statusCard(hash, from, to, key, respond);
-  } catch (error) {
-    return {
-      type: 'error',
-      message:
-        error instanceof LifiError ? error.message : walletErrorMessage(error, from, 'status'),
-    };
-  }
-}
-
 async function quoteOrTrade(
   context: PluginContext,
-  from: TradeChain,
-  to: TradeChain,
+  { from, to }: { from: TradeChain; to: TradeChain },
   given: Given,
   key: string | null,
   confirmed: boolean,
@@ -742,7 +731,7 @@ export const tradeCommand: SlashCommand = {
 
     const accountId = context.account.accountId;
     const key = accountId ? await loadTradeKey(accountId) : null;
-    if (status) return checkStatus(status, from, to, key, respond);
-    return quoteOrTrade(context, from, to, given, key, confirmed, respond);
+    if (status) return statusCard(status, from, to, key, respond);
+    return quoteOrTrade(context, route, given, key, confirmed, respond);
   },
 };

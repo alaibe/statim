@@ -693,7 +693,10 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     const selfId = this.self.participantId;
     const roster = this.rosterOf(room.id);
     const network = this.networkOf(room, roster);
-    const isDm = this.isDirect(room, roster, network);
+    const humans = network && !room.isDm ? humansIn(room, roster) : undefined;
+    // mautrix-discord leaves its bot at default power, so only the roster tells it apart.
+    if (humans === 3 && !roster && room.membership === 'joined') void this.membersOf(room.id);
+    const isDm = room.isDm || (humans === 2 && !room.name.startsWith('#'));
     const participant = this.participantOf(room, roster ?? []);
     const memberIds = isDm
       ? participant
@@ -738,19 +741,6 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     ]);
     if (network) this.networks.set(room.id, network);
     return network;
-  }
-
-  private isDirect(
-    room: MxRoom,
-    roster: string[] | undefined,
-    network: BridgedNetwork | undefined
-  ): boolean {
-    if (room.isDm) return true;
-    if (!network) return false;
-    const humans = humansIn(room, roster);
-    // mautrix-discord leaves its bot at default power, so only the roster tells it apart.
-    if (humans === 3 && !roster && room.membership === 'joined') void this.membersOf(room.id);
-    return humans === 2 && !room.name.startsWith('#');
   }
 
   private peerState(participant: string): Partial<ProtocolChat> {

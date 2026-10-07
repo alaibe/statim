@@ -163,7 +163,9 @@ const isField = shape<WidgetField>({
   select: optional(isBoolean),
 });
 
-type WidgetFields<K extends Widget['kind']> = Omit<Extract<Widget, { kind: K }>, 'kind'>;
+export type WidgetOf<K extends Widget['kind']> = Extract<Widget, { kind: K }>;
+
+type WidgetFields<K extends Widget['kind']> = Omit<WidgetOf<K>, 'kind'>;
 
 const WIDGET_FIELDS: { [K in Widget['kind']]: Guard<WidgetFields<K>> } = {
   stat: shape<WidgetFields<'stat'>>({

@@ -21,7 +21,7 @@ import {
   normaliseDecimal,
   resolveValues,
   visibleOptions,
-  type Widget,
+  type WidgetOf,
   type WidgetOption,
 } from './schema';
 
@@ -86,7 +86,7 @@ export function FormWidget({
   widget,
   onCommand,
 }: {
-  widget: Extract<Widget, { kind: 'form' }>;
+  widget: WidgetOf<'form'>;
   onCommand?: (command: string) => void;
 }) {
   const [values, setValues] = useState<Record<string, string>>(() =>

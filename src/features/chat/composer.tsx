@@ -256,7 +256,16 @@ export function Composer({
         {canAttach && value.trim().length === 0 && !busy ? (
           <VoiceRecorder onRecorded={sendContent} onError={setError} />
         ) : (
-          <SendButton busy={busy} canSend={canSend} onPress={() => void submit()} />
+          <IconButton
+            testID="composer-send"
+            icon={busy ? 'ellipsis-horizontal' : 'arrow-up'}
+            label="Send"
+            surface={canSend ? 'brand' : 'outline'}
+            tone={canSend ? 'brand-on' : 'subtle'}
+            size={20}
+            disabled={!canSend}
+            onPress={() => void submit()}
+          />
         )}
       </Animated.View>
 
@@ -323,27 +332,4 @@ function AttachSheet({
   actions.push({ label: 'File', icon: 'document-outline', onPress: () => onAttach(pickFile) });
   if (carriesImages) actions.push({ label: 'GIF', icon: 'happy-outline', onPress: onGifs });
   return <ActionSheet visible={visible} onClose={onClose} title="Attach" actions={actions} />;
-}
-
-function SendButton({
-  busy,
-  canSend,
-  onPress,
-}: {
-  busy: boolean;
-  canSend: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <IconButton
-      testID="composer-send"
-      icon={busy ? 'ellipsis-horizontal' : 'arrow-up'}
-      label="Send"
-      surface={canSend ? 'brand' : 'outline'}
-      tone={canSend ? 'brand-on' : 'subtle'}
-      size={20}
-      disabled={!canSend}
-      onPress={onPress}
-    />
-  );
 }

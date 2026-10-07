@@ -64,6 +64,7 @@ export function BubbleShell({
   };
 
   const pointed = tail && !bare;
+  const side = SIDE[fromMe ? 'out' : 'in'];
 
   const body = (held: boolean) => (
     <RNPressable
@@ -84,21 +85,16 @@ export function BubbleShell({
       delayLongPress={280}
       accessible={false}
       style={bare ? undefined : BUBBLE_SHADOW}
-      className={bubbleClass({ held, bare, fromMe, pointed, grouped })}>
-      {replyPreview ? <ReplyQuote reply={replyPreview} fromMe={fromMe} /> : null}
+      className={bubbleClass({ held, bare, side, pointed, grouped })}>
+      {replyPreview ? <ReplyQuote reply={replyPreview} side={side} /> : null}
       {children}
-      {pointed ? <Tail fromMe={fromMe} /> : null}
+      {pointed ? <Tail side={side} /> : null}
     </RNPressable>
   );
 
   return (
     <>
-      <View
-        className={cn(
-          'px-gutter',
-          grouped ? 'pt-0.5' : 'pt-2',
-          fromMe ? 'items-end' : 'items-start'
-        )}>
+      <View className={cn('px-gutter', grouped ? 'pt-0.5' : 'pt-2', side.align)}>
         {showSender && !fromMe ? (
           <Text variant="micro" className="mb-0.5 ml-3 font-medium">
             {senderName}
@@ -132,9 +128,19 @@ export function BubbleShell({
   );
 }
 
+/** Telegram Web's tail (tweb `message-tail-filled`), drawn against the bubble's square corner. */
+const TAIL = {
+  in: 'M3 19H9V2C8.807 4.84 8.124 7.767 6.95 10.782C6.046 13.107 4.504 15.267 2.325 17.262A1 1 0 0 0 3 19Z',
+  out: 'M8 19H2V2C2.193 4.84 2.876 7.767 4.05 10.782C4.954 13.107 6.496 15.267 8.675 17.262A1 1 0 0 1 8 19Z',
+};
+
 const SIDE = {
   out: {
     fill: 'bg-bubble-out',
+    color: 'bubble-out',
+    align: 'items-end',
+    edge: 'right',
+    tail: TAIL.out,
     pointed: 'rounded-br-none',
     corner: 'rounded-br-md',
     grouped: 'rounded-tr-md',
@@ -145,6 +151,10 @@ const SIDE = {
   },
   in: {
     fill: 'bg-bubble-in',
+    color: 'bubble-in',
+    align: 'items-start',
+    edge: 'left',
+    tail: TAIL.in,
     pointed: 'rounded-bl-none',
     corner: 'rounded-bl-md',
     grouped: 'rounded-tl-md',
@@ -155,20 +165,21 @@ const SIDE = {
   },
 } as const;
 
+type Side = (typeof SIDE)['out' | 'in'];
+
 function bubbleClass({
   held,
   bare,
-  fromMe,
+  side,
   pointed,
   grouped,
 }: {
   held: boolean;
   bare: boolean;
-  fromMe: boolean;
+  side: Side;
   pointed: boolean;
   grouped: boolean;
 }): string {
-  const side = SIDE[fromMe ? 'out' : 'in'];
   return cn(
     // A wide window would otherwise stretch a bubble across the pane.
     !held && (process.env.EXPO_OS === 'web' ? 'max-w-[min(82%,560px)]' : 'max-w-[82%]'),
@@ -182,8 +193,7 @@ function bubbleClass({
   );
 }
 
-function ReplyQuote({ reply, fromMe }: { reply: ReplyPreview; fromMe: boolean }) {
-  const side = SIDE[fromMe ? 'out' : 'in'];
+function ReplyQuote({ reply, side }: { reply: ReplyPreview; side: Side }) {
   return (
     <View className={cn('mb-1.5 flex-row gap-2 rounded-md px-2 py-1', side.quote)}>
       <View className={cn('w-0.5 rounded-full', side.bar)} />
@@ -223,24 +233,15 @@ function repliesLabel(count: number): string {
 
 const BUBBLE_SHADOW = { boxShadow: '0 1px 2px rgba(16, 35, 47, 0.15)' };
 
-/** Telegram Web's tail (tweb `message-tail-filled`), drawn against the bubble's square corner. */
-const TAIL = {
-  in: 'M3 19H9V2C8.807 4.84 8.124 7.767 6.95 10.782C6.046 13.107 4.504 15.267 2.325 17.262A1 1 0 0 0 3 19Z',
-  out: 'M8 19H2V2C2.193 4.84 2.876 7.767 4.05 10.782C4.954 13.107 6.496 15.267 8.675 17.262A1 1 0 0 1 8 19Z',
-};
-
-function Tail({ fromMe }: { fromMe: boolean }) {
+function Tail({ side }: { side: Side }) {
   const colors = useThemeColors();
   return (
     <Svg
       width={11}
       height={20}
       viewBox="0 0 11 20"
-      style={{ position: 'absolute', bottom: -1, [fromMe ? 'right' : 'left']: -8.4 }}>
-      <Path
-        d={fromMe ? TAIL.out : TAIL.in}
-        fill={fromMe ? colors['bubble-out'] : colors['bubble-in']}
-      />
+      style={{ position: 'absolute', bottom: -1, [side.edge]: -8.4 }}>
+      <Path d={side.tail} fill={colors[side.color]} />
     </Svg>
   );
 }

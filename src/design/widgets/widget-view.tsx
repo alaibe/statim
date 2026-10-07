@@ -8,7 +8,7 @@ import { cn } from '../lib/cn';
 import { copyText } from '../copy-text';
 import { affordanceFor } from './affordance';
 import { FormWidget } from './form-widget';
-import { type Widget, type WidgetAction, type WidgetTone } from './schema';
+import { type Widget, type WidgetAction, type WidgetOf, type WidgetTone } from './schema';
 
 interface WidgetViewProps {
   widget: Widget;
@@ -203,15 +203,12 @@ function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) 
   }
 }
 
-type WidgetOf<K extends Widget['kind']> = Extract<Widget, { kind: K }>;
-
-function StatWidget({
-  widget,
-  onOffer,
-}: {
-  widget: WidgetOf<'stat'>;
+interface OfferingWidgetProps<K extends Widget['kind']> {
+  widget: WidgetOf<K>;
   onOffer: WidgetViewProps['onOffer'];
-}) {
+}
+
+function StatWidget({ widget, onOffer }: OfferingWidgetProps<'stat'>) {
   return (
     <Offerable
       actions={widget.actions}
@@ -233,13 +230,7 @@ function StatWidget({
   );
 }
 
-function RowsWidget({
-  widget,
-  onOffer,
-}: {
-  widget: WidgetOf<'rows'>;
-  onOffer: WidgetViewProps['onOffer'];
-}) {
+function RowsWidget({ widget, onOffer }: OfferingWidgetProps<'rows'>) {
   return (
     <View className="gap-1.5">
       {widget.rows.map((row, i) => (
@@ -278,13 +269,7 @@ function RowsWidget({
   );
 }
 
-function ListWidget({
-  widget,
-  onOffer,
-}: {
-  widget: WidgetOf<'list'>;
-  onOffer: WidgetViewProps['onOffer'];
-}) {
+function ListWidget({ widget, onOffer }: OfferingWidgetProps<'list'>) {
   return (
     <View className="gap-1">
       {widget.items.map((item, i) => (

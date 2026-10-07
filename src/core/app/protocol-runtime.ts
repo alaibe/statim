@@ -98,7 +98,8 @@ export class ProtocolRuntime {
             return;
           }
           for (const stop of streams) if (stop) subscriptions.push(stop);
-          if (!(await this.list(protocolId, session, live))) return;
+          await this.list(protocolId, session, live);
+          if (!live()) return;
           await useChatStore.getState().syncProtocol(protocolId);
         } catch (error) {
           if (active()) {
@@ -202,14 +203,13 @@ export class ProtocolRuntime {
     ]);
   }
 
-  /** Lists the session's chats; false when the session went stale meanwhile. */
   private async list(
     protocolId: ProtocolId,
     session: ChatSession,
     live: () => boolean
-  ): Promise<boolean> {
+  ): Promise<void> {
     const first = await session.listChats();
-    if (!live()) return false;
+    if (!live()) return;
     const namespaced = (list: ProtocolChat[]) =>
       list.map((chat) => namespaceChat(protocolId, chat));
     const chats = namespaced(first);
@@ -225,7 +225,6 @@ export class ProtocolRuntime {
         })
         .catch(() => {});
     }
-    return true;
   }
 
   /** Drops the protocol projection of `only` (every protocol by default) but keeps local chats. */

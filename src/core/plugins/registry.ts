@@ -23,7 +23,7 @@ import type {
   SlashCommand,
 } from './types';
 
-export interface CommandEntry {
+interface CommandEntry {
   command: SlashCommand;
   context: PluginContext;
   pluginId: PluginId;

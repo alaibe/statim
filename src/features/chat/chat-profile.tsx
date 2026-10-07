@@ -64,24 +64,16 @@ export function ChatProfile() {
   );
 }
 
-function useProfileSubject(chat: Chat, member: ParticipantId | undefined) {
+function useChatPeople(chat: Chat) {
   const sessions = useChatStore((s) => s.sessions);
-  const { session, supports } = useSupports(chat.id);
   const selfId = selfIdFor({ sessions }, chat.protocol);
   const participants = chatParticipants(chat, selfId);
   const { nameFor, addressFor } = useDisplayNames(participants);
-  const focusId = member ?? (chat.kind === 'dm' ? participants[0]?.id : undefined);
-  const address = focusId ? addressFor(focusId) : undefined;
-  const ens = useKeyedLoad(address?.startsWith('0x') ? address : null, ensOf).value;
-  return {
-    supports,
-    selfId,
-    nameFor,
-    focusId,
-    address,
-    ens,
-    permissions: chatPermissions(chat, session),
-  };
+  return { selfId, participants, nameFor, addressFor };
+}
+
+function useEns(address: string | undefined) {
+  return useKeyedLoad(address?.startsWith('0x') ? address : null, ensOf).value;
 }
 
 function MemberProfile({
@@ -93,20 +85,21 @@ function MemberProfile({
   member: ParticipantId;
   goBack: () => void;
 }) {
-  const { selfId, nameFor, address, ens, permissions } = useProfileSubject(chat, member);
+  const { session } = useSupports(chat.id);
+  const { selfId, nameFor, addressFor } = useChatPeople(chat);
+  const address = addressFor(member);
+  const ens = useEns(address);
   const title = ens?.name ?? nameFor(member);
   return (
-    <ProfileScreen goBack={goBack}>
-      <View className="items-center gap-3 px-gutter pb-5">
-        <Avatar seed={member} size="xl" image={ens?.avatar ?? undefined} />
-        <ProfileTitle chat={chat} title={title} ens={ens} />
-      </View>
-      <View className="flex-row justify-center gap-2 px-gutter pb-5">
-        <MessageAction chat={chat} />
-        <CopyAction value={address || member} />
-      </View>
+    <ProfileScreen
+      chat={chat}
+      goBack={goBack}
+      title={title}
+      ens={ens}
+      avatar={<Avatar seed={member} size="xl" image={ens?.avatar ?? undefined} />}
+      actions={<CopyAction value={address || member} />}>
       {address ? <AddressCard address={address} ens={ens} /> : null}
-      {member !== selfId && permissions.removeMembers ? (
+      {member !== selfId && chatPermissions(chat, session).removeMembers ? (
         <MemberModeration
           chatId={chat.id}
           member={member}
@@ -123,10 +116,12 @@ function WholeChatProfile({ chat, goBack }: { chat: Chat; goBack: () => void }) 
   const muted = useChatStore((s) => Boolean(prefsFor(s.chatPrefs, chat.id).muted));
   const setChatPref = useChatStore((s) => s.setChatPref);
   const getGroupInfo = useChatStore((s) => s.getGroupInfo);
-  const { supports, selfId, nameFor, focusId, address, ens, permissions } = useProfileSubject(
-    chat,
-    undefined
-  );
+  const { session, supports } = useSupports(chat.id);
+  const { selfId, participants, nameFor, addressFor } = useChatPeople(chat);
+  const focusId = chat.kind === 'dm' ? participants[0]?.id : undefined;
+  const address = focusId ? addressFor(focusId) : undefined;
+  const ens = useEns(address);
+  const permissions = chatPermissions(chat, session);
   const [inviting, setInviting] = useState(false);
   const [blocking, setBlocking] = useState(false);
   const details = useKeyedLoad(
@@ -136,36 +131,40 @@ function WholeChatProfile({ chat, goBack }: { chat: Chat; goBack: () => void }) 
   const groupInfo = details.value;
   const title = ens?.name ?? chatTitle(chat, selfId, nameFor);
   return (
-    <ProfileScreen goBack={goBack}>
-      <View className="items-center gap-3 px-gutter pb-5">
+    <ProfileScreen
+      chat={chat}
+      goBack={goBack}
+      title={title}
+      ens={ens}
+      memberCount={groupInfo?.memberCount}
+      avatar={
         <Avatar
           seed={focusId ?? chat.id}
           size="xl"
           label={chat.kind !== 'dm' ? chat.title : undefined}
           image={groupInfo?.avatarUri ?? ens?.avatar ?? chat.avatarUri}
         />
-        <ProfileTitle chat={chat} title={title} ens={ens} memberCount={groupInfo?.memberCount} />
-      </View>
-
-      <View className="flex-row justify-center gap-2 px-gutter pb-5">
-        <MessageAction chat={chat} />
-        <Action
-          icon={muted ? 'volume-high-outline' : 'volume-mute-outline'}
-          label={muted ? 'Unmute' : 'Mute'}
-          onPress={() => void setChatPref(chat.id, { muted: !muted }).catch(reportError)}
-        />
-        <CopyAction value={groupInfo?.link || address || focusId} />
-        {permissions.invite ? (
-          <Action icon="person-add-outline" label="Invite" onPress={() => setInviting(true)} />
-        ) : null}
-        {permissions.block ? (
+      }
+      actions={
+        <>
           <Action
-            icon="ban-outline"
-            label={chat.blocked ? 'Unblock' : 'Block'}
-            onPress={() => (chat.blocked ? void setBlocked(chat.id, false) : setBlocking(true))}
+            icon={muted ? 'volume-high-outline' : 'volume-mute-outline'}
+            label={muted ? 'Unmute' : 'Mute'}
+            onPress={() => void setChatPref(chat.id, { muted: !muted }).catch(reportError)}
           />
-        ) : null}
-      </View>
+          <CopyAction value={groupInfo?.link || address || focusId} />
+          {permissions.invite ? (
+            <Action icon="person-add-outline" label="Invite" onPress={() => setInviting(true)} />
+          ) : null}
+          {permissions.block ? (
+            <Action
+              icon="ban-outline"
+              label={chat.blocked ? 'Unblock' : 'Block'}
+              onPress={() => (chat.blocked ? void setBlocked(chat.id, false) : setBlocking(true))}
+            />
+          ) : null}
+        </>
+      }>
       {blocking ? (
         <BlockSheet chatId={chat.id} name={title} onClose={() => setBlocking(false)} />
       ) : null}
@@ -198,12 +197,44 @@ function WholeChatProfile({ chat, goBack }: { chat: Chat; goBack: () => void }) 
   );
 }
 
-function ProfileScreen({ goBack, children }: { goBack: () => void; children: ReactNode }) {
+function ProfileScreen({
+  chat,
+  goBack,
+  avatar,
+  title,
+  ens,
+  memberCount,
+  actions,
+  children,
+}: {
+  chat: Chat;
+  goBack: () => void;
+  avatar: ReactNode;
+  title: string;
+  ens: EnsProfile | null | undefined;
+  memberCount?: number;
+  actions: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <Screen className="px-0" edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
       <BackHeader label="Back" onPress={goBack} />
-      <ScrollView contentContainerStyle={{ paddingBottom: 48 }}>{children}</ScrollView>
+      <ScrollView contentContainerStyle={{ paddingBottom: 48 }}>
+        <View className="items-center gap-3 px-gutter pb-5">
+          {avatar}
+          <ProfileTitle chat={chat} title={title} ens={ens} memberCount={memberCount} />
+        </View>
+        <View className="flex-row justify-center gap-2 px-gutter pb-5">
+          <Action
+            icon="chatbubble-outline"
+            label="Message"
+            onPress={() => openChatFromProfile(chat.id)}
+          />
+          {actions}
+        </View>
+        {children}
+      </ScrollView>
     </Screen>
   );
 }
@@ -262,16 +293,6 @@ function AddressCard({ address, ens }: { address: string; ens: EnsProfile | null
         </Text>
       ) : null}
     </Card>
-  );
-}
-
-function MessageAction({ chat }: { chat: Chat }) {
-  return (
-    <Action
-      icon="chatbubble-outline"
-      label="Message"
-      onPress={() => openChatFromProfile(chat.id)}
-    />
   );
 }
 

@@ -25,6 +25,7 @@ import { messagePreview, nameList } from '@/core/messaging/preview';
 import { type ChatPrefs, type ChatPrefsMap, prefsFor } from '@/core/messaging/chat-prefs';
 import {
   type ChatFilter,
+  type FilterContext,
   type Folder,
   type ChatListRow,
   folderProtocol,
@@ -143,13 +144,8 @@ export function ChatList({ query, selectedId }: ChatListProps) {
         />
       );
     }
-    return (
-      <FolderRow
-        row={row}
-        {...folderSummary(row, filterContext, titleOf)}
-        onPress={() => go(row.folder)}
-      />
-    );
+    const { unread, preview } = folderSummary(row, filterContext, titleOf);
+    return <FolderRow row={row} unread={unread} preview={preview} onPress={() => go(row.folder)} />;
   };
 
   return (
@@ -262,7 +258,7 @@ function useSelectedInView({
 
 function folderSummary(
   row: Extract<ChatListRow, { kind: 'folder' }>,
-  context: Parameters<typeof isUnreadHere>[1],
+  context: FilterContext,
   titleOf: (chat: Chat) => string
 ) {
   const unread = row.chats.filter((c) => isUnreadHere(c, context));
