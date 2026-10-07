@@ -98,51 +98,65 @@ impl Session {
         let mut searched = 0;
         loop {
             let items = live.timeline.items().await;
-            let end = match before {
-                Some(id) => items.iter().position(|item| {
-                    item.as_event()
-                        .and_then(|e| e.event_id())
-                        .is_some_and(|e| e == id)
-                }),
-                None => Some(items.len()),
-            };
-            if let Some(end) = end {
-                let mut page: Vec<MxEvent> = items
-                    .iter()
-                    .take(end)
-                    .rev()
-                    .filter_map(|item| to_mx_event(room_id, item))
-                    .take(limit)
-                    .collect();
-                page.reverse();
-                if page.len() >= limit {
-                    return Ok(page);
-                }
-                let short = limit - page.len();
-                let hit_start = live
-                    .timeline
-                    .paginate_backwards(HISTORY_PAGE.max(short as u16))
-                    .await
-                    .map_err(err)?;
-                if hit_start {
-                    return Ok(page);
-                }
-            } else {
+            let Some(end) = anchor_end(&items, before) else {
                 searched += 1;
-                if searched > ANCHOR_SEARCH_PAGES {
+                if searched > ANCHOR_SEARCH_PAGES
+                    || live
+                        .timeline
+                        .paginate_backwards(HISTORY_PAGE)
+                        .await
+                        .map_err(err)?
+                {
                     return Ok(Vec::new());
                 }
-                let hit_start = live
-                    .timeline
-                    .paginate_backwards(HISTORY_PAGE)
-                    .await
-                    .map_err(err)?;
-                if hit_start {
-                    return Ok(Vec::new());
-                }
+                continue;
+            };
+            let page = page_before(room_id, &items, end, limit);
+            if page.len() >= limit {
+                return Ok(page);
+            }
+            let short = limit - page.len();
+            let hit_start = live
+                .timeline
+                .paginate_backwards(HISTORY_PAGE.max(short as u16))
+                .await
+                .map_err(err)?;
+            if hit_start {
+                return Ok(page);
             }
         }
     }
+}
+
+/// Where the page ends: at the event `before` names, or after the newest item. `None` while
+/// that event is not loaded yet.
+fn anchor_end(items: &Vector<Arc<TimelineItem>>, before: Option<&str>) -> Option<usize> {
+    let Some(id) = before else {
+        return Some(items.len());
+    };
+    items.iter().position(|item| {
+        item.as_event()
+            .and_then(|e| e.event_id())
+            .is_some_and(|e| e == id)
+    })
+}
+
+/// The newest `limit` events before `end`, oldest first.
+fn page_before(
+    room_id: &RoomId,
+    items: &Vector<Arc<TimelineItem>>,
+    end: usize,
+    limit: usize,
+) -> Vec<MxEvent> {
+    let mut page: Vec<MxEvent> = items
+        .iter()
+        .take(end)
+        .rev()
+        .filter_map(|item| to_mx_event(room_id, item))
+        .take(limit)
+        .collect();
+    page.reverse();
+    page
 }
 
 #[tauri::command]
