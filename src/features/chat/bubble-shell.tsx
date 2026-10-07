@@ -84,48 +84,8 @@ export function BubbleShell({
       delayLongPress={280}
       accessible={false}
       style={bare ? undefined : BUBBLE_SHADOW}
-      className={cn(
-        // A wide window would otherwise stretch a bubble across the pane.
-        !held && (process.env.EXPO_OS === 'web' ? 'max-w-[min(82%,560px)]' : 'max-w-[82%]'),
-        bare
-          ? ''
-          : cn(
-              'rounded-bubble px-2.5 py-1.5',
-              fromMe ? 'bg-bubble-out' : 'bg-bubble-in',
-              fromMe
-                ? pointed
-                  ? 'rounded-br-none'
-                  : 'rounded-br-md'
-                : pointed
-                  ? 'rounded-bl-none'
-                  : 'rounded-bl-md',
-              grouped && (fromMe ? 'rounded-tr-md' : 'rounded-tl-md')
-            )
-      )}>
-      {replyPreview ? (
-        <View
-          className={cn(
-            'mb-1.5 flex-row gap-2 rounded-md px-2 py-1',
-            fromMe ? 'bg-bubble-out-on/15' : 'bg-content/5'
-          )}>
-          <View className={cn('w-0.5 rounded-full', fromMe ? 'bg-bubble-out-on' : 'bg-brand')} />
-          <View className="min-w-0 flex-1">
-            {replyPreview.author ? (
-              <Text
-                variant="micro"
-                className={cn('font-semibold', fromMe ? 'text-bubble-out-on' : 'text-brand')}>
-                {replyPreview.author}
-              </Text>
-            ) : null}
-            <Text
-              variant="caption"
-              numberOfLines={1}
-              className={fromMe ? 'text-bubble-out-on/80' : undefined}>
-              {replyPreview.preview}
-            </Text>
-          </View>
-        </View>
-      ) : null}
+      className={bubbleClass({ held, bare, fromMe, pointed, grouped })}>
+      {replyPreview ? <ReplyQuote reply={replyPreview} fromMe={fromMe} /> : null}
       {children}
       {pointed ? <Tail fromMe={fromMe} /> : null}
     </RNPressable>
@@ -156,19 +116,7 @@ export function BubbleShell({
 
         {below}
 
-        {thread ? (
-          <RNPressable
-            accessibilityRole="button"
-            accessibilityLabel={`Open thread, ${repliesLabel(thread.replies)}`}
-            onPress={thread.onOpen}
-            className="mt-1 flex-row items-center gap-1 rounded-pill bg-surface-sunken px-2.5 py-1">
-            <Icon name="chatbubbles-outline" size={13} tone="brand" />
-            <Text variant="caption" className="font-semibold text-brand">
-              {repliesLabel(thread.replies)}
-            </Text>
-            <Icon name="chevron-forward" size={12} tone="brand" />
-          </RNPressable>
-        ) : null}
+        {thread ? <ThreadButton thread={thread} /> : null}
       </View>
 
       <MessageActions
@@ -181,6 +129,91 @@ export function BubbleShell({
         render={() => <HeldBubble value>{body(true)}</HeldBubble>}
       />
     </>
+  );
+}
+
+const SIDE = {
+  out: {
+    fill: 'bg-bubble-out',
+    pointed: 'rounded-br-none',
+    corner: 'rounded-br-md',
+    grouped: 'rounded-tr-md',
+    quote: 'bg-bubble-out-on/15',
+    bar: 'bg-bubble-out-on',
+    author: 'text-bubble-out-on',
+    preview: 'text-bubble-out-on/80',
+  },
+  in: {
+    fill: 'bg-bubble-in',
+    pointed: 'rounded-bl-none',
+    corner: 'rounded-bl-md',
+    grouped: 'rounded-tl-md',
+    quote: 'bg-content/5',
+    bar: 'bg-brand',
+    author: 'text-brand',
+    preview: undefined,
+  },
+} as const;
+
+function bubbleClass({
+  held,
+  bare,
+  fromMe,
+  pointed,
+  grouped,
+}: {
+  held: boolean;
+  bare: boolean;
+  fromMe: boolean;
+  pointed: boolean;
+  grouped: boolean;
+}): string {
+  const side = SIDE[fromMe ? 'out' : 'in'];
+  return cn(
+    // A wide window would otherwise stretch a bubble across the pane.
+    !held && (process.env.EXPO_OS === 'web' ? 'max-w-[min(82%,560px)]' : 'max-w-[82%]'),
+    !bare &&
+      cn(
+        'rounded-bubble px-2.5 py-1.5',
+        side.fill,
+        pointed ? side.pointed : side.corner,
+        grouped && side.grouped
+      )
+  );
+}
+
+function ReplyQuote({ reply, fromMe }: { reply: ReplyPreview; fromMe: boolean }) {
+  const side = SIDE[fromMe ? 'out' : 'in'];
+  return (
+    <View className={cn('mb-1.5 flex-row gap-2 rounded-md px-2 py-1', side.quote)}>
+      <View className={cn('w-0.5 rounded-full', side.bar)} />
+      <View className="min-w-0 flex-1">
+        {reply.author ? (
+          <Text variant="micro" className={cn('font-semibold', side.author)}>
+            {reply.author}
+          </Text>
+        ) : null}
+        <Text variant="caption" numberOfLines={1} className={side.preview}>
+          {reply.preview}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function ThreadButton({ thread }: { thread: ThreadChip }) {
+  return (
+    <RNPressable
+      accessibilityRole="button"
+      accessibilityLabel={`Open thread, ${repliesLabel(thread.replies)}`}
+      onPress={thread.onOpen}
+      className="mt-1 flex-row items-center gap-1 rounded-pill bg-surface-sunken px-2.5 py-1">
+      <Icon name="chatbubbles-outline" size={13} tone="brand" />
+      <Text variant="caption" className="font-semibold text-brand">
+        {repliesLabel(thread.replies)}
+      </Text>
+      <Icon name="chevron-forward" size={12} tone="brand" />
+    </RNPressable>
   );
 }
 
