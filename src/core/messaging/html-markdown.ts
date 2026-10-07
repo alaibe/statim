@@ -183,28 +183,34 @@ function inline(node: Node): string {
     case 's':
     case 'strike':
       return wrap(inner(), '~~');
-    case 'code': {
-      const text = textContent(node);
-      const fence = text.includes('`') ? '``' : '`';
-      return text
-        ? `${fence}${fence.length > 1 ? ' ' : ''}${text}${fence.length > 1 ? ' ' : ''}${fence}`
-        : '';
-    }
-    case 'a': {
-      const label = inner();
-      const href = node.attrs.href ?? '';
-      if (!href) return label;
-      const pill = /^https:\/\/matrix\.to\/#\/(@[^?/]+)/.exec(href);
-      const pilled = pill && decodeId(pill[1]);
-      if (pill) return label.trim() && pilled ? `[${label}](${mentionHref(pilled)})` : label;
-      if (!label.trim() || textContent(node) === href) return href;
-      return `[${label}](${href.replace(/[()\s]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)})`;
-    }
+    case 'code':
+      return inlineCode(textContent(node));
+    case 'a':
+      return link(node, inner());
     case 'img':
       return escapeInline(node.attrs.alt ?? '');
     default:
       return inner();
   }
+}
+
+function inlineCode(text: string): string {
+  if (!text) return '';
+  const fence = text.includes('`') ? '``' : '`';
+  const pad = fence.length > 1 ? ' ' : '';
+  return `${fence}${pad}${text}${pad}${fence}`;
+}
+
+function link(node: Element, label: string): string {
+  const href = node.attrs.href ?? '';
+  if (!href) return label;
+  const pill = /^https:\/\/matrix\.to\/#\/(@[^?/]+)/.exec(href);
+  if (pill) {
+    const user = decodeId(pill[1]);
+    return label.trim() && user ? `[${label}](${mentionHref(user)})` : label;
+  }
+  if (!label.trim() || textContent(node) === href) return href;
+  return `[${label}](${href.replace(/[()\s]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)})`;
 }
 
 function wrap(text: string, marker: string): string {
