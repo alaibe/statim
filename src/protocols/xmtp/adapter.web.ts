@@ -57,7 +57,13 @@ import type {
 import { isParticipantId } from '@/core/messaging/bots';
 import { base64ToBytes, bytesToBase64, fromHex } from '@/lib/bytes';
 import { PLUGIN_AUTHORITY } from './codec';
-import { fallbackFilename, xmtpEnvironment, type XmtpEnvironment } from './shared';
+import {
+  fallbackFilename,
+  INSTALLATION_LIMIT,
+  REVOKED_AND_FULL,
+  xmtpEnvironment,
+  type XmtpEnvironment,
+} from './shared';
 
 const VISIBLE = [ConsentState.Allowed, ConsentState.Unknown];
 
@@ -106,6 +112,16 @@ async function inboxOf(account: LocalAccount, env: XmtpEnv) {
   const inboxId = await getInboxIdForIdentifier(backend, identifierFor(account.address));
   if (!inboxId) throw new Error('This account has no XMTP inbox.');
   return { backend, inboxId };
+}
+
+/**
+ * The inbox's installations when this one is no longer among them. `isRegistered` cannot tell:
+ * it only reads the local database, which still says yes after another device revoked this one.
+ */
+async function installationsIfRevoked(client: Client<any>) {
+  const state = await client.preferences.fetchInboxState().catch(() => undefined);
+  if (!state || state.installations.some((i) => i.id === client.installationId)) return undefined;
+  return state.installations;
 }
 
 /** Read from the network, so it works while this device cannot register, as when the inbox is full. */
@@ -171,6 +187,18 @@ export class XmtpSession implements ChatSession {
     let client = await Client.build(identifierFor(opts.account.address), options).catch(
       () => undefined
     );
+    const others =
+      client && (await client.isRegistered()) && (await installationsIfRevoked(client));
+    if (client && others) {
+      client.close();
+      if (others.length >= INSTALLATION_LIMIT) throw new Error(REVOKED_AND_FULL);
+      await eraseXmtpLocalDatabase({
+        address: opts.account.address,
+        dbEncryptionKey: opts.dbEncryptionKey,
+        env,
+      });
+      client = undefined;
+    }
     if (!client || !(await client.isRegistered())) {
       client?.close();
       client = await Client.create(signerForAccount(opts.account), options);

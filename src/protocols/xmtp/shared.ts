@@ -7,6 +7,12 @@ export function xmtpEnvironment(): XmtpEnvironment {
     : 'production';
 }
 
+export const INSTALLATION_LIMIT = 10;
+
+export const REVOKED_AND_FULL =
+  'Another device removed this one from your XMTP inbox, and the inbox is full. ' +
+  'Remove a device in Settings › Devices to connect again.';
+
 export function fallbackFilename(uri: string, kind: 'image' | 'voice'): string {
   const fromUri = uri.split('/').pop()?.split('?')[0];
   if (fromUri && fromUri.includes('.')) return fromUri;

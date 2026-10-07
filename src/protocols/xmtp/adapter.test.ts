@@ -26,9 +26,12 @@ jest.mock('@xmtp/react-native-sdk', () => ({
   Group: class {},
 }));
 
-const client = (inboxId: string) => ({
+const client = (inboxId: string, installations = ['this-device']) => ({
   inboxId,
+  installationId: 'this-device',
   publicIdentity: { identifier: '0xabc' },
+  inboxState: async () => ({ installations: installations.map((id) => ({ id })) }),
+  deleteLocalDatabase: jest.fn(),
   conversations: {},
 });
 
@@ -48,6 +51,49 @@ it('remembers the inbox id, so the next launch builds the client without the net
 
   expect(mockBuild.mock.calls[0][2]).toBeUndefined();
   expect(mockBuild.mock.calls[1][2]).toBe('inbox-1');
+  expect(mockCreate).not.toHaveBeenCalled();
+});
+
+const connectAs = (address: string) =>
+  XmtpSession.connect({
+    accountId: address,
+    account: { address } as unknown as LocalAccount,
+    dbEncryptionKey: new Uint8Array(32),
+  });
+
+it('starts a new installation when another device revoked this one', async () => {
+  const revoked = client('inbox-1', ['other-device']);
+  mockBuild.mockResolvedValue(revoked);
+  mockCreate.mockReset().mockResolvedValue(client('inbox-1'));
+
+  await connectAs('0xrevoked');
+
+  expect(revoked.deleteLocalDatabase).toHaveBeenCalled();
+  expect(mockCreate).toHaveBeenCalled();
+});
+
+it('keeps the local database when there is no room to register again', async () => {
+  const full = client(
+    'inbox-1',
+    Array.from({ length: 10 }, (_, i) => `other-${i}`)
+  );
+  mockBuild.mockResolvedValue(full);
+  mockCreate.mockReset();
+
+  await expect(connectAs('0xfull')).rejects.toThrow('inbox is full');
+
+  expect(full.deleteLocalDatabase).not.toHaveBeenCalled();
+  expect(mockCreate).not.toHaveBeenCalled();
+});
+
+it('keeps this installation when the network cannot say whether it was revoked', async () => {
+  const offline = { ...client('inbox-1'), inboxState: () => Promise.reject(new Error('offline')) };
+  mockBuild.mockResolvedValue(offline);
+  mockCreate.mockReset();
+
+  await connectAs('0xoffline');
+
+  expect(offline.deleteLocalDatabase).not.toHaveBeenCalled();
   expect(mockCreate).not.toHaveBeenCalled();
 });
 

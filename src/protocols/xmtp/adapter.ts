@@ -40,7 +40,7 @@ import type {
 } from '@/core/messaging/types';
 import { isParticipantId } from '@/core/messaging/bots';
 import { PLUGIN_AUTHORITY } from './codec';
-import { fallbackFilename, xmtpEnvironment } from './shared';
+import { fallbackFilename, INSTALLATION_LIMIT, REVOKED_AND_FULL, xmtpEnvironment } from './shared';
 import type { AccountStorage } from '@/storage/account';
 
 function signerForAccount(account: LocalAccount): Signer {
@@ -57,6 +57,16 @@ function signerForAccount(account: LocalAccount): Signer {
 
 function inboxOf(account: LocalAccount, env: XMTPEnvironment): Promise<InboxId> {
   return Client.getOrCreateInboxId(new PublicIdentity(account.address, 'ETHEREUM'), env);
+}
+
+/**
+ * The inbox's installations when this one is no longer among them. `build` cannot tell: it only
+ * reads the local database, which still opens after another device revoked this one.
+ */
+async function installationsIfRevoked(client: Client<any>) {
+  const state = await client.inboxState(true).catch(() => undefined);
+  if (!state || state.installations.some((i) => i.id === client.installationId)) return undefined;
+  return state.installations;
 }
 
 /** Read from the network, so it works while this device cannot register, as when the inbox is full. */
@@ -141,11 +151,18 @@ export class XmtpSession implements ChatSession {
 
     const inboxKey = `xmtp.inboxId.${options.env}`;
     const knownInboxId = (await opts.storage?.get<InboxId>(inboxKey)) ?? undefined;
-    const client = await Client.build(
+    let client = await Client.build(
       new PublicIdentity(opts.account.address, 'ETHEREUM'),
       options,
       knownInboxId
-    ).catch(async () => Client.create(signerForAccount(opts.account), options));
+    ).catch(() => undefined);
+    const others = client && (await installationsIfRevoked(client));
+    if (client && others) {
+      if (others.length >= INSTALLATION_LIMIT) throw new Error(REVOKED_AND_FULL);
+      await client.deleteLocalDatabase();
+      client = undefined;
+    }
+    client ??= await Client.create(signerForAccount(opts.account), options);
     if (client.inboxId !== knownInboxId) await opts.storage?.set(inboxKey, client.inboxId);
 
     const byTypeId = new Map<string, JSContentCodec<any>>();
