@@ -24,9 +24,9 @@ class NotificationService: UNNotificationServiceExtension {
         content.body = preview.body
         if let chat = preview.chat { content.threadIdentifier = chat }
         content.userInfo["body"] = ["chatId": preview.chat, "id": preview.id].compactMapValues { $0 }
-        if let id = preview.id { await Self.dismiss(id) }
+        await Self.dismiss(preview.id)
       }
-      if preview == nil || preview?.repeated == true {
+      if preview?.repeated ?? true {
         content.sound = nil
         content.interruptionLevel = .passive
       }

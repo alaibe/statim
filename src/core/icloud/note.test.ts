@@ -28,7 +28,7 @@ describe('notes for the iPhone', () => {
     const { key } = noteKey(phrase(PHRASE));
     const opened = openNote(
       key,
-      sealNote(key, { chat: '', title: 'T'.repeat(500), body: '😀'.repeat(1000) })
+      sealNote(key, { id: '', title: 'T'.repeat(500), body: '😀'.repeat(1000) })
     );
     expect(Array.from(opened!.title)).toHaveLength(100);
     expect(Array.from(opened!.body)).toHaveLength(300);
@@ -39,13 +39,13 @@ describe('notes for the iPhone', () => {
     const { key, tag } = noteKey(phrase(PHRASE));
     const sealed = sealNote(
       key,
-      { chat: 'xmtp:abc', title: 'Alice', body: 'Hi 👋' },
+      { id: 'xmtp:abc@1', chat: 'xmtp:abc', title: 'Alice', body: 'Hi 👋' },
       new Uint8Array(12).fill(1)
     );
     expect({ key, tag, sealed }).toMatchInlineSnapshot(`
 {
   "key": "pMZO2h4/Hn1DqZabD3/4SXgCBkY3ad1mGyHMi3SLG7M=",
-  "sealed": "AQEBAQEBAQEBAQEBmQHFXthFMuJub6W0ftDAIbzBKRNU25jrprhnMRq+dzGBkKHh2lfhnpM8r6Ism665HEIh0wff0DbAvX63evKF7YLBQvs=",
+  "sealed": "AQEBAQEBAQEBAQEBmQHPUpsLMqAhY7j6b4jCA+7BKRND2o3z4aB/azambmiF0O7hlBrxjsVq6Mh/mR9K5KpmjKnh0OfkXKHPm2m5yN+085jSrFZKLNUuNd2YBMwGpVm6uj4=",
   "tag": "df8f46c95392b35e",
 }
 `);

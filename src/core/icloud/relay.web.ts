@@ -17,6 +17,7 @@ interface Item {
 }
 
 const HELLO: Note = {
+  id: 'hello',
   title: 'Statim',
   body: 'This computer now tells your iPhone about new messages.',
 };

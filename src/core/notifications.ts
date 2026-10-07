@@ -52,15 +52,7 @@ export interface MessageNotification {
 
 export async function notifyMessage(notification: MessageNotification): Promise<void> {
   try {
-    const shown = await Notifications.getPresentedNotificationsAsync();
-    if (
-      shown.some(
-        ({ request }) =>
-          request.identifier === notification.id || request.content.data?.id === notification.id
-      )
-    ) {
-      return;
-    }
+    if (process.env.EXPO_OS === 'ios' && (await shownThroughIcloud(notification.id))) return;
     await Notifications.scheduleNotificationAsync({
       identifier: notification.id,
       content: {
@@ -73,6 +65,11 @@ export async function notifyMessage(notification: MessageNotification): Promise<
   } catch (error) {
     console.warn('[notifications] could not post', error);
   }
+}
+
+async function shownThroughIcloud(id: string): Promise<boolean> {
+  const shown = await Notifications.getPresentedNotificationsAsync();
+  return shown.some(({ request }) => request.content.data?.id === id);
 }
 
 export function appFocused(): boolean {

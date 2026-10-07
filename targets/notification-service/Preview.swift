@@ -4,7 +4,7 @@ import Foundation
 import Security
 
 struct Preview {
-  var id: String?
+  var id: String
   var title: String
   var body: String
   var chat: String?
@@ -22,7 +22,8 @@ struct Preview {
       let opened = try? JSONSerialization.jsonObject(with: plaintext) as? [String: String],
       let title = opened["title"], let body = opened["body"]
     else { return nil }
-    return Preview(id: opened["id"], title: title, body: body, chat: opened["chat"])
+    return Preview(
+      id: opened["id"] ?? note.recordID.recordName, title: title, body: body, chat: opened["chat"])
   }
 }
 
@@ -47,9 +48,8 @@ actor Inbox {
         self.shown = (preview, Date())
         return preview
       }
-      guard var again = self.shown?.preview, let at = self.shown?.at,
-        -at.timeIntervalSinceNow < Self.recent
-      else { return nil }
+      guard let shown = self.shown, -shown.at.timeIntervalSinceNow < Self.recent else { return nil }
+      var again = shown.preview
       again.repeated = true
       return again
     }

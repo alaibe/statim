@@ -78,7 +78,7 @@ describe('notifying the iPhone through iCloud', () => {
       callback: 'http://localhost:47219/icloud',
     });
     expect(call(0).token).toBe('signed+in');
-    expect(opened(0)).toEqual([{ tag, title: 'Statim', body: expect.any(String) }]);
+    expect(opened(0)).toEqual([{ id: 'hello', tag, title: 'Statim', body: expect.any(String) }]);
     expect(mockVault.get(VaultKey.icloudSession)).toBe('after-save');
     expect(await relayState('acc1')).toBe('on');
   });
