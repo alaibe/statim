@@ -193,46 +193,43 @@ class Container {
     return samples;
   }
 
-  private fragmentSamples(moov: Box): Uint8Array[] {
+  private *fragmentSamples(moov: Box): Generator<Uint8Array> {
     const trex = this.path(moov, ['mvex', 'trex']);
     const trexSize = trex ? this.u32(trex.body + 16) : 0;
-    const samples: Uint8Array[] = [];
     for (const moof of this.children(null, 'moof')) {
       for (const traf of this.children(moof, 'traf')) {
-        const tfhd = this.child(traf, 'tfhd');
-        if (!tfhd) continue;
-        const flags = this.u32(tfhd.body) & 0xffffff;
-        let field = tfhd.body + 8;
-        let base = moof.start;
-        if (flags & 0x01) {
-          base = this.u64(field);
-          field += 8;
-        }
-        if (flags & 0x02) field += 4;
-        if (flags & 0x08) field += 4;
-        const defaultSize = flags & 0x10 ? this.u32(field) : trexSize;
-        let next = base;
-        for (const trun of this.children(traf, 'trun')) {
-          const runFlags = this.u32(trun.body) & 0xffffff;
-          const count = this.u32(trun.body + 4);
-          let at = trun.body + 8;
-          if (runFlags & 0x01) {
-            next = base + this.view.getInt32(at);
-            at += 4;
-          }
-          if (runFlags & 0x04) at += 4;
-          for (let i = 0; i < count; i++) {
-            if (runFlags & 0x100) at += 4;
-            const size = runFlags & 0x200 ? this.u32(at) : defaultSize;
-            if (runFlags & 0x200) at += 4;
-            if (runFlags & 0x400) at += 4;
-            if (runFlags & 0x800) at += 4;
-            samples.push(this.slice(next, size));
-            next += size;
-          }
-        }
+        yield* this.trackFragmentSamples(moof, traf, trexSize);
       }
     }
-    return samples;
+  }
+
+  private *trackFragmentSamples(moof: Box, traf: Box, trexSize: number): Generator<Uint8Array> {
+    const tfhd = this.child(traf, 'tfhd');
+    if (!tfhd) return;
+    const defaults = this.fragmentDefaults(moof, tfhd, trexSize);
+    let next = defaults.base;
+    for (const trun of this.children(traf, 'trun')) {
+      const flags = this.u32(trun.body) & 0xffffff;
+      const count = this.u32(trun.body + 4);
+      if (flags & 0x01) next = defaults.base + this.view.getInt32(trun.body + 8);
+      const first = trun.body + 8 + (flags & 0x01 ? 4 : 0) + (flags & 0x04 ? 4 : 0);
+      const stride = 4 * [0x100, 0x200, 0x400, 0x800].filter((field) => flags & field).length;
+      const sizeAt = first + (flags & 0x100 ? 4 : 0);
+      for (let i = 0; i < count; i++) {
+        const size = flags & 0x200 ? this.u32(sizeAt + i * stride) : defaults.size;
+        yield this.slice(next, size);
+        next += size;
+      }
+    }
+  }
+
+  private fragmentDefaults(moof: Box, tfhd: Box, trexSize: number) {
+    const flags = this.u32(tfhd.body) & 0xffffff;
+    const sizeAt =
+      tfhd.body + 8 + (flags & 0x01 ? 8 : 0) + (flags & 0x02 ? 4 : 0) + (flags & 0x08 ? 4 : 0);
+    return {
+      base: flags & 0x01 ? this.u64(tfhd.body + 8) : moof.start,
+      size: flags & 0x10 ? this.u32(sizeAt) : trexSize,
+    };
   }
 }
