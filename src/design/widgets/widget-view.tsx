@@ -141,162 +141,23 @@ function StateDot({ state }: { state: 'on' | 'off' }) {
 function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) {
   switch (widget.kind) {
     case 'stat':
-      return (
-        <Offerable
-          actions={widget.actions}
-          heading={
-            widget.label ? { title: widget.label, subtitle: widget.value } : { title: widget.value }
-          }
-          onOffer={onOffer}>
-          <View className="flex-row items-center justify-between gap-2">
-            <View className="flex-1 gap-0.5">
-              {widget.label ? <Text variant="caption">{widget.label}</Text> : null}
-              <Text variant="amount" className={TEXT_TONE[widget.tone ?? 'neutral']}>
-                {widget.value}
-              </Text>
-              {widget.caption ? <Text variant="caption">{widget.caption}</Text> : null}
-            </View>
-            <Affordance actions={widget.actions} />
-          </View>
-        </Offerable>
-      );
+      return <StatWidget widget={widget} onOffer={onOffer} />;
 
     case 'rows':
-      return (
-        <View className="gap-1.5">
-          {widget.rows.map((row, i) => (
-            <Offerable
-              key={`${row.label}-${i}`}
-              actions={row.actions}
-              heading={{ title: row.label, subtitle: row.value || undefined }}
-              label={`${row.label}, ${row.value}`}
-              className="-mx-1 rounded-field px-1 py-0.5 active:bg-surface-sunken"
-              onOffer={onOffer}>
-              <View className={cn('flex-row gap-3', row.state ? 'items-center' : 'items-baseline')}>
-                {row.state ? <StateDot state={row.state} /> : null}
-                <Text
-                  variant="caption"
-                  className={cn(row.state ? 'grow shrink' : 'shrink-0')}
-                  numberOfLines={1}>
-                  {row.label}
-                </Text>
-                {row.value ? (
-                  <Text
-                    numberOfLines={1}
-                    className={cn(
-                      'grow shrink text-right text-footnote font-medium tabular-nums',
-                      TEXT_TONE[row.tone ?? 'neutral']
-                    )}>
-                    {row.value}
-                  </Text>
-                ) : null}
-                <View className="pl-2">
-                  <Affordance actions={row.actions} />
-                </View>
-              </View>
-            </Offerable>
-          ))}
-        </View>
-      );
+      return <RowsWidget widget={widget} onOffer={onOffer} />;
 
     case 'list':
-      return (
-        <View className="gap-1">
-          {widget.items.map((item, i) => (
-            <Offerable
-              key={`${item.title}-${i}`}
-              actions={item.actions}
-              heading={{ title: item.title, subtitle: item.subtitle }}
-              label={item.subtitle ? `${item.title}, ${item.subtitle}` : item.title}
-              className="-mx-1.5 rounded-field px-1.5 active:bg-surface-sunken"
-              onOffer={onOffer}>
-              <View className="flex-row items-center gap-2.5 py-2">
-                {item.state ? <StateDot state={item.state} /> : null}
-                {item.icon ? <Icon name={item.icon} size={17} tone="muted" /> : null}
-                <View className="min-w-0 grow shrink gap-0.5">
-                  <Text
-                    numberOfLines={1}
-                    className={cn(
-                      'text-footnote font-semibold',
-                      TEXT_TONE[item.tone ?? 'neutral']
-                    )}>
-                    {item.title}
-                  </Text>
-                  {item.subtitle ? (
-                    <Text variant="caption" numberOfLines={2}>
-                      {item.subtitle}
-                    </Text>
-                  ) : null}
-                </View>
-                {item.status ? (
-                  <Badge label={item.status} tone={item.tone === 'brand' ? 'brand' : 'neutral'} />
-                ) : null}
-                <View className="pl-2">
-                  <Affordance actions={item.actions} />
-                </View>
-              </View>
-            </Offerable>
-          ))}
-        </View>
-      );
+      return <ListWidget widget={widget} onOffer={onOffer} />;
 
     case 'text':
       return <Text variant="footnote">{widget.text}</Text>;
 
-    case 'code': {
-      const body = (
-        <View className="gap-0.5">
-          {widget.label ? <Text variant="caption">{widget.label}</Text> : null}
-          <View className="flex-row items-center gap-1.5">
-            <Text variant="mono" numberOfLines={1} className="flex-1">
-              {widget.value}
-            </Text>
-            {widget.copyable ? <Icon name="copy-outline" size={13} tone="subtle" /> : null}
-          </View>
-        </View>
-      );
-
-      if (!widget.copyable) return body;
-      return (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Copy ${widget.label ?? 'value'}`}
-          pressScale={0.99}
-          onPress={() => void copyText(widget.value)}>
-          {body}
-        </Pressable>
-      );
-    }
+    case 'code':
+      return <CodeWidget widget={widget} />;
 
     case 'card':
       return (
-        <View
-          className={cn(
-            'gap-2.5 rounded-bubble border p-3.5',
-            CARD_TONE[widget.tone ?? 'neutral']
-          )}>
-          {widget.title ? (
-            <View className="flex-row items-center gap-1.5">
-              {widget.icon ? (
-                <Icon
-                  name={widget.icon}
-                  size={15}
-                  tone={widget.tone === 'neutral' || !widget.tone ? 'muted' : 'brand'}
-                />
-              ) : null}
-              <Eyebrow>{widget.title}</Eyebrow>
-            </View>
-          ) : null}
-          {widget.children.map((child, i) => (
-            <WidgetNode
-              key={i}
-              widget={child}
-              onCommand={onCommand}
-              onOpenUrl={onOpenUrl}
-              onOffer={onOffer}
-            />
-          ))}
-        </View>
+        <CardWidget widget={widget} onCommand={onCommand} onOpenUrl={onOpenUrl} onOffer={onOffer} />
       );
 
     case 'badges':
@@ -340,4 +201,183 @@ function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) 
         </Pressable>
       );
   }
+}
+
+type WidgetOf<K extends Widget['kind']> = Extract<Widget, { kind: K }>;
+
+function StatWidget({
+  widget,
+  onOffer,
+}: {
+  widget: WidgetOf<'stat'>;
+  onOffer: WidgetViewProps['onOffer'];
+}) {
+  return (
+    <Offerable
+      actions={widget.actions}
+      heading={
+        widget.label ? { title: widget.label, subtitle: widget.value } : { title: widget.value }
+      }
+      onOffer={onOffer}>
+      <View className="flex-row items-center justify-between gap-2">
+        <View className="flex-1 gap-0.5">
+          {widget.label ? <Text variant="caption">{widget.label}</Text> : null}
+          <Text variant="amount" className={TEXT_TONE[widget.tone ?? 'neutral']}>
+            {widget.value}
+          </Text>
+          {widget.caption ? <Text variant="caption">{widget.caption}</Text> : null}
+        </View>
+        <Affordance actions={widget.actions} />
+      </View>
+    </Offerable>
+  );
+}
+
+function RowsWidget({
+  widget,
+  onOffer,
+}: {
+  widget: WidgetOf<'rows'>;
+  onOffer: WidgetViewProps['onOffer'];
+}) {
+  return (
+    <View className="gap-1.5">
+      {widget.rows.map((row, i) => (
+        <Offerable
+          key={`${row.label}-${i}`}
+          actions={row.actions}
+          heading={{ title: row.label, subtitle: row.value || undefined }}
+          label={`${row.label}, ${row.value}`}
+          className="-mx-1 rounded-field px-1 py-0.5 active:bg-surface-sunken"
+          onOffer={onOffer}>
+          <View className={cn('flex-row gap-3', row.state ? 'items-center' : 'items-baseline')}>
+            {row.state ? <StateDot state={row.state} /> : null}
+            <Text
+              variant="caption"
+              className={cn(row.state ? 'grow shrink' : 'shrink-0')}
+              numberOfLines={1}>
+              {row.label}
+            </Text>
+            {row.value ? (
+              <Text
+                numberOfLines={1}
+                className={cn(
+                  'grow shrink text-right text-footnote font-medium tabular-nums',
+                  TEXT_TONE[row.tone ?? 'neutral']
+                )}>
+                {row.value}
+              </Text>
+            ) : null}
+            <View className="pl-2">
+              <Affordance actions={row.actions} />
+            </View>
+          </View>
+        </Offerable>
+      ))}
+    </View>
+  );
+}
+
+function ListWidget({
+  widget,
+  onOffer,
+}: {
+  widget: WidgetOf<'list'>;
+  onOffer: WidgetViewProps['onOffer'];
+}) {
+  return (
+    <View className="gap-1">
+      {widget.items.map((item, i) => (
+        <Offerable
+          key={`${item.title}-${i}`}
+          actions={item.actions}
+          heading={{ title: item.title, subtitle: item.subtitle }}
+          label={item.subtitle ? `${item.title}, ${item.subtitle}` : item.title}
+          className="-mx-1.5 rounded-field px-1.5 active:bg-surface-sunken"
+          onOffer={onOffer}>
+          <View className="flex-row items-center gap-2.5 py-2">
+            {item.state ? <StateDot state={item.state} /> : null}
+            {item.icon ? <Icon name={item.icon} size={17} tone="muted" /> : null}
+            <View className="min-w-0 grow shrink gap-0.5">
+              <Text
+                numberOfLines={1}
+                className={cn('text-footnote font-semibold', TEXT_TONE[item.tone ?? 'neutral'])}>
+                {item.title}
+              </Text>
+              {item.subtitle ? (
+                <Text variant="caption" numberOfLines={2}>
+                  {item.subtitle}
+                </Text>
+              ) : null}
+            </View>
+            {item.status ? (
+              <Badge label={item.status} tone={item.tone === 'brand' ? 'brand' : 'neutral'} />
+            ) : null}
+            <View className="pl-2">
+              <Affordance actions={item.actions} />
+            </View>
+          </View>
+        </Offerable>
+      ))}
+    </View>
+  );
+}
+
+function CodeWidget({ widget }: { widget: WidgetOf<'code'> }) {
+  const body = (
+    <View className="gap-0.5">
+      {widget.label ? <Text variant="caption">{widget.label}</Text> : null}
+      <View className="flex-row items-center gap-1.5">
+        <Text variant="mono" numberOfLines={1} className="flex-1">
+          {widget.value}
+        </Text>
+        {widget.copyable ? <Icon name="copy-outline" size={13} tone="subtle" /> : null}
+      </View>
+    </View>
+  );
+
+  if (!widget.copyable) return body;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Copy ${widget.label ?? 'value'}`}
+      pressScale={0.99}
+      onPress={() => void copyText(widget.value)}>
+      {body}
+    </Pressable>
+  );
+}
+
+function CardWidget({
+  widget,
+  onCommand,
+  onOpenUrl,
+  onOffer,
+}: WidgetViewProps & { widget: WidgetOf<'card'> }) {
+  return (
+    <View
+      className={cn('gap-2.5 rounded-bubble border p-3.5', CARD_TONE[widget.tone ?? 'neutral'])}>
+      {widget.title ? (
+        <View className="flex-row items-center gap-1.5">
+          {widget.icon ? (
+            <Icon
+              name={widget.icon}
+              size={15}
+              tone={widget.tone === 'neutral' || !widget.tone ? 'muted' : 'brand'}
+            />
+          ) : null}
+          <Eyebrow>{widget.title}</Eyebrow>
+        </View>
+      ) : null}
+      {widget.children.map((child, i) => (
+        <WidgetNode
+          key={i}
+          widget={child}
+          onCommand={onCommand}
+          onOpenUrl={onOpenUrl}
+          onOffer={onOffer}
+        />
+      ))}
+    </View>
+  );
 }
