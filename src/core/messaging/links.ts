@@ -29,11 +29,6 @@ const BASE58 = `[1-9A-HJ-NP-Za-km-z]{25,44}`;
 const ENS = `(?:[a-z0-9-]+\\.)+eth`;
 const PHONE = `\\+?\\(?\\d(?:[\\d\\s().-]*\\d)?`;
 
-const TOKEN = new RegExp(
-  `(${EMAIL})|(${URL})|(${BARE_DOMAIN})|(${GEO})|(${EVM})|(${BECH32})|(${BASE58})|(${ENS})|(${PHONE})`,
-  'gi'
-);
-
 const TRAILING_PUNCTUATION = /[.,;:!?'"\]}>]+$/;
 const DATE = /^(?:\d{4}[-./]\d{1,2}[-./]\d{1,2}|\d{1,2}[-./]\d{1,2}[-./]\d{2,4})$/;
 const DECIMAL = /^\d+\.\d+$/;
@@ -46,6 +41,62 @@ export const EXPLORERS: Record<AddressFamily, { name: string; url: (address: str
   };
 
 const ENS_APP = 'https://app.ens.domains/';
+
+interface Place {
+  text: string;
+  start: number;
+  before: string;
+  after: string;
+}
+
+const LINKS: {
+  pattern: string;
+  standalone?: boolean;
+  link: (token: string, place: Place) => LinkSegment | null;
+}[] = [
+  { pattern: EMAIL, link: (email) => ({ kind: 'email', text: email, href: `mailto:${email}` }) },
+  { pattern: URL, link: (url, place) => (glued(place) ? null : webLink(url)) },
+  {
+    pattern: BARE_DOMAIN,
+    link: (domain, place) => (glued(place) || matrixServer(place) ? null : webLink(domain)),
+  },
+  {
+    pattern: GEO,
+    link: (geo) => {
+      const trimmed = trimUrl(geo);
+      return { kind: 'location', text: trimmed, href: trimmed };
+    },
+  },
+  { pattern: EVM, standalone: true, link: (evm) => address('evm', evm) },
+  {
+    pattern: BECH32,
+    standalone: true,
+    link: (bech32) =>
+      /[a-z]/.test(bech32) && /[A-Z]/.test(bech32) ? null : address('bitcoin', bech32),
+  },
+  {
+    pattern: BASE58,
+    standalone: true,
+    link: (token) => {
+      const family = base58Family(token);
+      return family ? address(family, token) : null;
+    },
+  },
+  {
+    pattern: ENS,
+    standalone: true,
+    link: (ens) => ({ kind: 'ens', text: ens, href: `${ENS_APP}${ens.toLowerCase()}` }),
+  },
+  {
+    pattern: PHONE,
+    link: (phone, { before, after }) =>
+      isPhone(phone, before, after)
+        ? { kind: 'phone', text: phone, href: `tel:${phone.replace(/[^\d+]/g, '')}` }
+        : null,
+  },
+];
+
+const TOKEN = new RegExp(LINKS.map(({ pattern }) => `(${pattern})`).join('|'), 'gi');
 
 export function segmentText(text: string): Segment[] {
   const segments: Segment[] = [];
@@ -75,67 +126,35 @@ export function segmentText(text: string): Segment[] {
 }
 
 function classify(match: RegExpExecArray, text: string): LinkSegment | null {
-  const [, email, url, bare, geo, evm, bech32, base58Token, ens, phone] = match;
-  const before = text[match.index - 1] ?? '';
-  const after = text.slice(match.index + match[0].length, match.index + match[0].length + 2);
-  const bounded = !/[\w@/.-]/.test(before) && !/^[\w]/.test(after);
+  const group = match.findIndex((value, i) => i > 0 && value !== undefined);
+  const { standalone, link } = LINKS[group - 1];
+  const end = match.index + match[0].length;
+  const place = {
+    text,
+    start: match.index,
+    before: text[match.index - 1] ?? '',
+    after: text.slice(end, end + 2),
+  };
+  if (standalone && (glued(place) || /^\w/.test(place.after))) return null;
+  return link(match[group], place);
+}
 
-  if (email) {
-    return { kind: 'email', text: email, href: `mailto:${email}` };
-  }
+function glued({ before }: Place): boolean {
+  return /[\w@/.-]/.test(before);
+}
 
-  if (url || bare) {
-    if (/[\w@/.-]/.test(before)) return null;
-    // The server of a Matrix id, @name:server.
-    if (bare && /(?:^|\s)@[^\s:]+:$/.test(text.slice(0, match.index))) return null;
-    const trimmed = trimUrl(url ?? bare);
-    const href = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-    return { kind: 'url', text: trimmed, href };
-  }
+// The server of a Matrix id, @name:server.
+function matrixServer({ text, start }: Place): boolean {
+  return /(?:^|\s)@[^\s:]+:$/.test(text.slice(0, start));
+}
 
-  if (geo) {
-    const trimmed = trimUrl(geo);
-    return { kind: 'location', text: trimmed, href: trimmed };
-  }
+function webLink(raw: string): LinkSegment {
+  const text = trimUrl(raw);
+  return { kind: 'url', text, href: /^https?:\/\//i.test(text) ? text : `https://${text}` };
+}
 
-  if (evm && bounded) {
-    return { kind: 'address', family: 'evm', text: evm, href: EXPLORERS.evm.url(evm) };
-  }
-
-  if (bech32 && bounded) {
-    const mixedCase = /[a-z]/.test(bech32) && /[A-Z]/.test(bech32);
-    if (mixedCase) return null;
-    return {
-      kind: 'address',
-      family: 'bitcoin',
-      text: bech32,
-      href: EXPLORERS.bitcoin.url(bech32),
-    };
-  }
-
-  if (base58Token && bounded) {
-    const family = base58Family(base58Token);
-    if (family) {
-      return {
-        kind: 'address',
-        family,
-        text: base58Token,
-        href: EXPLORERS[family].url(base58Token),
-      };
-    }
-    return null;
-  }
-
-  if (ens && bounded) {
-    const name = ens.toLowerCase();
-    return { kind: 'ens', text: ens, href: `${ENS_APP}${name}` };
-  }
-
-  if (phone && isPhone(phone, before, after)) {
-    return { kind: 'phone', text: phone, href: `tel:${phone.replace(/[^\d+]/g, '')}` };
-  }
-
-  return null;
+function address(family: AddressFamily, text: string): LinkSegment {
+  return { kind: 'address', family, text, href: EXPLORERS[family].url(text) };
 }
 
 // Base58Check legacy Bitcoin addresses decode to 25 bytes, Solana public keys to 32.
