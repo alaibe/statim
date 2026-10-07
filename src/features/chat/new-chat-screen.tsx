@@ -86,6 +86,7 @@ function NewChatForm({
     start,
   } = useNewChat(destination, contacts);
   const { descriptor, adding } = destination;
+  const input = participantInput(destination);
 
   return (
     <Screen className="px-gutter" edges={['top', 'bottom']}>
@@ -94,38 +95,7 @@ function NewChatForm({
       <KeyboardAvoidingView behavior="padding" className="flex-1 justify-between">
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4">
           {available.length > 1 ? (
-            <View className="gap-2">
-              <Eyebrow>Protocol</Eyebrow>
-              <View className="flex-row flex-wrap gap-2">
-                {available.map((option) => (
-                  <Chip
-                    key={option.id}
-                    testID={`new-chat-protocol-${option.id}`}
-                    label={option.label}
-                    selected={option.id === destination.id}
-                    onPress={() => onChoose(option.id)}
-                  />
-                ))}
-              </View>
-              {destination.bridged ? (
-                <View className="flex-row items-start gap-2">
-                  <Badge label="Bridged" tone="warning" />
-                  <Text variant="caption" className="flex-1">
-                    {`Your Matrix bridge carries these chats to ${destination.label}. It reads the messages to pass them on.`}
-                  </Text>
-                </View>
-              ) : (
-                <View className="flex-row items-start gap-2">
-                  <Badge
-                    label={descriptor.meta.properties.endToEndEncrypted ? 'Encrypted' : 'Not E2EE'}
-                    tone={toneFor(descriptor.meta)}
-                  />
-                  <Text variant="caption" className="flex-1">
-                    {descriptor.meta.trustModel}
-                  </Text>
-                </View>
-              )}
-            </View>
+            <ProtocolPicker destination={destination} available={available} onChoose={onChoose} />
           ) : null}
 
           <Text variant="bodyMuted">{hintFor(destination)}</Text>
@@ -134,48 +104,20 @@ function NewChatForm({
             <JoinPublicChat protocol={descriptor.id} copy={descriptor.publicChats} />
           ) : null}
 
-          <View className="gap-1">
-            <Eyebrow>
-              {known.length > 0
-                ? `People you have talked to on ${destination.label}`
-                : `Nobody yet on ${destination.label}`}
-            </Eyebrow>
-            {known.length === 0 ? (
-              <Text variant="caption">
-                {adding === 'address'
-                  ? `Paste ${descriptor.address.noun} below to start the first one. People you talk to on another protocol are listed under that protocol, because an id only means something to the network that made it.`
-                  : 'Chats you have there show up here once the bridge has brought them over.'}
-              </Text>
-            ) : null}
-            {known.map((entry) =>
-              entry.kind === 'header' ? (
-                <Text key={`h-${entry.letter}`} variant="micro" className="pl-1 pt-2">
-                  {entry.letter}
-                </Text>
-              ) : (
-                <PersonRow
-                  key={entry.participantId}
-                  person={entry}
-                  selected={selectedIds.has(entry.participantId)}
-                  onPress={() => toggle(entry)}
-                />
-              )
-            )}
-          </View>
+          <KnownPeople
+            destination={destination}
+            known={known}
+            selectedIds={selectedIds}
+            onToggle={toggle}
+          />
 
-          {adding ? (
+          {input ? (
             <View className="flex-row items-end gap-2">
               <Field
                 testID="new-chat-input"
                 containerClassName="flex-1"
-                label={
-                  adding === 'search'
-                    ? `Search ${destination.label}`
-                    : adding === 'lookup'
-                      ? 'Username, phone or email'
-                      : descriptor.address.label
-                }
-                placeholder={adding === 'address' ? descriptor.address.placeholder : undefined}
+                label={input.label}
+                placeholder={input.placeholder}
                 ref={draftRef}
                 onChangeText={changeDraft}
                 autoCapitalize="none"
@@ -186,11 +128,11 @@ function NewChatForm({
               />
               <IconButton
                 testID="new-chat-add"
-                icon={adding === 'search' ? 'search-outline' : 'add'}
-                label={adding === 'search' ? 'Search' : 'Add participant'}
+                icon={input.icon}
+                label={input.action}
                 tone="brand"
                 onPress={() => void addParticipant()}
-                disabled={draft.trim().length < (adding === 'search' ? 2 : 3) || busy}
+                disabled={draft.trim().length < input.minLength || busy}
                 className="mb-0.5"
               />
             </View>
@@ -208,60 +150,22 @@ function NewChatForm({
           <ErrorText>{error}</ErrorText>
 
           {participants.length > 0 ? (
-            <Animated.View layout={springLayout()} className="gap-2">
-              <Eyebrow>{`${participants.length} participant${participants.length === 1 ? '' : 's'}`}</Eyebrow>
-
-              {participants.map((r) => (
-                <View
-                  key={r.participantId}
-                  className="flex-row items-center gap-3 rounded-card border border-line bg-surface px-3 py-2.5">
-                  <Avatar seed={r.participantId} size="sm" />
-                  <Text numberOfLines={1} className="flex-1 text-footnote">
-                    {r.name}
-                  </Text>
-                  <IconButton
-                    icon="close"
-                    label={`Remove ${r.name}`}
-                    size={18}
-                    onPress={() => removeParticipant(r.participantId)}
-                  />
-                </View>
-              ))}
-            </Animated.View>
+            <Participants participants={participants} onRemove={removeParticipant} />
           ) : null}
 
           {isGroup ? (
-            <Animated.View layout={springLayout()} className="gap-2">
-              <Field
-                testID="new-chat-title"
-                label="Group name"
-                placeholder={groupName}
-                onChangeText={setTitle}
-                returnKeyType="done"
-              />
-              <View className="flex-row items-start gap-2">
-                <Badge
-                  label={GROUP_BADGE[descriptor.meta.properties.groupModel].label}
-                  tone={GROUP_BADGE[descriptor.meta.properties.groupModel].tone}
-                />
-                <Text variant="caption" className="flex-1">
-                  {GROUP_BADGE[descriptor.meta.properties.groupModel].detail}
-                </Text>
-              </View>
-            </Animated.View>
+            <GroupName
+              placeholder={groupName}
+              model={descriptor.meta.properties.groupModel}
+              onChange={setTitle}
+            />
           ) : null}
         </ScrollView>
 
         <View className="gap-2 pb-4 pt-2">
           <Button
             testID="new-chat-start"
-            label={
-              isGroup
-                ? `Create group of ${participants.length + 1}`
-                : existingDm
-                  ? 'Open chat'
-                  : 'Start chatting'
-            }
+            label={startLabel(isGroup, Boolean(existingDm), participants.length)}
             size="md"
             fullWidth
             loading={busy}
@@ -272,6 +176,189 @@ function NewChatForm({
         </View>
       </KeyboardAvoidingView>
     </Screen>
+  );
+}
+
+function participantInput(destination: Destination) {
+  const { address } = destination.descriptor;
+  switch (destination.adding) {
+    case 'address':
+      return {
+        label: address.label,
+        placeholder: address.placeholder,
+        icon: 'add',
+        action: 'Add participant',
+        minLength: 3,
+      } as const;
+    case 'search':
+      return {
+        label: `Search ${destination.label}`,
+        placeholder: undefined,
+        icon: 'search-outline',
+        action: 'Search',
+        minLength: 2,
+      } as const;
+    case 'lookup':
+      return {
+        label: 'Username, phone or email',
+        placeholder: undefined,
+        icon: 'add',
+        action: 'Add participant',
+        minLength: 3,
+      } as const;
+    case null:
+      return null;
+  }
+}
+
+function startLabel(isGroup: boolean, existingDm: boolean, count: number): string {
+  if (isGroup) return `Create group of ${count + 1}`;
+  return existingDm ? 'Open chat' : 'Start chatting';
+}
+
+function ProtocolPicker({
+  destination,
+  available,
+  onChoose,
+}: {
+  destination: Destination;
+  available: Destination[];
+  onChoose: (id: NetworkId) => void;
+}) {
+  const { meta } = destination.descriptor;
+  return (
+    <View className="gap-2">
+      <Eyebrow>Protocol</Eyebrow>
+      <View className="flex-row flex-wrap gap-2">
+        {available.map((option) => (
+          <Chip
+            key={option.id}
+            testID={`new-chat-protocol-${option.id}`}
+            label={option.label}
+            selected={option.id === destination.id}
+            onPress={() => onChoose(option.id)}
+          />
+        ))}
+      </View>
+      <View className="flex-row items-start gap-2">
+        {destination.bridged ? (
+          <Badge label="Bridged" tone="warning" />
+        ) : (
+          <Badge
+            label={meta.properties.endToEndEncrypted ? 'Encrypted' : 'Not E2EE'}
+            tone={toneFor(meta)}
+          />
+        )}
+        <Text variant="caption" className="flex-1">
+          {destination.bridged
+            ? `Your Matrix bridge carries these chats to ${destination.label}. It reads the messages to pass them on.`
+            : meta.trustModel}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function KnownPeople({
+  destination,
+  known,
+  selectedIds,
+  onToggle,
+}: {
+  destination: Destination;
+  known: ReturnType<typeof useNewChat>['known'];
+  selectedIds: ReadonlySet<string>;
+  onToggle: (person: Candidate) => void;
+}) {
+  if (known.length === 0) {
+    return (
+      <View className="gap-1">
+        <Eyebrow>{`Nobody yet on ${destination.label}`}</Eyebrow>
+        <Text variant="caption">
+          {destination.adding === 'address'
+            ? `Paste ${destination.descriptor.address.noun} below to start the first one. People you talk to on another protocol are listed under that protocol, because an id only means something to the network that made it.`
+            : 'Chats you have there show up here once the bridge has brought them over.'}
+        </Text>
+      </View>
+    );
+  }
+  return (
+    <View className="gap-1">
+      <Eyebrow>{`People you have talked to on ${destination.label}`}</Eyebrow>
+      {known.map((entry) =>
+        entry.kind === 'header' ? (
+          <Text key={`h-${entry.letter}`} variant="micro" className="pl-1 pt-2">
+            {entry.letter}
+          </Text>
+        ) : (
+          <PersonRow
+            key={entry.participantId}
+            person={entry}
+            selected={selectedIds.has(entry.participantId)}
+            onPress={() => onToggle(entry)}
+          />
+        )
+      )}
+    </View>
+  );
+}
+
+function Participants({
+  participants,
+  onRemove,
+}: {
+  participants: Candidate[];
+  onRemove: (id: Candidate['participantId']) => void;
+}) {
+  return (
+    <Animated.View layout={springLayout()} className="gap-2">
+      <Eyebrow>{`${participants.length} participant${participants.length === 1 ? '' : 's'}`}</Eyebrow>
+      {participants.map((r) => (
+        <View
+          key={r.participantId}
+          className="flex-row items-center gap-3 rounded-card border border-line bg-surface px-3 py-2.5">
+          <Avatar seed={r.participantId} size="sm" />
+          <Text numberOfLines={1} className="flex-1 text-footnote">
+            {r.name}
+          </Text>
+          <IconButton
+            icon="close"
+            label={`Remove ${r.name}`}
+            size={18}
+            onPress={() => onRemove(r.participantId)}
+          />
+        </View>
+      ))}
+    </Animated.View>
+  );
+}
+
+function GroupName({
+  placeholder,
+  model,
+  onChange,
+}: {
+  placeholder: string;
+  model: keyof typeof GROUP_BADGE;
+  onChange: (title: string) => void;
+}) {
+  const badge = GROUP_BADGE[model];
+  return (
+    <Animated.View layout={springLayout()} className="gap-2">
+      <Field
+        testID="new-chat-title"
+        label="Group name"
+        placeholder={placeholder}
+        onChangeText={onChange}
+        returnKeyType="done"
+      />
+      <View className="flex-row items-start gap-2">
+        <Badge label={badge.label} tone={badge.tone} />
+        <Text variant="caption" className="flex-1">
+          {badge.detail}
+        </Text>
+      </View>
+    </Animated.View>
   );
 }
 
