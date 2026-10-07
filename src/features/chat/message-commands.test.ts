@@ -1,10 +1,12 @@
 import type { ChatMessage } from '@/core/messaging/types';
 
+import { copyImage } from './attachments/copy-image';
 import { saveMedia } from './attachments/save-media';
 import { messageActions } from './message-commands';
 import { asChatId } from '@/core/messaging/testing/ids';
 
 jest.mock('./attachments/save-media', () => ({ saveMedia: jest.fn(async () => {}) }));
+jest.mock('./attachments/copy-image', () => ({ copyImage: jest.fn(async () => {}) }));
 
 const handlers = {
   reply: jest.fn(),
@@ -99,6 +101,7 @@ describe('messageActions', () => {
     const photo = { kind: 'image', uri: 'asset://localhost/a.jpg' } as const;
     expect(ids(message({ content: photo }))).toEqual([
       'reply',
+      'copy-image',
       'save',
       'forward',
       'pin',
@@ -111,6 +114,18 @@ describe('messageActions', () => {
       .find((a) => a.id === 'save')
       ?.onPress();
     expect(saveMedia).toHaveBeenCalledWith(photo);
+  });
+
+  it('copies a photo once it has arrived, and only a photo', () => {
+    const photo = { kind: 'image', uri: 'asset://localhost/a.jpg' } as const;
+    const video = { kind: 'video', uri: 'asset://localhost/a.mp4' } as const;
+    expect(ids(message({ content: photo, status: 'sending' }))).not.toContain('copy-image');
+    expect(ids(message({ content: video }))).not.toContain('copy-image');
+
+    messageActions(message({ content: photo }), handlers, all)
+      .find((a) => a.id === 'copy-image')
+      ?.onPress();
+    expect(copyImage).toHaveBeenCalledWith(photo.uri);
   });
 
   it('hands the message to the flow it starts', () => {

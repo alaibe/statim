@@ -3,6 +3,7 @@ import { plainText } from '@/core/messaging/markdown';
 import type { ChatPermissions } from '@/core/messaging/permissions';
 import type { ChatMessage } from '@/core/messaging/types';
 
+import { copyImage } from './attachments/copy-image';
 import { saveMedia } from './attachments/save-media';
 import type { MessageAction } from './message-actions';
 
@@ -27,9 +28,10 @@ export function messageActions(
   actions: ChatActions,
   can: ActionSupport
 ): MessageAction[] {
+  const { content } = message;
   const sent = message.status === 'sent';
   const mine = message.fromMe && sent;
-  const copy = copyableText(message.content);
+  const copy = copyableText(content);
   const save = mediaSaver(message);
   const menu: (MessageAction | false)[] = [
     message.status === 'failed' && {
@@ -52,6 +54,13 @@ export function messageActions(
         icon: 'chatbubbles-outline',
         onPress: () => actions.openThread(message),
       },
+    sent &&
+      content.kind === 'image' && {
+        id: 'copy-image',
+        label: 'Copy image',
+        icon: 'images-outline',
+        onPress: () => void copyImage(content.uri),
+      },
     !!copy && {
       id: 'copy',
       label: 'Copy',
@@ -72,7 +81,7 @@ export function messageActions(
     },
     can.edit &&
       mine &&
-      message.content.kind === 'text' && {
+      content.kind === 'text' && {
         id: 'edit',
         label: 'Edit',
         icon: 'create-outline',
