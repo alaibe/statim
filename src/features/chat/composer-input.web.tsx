@@ -11,6 +11,7 @@ import { htmlToMarkdown } from '@/core/messaging/html-markdown';
 import { markdownHtml } from '@/core/messaging/markdown';
 
 import type { ComposerInputProps } from './composer-input';
+import { htmlWithBreaks } from './composer-html';
 import { isCommand, typedEmoji } from './typed-emoji';
 
 export type { ComposerInputHandle, ComposerInputProps } from './composer-input';
@@ -75,7 +76,7 @@ export function ComposerInput({
     // Commands take their arguments as typed, so they skip the formatting.
     const text = plain.trimStart().startsWith('/')
       ? plain.replace(/\n$/, '')
-      : htmlToMarkdown(el.innerHTML.replace(/​/g, ''));
+      : htmlToMarkdown(htmlWithBreaks(el));
     shown.current = text;
     onChangeText(text + suffix);
   };
@@ -130,7 +131,13 @@ export function ComposerInput({
       files.forEach(onFile);
       return;
     }
-    document.execCommand('insertText', false, event.clipboardData.getData('text/plain'));
+    event.clipboardData
+      .getData('text/plain')
+      .split(/\r?\n/)
+      .forEach((line, i) => {
+        if (i > 0) document.execCommand('insertLineBreak');
+        if (line) document.execCommand('insertText', false, line);
+      });
   };
 
   const dragging = useWindowFileDrop(onFile);
