@@ -17,40 +17,37 @@ export function parseLocation(url: string): Location | null {
   if (!MAPS_HOSTS.test(url)) return null;
 
   const params = queryOf(url);
-  const location: Location = { url };
+  const location: Location = { url, ...coordinatesOf(url, params) };
+  const label = labelOf(url, params);
+  if (label !== undefined) location.label = label;
+  return location;
+}
 
-  const label = params.q ?? params.query ?? params.address ?? params.name ?? params.daddr;
-  const coordinateParams = [
+function coordinatesOf(url: string, params: Record<string, string>) {
+  for (const candidate of [
     params.ll,
     params.coordinate,
     params.q,
     params.query,
     params.daddr,
     params.center,
-  ];
-  for (const candidate of coordinateParams) {
+  ]) {
     const pair = candidate ? parsePair(candidate) : null;
-    if (pair) {
-      Object.assign(location, pair);
-      break;
-    }
+    if (pair) return pair;
   }
+  const at = url.match(/@(-?\d{1,3}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)/);
+  if (at) return parsePair(`${at[1]},${at[2]}`);
+  const osm = url.match(/#map=\d+\/(-?\d{1,3}(?:\.\d+)?)\/(-?\d{1,3}(?:\.\d+)?)/);
+  if (osm) return parsePair(`${osm[1]},${osm[2]}`);
+  if (params.mlat && params.mlon) return parsePair(`${params.mlat},${params.mlon}`);
+  return null;
+}
 
-  if (location.lat === undefined) {
-    const at = url.match(/@(-?\d{1,3}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)/);
-    const osm = url.match(/#map=\d+\/(-?\d{1,3}(?:\.\d+)?)\/(-?\d{1,3}(?:\.\d+)?)/);
-    const mlat = params.mlat && params.mlon ? `${params.mlat},${params.mlon}` : null;
-    const pair = parsePair(at ? `${at[1]},${at[2]}` : osm ? `${osm[1]},${osm[2]}` : (mlat ?? ''));
-    if (pair) Object.assign(location, pair);
-  }
-
-  if (label && !PAIR.test(label)) location.label = label;
-  if (!location.label) {
-    const place = url.match(/\/maps\/place\/([^/@?#]+)/);
-    if (place) location.label = decode(place[1]);
-  }
-
-  return location;
+function labelOf(url: string, params: Record<string, string>): string | undefined {
+  const label = params.q ?? params.query ?? params.address ?? params.name ?? params.daddr;
+  if (label && !PAIR.test(label)) return label;
+  const place = url.match(/\/maps\/place\/([^/@?#]+)/);
+  return place ? decode(place[1]) : undefined;
 }
 
 function parseGeo(url: string): Location | null {
