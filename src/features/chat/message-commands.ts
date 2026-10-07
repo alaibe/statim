@@ -16,11 +16,11 @@ export interface ChatActions {
   togglePin(message: ChatMessage): void;
 }
 
-export interface ActionSupport
-  extends Pick<ChatPermissions, 'edit' | 'delete' | 'deleteForMe' | 'deleteOthers' | 'pin'> {
-  /** False inside a thread, where replies already stay in it. */
-  thread: boolean;
-}
+/** `thread` is false inside a thread, where replies already stay in it. */
+export type ActionSupport = Pick<
+  ChatPermissions,
+  'edit' | 'delete' | 'deleteForMe' | 'deleteOthers' | 'pin' | 'thread'
+>;
 
 export function messageActions(
   message: ChatMessage,

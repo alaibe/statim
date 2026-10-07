@@ -21,11 +21,7 @@ import {
 } from '@/core/messaging/chat-store';
 import { readByPeer } from '@/core/messaging/unread';
 import { protocolOf, type ProtocolId } from '@/core/messaging/namespace';
-import {
-  type ChatPermissions,
-  chatPermissions,
-  NO_PERMISSIONS,
-} from '@/core/messaging/permissions';
+import type { ChatPermissions } from '@/core/messaging/permissions';
 import type { ChatMessage, Chat, ChatId, MessageContent, MessageId } from '@/core/messaging/types';
 import { useAppearanceStore } from '@/core/app/appearance';
 import { errorMessage } from '@/core/errors';
@@ -42,7 +38,7 @@ import {
   type DisplayParticipant,
 } from '@/core/messaging/display-names';
 import { useDisplayNames } from './use-display-names';
-import { useSupports } from './use-supports';
+import { useChatPermissions, useChatSession } from './use-chat-permissions';
 import { useComposerMode } from './composer-mode';
 import { usePinnedMessages } from './use-pinned-messages';
 import { type ActionSupport, type ChatActions, messageActions } from './message-commands';
@@ -80,7 +76,8 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
   const isBot = isLocalChat(id);
   const protocol = protocolOf(id);
 
-  const { session, supports, threads } = useSupports(id);
+  const session = useChatSession(id);
+  const permissions = useChatPermissions(id);
   const {
     allMessages,
     messages,
@@ -96,11 +93,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
   const selfId = selfIdFor({ sessions }, protocol);
   const readUpTo = chat?.readUpTo ?? 0;
   const { nameFor } = useDisplayNames(chat ? chatPeople(chat, selfId, allMessages) : []);
-  const pinnedMessages = usePinnedMessages(
-    id,
-    allMessages,
-    !thread && supports('listPinnedMessages')
-  );
+  const pinnedMessages = usePinnedMessages(id, allMessages, !thread && permissions.seePins);
   const [pendingCommand, setPendingCommand] = useState<string | null>(null);
   const [running, setRunning] = useState<string | null>(null);
   const runCommand = (command: string) => setPendingCommand(command);
@@ -117,8 +110,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
 
   const isGroup = chat?.kind === 'group';
   const botName = chat?.title ?? 'Bot';
-  const permissions = chat ? chatPermissions(chat, session) : NO_PERMISSIONS;
-  const { retry, onReactTo, onVote, togglePin } = useMessageStore(id, supports('votePoll'));
+  const { retry, onReactTo, onVote, togglePin } = useMessageStore(id, permissions.vote);
   const handlers: ChatActions = {
     reply: (message) => composer.reply(message),
     openThread: (message) => onOpenThread?.(message.threadRoot ?? message.id),
@@ -128,7 +120,10 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
     retry,
     togglePin: (message) => void togglePin(message),
   };
-  const can: ActionSupport = { ...permissions, thread: threads && onOpenThread !== undefined };
+  const can: ActionSupport = {
+    ...permissions,
+    thread: permissions.thread && onOpenThread !== undefined,
+  };
   const actionsFor = (message: ChatMessage) => messageActions(message, handlers, can);
 
   const renderItem = (item: ChatMessage, index: number) => (

@@ -4,9 +4,9 @@ import { useState } from 'react';
 
 import { EmptyState, ListItem, Loading, ModalHeader, Screen, toast } from '@/design';
 import { useAccountStore } from '@/core/account/account-store';
-import { isLocalChat, takesAttachments } from '@/core/messaging/bots';
 import { sessionFor, useChatStore } from '@/core/messaging/chat-store';
 import { draftKey } from '@/core/messaging/drafts';
+import { chatPermissions } from '@/core/messaging/permissions';
 import type { Chat } from '@/core/messaging/types';
 import { errorMessage } from '@/core/errors';
 import { openChatFromSheet } from '@/features/navigation/open';
@@ -66,9 +66,10 @@ function ChatPicker({ photos, onPick }: { photos: boolean; onPick: (chat: Chat) 
   const chats = useChatStore((s) => s.chats);
   const sessions = useChatStore((s) => s.sessions);
   const { titleOf, selfIdOf } = useChatTitles(chats);
-  const takesShare = (chat: Chat) =>
-    takesAttachments(chat.id) &&
-    (!photos || isLocalChat(chat.id) || Boolean(sessionFor({ sessions }, chat.id)?.sendsImages));
+  const takesShare = (chat: Chat) => {
+    const can = chatPermissions(chat, sessionFor({ sessions }, chat.id));
+    return photos ? can.sendImages : can.attach;
+  };
 
   return (
     <FlashList
@@ -96,10 +97,10 @@ function appendToDraft(chat: Chat, text: string) {
 
 async function sendFiles(chat: Chat, files: SharePayload[]) {
   const { sendMessage, sessions } = useChatStore.getState();
-  const sendsVideo = Boolean(sessionFor({ sessions }, chat.id)?.sendsVideo);
+  const { sendVideo } = chatPermissions(chat, sessionFor({ sessions }, chat.id));
   try {
     for (const file of files) {
-      await sendMessage(chat.id, await contentFromShare(file, sendsVideo));
+      await sendMessage(chat.id, await contentFromShare(file, sendVideo));
     }
   } catch (e) {
     toast.error(errorMessage(e, 'Could not send that'));

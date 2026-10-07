@@ -22,7 +22,7 @@ import type { ChatId, ParticipantId } from '@/core/messaging/types';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 
 import { useAction } from '@/features/use-action';
-import { useSupports } from './use-supports';
+import { useChatPermissions } from './use-chat-permissions';
 
 const SLOW_MODE: { seconds: number; label: string }[] = [
   { seconds: 0, label: 'Off' },
@@ -195,13 +195,12 @@ export function MemberModeration({
   groupTitle: string;
   onRemoved: () => void;
 }) {
-  const { supports } = useSupports(chatId);
+  const can = useChatPermissions(chatId);
   const getMembers = useChatStore((s) => s.getMembers);
   const removeMembers = useChatStore((s) => s.removeMembers);
   const banMember = useChatStore((s) => s.banMember);
   const setMemberMuted = useChatStore((s) => s.setMemberMuted);
-  const canMute = supports('setMemberMuted');
-  const members = useKeyedLoad(canMute ? chatId : null, getMembers);
+  const members = useKeyedLoad(can.muteMembers ? chatId : null, getMembers);
   const muted = members.value?.find((m) => m.id === member)?.muted ?? false;
   const [confirming, setConfirming] = useState<Removal | null>(null);
 
@@ -217,11 +216,11 @@ export function MemberModeration({
       removal === 'ban' ? banMember(chatId, member) : removeMembers(chatId, [member]),
     { failure: 'Could not do that' }
   );
-  const removals: Removal[] = supports('banMember') ? ['remove', 'ban'] : ['remove'];
+  const removals: Removal[] = can.ban ? ['remove', 'ban'] : ['remove'];
 
   return (
     <Section surface="card" className="mb-5">
-      {canMute ? (
+      {can.muteMembers ? (
         <ListItem
           testID="profile-mute-member"
           title={muted ? 'Let them send messages' : 'Mute in group'}

@@ -18,12 +18,11 @@ import { shortAddress } from '@/core/account/keyring';
 import { reportError } from '@/core/app/report-error';
 import { prefsFor } from '@/core/messaging/chat-prefs';
 import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
-import { chatPermissions } from '@/core/messaging/permissions';
 import { errorMessage } from '@/core/errors';
 import { chatParticipants, chatTitle } from '@/core/messaging/display-names';
 import type { Chat, ParticipantId } from '@/core/messaging/types';
 import { useDisplayNames } from '@/features/chat/use-display-names';
-import { useSupports } from '@/features/chat/use-supports';
+import { useChatPermissions } from '@/features/chat/use-chat-permissions';
 import { useBack } from '@/features/navigation/use-back';
 import { openChatFromProfile } from '@/features/navigation/open';
 import { type EnsProfile, resolveEnsProfile } from '@/lib/evm/ens-profile';
@@ -85,7 +84,7 @@ function MemberProfile({
   member: ParticipantId;
   goBack: () => void;
 }) {
-  const { session } = useSupports(chat.id);
+  const { removeMembers } = useChatPermissions(chat.id);
   const { selfId, nameFor, addressFor } = useChatPeople(chat);
   const address = addressFor(member);
   const ens = useEns(address);
@@ -99,7 +98,7 @@ function MemberProfile({
       avatar={<Avatar seed={member} size="xl" image={ens?.avatar ?? undefined} />}
       actions={<CopyAction value={address || member} />}>
       {address ? <AddressCard address={address} ens={ens} /> : null}
-      {member !== selfId && chatPermissions(chat, session).removeMembers ? (
+      {member !== selfId && removeMembers ? (
         <MemberModeration
           chatId={chat.id}
           member={member}
@@ -116,18 +115,14 @@ function WholeChatProfile({ chat, goBack }: { chat: Chat; goBack: () => void }) 
   const muted = useChatStore((s) => Boolean(prefsFor(s.chatPrefs, chat.id).muted));
   const setChatPref = useChatStore((s) => s.setChatPref);
   const getGroupInfo = useChatStore((s) => s.getGroupInfo);
-  const { session, supports } = useSupports(chat.id);
   const { selfId, participants, nameFor, addressFor } = useChatPeople(chat);
   const focusId = chat.kind === 'dm' ? participants[0]?.id : undefined;
   const address = focusId ? addressFor(focusId) : undefined;
   const ens = useEns(address);
-  const permissions = chatPermissions(chat, session);
+  const permissions = useChatPermissions(chat.id);
   const [inviting, setInviting] = useState(false);
   const [blocking, setBlocking] = useState(false);
-  const details = useKeyedLoad(
-    chat.kind !== 'dm' && supports('getGroupInfo') ? chat.id : null,
-    getGroupInfo
-  );
+  const details = useKeyedLoad(permissions.seeGroupInfo ? chat.id : null, getGroupInfo);
   const groupInfo = details.value;
   const title = ens?.name ?? chatTitle(chat, selfId, nameFor);
   return (
@@ -180,7 +175,7 @@ function WholeChatProfile({ chat, goBack }: { chat: Chat; goBack: () => void }) 
       {permissions.invite ? (
         <>
           <InviteLinks chatId={chat.id} visible={inviting} onClose={() => setInviting(false)} />
-          {supports('getJoinRequests') ? (
+          {permissions.answerJoinRequests ? (
             <JoinRequests chatId={chat.id} pending={chat.pendingJoinRequests} />
           ) : null}
         </>

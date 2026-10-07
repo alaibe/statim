@@ -28,8 +28,11 @@ jest.mock('@/core/messaging/chat-store', () => ({
   useChatStore: (select: (state: typeof mockStore) => unknown) => select(mockStore),
 }));
 let mockSupported = ['setMemberMuted', 'banMember'];
-jest.mock('./use-supports', () => ({
-  useSupports: () => ({ supports: (key: string) => mockSupported.includes(key) }),
+jest.mock('./use-chat-permissions', () => ({
+  useChatPermissions: () => ({
+    muteMembers: mockSupported.includes('setMemberMuted'),
+    ban: mockSupported.includes('banMember'),
+  }),
 }));
 
 let tree: ReactTestRenderer;

@@ -16,7 +16,6 @@ import {
   Text,
   useThemeColors,
 } from '@/design';
-import { isLocalChat, takesAttachments } from '@/core/messaging/bots';
 import { chatScope } from '@/core/messaging/chat-scope';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { draftKey } from '@/core/messaging/drafts';
@@ -42,7 +41,7 @@ import type { ComposerBanner } from './composer-mode';
 import { SuggestionPopover } from './suggestion-popover';
 import { useCommandDispatch } from './use-command-dispatch';
 import { useMentionSuggestions } from './use-mention-suggestions';
-import { useSupports } from './use-supports';
+import { useChatPermissions } from './use-chat-permissions';
 import { useTypingAnnouncer } from './use-typing-announcer';
 
 interface ComposerProps {
@@ -77,7 +76,7 @@ export function Composer({
   const colors = useThemeColors();
   const inputRef = useRef<ComposerInputHandle>(null);
   const { registry } = usePluginHost();
-  const { supports, sendsImages, sendsVideo } = useSupports(chatId);
+  const can = useChatPermissions(chatId);
 
   const value = useChatStore((s) => s.drafts[draftKey(chatId, thread)] ?? '');
   const setDraftFor = useChatStore((s) => s.setDraft);
@@ -96,12 +95,8 @@ export function Composer({
     pendingCommand,
     onPendingCommandHandled,
   });
-  const announceTyping = useTypingAnnouncer(chatId, supports('setTyping'));
-  const mentions = useMentionSuggestions(
-    chatId,
-    value,
-    !editing && kind === 'group' && supports('mentionCandidates')
-  );
+  const announceTyping = useTypingAnnouncer(chatId, can.announceTyping);
+  const mentions = useMentionSuggestions(chatId, value, !editing && can.mention);
 
   const [attaching, setAttaching] = useState(false);
   const [media, setMedia] = useState<{ tab: MediaTab; anchor: MediaAnchor | null } | null>(null);
@@ -114,9 +109,8 @@ export function Composer({
     );
   };
 
-  const canAttach = !editing && takesAttachments(chatId);
-  // The app's own chats keep what you send on this device, pictures included.
-  const carriesImages = canAttach && (isLocalChat(chatId) || sendsImages);
+  const canAttach = !editing && can.attach;
+  const carriesImages = !editing && can.sendImages;
   const mediaTabs: MediaTab[] = carriesImages ? ['emoji', 'stickers', 'gifs'] : ['emoji'];
 
   const sendContent = (content: MessageContent) => {
@@ -234,7 +228,7 @@ export function Composer({
             onSubmit={() => void submit()}
             onFile={
               canAttach
-                ? (file) => void attach(() => contentFromBrowserFile(file, sendsVideo))
+                ? (file) => void attach(() => contentFromBrowserFile(file, can.sendVideo))
                 : undefined
             }
             placeholder={thread ? 'Reply in thread' : 'Message'}
@@ -288,7 +282,7 @@ export function Composer({
         visible={attaching}
         onClose={() => setAttaching(false)}
         carriesImages={carriesImages}
-        sendsVideo={sendsVideo}
+        sendsVideo={can.sendVideo}
         onAttach={(pick) => void attach(pick)}
         onGifs={() => openMedia('gifs')}
       />

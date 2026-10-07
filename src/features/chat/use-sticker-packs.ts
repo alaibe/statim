@@ -7,14 +7,14 @@ import type { ChatId } from '@/core/messaging/types';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 
 import { statimPacks } from './attachments/statim-stickers';
-import { useSupports } from './use-supports';
+import { useChatPermissions } from './use-chat-permissions';
 
 const RETRY_MS = 700;
 const RETRIES = 15;
 
 /** The chat's network's own packs, then Statim's, each source failing on its own. */
 export function useStickerPacks(chatId: ChatId) {
-  const { supports } = useSupports(chatId);
+  const { networkStickers } = useChatPermissions(chatId);
   const accountId = useAccountStore((s) => s.activeAccountId);
   const stickerPacks = useChatStore((s) => s.stickerPacks);
   const stickers = useChatStore((s) => s.stickers);
@@ -28,7 +28,7 @@ export function useStickerPacks(chatId: ChatId) {
       stickers: () => stickers(id, pack.id),
       content: (stickerId) => stickerContent(id, pack.id, stickerId),
     }));
-  const network = useLoadUntil(supports('stickerPacks') ? chatId : null, loadNetwork, (packs) =>
+  const network = useLoadUntil(networkStickers ? chatId : null, loadNetwork, (packs) =>
     packs.every((pack) => pack.cover)
   );
   const statim = useKeyedLoad(accountId, statimPacks);

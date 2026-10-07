@@ -19,7 +19,7 @@ jest.mock('@/core/plugins/host', () => ({
   }),
 }));
 jest.mock('@/core/plugins/registry', () => ({ worksOn: () => true }));
-jest.mock('./use-supports', () => ({ useSupports: () => ({ session: undefined }) }));
+jest.mock('./use-chat-permissions', () => ({ useChatSession: () => undefined }));
 jest.mock('@/core/messaging/chat-store', () => ({ useChatStore: { getState: () => ({}) } }));
 
 let press: (command: string) => void = () => {};

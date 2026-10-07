@@ -10,7 +10,7 @@ import { usePluginHost } from '@/core/plugins/host';
 import type { ComposerAction } from '@/core/plugins/types';
 import { worksOn } from '@/core/plugins/registry';
 
-import { useSupports } from './use-supports';
+import { useChatSession } from './use-chat-permissions';
 
 /** The buttons plugins offer above the composer, minus those whose command this protocol lacks. */
 export function QuickActions({
@@ -25,7 +25,7 @@ export function QuickActions({
   onRun: (action: ComposerAction) => void;
 }) {
   const { registry } = usePluginHost();
-  const { session } = useSupports(chatId);
+  const session = useChatSession(chatId);
   const offered = useSyncExternalStore(
     registry.subscribe,
     () => registry.composerActionsFor(chatId, scope),

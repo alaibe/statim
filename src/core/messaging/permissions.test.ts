@@ -1,3 +1,4 @@
+import { botChatId, SAVED_LOCAL_ID } from './bots';
 import { chatPermissions } from './permissions';
 import type { ChatSession } from './protocol';
 import { testChat } from './testing/chats';
@@ -90,5 +91,51 @@ describe('chatPermissions', () => {
     expect(chatPermissions(testChat({ kind: 'group', selfRole: 'owner' }), session()).invite).toBe(
       false
     );
+  });
+
+  it('sends pictures where the session does, and in the app’s own chats that take files', () => {
+    const pictures = { sendsImages: true } as unknown as ChatSession;
+    expect(chatPermissions(testChat(), session())).toMatchObject({
+      attach: true,
+      sendImages: false,
+    });
+    expect(chatPermissions(testChat(), pictures).sendImages).toBe(true);
+    expect(chatPermissions(testChat({ id: SAVED_LOCAL_ID }), undefined)).toMatchObject({
+      attach: true,
+      sendImages: true,
+    });
+    expect(chatPermissions(testChat({ id: botChatId('echo') }), undefined)).toMatchObject({
+      attach: false,
+      sendImages: false,
+    });
+  });
+
+  it('mentions in a group and shows group details outside a DM', () => {
+    const both = session('mentionCandidates', 'getGroupInfo');
+    expect(chatPermissions(testChat(), both)).toMatchObject({
+      mention: false,
+      seeGroupInfo: false,
+    });
+    expect(chatPermissions(testChat({ kind: 'group' }), both)).toMatchObject({
+      mention: true,
+      seeGroupInfo: true,
+    });
+    expect(chatPermissions(testChat({ kind: 'channel' }), both)).toMatchObject({
+      mention: false,
+      seeGroupInfo: true,
+    });
+  });
+
+  it('bans and mutes members only for a group’s owner or admin, where the session can', () => {
+    const moderates = session('banMember', 'setMemberMuted');
+    expect(
+      chatPermissions(testChat({ kind: 'group', selfRole: 'admin' }), moderates)
+    ).toMatchObject({ ban: true, muteMembers: true });
+    expect(
+      chatPermissions(testChat({ kind: 'group', selfRole: 'member' }), moderates)
+    ).toMatchObject({ ban: false, muteMembers: false });
+    expect(
+      chatPermissions(testChat({ kind: 'group', selfRole: 'owner' }), session())
+    ).toMatchObject({ ban: false, muteMembers: false });
   });
 });

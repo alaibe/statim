@@ -13,7 +13,7 @@ import { type PluginRegistry, worksOn } from '@/core/plugins/registry';
 import type { SlashCommand } from '@/core/plugins/types';
 import { errorMessage } from '@/core/errors';
 
-import { useSupports } from './use-supports';
+import { useChatSession } from './use-chat-permissions';
 
 async function respondIn(chatId: ChatId, content: MessageContent | string) {
   const body = toContent(content);
@@ -75,7 +75,7 @@ export function useCommandDispatch({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { session } = useSupports(chatId);
+  const session = useChatSession(chatId);
   const commands = useSyncExternalStore(
     registry.subscribe,
     () => registry.commandListFor(chatId, scope),
