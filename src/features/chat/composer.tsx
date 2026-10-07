@@ -11,6 +11,7 @@ import {
   Icon,
   IconButton,
   Pressable,
+  type SheetAction,
   springLayout,
   Text,
   useThemeColors,
@@ -255,16 +256,7 @@ export function Composer({
         {canAttach && value.trim().length === 0 && !busy ? (
           <VoiceRecorder onRecorded={sendContent} onError={setError} />
         ) : (
-          <IconButton
-            testID="composer-send"
-            icon={busy ? 'ellipsis-horizontal' : 'arrow-up'}
-            label="Send"
-            surface={canSend ? 'brand' : 'outline'}
-            tone={canSend ? 'brand-on' : 'subtle'}
-            size={20}
-            disabled={!canSend}
-            onPress={() => void submit()}
-          />
+          <SendButton busy={busy} canSend={canSend} onPress={() => void submit()} />
         )}
       </Animated.View>
 
@@ -283,44 +275,75 @@ export function Composer({
         />
       ) : null}
 
-      <ActionSheet
+      <AttachSheet
         visible={attaching}
         onClose={() => setAttaching(false)}
-        title="Attach"
-        actions={[
-          ...(carriesImages
-            ? [
-                {
-                  label: 'Photo library',
-                  icon: 'images-outline' as const,
-                  onPress: () => attach(pickImage),
-                },
-              ]
-            : []),
-          ...(sendsVideo
-            ? [
-                {
-                  label: 'Video',
-                  icon: 'videocam-outline' as const,
-                  onPress: () => attach(pickVideo),
-                },
-              ]
-            : []),
-          ...(carriesImages
-            ? [
-                {
-                  label: 'Take a photo',
-                  icon: 'camera-outline' as const,
-                  onPress: () => attach(takePhoto),
-                },
-              ]
-            : []),
-          { label: 'File', icon: 'document-outline', onPress: () => attach(pickFile) },
-          ...(carriesImages
-            ? [{ label: 'GIF', icon: 'happy-outline' as const, onPress: () => openMedia('gifs') }]
-            : []),
-        ]}
+        carriesImages={carriesImages}
+        sendsVideo={sendsVideo}
+        onAttach={(pick) => void attach(pick)}
+        onGifs={() => openMedia('gifs')}
       />
     </View>
+  );
+}
+
+function AttachSheet({
+  visible,
+  onClose,
+  carriesImages,
+  sendsVideo,
+  onAttach,
+  onGifs,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  carriesImages: boolean;
+  sendsVideo: boolean;
+  onAttach: (pick: () => Promise<MessageContent | null>) => void;
+  onGifs: () => void;
+}) {
+  const actions: SheetAction[] = [];
+  if (carriesImages) {
+    actions.push({
+      label: 'Photo library',
+      icon: 'images-outline',
+      onPress: () => onAttach(pickImage),
+    });
+  }
+  if (sendsVideo) {
+    actions.push({ label: 'Video', icon: 'videocam-outline', onPress: () => onAttach(pickVideo) });
+  }
+  if (carriesImages) {
+    actions.push({
+      label: 'Take a photo',
+      icon: 'camera-outline',
+      onPress: () => onAttach(takePhoto),
+    });
+  }
+  actions.push({ label: 'File', icon: 'document-outline', onPress: () => onAttach(pickFile) });
+  if (carriesImages) actions.push({ label: 'GIF', icon: 'happy-outline', onPress: onGifs });
+  return <ActionSheet visible={visible} onClose={onClose} title="Attach" actions={actions} />;
+}
+
+function SendButton({
+  busy,
+  canSend,
+  onPress,
+}: {
+  busy: boolean;
+  canSend: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <IconButton
+      testID="composer-send"
+      icon={busy ? 'ellipsis-horizontal' : 'arrow-up'}
+      label="Send"
+      surface={canSend ? 'brand' : 'outline'}
+      tone={canSend ? 'brand-on' : 'subtle'}
+      size={20}
+      disabled={!canSend}
+      onPress={onPress}
+    />
   );
 }
