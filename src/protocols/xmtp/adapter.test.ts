@@ -232,3 +232,58 @@ it('drops what a blocked DM streams, even before the stream hears of the block',
   await session.streamMessages((message) => received.push(message.id));
   expect(received).toEqual([]);
 });
+
+const joined = (id: string, sentMs: number) => ({
+  ...text(id, sentMs),
+  contentTypeId: 'xmtp.org/group_updated:1.0',
+  nativeContent: {
+    groupUpdated: {
+      membersAdded: [{ inboxId: 'peer' }],
+      membersRemoved: [],
+      metadataFieldsChanged: [],
+    },
+  },
+});
+
+it('leaves who joined out of a DM, in its history, preview and stream', async () => {
+  const fresh = {
+    ...dm,
+    lastMessage: joined('created', 1_000),
+    messages: async () => [joined('created', 1_000)],
+  };
+  const session = await sessionWith([fresh], [joined('created', 1_000), text('hello', 2_000)]);
+  const received: string[] = [];
+
+  const [listed] = await session.listChats();
+  const history = await session.getMessages('dm' as never);
+  await session.streamMessages((message) => received.push(message.id));
+
+  expect(listed.lastMessage).toBeUndefined();
+  expect(history).toEqual([]);
+  expect(received).toEqual(['hello']);
+});
+
+it('keeps who joined in a group', async () => {
+  const group = {
+    id: 'group',
+    topic: '/xmtp/mls/1/g-group/proto',
+    version: 'group',
+    createdAt: 1,
+    state: 'allowed',
+    groupName: 'Crew',
+    members: async () => [],
+    lastMessage: joined('created', 1_000),
+    messages: async () => [joined('created', 1_000)],
+  };
+  const session = await sessionWith([group], [joined('created', 1_000)]);
+  const received: string[] = [];
+
+  const [listed] = await session.listChats();
+  const history = await session.getMessages('group' as never);
+  await session.streamMessages((message) => received.push(message.id));
+
+  const system = { kind: 'system', text: '1 joined' };
+  expect(listed.lastMessage?.content).toEqual(system);
+  expect(history.map((message) => message.content)).toEqual([system]);
+  expect(received).toEqual(['created']);
+});

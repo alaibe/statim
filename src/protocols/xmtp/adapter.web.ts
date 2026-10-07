@@ -258,8 +258,11 @@ export class XmtpSession implements ChatSession {
       limit: BigInt(opts?.limit ?? 100),
       direction: SortDirection.Descending,
     });
+    const isDm = conversation instanceof Dm;
     const converted = await Promise.all(
-      messages.filter((m) => !isReadReceipt(m)).map((m) => this.toMessage(m, id))
+      messages
+        .filter((m) => !isReadReceipt(m) && !(isDm && isGroupUpdated(m)))
+        .map((m) => this.toMessage(m, id))
     );
     return converted.reverse();
   }
@@ -500,6 +503,11 @@ export class XmtpSession implements ChatSession {
         message.senderInboxId !== this.self.participantId
       )
         return;
+      if (
+        isGroupUpdated(message) &&
+        (await this.client.conversations.getConversationById(message.conversationId)) instanceof Dm
+      )
+        return;
       onMessage(await this.toMessage(message, protocolChatId(message.conversationId)));
     });
   }
@@ -606,7 +614,7 @@ export class XmtpSession implements ChatSession {
     ]);
     if (isBlocked) this.blockedDmIds.add(raw.id);
     else this.blockedDmIds.delete(raw.id);
-    const last = recent.find((m) => !isReadReceipt(m));
+    const last = recent.find((m) => !isReadReceipt(m) && (isGroup || !isGroupUpdated(m)));
     const lastMessage =
       current() && last ? await this.toMessage(last, protocolChatId(raw.id)) : undefined;
 

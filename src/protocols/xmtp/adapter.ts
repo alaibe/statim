@@ -215,7 +215,11 @@ export class XmtpSession implements ChatSession {
     if (!conversation) return [];
 
     const messages = await conversation.messages({ limit: opts?.limit ?? 100 });
-    return (await Promise.all(messages.map((m) => this.toMessage(m, id)))).reverse();
+    const shown =
+      conversation.version === ConversationVersion.DM
+        ? messages.filter((m) => !isGroupUpdate(m))
+        : messages;
+    return (await Promise.all(shown.map((m) => this.toMessage(m, id)))).reverse();
   }
 
   async countUnread(id: ProtocolChatId, since: number): Promise<number> {
@@ -456,6 +460,7 @@ export class XmtpSession implements ChatSession {
           (await this.client.conversations.findConversationByTopic(message.topic))?.id;
         if (!id || this.closed) return;
         if (this.blockedDmIds.has(id) && message.senderInboxId !== this.self.participantId) return;
+        if (isGroupUpdate(message) && (await this.isDm(id))) return;
         const chatId = protocolChatId(id);
         const deletedId = message.nativeContent?.deleteMessage?.messageId;
         if (deletedId) {
@@ -519,7 +524,7 @@ export class XmtpSession implements ChatSession {
 
     const [isBlocked, lastMessage] = await Promise.all([
       peerBlocked,
-      current() ? this.previewOf(raw) : undefined,
+      current() ? this.previewOf(raw, isGroup) : undefined,
     ]);
     if (isBlocked) this.blockedDmIds.add(raw.id);
     else this.blockedDmIds.delete(raw.id);
@@ -537,11 +542,21 @@ export class XmtpSession implements ChatSession {
     };
   }
 
-  private async previewOf(raw: XmtpConversation<any>): Promise<ProtocolMessage | undefined> {
+  private async isDm(id: string): Promise<boolean> {
+    const conversation = await this.client.conversations.findConversation(toXmtpId(id));
+    return conversation?.version === ConversationVersion.DM;
+  }
+
+  private async previewOf(
+    raw: XmtpConversation<any>,
+    isGroup: boolean
+  ): Promise<ProtocolMessage | undefined> {
     const last = raw.lastMessage;
     if (!last) return undefined;
-    const shown = isReadReceipt(last)
-      ? (await raw.messages({ limit: 5 })).find((message) => !isReadReceipt(message))
+    const hidden = (message: DecodedMessage<any>) =>
+      isReadReceipt(message) || (!isGroup && isGroupUpdate(message));
+    const shown = hidden(last)
+      ? (await raw.messages({ limit: 5 })).find((message) => !hidden(message))
       : last;
     return shown ? this.toMessage(shown, protocolChatId(raw.id)) : undefined;
   }
@@ -638,6 +653,10 @@ function toXmtpId(id: string): XmtpConversationId {
 
 function isReadReceipt(message: DecodedMessage<any>): boolean {
   return message.contentTypeId.startsWith('xmtp.org/readReceipt:');
+}
+
+function isGroupUpdate(message: DecodedMessage<any>): boolean {
+  return message.contentTypeId.startsWith('xmtp.org/group_updated:');
 }
 
 function parseTypeId(contentTypeId: string): string {
