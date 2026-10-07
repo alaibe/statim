@@ -28,4 +28,22 @@ describe('/poll', () => {
       'Soup bar',
     ]);
   });
+
+  it('refuses where the chat’s network has no polls', async () => {
+    const createPoll = jest.fn(async () => {});
+    useChatStore.setState({
+      chats: [testChat({ id: 'matrix-42', kind: 'group', title: 'Slack', lacks: ['poll'] })],
+      createPoll,
+    });
+    const parsed = parseCommand('/poll "Where to eat?" "Pizza place" "Soup bar"')!;
+    expect(
+      await pollCommand.run({
+        ...parsed,
+        chatId: asChatId('matrix-42'),
+        respond: async () => {},
+        context: {} as never,
+      })
+    ).toMatchObject({ type: 'error' });
+    expect(createPoll).not.toHaveBeenCalled();
+  });
 });

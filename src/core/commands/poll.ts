@@ -8,6 +8,9 @@ export const pollCommand: SlashCommand = {
   requires: 'createPoll',
   showIn: ['group', 'channel'],
   async run({ args, chatId }) {
+    const chat = useChatStore.getState().chats.find((c) => c.id === chatId);
+    if (chat?.lacks?.includes('poll'))
+      return { type: 'error', message: 'Polls do not reach the network this chat is on.' };
     const [question, ...options] = args.map((value) => value.trim());
     if (!question || options.length < 2 || options.length > 10)
       return { type: 'error', message: 'Use /poll "Question" "Choice one" "Choice two".' };

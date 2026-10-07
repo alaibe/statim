@@ -134,6 +134,20 @@ export type ConsentDecision = Exclude<Consent, 'request'>;
 
 export type GroupRole = 'member' | 'admin' | 'owner';
 
+/** What a chat can carry that the network at the far end of a bridge may not. */
+export type ChatFeature =
+  | 'edit'
+  | 'delete'
+  | 'pin'
+  | 'poll'
+  | 'thread'
+  | 'react'
+  | 'images'
+  | 'video'
+  | 'ban'
+  | 'remove'
+  | 'invite';
+
 export interface GroupMember {
   readonly id: ParticipantId;
   readonly role: GroupRole;
@@ -171,6 +185,8 @@ interface ChatFields<Id extends AnyChatId> {
   /** Unset where the protocol does not say; pinning is then offered and deleting others' messages is not. */
   readonly canPin?: boolean;
   readonly canDeleteOthers?: boolean;
+  /** What the chat's network lacks; unset where nothing says. */
+  readonly lacks?: readonly ChatFeature[];
 }
 
 export type ProtocolChat = ChatFields<ProtocolChatId>;

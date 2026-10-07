@@ -138,4 +138,53 @@ describe('chatPermissions', () => {
       chatPermissions(testChat({ kind: 'group', selfRole: 'owner' }), session())
     ).toMatchObject({ ban: false, muteMembers: false });
   });
+
+  it('withholds what the chat’s network lacks, whatever the session can do', () => {
+    const everything = Object.assign(
+      session('editMessage', 'deleteMessage', 'setMessagePinned', 'votePoll', 'banMember'),
+      { threads: true, sendsImages: true, sendsVideo: true }
+    );
+    const admin = { kind: 'group', selfRole: 'admin', canDeleteOthers: true } as const;
+    expect(chatPermissions(testChat(admin), everything)).toMatchObject({
+      edit: true,
+      delete: true,
+      deleteOthers: true,
+      pin: true,
+      vote: true,
+      thread: true,
+      react: true,
+      sendImages: true,
+      sendVideo: true,
+      addMembers: true,
+      removeMembers: true,
+      ban: true,
+    });
+    const lacks = [
+      'edit',
+      'delete',
+      'pin',
+      'poll',
+      'thread',
+      'react',
+      'images',
+      'video',
+      'invite',
+      'remove',
+      'ban',
+    ] as const;
+    expect(chatPermissions(testChat({ ...admin, lacks }), everything)).toMatchObject({
+      edit: false,
+      delete: false,
+      deleteOthers: false,
+      pin: false,
+      vote: false,
+      thread: false,
+      react: false,
+      sendImages: false,
+      sendVideo: false,
+      addMembers: false,
+      removeMembers: false,
+      ban: false,
+    });
+  });
 });

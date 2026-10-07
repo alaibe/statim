@@ -21,7 +21,17 @@ import {
  * mapping and the sign-in state machine; matrix-rust-sdk is not under test.
  */
 
-afterEach(() => jest.useRealTimers());
+const realFetch = global.fetch;
+beforeEach(() => {
+  global.fetch = jest.fn(async () => ({
+    ok: true,
+    text: async () => '{}',
+  })) as unknown as typeof fetch;
+});
+afterEach(() => {
+  jest.useRealTimers();
+  global.fetch = realFetch;
+});
 
 async function connect(session: MxSession | null = SESSION, prepare?: (api: FakeMatrix) => void) {
   const api = new FakeMatrix();
@@ -218,6 +228,49 @@ describe('MatrixSession chats', () => {
     await flush();
 
     expect(chats.findLast((c) => c.id === chatIdOf(early.id))).toMatchObject({ network: 'slack' });
+  });
+
+  it('withholds what a bridged room’s network lacks, once its bridge has said', async () => {
+    const bot = '@instagrambot:example.org';
+    const portal = room('!ig:example.org', {
+      name: 'Dana',
+      heroes: [bot, '@instagram_1:example.org'],
+      elevated: [bot],
+      memberCount: 3,
+    });
+    const fetchMock = jest.fn(async (_url: string, _init: { body: string }) => ({
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          rooms: {
+            [portal.id]: {
+              required_state: [
+                {
+                  type: 'com.beeper.room_features',
+                  state_key: 'meta',
+                  content: { edit: 2, delete: 2, reaction: 2, file: { 'm.image': {} } },
+                },
+              ],
+            },
+          },
+        }),
+    }));
+    global.fetch = fetchMock as unknown as typeof fetch;
+    const { chat } = await connect(SESSION, (api) => api.roomsById.set(portal.id, portal));
+    const chats: ProtocolChat[] = [];
+    await chat.streamChats((c) => chats.push(c));
+    expect(chats.at(-1)?.lacks).toBeUndefined();
+
+    await flush();
+    await flush();
+
+    expect(chats.at(-1)).toMatchObject({ lacks: ['poll', 'thread', 'pin', 'video'] });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toContain('/org.matrix.simplified_msc3575/sync');
+    expect(JSON.parse(init.body).room_subscriptions).toEqual({
+      [portal.id]: { required_state: [['com.beeper.room_features', '*']], timeline_limit: 0 },
+    });
   });
 
   it('reads the roster of a portal whose bridge bot has no power, and finds a DM', async () => {

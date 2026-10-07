@@ -47,6 +47,7 @@ import {
 } from './ids';
 import { Homeserver } from './homeserver';
 import { PresenceWatcher } from './presence';
+import { RoomFeatureStore } from './room-features';
 import { searchHomeserver } from './search';
 import { inviteLink, knocks } from './join-requests';
 import { BridgeProvisioning, type MatrixCapabilities } from './provisioning';
@@ -98,6 +99,13 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     () => this.homeserver(),
     (userId) => this.announceDmsWith(userId)
   );
+  private readonly features = new RoomFeatureStore(
+    () => this.homeserver(),
+    (roomId) => {
+      const room = this.rooms.get(roomId);
+      if (room && included(room)) this.announce(room);
+    }
+  );
 
   private constructor(private readonly options: MatrixConnectOptions) {}
 
@@ -136,6 +144,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     this.awaitedMedia.clear();
     this.avatars.clear();
     this.presence.clear();
+    this.features.clear();
     this.unsubscribe?.();
     await this.api.close();
     await this.start();
@@ -693,6 +702,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     const selfId = this.self.participantId;
     const roster = this.rosterOf(room.id);
     const network = this.networkOf(room, roster);
+    const lacks = network ? this.features.lacks(room.id) : undefined;
     const humans = network && !room.isDm ? humansIn(room, roster) : undefined;
     // mautrix-discord leaves its bot at default power, so only the roster tells it apart.
     if (humans === 3 && !roster && room.membership === 'joined') void this.membersOf(room.id);
@@ -723,6 +733,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
       ...(room.markedUnread ? { markedUnread: true } : {}),
       canPin: room.canPin,
       canDeleteOthers: room.canDeleteOthers,
+      ...(lacks?.length ? { lacks } : {}),
       consent: room.membership === 'invited' ? 'request' : 'accepted',
       selfRole: isDm ? undefined : room.selfRole,
     };

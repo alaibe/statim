@@ -140,7 +140,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
       isGroup={isGroup}
       onCommand={runCommand}
       actionsFor={actionsFor}
-      onReact={item.privateToMe ? undefined : onReactTo}
+      onReact={item.privateToMe || !permissions.react ? undefined : onReactTo}
       onVote={onVote}
       replies={onOpenThread ? (replyCounts.get(item.id) ?? 0) : 0}
       onOpenThread={onOpenThread}
