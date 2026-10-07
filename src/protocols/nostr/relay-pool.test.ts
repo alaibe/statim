@@ -156,6 +156,35 @@ describe('subscriptions', () => {
     expect(seen).toHaveLength(0);
   });
 
+  it('replays subscriptions once authentication succeeds', () => {
+    const factory = fakeRelayFactory();
+    const auth = anEvent();
+    const pool = new RelayPool({
+      urls: ['wss://a.example'],
+      createSocket: factory.create,
+      authenticate: () => auth,
+    });
+    const relay = factory.relays[0];
+    relay.open();
+    pool.subscribe({ id: 'dm', filters: [{ kinds: [1059] }], onEvent: () => {} });
+    relay.onmessage?.({ data: JSON.stringify(['CLOSED', 'dm', 'auth-required: sign in']) });
+    expect(pool.states[0].error).toBe('auth-required: sign in');
+    relay.onmessage?.({ data: JSON.stringify(['AUTH', 'challenge']) });
+    relay.acknowledge(auth.id, true);
+    expect(relay.sent.filter((m) => m[0] === 'REQ')).toHaveLength(2);
+    expect(pool.states[0].error).toBeUndefined();
+    pool.close();
+  });
+
+  it("keeps a relay's last notice as its error", () => {
+    const factory = fakeRelayFactory();
+    const pool = new RelayPool({ urls: ['wss://a.example'], createSocket: factory.create });
+    factory.relays[0].open();
+    factory.relays[0].notice('slow down');
+    expect(pool.states[0].error).toBe('slow down');
+    pool.close();
+  });
+
   it('shrugs off junk a relay emits', () => {
     const factory = fakeRelayFactory();
     const pool = new RelayPool({ urls: ['wss://a.example'], createSocket: factory.create });
@@ -257,6 +286,47 @@ describe('publishing', () => {
     expect(relay.published).toEqual([event, event]);
     relay.acknowledge(event.id, true);
     await expect(publishing).resolves.toBeUndefined();
+  });
+
+  it('fails a publication held for authentication when authentication is refused', async () => {
+    const factory = fakeRelayFactory();
+    const auth = anEvent('auth');
+    const pool = new RelayPool({
+      urls: ['wss://a.example'],
+      createSocket: factory.create,
+      authenticate: () => auth,
+    });
+    const relay = factory.relays[0];
+    relay.autoAcceptPublications = false;
+    relay.open();
+
+    const publishing = pool.publish(anEvent('private'));
+    relay.onmessage?.({ data: JSON.stringify(['AUTH', 'challenge']) });
+    relay.acknowledge(relay.published[0].id, false, 'auth-required: sign in');
+    relay.acknowledge(auth.id, false, 'restricted: members only');
+    await expect(publishing).rejects.toThrow('restricted: members only');
+  });
+
+  it('fails a held publication that cannot be sent again after authentication', async () => {
+    const factory = fakeRelayFactory();
+    const auth = anEvent('auth');
+    const pool = new RelayPool({
+      urls: ['wss://a.example'],
+      createSocket: factory.create,
+      authenticate: () => auth,
+    });
+    const relay = factory.relays[0];
+    relay.autoAcceptPublications = false;
+    relay.open();
+
+    const publishing = pool.publish(anEvent('private'));
+    relay.onmessage?.({ data: JSON.stringify(['AUTH', 'challenge']) });
+    relay.acknowledge(relay.published[0].id, false, 'auth-required: sign in');
+    relay.send = () => {
+      throw new Error('socket gone');
+    };
+    relay.acknowledge(auth.id, true);
+    await expect(publishing).rejects.toThrow('Relay write failed after authentication');
   });
 });
 
