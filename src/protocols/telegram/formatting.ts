@@ -1,4 +1,10 @@
-import { type Block, hasMarkup, listMarker, parseMarkdown } from '@/core/messaging/markdown';
+import {
+  type Block,
+  hasMarkup,
+  listMarker,
+  parseMarkdown,
+  type Span,
+} from '@/core/messaging/markdown';
 import { mentionHref } from '@/core/messaging/mentions';
 
 import type { TdObject } from './api';
@@ -171,13 +177,7 @@ export function markdownToFormatted(markdown: string): TdFormattedText {
           for (const span of block.spans) {
             const from = text.length;
             text += span.text;
-            if (span.style.bold) entity(from, { '@type': 'textEntityTypeBold' });
-            if (span.style.italic) entity(from, { '@type': 'textEntityTypeItalic' });
-            if (span.style.strike) entity(from, { '@type': 'textEntityTypeStrikethrough' });
-            if (span.style.code) entity(from, { '@type': 'textEntityTypeCode' });
-            if (span.mention && /^\d+$/.test(span.mention))
-              entity(from, { '@type': 'textEntityTypeMentionName', user_id: Number(span.mention) });
-            else if (span.href) entity(from, { '@type': 'textEntityTypeTextUrl', url: span.href });
+            for (const type of spanEntityTypes(span)) entity(from, type);
           }
           if (block.kind === 'heading') entity(start, { '@type': 'textEntityTypeBold' });
           break;
@@ -210,4 +210,23 @@ export function markdownToFormatted(markdown: string): TdFormattedText {
 
   write(parseMarkdown(markdown));
   return { '@type': 'formattedText', text, entities };
+}
+
+const STYLE_ENTITIES = [
+  ['bold', 'textEntityTypeBold'],
+  ['italic', 'textEntityTypeItalic'],
+  ['strike', 'textEntityTypeStrikethrough'],
+  ['code', 'textEntityTypeCode'],
+] as const;
+
+function spanEntityTypes(span: Span): TdObject[] {
+  const types: TdObject[] = STYLE_ENTITIES.filter(([style]) => span.style[style]).map(
+    ([, type]) => ({ '@type': type })
+  );
+  if (span.mention && /^\d+$/.test(span.mention)) {
+    types.push({ '@type': 'textEntityTypeMentionName', user_id: Number(span.mention) });
+  } else if (span.href) {
+    types.push({ '@type': 'textEntityTypeTextUrl', url: span.href });
+  }
+  return types;
 }
