@@ -177,80 +177,13 @@ export class RelayPool {
     if (!Array.isArray(message) || typeof message[0] !== 'string') return;
 
     switch (message[0]) {
-      case 'AUTH': {
-        const challenge = message[1];
-        if (
-          !this.authenticate ||
-          typeof challenge !== 'string' ||
-          connection.authChallenge === challenge
-        )
-          return;
-        connection.authChallenge = challenge;
-        try {
-          const event = this.authenticate(connection.url, challenge);
-          connection.authEventId = event.id;
-          // Authentication belongs to this socket, never to the public event feed.
-          this.sendTo(connection, ['AUTH', event]);
-        } catch (error) {
-          connection.error = describe(error);
-        }
-        return;
-      }
-      case 'OK': {
-        const eventId = message[1];
-        const publication =
-          typeof eventId === 'string' ? this.publications.get(eventId) : undefined;
-        if (publication) {
-          if (message[2] === true) {
-            this.finishPublication(eventId);
-          } else {
-            const reason = String(message[3] || 'Relay rejected the event');
-            if (/auth/i.test(reason) && connection.authEventId) {
-              publication.authBlocked.add(connection.url);
-            } else this.failPublicationRelay(eventId, connection.url, reason);
-          }
-          return;
-        }
-
-        if (!connection.authEventId || eventId !== connection.authEventId) return;
-        connection.authEventId = undefined;
-        if (message[2] === true) {
-          connection.error = undefined;
-          // AUTH does not reopen the DM requests rejected before authentication.
-          for (const subscription of this.subscriptions.values()) {
-            this.sendTo(connection, ['REQ', subscription.id, ...subscription.filters]);
-          }
-          for (const pending of this.publications.values()) {
-            if (!pending.authBlocked.delete(connection.url)) continue;
-            if (!this.sendTo(connection, ['EVENT', pending.event])) {
-              this.failPublicationRelay(
-                pending.event.id,
-                connection.url,
-                'Relay write failed after authentication'
-              );
-            }
-          }
-        } else {
-          connection.error = String(message[3] || 'Relay authentication failed');
-          for (const pending of [...this.publications.values()]) {
-            if (pending.authBlocked.has(connection.url)) {
-              this.failPublicationRelay(pending.event.id, connection.url, connection.error);
-            }
-          }
-        }
-        return;
-      }
+      case 'AUTH':
+        return this.onAuth(connection, message[1]);
+      case 'OK':
+        return this.onOk(connection, message[1], message[2] === true, message[3]);
       case 'EVENT': {
         const [, subscriptionId, event] = message as [string, string, NostrEvent];
-        const subscription = this.subscriptions.get(subscriptionId);
-        if (!subscription || !event?.id) return;
-        if (this.seen.has(event.id) || this.inFlight.has(event.id)) return;
-        this.inFlight.add(event.id);
-        Promise.resolve(subscription.onEvent(event))
-          .then(() => this.remember(event.id))
-          .catch(() => {})
-          .finally(() => this.inFlight.delete(event.id));
-        return;
+        return this.onEvent(subscriptionId, event);
       }
       case 'EOSE': {
         const [, subscriptionId] = message as [string, string];
@@ -258,13 +191,77 @@ export class RelayPool {
         return;
       }
       case 'NOTICE':
-      case 'CLOSED': {
+      case 'CLOSED':
         connection.error = String(message[message.length - 1] ?? '');
         return;
-      }
-      default:
-        return;
     }
+  }
+
+  private onAuth(connection: Connection, challenge: unknown) {
+    if (!this.authenticate || typeof challenge !== 'string') return;
+    if (connection.authChallenge === challenge) return;
+    connection.authChallenge = challenge;
+    try {
+      const event = this.authenticate(connection.url, challenge);
+      connection.authEventId = event.id;
+      // Authentication belongs to this socket, never to the public event feed.
+      this.sendTo(connection, ['AUTH', event]);
+    } catch (error) {
+      connection.error = describe(error);
+    }
+  }
+
+  private onOk(connection: Connection, eventId: unknown, accepted: boolean, reason: unknown) {
+    const publication = typeof eventId === 'string' ? this.publications.get(eventId) : undefined;
+    if (publication) {
+      if (accepted) return this.finishPublication(publication.event.id);
+      const why = String(reason || 'Relay rejected the event');
+      if (/auth/i.test(why) && connection.authEventId) publication.authBlocked.add(connection.url);
+      else this.failPublicationRelay(publication.event.id, connection.url, why);
+      return;
+    }
+    if (!connection.authEventId || eventId !== connection.authEventId) return;
+    connection.authEventId = undefined;
+    if (accepted) this.authenticated(connection);
+    else this.authenticationFailed(connection, String(reason || 'Relay authentication failed'));
+  }
+
+  private authenticated(connection: Connection) {
+    connection.error = undefined;
+    // AUTH does not reopen the DM requests rejected before authentication.
+    for (const subscription of this.subscriptions.values()) {
+      this.sendTo(connection, ['REQ', subscription.id, ...subscription.filters]);
+    }
+    for (const pending of this.publications.values()) {
+      if (!pending.authBlocked.delete(connection.url)) continue;
+      if (!this.sendTo(connection, ['EVENT', pending.event])) {
+        this.failPublicationRelay(
+          pending.event.id,
+          connection.url,
+          'Relay write failed after authentication'
+        );
+      }
+    }
+  }
+
+  private authenticationFailed(connection: Connection, reason: string) {
+    connection.error = reason;
+    for (const pending of [...this.publications.values()]) {
+      if (pending.authBlocked.has(connection.url)) {
+        this.failPublicationRelay(pending.event.id, connection.url, reason);
+      }
+    }
+  }
+
+  private onEvent(subscriptionId: string, event: NostrEvent) {
+    const subscription = this.subscriptions.get(subscriptionId);
+    if (!subscription || !event?.id) return;
+    if (this.seen.has(event.id) || this.inFlight.has(event.id)) return;
+    this.inFlight.add(event.id);
+    Promise.resolve(subscription.onEvent(event))
+      .then(() => this.remember(event.id))
+      .catch(() => {})
+      .finally(() => this.inFlight.delete(event.id));
   }
 
   private remember(id: string) {
