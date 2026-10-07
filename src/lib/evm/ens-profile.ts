@@ -36,7 +36,7 @@ async function ensPaidUntil(name: string): Promise<Date | null> {
   }
 }
 
-interface EnsProfile {
+export interface EnsProfile {
   name: string;
   avatar: string | null;
   description: string | null;
