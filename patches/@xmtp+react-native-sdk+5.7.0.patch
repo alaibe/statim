@@ -15,7 +15,7 @@ index 5a9df29..283afa8 100644
    implementation 'com.facebook.react:react-native:0.71.3'
    implementation "com.daveanthonythomas.moshipack:moshipack:1.0.1"
 diff --git a/node_modules/@xmtp/react-native-sdk/android/src/main/java/expo/modules/xmtpreactnativesdk/XMTPModule.kt b/node_modules/@xmtp/react-native-sdk/android/src/main/java/expo/modules/xmtpreactnativesdk/XMTPModule.kt
-index 53a9353..27835a9 100644
+index 53a9353..e5de499 100644
 --- a/node_modules/@xmtp/react-native-sdk/android/src/main/java/expo/modules/xmtpreactnativesdk/XMTPModule.kt
 +++ b/node_modules/@xmtp/react-native-sdk/android/src/main/java/expo/modules/xmtpreactnativesdk/XMTPModule.kt
 @@ -12,6 +12,7 @@ import expo.modules.kotlin.exception.Exceptions
@@ -49,7 +49,24 @@ index 53a9353..27835a9 100644
          AsyncFunction("dmPeerInboxId") Coroutine { installationId: String, dmId: String ->
              withContext(Dispatchers.IO) {
                  logV("dmPeerInboxId")
-@@ -1807,7 +1816,9 @@ class XMTPModule : Module() {
+@@ -1412,6 +1421,16 @@ class XMTPModule : Module() {
+             }
+         }
+ 
++        AsyncFunction("getLastReadTimes") Coroutine { installationId: String, conversationId: String ->
++            withContext(Dispatchers.IO) {
++                logV("getLastReadTimes")
++                val client = clients[installationId] ?: throw XMTPException("No client")
++                val conversation = client.conversations.findConversation(conversationId)
++                    ?: throw XMTPException("no conversation found for $conversationId")
++                conversation.getLastReadTimes()
++            }
++        }
++
+         AsyncFunction("listConversationMembers") Coroutine { installationId: String, conversationId: String ->
+             withContext(Dispatchers.IO) {
+                 logV("listConversationMembers")
+@@ -1807,7 +1826,9 @@ class XMTPModule : Module() {
                  group.updateDescriptionPermission(getPermissionOption(newPermission))
              }
          }
@@ -86,7 +103,7 @@ index 2fd5799..b4195ee 100644
          ]
          let data = try JSONSerialization.data(withJSONObject: obj)
 diff --git a/node_modules/@xmtp/react-native-sdk/ios/XMTPModule.swift b/node_modules/@xmtp/react-native-sdk/ios/XMTPModule.swift
-index bd7013b..36c8db7 100644
+index bd7013b..942fbe3 100644
 --- a/node_modules/@xmtp/react-native-sdk/ios/XMTPModule.swift
 +++ b/node_modules/@xmtp/react-native-sdk/ios/XMTPModule.swift
 @@ -930,7 +930,7 @@ public class XMTPModule: Module {
@@ -98,3 +115,28 @@ index bd7013b..36c8db7 100644
  				createdAfterNs: queryParams.createdAfterNs,
  				createdBeforeNs: queryParams.createdBeforeNs,
  				lastActivityAfterNs: queryParams.lastActivityAfterNs,
+@@ -1732,6 +1732,24 @@ public class XMTPModule: Module {
+ 			}
+ 		}
+ 
++		AsyncFunction("getLastReadTimes") {
++			(installationId: String, conversationId: String) -> [String: Int64] in
++			guard
++				let client = await clientsManager.getClient(key: installationId)
++			else {
++				throw Error.noClient
++			}
++			guard
++				let conversation = try await client.conversations
++				.findConversation(
++					conversationId: conversationId)
++			else {
++				throw Error.conversationNotFound(
++					"no conversation found for \(conversationId)")
++			}
++			return try conversation.getLastReadTimes()
++		}
++
+ 		AsyncFunction("listConversationMembers") {
+ 			(installationId: String, conversationId: String) -> [String] in
+ 			guard

@@ -40,6 +40,7 @@ import type {
 } from '@/core/messaging/types';
 import { isParticipantId } from '@/core/messaging/bots';
 import { PLUGIN_AUTHORITY } from './codec';
+import { xmtpNative } from './native';
 import { fallbackFilename, INSTALLATION_LIMIT, REVOKED_AND_FULL, xmtpEnvironment } from './shared';
 import type { AccountStorage } from '@/storage/account';
 
@@ -126,7 +127,7 @@ export class XmtpSession implements ChatSession {
 
   private readonly addressCache = new Map<ParticipantId, string>();
   private readonly deletedListeners = new Set<(id: ProtocolChatId, ids: MessageId[]) => void>();
-  /** The newest read receipt from someone else in each chat, gathered from what was fetched. */
+  /** The newest read mark announced for each chat. */
   private readonly readMarks = new Map<string, number>();
   /** In each chat, a time no message of yours was sent after. */
   private readonly sentUpTo = new Map<string, number>();
@@ -220,11 +221,6 @@ export class XmtpSession implements ChatSession {
     if (!conversation) return [];
 
     const messages = await conversation.messages({ limit: opts?.limit ?? 100 });
-    if (this.noteReceipts(conversation.id, messages)) {
-      this.emitChat(conversation).catch((error) =>
-        console.warn('[xmtp] could not announce a chat', error)
-      );
-    }
     const isDm = conversation.version === ConversationVersion.DM;
     const shown = messages.filter((m) => !isReadReceipt(m) && !(isDm && isGroupUpdate(m)));
     return (await Promise.all(shown.map((m) => this.toMessage(m, id)))).reverse();
@@ -478,8 +474,15 @@ export class XmtpSession implements ChatSession {
           const conversation = await this.client.conversations.findConversationByTopic(
             message.topic
           );
-          if (conversation && !this.closed && this.noteReceipts(conversation.id, [message])) {
-            await this.emitChat(conversation);
+          if (
+            conversation &&
+            !this.closed &&
+            this.noteRead(conversation.id, Math.round(message.sentNs / 1_000_000))
+          ) {
+            await this.emitChat(conversation).catch((error) => {
+              this.readMarks.delete(conversation.id);
+              console.warn('[xmtp] could not announce a chat', error);
+            });
           }
           return;
         }
@@ -553,13 +556,15 @@ export class XmtpSession implements ChatSession {
         blocked === undefined ? this.inboxBlocked(participant) : Promise.resolve(blocked);
     }
 
-    const [isBlocked, lastMessage] = await Promise.all([
+    const [isBlocked, lastMessage, readUpTo] = await Promise.all([
       peerBlocked,
       current() ? this.previewOf(raw, isGroup) : undefined,
+      current() ? this.readUpTo(raw) : undefined,
     ]);
     if (isBlocked) this.blockedDmIds.add(raw.id);
     else this.blockedDmIds.delete(raw.id);
     if (lastMessage) this.noteSent(raw.id, lastMessage.sentAt);
+    if (readUpTo !== undefined) this.noteRead(raw.id, readUpTo);
 
     return {
       id: protocolChatId(raw.id),
@@ -571,25 +576,29 @@ export class XmtpSession implements ChatSession {
       ...(isBlocked ? { blocked: true } : {}),
       selfRole,
       lastMessage,
-      readUpTo: this.readMarks.get(raw.id),
+      readUpTo,
     };
+  }
+
+  private async readUpTo(raw: XmtpConversation<any>): Promise<number | undefined> {
+    const times = await xmtpNative
+      .getLastReadTimes(this.client.installationId, raw.id)
+      .catch(() => ({}) as Record<string, number>);
+    const others = Object.entries(times)
+      .filter(([inboxId]) => inboxId !== this.self.participantId)
+      .map(([, ns]) => Math.round(ns / 1_000_000));
+    return others.length > 0 ? Math.max(...others) : undefined;
   }
 
   private noteSent(id: string, at: number): void {
     this.sentUpTo.set(id, Math.max(at, this.sentUpTo.get(id) ?? 0));
   }
 
-  /** Raises the chat's read mark to the newest receipt in `messages`; whether that can add a tick. */
-  private noteReceipts(id: string, messages: DecodedMessage<any>[]): boolean {
+  /** Raises the chat's read mark to `at`; whether that can add a tick. */
+  private noteRead(id: string, at: number): boolean {
     const known = this.readMarks.get(id) ?? 0;
-    const newest = Math.max(
-      known,
-      ...messages
-        .filter((m) => isReadReceipt(m) && m.senderInboxId !== this.self.participantId)
-        .map((m) => Math.round(m.sentNs / 1_000_000))
-    );
-    if (newest === known) return false;
-    this.readMarks.set(id, newest);
+    if (at <= known) return false;
+    this.readMarks.set(id, at);
     return (this.sentUpTo.get(id) ?? Infinity) > known;
   }
 
@@ -615,7 +624,6 @@ export class XmtpSession implements ChatSession {
     const last = raw.lastMessage;
     if (last && !hidden(last)) return this.toMessage(last, protocolChatId(raw.id));
     const recent = await raw.messages({ limit: 5 });
-    this.noteReceipts(raw.id, recent);
     const shown = recent.find((message) => !hidden(message));
     return shown ? this.toMessage(shown, protocolChatId(raw.id)) : undefined;
   }

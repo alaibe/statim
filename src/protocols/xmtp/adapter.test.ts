@@ -26,6 +26,12 @@ jest.mock('@xmtp/react-native-sdk', () => ({
   Group: class {},
 }));
 
+const mockLastReadTimes = jest.fn();
+
+jest.mock('./native', () => ({
+  xmtpNative: { getLastReadTimes: (...args: unknown[]) => mockLastReadTimes(...args) },
+}));
+
 const client = (inboxId: string, installations = ['this-device']) => ({
   inboxId,
   installationId: 'this-device',
@@ -114,8 +120,26 @@ const receipt = (id: string, sentMs: number) => ({
   nativeContent: { readReceipt: {} },
 });
 
+type Stored = { id: string; topic: string; messages: () => Promise<StoredMessage[]> };
+type StoredMessage = ReturnType<typeof text>;
+
 const findConversationByTopic = jest.fn();
 const setConsentState = jest.fn();
+
+/** What the SDK reads from its database: every receipt stored, as well as those streamed so far. */
+function lastReadTimes(conversations: unknown[], streamedSoFar: StoredMessage[]) {
+  return async (_installation: string, id: string) => {
+    const conversation = (conversations as Stored[]).find((c) => c.id === id);
+    if (!conversation) throw new Error(`no conversation found for ${id}`);
+    const times: Record<string, number> = {};
+    const arrived = streamedSoFar.filter((m) => m.topic === conversation.topic);
+    for (const m of [...(await conversation.messages()), ...arrived]) {
+      if (!m.contentTypeId.startsWith('xmtp.org/readReceipt:')) continue;
+      times[m.senderInboxId] = Math.max(times[m.senderInboxId] ?? 0, m.sentNs);
+    }
+    return times;
+  };
+}
 
 async function sessionWith(
   conversations: unknown[],
@@ -129,6 +153,9 @@ async function sessionWith(
     found(conversations.find((c) => (c as { topic: string }).topic === topic))
   );
   setConsentState.mockReset();
+  const streamedSoFar: StoredMessage[] = [];
+  mockLastReadTimes.mockReset();
+  mockLastReadTimes.mockImplementation(lastReadTimes([...conversations, ...denied], streamedSoFar));
   mockBuild.mockResolvedValue({
     ...client('me'),
     preferences: {
@@ -143,7 +170,10 @@ async function sessionWith(
         found([...conversations, ...denied].find((c) => (c as { id: string }).id === id)),
       findConversationByTopic,
       streamAllMessages: async (onMessage: (message: unknown) => Promise<void>) => {
-        for (const message of streamed) await onMessage(message);
+        for (const message of streamed) {
+          streamedSoFar.push(message as StoredMessage);
+          await onMessage(message);
+        }
       },
       cancelStreamAllMessages: () => {},
       stream: async () => {},
@@ -190,6 +220,32 @@ it('does not count a receipt from another device of your own', async () => {
   const mine = { ...dm, lastMessage: own, messages: async () => [own, text('hello', 2_000)] };
   const [listed] = await (await sessionWith([mine])).listChats();
   expect(listed.readUpTo).toBeUndefined();
+});
+
+it('knows how far a chat was read when no receipt is among its newest messages', async () => {
+  const answered = {
+    ...dm,
+    lastMessage: text('reply', 4_000),
+    messages: async () => [text('reply', 4_000), receipt('seen', 3_000), text('hello', 2_000)],
+  };
+  const [listed] = await (await sessionWith([answered])).listChats();
+  expect(listed.readUpTo).toBe(3_000);
+});
+
+it('lists a chat without a read mark when the SDK cannot say', async () => {
+  const session = await sessionWith([dm]);
+  mockLastReadTimes.mockRejectedValue(new Error('database is locked'));
+  const [listed] = await session.listChats();
+  expect(listed).toMatchObject({ id: 'dm', readUpTo: undefined });
+});
+
+it('does not announce a chat again when you open it', async () => {
+  const session = await sessionWith([dm]);
+  const announced: unknown[] = [];
+  await session.streamChats((chat) => announced.push(chat));
+  await session.getMessages('dm' as never);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(announced).toEqual([]);
 });
 
 it('announces the chat again when a receipt streams in', async () => {
@@ -240,7 +296,6 @@ it('announces a receipt for what you just sent from this device', async () => {
     [receipt('seen again', later)]
   );
   await session.listChats();
-  await session.getMessages('dm' as never);
   await session.send('dm' as never, { kind: 'text', text: 'hi' });
   const announced: (number | undefined)[] = [];
   await session.streamChats((chat) => announced.push(chat.readUpTo));

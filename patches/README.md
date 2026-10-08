@@ -2,7 +2,8 @@
 
 `patch-package` applies everything here through the `postinstall` script. All of
 them work around upstream bugs, and three work around the same one: Swift 6.2.4
-(Xcode 26.3) is stricter than the Expo SDK 57 sources expected.
+(Xcode 26.3) is stricter than the Expo SDK 57 sources expected. The XMTP patch
+also adds one call its React Native SDK leaves out.
 
 | Patch | One line |
 | --- | --- |
@@ -10,7 +11,7 @@ them work around upstream bugs, and three work around the same one: Swift 6.2.4
 | `expo-observe+57.0.24` | `[String: Any]` is not `Sendable` and crosses an isolation boundary |
 | `expo-modules-core+57.0.20` | A `nonisolated(unsafe) weak let` emitter can no longer cross into an actor |
 | `@expo+metro-config+57.0.12` | A lazy `import()` of a `.cjs` entry loads its `.js` sibling instead |
-| `@xmtp+react-native-sdk+5.7.0` | `SwiftUI.Group` collides with `XMTPiOS.Group`; the Android module does not build; neither platform reports install times in milliseconds |
+| `@xmtp+react-native-sdk+5.7.0` | `SwiftUI.Group` collides with `XMTPiOS.Group`; the Android module does not build; neither platform reports install times in milliseconds; nothing says when a chat was last read |
 | `nativewind+4.2.6` | `NATIVEWIND_OS=web` treated as native, so `platformSelect()` reaches the browser |
 | `react-native-reanimated+4.5.1` | Entering elements pinned `position: absolute` after a custom animation |
 
@@ -201,13 +202,33 @@ The iOS wrapper sends the same field in seconds where the TypeScript expects
 milliseconds, so Settings › Devices showed a device added in January 1970. It
 now multiplies by 1,000. Checked by compiling the `XMTPReactNative` pod.
 
+The `getLastReadTimes` hunk on each platform adds a feature rather than fixing a
+bug. Symptom: the phone showed the second tick only after it happened to fetch
+a read receipt, so a chat whose newest messages held none showed one tick, and
+the phone rebuilt a chat each time it fetched receipts to learn its mark.
+
+Cause: the native SDKs this version pins, XMTP iOS and `org.xmtp:android`
+4.10.0-rc2, have `getLastReadTimes()` on a DM, a group and a conversation. It
+is what the desktop reads through `lastReadTimes()` in `@xmtp/browser-sdk`.
+The React Native module does not bridge it.
+
+Fix: an `AsyncFunction("getLastReadTimes")` in `XMTPModule.swift` and in
+`definitionPart3()` of `XMTPModule.kt`. It takes an installation id and a
+conversation id and returns each inbox's newest read receipt in nanoseconds.
+`build/` is not patched; `src/protocols/xmtp/native.ts` calls the native
+module directly. Checked on 2026-10-08 by building the iOS simulator app and
+the arm64 debug APK; the call has not yet run against a live conversation.
+
 **Remove when** `@xmtp/react-native-sdk` publishes a build tested against Expo
-SDK 57 that compiles on Android. Regenerate with:
+SDK 57 that compiles on Android and bridges `getLastReadTimes`. Then read it
+through the SDK and delete `src/protocols/xmtp/native.ts`. Regenerate with:
 
 ```bash
 npx patch-package @xmtp/react-native-sdk \
   --include 'ios/XMTPModule\.swift$|^android/build\.gradle$|XMTPModule\.kt$|InboxStateWrapper\.(kt|swift)$'
-``` This is the concrete form of the "untested on New Architecture" warning
+```
+
+This is the concrete form of the "untested on New Architecture" warning
 `npx expo-doctor` reports for the package.
 
 ---
