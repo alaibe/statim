@@ -128,6 +128,8 @@ export class XmtpSession implements ChatSession {
   private readonly deletedListeners = new Set<(id: ProtocolChatId, ids: MessageId[]) => void>();
   /** The newest read receipt from someone else in each chat, gathered from what was fetched. */
   private readonly readMarks = new Map<string, number>();
+  /** In each chat, a time no message of yours was sent after. */
+  private readonly sentUpTo = new Map<string, number>();
   private readonly chatListeners = new Set<(c: ProtocolChat) => void>();
   private closed = false;
   private readonly blockedDmIds = new Set<string>();
@@ -347,6 +349,16 @@ export class XmtpSession implements ChatSession {
   }
 
   async send(id: ProtocolChatId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
+    const sent = await this.sendContent(id, content, replyTo);
+    this.noteSent(id, Date.now());
+    return sent;
+  }
+
+  private async sendContent(
+    id: ProtocolChatId,
+    content: MessageContent,
+    replyTo?: MessageId
+  ): Promise<MessageId> {
     const conversation = await this.client.conversations.findConversation(toXmtpId(id));
     if (!conversation) throw new Error(`Chat ${id} not found`);
 
@@ -483,7 +495,9 @@ export class XmtpSession implements ChatSession {
           for (const listener of this.deletedListeners) listener(chatId, [deletedId]);
           return;
         }
-        onMessage(await this.toMessage(message, chatId));
+        const converted = await this.toMessage(message, chatId);
+        if (converted.fromMe) this.noteSent(id, converted.sentAt);
+        onMessage(converted);
       },
       'all',
       ['allowed', 'unknown']
@@ -545,6 +559,7 @@ export class XmtpSession implements ChatSession {
     ]);
     if (isBlocked) this.blockedDmIds.add(raw.id);
     else this.blockedDmIds.delete(raw.id);
+    if (lastMessage) this.noteSent(raw.id, lastMessage.sentAt);
 
     return {
       id: protocolChatId(raw.id),
@@ -560,7 +575,11 @@ export class XmtpSession implements ChatSession {
     };
   }
 
-  /** Whether `messages` moved the chat's read mark forward. */
+  private noteSent(id: string, at: number): void {
+    this.sentUpTo.set(id, Math.max(at, this.sentUpTo.get(id) ?? 0));
+  }
+
+  /** Raises the chat's read mark to the newest receipt in `messages`; whether that can add a tick. */
   private noteReceipts(id: string, messages: DecodedMessage<any>[]): boolean {
     const known = this.readMarks.get(id) ?? 0;
     const newest = Math.max(
@@ -571,7 +590,7 @@ export class XmtpSession implements ChatSession {
     );
     if (newest === known) return false;
     this.readMarks.set(id, newest);
-    return true;
+    return (this.sentUpTo.get(id) ?? Infinity) > known;
   }
 
   private async emitChat(conversation: XmtpConversation<any>): Promise<void> {

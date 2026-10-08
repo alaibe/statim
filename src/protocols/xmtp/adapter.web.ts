@@ -160,6 +160,10 @@ export class XmtpSession implements ChatSession {
   private closed = false;
   private readonly blockedDmIds = new Set<string>();
   private readonly chatListeners = new Set<(c: ProtocolChat) => void>();
+  /** The newest read mark announced for each chat. */
+  private readonly readMarks = new Map<string, number>();
+  /** In each chat, a time no message of yours was sent after. */
+  private readonly sentUpTo = new Map<string, number>();
 
   private constructor(
     private readonly client: Client<any>,
@@ -383,6 +387,16 @@ export class XmtpSession implements ChatSession {
   }
 
   async send(id: ProtocolChatId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
+    const sent = await this.sendContent(id, content, replyTo);
+    this.noteSent(id, Date.now());
+    return sent;
+  }
+
+  private async sendContent(
+    id: ProtocolChatId,
+    content: MessageContent,
+    replyTo?: MessageId
+  ): Promise<MessageId> {
     const conversation = await this.client.conversations.getConversationById(id);
     if (!conversation) throw new Error(`Chat ${id} not found`);
 
@@ -500,10 +514,14 @@ export class XmtpSession implements ChatSession {
     return this.consume(stream, async (message) => {
       const fromSelf = message.senderInboxId === this.self.participantId;
       if (isReadReceipt(message)) {
-        if (!fromSelf) {
-          this.announce(message.conversationId).catch((error) =>
-            console.warn('[xmtp] could not announce a chat', error)
-          );
+        if (
+          !fromSelf &&
+          this.noteRead(message.conversationId, Number(message.sentAtNs / 1_000_000n))
+        ) {
+          this.announce(message.conversationId).catch((error) => {
+            this.readMarks.delete(message.conversationId);
+            console.warn('[xmtp] could not announce a chat', error);
+          });
         }
         return;
       }
@@ -513,7 +531,9 @@ export class XmtpSession implements ChatSession {
         (await this.client.conversations.getConversationById(message.conversationId)) instanceof Dm
       )
         return;
-      onMessage(await this.toMessage(message, protocolChatId(message.conversationId)));
+      const converted = await this.toMessage(message, protocolChatId(message.conversationId));
+      if (fromSelf) this.noteSent(message.conversationId, converted.sentAt);
+      onMessage(converted);
     });
   }
 
@@ -625,6 +645,8 @@ export class XmtpSession implements ChatSession {
     const last = recent.find((m) => !isReadReceipt(m) && (isGroup || !isGroupUpdated(m)));
     const lastMessage =
       current() && last ? await this.toMessage(last, protocolChatId(raw.id)) : undefined;
+    if (lastMessage) this.noteSent(raw.id, lastMessage.sentAt);
+    if (readUpTo !== undefined) this.noteRead(raw.id, readUpTo);
 
     return {
       id: protocolChatId(raw.id),
@@ -658,6 +680,18 @@ export class XmtpSession implements ChatSession {
     const chat = await this.toChat(conversation, () => !this.closed);
     if (this.closed) return;
     for (const listener of this.chatListeners) listener(chat);
+  }
+
+  /** Raises the chat's read mark to `at`; whether that can add a tick. */
+  private noteRead(id: string, at: number): boolean {
+    const known = this.readMarks.get(id) ?? 0;
+    if (at <= known) return false;
+    this.readMarks.set(id, at);
+    return (this.sentUpTo.get(id) ?? Infinity) > known;
+  }
+
+  private noteSent(id: string, at: number): void {
+    this.sentUpTo.set(id, Math.max(at, this.sentUpTo.get(id) ?? 0));
   }
 
   private async toMessage(

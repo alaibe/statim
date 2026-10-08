@@ -205,6 +205,49 @@ it('announces the chat again when a receipt streams in', async () => {
   expect(announced).toEqual([3_000]);
 });
 
+it('announces a group once per message of yours, not once per member who read it', async () => {
+  const topic = '/xmtp/mls/1/g-group/proto';
+  const from = (senderInboxId: string, message: object) => ({ ...message, topic, senderInboxId });
+  const group = {
+    ...dm,
+    id: 'group',
+    topic,
+    version: 'group',
+    members: async () => [],
+    messages: async () => [],
+  };
+  const session = await sessionWith(
+    [group],
+    [
+      from('me', text('first', 2_000)),
+      from('ann', receipt('ann read', 3_000)),
+      from('bob', receipt('bob read', 3_100)),
+      from('me', text('second', 4_000)),
+      from('cat', receipt('cat read', 5_000)),
+      from('ann', receipt('ann read again', 5_100)),
+    ]
+  );
+  const announced: (number | undefined)[] = [];
+  await session.streamChats((chat) => announced.push(chat.readUpTo));
+  await session.streamMessages(() => {});
+  expect(announced).toEqual([3_000, 5_000]);
+});
+
+it('announces a receipt for what you just sent from this device', async () => {
+  const later = Date.now() + 60_000;
+  const session = await sessionWith(
+    [{ ...dm, lastMessage: text('hello', 2_000), send: async () => 'sent' }],
+    [receipt('seen again', later)]
+  );
+  await session.listChats();
+  await session.getMessages('dm' as never);
+  await session.send('dm' as never, { kind: 'text', text: 'hi' });
+  const announced: (number | undefined)[] = [];
+  await session.streamChats((chat) => announced.push(chat.readUpTo));
+  await session.streamMessages(() => {});
+  expect(announced).toEqual([later]);
+});
+
 it('keeps the preview of a chat a receipt announces again', async () => {
   const unread = {
     ...dm,
