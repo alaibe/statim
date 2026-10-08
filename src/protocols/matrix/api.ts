@@ -44,7 +44,7 @@ export interface MxRoom {
   membership: MxMembership;
   /** Who the room is named after when it has no name. */
   heroes: string[];
-  /** Who has a power level of their own. */
+  /** Who has a power level of their own, and the room's creators. */
   elevated: string[];
   selfRole: MxRole;
   inviter?: string;
