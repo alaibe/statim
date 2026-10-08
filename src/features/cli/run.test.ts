@@ -209,7 +209,7 @@ it('declines nothing but a request', async () => {
   const { code, err } = await run(['decline', 'alice']);
 
   expect(code).not.toBe(0);
-  expect(err).toContain('Only a request can be declined.');
+  expect(err).toContain('Only an unblocked request can be accepted or declined.');
 });
 
 describe('sending', () => {

@@ -5,6 +5,8 @@ import { LOCAL_PROTOCOL, protocolChatId, type ProtocolId } from '@/core/messagin
 import { testChat } from '@/core/messaging/testing/chats';
 import { asChatId } from '@/core/messaging/testing/ids';
 import type { ProtocolMessage } from '@/core/messaging/types';
+import { InMemoryMessageStore } from '@/core/messaging/message-store';
+import { countsAsUnread } from '@/core/messaging/unread';
 
 const STATUS = 'status';
 const NOSTR = 'nostr';
@@ -159,6 +161,45 @@ describe('chats', () => {
 });
 
 describe('messages', () => {
+  it.each(['sqlite', 'memory'] as const)(
+    '%s uses the same preview and unread rules after reload',
+    async (backend) => {
+      const store =
+        backend === 'sqlite' ? new SqliteMessageStore(freshAccount()) : new InMemoryMessageStore();
+      await store.upsertChat(chat('c1'));
+      const incoming = [
+        message({ id: 'bot-text', chatId: 'c1', senderId: 'helpful-bot', sentAt: 1000 }),
+        message({
+          id: 'system',
+          chatId: 'c1',
+          sentAt: 2000,
+          content: { kind: 'system', text: 'joined' },
+        }),
+        message({
+          id: 'reaction',
+          chatId: 'c1',
+          sentAt: 3000,
+          content: { kind: 'reaction', targetId: 'bot-text', emoji: '👍', action: 'added' },
+        }),
+        message({ id: 'mine', chatId: 'c1', sentAt: 4000, fromMe: true }),
+      ];
+      for (const item of incoming) await store.insertMessage(item);
+      expect(await store.countUnreadMessages(C1, 0)).toBe(
+        incoming.filter((item) => countsAsUnread(item, 0)).length
+      );
+      expect(await store.countUnreadMessages(C1, 1000)).toBe(0);
+      expect((await store.latestMessages(STATUS)).get(C1)?.id).toBe('mine');
+      await store.deleteMessages(C1, ['mine']);
+      expect((await store.latestMessages(STATUS)).get(C1)?.id).toBe('system');
+      await store.deleteMessages(C1, ['system']);
+      expect((await store.latestMessages(STATUS)).get(C1)?.id).toBe('bot-text');
+      expect((await store.loadMessages(C1)).map((item) => item.id)).toEqual([
+        'bot-text',
+        'reaction',
+      ]);
+    }
+  );
+
   it('searches stored message text across chats and within one chat', async () => {
     const store = new SqliteMessageStore(freshAccount());
     await store.upsertChat(chat('c1', STATUS));

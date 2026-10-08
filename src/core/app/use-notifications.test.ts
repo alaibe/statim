@@ -78,4 +78,25 @@ describe('worthNotifying', () => {
     const mine = { ...message('a', 2_000), fromMe: true };
     expect(worthNotifying(bob, mine, {}, undefined)).toBe(false);
   });
+
+  it('keeps system messages and reactions quiet, while allowing useful bot messages', () => {
+    const incoming = { ...message('a', 2_000), senderId: 'helpful-bot' };
+    expect(worthNotifying(bob, incoming, {}, undefined)).toBe(true);
+    expect(
+      worthNotifying(
+        bob,
+        { ...incoming, content: { kind: 'system', text: 'joined' } },
+        {},
+        undefined
+      )
+    ).toBe(false);
+    expect(
+      worthNotifying(
+        bob,
+        { ...incoming, content: { kind: 'reaction', targetId: 'b', emoji: '👍', action: 'added' } },
+        {},
+        undefined
+      )
+    ).toBe(false);
+  });
 });

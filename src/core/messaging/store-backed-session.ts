@@ -1,6 +1,7 @@
 import { UnsupportedError } from '../errors';
 import { HistoryTracker, type HistoryState } from './history';
 import type { MessageStore, TransportChat } from './message-store';
+import { showsInPreview } from './message-rules';
 import type { ChatSession } from './protocol';
 import type { ChatTransport, IncomingMessage, TransportSink } from './transport';
 import type {
@@ -154,7 +155,7 @@ export class StoreBackedSession implements ChatSession, TransportSink {
       createdAt: chat.createdAt,
       consent: 'accepted',
       ...(chat.blocked ? { blocked: true } : {}),
-      lastMessage,
+      lastMessage: lastMessage && showsInPreview(lastMessage) ? lastMessage : undefined,
       selfRole: undefined,
     };
   }
@@ -246,7 +247,10 @@ export class StoreBackedSession implements ChatSession, TransportSink {
   private async update(chat: TransportChat): Promise<void> {
     await this.store.upsertChat(chat);
     this.remember(chat);
-    this.announce(chat, (await this.store.loadMessages(chat.id, 1))[0]);
+    this.announce(
+      chat,
+      (await this.store.latestMessages<ProtocolChatId>(this.transport.protocolId)).get(chat.id)
+    );
   }
 
   async leaveGroup(id: ProtocolChatId): Promise<void> {

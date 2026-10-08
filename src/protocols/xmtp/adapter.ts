@@ -23,6 +23,7 @@ import {
   writeInlineAttachment,
 } from '@/core/messaging/attachments';
 import { protocolChatId } from '@/core/messaging/namespace';
+import { showsInPreview } from '@/core/messaging/message-rules';
 import type { ChatSession, GroupInfo, XmtpInstallation } from '@/core/messaging/protocol';
 import type {
   Chat,
@@ -295,9 +296,14 @@ export class XmtpSession implements ChatSession {
     return this.toChat(group as unknown as XmtpConversation<any>);
   }
 
-  private async requireGroup(id: ProtocolChatId): Promise<Group<any>> {
+  private async requireConversation(id: ProtocolChatId) {
     const conversation = await this.client.conversations.findConversation(toXmtpId(id));
     if (!conversation) throw new Error(`Chat ${id} not found`);
+    return conversation;
+  }
+
+  private async requireGroup(id: ProtocolChatId): Promise<Group<any>> {
+    const conversation = await this.requireConversation(id);
     if (conversation.version !== ConversationVersion.GROUP) {
       throw new Error('That only works in a group.');
     }
@@ -305,8 +311,7 @@ export class XmtpSession implements ChatSession {
   }
 
   private async requireDm(id: ProtocolChatId): Promise<Dm<any>> {
-    const conversation = await this.client.conversations.findConversation(toXmtpId(id));
-    if (!conversation) throw new Error(`Chat ${id} not found`);
+    const conversation = await this.requireConversation(id);
     if (conversation.version === ConversationVersion.GROUP) {
       throw new Error('That only works in a DM.');
     }
@@ -355,8 +360,7 @@ export class XmtpSession implements ChatSession {
     content: MessageContent,
     replyTo?: MessageId
   ): Promise<MessageId> {
-    const conversation = await this.client.conversations.findConversation(toXmtpId(id));
-    if (!conversation) throw new Error(`Chat ${id} not found`);
+    const conversation = await this.requireConversation(id);
 
     if (replyTo && content.kind === 'text') {
       return conversation.send({
@@ -407,8 +411,7 @@ export class XmtpSession implements ChatSession {
   }
 
   async deleteMessage(id: ProtocolChatId, messageId: MessageId): Promise<void> {
-    const conversation = await this.client.conversations.findConversation(toXmtpId(id));
-    if (!conversation) throw new Error(`Chat ${id} not found`);
+    const conversation = await this.requireConversation(id);
     await conversation.deleteMessage(messageId as Parameters<typeof conversation.deleteMessage>[0]);
   }
 
@@ -420,8 +423,7 @@ export class XmtpSession implements ChatSession {
   }
 
   async setConsent(id: ProtocolChatId, consent: ConsentDecision): Promise<void> {
-    const conversation = await this.client.conversations.findConversation(toXmtpId(id));
-    if (!conversation) return;
+    const conversation = await this.requireConversation(id);
     await conversation.updateConsent(consent === 'accepted' ? 'allowed' : 'denied');
   }
 
@@ -622,10 +624,17 @@ export class XmtpSession implements ChatSession {
       isReadReceipt(message) || (!isGroup && isGroupUpdate(message));
     // Only a listing fills lastMessage; a conversation found by id or topic has none.
     const last = raw.lastMessage;
-    if (last && !hidden(last)) return this.toMessage(last, protocolChatId(raw.id));
+    if (last && !hidden(last)) {
+      const message = await this.toMessage(last, protocolChatId(raw.id));
+      if (showsInPreview(message)) return message;
+    }
     const recent = await raw.messages({ limit: 5 });
-    const shown = recent.find((message) => !hidden(message));
-    return shown ? this.toMessage(shown, protocolChatId(raw.id)) : undefined;
+    for (const candidate of recent) {
+      if (hidden(candidate)) continue;
+      const message = await this.toMessage(candidate, protocolChatId(raw.id));
+      if (showsInPreview(message)) return message;
+    }
+    return undefined;
   }
 
   private async toMessage(

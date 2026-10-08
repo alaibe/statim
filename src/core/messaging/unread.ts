@@ -1,25 +1,39 @@
 import { type ChatPrefsMap, prefsFor } from './chat-prefs';
+import { canBeUnread } from './message-rules';
 import type { AnyChatId, ChatMessage, Chat, ChatId } from './types';
 
 /** Kept in `readAt` for a chat marked unread by hand: before any real read time. */
 export const MARKED_UNREAD = -1;
 
 export function countsAsUnread(message: ChatMessage<AnyChatId>, since: number): boolean {
-  return (
-    !message.fromMe &&
-    message.content.kind !== 'system' &&
-    message.content.kind !== 'reaction' &&
-    message.sentAt > since
-  );
+  return canBeUnread(message) && message.sentAt > since;
 }
 
 export function isUnread(chat: Chat, readAt: Record<ChatId, number>): boolean {
-  const since = readAt[chat.id] ?? 0;
-  if (since === MARKED_UNREAD) return true;
-  const last = chat.lastMessage;
-  if (!last) return false;
-  if (since >= last.sentAt) return false;
-  return chat.unreadCount === undefined ? countsAsUnread(last, since) : chat.unreadCount > 0;
+  return unreadState(chat, readAt[chat.id] ?? 0).unread;
+}
+
+export function unreadState(
+  chat: Pick<Chat, 'lastMessage' | 'unreadCount' | 'mentionCount'> | undefined,
+  since: number,
+  loaded?: readonly ChatMessage[]
+): { unread: boolean; count: number; mentions: boolean } {
+  const newest = loaded?.at(-1);
+  const last =
+    !chat?.lastMessage || (newest && newest.sentAt > chat.lastMessage.sentAt)
+      ? newest
+      : chat.lastMessage;
+  const marked = since === MARKED_UNREAD;
+  const caughtUp = !marked && last !== undefined && since >= last.sentAt;
+  const localCount = loaded ? unreadCount(loaded, since) : 0;
+  const count = marked || caughtUp ? 0 : (chat?.unreadCount ?? localCount);
+  const unread =
+    marked ||
+    (!caughtUp &&
+      (count > 0 ||
+        localCount > 0 ||
+        (chat?.unreadCount === undefined && !!last && countsAsUnread(last, since))));
+  return { unread, count, mentions: unread && (chat?.mentionCount ?? 0) > 0 };
 }
 
 export function isCaughtUp(since: number, last: ChatMessage | undefined): boolean {
@@ -28,13 +42,12 @@ export function isCaughtUp(since: number, last: ChatMessage | undefined): boolea
 
 /** The number on a chat's badge: the protocol's count, else the messages loaded here. */
 export function unreadBadge(chat: Chat, since: number, loaded?: readonly ChatMessage[]): number {
-  if (since === MARKED_UNREAD || isCaughtUp(since, chat.lastMessage)) return 0;
-  return chat.unreadCount ?? (loaded ? unreadCount(loaded, since) : 0);
+  return unreadState(chat, since, loaded).count;
 }
 
 /** A protocol's mention count lingers until it hears the chat was read, which it may never. */
 export function hasUnreadMentions(chat: Chat, readAt: Record<ChatId, number>): boolean {
-  return (chat.mentionCount ?? 0) > 0 && isUnread(chat, readAt);
+  return unreadState(chat, readAt[chat.id] ?? 0).mentions;
 }
 
 export function unreadCount(messages: readonly ChatMessage[], since: number): number {

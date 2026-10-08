@@ -543,26 +543,12 @@ describe('TelegramSession chats', () => {
     });
   });
 
-  it('declines a DM by taking it off the chat list without blocking the sender', async () => {
+  it('lists accepted chats without exposing a request decision', async () => {
     const { session, td } = await signedIn();
     td().emit({ '@type': 'updateNewChat', chat: privateChat(200, 'Bob') });
-    td().emit({ '@type': 'updateNewChat', chat: groupChat(5, 'Builders') });
-
-    const sent = td().sent.length;
-    await session.setConsent(chatIdOf(200), 'accepted');
-    expect(td().sent).toHaveLength(sent);
-    await session.setConsent(chatIdOf(200), 'declined');
-    await expect(session.setConsent(chatIdOf(-5), 'declined')).rejects.toThrow('only a DM');
-
-    expect(td().requests('deleteChatHistory')).toEqual([
-      {
-        '@type': 'deleteChatHistory',
-        chat_id: 200,
-        remove_from_chat_list: true,
-        revoke: false,
-      },
-    ]);
-    expect(td().requests('setMessageSenderBlockList')).toEqual([]);
+    td().answer('getChats', { '@type': 'chats', chat_ids: [200] });
+    expect((await session.listChats()).find((chat) => chat.id === '200')?.consent).toBe('accepted');
+    expect('setConsent' in session).toBe(false);
   });
 
   it('blocks the other participant of a DM and follows the block list TDLib reports', async () => {

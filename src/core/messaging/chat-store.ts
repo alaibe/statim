@@ -40,6 +40,7 @@ import { searchMessages } from './search';
 import { draftKey, draftSync, saveDraftsSoon, withDraft, type Drafts } from './drafts';
 import { capability, type Capability, type CapabilityMethod } from './capability';
 import { chatPermissions } from './permissions';
+import { showsInPreview } from './message-rules';
 import type { AccountStorage } from '@/storage/account';
 import type {
   ChatMessage,
@@ -236,6 +237,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (!isLocalChat(id) && !routeOrNull(get(), id)) return;
     const accountId = get().accountId;
     const opened = get().messageHistory[id];
+    if (opened?.loading) return;
+    set((state) => ({
+      messageHistory: {
+        ...state.messageHistory,
+        [id]: { loading: true, hasOlder: opened?.hasOlder ?? false },
+      },
+    }));
     const project = (
       page: ChatMessage[],
       hasOlder: boolean,
@@ -327,7 +335,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   async sendMessage(id, picked, replyTo, threadRoot) {
-    requireSendable(get(), id);
+    requirePermission(get(), id, 'send');
     if (isLocalChat(id)) {
       await get().postLocalMessage(id, picked, 'me', replyTo);
 
@@ -380,6 +388,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const message = (get().messages[id] ?? []).find((m) => m.id === messageId);
     if (!message || message.status !== 'failed') return null;
 
+    requirePermission(get(), id, 'send');
+
     const route = requireRoute(get(), id);
     get().replacePending(id, messageId, 'sending');
 
@@ -413,12 +423,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
     get().removeMessages(id, [messageId]);
   },
 
-  votePoll(id, messageId, optionIds) {
+  async votePoll(id, messageId, optionIds) {
+    requirePermission(get(), id, 'vote');
     return onChat(get(), id, 'votePoll', messageId, optionIds);
   },
 
   async createPoll(id, question, options) {
-    requireSendable(get(), id);
+    requirePermission(get(), id, 'send');
     return onChat(get(), id, 'createPoll', question, options);
   },
 
@@ -786,10 +797,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
 
     const accountId = get().accountId;
-    const chat = get().chats.find((c) => c.id === id);
-    const previous = chat?.consent;
-    if (consent === 'declined' && !(chat && chatPermissions(chat, route.session).answerRequest)) {
-      throw new Error('Only a request can be declined.');
+    const chat = requireChat(get(), id);
+    const previous = chat.consent;
+    if (!chatPermissions(chat, route.session).answerRequest) {
+      throw new Error('Only an unblocked request can be accepted or declined.');
     }
     set((state) => ({
       chats: state.chats.map((c) => (c.id === id ? { ...c, consent } : c)),
@@ -798,7 +809,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       await route.session.setConsent(route.nativeId, consent);
     } catch (error) {
-      if (previous && sameSession(get(), accountId, route.protocol, route.session)) {
+      if (sameSession(get(), accountId, route.protocol, route.session)) {
         set((state) => ({
           chats: state.chats.map((c) =>
             c.id === id && c.consent === consent ? { ...c, consent: previous } : c
@@ -811,8 +822,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   async setBlocked(id, blocked) {
     const route = requireRoute(get(), id);
-    const chat = get().chats.find((c) => c.id === id);
-    if (!chat || !chatPermissions(chat, route.session).block) {
+    const chat = requireChat(get(), id);
+    if (!chatPermissions(chat, route.session).block) {
       throw new Error('Only a DM can be blocked, on a protocol that blocks.');
     }
 
@@ -840,8 +851,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const raw = state.rawMessages[id] ?? state.messages[id];
       const loaded = raw === undefined ? {} : withRaw(state, id, withMessage(raw, message));
 
-      const touchesPreview = message.content.kind !== 'reaction';
-
       const indexed = indexMessages(state.mediaIndex, id, [message]);
       if (indexed !== state.mediaIndex && state.accountStorage) {
         saveMediaIndexSoon(state.accountStorage, indexed);
@@ -850,12 +859,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return {
         mediaIndex: indexed,
         ...loaded,
-        chats: touchesPreview ? withPreview(state.chats, id, message) : state.chats,
+        chats: showsInPreview(message) ? withPreview(state.chats, id, message) : state.chats,
       };
     });
   },
 
   async react(chatId, messageId, emoji) {
+    requirePermission(get(), chatId, 'react');
     const accountId = get().accountId;
     const store = requireMessageStore(get());
     const stored = get().messages[chatId] ?? [];
@@ -1020,7 +1030,7 @@ function chatsAfterRemoval(
   return sortChats(
     chats.map((chat) =>
       chat.id === id && chat.lastMessage && removed.has(chat.lastMessage.id)
-        ? { ...chat, lastMessage: kept?.at(-1) }
+        ? { ...chat, lastMessage: kept?.filter(showsInPreview).at(-1) }
         : chat
     )
   );
@@ -1073,11 +1083,17 @@ async function onChat<K extends Capability>(
   return method(route.nativeId, ...rest);
 }
 
-function requireSendable(state: ChatState, id: ChatId): void {
+function requireChat(state: ChatState, id: ChatId): Chat {
   const chat = state.chats.find((c) => c.id === id);
-  if (chat?.blocked) throw new Error('You blocked this person. Unblock them to send a message.');
-  if (chat && !chatPermissions(chat, sessionFor(state, id)).send) {
-    throw new Error('You cannot send messages in this chat.');
+  if (!chat) throw new Error(`Chat ${id} not found`);
+  return chat;
+}
+
+function requirePermission(state: ChatState, id: ChatId, action: 'send' | 'react' | 'vote'): void {
+  const chat = requireChat(state, id);
+  if (!chatPermissions(chat, sessionFor(state, id))[action]) {
+    if (chat.blocked) throw new Error('You blocked this person. Unblock them to send a message.');
+    throw new Error(`You cannot ${action === 'send' ? 'send messages' : action} in this chat.`);
   }
 }
 

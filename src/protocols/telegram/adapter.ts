@@ -15,7 +15,6 @@ import type {
   ParticipantId,
   SelfParticipant,
   Unsubscribe,
-  ConsentDecision,
   ProtocolMessage,
   ProtocolChat,
 } from '@/core/messaging/types';
@@ -693,19 +692,6 @@ export class TelegramSession implements ChatSession {
   ): Promise<Unsubscribe> {
     this.deletedListeners.add(listener);
     return () => this.deletedListeners.delete(listener);
-  }
-
-  async setConsent(id: ProtocolChatId, consent: ConsentDecision): Promise<void> {
-    if (consent === 'accepted') return;
-    const chat = await this.td.requireChat(Number(id));
-    if (chat.type['@type'] !== 'chatTypePrivate')
-      throw new UnsupportedError('On Telegram only a DM can be declined.');
-    await this.api.send({
-      '@type': 'deleteChatHistory',
-      chat_id: chat.id,
-      remove_from_chat_list: true,
-      revoke: false,
-    });
   }
 
   async setBlocked(id: ProtocolChatId, blocked: boolean): Promise<void> {

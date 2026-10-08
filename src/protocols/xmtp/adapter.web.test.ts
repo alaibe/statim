@@ -1,8 +1,30 @@
 import type { LocalAccount } from 'viem';
 
 import { XmtpSession } from './adapter.web';
+import type { ProtocolChat } from '@/core/messaging/types';
+import { protocolChatId } from '@/core/messaging/namespace';
 
 const mockBuild = jest.fn();
+
+it('rejects accepting or declining an unknown chat', async () => {
+  mockBuild.mockResolvedValue({
+    inboxId: 'me',
+    installationId: 'this-device',
+    accountIdentifier: { identifier: '0xabc' },
+    isRegistered: async () => true,
+    preferences: { fetchInboxState: async () => ({ installations: [{ id: 'this-device' }] }) },
+    conversations: { getConversationById: async () => undefined },
+  });
+  const session = await XmtpSession.connect({
+    accountId: 'xmtp-missing',
+    account: { address: '0xabc' } as unknown as LocalAccount,
+    dbEncryptionKey: new Uint8Array(32),
+    env: 'dev',
+  });
+  const id = protocolChatId('missing');
+  await expect(session.setConsent(id, 'accepted')).rejects.toThrow('Chat missing not found');
+  await expect(session.setConsent(id, 'declined')).rejects.toThrow('Chat missing not found');
+});
 
 jest.mock('@xmtp/browser-sdk', () => {
   const is = (kind: string) => (message: { kind: string }) => message.kind === kind;
@@ -14,10 +36,11 @@ jest.mock('@xmtp/browser-sdk', () => {
     Group: class {},
     IdentifierKind: { Ethereum: 'ethereum' },
     PermissionLevel: {},
+    ReactionAction: { Removed: 'removed' },
     SortDirection: { Descending: 'descending' },
     isAttachment: () => false,
     isGroupUpdated: () => false,
-    isReaction: () => false,
+    isReaction: is('reaction'),
     isReadReceipt: is('receipt'),
     isReply: () => false,
     isText: is('text'),
@@ -29,7 +52,7 @@ const { Group } = jest.requireMock('@xmtp/browser-sdk');
 
 type Streamed = ReturnType<typeof message>;
 
-const message = (kind: 'text' | 'receipt', senderInboxId: string, sentMs: number) => ({
+const message = (kind: 'text' | 'receipt' | 'reaction', senderInboxId: string, sentMs: number) => ({
   id: `${senderInboxId}-${sentMs}`,
   kind,
   conversationId: 'group',
@@ -46,7 +69,17 @@ const endable = <T>(values: AsyncGenerator<T>) => Object.assign(values, { end: a
 /** The read marks the group is announced with while `streamed` arrives, one value per task. */
 async function announcedWhile(
   streamed: Streamed[],
-  { first, failedLookups = 0 }: { first?: (s: XmtpSession) => unknown; failedLookups?: number } = {}
+  {
+    first,
+    failedLookups = 0,
+    recent,
+    onChat,
+  }: {
+    first?: (s: XmtpSession) => unknown;
+    failedLookups?: number;
+    recent?: Streamed[];
+    onChat?: (chat: ProtocolChat) => void;
+  } = {}
 ) {
   let lookups = 0;
   const reads = new Map<string, bigint>();
@@ -66,7 +99,7 @@ async function announcedWhile(
     createdAt: new Date(1),
     members: async () => [],
     consentState: async () => 1,
-    messages: async () => [message('text', 'peer', 1_000)],
+    messages: async () => recent ?? [message('text', 'peer', 1_000)],
     lastReadTimes: async () => new Map(reads),
     sendText: async () => 'sent',
   });
@@ -93,12 +126,24 @@ async function announcedWhile(
   });
   await first?.(session);
   const announced: (number | undefined)[] = [];
-  await session.streamChats((chat) => announced.push(chat.readUpTo));
+  await session.streamChats((chat) => {
+    announced.push(chat.readUpTo);
+    onChat?.(chat);
+  });
   await session.streamMessages(() => {});
   await done;
   await nextTask();
   return announced;
 }
+
+it('keeps a reaction out of the preview when announcing a chat', async () => {
+  const previews: (string | undefined)[] = [];
+  await announcedWhile([message('receipt', 'peer', 3_000)], {
+    recent: [message('reaction', 'peer', 2_000), message('text', 'peer', 1_000)],
+    onChat: (chat) => previews.push(chat.lastMessage?.id),
+  });
+  expect(previews).toEqual(['peer-1000']);
+});
 
 it('announces a group once per message of yours, not once per member who read it', async () => {
   const announced = await announcedWhile([

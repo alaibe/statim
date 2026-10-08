@@ -18,6 +18,7 @@ const handlers = {
   togglePin: jest.fn(),
 };
 const all = {
+  send: true,
   edit: true,
   delete: true,
   deleteForMe: true,
@@ -26,6 +27,7 @@ const all = {
   thread: false,
 };
 const none = {
+  send: false,
   edit: false,
   delete: false,
   deleteForMe: false,
@@ -95,6 +97,7 @@ describe('messageActions', () => {
 
   it('offers a retry for a failed send, and nothing that needs it to have arrived', () => {
     expect(ids(message({ status: 'failed' }))).toEqual(['retry', 'reply', 'copy', 'forward']);
+    expect(ids(message({ status: 'failed' }), { ...all, send: false })).not.toContain('retry');
   });
 
   it('saves a photo, video or file once it has arrived', () => {

@@ -6,7 +6,7 @@ import { reportError } from '@/core/app/report-error';
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { ChatSession } from '@/core/messaging/protocol';
 import type { ChatMessage, ChatId, MessageId } from '@/core/messaging/types';
-import { countsAsUnread, MARKED_UNREAD } from '@/core/messaging/unread';
+import { unreadState } from '@/core/messaging/unread';
 import { useJumpStore } from './jump-store';
 import type { MessageListHandle } from './message-list';
 
@@ -19,10 +19,8 @@ export function useChatTimeline(
   countReplies: boolean
 ) {
   const accountId = useChatStore((s) => s.accountId);
-  const listed = useChatStore((s) => s.chats.some((c) => c.id === id));
-  const reportedUnread = useChatStore((s) =>
-    s.chats.some((c) => c.id === id && (c.unreadCount ?? 0) > 0)
-  );
+  const chat = useChatStore((s) => s.chats.find((c) => c.id === id));
+  const listed = chat !== undefined;
   const allMessages = useChatStore((s) => s.messages[id]) ?? NO_MESSAGES;
   const messageHistory = useChatStore((s) => s.messageHistory[id]);
   const loadMessages = useChatStore((s) => s.loadMessages);
@@ -30,7 +28,6 @@ export function useChatTimeline(
   const watchPresence = useChatStore((s) => s.watchPresence);
   const markRead = useChatStore((s) => s.markRead);
   const readUpTo = useChatStore((s) => s.readAt[id] ?? 0);
-  const marked = readUpTo === MARKED_UNREAD;
 
   const messages = useMemo(() => {
     if (!thread) return allMessages.filter((message) => !message.threadRoot);
@@ -66,8 +63,7 @@ export function useChatTimeline(
 
   const newest = allMessages[allMessages.length - 1];
   const newestFromParticipant = newest && !newest.fromMe ? newest.id : null;
-  const unseen =
-    marked || (newest !== undefined && countsAsUnread(newest, readUpTo)) || reportedUnread;
+  const unseen = unreadState(chat, readUpTo, allMessages).unread;
   useEffect(() => {
     if (id && !thread && unseen) markRead(id).catch(reportError);
   }, [id, thread, markRead, unseen, newestFromParticipant]);

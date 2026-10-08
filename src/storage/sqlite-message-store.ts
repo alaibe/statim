@@ -11,6 +11,7 @@ import {
 } from '@/core/messaging/message-store';
 import { parseChatId, type ProtocolId } from '@/core/messaging/namespace';
 import { matchesSearch, SEARCH_LIMIT } from '@/core/messaging/search';
+import { NON_PREVIEW_KINDS, NON_UNREAD_KINDS } from '@/core/messaging/message-rules';
 import type {
   AnyChatId,
   ChatMessage,
@@ -101,7 +102,7 @@ export class SqliteMessageStore implements MessageStore {
           eq(messages.chatId, chatId),
           gt(messages.sentAt, since),
           eq(messages.fromMe, false),
-          notInArray(sql`json_extract(${messages.content}, '$.kind')`, ['system', 'reaction'])
+          notInArray(sql`json_extract(${messages.content}, '$.kind')`, [...NON_UNREAD_KINDS])
         )
       )
     );
@@ -174,7 +175,12 @@ export class SqliteMessageStore implements MessageStore {
       const newest = db
         .select({ rowid: sql`rowid` })
         .from(messages)
-        .where(eq(messages.chatId, chats.id))
+        .where(
+          and(
+            eq(messages.chatId, chats.id),
+            notInArray(sql`json_extract(${messages.content}, '$.kind')`, [...NON_PREVIEW_KINDS])
+          )
+        )
         .orderBy(desc(messages.sentAt), desc(messages.id))
         .limit(1);
       return db

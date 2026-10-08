@@ -9,6 +9,7 @@ import { isLocalChat } from '../messaging/bots';
 import type { ChatPrefsMap } from '../messaging/chat-prefs';
 import { useChatStore, type ChatState } from '../messaging/chat-store';
 import { contentPreview } from '../messaging/preview';
+import { canBeUnread } from '../messaging/message-rules';
 import type { ChatMessage, Chat, ChatId } from '../messaging/types';
 import { isSilenced, totalUnread } from '../messaging/unread';
 import {
@@ -91,7 +92,7 @@ export function worthNotifying(
   prefs: ChatPrefsMap,
   reading: string | undefined
 ): boolean {
-  if (message.fromMe || message.content.kind === 'system') return false;
+  if (!canBeUnread(message)) return false;
   if (chat.id === reading || isSilenced(chat, prefs)) return false;
   return !isLocalChat(chat.id) || wasProactive(message.id);
 }

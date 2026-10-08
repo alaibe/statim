@@ -20,7 +20,7 @@ export interface ChatActions {
 /** `thread` is false inside a thread, where replies already stay in it. */
 export type ActionSupport = Pick<
   ChatPermissions,
-  'edit' | 'delete' | 'deleteForMe' | 'deleteOthers' | 'pin' | 'thread'
+  'send' | 'edit' | 'delete' | 'deleteForMe' | 'deleteOthers' | 'pin' | 'thread'
 >;
 
 export function messageActions(
@@ -34,12 +34,13 @@ export function messageActions(
   const copy = copyableText(content);
   const save = mediaSaver(message);
   const menu: (MessageAction | false)[] = [
-    message.status === 'failed' && {
-      id: 'retry',
-      label: 'Try again',
-      icon: 'refresh-outline',
-      onPress: () => actions.retry(message),
-    },
+    can.send &&
+      message.status === 'failed' && {
+        id: 'retry',
+        label: 'Try again',
+        icon: 'refresh-outline',
+        onPress: () => actions.retry(message),
+      },
     !message.privateToMe && {
       id: 'reply',
       label: 'Reply',

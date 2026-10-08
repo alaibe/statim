@@ -129,6 +129,7 @@ export interface ChatSession {
     listener: (id: ProtocolChatId, messageIds: MessageId[]) => void
   ): Promise<Unsubscribe>;
 
+  /** Answers a request; declining an accepted chat is not supported. */
   setConsent?(id: ProtocolChatId, consent: ConsentDecision): Promise<void>;
   /** Blocks or unblocks the other participant of a DM; while blocked, nothing they send arrives. */
   setBlocked?(id: ProtocolChatId, blocked: boolean): Promise<void>;

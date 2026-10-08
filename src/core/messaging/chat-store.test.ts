@@ -30,6 +30,29 @@ beforeEach(async () => {
   resetChatStore();
 });
 
+it('rejects actions on a missing chat before queuing messages or calling the protocol', async () => {
+  const session = new InMemoryChatSession();
+  await connect(session);
+  const send = jest.spyOn(session, 'send');
+  const consent = jest.spyOn(session, 'setConsent');
+  const block = jest.spyOn(session, 'setBlocked');
+  const votePoll = jest.fn();
+  Object.assign(session, { votePoll });
+  const store = useChatStore.getState();
+  const id = ns('missing');
+
+  await expect(store.sendMessage(id, { kind: 'text', text: 'hi' })).rejects.toThrow('not found');
+  await expect(store.react(id, 'message', '👍')).rejects.toThrow('not found');
+  await expect(store.votePoll(id, 'poll', [0])).rejects.toThrow('not found');
+  await expect(store.setConsent(id, 'accepted')).rejects.toThrow('not found');
+  await expect(store.setBlocked(id, true)).rejects.toThrow('not found');
+  expect(useChatStore.getState().messages[id]).toBeUndefined();
+  expect(send).not.toHaveBeenCalled();
+  expect(consent).not.toHaveBeenCalled();
+  expect(block).not.toHaveBeenCalled();
+  expect(votePoll).not.toHaveBeenCalled();
+});
+
 describe('connecting', () => {
   it('lists chats and reports ready', async () => {
     const session = new InMemoryChatSession();
@@ -543,6 +566,56 @@ describe('receiving', () => {
 });
 
 describe('opening a chat', () => {
+  it('reports loading before the first page arrives and coalesces repeated loads', async () => {
+    const session = new InMemoryChatSession();
+    session.seedChat({ id: 'c1' });
+    await connect(session);
+    const page = defer<Awaited<ReturnType<InMemoryChatSession['getMessages']>>>();
+    const fetch = jest.spyOn(session, 'getMessages').mockReturnValue(page.promise);
+    const id = ns('c1');
+
+    const loading = useChatStore.getState().loadMessages(id);
+    expect(useChatStore.getState().messageHistory[id]).toEqual({ loading: true, hasOlder: false });
+    expect(useChatStore.getState().messages[id]).toBeUndefined();
+    await useChatStore.getState().loadMessages(id);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(useChatStore.getState().messageHistory[id].loading).toBe(true);
+
+    page.resolve([]);
+    await loading;
+    expect(useChatStore.getState().messageHistory[id]).toEqual({ loading: false, hasOlder: false });
+    expect(useChatStore.getState().messages[id]).toEqual([]);
+  });
+
+  it('clears a failed first load when retrying and keeps messages visible during a refresh', async () => {
+    const session = new InMemoryChatSession();
+    session.seedChat({ id: 'c1' });
+    await connect(session);
+    const fetch = jest.spyOn(session, 'getMessages').mockRejectedValueOnce(new Error('offline'));
+    const id = ns('c1');
+    await useChatStore.getState().loadMessages(id);
+    expect(useChatStore.getState().messageHistory[id]).toEqual({
+      loading: false,
+      hasOlder: false,
+      error: 'offline',
+    });
+
+    const retry = useChatStore.getState().loadMessages(id);
+    expect(useChatStore.getState().messageHistory[id]).toEqual({ loading: true, hasOlder: false });
+    await retry;
+    session.deliver('c1', { id: 'visible' });
+    const shown = useChatStore.getState().messages[id];
+    const page = defer<Awaited<ReturnType<InMemoryChatSession['getMessages']>>>();
+    fetch.mockReturnValueOnce(page.promise);
+    const refresh = useChatStore.getState().loadMessages(id);
+    expect(useChatStore.getState().messages[id]).toBe(shown);
+    expect(useChatStore.getState().messageHistory[id].loading).toBe(true);
+    page.resolve([]);
+    await refresh;
+    expect(useChatStore.getState().messages[id].map((message) => message.id)).toEqual(['visible']);
+    expect(useChatStore.getState().messageHistory[id].loading).toBe(false);
+  });
+
   function seedLong(session: InMemoryChatSession, count: number) {
     session.seedChat({ id: 'long' });
     for (let index = 1; index <= count; index++) {
@@ -919,6 +992,25 @@ describe('marking unread', () => {
 describe('blocking', () => {
   const blockedIn = () => useChatStore.getState().chats.find((c) => c.id === ns('ex'))?.blocked;
 
+  it('keeps retries and reactions from bypassing a block', async () => {
+    const session = new InMemoryChatSession();
+    session.seedChat({ id: 'ex', blocked: true });
+    session.deliver('ex', { id: 'failed', fromMe: true, status: 'failed' });
+    await connect(session);
+    await useChatStore.getState().loadMessages(ns('ex'));
+    const send = jest.spyOn(session, 'send');
+
+    await expect(useChatStore.getState().retryMessage(ns('ex'), 'failed')).rejects.toThrow(
+      'blocked'
+    );
+    await expect(useChatStore.getState().react(ns('ex'), 'failed', '👍')).rejects.toThrow(
+      'blocked'
+    );
+    expect(send).not.toHaveBeenCalled();
+    expect(useChatStore.getState().messages[ns('ex')][0]).toMatchObject({ status: 'failed' });
+    expect(useChatStore.getState().messages[ns('ex')][0].reactions).toBeUndefined();
+  });
+
   it('blocks and unblocks the other participant of a DM through the protocol', async () => {
     const session = new InMemoryChatSession();
     session.seedChat({ id: 'ex', title: 'Ex' });
@@ -1043,20 +1135,30 @@ describe('consent', () => {
     expect(chats.find((c) => c.id === ns('other'))?.title).toBe('Renamed');
   });
 
-  it('declines only a request', async () => {
+  it.each(['accepted', 'declined'] as const)('applies %s only to a request', async (decision) => {
     const session = new InMemoryChatSession();
     session.seedChat({ id: 'known', title: 'Known', consent: 'accepted' });
     await connect(session);
     const setConsent = jest.spyOn(session, 'setConsent');
 
-    await expect(useChatStore.getState().setConsent(ns('known'), 'declined')).rejects.toThrow(
-      'Only a request can be declined.'
+    await expect(useChatStore.getState().setConsent(ns('known'), decision)).rejects.toThrow(
+      'Only an unblocked request can be accepted or declined.'
     );
 
     expect(setConsent).not.toHaveBeenCalled();
     expect(useChatStore.getState().chats.find((c) => c.id === ns('known'))?.consent).toBe(
       'accepted'
     );
+  });
+
+  it('cannot accept a blocked request', async () => {
+    const session = await withRequest();
+    await useChatStore.getState().setBlocked(ns('spam'), true);
+    const answer = jest.spyOn(session, 'setConsent');
+    await expect(useChatStore.getState().setConsent(ns('spam'), 'accepted')).rejects.toThrow(
+      'unblocked request'
+    );
+    expect(answer).not.toHaveBeenCalled();
   });
 
   it('rejects rather than throws when the protocol lacks the capability', async () => {
@@ -1199,6 +1301,7 @@ describe('local messages', () => {
   it('keep the message a reply answers', async () => {
     projectTestAccount('test-account', new InMemoryMessageStore());
     const store = useChatStore.getState();
+    store.ingestChat(testChat({ id: SAVED_LOCAL_ID, protocol: 'local' }));
     await store.postLocalMessage(SAVED_LOCAL_ID, { kind: 'text', text: 'question' }, 'me');
     const [question] = useChatStore.getState().messages[SAVED_LOCAL_ID];
 

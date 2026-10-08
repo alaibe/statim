@@ -3,6 +3,7 @@ import { useChatStore } from './chat-store';
 import { InMemoryChatSession } from './in-memory-session';
 import { InMemoryMessageStore } from './message-store';
 import { connectFake, ns, projectTestAccount, resetChatStore } from './testing/store';
+import { testChat } from './testing/chats';
 import type { ChatId } from './types';
 
 jest.mock('../account/keyring', () => ({
@@ -64,6 +65,7 @@ describe('react', () => {
   it('works in a thread that never touches the protocol', async () => {
     const session = new InMemoryChatSession({ participantId: SELF });
     await connectFake(session);
+    useChatStore.getState().ingestChat(testChat({ id: STATIM_LOCAL_ID, protocol: 'local' }));
     await useChatStore
       .getState()
       .postLocalMessage(STATIM_LOCAL_ID, { kind: 'text', text: 'remember this' }, 'me');
@@ -77,6 +79,7 @@ describe('react', () => {
   it('toggles off when you tap the same emoji again', async () => {
     const session = new InMemoryChatSession({ participantId: SELF });
     await connectFake(session);
+    useChatStore.getState().ingestChat(testChat({ id: STATIM_LOCAL_ID, protocol: 'local' }));
     await useChatStore
       .getState()
       .postLocalMessage(STATIM_LOCAL_ID, { kind: 'text', text: 'remember this' }, 'me');
@@ -91,6 +94,7 @@ describe('react', () => {
   it('restores a local reaction from message history', async () => {
     const store = new InMemoryMessageStore();
     projectTestAccount('reaction-test', store);
+    useChatStore.getState().ingestChat(testChat({ id: STATIM_LOCAL_ID, protocol: 'local' }));
     await useChatStore
       .getState()
       .postLocalMessage(STATIM_LOCAL_ID, { kind: 'text', text: 'remember this' }, 'me');

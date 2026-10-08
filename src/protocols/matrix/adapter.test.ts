@@ -692,7 +692,7 @@ describe('MatrixSession chats', () => {
     expect(api.named('createRoom')).toEqual([[[BOB, CAROL], 'Crew']]);
   });
 
-  it('accepts or declines invitations through consent, and leaves a declined DM', async () => {
+  it('answers invitations without leaving an already joined chat', async () => {
     const invite = room('!invite:example.org', {
       membership: 'invited',
       isDm: true,
@@ -710,11 +710,10 @@ describe('MatrixSession chats', () => {
     await chat.setConsent(inviteId, 'declined');
     expect(api.named('leave')).toEqual([[invite.id]]);
 
-    await chat.setConsent(DM_ID, 'declined');
-    expect(api.named('leave')).toEqual([[invite.id], [DM.id]]);
-
-    await chat.setConsent(GROUP_ID, 'declined');
-    expect(api.named('leave')).toHaveLength(2);
+    await expect(chat.setConsent(DM_ID, 'declined')).rejects.toThrow('not a request');
+    await expect(chat.setConsent(GROUP_ID, 'accepted')).rejects.toThrow('not a request');
+    expect(api.named('leave')).toEqual([[invite.id]]);
+    expect(api.named('join')).toEqual([[invite.id]]);
   });
 
   it('blocks the other side of a DM by ignoring them, and reads who is ignored', async () => {

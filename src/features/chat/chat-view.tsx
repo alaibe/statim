@@ -69,6 +69,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
   const sessions = useChatStore((s) => s.sessions);
   const chat = useChatStore((s) => s.chats.find((c) => c.id === id));
   const sendMessage = useChatStore((s) => s.sendMessage);
+  const loadMessages = useChatStore((s) => s.loadMessages);
 
   const [forwarding, setForwarding] = useState<ChatMessage | null>(null);
   const [deleting, setDeleting] = useState<DeleteTarget | null>(null);
@@ -169,9 +170,14 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
 
       <KeyboardAvoidingView behavior="padding" className="flex-1">
         {messages.length === 0 ? (
-          <View className="flex-1">
+          <View className="flex-1" style={{ paddingTop: insets.top + frame.top + 62 }}>
             <HistoryStatus protocol={protocol} />
-            {messageHistory || isBot ? <EmptyTranscript protocol={protocol} isBot={isBot} /> : null}
+            <EmptyTranscript
+              protocol={protocol}
+              isBot={isBot}
+              history={messageHistory}
+              onRetry={() => void loadMessages(id)}
+            />
           </View>
         ) : (
           <MessageList
@@ -242,7 +248,9 @@ function useMessageStore(id: ChatId, votes: boolean) {
   const setMessagePinned = useChatStore((s) => s.setMessagePinned);
   const ingestMessage = useChatStore((s) => s.ingestMessage);
   return {
-    retry: (message: ChatMessage) => void retryMessage(id, message.id),
+    retry: (message: ChatMessage) => {
+      retryMessage(id, message.id).catch((e) => toast.error(errorMessage(e, 'Could not retry')));
+    },
     onReactTo: (messageId: string, emoji: string) => {
       react(id, messageId, emoji).catch((e) => toast.error(errorMessage(e, 'Could not react')));
     },
@@ -276,10 +284,49 @@ function chatPeople(
   return [...members, ...[...writers].map((id) => ({ id, protocol: chat.protocol }))];
 }
 
-function EmptyTranscript({ protocol, isBot }: { protocol: ProtocolId; isBot: boolean }) {
+function EmptyTranscript({
+  protocol,
+  isBot,
+  history,
+  onRetry,
+}: {
+  protocol: ProtocolId;
+  isBot: boolean;
+  history: MessageHistoryState | undefined;
+  onRetry(): void;
+}) {
   const fetchingHistory = useChatStore(
     (s) => connectionFor(s.protocols, protocol).history.status === 'fetching'
   );
+  if (history?.loading) {
+    return (
+      <View
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityLabel="Loading messages"
+        accessibilityState={{ busy: true }}
+        className="gap-4 px-gutter py-4">
+        <View className="h-14 w-2/3 rounded-2xl bg-content/10" />
+        <View className="h-10 w-1/2 self-end rounded-2xl bg-content/10" />
+        <View className="h-20 w-3/4 rounded-2xl bg-content/10" />
+        <View className="h-14 w-2/3 self-end rounded-2xl bg-content/10" />
+        <Text variant="caption" className="text-center">
+          Loading messages…
+        </Text>
+      </View>
+    );
+  }
+  if (history?.error) {
+    return (
+      <EmptyState
+        title="Could not load messages"
+        description={history.error}
+        actionLabel="Retry"
+        onAction={onRetry}
+      />
+    );
+  }
+  if (!history && !isBot) return null;
   return (
     <EmptyState
       icon={isBot ? 'sparkles-outline' : 'lock-closed-outline'}

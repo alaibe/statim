@@ -52,7 +52,7 @@ export function bridgedNetwork(userIds: (string | null | undefined)[]): BridgedN
 const SLACKBOT = /^slack_t[0-9a-z]+-uslackbot$/;
 
 /** A bridge's bot, or a network's own bot that joins chats by itself. */
-export function isBot(userId: string): boolean {
+export function isBridgeBot(userId: string): boolean {
   const name = localpart(userId);
   return knownBridge(name) !== undefined || SLACKBOT.test(name);
 }

@@ -1,4 +1,5 @@
 import { isParticipantId } from './bots';
+import { showsInPreview } from './message-rules';
 import { protocolChatId } from './namespace';
 import type { ChatSession } from './protocol';
 import type {
@@ -66,6 +67,7 @@ export class InMemoryChatSession implements ChatSession {
 
   deliver(id: string, message: Partial<ProtocolMessage> = {}): ProtocolMessage {
     const chatId = protocolChatId(id);
+    const chat = this.requireChat(chatId);
     const full: ProtocolMessage = {
       id: `remote-${Math.random().toString(36).slice(2, 8)}`,
       chatId,
@@ -79,8 +81,7 @@ export class InMemoryChatSession implements ChatSession {
 
     this.messages.set(chatId, [...(this.messages.get(chatId) ?? []), full]);
 
-    const chat = this.chats.get(chatId);
-    if (chat && full.content.kind !== 'reaction') {
+    if (showsInPreview(full)) {
       const newer = (chat.lastMessage?.sentAt ?? 0) <= full.sentAt;
       if (newer) this.chats.set(chatId, { ...chat, lastMessage: full });
     }
@@ -153,9 +154,14 @@ export class InMemoryChatSession implements ChatSession {
     });
   }
 
-  private requireGroup(id: ProtocolChatId): ProtocolChat {
+  private requireChat(id: ProtocolChatId): ProtocolChat {
     const chat = this.chats.get(id);
     if (!chat) throw new Error(`Chat ${id} not found`);
+    return chat;
+  }
+
+  private requireGroup(id: ProtocolChatId): ProtocolChat {
+    const chat = this.requireChat(id);
     if (chat.kind !== 'group') throw new Error('That only works in a group.');
     return chat;
   }
@@ -205,23 +211,21 @@ export class InMemoryChatSession implements ChatSession {
   }
 
   async setConsent(id: ProtocolChatId, consent: ConsentDecision): Promise<void> {
-    const chat = this.chats.get(id);
-    if (!chat) return;
+    const chat = this.requireChat(id);
     const next = { ...chat, consent };
     this.chats.set(id, next);
     for (const listener of this.chatListeners) listener(next);
   }
 
   async setBlocked(id: ProtocolChatId, blocked: boolean): Promise<void> {
-    const chat = this.chats.get(id);
-    if (!chat) return;
+    const chat = this.requireChat(id);
     const next = { ...chat, blocked };
     this.chats.set(id, next);
     for (const listener of this.chatListeners) listener(next);
   }
 
   async send(id: ProtocolChatId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
-    if (!this.chats.has(id)) throw new Error(`Chat ${id} not found`);
+    this.requireChat(id);
 
     this.sent.push({ chatId: id, content });
     const messageId = `sent-${this.sent.length}`;

@@ -11,6 +11,7 @@ import type {
 import { LOCAL_PROTOCOL, parseChatId, protocolChatId, type ProtocolId } from './namespace';
 import { matchesSearch, SEARCH_LIMIT } from './search';
 import { countsAsUnread } from './unread';
+import { showsInPreview } from './message-rules';
 
 export interface StoredChat<Id extends AnyChatId = AnyChatId> {
   id: Id;
@@ -69,6 +70,7 @@ export interface MessageStore {
     chat?: StoredChat<Id>,
     transportTimestamp?: number
   ): Promise<boolean>;
+  /** Latest preview message per chat, excluding reactions. */
   latestMessages<Id extends AnyChatId>(protocolId: ProtocolId): Promise<Map<Id, ChatMessage<Id>>>;
   newestTransportTimestamp(
     protocolId: ProtocolId,
@@ -205,7 +207,11 @@ export class InMemoryMessageStore implements MessageStore {
     for (const chat of this.chats.values()) {
       if (chat.protocolId !== protocolId) continue;
       const id = storedChatId<Id>(chat.id, protocolId);
-      const [newest] = await this.loadMessages(id, 1);
+      const newest = [...(this.messages.get(id)?.values() ?? [])]
+        .filter(showsInPreview)
+        .sort((a, b) => b.sentAt - a.sentAt || b.id.localeCompare(a.id))[0] as
+        | ChatMessage<Id>
+        | undefined;
       if (newest) latest.set(id, newest);
     }
     return latest;

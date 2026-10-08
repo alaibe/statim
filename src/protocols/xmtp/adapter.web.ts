@@ -39,6 +39,7 @@ import {
   writeInlineAttachment,
 } from '@/core/messaging/attachments';
 import { protocolChatId } from '@/core/messaging/namespace';
+import { showsInPreview } from '@/core/messaging/message-rules';
 import type { ChatSession, GroupInfo, XmtpInstallation } from '@/core/messaging/protocol';
 import type {
   Chat,
@@ -340,15 +341,19 @@ export class XmtpSession implements ChatSession {
   }
 
   private async requireDm(id: ProtocolChatId): Promise<Dm<any>> {
-    const conversation = await this.client.conversations.getConversationById(id);
-    if (!conversation) throw new Error(`Chat ${id} not found`);
+    const conversation = await this.requireConversation(id);
     if (conversation instanceof Group) throw new Error('That only works in a DM.');
     return conversation as Dm<any>;
   }
 
-  private async requireGroup(id: ProtocolChatId): Promise<Group<any>> {
+  private async requireConversation(id: ProtocolChatId) {
     const conversation = await this.client.conversations.getConversationById(id);
     if (!conversation) throw new Error(`Chat ${id} not found`);
+    return conversation;
+  }
+
+  private async requireGroup(id: ProtocolChatId): Promise<Group<any>> {
+    const conversation = await this.requireConversation(id);
     if (!(conversation instanceof Group)) {
       throw new Error('That only works in a group.');
     }
@@ -397,8 +402,7 @@ export class XmtpSession implements ChatSession {
     content: MessageContent,
     replyTo?: MessageId
   ): Promise<MessageId> {
-    const conversation = await this.client.conversations.getConversationById(id);
-    if (!conversation) throw new Error(`Chat ${id} not found`);
+    const conversation = await this.requireConversation(id);
 
     if (replyTo && content.kind === 'text') {
       return conversation.sendReply({
@@ -455,8 +459,7 @@ export class XmtpSession implements ChatSession {
   }
 
   async setConsent(id: ProtocolChatId, consent: ConsentDecision): Promise<void> {
-    const conversation = await this.client.conversations.getConversationById(id);
-    if (!conversation) return;
+    const conversation = await this.requireConversation(id);
     await conversation.updateConsentState(
       consent === 'accepted' ? ConsentState.Allowed : ConsentState.Denied
     );
@@ -642,9 +645,16 @@ export class XmtpSession implements ChatSession {
     ]);
     if (isBlocked) this.blockedDmIds.add(raw.id);
     else this.blockedDmIds.delete(raw.id);
-    const last = recent.find((m) => !isReadReceipt(m) && (isGroup || !isGroupUpdated(m)));
-    const lastMessage =
-      current() && last ? await this.toMessage(last, protocolChatId(raw.id)) : undefined;
+    let lastMessage: ProtocolMessage | undefined;
+    for (const candidate of recent) {
+      if (!current()) break;
+      if (isReadReceipt(candidate) || (!isGroup && isGroupUpdated(candidate))) continue;
+      const message = await this.toMessage(candidate, protocolChatId(raw.id));
+      if (showsInPreview(message)) {
+        lastMessage = message;
+        break;
+      }
+    }
     if (lastMessage) this.noteSent(raw.id, lastMessage.sentAt);
     if (readUpTo !== undefined) this.noteRead(raw.id, readUpTo);
 

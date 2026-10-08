@@ -68,6 +68,8 @@ describe('chatPermissions', () => {
     expect(chatPermissions(testChat({ blocked: true }), blocks)).toMatchObject({
       block: true,
       send: false,
+      react: false,
+      vote: false,
     });
   });
 

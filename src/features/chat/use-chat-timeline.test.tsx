@@ -6,8 +6,11 @@ import type { ChatMessage } from '@/core/messaging/types';
 import { useChatTimeline } from './use-chat-timeline';
 import { asChatId } from '@/core/messaging/testing/ids';
 import { testChat } from '@/core/messaging/testing/chats';
+import { MARKED_UNREAD } from '@/core/messaging/unread';
 
 jest.mock('expo-observe', () => ({ useObserve: () => ({ markInteractive: () => {} }) }));
+
+beforeEach(() => useChatStore.setState(useChatStore.getInitialState(), true));
 
 const message = (id: string, threadRoot?: string): ChatMessage => ({
   id,
@@ -115,6 +118,51 @@ it('marks the chat read when its protocol reports unread messages', () => {
   expect(markRead).not.toHaveBeenCalled();
 
   act(() => useChatStore.setState({ chats: [testChat({ id: 'xmtp-chat', unreadCount: 3 })] }));
+  expect(markRead).toHaveBeenCalledTimes(1);
+  act(() => tree.unmount());
+});
+
+it('does not resend receipts for a stale protocol count or a media update', () => {
+  const id = asChatId('xmtp-chat');
+  const markRead = jest.fn(async () => {});
+  const seen = { ...message('seen'), sentAt: 5, fromMe: false };
+  const chat = testChat({ id, lastMessage: seen, unreadCount: 3 });
+  useChatStore.setState({
+    chats: [chat],
+    messages: { [id]: [seen] },
+    readAt: { [id]: 10 },
+    markRead,
+  });
+  let tree!: ReactTestRenderer;
+  act(() => {
+    tree = create(createElement(Probe));
+  });
+  act(() =>
+    useChatStore.setState({
+      chats: [{ ...chat, typing: true }],
+      messages: { [id]: [{ ...seen, content: { kind: 'image', uri: 'file:///downloaded.jpg' } }] },
+    })
+  );
+  expect(markRead).not.toHaveBeenCalled();
+  act(() => useChatStore.setState({ readAt: { [id]: MARKED_UNREAD } }));
+  expect(markRead).toHaveBeenCalledTimes(1);
+  act(() => tree.unmount());
+});
+
+it('reads a streamed message while the protocol count is still zero', () => {
+  const id = asChatId('xmtp-chat');
+  const markRead = jest.fn(async () => {});
+  const incoming = { ...message('new'), sentAt: 20, fromMe: false };
+  useChatStore.setState({
+    chats: [testChat({ id, lastMessage: incoming, unreadCount: 0 })],
+    messages: { [id]: [incoming] },
+    readAt: { [id]: 10 },
+    markRead,
+  });
+  let tree!: ReactTestRenderer;
+  act(() => {
+    tree = create(createElement(Probe));
+  });
   expect(markRead).toHaveBeenCalledTimes(1);
   act(() => tree.unmount());
 });

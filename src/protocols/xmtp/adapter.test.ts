@@ -2,6 +2,7 @@ import type { LocalAccount } from 'viem';
 
 import { createAccountStorage } from '@/storage/account';
 import { XmtpSession } from './adapter';
+import { protocolChatId } from '@/core/messaging/namespace';
 
 const mockBuild = jest.fn();
 const mockCreate = jest.fn();
@@ -120,6 +121,25 @@ const receipt = (id: string, sentMs: number) => ({
   nativeContent: { readReceipt: {} },
 });
 
+it('keeps reactions in history without letting them replace the preview', async () => {
+  const reaction = {
+    ...text('reaction', 2_000),
+    contentTypeId: 'xmtp.org/reaction:1.0',
+    nativeContent: { reaction: { reference: 'hello', content: '👍', action: 'added' } },
+  };
+  const session = await sessionWith([
+    {
+      ...dm,
+      lastMessage: reaction,
+      messages: async () => [reaction, text('hello', 1_000)],
+    },
+  ]);
+  expect((await session.listChats())[0].lastMessage?.id).toBe('hello');
+  expect((await session.getMessages('dm' as never)).map((message) => message.content.kind)).toEqual(
+    ['text', 'reaction']
+  );
+});
+
 type Stored = { id: string; topic: string; messages: () => Promise<StoredMessage[]> };
 type StoredMessage = ReturnType<typeof text>;
 
@@ -186,6 +206,13 @@ async function sessionWith(
     dbEncryptionKey: new Uint8Array(32),
   });
 }
+
+it('rejects accepting or declining an unknown chat', async () => {
+  const session = await sessionWith([]);
+  const id = protocolChatId('missing');
+  await expect(session.setConsent(id, 'accepted')).rejects.toThrow('Chat missing not found');
+  await expect(session.setConsent(id, 'declined')).rejects.toThrow('Chat missing not found');
+});
 
 const dm = {
   id: 'dm',

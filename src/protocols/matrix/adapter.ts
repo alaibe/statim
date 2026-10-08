@@ -34,7 +34,7 @@ import type {
   MxUpdate,
 } from './api';
 import type { BridgedNetwork } from '@/core/messaging/networks';
-import { bridgedNetwork, isBot } from './bridges';
+import { bridgedNetwork, isBridgeBot } from './bridges';
 import { toContent } from './content';
 import { outgoing, textOutgoing } from './outgoing';
 import {
@@ -563,17 +563,12 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     this.followIgnored(ignored);
   }
 
-  /** An invitation is a request; declining one, or a DM, leaves the room. */
   async setConsent(id: ProtocolChatId, consent: ConsentDecision): Promise<void> {
     const roomId = roomIdOf(id);
-    const room = this.rooms.get(roomId) ?? (await this.api.room(roomId));
-    if (!room) return;
-    if (room.membership === 'invited') {
-      if (consent === 'accepted') await this.api.join(roomId);
-      else await this.api.leave(roomId);
-      return;
-    }
-    if (consent === 'declined' && room.isDm) await this.api.leave(roomId);
+    const room = await this.requireRoom(roomId);
+    if (room.membership !== 'invited') throw new Error('This chat is not a request.');
+    if (consent === 'accepted') await this.api.join(roomId);
+    else await this.api.leave(roomId);
   }
 
   async sendReadReceipt(id: ProtocolChatId): Promise<void> {
@@ -706,7 +701,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   }
 
   private isSomeoneElse(userId: string): boolean {
-    return userId !== this.self.participantId && !isBot(userId);
+    return userId !== this.self.participantId && !isBridgeBot(userId);
   }
 
   private participantOf(room: MxRoom, roster = this.rosterOf(room.id) ?? []): string | null {
@@ -883,6 +878,6 @@ function describeLoginError(error: unknown): string {
  * just you, the other person and its bots in them. Slack channels keep their `#`.
  */
 function humansIn(room: MxRoom, roster: readonly string[] = []): number {
-  const bots = new Set([...room.elevated, ...room.heroes, ...roster].filter(isBot));
+  const bots = new Set([...room.elevated, ...room.heroes, ...roster].filter(isBridgeBot));
   return (room.memberCount ?? 0) - bots.size;
 }

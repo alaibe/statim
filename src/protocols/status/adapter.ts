@@ -7,6 +7,7 @@ import type { MessageStore, TransportChat } from '@/core/messaging/message-store
 import { protocolChatId } from '@/core/messaging/namespace';
 import type { ChatSession, GroupInfo, MentionCandidate } from '@/core/messaging/protocol';
 import { emojiFromCodePoints } from '@/core/messaging/shortcodes';
+import { showsInPreview } from '@/core/messaging/message-rules';
 import type {
   Consent,
   ConsentDecision,
@@ -401,7 +402,7 @@ export class StatusSession implements ChatSession {
     for (const [id, message] of await this.store.latestMessages<ProtocolChatId>(
       STATUS_PROTOCOL_ID
     )) {
-      if (message.content.kind !== 'reaction') this.latest.set(id, message);
+      this.latest.set(id, message);
     }
   }
 
@@ -802,7 +803,7 @@ export class StatusSession implements ChatSession {
     for (const listener of this.deletionListeners) listener(message.chatId, [message.id]);
     if (this.latest.get(message.chatId)?.id !== message.id) return;
     const rest = await this.store.loadMessages(message.chatId);
-    const newest = rest.filter((m) => m.content.kind !== 'reaction').at(-1);
+    const newest = rest.filter(showsInPreview).at(-1);
     if (newest) this.latest.set(message.chatId, newest);
     else this.latest.delete(message.chatId);
     const chat = this.chats.get(message.chatId);
@@ -992,8 +993,7 @@ export class StatusSession implements ChatSession {
     if (changed) this.chats.set(shown.id, shown);
     if (!inserted) return;
     const previous = this.latest.get(shown.id);
-    const newer =
-      message.content.kind !== 'reaction' && (!previous || previous.sentAt <= message.sentAt);
+    const newer = showsInPreview(message) && (!previous || previous.sentAt <= message.sentAt);
     if (newer) this.latest.set(shown.id, message);
     for (const listener of this.messageListeners) listener(message);
     if (changed || newer) this.announce(shown);
