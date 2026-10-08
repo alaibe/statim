@@ -10,6 +10,8 @@ export interface ChatLine {
   fromMe: boolean;
   /** The text, or a one-line description of a photo, file or poll. */
   text: string;
+  /** `text` describes what was sent instead of quoting what was written. */
+  described: boolean;
 }
 
 export async function recentLines(chatId: ChatId, limit: number): Promise<ChatLine[]> {
@@ -29,5 +31,6 @@ export async function recentLines(chatId: ChatId, limit: number): Promise<ChatLi
     from: m.fromMe ? 'You' : nameFrom(m.senderId, resolved),
     fromMe: m.fromMe,
     text: m.content.kind === 'text' ? plainText(m.content.text).trim() : contentPreview(m.content),
+    described: m.content.kind !== 'text',
   }));
 }

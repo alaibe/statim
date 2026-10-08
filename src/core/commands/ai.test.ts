@@ -20,9 +20,9 @@ const complete = jest.fn<Promise<string>, [unknown]>();
 const chatId = asChatId('xmtp-chat');
 
 const history: ChatLine[] = [
-  { from: 'Ann', fromMe: false, text: 'Dinner Thursday?' },
-  { from: 'You', fromMe: true, text: 'Maybe' },
-  { from: 'Ann', fromMe: false, text: 'The Thai place?' },
+  { from: 'Ann', fromMe: false, text: 'Dinner Thursday?', described: false },
+  { from: 'You', fromMe: true, text: 'Maybe', described: false },
+  { from: 'Ann', fromMe: false, text: 'The Thai place?', described: false },
 ];
 
 const command = (name: string) => aiFeature.commands.find((c) => c.name === name) as SlashCommand;
@@ -144,6 +144,7 @@ it('/summarize tries again with fewer messages when the model runs out of room',
       from: i % 2 ? 'You' : 'Ann',
       fromMe: i % 2 === 1,
       text: `message number ${i} with a little more text in it`,
+      described: false,
     }))
   );
   complete.mockRejectedValueOnce(new AiError('too-long', 'too long')).mockResolvedValueOnce('- ok');
