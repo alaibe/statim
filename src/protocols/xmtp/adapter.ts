@@ -126,6 +126,9 @@ export class XmtpSession implements ChatSession {
 
   private readonly addressCache = new Map<ParticipantId, string>();
   private readonly deletedListeners = new Set<(id: ProtocolChatId, ids: MessageId[]) => void>();
+  /** The newest read receipt from someone else in each chat, gathered from what was fetched. */
+  private readonly readMarks = new Map<string, number>();
+  private readonly chatListeners = new Set<(c: ProtocolChat) => void>();
   private closed = false;
   private readonly blockedDmIds = new Set<string>();
 
@@ -215,6 +218,7 @@ export class XmtpSession implements ChatSession {
     if (!conversation) return [];
 
     const messages = await conversation.messages({ limit: opts?.limit ?? 100 });
+    if (this.noteReceipts(conversation.id, messages)) void this.emitChat(conversation);
     const isDm = conversation.version === ConversationVersion.DM;
     const shown = messages.filter((m) => !isReadReceipt(m) && !(isDm && isGroupUpdate(m)));
     return (await Promise.all(shown.map((m) => this.toMessage(m, id)))).reverse();
@@ -452,11 +456,16 @@ export class XmtpSession implements ChatSession {
   async streamMessages(onMessage: (m: ProtocolMessage) => void): Promise<Unsubscribe> {
     await this.client.conversations.streamAllMessages(
       async (message) => {
-        if (this.closed || isReadReceipt(message)) return;
+        if (this.closed) return;
+        if (isReadReceipt(message) && message.senderInboxId === this.self.participantId) return;
         const id =
           GROUP_TOPIC.exec(message.topic)?.[1] ??
           (await this.client.conversations.findConversationByTopic(message.topic))?.id;
         if (!id || this.closed) return;
+        if (isReadReceipt(message)) {
+          if (this.noteReceipts(id, [message])) await this.announce(id);
+          return;
+        }
         if (this.blockedDmIds.has(id) && message.senderInboxId !== this.self.participantId) return;
         if (isGroupUpdate(message) && (await this.isDm(id))) return;
         const chatId = protocolChatId(id);
@@ -474,11 +483,12 @@ export class XmtpSession implements ChatSession {
   }
 
   async streamChats(onChat: (c: ProtocolChat) => void): Promise<Unsubscribe> {
-    await this.client.conversations.stream(async (conversation) => {
-      const converted = await this.toChat(conversation, () => !this.closed);
-      if (!this.closed) onChat(converted);
-    });
-    return () => this.client.conversations.cancelStream();
+    this.chatListeners.add(onChat);
+    await this.client.conversations.stream((conversation) => this.emitChat(conversation));
+    return () => {
+      this.chatListeners.delete(onChat);
+      this.client.conversations.cancelStream();
+    };
   }
 
   async disconnect(): Promise<void> {
@@ -537,7 +547,35 @@ export class XmtpSession implements ChatSession {
       ...(isBlocked ? { blocked: true } : {}),
       selfRole,
       lastMessage,
+      readUpTo: this.readMarks.get(raw.id),
     };
+  }
+
+  /** Whether `messages` moved the chat's read mark forward. */
+  private noteReceipts(id: string, messages: DecodedMessage<any>[]): boolean {
+    const known = this.readMarks.get(id) ?? 0;
+    const newest = Math.max(
+      known,
+      ...messages
+        .filter((m) => isReadReceipt(m) && m.senderInboxId !== this.self.participantId)
+        .map((m) => Math.round(m.sentNs / 1_000_000))
+    );
+    if (newest === known) return false;
+    this.readMarks.set(id, newest);
+    return true;
+  }
+
+  private async announce(id: string): Promise<void> {
+    if (this.chatListeners.size === 0) return;
+    const conversation = await this.client.conversations.findConversation(toXmtpId(id));
+    if (conversation) await this.emitChat(conversation);
+  }
+
+  private async emitChat(conversation: XmtpConversation<any>): Promise<void> {
+    if (this.chatListeners.size === 0) return;
+    const chat = await this.toChat(conversation, () => !this.closed);
+    if (this.closed) return;
+    for (const listener of this.chatListeners) listener(chat);
   }
 
   private async isDm(id: string): Promise<boolean> {
@@ -553,9 +591,10 @@ export class XmtpSession implements ChatSession {
     if (!last) return undefined;
     const hidden = (message: DecodedMessage<any>) =>
       isReadReceipt(message) || (!isGroup && isGroupUpdate(message));
-    const shown = hidden(last)
-      ? (await raw.messages({ limit: 5 })).find((message) => !hidden(message))
-      : last;
+    if (!hidden(last)) return this.toMessage(last, protocolChatId(raw.id));
+    const recent = await raw.messages({ limit: 5 });
+    this.noteReceipts(raw.id, recent);
+    const shown = recent.find((message) => !hidden(message));
     return shown ? this.toMessage(shown, protocolChatId(raw.id)) : undefined;
   }
 

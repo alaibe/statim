@@ -144,6 +144,8 @@ async function sessionWith(
         for (const message of streamed) await onMessage(message);
       },
       cancelStreamAllMessages: () => {},
+      stream: async () => {},
+      cancelStream: () => {},
     },
   });
   return XmtpSession.connect({
@@ -174,6 +176,31 @@ it('does not stream read receipts as messages', async () => {
   const session = await sessionWith([dm], [receipt('seen', 3_000), text('hello', 2_000)]);
   await session.streamMessages((message) => received.push(message.id));
   expect(received).toEqual(['hello']);
+});
+
+it('marks your messages read up to the newest receipt someone else sent', async () => {
+  const [listed] = await (await sessionWith([dm])).listChats();
+  expect(listed.readUpTo).toBe(3_000);
+});
+
+it('does not count a receipt from another device of your own', async () => {
+  const own = { ...receipt('mine', 3_000), senderInboxId: 'me' };
+  const mine = { ...dm, lastMessage: own, messages: async () => [own, text('hello', 2_000)] };
+  const [listed] = await (await sessionWith([mine])).listChats();
+  expect(listed.readUpTo).toBeUndefined();
+});
+
+it('announces the chat again when a receipt streams in', async () => {
+  const unread = {
+    ...dm,
+    lastMessage: text('hello', 2_000),
+    messages: async () => [text('hello', 2_000)],
+  };
+  const session = await sessionWith([unread], [receipt('seen', 3_000)]);
+  const announced: (number | undefined)[] = [];
+  await session.streamChats((chat) => announced.push(chat.readUpTo));
+  await session.streamMessages(() => {});
+  expect(announced).toEqual([3_000]);
 });
 
 it('leaves read receipts out of the history of a DM and of a group', async () => {

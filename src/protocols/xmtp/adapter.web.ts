@@ -159,6 +159,7 @@ export class XmtpSession implements ChatSession {
   private readonly streams = new Set<{ end(): Promise<unknown> }>();
   private closed = false;
   private readonly blockedDmIds = new Set<string>();
+  private readonly chatListeners = new Set<(c: ProtocolChat) => void>();
 
   private constructor(
     private readonly client: Client<any>,
@@ -497,12 +498,12 @@ export class XmtpSession implements ChatSession {
       onError: (error) => console.warn('[xmtp] message stream error', error),
     });
     return this.consume(stream, async (message) => {
-      if (isReadReceipt(message)) return;
-      if (
-        this.blockedDmIds.has(message.conversationId) &&
-        message.senderInboxId !== this.self.participantId
-      )
+      const fromSelf = message.senderInboxId === this.self.participantId;
+      if (isReadReceipt(message)) {
+        if (!fromSelf) void this.announce(message.conversationId);
         return;
+      }
+      if (this.blockedDmIds.has(message.conversationId) && !fromSelf) return;
       if (
         isGroupUpdated(message) &&
         (await this.client.conversations.getConversationById(message.conversationId)) instanceof Dm
@@ -524,13 +525,15 @@ export class XmtpSession implements ChatSession {
   }
 
   async streamChats(onChat: (c: ProtocolChat) => void): Promise<Unsubscribe> {
+    this.chatListeners.add(onChat);
     const stream = await this.client.conversations.stream({
       onError: (error) => console.warn('[xmtp] conversation stream error', error),
     });
-    return this.consume(stream, async (conversation) => {
-      const converted = await this.toChat(conversation, () => !this.closed);
-      if (!this.closed) onChat(converted);
-    });
+    const stop = this.consume(stream, (conversation) => this.emitChat(conversation));
+    return () => {
+      this.chatListeners.delete(onChat);
+      stop();
+    };
   }
 
   /**
@@ -607,10 +610,11 @@ export class XmtpSession implements ChatSession {
         blocked === undefined ? this.inboxBlocked(participant) : Promise.resolve(blocked);
     }
 
-    const [state, recent, isBlocked] = await Promise.all([
+    const [state, recent, isBlocked, readUpTo] = await Promise.all([
       consent ?? raw.consentState(),
       current() ? raw.messages({ limit: 5n, direction: SortDirection.Descending }) : [],
       peerBlocked,
+      current() ? this.readUpTo(raw) : undefined,
     ]);
     if (isBlocked) this.blockedDmIds.add(raw.id);
     else this.blockedDmIds.delete(raw.id);
@@ -628,7 +632,29 @@ export class XmtpSession implements ChatSession {
       ...(isBlocked ? { blocked: true } : {}),
       selfRole,
       lastMessage,
+      readUpTo,
     };
+  }
+
+  private async readUpTo(raw: Group<any> | Dm<any>): Promise<number | undefined> {
+    const times = await raw.lastReadTimes().catch(() => new Map<string, bigint>());
+    const others = [...times]
+      .filter(([inboxId]) => inboxId !== this.self.participantId)
+      .map(([, ns]) => Math.round(Number(ns) / 1_000_000));
+    return others.length > 0 ? Math.max(...others) : undefined;
+  }
+
+  private async announce(id: string): Promise<void> {
+    if (this.chatListeners.size === 0) return;
+    const conversation = await this.client.conversations.getConversationById(id);
+    if (conversation) await this.emitChat(conversation);
+  }
+
+  private async emitChat(conversation: Group<any> | Dm<any>): Promise<void> {
+    if (this.chatListeners.size === 0) return;
+    const chat = await this.toChat(conversation, () => !this.closed);
+    if (this.closed) return;
+    for (const listener of this.chatListeners) listener(chat);
   }
 
   private async toMessage(
