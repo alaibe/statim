@@ -50,10 +50,10 @@ const rejection = new EstimateGasExecutionError(
 
 async function runSend(
   chainId = 'ethereum',
-  options: { to?: string; confirmed?: boolean; responseError?: Error } = {}
+  options: { amount?: string; to?: string; confirmed?: boolean; responseError?: Error } = {}
 ) {
   let widget: Widget | undefined;
-  const args = ['0.00000001', options.to ?? recipient, '--chain', chainId];
+  const args = [options.amount ?? '0.00000001', options.to ?? recipient, '--chain', chainId];
   if (options.confirmed) args.push('--confirm');
   const result = await walletCommands
     .find((command) => command.name === 'send')!
@@ -146,6 +146,16 @@ describe('/send errors and confirmation', () => {
     expect(message).toMatch(/full 0x address/i);
     expect(message).toContain('ENS');
     expect(widget).toBeUndefined();
+    expect(estimate).not.toHaveBeenCalled();
+    expect(commit).not.toHaveBeenCalled();
+  });
+
+  it.each(['-1', '0'])('refuses %s ETH before asking the chain for a fee', async (amount) => {
+    for (const confirmed of [false, true]) {
+      const { result } = await runSend('ethereum', { amount, confirmed });
+
+      expect(result).toEqual({ type: 'error', message: expect.stringMatching(/greater than 0/) });
+    }
     expect(estimate).not.toHaveBeenCalled();
     expect(commit).not.toHaveBeenCalled();
   });
@@ -253,4 +263,38 @@ it('rejects a missing selected token instead of sending native currency', async 
   ).rejects.toThrow(/selected token.*Ethereum/i);
   expect(sendNative).not.toHaveBeenCalled();
   expect(walletClientFor).not.toHaveBeenCalled();
+});
+
+it('refuses to commit an amount that is not above 0', async () => {
+  const { sendNative } = jest.requireMock('@/lib/evm/wallet');
+  sendNative.mockClear();
+  const transfer = evmStrategy(EVM_CHAINS.find((spec) => spec.id === 'ethereum')!).transfer!;
+  const context = {
+    account: { address: sender, signer: () => ({ address: sender }) },
+  } as unknown as PluginContext;
+
+  await expect(transfer.commit(context, { amount: '-1', to: recipient })).rejects.toThrow(
+    /greater than 0/
+  );
+  expect(sendNative).not.toHaveBeenCalled();
+});
+
+it.each(['-1', '0'])('refuses to request %s', async (amount) => {
+  const dispose = registerChainStrategy(
+    evmStrategy(EVM_CHAINS.find((spec) => spec.id === 'ethereum')!)
+  );
+  const respond = jest.fn();
+  const result = await walletCommands
+    .find((command) => command.name === 'request')!
+    .run({
+      args: [amount, '--chain', 'ethereum'],
+      rest: `${amount} --chain ethereum`,
+      chatId: STATIM_LOCAL_ID,
+      context: { account: { address: sender } } as unknown as PluginContext,
+      respond,
+    })
+    .finally(dispose);
+
+  expect(result).toEqual({ type: 'error', message: expect.stringMatching(/greater than 0/) });
+  expect(respond).not.toHaveBeenCalled();
 });

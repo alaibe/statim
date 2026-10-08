@@ -439,8 +439,11 @@ export const walletCommands: SlashCommand[] = [
         return { type: 'handled' };
       }
 
-      if (!/^\d+(\.\d+)?$/.test(amount)) {
-        return { type: 'error', message: `"${amount}" is not a valid amount.` };
+      if (!/^\d+(\.\d+)?$/.test(amount) || Number(amount) <= 0) {
+        return {
+          type: 'error',
+          message: `"${amount}" is not a valid amount. Enter a number greater than 0.`,
+        };
       }
 
       if (isLocalChat(chatId)) {
@@ -519,11 +522,12 @@ export const walletCommands: SlashCommand[] = [
         return { type: 'handled' };
       }
 
-      let totalWei: bigint;
-      try {
-        totalWei = parseEther(total);
-      } catch {
-        return { type: 'error', message: `"${total}" is not a valid amount.` };
+      const totalWei = /^\d*\.?\d+$/.test(total) ? parseEther(total) : 0n;
+      if (totalWei <= 0n) {
+        return {
+          type: 'error',
+          message: `"${total}" is not a valid amount. Enter a number greater than 0.`,
+        };
       }
 
       const members = await context.chat.members(chatId);

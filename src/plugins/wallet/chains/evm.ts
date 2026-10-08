@@ -1,5 +1,5 @@
 import type { Chain } from 'viem';
-import { formatEther, formatGwei, parseEther } from 'viem';
+import { formatEther, formatGwei } from 'viem';
 import {
   arbitrum,
   arbitrumSepolia,
@@ -66,6 +66,15 @@ async function tokenById(
   return tokens.find((t) => t.contract.toLowerCase() === asset.toLowerCase());
 }
 
+function positiveUnits(amount: string, decimals: number): bigint | null {
+  try {
+    const units = toTokenUnits(amount, decimals);
+    return units > 0n ? units : null;
+  } catch {
+    return null;
+  }
+}
+
 export function evmStrategy(spec: ChainSpec): ChainStrategy {
   const { chain } = spec;
   const native = chain.nativeCurrency.symbol;
@@ -75,6 +84,9 @@ export function evmStrategy(spec: ChainSpec): ChainStrategy {
       ? `No Ethereum address was found for "${to}" to use on ${chain.name}. Check the ENS name's spelling or paste the recipient's full 0x address.`
       : `"${to}" is not a valid recipient on ${chain.name}. Paste the full 0x address (40 characters after 0x) or enter an ENS name.`;
   const tokenNotFound = `The selected token could not be found on ${chain.name}. Check the chain and token contract, then select the token again.`;
+  const decimalsOf = (token?: TokenBalance) => token?.decimals ?? chain.nativeCurrency.decimals;
+  const badAmount = (amount: string, token?: TokenBalance) =>
+    `"${amount}" is not a valid ${token?.symbol ?? native} amount. Enter a number greater than 0 using up to ${decimalsOf(token)} decimal places.`;
 
   return {
     id: spec.id,
@@ -146,16 +158,10 @@ export function evmStrategy(spec: ChainSpec): ChainStrategy {
           resolveName(to),
         ]);
         if (asset && asset !== 'native' && !token) return { error: tokenNotFound };
+        const units = positiveUnits(amount, decimalsOf(token));
+        if (units === null) return { error: badAmount(amount, token) };
 
         if (token) {
-          let units: bigint;
-          try {
-            units = toTokenUnits(amount, token.decimals);
-          } catch {
-            return {
-              error: `"${amount}" is not a valid ${token.symbol} amount. Enter a number greater than 0 using up to ${token.decimals} decimal places.`,
-            };
-          }
           if (units > token.raw) {
             return {
               error: `Not enough ${token.symbol} on ${chain.name}. You hold ${trimDecimals(token.amount)} ${token.symbol} and want to send ${amount} ${token.symbol}. Lower the amount or add ${token.symbol} on ${chain.name}. Keep some ${native} for the fee.`,
@@ -170,14 +176,6 @@ export function evmStrategy(spec: ChainSpec): ChainStrategy {
               { label: 'Fee paid in', value: native },
               { label: 'To', value: recipient },
             ],
-          };
-        }
-
-        try {
-          parseEther(amount);
-        } catch {
-          return {
-            error: `"${amount}" is not a valid ${native} amount. Enter a number greater than 0 using up to 18 decimal places.`,
           };
         }
 
@@ -217,12 +215,14 @@ export function evmStrategy(spec: ChainSpec): ChainStrategy {
         ]);
         if (!recipient) throw new Error(badRecipient(to));
         if (asset && asset !== 'native' && !token) throw new Error(tokenNotFound);
+        const units = positiveUnits(amount, decimalsOf(token));
+        if (units === null) throw new Error(badAmount(amount, token));
         if (token) {
           return walletClientFor(context.account.signer(), chain.id).sendTransaction({
             account: context.account.signer(),
             chain: null,
             to: token.contract,
-            data: encodeTransfer(recipient, toTokenUnits(amount, token.decimals)),
+            data: encodeTransfer(recipient, units),
             value: 0n,
           });
         }

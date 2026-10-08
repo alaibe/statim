@@ -92,6 +92,12 @@ describe('/split --chain', () => {
     expect((await split(['1'], withDefault('sepolia'))).sent[0]?.chainId).toBe(8453);
   });
 
+  it.each(['-1', '0', 'abc'])('refuses a total of %s', async (total) => {
+    const { result, sent } = await split([total]);
+    expect(result).toEqual({ type: 'error', message: expect.stringMatching(/greater than 0/) });
+    expect(sent).toEqual([]);
+  });
+
   it('refuses a chain it cannot split on instead of using Base', async () => {
     for (const named of ['nope', 'bitcoin', 'sepolia']) {
       const { result, sent } = await split(['1', '--chain', named]);
