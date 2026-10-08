@@ -1,5 +1,6 @@
 import { HttpError } from '@/core/errors';
 import { base64ToBytes, bytesToBase64 } from '@/lib/bytes';
+import { appFetch } from '@/lib/http';
 
 import { STATUS_PUBSUB_TOPIC } from './topics';
 
@@ -68,7 +69,7 @@ export class StatusNode implements WakuNode {
     if (!/^https?:\/\//i.test(this.base)) {
       throw new Error('The Status node URL must start with http:// or https://');
     }
-    this.fetchImpl = options.fetchImpl ?? fetch;
+    this.fetchImpl = options.fetchImpl ?? appFetch;
   }
 
   async info(): Promise<unknown> {
