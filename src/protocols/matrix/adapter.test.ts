@@ -308,6 +308,32 @@ describe('MatrixSession chats', () => {
     });
   });
 
+  it('finds a Slack DM that Slackbot has posted in', async () => {
+    const bot = '@slackbot:example.org';
+    const slackbot = '@slack_t1-uslackbot:example.org';
+    const puppet = '@slack_t1-u2:example.org';
+    const portal = room('!slack-dm', { name: 'Anouar', elevated: [ME, bot], memberCount: 4 });
+    const { chat, api } = await connect(SESSION, (api) => {
+      api.roomsById.set(portal.id, portal);
+      api.roomMembers.set(portal.id, [
+        { userId: bot, role: 'owner' },
+        { userId: ME, role: 'admin' },
+        { userId: slackbot, role: 'member' },
+        { userId: puppet, role: 'member' },
+      ]);
+    });
+    const chats: ProtocolChat[] = [];
+    await chat.streamChats((c) => chats.push(c));
+    await flush();
+
+    expect(api.named('members')).toEqual([[portal.id]]);
+    expect(chats.findLast((c) => c.id === chatIdOf(portal.id))).toMatchObject({
+      kind: 'dm',
+      network: 'slack',
+      memberIds: [puppet, ME],
+    });
+  });
+
   it('announces room updates with their preview and streams events as messages', async () => {
     const { content: _, ...rest } = textEvent('$x', DM.id, BOB, 'hello');
     const latest = {

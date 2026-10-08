@@ -33,7 +33,7 @@ import type {
   MxUpdate,
 } from './api';
 import type { BridgedNetwork } from '@/core/messaging/networks';
-import { bridgedNetwork, isBridgeBot } from './bridges';
+import { bridgedNetwork, isBot } from './bridges';
 import { toContent } from './content';
 import { outgoing, textOutgoing } from './outgoing';
 import {
@@ -688,7 +688,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
 
   private participantOf(room: MxRoom, roster = this.rosterOf(room.id) ?? []): string | null {
     const selfId = this.self.participantId;
-    const other = (id: string) => id !== selfId && !isBridgeBot(id);
+    const other = (id: string) => id !== selfId && !isBot(id);
     return (
       room.peer ??
       room.heroes.find(other) ??
@@ -704,7 +704,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     const network = this.networkOf(room, roster);
     const lacks = network ? this.features.lacks(room.id) : undefined;
     const humans = network && !room.isDm ? humansIn(room, roster) : undefined;
-    // mautrix-discord leaves its bot at default power, so only the roster tells it apart.
+    // A bot at default power, such as mautrix-discord's or Slackbot, shows only in the roster.
     if (humans === 3 && !roster && room.membership === 'joined') void this.membersOf(room.id);
     const isDm = room.isDm || (humans === 2 && !room.name.startsWith('#'));
     const participant = this.participantOf(room, roster ?? []);
@@ -857,9 +857,9 @@ function describeLoginError(error: unknown): string {
 
 /**
  * A bridge that doesn't mark its one-to-one portals as direct still leaves
- * just you, the other person and its bot in them. Slack channels keep their `#`.
+ * just you, the other person and its bots in them. Slack channels keep their `#`.
  */
 function humansIn(room: MxRoom, roster: readonly string[] = []): number {
-  const bots = new Set([...room.elevated, ...room.heroes, ...roster].filter(isBridgeBot));
+  const bots = new Set([...room.elevated, ...room.heroes, ...roster].filter(isBot));
   return (room.memberCount ?? 0) - bots.size;
 }

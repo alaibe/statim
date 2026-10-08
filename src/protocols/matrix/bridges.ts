@@ -48,8 +48,13 @@ export function bridgedNetwork(userIds: (string | null | undefined)[]): BridgedN
   return undefined;
 }
 
-export function isBridgeBot(userId: string): boolean {
-  return knownBridge(localpart(userId)) !== undefined;
+/** Slack's own Slackbot joins a DM it posts in, so a Slack DM can hold it too. */
+const SLACKBOT = /^slack_t[0-9a-z]+-uslackbot$/;
+
+/** A bridge's bot, or a network's own bot that joins chats by itself. */
+export function isBot(userId: string): boolean {
+  const name = localpart(userId);
+  return knownBridge(name) !== undefined || SLACKBOT.test(name);
 }
 
 export function bridgeBotId(bridge: KnownBridge, selfUserId: string): string {
