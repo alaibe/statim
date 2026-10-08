@@ -1,26 +1,12 @@
 import { useIsFocused } from 'expo-router';
 import { useEffect, useState } from 'react';
 
-import { loadAiConfig, loadTypesafeKey } from '@/core/ai/config';
-import { AiError } from '@/core/ai/errors';
-import { bareLine, completeOver, replyRequest, SUGGEST_CONTEXT } from '@/core/ai/prompts';
-import { resolveProvider } from '@/core/ai/providers';
-import { needsReply } from '@/core/ai/reply-decision';
-import { useAppearanceStore } from '@/core/app/appearance';
+import { prepareReply, replyTarget } from '@/core/ai/chat-assistance';
+import { useAiConfig } from '@/core/ai/use-config';
 import { errorMessage } from '@/core/errors';
-import { isChatLine, linesFromMessages } from '@/core/messaging/chat-lines';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { draftKey } from '@/core/messaging/drafts';
-import { contentPreview } from '@/core/messaging/preview';
-import type { ChatId, ChatMessage } from '@/core/messaging/types';
-
-const relevant = (message: ChatMessage) =>
-  isChatLine(message) && !message.threadRoot && message.content.kind !== 'system';
-
-function replyTarget(messages: readonly ChatMessage[] | undefined): string | null {
-  const message = messages?.findLast(relevant);
-  return message && !message.fromMe ? `${message.id}\n${contentPreview(message.content)}` : null;
-}
+import type { ChatId } from '@/core/messaging/types';
 
 type Suggestion =
   | { status: 'pending'; label: string }
@@ -29,8 +15,7 @@ type Suggestion =
 
 export function useReplySuggestion(chatId: ChatId, available: boolean) {
   const focused = useIsFocused();
-  const aiEnabled = useAppearanceStore((s) => s.aiInChats);
-  const settingsAccountId = useAppearanceStore((s) => s.accountId);
+  const config = useAiConfig();
   const accountId = useChatStore((s) => s.accountId);
   const draft = useChatStore((s) => s.drafts[draftKey(chatId)] ?? '');
   const messages = useChatStore((s) => s.messages[chatId]);
@@ -39,8 +24,7 @@ export function useReplySuggestion(chatId: ChatId, available: boolean) {
   const key = accountId && target ? `${accountId}\n${chatId}\n${target}` : null;
   const enabled =
     focused &&
-    aiEnabled &&
-    settingsAccountId === accountId &&
+    config?.suggestOnOpen === true &&
     available &&
     history !== undefined &&
     !history.loading &&
@@ -52,39 +36,23 @@ export function useReplySuggestion(chatId: ChatId, available: boolean) {
 
   useEffect(() => {
     if (!enabled || !accountId || !key) return;
-    let active = true;
+    if (settled || !config) return;
+    const controller = new AbortController();
     const show = (suggestion: Suggestion | null) => {
-      if (active) setResult({ key, suggestion });
+      if (!controller.signal.aborted) setResult({ key, suggestion });
     };
-    const run = async () => {
-      const config = await loadAiConfig(accountId);
-      if (!config.suggestOnOpen) return show(null);
-      if (settled) return;
-      const typesafeKey = await loadTypesafeKey(accountId);
-      if (!typesafeKey) throw new Error('Enter a TypeSafe API key in Settings › AI.');
-      show({ status: 'pending', label: 'Checking whether a reply is needed…' });
-      const picked = (useChatStore.getState().messages[chatId] ?? [])
-        .filter(relevant)
-        .slice(-SUGGEST_CONTEXT);
-      const lines = await linesFromMessages(chatId, picked);
-      if (!active) return;
-      const needed = await needsReply(lines, typesafeKey);
-      if (!active) return;
-      if (!needed) return show(null);
-      show({ status: 'pending', label: 'Preparing a reply…' });
-      const model = await resolveProvider(accountId, config);
-      if (!active) return;
-      const reply = bareLine((await completeOver(model, lines, replyRequest)).text);
-      if (!reply) throw new AiError('server', 'The model suggested nothing.');
-      show({ status: 'ready', text: reply, label: model.label });
-    };
-    void run().catch((error) =>
-      show({ status: 'error', text: errorMessage(error, 'Could not suggest a reply') })
-    );
-    return () => {
-      active = false;
-    };
-  }, [accountId, chatId, enabled, key, settled]);
+    void Promise.resolve()
+      .then(async () => {
+        if (controller.signal.aborted) return;
+        show({ status: 'pending', label: 'Preparing a reply…' });
+        const reply = await prepareReply(accountId, chatId, config, controller.signal);
+        show(reply ? { status: 'ready', ...reply } : null);
+      })
+      .catch((error) =>
+        show({ status: 'error', text: errorMessage(error, 'Could not suggest a reply') })
+      );
+    return () => controller.abort();
+  }, [accountId, chatId, config, enabled, key, settled]);
 
   return {
     suggestion: enabled ? current : null,

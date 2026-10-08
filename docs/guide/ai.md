@@ -24,6 +24,19 @@ Typing, leaving the chat or switching accounts discards unfinished suggestions.
 An error leaves the composer available; you can still use **Suggest a reply**
 manually.
 
+## Chats needing a reply
+
+**Highlight chats needing a reply** adds a **Reply needed** badge to the chat
+list. It is a separate opt-in under **Settings › AI** and uses your TypeSafe
+key. Only chats visible in the list are checked; Statim loads their recent
+history without marking them read. Requests, blocked chats, channels and local
+bot chats are excluded.
+
+The badge has a text label and a coloured background. Unread counts, pins and
+chat ordering stay as they are. Sending a message clears the badge. Jev's
+decision is shared with reply suggestions while the account remains open, so
+opening an unchanged chat does not need a second decision request.
+
 ## The commands
 
 Once it is on, chips sit above the composer in DMs and groups. Each has

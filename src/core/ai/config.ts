@@ -16,6 +16,7 @@ export interface AiConfig {
   readonly url: string;
   readonly model: string;
   readonly suggestOnOpen?: boolean;
+  readonly replyBadges?: boolean;
 }
 
 export const DEFAULT_AI_CONFIG: AiConfig = { source: 'auto', url: '', model: '' };
@@ -25,6 +26,7 @@ const isAiConfig = shape<AiConfig>({
   url: isString,
   model: isString,
   suggestOnOpen: optional(isBoolean),
+  replyBadges: optional(isBoolean),
 });
 
 export async function loadAiConfig(accountId: string): Promise<AiConfig> {
@@ -45,8 +47,21 @@ export async function saveAiConfig(accountId: string, config: AiConfig): Promise
       url: config.url.trim(),
       model: config.model.trim(),
       suggestOnOpen: config.suggestOnOpen === true,
+      replyBadges: config.replyBadges === true,
     })
   );
+  revision += 1;
+  for (const listener of listeners) listener();
+}
+
+const listeners = new Set<() => void>();
+let revision = 0;
+export const aiConfigRevision = () => revision;
+export function subscribeAiConfig(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
 }
 
 export const loadAiKey = (accountId: string) => readCredential(accountId, 'ai');

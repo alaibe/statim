@@ -1,6 +1,8 @@
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
+import type { AiConfig } from '@/core/ai/config';
+import { useChatAttention } from './use-chat-attention';
 import type { ChatPrefs } from '@/core/messaging/chat-prefs';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { type Folder, type ChatListRow, isOwnFolder } from '@/core/messaging/folders';
@@ -9,6 +11,7 @@ import type { NetworkId } from '@/core/messaging/networks';
 import type { Chat, ChatId } from '@/core/messaging/types';
 import { readByPeer, unreadBadge } from '@/core/messaging/unread';
 import {
+  Badge,
   Chevron,
   CountBadge,
   Enter,
@@ -28,6 +31,7 @@ import { DeliveryIcon, useReadUpTo } from './delivery-icon';
 
 export function ChatRow({
   chat,
+  aiConfig,
   title,
   selfId,
   unread,
@@ -38,6 +42,7 @@ export function ChatRow({
   onToggle,
 }: {
   chat: Chat;
+  aiConfig?: AiConfig;
   title: string;
   selfId: string;
   unread: boolean;
@@ -47,6 +52,7 @@ export function ChatRow({
   onMenu: (chat: Chat, anchor: MenuAnchor | null) => void;
   onToggle: (id: ChatId, key: keyof ChatPrefs) => void;
 }) {
+  const attention = useChatAttention(chat, aiConfig);
   const last = chat.lastMessage;
   const preview = messagePreview(last);
   const pinned = Boolean(prefs.pinned);
@@ -95,7 +101,9 @@ export function ChatRow({
             ) : null}
           </>
         }
-        accessibilityLabel={[title, chat.typing ? 'typing' : preview].filter(Boolean).join(', ')}
+        accessibilityLabel={[title, attention, chat.typing ? 'typing' : preview]
+          .filter(Boolean)
+          .join(', ')}
         subtitle={chat.typing ? 'typing…' : preview}
         onPress={() => openChat(chat.id)}
         onLongPress={() => onMenu(chat, null)}
@@ -116,11 +124,14 @@ export function ChatRow({
           ) : undefined
         }
         subtitleTrailing={
-          unread ? (
-            <CountBadge count={unreadBadge(chat, since, loaded)} muted={muted} />
-          ) : pinned ? (
-            <Icon name="pin" size={14} tone="subtle" />
-          ) : undefined
+          <View className="flex-row items-center gap-1">
+            {attention ? <Badge label={attention} tone="brand" /> : null}
+            {unread ? (
+              <CountBadge count={unreadBadge(chat, since, loaded)} muted={muted} />
+            ) : pinned ? (
+              <Icon name="pin" size={14} tone="subtle" />
+            ) : null}
+          </View>
         }
       />
     </SwipeableRow>

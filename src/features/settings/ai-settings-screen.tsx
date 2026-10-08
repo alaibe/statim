@@ -39,6 +39,7 @@ const DESKTOP = process.env.EXPO_OS === 'web';
 
 interface Draft extends AiConfig {
   suggestOnOpen: boolean;
+  replyBadges: boolean;
   key: string;
   typesafeKey: string;
 }
@@ -58,6 +59,7 @@ async function loadSaved(accountId: string): Promise<Saved> {
     draft: {
       ...config,
       suggestOnOpen: config.suggestOnOpen ?? false,
+      replyBadges: config.replyBadges ?? false,
       key: credentials.ai ?? '',
       typesafeKey: credentials.typesafe ?? '',
     },
@@ -133,6 +135,7 @@ function AiSettingsForm({
     setDraft({
       ...(source === saved.draft.source ? saved.draft : { source, url: '', model: '', key: '' }),
       suggestOnOpen: draft.suggestOnOpen,
+      replyBadges: draft.replyBadges,
       typesafeKey: draft.typesafeKey,
     });
   };
@@ -143,12 +146,13 @@ function AiSettingsForm({
     draft.model.trim() !== saved.draft.model ||
     draft.key.trim() !== saved.draft.key ||
     draft.typesafeKey.trim() !== saved.draft.typesafeKey ||
-    draft.suggestOnOpen !== saved.draft.suggestOnOpen;
+    draft.suggestOnOpen !== saved.draft.suggestOnOpen ||
+    draft.replyBadges !== saved.draft.replyBadges;
 
   const save = useAction(
     async () => {
-      if (draft.suggestOnOpen && !draft.typesafeKey.trim()) {
-        throw new Error('Enter a TypeSafe API key to suggest replies on open.');
+      if ((draft.suggestOnOpen || draft.replyBadges) && !draft.typesafeKey.trim()) {
+        throw new Error('Enter a TypeSafe API key to enable these chat features.');
       }
       await saveAiKey(accountId, draft.key);
       await saveTypesafeKey(accountId, draft.typesafeKey);
@@ -208,7 +212,7 @@ function AiSettingsForm({
 
       {enabled ? (
         <>
-          <Section title="Reply suggestions" surface="card" className="mb-6">
+          <Section title="Jev" surface="card" className="mb-6">
             <ListItem
               testID="ai-suggest-on-open"
               title="Suggest replies on open"
@@ -219,6 +223,18 @@ function AiSettingsForm({
                   label="Suggest replies on open"
                   value={draft.suggestOnOpen}
                   onValueChange={(suggestOnOpen) => change({ suggestOnOpen })}
+                />
+              }
+            />
+            <ListItem
+              testID="ai-reply-badges"
+              title="Highlight chats needing a reply"
+              subtitle="Show a Reply needed badge in the chat list."
+              trailing={
+                <Toggle
+                  label="Highlight chats needing a reply"
+                  value={draft.replyBadges}
+                  onValueChange={(replyBadges) => change({ replyBadges })}
                 />
               }
             />
@@ -234,8 +250,9 @@ function AiSettingsForm({
                 secureTextEntry
               />
               <Text variant="footnote">
-                When enabled, opening a DM or group sends recent messages to TypeSafe, including
-                other participants’ messages. Suggestions use the model selected below.
+                These options send recent messages to TypeSafe, including other participants’
+                messages. Badges check chats visible in the chat list. Reply suggestions use the
+                model selected below.
               </Text>
               <Button
                 label="Get a TypeSafe key"

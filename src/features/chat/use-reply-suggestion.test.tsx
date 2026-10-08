@@ -14,7 +14,11 @@ import type { ChatId, ChatMessage } from '@/core/messaging/types';
 import { useReplySuggestion } from './use-reply-suggestion';
 
 jest.mock('expo-router', () => ({ useIsFocused: jest.fn(() => true) }));
-jest.mock('@/core/ai/config', () => ({ loadAiConfig: jest.fn(), loadTypesafeKey: jest.fn() }));
+jest.mock('@/core/ai/config', () => ({
+  ...jest.requireActual('@/core/ai/config'),
+  loadAiConfig: jest.fn(),
+  loadTypesafeKey: jest.fn(),
+}));
 jest.mock('@/core/ai/providers', () => ({ resolveProvider: jest.fn() }));
 jest.mock('@/core/ai/reply-decision', () => ({ needsReply: jest.fn() }));
 jest.mock('@/core/messaging/chat-lines', () => ({
@@ -51,6 +55,7 @@ async function mount(props: { available?: boolean } = {}) {
 beforeEach(() => {
   jest.resetAllMocks();
   jest.mocked(useIsFocused).mockReturnValue(true);
+  useChatStore.setState(useChatStore.getInitialState(), true);
   useChatStore.setState(
     {
       ...useChatStore.getInitialState(),

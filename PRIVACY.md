@@ -129,6 +129,11 @@ device. If a reply is needed, your selected model receives recent messages to
 write a suggestion. You review and send it yourself. The TypeSafe key stays
 with your account's other keys on this device and is sent only to TypeSafe.
 
+**Highlight chats needing a reply** is another optional setting. It loads recent
+history for chats visible in the chat list and sends up to 20 recent messages
+to TypeSafe for the badge decision, without marking the chat read. This does
+not generate or send a reply.
+
 ### Notifications from your computer
 
 iOS stops Statim soon after you leave it, so an iPhone can hear about new

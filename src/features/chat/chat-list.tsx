@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useIsFocused, useRouter } from 'expo-router';
 import { useObserve } from 'expo-observe';
 import { useDeferredValue, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { FlashList, type FlashListRef, type ListRenderItemInfo } from '@shopify/flash-list';
@@ -18,6 +18,7 @@ import {
   useEscapeKey,
   useThemeColors,
 } from '@/design';
+import { useAiConfig } from '@/core/ai/use-config';
 import { reportError } from '@/core/app/report-error';
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { Chat, ChatId } from '@/core/messaging/types';
@@ -55,6 +56,9 @@ interface ChatListProps {
 /** The chat list: the Chats tab on a phone, the sidebar on desktop. */
 export function ChatList({ query, selectedId }: ChatListProps) {
   const colors = useThemeColors();
+  const focused = useIsFocused();
+  const aiConfig = useAiConfig();
+  const [visibleIds, setVisibleIds] = useState<ReadonlySet<string>>(NO_IDS);
 
   const baseChats = useChatStore((s) => s.chats);
   const status = useChatStore((s) => s.status);
@@ -133,6 +137,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
       return (
         <ChatRow
           chat={row.chat}
+          aiConfig={focused && visibleIds.has(row.chat.id) ? aiConfig : undefined}
           title={titleOf(row.chat)}
           selfId={selfIdOf(row.chat)}
           unread={isUnread(row.chat, readAt)}
@@ -169,6 +174,14 @@ export function ChatList({ query, selectedId }: ChatListProps) {
           <FlashList
             ref={list}
             data={rows}
+            extraData={visibleIds}
+            onViewableItemsChanged={({ viewableItems }) =>
+              setVisibleIds(
+                new Set(
+                  viewableItems.flatMap(({ item }) => (item.kind === 'chat' ? [item.chat.id] : []))
+                )
+              )
+            }
             keyExtractor={(row) => (row.kind === 'chat' ? row.chat.id : row.folder)}
             getItemType={(row) => row.kind}
             drawDistance={process.env.EXPO_OS === 'web' ? 2000 : undefined}
