@@ -26,6 +26,8 @@ import { chatCache, chats, messages, transportCursors } from './schema';
 
 type Queries = Pick<Database, 'insert'>;
 
+const contentKind = sql`json_extract(${messages.content}, '$.kind')`;
+
 export class SqliteMessageStore implements MessageStore {
   private readonly generation: number;
 
@@ -102,7 +104,7 @@ export class SqliteMessageStore implements MessageStore {
           eq(messages.chatId, chatId),
           gt(messages.sentAt, since),
           eq(messages.fromMe, false),
-          notInArray(sql`json_extract(${messages.content}, '$.kind')`, [...NON_UNREAD_KINDS])
+          notInArray(contentKind, [...NON_UNREAD_KINDS])
         )
       )
     );
@@ -169,25 +171,21 @@ export class SqliteMessageStore implements MessageStore {
   }
 
   async latestMessages<Id extends AnyChatId>(
-    protocolId: ProtocolId
+    protocolId: ProtocolId,
+    chatId?: Id
   ): Promise<Map<Id, ChatMessage<Id>>> {
     const rows = await this.operation((db) => {
       const newest = db
         .select({ rowid: sql`rowid` })
         .from(messages)
-        .where(
-          and(
-            eq(messages.chatId, chats.id),
-            notInArray(sql`json_extract(${messages.content}, '$.kind')`, [...NON_PREVIEW_KINDS])
-          )
-        )
+        .where(and(eq(messages.chatId, chats.id), notInArray(contentKind, [...NON_PREVIEW_KINDS])))
         .orderBy(desc(messages.sentAt), desc(messages.id))
         .limit(1);
       return db
         .select({ message: messages })
         .from(chats)
         .innerJoin(messages, sql`${messages}.rowid = (${newest})`)
-        .where(eq(chats.protocolId, protocolId));
+        .where(and(eq(chats.protocolId, protocolId), chatId ? eq(chats.id, chatId) : undefined));
     });
     return new Map(
       rows.map(({ message }) => {

@@ -112,6 +112,7 @@ export function useChatTimeline(
     byId,
     replyCounts,
     messageHistory,
+    loadMessages,
     loadOlderMessages,
     list,
     followNewest,

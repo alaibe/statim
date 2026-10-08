@@ -5,6 +5,7 @@ import { isLocalChat } from '@/core/messaging/bots';
 import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
 import { attachedFile } from '@/core/messaging/attachments';
 import { contentPreview } from '@/core/messaging/preview';
+import { showsInPreview } from '@/core/messaging/message-rules';
 import type { ProtocolId } from '@/core/messaging/namespace';
 import type { ChatMessage, Chat, ChatId, ParticipantId } from '@/core/messaging/types';
 import {
@@ -242,12 +243,10 @@ export async function loadedMessages(chatId: ChatId): Promise<readonly ChatMessa
   return useChatStore.getState().messages[chatId] ?? [];
 }
 
-export const visible = (m: ChatMessage) => m.content.kind !== 'reaction';
-
 export async function findMessage(chatId: ChatId, ref: string): Promise<ChatMessage> {
   let messages = await loadedMessages(chatId);
   if (ref === 'last') {
-    const last = messages.filter(visible).at(-1);
+    const last = messages.findLast(showsInPreview);
     if (!last) throw new CliError('That chat has no messages.', 'notFound');
     return last;
   }

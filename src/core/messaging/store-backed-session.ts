@@ -97,7 +97,7 @@ export class StoreBackedSession implements ChatSession, TransportSink {
       this.history.clearFailure();
     }
     this.remember(visible);
-    if (isNew) this.announce(visible, message);
+    if (isNew) this.announce(visible, showsInPreview(message) ? message : undefined);
     if (inserted) for (const listener of this.messageListeners) listener(message);
   }
 
@@ -155,7 +155,7 @@ export class StoreBackedSession implements ChatSession, TransportSink {
       createdAt: chat.createdAt,
       consent: 'accepted',
       ...(chat.blocked ? { blocked: true } : {}),
-      lastMessage: lastMessage && showsInPreview(lastMessage) ? lastMessage : undefined,
+      lastMessage,
       selfRole: undefined,
     };
   }
@@ -247,10 +247,8 @@ export class StoreBackedSession implements ChatSession, TransportSink {
   private async update(chat: TransportChat): Promise<void> {
     await this.store.upsertChat(chat);
     this.remember(chat);
-    this.announce(
-      chat,
-      (await this.store.latestMessages<ProtocolChatId>(this.transport.protocolId)).get(chat.id)
-    );
+    const latest = await this.store.latestMessages(this.transport.protocolId, chat.id);
+    this.announce(chat, latest.get(chat.id));
   }
 
   async leaveGroup(id: ProtocolChatId): Promise<void> {

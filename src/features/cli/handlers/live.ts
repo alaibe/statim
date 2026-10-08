@@ -1,5 +1,6 @@
 import { useChatStore, type ChatState } from '@/core/messaging/chat-store';
 import { protocolOf } from '@/core/messaging/namespace';
+import { showsInPreview } from '@/core/messaging/message-rules';
 import type { ChatMessage } from '@/core/messaging/types';
 
 import {
@@ -8,7 +9,6 @@ import {
   findChat,
   messageJson,
   messageLine,
-  visible,
   whenAccountReady,
   type CliHandler,
 } from '../context';
@@ -46,7 +46,7 @@ export const liveHandlers = {
       const fresh = changed(state, previous).filter((m) => {
         if (seen.has(m.id) || m.preview || m.id.startsWith('pending:') || m.status === 'sending')
           return false;
-        if (m.sentAt < since || !visible(m) || (only && m.chatId !== only)) return false;
+        if (m.sentAt < since || !showsInPreview(m) || (only && m.chatId !== only)) return false;
         seen.add(m.id);
         return true;
       });

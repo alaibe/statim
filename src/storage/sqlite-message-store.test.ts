@@ -391,6 +391,7 @@ describe('messages', () => {
     expect(latest.get(C1)?.id).toBe((await store.loadMessages(C1, 1))[0].id);
     expect(latest.get(C1)?.id).toBe('b');
     expect(latest.get(C2)?.id).toBe('two');
+    expect([...(await store.latestMessages(STATUS, C2)).keys()]).toEqual(['c2']);
   });
 
   it('does not let a duplicate overwrite the canonical event', async () => {

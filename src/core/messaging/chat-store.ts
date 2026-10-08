@@ -238,12 +238,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const accountId = get().accountId;
     const opened = get().messageHistory[id];
     if (opened?.loading) return;
-    set((state) => ({
-      messageHistory: {
-        ...state.messageHistory,
-        [id]: { loading: true, hasOlder: opened?.hasOlder ?? false },
-      },
-    }));
+    set((state) => withHistory(state, id, { loading: true, hasOlder: opened?.hasOlder ?? false }));
     const project = (
       page: ChatMessage[],
       hasOlder: boolean,
@@ -252,7 +247,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     ) => {
       set((state) => ({
         ...withRaw(state, id, merge(rawOf(state, id), page)),
-        messageHistory: { ...state.messageHistory, [id]: { loading, hasOlder } },
+        ...withHistory(state, id, { loading, hasOlder }),
       }));
       const indexed = indexMessages(get().mediaIndex, id, page);
       if (indexed !== get().mediaIndex) {
@@ -278,16 +273,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
       project(older, older.length === rest, false, (loaded, page) => dedupe([...page, ...loaded]));
     } catch (error) {
       if (get().accountId !== accountId) return;
-      set((state) => ({
-        messageHistory: {
-          ...state.messageHistory,
-          [id]: {
-            loading: false,
-            hasOlder: state.messageHistory[id]?.hasOlder ?? false,
-            error: errorMessage(error, 'Could not load messages'),
-          },
-        },
-      }));
+      set((state) =>
+        withHistory(state, id, {
+          loading: false,
+          hasOlder: state.messageHistory[id]?.hasOlder ?? false,
+          error: errorMessage(error, 'Could not load messages'),
+        })
+      );
     }
   },
 
@@ -298,35 +290,31 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (existing.length === 0) return;
     const accountId = get().accountId;
 
-    set((state) => ({
-      messageHistory: {
-        ...state.messageHistory,
-        [id]: { ...state.messageHistory[id], loading: true, hasOlder: true, error: undefined },
-      },
-    }));
+    set((state) =>
+      withHistory(state, id, {
+        ...state.messageHistory[id],
+        loading: true,
+        hasOlder: true,
+        error: undefined,
+      })
+    );
 
     try {
       const page = await loadMessagePage(get(), id, 100, existing);
       if (get().accountId !== accountId) return;
       set((state) => ({
         ...withRaw(state, id, dedupe([...page, ...rawOf(state, id)])),
-        messageHistory: {
-          ...state.messageHistory,
-          [id]: { loading: false, hasOlder: page.length === 100 },
-        },
+        ...withHistory(state, id, { loading: false, hasOlder: page.length === 100 }),
       }));
     } catch (error) {
       if (get().accountId !== accountId) return;
-      set((state) => ({
-        messageHistory: {
-          ...state.messageHistory,
-          [id]: {
-            loading: false,
-            hasOlder: true,
-            error: errorMessage(error, 'Could not load earlier messages'),
-          },
-        },
-      }));
+      set((state) =>
+        withHistory(state, id, {
+          loading: false,
+          hasOlder: true,
+          error: errorMessage(error, 'Could not load earlier messages'),
+        })
+      );
     }
   },
 
@@ -1030,7 +1018,7 @@ function chatsAfterRemoval(
   return sortChats(
     chats.map((chat) =>
       chat.id === id && chat.lastMessage && removed.has(chat.lastMessage.id)
-        ? { ...chat, lastMessage: kept?.filter(showsInPreview).at(-1) }
+        ? { ...chat, lastMessage: kept?.findLast(showsInPreview) }
         : chat
     )
   );
@@ -1153,6 +1141,14 @@ function withRaw(state: MessageSlices, id: ChatId, raw: readonly ChatMessage[]):
     rawMessages: { ...state.rawMessages, [id]: raw },
     messages: { ...state.messages, [id]: foldReactions(raw) },
   };
+}
+
+function withHistory(
+  state: ChatState,
+  id: ChatId,
+  history: MessageHistoryState
+): Pick<ChatState, 'messageHistory'> {
+  return { messageHistory: { ...state.messageHistory, [id]: history } };
 }
 
 function requireMessageStore(state: ChatState): MessageStore {

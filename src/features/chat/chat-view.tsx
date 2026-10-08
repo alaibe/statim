@@ -65,11 +65,11 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
   useEscapeKey(Boolean(thread), onBack);
   const insets = useSafeAreaInsets();
   const frame = useLayoutInsets();
+  const headerHeight = insets.top + frame.top + 62;
 
   const sessions = useChatStore((s) => s.sessions);
   const chat = useChatStore((s) => s.chats.find((c) => c.id === id));
   const sendMessage = useChatStore((s) => s.sendMessage);
-  const loadMessages = useChatStore((s) => s.loadMessages);
 
   const [forwarding, setForwarding] = useState<ChatMessage | null>(null);
   const [deleting, setDeleting] = useState<DeleteTarget | null>(null);
@@ -86,6 +86,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
     byId,
     replyCounts,
     messageHistory,
+    loadMessages,
     loadOlderMessages,
     list,
     followNewest,
@@ -165,12 +166,12 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
         onOpen={() => setShowPinned(true)}
         onClose={() => setShowPinned(false)}
         onUnpin={(message) => void togglePin(message)}
-        top={insets.top + frame.top + 62}
+        top={headerHeight}
       />
 
       <KeyboardAvoidingView behavior="padding" className="flex-1">
         {messages.length === 0 ? (
-          <View className="flex-1" style={{ paddingTop: insets.top + frame.top + 62 }}>
+          <View className="flex-1" style={{ paddingTop: headerHeight }}>
             <HistoryStatus protocol={protocol} />
             <EmptyTranscript
               protocol={protocol}
@@ -198,7 +199,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
               </View>
             }
             footer={running ? <CommandPending label={`Running ${running}…`} /> : null}
-            topInset={insets.top + frame.top + (pinnedMessages.length ? 116 : 62)}
+            topInset={headerHeight + (pinnedMessages.length ? 54 : 0)}
           />
         )}
 

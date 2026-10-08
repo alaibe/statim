@@ -14,26 +14,22 @@ export function isUnread(chat: Chat, readAt: Record<ChatId, number>): boolean {
 }
 
 export function unreadState(
-  chat: Pick<Chat, 'lastMessage' | 'unreadCount' | 'mentionCount'> | undefined,
+  chat: Pick<Chat, 'lastMessage' | 'unreadCount'> | undefined,
   since: number,
-  loaded?: readonly ChatMessage[]
-): { unread: boolean; count: number; mentions: boolean } {
-  const newest = loaded?.at(-1);
+  loaded: readonly ChatMessage[] = []
+): { unread: boolean; count: number } {
+  const newest = loaded.at(-1);
   const last =
     !chat?.lastMessage || (newest && newest.sentAt > chat.lastMessage.sentAt)
       ? newest
       : chat.lastMessage;
-  const marked = since === MARKED_UNREAD;
-  const caughtUp = !marked && last !== undefined && since >= last.sentAt;
-  const localCount = loaded ? unreadCount(loaded, since) : 0;
-  const count = marked || caughtUp ? 0 : (chat?.unreadCount ?? localCount);
-  const unread =
-    marked ||
-    (!caughtUp &&
-      (count > 0 ||
-        localCount > 0 ||
-        (chat?.unreadCount === undefined && !!last && countsAsUnread(last, since))));
-  return { unread, count, mentions: unread && (chat?.mentionCount ?? 0) > 0 };
+  if (since === MARKED_UNREAD) return { unread: true, count: 0 };
+  if (last && since >= last.sentAt) return { unread: false, count: 0 };
+  const reported = chat?.unreadCount;
+  if (reported) return { unread: true, count: reported };
+  const local = unreadCount(loaded, since);
+  const unread = local > 0 || (reported === undefined && !!last && countsAsUnread(last, since));
+  return { unread, count: reported ?? local };
 }
 
 export function isCaughtUp(since: number, last: ChatMessage | undefined): boolean {
@@ -47,7 +43,7 @@ export function unreadBadge(chat: Chat, since: number, loaded?: readonly ChatMes
 
 /** A protocol's mention count lingers until it hears the chat was read, which it may never. */
 export function hasUnreadMentions(chat: Chat, readAt: Record<ChatId, number>): boolean {
-  return unreadState(chat, readAt[chat.id] ?? 0).mentions;
+  return (chat.mentionCount ?? 0) > 0 && isUnread(chat, readAt);
 }
 
 export function unreadCount(messages: readonly ChatMessage[], since: number): number {

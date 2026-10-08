@@ -802,8 +802,8 @@ export class StatusSession implements ChatSession {
     await this.store.deleteMessages(message.chatId, [message.id]);
     for (const listener of this.deletionListeners) listener(message.chatId, [message.id]);
     if (this.latest.get(message.chatId)?.id !== message.id) return;
-    const rest = await this.store.loadMessages(message.chatId);
-    const newest = rest.filter(showsInPreview).at(-1);
+    const latest = await this.store.latestMessages(STATUS_PROTOCOL_ID, message.chatId);
+    const newest = latest.get(message.chatId);
     if (newest) this.latest.set(message.chatId, newest);
     else this.latest.delete(message.chatId);
     const chat = this.chats.get(message.chatId);

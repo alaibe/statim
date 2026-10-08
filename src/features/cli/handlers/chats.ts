@@ -4,6 +4,7 @@ import { draftKey } from '@/core/messaging/drafts';
 import { matchesFilter, networkOf, splitRequests, type ChatFilter } from '@/core/messaging/folders';
 import { chatPermissions } from '@/core/messaging/permissions';
 import { messagePreview } from '@/core/messaging/preview';
+import { showsInPreview } from '@/core/messaging/message-rules';
 import { LOCAL_PROTOCOL } from '@/core/messaging/namespace';
 import { NETWORK_IDS, type NetworkId } from '@/core/messaging/networks';
 import type { Chat, ChatId } from '@/core/messaging/types';
@@ -18,7 +19,6 @@ import {
   messageJson,
   messageLine,
   readyChat,
-  visible,
   whenAccountReady,
   type ChatLabel,
   type CliHandler,
@@ -98,7 +98,7 @@ async function readChat({ args, flags }: ParsedArgs) {
   const cutoff =
     typeof flags.before === 'string' ? await findMessage(chat.id, flags.before) : undefined;
   const raw = () => useChatStore.getState().messages[chat.id] ?? [];
-  const shown = () => raw().filter(visible);
+  const shown = () => raw().filter(showsInPreview);
   const endOf = () => (cutoff ? shown().findIndex((m) => m.id === cutoff.id) : shown().length);
   while (endOf() < count && useChatStore.getState().messageHistory[chat.id]?.hasOlder !== false) {
     const before = raw().length;

@@ -70,8 +70,11 @@ export interface MessageStore {
     chat?: StoredChat<Id>,
     transportTimestamp?: number
   ): Promise<boolean>;
-  /** Latest preview message per chat, excluding reactions. */
-  latestMessages<Id extends AnyChatId>(protocolId: ProtocolId): Promise<Map<Id, ChatMessage<Id>>>;
+  /** Each chat's newest message that shows in its preview, or only `chatId`'s. */
+  latestMessages<Id extends AnyChatId>(
+    protocolId: ProtocolId,
+    chatId?: Id
+  ): Promise<Map<Id, ChatMessage<Id>>>;
   newestTransportTimestamp(
     protocolId: ProtocolId,
     notAfter: number,
@@ -201,17 +204,14 @@ export class InMemoryMessageStore implements MessageStore {
   }
 
   async latestMessages<Id extends AnyChatId>(
-    protocolId: ProtocolId
+    protocolId: ProtocolId,
+    chatId?: Id
   ): Promise<Map<Id, ChatMessage<Id>>> {
     const latest = new Map<Id, ChatMessage<Id>>();
     for (const chat of this.chats.values()) {
-      if (chat.protocolId !== protocolId) continue;
+      if (chat.protocolId !== protocolId || (chatId && chat.id !== chatId)) continue;
       const id = storedChatId<Id>(chat.id, protocolId);
-      const newest = [...(this.messages.get(id)?.values() ?? [])]
-        .filter(showsInPreview)
-        .sort((a, b) => b.sentAt - a.sentAt || b.id.localeCompare(a.id))[0] as
-        | ChatMessage<Id>
-        | undefined;
+      const newest = (await this.loadMessages(id, Infinity)).findLast(showsInPreview);
       if (newest) latest.set(id, newest);
     }
     return latest;
