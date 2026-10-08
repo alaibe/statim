@@ -4,6 +4,8 @@ import { useChatStore } from '@/core/messaging/chat-store';
 import { contentPreview } from '@/core/messaging/preview';
 import type { Chat, ChatId, ChatMessage } from '@/core/messaging/types';
 
+import { usefulAction, type SuggestedAction } from './action-decision';
+import { deviceLanguage } from './languages';
 import { loadTypesafeKey, type AiConfig } from './config';
 import { AiError } from './errors';
 import {
@@ -44,26 +46,34 @@ export async function assistanceLines(chatId: ChatId) {
   return linesFromMessages(chatId, picked);
 }
 
-const decisions = new Map<string, { text: string; promise: Promise<boolean> }>();
+type Decision = ReplyKind | SuggestedAction | null;
+const decisions = new Map<string, { text: string; promise: Promise<Decision> }>();
 useChatStore.subscribe((state, previous) => {
   if (state.accountId !== previous.accountId) decisions.clear();
 });
 
-export async function replyNeeded(
+async function decisionFor(
   accountId: string,
   chatId: ChatId,
   lines: readonly ChatLine[],
   signal?: AbortSignal,
-  kind: ReplyKind = 'reply'
-) {
+  kind: ReplyKind | 'action' = 'reply'
+): Promise<Decision> {
   const key = await loadTypesafeKey(accountId);
-  if (signal?.aborted) return false;
+  if (signal?.aborted || useChatStore.getState().accountId !== accountId) return null;
   if (!key) throw new AiError('unavailable', 'Enter a TypeSafe API key in Settings › AI.');
   const id = `${accountId}\n${chatId}\n${kind}`;
-  const text = `${key}\n${replyTarget(useChatStore.getState().messages[chatId], kind)}\n${transcript(lines, 12_000).text}`;
+  const language = deviceLanguage();
+  const last = useChatStore.getState().messages[chatId]?.findLast(isAssistanceMessage);
+  const text = `${key}\n${last?.id}\n${language.tag}\n${transcript(lines, 12_000).text}`;
   const previous = decisions.get(id);
   if (previous?.text === text) return previous.promise;
-  const promise = kind === 'reply' ? needsReply(lines, key) : needsReply(lines, key, kind);
+  const promise =
+    kind === 'action'
+      ? usefulAction(lines, key, language)
+      : (kind === 'reply' ? needsReply(lines, key) : needsReply(lines, key, kind)).then((needed) =>
+          needed ? kind : null
+        );
   const entry = { text, promise };
   decisions.set(id, entry);
   if (decisions.size > 200) decisions.delete(decisions.keys().next().value!);
@@ -73,6 +83,27 @@ export async function replyNeeded(
     if (decisions.get(id) === entry) decisions.delete(id);
     throw error;
   }
+}
+
+export async function replyNeeded(
+  accountId: string,
+  chatId: ChatId,
+  lines: readonly ChatLine[],
+  signal?: AbortSignal,
+  kind: ReplyKind = 'reply'
+) {
+  return (await decisionFor(accountId, chatId, lines, signal, kind)) === kind;
+}
+
+export async function recommendAction(
+  accountId: string,
+  chatId: ChatId,
+  signal: AbortSignal
+): Promise<SuggestedAction | null> {
+  const lines = await assistanceLines(chatId);
+  if (signal.aborted) return null;
+  const action = await decisionFor(accountId, chatId, lines, signal, 'action');
+  return action === 'summarize' || action === 'translate' ? action : null;
 }
 
 export async function prepareReply(

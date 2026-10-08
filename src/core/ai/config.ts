@@ -18,6 +18,7 @@ export interface AiConfig {
   readonly suggestOnOpen?: boolean;
   readonly replyBadges?: boolean;
   readonly followUps?: boolean;
+  readonly suggestActions?: boolean;
 }
 
 export const DEFAULT_AI_CONFIG: AiConfig = { source: 'auto', url: '', model: '' };
@@ -29,6 +30,7 @@ const isAiConfig = shape<AiConfig>({
   suggestOnOpen: optional(isBoolean),
   replyBadges: optional(isBoolean),
   followUps: optional(isBoolean),
+  suggestActions: optional(isBoolean),
 });
 
 export async function loadAiConfig(accountId: string): Promise<AiConfig> {
@@ -51,6 +53,7 @@ export async function saveAiConfig(accountId: string, config: AiConfig): Promise
       suggestOnOpen: config.suggestOnOpen === true,
       replyBadges: config.replyBadges === true,
       followUps: config.followUps === true,
+      suggestActions: config.suggestActions === true,
     })
   );
   revision += 1;

@@ -197,6 +197,7 @@ export function Composer({
         chatId={chatId}
         scope={scope}
         hasDraft={value.trim() !== ''}
+        allowSuggestions={!thread && !banner && !editing && !busy}
         onRun={(action) => {
           const draft = useChatStore.getState().drafts[draftKey(chatId, thread)]?.trim();
           void dispatch(

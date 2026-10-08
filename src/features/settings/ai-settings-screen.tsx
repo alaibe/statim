@@ -41,6 +41,7 @@ interface Draft extends AiConfig {
   suggestOnOpen: boolean;
   replyBadges: boolean;
   followUps: boolean;
+  suggestActions: boolean;
   key: string;
   typesafeKey: string;
 }
@@ -62,6 +63,7 @@ async function loadSaved(accountId: string): Promise<Saved> {
       suggestOnOpen: config.suggestOnOpen ?? false,
       replyBadges: config.replyBadges ?? false,
       followUps: config.followUps ?? false,
+      suggestActions: config.suggestActions ?? false,
       key: credentials.ai ?? '',
       typesafeKey: credentials.typesafe ?? '',
     },
@@ -139,6 +141,7 @@ function AiSettingsForm({
       suggestOnOpen: draft.suggestOnOpen,
       replyBadges: draft.replyBadges,
       followUps: draft.followUps,
+      suggestActions: draft.suggestActions,
       typesafeKey: draft.typesafeKey,
     });
   };
@@ -151,12 +154,13 @@ function AiSettingsForm({
     draft.typesafeKey.trim() !== saved.draft.typesafeKey ||
     draft.suggestOnOpen !== saved.draft.suggestOnOpen ||
     draft.replyBadges !== saved.draft.replyBadges ||
-    draft.followUps !== saved.draft.followUps;
+    draft.followUps !== saved.draft.followUps ||
+    draft.suggestActions !== saved.draft.suggestActions;
 
   const save = useAction(
     async () => {
       if (
-        (draft.suggestOnOpen || draft.replyBadges || draft.followUps) &&
+        (draft.suggestOnOpen || draft.replyBadges || draft.followUps || draft.suggestActions) &&
         !draft.typesafeKey.trim()
       ) {
         throw new Error('Enter a TypeSafe API key to enable these chat features.');
@@ -255,6 +259,19 @@ function AiSettingsForm({
                   label="Suggest follow-ups"
                   value={draft.followUps}
                   onValueChange={(followUps) => change({ followUps })}
+                />
+              }
+            />
+            <ListItem
+              testID="ai-suggest-actions"
+              title="Suggest useful AI actions"
+              subtitle="Highlight Summarize or Translate when it would help with the open chat. The action runs when you tap it."
+              numberOfLinesSubtitle={3}
+              trailing={
+                <Toggle
+                  label="Suggest useful AI actions"
+                  value={draft.suggestActions}
+                  onValueChange={(suggestActions) => change({ suggestActions })}
                 />
               }
             />
@@ -389,14 +406,14 @@ function AiSettingsForm({
 
       <Note className="mx-gutter" icon="information-circle-outline">
         <Text variant="footnote">
-          AI is off until you turn it on. Commands run when you type them or tap their chips. Reply
-          suggestions also run when you open a chat if you enable them. Nothing is sent to the chat
-          until you send it yourself.
+          AI is off until you turn it on. Commands run when you type them or tap their chips.
+          Enabled Jev features also check chats as you view them. Nothing is sent to the chat until
+          you send it yourself.
         </Text>
         <Text variant="footnote">
-          Automatic uses the model built into this device. Reply decisions still go to TypeSafe if
-          you enable suggestions on open. Translation uses the device&apos;s own translator first,
-          when it has the language.
+          Automatic uses the model built into this device. Enabled Jev features still send recent
+          messages to TypeSafe. Translation uses the device&apos;s own translator first, when it has
+          the language.
         </Text>
         <Text variant="footnote">
           With your server or Anthropic, each request goes to that server: the text you rewrite or

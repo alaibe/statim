@@ -1,7 +1,9 @@
 import { act, createElement } from 'react';
 import { create, type ReactTestRenderer } from 'react-test-renderer';
 import { useIsFocused } from 'expo-router';
+import { AppState } from 'react-native';
 
+import { useLockStore } from '@/core/account/lock-store';
 import { loadAiConfig, loadTypesafeKey } from '@/core/ai/config';
 import { resolveProvider } from '@/core/ai/providers';
 import { needsReply } from '@/core/ai/reply-decision';
@@ -55,6 +57,9 @@ async function mount(props: { available?: boolean } = {}) {
 
 beforeEach(() => {
   jest.resetAllMocks();
+  AppState.currentState = 'active';
+  jest.mocked(AppState.addEventListener).mockReturnValue({ remove: jest.fn() });
+  useLockStore.setState({ status: 'open' });
   jest.mocked(useIsFocused).mockReturnValue(true);
   useChatStore.setState(useChatStore.getInitialState(), true);
   useChatStore.setState(
@@ -124,20 +129,28 @@ it('does not generate a reply when Jev says none is needed', async () => {
   expect(result().suggestion).toBeNull();
 });
 
-it.each(['off', 'unfocused', 'draft', 'outgoing', 'loading', 'unavailable'])(
-  'skips %s chats',
-  async (reason) => {
-    if (reason === 'off') useAppearanceStore.setState({ aiInChats: false });
-    if (reason === 'unfocused') jest.mocked(useIsFocused).mockReturnValue(false);
-    if (reason === 'draft') useChatStore.setState({ drafts: { [draftKey(id)]: 'My draft' } });
-    if (reason === 'outgoing')
-      useChatStore.setState({ messages: { [id]: [{ ...incoming, fromMe: true }] } });
-    if (reason === 'loading')
-      useChatStore.setState({ messageHistory: { [id]: { loading: true, hasOlder: false } } });
-    await mount({ available: reason !== 'unavailable' });
-    expect(needsReply).not.toHaveBeenCalled();
-  }
-);
+it.each([
+  'off',
+  'unfocused',
+  'draft',
+  'outgoing',
+  'loading',
+  'unavailable',
+  'locked',
+  'background',
+])('skips %s chats', async (reason) => {
+  if (reason === 'off') useAppearanceStore.setState({ aiInChats: false });
+  if (reason === 'locked') useLockStore.setState({ status: 'locked' });
+  if (reason === 'background') AppState.currentState = 'background';
+  if (reason === 'unfocused') jest.mocked(useIsFocused).mockReturnValue(false);
+  if (reason === 'draft') useChatStore.setState({ drafts: { [draftKey(id)]: 'My draft' } });
+  if (reason === 'outgoing')
+    useChatStore.setState({ messages: { [id]: [{ ...incoming, fromMe: true }] } });
+  if (reason === 'loading')
+    useChatStore.setState({ messageHistory: { [id]: { loading: true, hasOlder: false } } });
+  await mount({ available: reason !== 'unavailable' });
+  expect(needsReply).not.toHaveBeenCalled();
+});
 
 it('does not contact TypeSafe until automatic suggestions are enabled', async () => {
   jest.mocked(loadAiConfig).mockResolvedValue({ source: 'auto', url: '', model: '' });

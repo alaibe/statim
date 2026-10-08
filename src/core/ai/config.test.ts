@@ -26,6 +26,7 @@ it('keeps suggestions off by default and persists the choice without storing key
     suggestOnOpen: true,
     replyBadges: false,
     followUps: false,
+    suggestActions: false,
   });
   expect(await vaultGet(accountAiConfigKey('a'))).not.toContain('secret');
   expect(await readCredential('a', 'ai')).toBe('model-secret');

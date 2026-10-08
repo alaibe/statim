@@ -139,6 +139,11 @@ your latest sent message has gone unanswered for at least 24 hours. The check
 runs while you view the list or chat. If a follow-up is useful, your selected
 model prepares a suggestion when you open the chat; nothing is sent for you.
 
+**Suggest useful AI actions** separately sends recent messages and your device
+language to TypeSafe to recommend a summary or translation for the open chat.
+The selected model or translator runs only when you tap the suggested chip.
+Automatic Jev checks run only while Statim is in the foreground and unlocked.
+
 ### Notifications from your computer
 
 iOS stops Statim soon after you leave it, so an iPhone can hear about new

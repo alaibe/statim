@@ -50,6 +50,19 @@ reply** are off. It checks while you view the list or chat; it does not schedule
 notifications. A new answer removes the follow-up. You review, edit and send
 the suggestion yourself.
 
+## Useful AI actions
+
+**Suggest useful AI actions** is a separate opt-in under **Settings › AI**.
+When you open a DM or group with an empty composer, Jev can highlight the
+existing **Summarize** or **Translate** chip with **Suggested**. A summary is
+suggested for a substantial discussion; translation is suggested when the
+latest incoming text differs from your device's language. Uncertain decisions
+leave the chips as they are.
+
+The suggestion does not run the action. Tap the chip to use it. All Jev
+features are off by default, use the same TypeSafe key, and work only while
+Statim is in the foreground and unlocked. You can enable each independently.
+
 ## The commands
 
 Once it is on, chips sit above the composer in DMs and groups. Each has
