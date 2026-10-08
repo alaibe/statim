@@ -176,6 +176,15 @@ it('does not stream read receipts as messages', async () => {
   expect(received).toEqual(['hello']);
 });
 
+it('leaves read receipts out of the history of a DM and of a group', async () => {
+  const group = { ...dm, id: 'group', version: 'group' };
+  const session = await sessionWith([dm, group]);
+  for (const id of ['dm', 'group']) {
+    const history = await session.getMessages(id as never);
+    expect(history.map((message) => message.id)).toEqual(['hello']);
+  }
+});
+
 it('streams a message into the chat its topic names, without asking the client', async () => {
   const received: { id: string; chatId: string }[] = [];
   const session = await sessionWith([dm], [text('hello', 2_000)]);

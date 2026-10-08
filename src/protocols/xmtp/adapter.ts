@@ -215,10 +215,8 @@ export class XmtpSession implements ChatSession {
     if (!conversation) return [];
 
     const messages = await conversation.messages({ limit: opts?.limit ?? 100 });
-    const shown =
-      conversation.version === ConversationVersion.DM
-        ? messages.filter((m) => !isGroupUpdate(m))
-        : messages;
+    const isDm = conversation.version === ConversationVersion.DM;
+    const shown = messages.filter((m) => !isReadReceipt(m) && !(isDm && isGroupUpdate(m)));
     return (await Promise.all(shown.map((m) => this.toMessage(m, id)))).reverse();
   }
 
