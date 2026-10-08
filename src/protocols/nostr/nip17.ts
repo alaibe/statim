@@ -1,7 +1,7 @@
 /**
  * NIP-17 private messages over NIP-59 gift wrapping. Three layers: an
- * unsigned kind 14 rumor (unsigned so it cannot be republished as proof you
- * said something), a kind 13 seal that proves authorship, and a kind 1059
+ * unsigned rumor (unsigned so it cannot be republished as proof you said
+ * something), a kind 13 seal that proves authorship, and a kind 1059
  * wrap under a throwaway key, which is all a relay ever sees. One wrap per
  * recipient including yourself, or you cannot read your own outbox.
  *
@@ -27,10 +27,15 @@ import { decrypt, encrypt } from '@/lib/nip44';
 import { randomInt } from '@/lib/random';
 
 export const KIND_DM = 14;
+export const KIND_REACTION = 7;
+export const KIND_DELETION = 5;
 export const KIND_SEAL = 13;
 export const KIND_GIFT_WRAP = 1059;
 
 const MAX_JITTER_SECONDS = 2 * 24 * 60 * 60;
+
+/** What a chat carries: messages, NIP-25 reactions, and the deletions that take a reaction back. */
+const CHAT_KINDS = new Set([KIND_DM, KIND_REACTION, KIND_DELETION]);
 
 function jitteredTimestamp(): number {
   return nowSeconds() - randomInt(MAX_JITTER_SECONDS);
@@ -38,6 +43,7 @@ function jitteredTimestamp(): number {
 
 interface DirectMessage {
   recipients: string[];
+  kind?: number;
   content: string;
   subject?: string;
   tags?: Tag[];
@@ -52,7 +58,7 @@ export function buildRumor(sender: NostrKeys, message: DirectMessage): Rumor {
   return withId({
     pubkey: sender.publicKey,
     created_at: message.createdAt ?? nowSeconds(),
-    kind: KIND_DM,
+    kind: message.kind ?? KIND_DM,
     tags,
     content: message.content,
   });
@@ -109,7 +115,7 @@ export function unwrapGiftWrap(wrap: NostrEvent, recipient: NostrKeys): Rumor | 
 
     const rumorJson = decrypt(seal.content, recipient.secretKey, seal.pubkey);
     const rumor = JSON.parse(rumorJson) as Rumor;
-    if (rumor.kind !== KIND_DM) return null;
+    if (!CHAT_KINDS.has(rumor.kind)) return null;
     if (rumor.pubkey !== seal.pubkey) return null;
     if (withId(rumor).id !== rumor.id) return null;
     if (

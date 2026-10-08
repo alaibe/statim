@@ -42,12 +42,14 @@ function deliverFrom(
   sender: typeof bob,
   recipients: string[],
   content: string,
-  subject?: string
+  subject?: string,
+  more: { kind?: number; tags?: string[][] } = {}
 ) {
-  const { wraps } = wrapForRecipients(sender, { recipients, content, subject });
+  const { rumor, wraps } = wrapForRecipients(sender, { recipients, content, subject, ...more });
   for (const wrap of wraps) {
     if (wrap.tags[0][1] === alice.publicKey) relay.broadcast(wrap);
   }
+  return rumor.id;
 }
 
 const settleDeliveries = () => new Promise<void>((resolve) => setImmediate(resolve));
@@ -373,16 +375,6 @@ describe('sending', () => {
     ).rejects.toThrow(/can only send text/);
   });
 
-  it('rejects reply metadata instead of silently sending a plain message', async () => {
-    const { session, factory } = await connect();
-    const chat = await session.createDm(bob.publicKey);
-
-    await expect(
-      session.send(chat.id, { kind: 'text', text: 'reply' }, 'earlier-id')
-    ).rejects.toThrow(/does not support reply metadata/);
-    expect(factory.relays[0].published).toHaveLength(0);
-  });
-
   it('round-trips to the recipient', async () => {
     const { session, factory } = await connect();
     const chat = await session.createDm(bob.publicKey);
@@ -404,6 +396,120 @@ describe('sending', () => {
 
     const [received] = await bobSession.listChats();
     expect(textOf((await bobSession.getMessages(received.id))[0])).toBe('end to end');
+  });
+});
+
+describe('replies and reactions', () => {
+  async function bobReceives(published: NostrEvent[]) {
+    const bobFactory = fakeRelayFactory();
+    const bobSession = await NostrSession.connect({
+      derive: deriveFor(new Uint8Array(32).fill(2)),
+      relays: ['wss://a.example'],
+      createSocket: bobFactory.create,
+      store: new InMemoryMessageStore(),
+    });
+    bobFactory.relays[0].open();
+    for (const event of published) {
+      if (event.tags[0][1] === bob.publicKey) bobFactory.relays[0].broadcast(event);
+    }
+    await settleDeliveries();
+    const [chat] = await bobSession.listChats();
+    return bobSession.getMessages(chat.id);
+  }
+
+  const openedByBob = (published: NostrEvent[]) =>
+    published
+      .filter((event) => event.tags[0][1] === bob.publicKey)
+      .map((event) => nip17.unwrapGiftWrap(event, bob)!);
+
+  it('sends a reply as an e tag on the message, which the recipient reads back', async () => {
+    const { session, factory } = await connect();
+    const chat = await session.createDm(bob.publicKey);
+    const first = await session.send(chat.id, { kind: 'text', text: 'first' });
+    await session.send(chat.id, { kind: 'text', text: 'answer' }, first);
+
+    expect(openedByBob(factory.relays[0].published)[1].tags).toContainEqual(['e', first]);
+    const answer = (m: ProtocolMessage) => textOf(m) === 'answer';
+    expect((await session.getMessages(chat.id)).find(answer)?.replyTo).toBe(first);
+    expect((await bobReceives(factory.relays[0].published)).find(answer)?.replyTo).toBe(first);
+  });
+
+  it('reacts with a kind 7 and takes it back with a kind 5 addressed to the chat', async () => {
+    const { session, factory } = await connect();
+    const chat = await session.createDm(bob.publicKey);
+    const targetId = await session.send(chat.id, { kind: 'text', text: 'react to me' });
+    const reaction = { kind: 'reaction', targetId, emoji: '👍' } as const;
+    const added = await session.send(chat.id, { ...reaction, action: 'added' });
+    await session.send(chat.id, { ...reaction, action: 'removed' });
+
+    const [, like, undo] = openedByBob(factory.relays[0].published);
+    expect(like).toMatchObject({ id: added, kind: 7, content: '👍' });
+    expect(like.tags).toEqual(
+      expect.arrayContaining([
+        ['p', bob.publicKey],
+        ['e', targetId],
+      ])
+    );
+    expect(undo.kind).toBe(5);
+    expect(undo.tags).toEqual(
+      expect.arrayContaining([
+        ['p', bob.publicKey],
+        ['e', added],
+      ])
+    );
+
+    const reactions = (messages: ProtocolMessage[]) =>
+      messages.filter((m) => m.content.kind === 'reaction').map((m) => m.content);
+    const expected = [
+      { ...reaction, action: 'added' },
+      { ...reaction, action: 'removed' },
+    ];
+    expect(reactions(await session.getMessages(chat.id))).toEqual(expected);
+    expect(reactions(await bobReceives(factory.relays[0].published))).toEqual(expected);
+  });
+
+  it('reads a NIP-25 like from another app as 👍 on its last e tag', async () => {
+    const { session, factory } = await connect();
+    const hello = deliverFrom(factory.relays[0], bob, [alice.publicKey], 'hello alice');
+    deliverFrom(factory.relays[0], bob, [alice.publicKey], '+', undefined, {
+      kind: 7,
+      tags: [
+        ['e', 'root'],
+        ['e', hello],
+        ['k', '14'],
+      ],
+    });
+    await settleDeliveries();
+
+    const [chat] = await session.listChats();
+    const messages = await session.getMessages(chat.id);
+    expect(messages.filter((m) => m.content.kind === 'reaction').map((m) => m.content)).toEqual([
+      { kind: 'reaction', targetId: hello, emoji: '👍', action: 'added' },
+    ]);
+  });
+
+  it('lets a deletion take back only its sender’s own reaction', async () => {
+    const { session, factory } = await connect();
+    const hello = deliverFrom(factory.relays[0], bob, [alice.publicKey], 'hello alice');
+    await settleDeliveries();
+    const [chat] = await session.listChats();
+    const mine = await session.send(chat.id, {
+      kind: 'reaction',
+      targetId: hello,
+      emoji: '❤️',
+      action: 'added',
+    });
+    for (const undoes of [mine, hello]) {
+      deliverFrom(factory.relays[0], bob, [alice.publicKey], '', undefined, {
+        kind: 5,
+        tags: [['e', undoes]],
+      });
+    }
+    await settleDeliveries();
+
+    const messages = await session.getMessages(chat.id);
+    expect(messages.filter((m) => m.content.kind === 'reaction').map((m) => m.id)).toEqual([mine]);
+    expect(messages.find((m) => m.id === hello)?.content.kind).toBe('text');
   });
 });
 

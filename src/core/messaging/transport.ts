@@ -14,6 +14,8 @@ export interface TransportSink {
     message: IncomingMessage,
     meta?: { title?: string; createdAt?: number }
   ): Promise<void>;
+  /** Takes back the reaction `undoes` names if its sender sent it; anything else is left alone. */
+  withdraw(participants: ParticipantId[], withdrawal: Withdrawal): Promise<void>;
 }
 
 export interface IncomingMessage {
@@ -21,8 +23,19 @@ export interface IncomingMessage {
   senderId: ParticipantId;
   sentAt: number;
   content: MessageContent;
+  replyTo?: MessageId;
   fromMe: boolean;
   transportTimestamp?: number;
+}
+
+export interface Withdrawal extends Omit<IncomingMessage, 'content' | 'replyTo'> {
+  undoes: MessageId;
+}
+
+export interface SendMeta {
+  replyTo?: MessageId;
+  /** Your own reaction that a removal takes back. */
+  undoes?: MessageId;
 }
 
 export interface SendResult {
@@ -46,7 +59,7 @@ export interface ChatTransport {
    */
   openChat?(chat: TransportChat, opts?: { since?: number }): Promise<void>;
 
-  send(chat: TransportChat, content: MessageContent): Promise<SendResult>;
+  send(chat: TransportChat, content: MessageContent, meta?: SendMeta): Promise<SendResult>;
   confirmSend?(chatId: ProtocolChatId, messageId: MessageId): void;
 
   resolveParticipant(addressOrId: string): Promise<ParticipantId | null>;

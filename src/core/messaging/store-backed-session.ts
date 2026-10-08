@@ -1,9 +1,9 @@
 import { UnsupportedError } from '../errors';
 import { HistoryTracker, type HistoryState } from './history';
-import type { MessageStore, TransportChat } from './message-store';
+import { HYDRATE_LIMIT, type MessageStore, type TransportChat } from './message-store';
 import { showsInPreview } from './message-rules';
 import type { ChatSession } from './protocol';
-import type { ChatTransport, IncomingMessage, TransportSink } from './transport';
+import type { ChatTransport, IncomingMessage, TransportSink, Withdrawal } from './transport';
 import type {
   ProtocolChatId,
   GroupMember,
@@ -64,6 +64,19 @@ export class StoreBackedSession implements ChatSession, TransportSink {
           }
         : this.build(participants, meta?.title, meta?.createdAt);
       await this.deliver(chat, incoming, !existing || existing.hidden);
+    });
+  }
+
+  withdraw(participants: ParticipantId[], withdrawal: Withdrawal): Promise<void> {
+    if (!this.acceptingDeliveries) return Promise.resolve();
+    return this.enqueueDelivery(async () => {
+      const chat = this.chats.get(this.transport.chatIdFor(participants));
+      if (!chat) return;
+      const undone = await this.store.getMessage(chat.id, withdrawal.undoes);
+      if (undone?.content.kind !== 'reaction' || undone.senderId !== withdrawal.senderId) return;
+      const { undoes: _, ...message } = withdrawal;
+      const removal = { ...message, content: { ...undone.content, action: 'removed' as const } };
+      await this.deliver(chat, after(undone, removal), false);
     });
   }
 
@@ -258,14 +271,37 @@ export class StoreBackedSession implements ChatSession, TransportSink {
   }
 
   async send(id: ProtocolChatId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
-    if (replyTo) throw new Error(`${this.transport.protocolId} does not support reply metadata`);
     const chat = this.require(id);
-    const result = await this.transport.send(this.snapshot(chat), content);
-    if (result.localMessage) {
-      await this.enqueueDelivery(() => this.deliver(chat, result.localMessage!, false));
+    const undone =
+      content.kind === 'reaction' && content.action === 'removed'
+        ? await this.ownReaction(id, content.targetId, content.emoji)
+        : undefined;
+    const result = await this.transport.send(this.snapshot(chat), content, {
+      replyTo,
+      undoes: undone?.id,
+    });
+    const local = result.localMessage;
+    if (local) {
+      await this.enqueueDelivery(() =>
+        this.deliver(chat, undone ? after(undone, local) : local, false)
+      );
     }
     this.transport.confirmSend?.(id, result.id);
     return result.id;
+  }
+
+  private async ownReaction(id: ProtocolChatId, targetId: MessageId, emoji: string) {
+    const recent = await this.store.loadMessages(id, HYDRATE_LIMIT);
+    const mine = recent.findLast(
+      ({ fromMe, content }) =>
+        fromMe &&
+        content.kind === 'reaction' &&
+        content.action === 'added' &&
+        content.targetId === targetId &&
+        content.emoji === emoji
+    );
+    if (!mine) throw new Error('That reaction is too old to take back.');
+    return mine;
   }
 
   async sync(): Promise<void> {
@@ -313,4 +349,9 @@ export class StoreBackedSession implements ChatSession, TransportSink {
   private snapshot(chat: TransportChat): TransportChat {
     return { ...chat, participants: [...chat.participants] };
   }
+}
+
+/** A transport may time messages to the second, and a removal must still sort after what it removes. */
+function after(earlier: { sentAt: number }, message: IncomingMessage): IncomingMessage {
+  return { ...message, sentAt: Math.max(message.sentAt, earlier.sentAt + 1) };
 }

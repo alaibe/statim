@@ -4,7 +4,13 @@ import type { MessageStore, TransportChat } from '@/core/messaging/message-store
 import { protocolChatId } from '@/core/messaging/namespace';
 import type { ChatSession } from '@/core/messaging/protocol';
 import { StoreBackedSession } from '@/core/messaging/store-backed-session';
-import type { ChatTransport, SendResult, TransportSink } from '@/core/messaging/transport';
+import type {
+  ChatTransport,
+  IncomingMessage,
+  SendMeta,
+  SendResult,
+  TransportSink,
+} from '@/core/messaging/transport';
 import type {
   MessageContent,
   ParticipantId,
@@ -13,11 +19,21 @@ import type {
 } from '@/core/messaging/types';
 import type { AccountStorage } from '@/storage/account';
 import { npubFor, parsePublicKey } from '@/lib/bech32';
-import { firstTagValue, nowSeconds, signEvent, type NostrEvent, type Rumor } from './events';
+import {
+  firstTagValue,
+  nowSeconds,
+  signEvent,
+  tagValues,
+  type NostrEvent,
+  type Rumor,
+} from './events';
 import { keysFromDerivedKey, NOSTR_DERIVATION_PATH, type NostrKeys } from './keys';
 import {
   chatIdFor,
+  KIND_DELETION,
+  KIND_DM,
   KIND_GIFT_WRAP,
+  KIND_REACTION,
   participantsOf,
   unwrapGiftWrap,
   wrapForRecipients,
@@ -44,6 +60,56 @@ interface NostrConnectOptions {
   store: MessageStore;
   /** Where the gift wraps already opened are remembered between runs. */
   storage?: AccountStorage;
+}
+
+/** NIP-25's like and dislike, drawn as the emoji the app reacts with. */
+const REACTION_EMOJI = new Map([
+  ['', '👍'],
+  ['+', '👍'],
+  ['-', '👎'],
+]);
+
+function messageOf(rumor: Rumor): Pick<IncomingMessage, 'content' | 'replyTo'> | null {
+  const parents = tagValues(rumor, 'e');
+  if (rumor.kind === KIND_REACTION) {
+    const targetId = parents.at(-1);
+    if (!targetId) return null;
+    const emoji = REACTION_EMOJI.get(rumor.content) ?? rumor.content;
+    return { content: { kind: 'reaction', targetId, emoji, action: 'added' } };
+  }
+  const replyTo =
+    rumor.tags.find((tag) => tag[0] === 'e' && tag[3] === 'reply')?.[1] ?? parents.at(-1);
+  return { content: { kind: 'text', text: rumor.content }, ...(replyTo ? { replyTo } : {}) };
+}
+
+function rumorFor(
+  content: MessageContent,
+  { replyTo, undoes }: SendMeta
+): Pick<Rumor, 'kind' | 'content' | 'tags'> {
+  if (content.kind === 'text') {
+    return { kind: KIND_DM, content: content.text, tags: replyTo ? [['e', replyTo]] : [] };
+  }
+  if (content.kind === 'reaction' && content.action === 'added') {
+    return {
+      kind: KIND_REACTION,
+      content: content.emoji,
+      tags: [
+        ['e', content.targetId],
+        ['k', String(KIND_DM)],
+      ],
+    };
+  }
+  if (content.kind === 'reaction' && undoes) {
+    return {
+      kind: KIND_DELETION,
+      content: '',
+      tags: [
+        ['e', undoes],
+        ['k', String(KIND_REACTION)],
+      ],
+    };
+  }
+  throw new Error(`Nostr can only send text and reactions, not "${content.kind}"`);
 }
 
 const HANDLED_KEY = 'nostr.handledWraps';
@@ -105,7 +171,7 @@ class NostrTransport implements ChatTransport {
   private readonly pendingSends = new Map<
     string,
     {
-      content: string;
+      key: string;
       rumor: Rumor;
       remaining: NostrEvent[];
     }
@@ -155,18 +221,28 @@ class NostrTransport implements ChatTransport {
       return;
     }
 
+    const participants = participantsOf(rumor);
+    const sent = {
+      id: rumor.id,
+      senderId: rumor.pubkey,
+      sentAt: rumor.created_at * 1000,
+      fromMe: rumor.pubkey === this.keys.publicKey,
+      transportTimestamp: event.created_at * 1000,
+    };
     try {
-      await this.sink?.deliverToParticipants(
-        participantsOf(rumor),
-        {
-          ...this.toIncoming(rumor),
-          transportTimestamp: event.created_at * 1000,
-        },
-        {
-          title: firstTagValue(rumor, 'subject'),
-          createdAt: rumor.created_at * 1000,
+      if (rumor.kind === KIND_DELETION) {
+        const undoes = firstTagValue(rumor, 'e');
+        if (undoes) await this.sink?.withdraw(participants, { ...sent, undoes });
+      } else {
+        const message = messageOf(rumor);
+        if (message) {
+          await this.sink?.deliverToParticipants(
+            participants,
+            { ...sent, ...message },
+            { title: firstTagValue(rumor, 'subject'), createdAt: rumor.created_at * 1000 }
+          );
         }
-      );
+      }
       this.handled?.add(event);
     } catch (error) {
       this.deliveryError = error;
@@ -182,40 +258,28 @@ class NostrTransport implements ChatTransport {
     return delivery;
   }
 
-  private toIncoming(rumor: Rumor) {
-    return {
-      id: rumor.id,
-      senderId: rumor.pubkey,
-      sentAt: rumor.created_at * 1000,
-      content: { kind: 'text', text: rumor.content } as MessageContent,
-      fromMe: rumor.pubkey === this.keys.publicKey,
-    };
-  }
-
   chatIdFor(participants: ParticipantId[]): ProtocolChatId {
     return protocolChatId(chatIdFor(participants));
   }
 
-  async send(chat: TransportChat, content: MessageContent): Promise<SendResult> {
-    if (content.kind !== 'text') {
-      throw new Error(`Nostr can only send text, not "${content.kind}"`);
-    }
-
+  async send(
+    chat: TransportChat,
+    content: MessageContent,
+    meta: SendMeta = {}
+  ): Promise<SendResult> {
+    const rumor = rumorFor(content, meta);
+    const key = JSON.stringify(rumor);
     const recipients = chat.participants.filter((p) => p !== this.keys.publicKey);
 
     let pending = this.pendingSends.get(chat.id);
-    if (pending && pending.content !== content.text) {
+    if (pending && pending.key !== key) {
       throw new Error(
         'Finish retrying the partially published Nostr message before sending another'
       );
     }
     if (!pending) {
-      const wrapped = wrapForRecipients(this.keys, {
-        recipients,
-        content: content.text,
-        subject: chat.title,
-      });
-      pending = { content: content.text, rumor: wrapped.rumor, remaining: wrapped.wraps };
+      const wrapped = wrapForRecipients(this.keys, { recipients, subject: chat.title, ...rumor });
+      pending = { key, rumor: wrapped.rumor, remaining: wrapped.wraps };
       this.pendingSends.set(chat.id, pending);
     }
 
@@ -223,8 +287,19 @@ class NostrTransport implements ChatTransport {
       await this.pool.publish(pending.remaining[0]);
       pending.remaining.shift();
     }
+    const sent = pending.rumor;
     // Handed back at once rather than waiting for the self-addressed wrap to come back.
-    return { id: pending.rumor.id, localMessage: this.toIncoming(pending.rumor) };
+    return {
+      id: sent.id,
+      localMessage: {
+        id: sent.id,
+        senderId: sent.pubkey,
+        sentAt: sent.created_at * 1000,
+        content,
+        ...(meta.replyTo ? { replyTo: meta.replyTo } : {}),
+        fromMe: true,
+      },
+    };
   }
 
   confirmSend(chatId: ProtocolChatId, messageId: string): void {
