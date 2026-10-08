@@ -30,6 +30,7 @@ import { BarButton } from './bar-button';
 import { BlockedBar } from './block';
 import { RequestBar } from './request-bar';
 import { CommandPending } from './command-pending';
+import { useReadUpTo } from './delivery-icon';
 import { ForwardSheet } from './forward-sheet';
 import { MessageList } from './message-list';
 import {
@@ -91,7 +92,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
     highlighted,
   } = useChatTimeline(id, thread, session, Boolean(onOpenThread));
   const selfId = selfIdFor({ sessions }, protocol);
-  const readUpTo = chat?.readUpTo ?? 0;
+  const readUpTo = useReadUpTo(chat);
   const { nameFor } = useDisplayNames(chat ? chatPeople(chat, selfId, allMessages) : []);
   const pinnedMessages = usePinnedMessages(id, allMessages, !thread && permissions.seePins);
   const [pendingCommand, setPendingCommand] = useState<string | null>(null);

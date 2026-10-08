@@ -79,6 +79,11 @@ Off by default, and symmetric. With them off, the other person does not see
 when you read their messages, and you do not see when they read yours. Turn
 them on under Settings → Privacy.
 
+With them on, Telegram, XMTP and Matrix chats show a second tick on your
+message once it has been read. In a group it means at least one member has
+read it. On Matrix, only the chats you opened recently show it in the chat
+list. Nostr and Status have no read receipts.
+
 ## Typing and last seen
 
 When someone is typing, the chat's title bar says so, on Telegram and Matrix.

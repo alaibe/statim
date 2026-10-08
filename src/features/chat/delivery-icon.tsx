@@ -1,7 +1,14 @@
 import { View } from 'react-native';
 
 import { Icon, type IconTone } from '@/design';
-import type { ChatMessage } from '@/core/messaging/types';
+import { useAppearanceStore } from '@/core/app/appearance';
+import type { Chat, ChatMessage } from '@/core/messaging/types';
+
+/** Read receipts are symmetric: with yours off, theirs are not shown either. */
+export function useReadUpTo(chat: Chat | undefined): number {
+  const shown = useAppearanceStore((s) => s.readReceipts);
+  return shown ? (chat?.readUpTo ?? 0) : 0;
+}
 
 /** `tone` (or `color`) is for a message sent and not yet read; failed and read have their own. */
 export function DeliveryIcon({

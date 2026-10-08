@@ -24,7 +24,7 @@ import {
 import { openChat } from '@/features/navigation/open';
 import { networkLabel } from '@/features/protocols/presentation';
 import { ChatAvatar } from './chat-avatar';
-import { DeliveryIcon } from './delivery-icon';
+import { DeliveryIcon, useReadUpTo } from './delivery-icon';
 
 export function ChatRow({
   chat,
@@ -53,6 +53,7 @@ export function ChatRow({
   const muted = Boolean(prefs.muted);
   const loaded = useChatStore((s) => s.messages[chat.id]);
   const since = useChatStore((s) => s.readAt[chat.id] ?? 0);
+  const readUpTo = useReadUpTo(chat);
 
   return (
     <SwipeableRow
@@ -106,11 +107,7 @@ export function ChatRow({
           last ? (
             <View className="flex-row items-center gap-1">
               {last.fromMe ? (
-                <DeliveryIcon
-                  message={last}
-                  read={readByPeer(chat.readUpTo ?? 0, last)}
-                  size={14}
-                />
+                <DeliveryIcon message={last} read={readByPeer(readUpTo, last)} size={14} />
               ) : null}
               <Text variant="caption" className={unread && !muted ? 'text-brand' : undefined}>
                 {formatTimestamp(last.sentAt)}
