@@ -590,11 +590,11 @@ export class XmtpSession implements ChatSession {
     raw: XmtpConversation<any>,
     isGroup: boolean
   ): Promise<ProtocolMessage | undefined> {
-    const last = raw.lastMessage;
-    if (!last) return undefined;
     const hidden = (message: DecodedMessage<any>) =>
       isReadReceipt(message) || (!isGroup && isGroupUpdate(message));
-    if (!hidden(last)) return this.toMessage(last, protocolChatId(raw.id));
+    // Only a listing fills lastMessage; a conversation found by id or topic has none.
+    const last = raw.lastMessage;
+    if (last && !hidden(last)) return this.toMessage(last, protocolChatId(raw.id));
     const recent = await raw.messages({ limit: 5 });
     this.noteReceipts(raw.id, recent);
     const shown = recent.find((message) => !hidden(message));

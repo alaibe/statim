@@ -122,9 +122,11 @@ async function sessionWith(
   streamed: unknown[] = [],
   { denied = [], deniedInboxes = [] }: { denied?: unknown[]; deniedInboxes?: string[] } = {}
 ) {
+  const found = (conversation: unknown) =>
+    conversation && { ...(conversation as object), lastMessage: undefined };
   findConversationByTopic.mockReset();
   findConversationByTopic.mockImplementation(async (topic: string) =>
-    conversations.find((conversation) => (conversation as { topic: string }).topic === topic)
+    found(conversations.find((c) => (c as { topic: string }).topic === topic))
   );
   setConsentState.mockReset();
   mockBuild.mockResolvedValue({
@@ -138,7 +140,7 @@ async function sessionWith(
       list: async () => conversations,
       listDms: async () => denied,
       findConversation: async (id: string) =>
-        [...conversations, ...denied].find((c) => (c as { id: string }).id === id),
+        found([...conversations, ...denied].find((c) => (c as { id: string }).id === id)),
       findConversationByTopic,
       streamAllMessages: async (onMessage: (message: unknown) => Promise<void>) => {
         for (const message of streamed) await onMessage(message);
@@ -201,6 +203,19 @@ it('announces the chat again when a receipt streams in', async () => {
   await session.streamChats((chat) => announced.push(chat.readUpTo));
   await session.streamMessages(() => {});
   expect(announced).toEqual([3_000]);
+});
+
+it('keeps the preview of a chat a receipt announces again', async () => {
+  const unread = {
+    ...dm,
+    lastMessage: text('hello', 2_000),
+    messages: async () => [receipt('seen', 3_000), text('hello', 2_000)],
+  };
+  const session = await sessionWith([unread], [receipt('seen', 3_000)]);
+  const previews: (string | undefined)[] = [];
+  await session.streamChats((chat) => previews.push(chat.lastMessage?.id));
+  await session.streamMessages(() => {});
+  expect(previews).toEqual(['hello']);
 });
 
 it('leaves read receipts out of the history of a DM and of a group', async () => {
