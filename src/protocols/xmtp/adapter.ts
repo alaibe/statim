@@ -218,7 +218,11 @@ export class XmtpSession implements ChatSession {
     if (!conversation) return [];
 
     const messages = await conversation.messages({ limit: opts?.limit ?? 100 });
-    if (this.noteReceipts(conversation.id, messages)) void this.emitChat(conversation);
+    if (this.noteReceipts(conversation.id, messages)) {
+      this.emitChat(conversation).catch((error) =>
+        console.warn('[xmtp] could not announce a chat', error)
+      );
+    }
     const isDm = conversation.version === ConversationVersion.DM;
     const shown = messages.filter((m) => !isReadReceipt(m) && !(isDm && isGroupUpdate(m)));
     return (await Promise.all(shown.map((m) => this.toMessage(m, id)))).reverse();

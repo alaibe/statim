@@ -500,7 +500,11 @@ export class XmtpSession implements ChatSession {
     return this.consume(stream, async (message) => {
       const fromSelf = message.senderInboxId === this.self.participantId;
       if (isReadReceipt(message)) {
-        if (!fromSelf) void this.announce(message.conversationId);
+        if (!fromSelf) {
+          this.announce(message.conversationId).catch((error) =>
+            console.warn('[xmtp] could not announce a chat', error)
+          );
+        }
         return;
       }
       if (this.blockedDmIds.has(message.conversationId) && !fromSelf) return;
