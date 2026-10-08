@@ -461,15 +461,20 @@ export class XmtpSession implements ChatSession {
     await this.client.conversations.streamAllMessages(
       async (message) => {
         if (this.closed) return;
-        if (isReadReceipt(message) && message.senderInboxId === this.self.participantId) return;
+        if (isReadReceipt(message)) {
+          if (message.senderInboxId === this.self.participantId) return;
+          const conversation = await this.client.conversations.findConversationByTopic(
+            message.topic
+          );
+          if (conversation && !this.closed && this.noteReceipts(conversation.id, [message])) {
+            await this.emitChat(conversation);
+          }
+          return;
+        }
         const id =
           GROUP_TOPIC.exec(message.topic)?.[1] ??
           (await this.client.conversations.findConversationByTopic(message.topic))?.id;
         if (!id || this.closed) return;
-        if (isReadReceipt(message)) {
-          if (this.noteReceipts(id, [message])) await this.announce(id);
-          return;
-        }
         if (this.blockedDmIds.has(id) && message.senderInboxId !== this.self.participantId) return;
         if (isGroupUpdate(message) && (await this.isDm(id))) return;
         const chatId = protocolChatId(id);
@@ -567,12 +572,6 @@ export class XmtpSession implements ChatSession {
     if (newest === known) return false;
     this.readMarks.set(id, newest);
     return true;
-  }
-
-  private async announce(id: string): Promise<void> {
-    if (this.chatListeners.size === 0) return;
-    const conversation = await this.client.conversations.findConversation(toXmtpId(id));
-    if (conversation) await this.emitChat(conversation);
   }
 
   private async emitChat(conversation: XmtpConversation<any>): Promise<void> {

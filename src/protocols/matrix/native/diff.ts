@@ -38,7 +38,7 @@ export function applyDiff<T>(
       return { changed: newOnly ? [] : diff.inner.values, removed: [] };
     case 'Reset': {
       const removed = items.splice(0, items.length, ...diff.inner.values);
-      return { changed: newOnly ? [] : diff.inner.values, removed: newOnly ? [] : removed };
+      return { changed: newOnly ? [] : diff.inner.values, removed };
     }
     case 'Clear':
       return { changed: [], removed: items.splice(0, items.length) };

@@ -252,14 +252,11 @@ class RnMatrixClient implements MatrixApi {
     const room = this.requireRoom(roomId);
     const timeline = await room.timelineWithConfiguration(timelineConfiguration());
     const items: sdk.TimelineItemLike[] = [];
-    const readers = new Map<string, number>();
     const handle = await timeline.addListener({
       onUpdate: (diffs) => {
         const receipts: MxReceipt[] = [];
         for (const diff of diffs as VectorDiff<sdk.TimelineItemLike>[]) {
-          for (const item of valuesOf(diff)) {
-            receipts.push(...moved(readers, this.mapItem(roomId, item).receipts));
-          }
+          for (const item of valuesOf(diff)) receipts.push(...this.mapItem(roomId, item).receipts);
           const { changed, removed } = applyDiff(items, diff, true);
           for (const item of changed) this.emitItem(roomId, item, removed[0]);
         }
@@ -768,12 +765,3 @@ function toError(error: unknown): Error {
 export const MatrixClient = {
   create: async (): Promise<MatrixApi> => unwrapped(new RnMatrixClient()),
 };
-
-/** The receipts that moved past where each reader was last seen. */
-function moved(readers: Map<string, number>, receipts: MxReceipt[]): MxReceipt[] {
-  return receipts.filter(({ userId, at }) => {
-    if (at <= (readers.get(userId) ?? 0)) return false;
-    readers.set(userId, at);
-    return true;
-  });
-}

@@ -92,9 +92,13 @@ impl Session {
         let elevated = power
             .as_ref()
             .into_iter()
-            .flat_map(|levels| levels.users.keys().cloned())
-            .chain(room.creators().unwrap_or_default())
-            .map(|id| id.to_string())
+            .flat_map(|levels| levels.users.keys().map(|id| id.to_string()))
+            .chain(
+                room.creators()
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|id| id.to_string()),
+            )
             .collect();
         let latest_id = joined.then(|| (**room).latest_event().event_id()).flatten();
         Some((

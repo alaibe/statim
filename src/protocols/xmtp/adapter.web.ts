@@ -644,12 +644,11 @@ export class XmtpSession implements ChatSession {
     const times = await raw.lastReadTimes().catch(() => new Map<string, bigint>());
     const others = [...times]
       .filter(([inboxId]) => inboxId !== this.self.participantId)
-      .map(([, ns]) => Math.round(Number(ns) / 1_000_000));
+      .map(([, ns]) => Number(ns / 1_000_000n));
     return others.length > 0 ? Math.max(...others) : undefined;
   }
 
   private async announce(id: string): Promise<void> {
-    if (this.chatListeners.size === 0) return;
     const conversation = await this.client.conversations.getConversationById(id);
     if (conversation) await this.emitChat(conversation);
   }

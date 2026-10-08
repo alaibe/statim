@@ -104,9 +104,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   );
   private readonly features = new RoomFeatureStore(
     () => this.homeserver(),
-    (roomId) => {
-      this.announceRoom(roomId);
-    }
+    (roomId) => this.announceRoom(roomId)
   );
 
   private constructor(private readonly options: MatrixConnectOptions) {}

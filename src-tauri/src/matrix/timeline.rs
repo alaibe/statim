@@ -34,30 +34,14 @@ impl Session {
                     let carried = changed.iter().flat_map(|item| receipts_of(item));
                     receipts.extend(moved(&mut readers, carried));
                     // New or changed items only; bulk loads are what `messages` reads.
-                    let fresh = match &diff {
-                        VectorDiff::PushBack { value } => Some((value.clone(), None)),
+                    match &diff {
+                        VectorDiff::PushBack { value } => session.emit_item(&id, value, None),
                         VectorDiff::Set { index, value } => {
-                            Some((value.clone(), items.get(*index).cloned()))
+                            session.emit_item(&id, value, items.get(*index))
                         }
-                        _ => None,
-                    };
-                    diff.apply(&mut items);
-                    let Some((item, replaced)) = fresh else {
-                        continue;
-                    };
-                    let Some(event) = to_mx_event(&id, &item) else {
-                        continue;
-                    };
-                    // A receipt moving brings the same event again.
-                    if replaced.and_then(|old| to_mx_event(&id, &old)).as_ref() == Some(&event) {
-                        continue;
+                        _ => {}
                     }
-                    session
-                        .latest_seen
-                        .lock()
-                        .unwrap()
-                        .insert(id.clone(), event.preview.timestamp);
-                    session.emit(MxUpdate::Event { event });
+                    diff.apply(&mut items);
                 }
                 session.emit_receipts(&id, receipts);
             }
@@ -97,6 +81,26 @@ impl Session {
             dropped.typing_task.abort();
         }
         Ok(entry)
+    }
+
+    fn emit_item(
+        &self,
+        room_id: &RoomId,
+        item: &TimelineItem,
+        replaced: Option<&Arc<TimelineItem>>,
+    ) {
+        let Some(event) = to_mx_event(room_id, item) else {
+            return;
+        };
+        // A receipt moving brings the same event again.
+        if replaced.and_then(|old| to_mx_event(room_id, old)).as_ref() == Some(&event) {
+            return;
+        }
+        self.latest_seen
+            .lock()
+            .unwrap()
+            .insert(room_id.to_owned(), event.preview.timestamp);
+        self.emit(MxUpdate::Event { event });
     }
 
     pub(super) async fn touch_live(&self, room_id: &RoomId) -> Option<Arc<LiveTimeline>> {
@@ -280,12 +284,14 @@ fn moved(
 ) -> Vec<MxReceipt> {
     receipts
         .filter(|receipt| {
-            let seen = readers.entry(receipt.user_id.clone()).or_default();
-            let rose = receipt.at > *seen;
-            if rose {
-                *seen = receipt.at;
+            if readers
+                .get(&receipt.user_id)
+                .is_some_and(|seen| *seen >= receipt.at)
+            {
+                return false;
             }
-            rose
+            readers.insert(receipt.user_id.clone(), receipt.at);
+            true
         })
         .collect()
 }
