@@ -8,8 +8,7 @@ export function timelineConfiguration(): sdk.TimelineConfiguration {
     focus: new sdk.TimelineFocus.Live({ hideThreadedEvents: false }),
     filter: new sdk.TimelineFilter.All(),
     dateDividerMode: sdk.DateDividerMode.Daily,
-    // The app shows no receipts, and tracking them re-emits every message whenever one moves.
-    trackReadReceipts: sdk.TimelineReadReceiptTracking.Disabled,
+    trackReadReceipts: sdk.TimelineReadReceiptTracking.MessageLikeEvents,
     reportUtds: false,
   };
 }

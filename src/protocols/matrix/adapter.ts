@@ -27,6 +27,7 @@ import type {
   MxMedia,
   MxMember,
   MxPreview,
+  MxReceipt,
   MxRoom,
   MxSession,
   MxStartParams,
@@ -80,6 +81,8 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   private readonly chatListeners = new Set<(chat: ProtocolChat) => void>();
   private readonly rooms = new Map<string, MxRoom>();
   private readonly typing = new Map<string, boolean>();
+  /** When the newest event someone else has read in each room was sent. */
+  private readonly readMarks = new Map<string, number>();
   private readonly pollAnswers = new Map<string, string[]>();
   private readonly members = new Map<string, MxMember[]>();
   private readonly pendingMembers = new Map<string, Promise<MxMember[]>>();
@@ -102,8 +105,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   private readonly features = new RoomFeatureStore(
     () => this.homeserver(),
     (roomId) => {
-      const room = this.rooms.get(roomId);
-      if (room && included(room)) this.announce(room);
+      this.announceRoom(roomId);
     }
   );
 
@@ -138,6 +140,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     await this.options.persistSession(null);
     this.rooms.clear();
     this.typing.clear();
+    this.readMarks.clear();
     this.pollAnswers.clear();
     this.members.clear();
     this.pendingMembers.clear();
@@ -231,15 +234,17 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
       case 'roomGone':
         this.rooms.delete(update.roomId);
         this.typing.delete(update.roomId);
+        this.readMarks.delete(update.roomId);
         this.forgetMembers(update.roomId);
         return;
       case 'typing': {
         const active = update.userIds.some((id) => id !== this.userId);
         this.typing.set(update.roomId, active);
-        const room = this.rooms.get(update.roomId);
-        if (room && included(room)) this.announce(room);
+        this.announceRoom(update.roomId);
         return;
       }
+      case 'receipts':
+        return this.onReceipts(update.roomId, update.receipts);
       case 'event':
         return this.emitMessage(update.event);
       case 'signedOut':
@@ -253,6 +258,22 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     if (room.isDm && room.heroes.length === 1 && room.name)
       this.names.set(room.heroes[0], room.name);
     if (included(room)) this.announce(room);
+  }
+
+  /** Bots acknowledge delivery with a receipt; only people reading count. */
+  private onReceipts(roomId: string, receipts: MxReceipt[]): void {
+    const at = Math.max(
+      0,
+      ...receipts.filter(({ userId }) => this.isSomeoneElse(userId)).map(({ at }) => at)
+    );
+    if (at <= (this.readMarks.get(roomId) ?? 0)) return;
+    this.readMarks.set(roomId, at);
+    this.announceRoom(roomId);
+  }
+
+  private announceRoom(roomId: string): void {
+    const room = this.rooms.get(roomId);
+    if (room && included(room)) this.announce(room);
   }
 
   private announceDmsWith(userId: string): void {
@@ -686,13 +707,16 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     return this.members.get(roomId)?.map((member) => member.userId);
   }
 
+  private isSomeoneElse(userId: string): boolean {
+    return userId !== this.self.participantId && !isBot(userId);
+  }
+
   private participantOf(room: MxRoom, roster = this.rosterOf(room.id) ?? []): string | null {
     const selfId = this.self.participantId;
-    const other = (id: string) => id !== selfId && !isBot(id);
     return (
       room.peer ??
-      room.heroes.find(other) ??
-      roster.find(other) ??
+      room.heroes.find((id) => this.isSomeoneElse(id)) ??
+      roster.find((id) => this.isSomeoneElse(id)) ??
       (room.inviter !== selfId ? room.inviter : null) ??
       null
     );
@@ -731,6 +755,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
       unreadCount: room.unreadCount,
       mentionCount: room.mentionCount,
       ...(room.markedUnread ? { markedUnread: true } : {}),
+      readUpTo: this.readMarks.get(room.id),
       canPin: room.canPin,
       canDeleteOthers: room.canDeleteOthers,
       ...(lacks?.length ? { lacks } : {}),

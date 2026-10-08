@@ -11,6 +11,7 @@ import type {
   MxOutgoing,
   MxProfile,
   MxPublicRoom,
+  MxReceipt,
   MxRole,
   MxRoom,
   MxSession,
@@ -18,8 +19,17 @@ import type {
   MxTextOutgoing,
   MxUpdate,
 } from './api';
-import { applyDiff, type VectorDiff } from './native/diff';
-import { extensionOf, mapContent, mapMembership, mapRole, nameOf, sendState } from './native/map';
+import { sameValue } from '@/lib/same-value';
+import { applyDiff, valuesOf, type VectorDiff } from './native/diff';
+import {
+  extensionOf,
+  mapContent,
+  mapMembership,
+  mapRole,
+  nameOf,
+  receiptsOf,
+  sendState,
+} from './native/map';
 import { fromSdkSession, latestOf, timelineConfiguration, toSdkSession } from './native/session';
 
 const ROOM_PAGE = 500;
@@ -31,6 +41,11 @@ interface LiveTimeline {
   handle: sdk.TaskHandleLike;
   typingHandle: sdk.TaskHandleLike;
   items: sdk.TimelineItemLike[];
+}
+
+interface MappedItem {
+  event: MxEvent | null;
+  receipts: MxReceipt[];
 }
 
 /**
@@ -49,7 +64,7 @@ class RnMatrixClient implements MatrixApi {
   private readonly uploads = new Map<string, string>();
   private readonly listeners = new Set<(update: MxUpdate) => void>();
   private readonly live = new Map<string, LiveTimeline>();
-  private readonly mapped = new WeakMap<sdk.TimelineItemLike, MxEvent | null>();
+  private readonly mapped = new WeakMap<sdk.TimelineItemLike, MappedItem>();
   private entries: sdk.RoomLike[] = [];
   private readonly subscribed = new Set<string>();
 
@@ -237,12 +252,18 @@ class RnMatrixClient implements MatrixApi {
     const room = this.requireRoom(roomId);
     const timeline = await room.timelineWithConfiguration(timelineConfiguration());
     const items: sdk.TimelineItemLike[] = [];
+    const readers = new Map<string, number>();
     const handle = await timeline.addListener({
       onUpdate: (diffs) => {
-        for (const diff of diffs) {
-          const { changed } = applyDiff(items, diff as VectorDiff<sdk.TimelineItemLike>, true);
-          for (const item of changed) this.emitItem(roomId, item);
+        const receipts: MxReceipt[] = [];
+        for (const diff of diffs as VectorDiff<sdk.TimelineItemLike>[]) {
+          for (const item of valuesOf(diff)) {
+            receipts.push(...moved(readers, this.mapItem(roomId, item).receipts));
+          }
+          const { changed, removed } = applyDiff(items, diff, true);
+          for (const item of changed) this.emitItem(roomId, item, removed[0]);
         }
+        if (receipts.length > 0) this.emit({ type: 'receipts', roomId, receipts });
       },
     });
     const typingHandle = room.subscribeToTypingNotifications({
@@ -259,9 +280,16 @@ class RnMatrixClient implements MatrixApi {
     return live;
   }
 
-  private emitItem(roomId: string, item: sdk.TimelineItemLike): void {
+  private emitItem(
+    roomId: string,
+    item: sdk.TimelineItemLike,
+    replaced: sdk.TimelineItemLike | undefined
+  ): void {
     const event = this.toMxEvent(roomId, item);
-    if (event) this.emit({ type: 'event', event });
+    if (!event) return;
+    // A receipt moving brings the same event again.
+    if (replaced && sameValue(this.toMxEvent(roomId, replaced), event)) return;
+    this.emit({ type: 'event', event });
   }
 
   async messages(roomId: string, opts: { limit: number; before?: string }): Promise<MxEvent[]> {
@@ -287,12 +315,19 @@ class RnMatrixClient implements MatrixApi {
     }
   }
 
-  /** Memoised per item: a `Set` diff brings a new item object, so identity is the cache key. */
   private toMxEvent(roomId: string, item: sdk.TimelineItemLike): MxEvent | null {
+    return this.mapItem(roomId, item).event;
+  }
+
+  /** Memoised per item: a `Set` diff brings a new item object, so identity is the cache key. */
+  private mapItem(roomId: string, item: sdk.TimelineItemLike): MappedItem {
     const cached = this.mapped.get(item);
-    if (cached !== undefined) return cached;
+    if (cached) return cached;
     const event = item.asEvent();
-    const mapped = event ? this.toMxEventItem(roomId, event) : null;
+    const mapped = {
+      event: event ? this.toMxEventItem(roomId, event) : null,
+      receipts: event ? receiptsOf(event) : [],
+    };
     this.mapped.set(item, mapped);
     return mapped;
   }
@@ -733,3 +768,12 @@ function toError(error: unknown): Error {
 export const MatrixClient = {
   create: async (): Promise<MatrixApi> => unwrapped(new RnMatrixClient()),
 };
+
+/** The receipts that moved past where each reader was last seen. */
+function moved(readers: Map<string, number>, receipts: MxReceipt[]): MxReceipt[] {
+  return receipts.filter(({ userId, at }) => {
+    if (at <= (readers.get(userId) ?? 0)) return false;
+    readers.set(userId, at);
+    return true;
+  });
+}

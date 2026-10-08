@@ -165,7 +165,7 @@ impl Session {
     }
 }
 
-pub(super) fn changed_by(diff: &VectorDiff<Room>) -> Vec<Room> {
+pub(super) fn changed_by<T: Clone>(diff: &VectorDiff<T>) -> Vec<T> {
     match diff {
         VectorDiff::Append { values } | VectorDiff::Reset { values } => {
             values.iter().cloned().collect()

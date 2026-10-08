@@ -128,6 +128,15 @@ impl Session {
         let _ = self.app.emit(UPDATE_EVENT, &update);
     }
 
+    fn emit_receipts(&self, room_id: &RoomId, receipts: Vec<MxReceipt>) {
+        if !receipts.is_empty() {
+            self.emit(MxUpdate::Receipts {
+                room_id: room_id.to_string(),
+                receipts,
+            });
+        }
+    }
+
     fn data_directory(&self) -> PathBuf {
         PathBuf::from(&self.params.data_directory)
     }

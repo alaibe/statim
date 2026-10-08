@@ -388,6 +388,29 @@ describe('MatrixSession chats', () => {
     ]);
   });
 
+  it('marks your messages read up to the newest event someone else has read', async () => {
+    const { chat, api } = await connect(SESSION, (api) => {
+      api.roomsById.set(GROUP.id, GROUP);
+    });
+    const chats: ProtocolChat[] = [];
+    await chat.streamChats((c) => chats.push(c));
+    api.emit({
+      type: 'receipts',
+      roomId: GROUP.id,
+      receipts: [
+        { userId: BOB, at: 2_000 },
+        { userId: CAROL, at: 3_000 },
+        { userId: ME, at: 5_000 },
+        { userId: '@whatsappbot:example.org', at: 6_000 },
+      ],
+    });
+    expect(chats.at(-1)).toMatchObject({ id: GROUP_ID, readUpTo: 3_000 });
+
+    api.emit({ type: 'receipts', roomId: GROUP.id, receipts: [{ userId: BOB, at: 1_000 }] });
+    const [listed] = await chat.listChats();
+    expect(listed.readUpTo).toBe(3_000);
+  });
+
   it('searches the homeserver’s history for text messages in rooms it shows', async () => {
     const hit = (id: string, roomId: string, content: object) => ({
       result: {

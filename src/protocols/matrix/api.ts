@@ -190,10 +190,17 @@ export type MxOutgoing =
       size?: number;
     };
 
+/** Someone's read receipt, at the time the event they read up to was sent. */
+export interface MxReceipt {
+  userId: string;
+  at: number;
+}
+
 export type MxUpdate =
   | { type: 'room'; room: MxRoom }
   | { type: 'roomGone'; roomId: string }
   | { type: 'typing'; roomId: string; userIds: string[] }
+  | { type: 'receipts'; roomId: string; receipts: MxReceipt[] }
   | { type: 'event'; event: MxEvent }
   /** The homeserver no longer accepts the session: signed out elsewhere, or the token expired. */
   | { type: 'signedOut' };

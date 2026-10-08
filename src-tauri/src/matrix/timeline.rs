@@ -1,3 +1,4 @@
+use super::sync::changed_by;
 use super::*;
 
 impl Session {
@@ -11,35 +12,54 @@ impl Session {
         // Built without holding the lock: the SDK may need the sync tasks, which also announce
         // rooms.
         let room = self.room(room_id.as_str())?;
-        // The app shows no receipts, and tracking them re-emits every message whenever one moves.
         let timeline = Arc::new(
             room.timeline_builder()
-                .track_read_marker_and_receipts(TimelineReadReceiptTracking::Disabled)
+                .track_read_marker_and_receipts(TimelineReadReceiptTracking::MessageLikeEvents)
                 .build()
                 .await
                 .map_err(err)?,
         );
-        let (_, stream) = timeline.subscribe().await;
+        let (mut items, stream) = timeline.subscribe().await;
         let session = self.clone();
         let id = room_id.to_owned();
         let task = tokio::spawn(async move {
+            let mut readers = HashMap::new();
+            let initial = items.iter().flat_map(|item| receipts_of(item));
+            session.emit_receipts(&id, moved(&mut readers, initial));
             futures_util::pin_mut!(stream);
             while let Some(diffs) = stream.next().await {
+                let mut receipts = Vec::new();
                 for diff in diffs {
+                    let changed = changed_by(&diff);
+                    let carried = changed.iter().flat_map(|item| receipts_of(item));
+                    receipts.extend(moved(&mut readers, carried));
                     // New or changed items only; bulk loads are what `messages` reads.
-                    let item = match diff {
-                        VectorDiff::PushBack { value } | VectorDiff::Set { value, .. } => value,
-                        _ => continue,
+                    let fresh = match &diff {
+                        VectorDiff::PushBack { value } => Some((value.clone(), None)),
+                        VectorDiff::Set { index, value } => {
+                            Some((value.clone(), items.get(*index).cloned()))
+                        }
+                        _ => None,
                     };
-                    if let Some(event) = to_mx_event(&id, &item) {
-                        session
-                            .latest_seen
-                            .lock()
-                            .unwrap()
-                            .insert(id.clone(), event.preview.timestamp);
-                        session.emit(MxUpdate::Event { event });
+                    diff.apply(&mut items);
+                    let Some((item, replaced)) = fresh else {
+                        continue;
+                    };
+                    let Some(event) = to_mx_event(&id, &item) else {
+                        continue;
+                    };
+                    // A receipt moving brings the same event again.
+                    if replaced.and_then(|old| to_mx_event(&id, &old)).as_ref() == Some(&event) {
+                        continue;
                     }
+                    session
+                        .latest_seen
+                        .lock()
+                        .unwrap()
+                        .insert(id.clone(), event.preview.timestamp);
+                    session.emit(MxUpdate::Event { event });
                 }
+                session.emit_receipts(&id, receipts);
             }
         });
         let (typing_guard, mut typing_rx) = room.subscribe_to_typing_notifications();
@@ -251,4 +271,21 @@ pub async fn mx_pinned_messages(
         .iter()
         .filter_map(|item| to_mx_event(room.room_id(), item))
         .collect())
+}
+
+/// The receipts that moved past where each reader was last seen.
+fn moved(
+    readers: &mut HashMap<String, u64>,
+    receipts: impl Iterator<Item = MxReceipt>,
+) -> Vec<MxReceipt> {
+    receipts
+        .filter(|receipt| {
+            let seen = readers.entry(receipt.user_id.clone()).or_default();
+            let rose = receipt.at > *seen;
+            if rose {
+                *seen = receipt.at;
+            }
+            rose
+        })
+        .collect()
 }

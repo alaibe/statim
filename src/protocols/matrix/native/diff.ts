@@ -7,6 +7,22 @@ export type VectorDiff<T> =
   | { tag: 'Truncate'; inner: { length: number } }
   | { tag: 'Clear' | 'PopFront' | 'PopBack' };
 
+/** Every item a diff brings, as `changed_by` lists them on the desktop. */
+export function valuesOf<T>(diff: VectorDiff<T>): T[] {
+  switch (diff.tag) {
+    case 'Append':
+    case 'Reset':
+      return diff.inner.values;
+    case 'PushFront':
+    case 'PushBack':
+    case 'Insert':
+    case 'Set':
+      return [diff.inner.value];
+    default:
+      return [];
+  }
+}
+
 /**
  * Applies one diff in place. `changed` holds items worth reporting; with
  * `newOnly`, bulk loads (initial items, pagination) are applied silently.
@@ -43,7 +59,7 @@ export function applyDiff<T>(
     }
     case 'Set': {
       const removed = items.splice(diff.inner.index, 1, diff.inner.value);
-      return { changed: [diff.inner.value], removed: newOnly ? [] : removed };
+      return { changed: [diff.inner.value], removed };
     }
     case 'Remove':
       return { changed: [], removed: items.splice(diff.inner.index, 1) };

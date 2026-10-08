@@ -94,13 +94,13 @@ pub struct MxPublicRoom {
     pub(super) can_request_join: bool,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, PartialEq, Serialize)]
 pub struct MxReaction {
     pub(super) key: String,
     pub(super) senders: Vec<String>,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MxPreview {
     pub(super) sender: String,
@@ -111,7 +111,7 @@ pub struct MxPreview {
     pub(super) content: MxContent,
 }
 
-#[derive(Serialize)]
+#[derive(PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MxEvent {
     pub(super) id: String,
@@ -129,7 +129,15 @@ pub struct MxEvent {
     pub(super) edited: bool,
 }
 
-#[derive(Clone, Serialize)]
+/// Someone's read receipt, at the time the event they read up to was sent.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MxReceipt {
+    pub(super) user_id: String,
+    pub(super) at: u64,
+}
+
+#[derive(Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MxMediaOut {
     pub(super) source: String,
@@ -140,7 +148,7 @@ pub struct MxMediaOut {
     pub(super) size: Option<u64>,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum MxContent {
     Text {
@@ -217,7 +225,7 @@ pub enum MxContent {
     },
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, PartialEq, Serialize)]
 pub struct MxPollAnswer {
     pub(super) id: String,
     pub(super) text: String,
@@ -300,6 +308,11 @@ pub enum MxUpdate {
     Typing {
         room_id: String,
         user_ids: Vec<String>,
+    },
+    #[serde(rename_all = "camelCase")]
+    Receipts {
+        room_id: String,
+        receipts: Vec<MxReceipt>,
     },
     SignedOut,
 }

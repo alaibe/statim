@@ -74,6 +74,21 @@ pub(super) fn to_mx_event(room_id: &RoomId, item: &TimelineItem) -> Option<MxEve
     })
 }
 
+pub(super) fn receipts_of(item: &TimelineItem) -> Vec<MxReceipt> {
+    let Some(event) = item.as_event() else {
+        return Vec::new();
+    };
+    let at: u64 = event.timestamp().0.into();
+    event
+        .read_receipts()
+        .keys()
+        .map(|user| MxReceipt {
+            user_id: user.to_string(),
+            at,
+        })
+        .collect()
+}
+
 /// A thread message quotes the one before it for clients without threads; that is not a reply.
 fn falls_back(event: &matrix_sdk_ui::timeline::EventTimelineItem) -> bool {
     event

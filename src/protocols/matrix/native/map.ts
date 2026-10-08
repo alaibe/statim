@@ -1,6 +1,14 @@
 import * as sdk from '@unomed/react-native-matrix-sdk';
 
-import type { MxContent, MxEvent, MxMedia, MxMembership, MxMembershipChange, MxRole } from '../api';
+import type {
+  MxContent,
+  MxEvent,
+  MxMedia,
+  MxMembership,
+  MxMembershipChange,
+  MxReceipt,
+  MxRole,
+} from '../api';
 
 export function mapMembership(membership: sdk.Membership): MxMembership {
   switch (membership) {
@@ -223,4 +231,9 @@ function mapState(state: sdk.OtherState): MxContent | null {
 export function extensionOf(name: string): string {
   const match = name.match(/\.[A-Za-z0-9]{1,5}$/);
   return match ? match[0].toLowerCase() : '';
+}
+
+export function receiptsOf(event: sdk.EventTimelineItem): MxReceipt[] {
+  const at = Number(event.timestamp);
+  return [...event.readReceipts.keys()].map((userId) => ({ userId, at }));
 }
