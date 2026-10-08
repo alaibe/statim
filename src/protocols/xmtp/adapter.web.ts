@@ -264,12 +264,12 @@ export class XmtpSession implements ChatSession {
       direction: SortDirection.Descending,
     });
     const isDm = conversation instanceof Dm;
-    const converted = await Promise.all(
-      messages
-        .filter((m) => !isReadReceipt(m) && !(isDm && isGroupUpdated(m)))
-        .map((m) => this.toMessage(m, id))
-    );
-    return converted.reverse();
+    // The SDK lists reactions under the message they react to, not beside it.
+    const shown = messages
+      .filter((m) => !isReadReceipt(m) && !(isDm && isGroupUpdated(m)))
+      .reverse()
+      .flatMap((m) => [m, ...[...m.reactions].sort((a, b) => Number(a.sentAtNs - b.sentAtNs))]);
+    return Promise.all(shown.map((m) => this.toMessage(m, id)));
   }
 
   async countUnread(id: ProtocolChatId, since: number): Promise<number> {

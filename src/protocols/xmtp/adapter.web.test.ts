@@ -50,6 +50,49 @@ jest.mock('@xmtp/browser-sdk', () => {
 
 const { Group } = jest.requireMock('@xmtp/browser-sdk');
 
+it('lists the reactions the SDK nests under a message, in the order they were sent', async () => {
+  const reaction = (action: string, sentMs: number) => ({
+    ...message('reaction', 'me', sentMs),
+    content: { reference: 'peer-1000', content: '👍', action },
+  });
+  const group = Object.assign(new Group(), {
+    messages: async () => [
+      {
+        ...message('text', 'peer', 1_000),
+        reactions: [reaction('removed', 3_000), reaction('added', 2_000)],
+      },
+    ],
+  });
+  mockBuild.mockResolvedValue({
+    inboxId: 'me',
+    installationId: 'this-device',
+    accountIdentifier: { identifier: '0xabc' },
+    isRegistered: async () => true,
+    preferences: { fetchInboxState: async () => ({ installations: [{ id: 'this-device' }] }) },
+    conversations: { getConversationById: async () => group },
+  });
+  const session = await XmtpSession.connect({
+    accountId: 'xmtp-reactions',
+    account: { address: '0xabc' } as unknown as LocalAccount,
+    dbEncryptionKey: new Uint8Array(32),
+    env: 'dev',
+  });
+
+  const history = await session.getMessages(protocolChatId('group'));
+
+  expect(history.map(({ id, content }) => ({ id, content }))).toEqual([
+    { id: 'peer-1000', content: { kind: 'text', text: 'text' } },
+    {
+      id: 'me-2000',
+      content: { kind: 'reaction', targetId: 'peer-1000', emoji: '👍', action: 'added' },
+    },
+    {
+      id: 'me-3000',
+      content: { kind: 'reaction', targetId: 'peer-1000', emoji: '👍', action: 'removed' },
+    },
+  ]);
+});
+
 type Streamed = ReturnType<typeof message>;
 
 const message = (kind: 'text' | 'receipt' | 'reaction', senderInboxId: string, sentMs: number) => ({
@@ -60,6 +103,7 @@ const message = (kind: 'text' | 'receipt' | 'reaction', senderInboxId: string, s
   sentAtNs: BigInt(sentMs) * 1_000_000n,
   contentType: { typeId: kind },
   content: kind,
+  reactions: [] as unknown[],
 });
 
 const nextTask = () => new Promise((resolve) => setTimeout(resolve, 0));
