@@ -1079,10 +1079,10 @@ function requireChat(state: ChatState, id: ChatId): Chat {
 
 function requirePermission(state: ChatState, id: ChatId, action: 'send' | 'react' | 'vote'): void {
   const chat = requireChat(state, id);
-  if (!chatPermissions(chat, sessionFor(state, id))[action]) {
-    if (chat.blocked) throw new Error('You blocked this person. Unblock them to send a message.');
-    throw new Error(`You cannot ${action === 'send' ? 'send messages' : action} in this chat.`);
-  }
+  if (chatPermissions(chat, sessionFor(state, id))[action]) return;
+  const doing = action === 'send' ? 'send messages' : action;
+  if (chat.blocked) throw new Error(`You blocked this person. Unblock them to ${doing}.`);
+  throw new Error(`You cannot ${doing} in this chat.`);
 }
 
 function requireSession(state: ChatState, protocol: ProtocolId): ChatSession {

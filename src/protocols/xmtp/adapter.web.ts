@@ -644,16 +644,7 @@ export class XmtpSession implements ChatSession {
     ]);
     if (isBlocked) this.blockedDmIds.add(raw.id);
     else this.blockedDmIds.delete(raw.id);
-    let lastMessage: ProtocolMessage | undefined;
-    for (const candidate of recent) {
-      if (!current()) break;
-      if (isReadReceipt(candidate) || (!isGroup && isGroupUpdated(candidate))) continue;
-      const message = await this.toMessage(candidate, protocolChatId(raw.id));
-      if (showsInPreview(message)) {
-        lastMessage = message;
-        break;
-      }
-    }
+    const lastMessage = await this.previewOf(raw.id, recent, isGroup, current);
     if (lastMessage) this.marks.sent(raw.id, lastMessage.sentAt);
     if (readUpTo !== undefined) this.marks.raise(raw.id, readUpTo);
 
@@ -669,6 +660,21 @@ export class XmtpSession implements ChatSession {
       lastMessage,
       readUpTo,
     };
+  }
+
+  private async previewOf(
+    id: string,
+    recent: DecodedMessage<any>[],
+    isGroup: boolean,
+    current: () => boolean
+  ): Promise<ProtocolMessage | undefined> {
+    for (const candidate of recent) {
+      if (!current()) return undefined;
+      if (isReadReceipt(candidate) || (!isGroup && isGroupUpdated(candidate))) continue;
+      const message = await this.toMessage(candidate, protocolChatId(id));
+      if (showsInPreview(message)) return message;
+    }
+    return undefined;
   }
 
   private async readUpTo(raw: Group<any> | Dm<any>): Promise<number | undefined> {

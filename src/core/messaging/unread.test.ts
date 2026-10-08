@@ -54,6 +54,11 @@ describe('isUnread', () => {
     expect(isUnread(chat({ lastMessage: undefined }), {})).toBe(false);
   });
 
+  it('trusts the protocol’s count when no message can be previewed', () => {
+    expect(isUnread(chat({ lastMessage: undefined, unreadCount: 2 }), {})).toBe(true);
+    expect(unreadBadge(chat({ lastMessage: undefined, unreadCount: 2 }), 0)).toBe(2);
+  });
+
   it('can be manually marked unread after sending', () => {
     expect(isUnread(chat({ lastMessage: message({ fromMe: true }) }), { [C1]: -1 })).toBe(true);
     expect(unreadCount([message()], -1)).toBe(0);

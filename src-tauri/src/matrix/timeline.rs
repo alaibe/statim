@@ -284,14 +284,13 @@ fn moved(
 ) -> Vec<MxReceipt> {
     receipts
         .filter(|receipt| {
-            if readers
+            let rose = readers
                 .get(&receipt.user_id)
-                .is_some_and(|seen| *seen >= receipt.at)
-            {
-                return false;
+                .is_none_or(|seen| receipt.at > *seen);
+            if rose {
+                readers.insert(receipt.user_id.clone(), receipt.at);
             }
-            readers.insert(receipt.user_id.clone(), receipt.at);
-            true
+            rose
         })
         .collect()
 }

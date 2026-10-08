@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ChatBackground,
   EmptyState,
+  Loading,
   Pressable,
   Text,
   toast,
@@ -299,24 +300,7 @@ function EmptyTranscript({
   const fetchingHistory = useChatStore(
     (s) => connectionFor(s.protocols, protocol).history.status === 'fetching'
   );
-  if (history?.loading) {
-    return (
-      <View
-        accessible
-        accessibilityRole="progressbar"
-        accessibilityLabel="Loading messages"
-        accessibilityState={{ busy: true }}
-        className="gap-4 px-gutter py-4">
-        <View className="h-14 w-2/3 rounded-2xl bg-content/10" />
-        <View className="h-10 w-1/2 self-end rounded-2xl bg-content/10" />
-        <View className="h-20 w-3/4 rounded-2xl bg-content/10" />
-        <View className="h-14 w-2/3 self-end rounded-2xl bg-content/10" />
-        <Text variant="caption" className="text-center">
-          Loading messages…
-        </Text>
-      </View>
-    );
-  }
+  if (history?.loading) return <Loading />;
   if (history?.error) {
     return (
       <EmptyState
