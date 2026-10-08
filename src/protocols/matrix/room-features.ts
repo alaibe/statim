@@ -15,6 +15,7 @@ export interface RoomFeatures {
   delete?: number;
   poll?: number;
   thread?: number;
+  reply?: number;
   reaction?: number;
   file?: Record<string, unknown>;
   state?: Record<string, { level?: number }>;
@@ -34,6 +35,7 @@ export function lacksOf(features: RoomFeatures): ChatFeature[] {
     ['delete', features.delete],
     ['poll', features.poll],
     ['thread', features.thread],
+    ['reply', features.reply],
     ['react', features.reaction],
     ['pin', features.state?.['m.room.pinned_events']?.level],
   ];

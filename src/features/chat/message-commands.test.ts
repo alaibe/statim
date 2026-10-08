@@ -19,6 +19,7 @@ const handlers = {
 };
 const all = {
   send: true,
+  reply: true,
   edit: true,
   delete: true,
   deleteForMe: true,
@@ -28,6 +29,7 @@ const all = {
 };
 const none = {
   send: false,
+  reply: false,
   edit: false,
   delete: false,
   deleteForMe: false,
@@ -63,7 +65,7 @@ describe('messageActions', () => {
   });
 
   it('leaves out what the protocol cannot do', () => {
-    expect(ids(message(), none)).toEqual(['reply', 'copy', 'forward']);
+    expect(ids(message(), none)).toEqual(['copy', 'forward']);
   });
 
   it('never edits someone else’s message, and deletes it for everyone only with the right', () => {
@@ -89,6 +91,10 @@ describe('messageActions', () => {
       'delete',
     ]);
     expect(ids(message({ status: 'sending' }), { ...all, thread: true })).not.toContain('thread');
+  });
+
+  it('hides replying where the chat takes no reply', () => {
+    expect(ids(message(), { ...all, reply: false })).not.toContain('reply');
   });
 
   it('hides pinning where the chat does not allow it', () => {

@@ -26,6 +26,7 @@ describe('lacksOf', () => {
       lacksOf({
         edit: 2,
         delete: 2,
+        reply: 2,
         reaction: 2,
         file: { 'm.image': {}, 'm.video': {}, 'm.file': {} },
       })
@@ -43,11 +44,11 @@ describe('lacksOf', () => {
         member_actions: { invite: 2, kick: -2 },
         file: { 'm.image': {}, 'm.video': {} },
       })
-    ).toEqual(['poll', 'pin', 'remove', 'ban']);
+    ).toEqual(['poll', 'reply', 'pin', 'remove', 'ban']);
   });
 
   it('counts a fallback as lacking and partial support as there', () => {
-    expect(lacksOf({ edit: 0, delete: 1, poll: 1, thread: 1, reaction: -1 })).toEqual([
+    expect(lacksOf({ edit: 0, delete: 1, poll: 1, thread: 1, reply: 1, reaction: -1 })).toEqual([
       'edit',
       'react',
       'pin',

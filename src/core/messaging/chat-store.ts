@@ -323,7 +323,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   async sendMessage(id, picked, replyTo, threadRoot) {
-    requirePermission(get(), id, 'send');
+    requirePermission(get(), id, replyTo ? 'reply' : 'send');
     if (isLocalChat(id)) {
       await get().postLocalMessage(id, picked, 'me', replyTo);
 
@@ -376,7 +376,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const message = (get().messages[id] ?? []).find((m) => m.id === messageId);
     if (!message || message.status !== 'failed') return null;
 
-    requirePermission(get(), id, 'send');
+    requirePermission(get(), id, message.replyTo ? 'reply' : 'send');
 
     const route = requireRoute(get(), id);
     get().replacePending(id, messageId, 'sending');
@@ -1077,7 +1077,11 @@ function requireChat(state: ChatState, id: ChatId): Chat {
   return chat;
 }
 
-function requirePermission(state: ChatState, id: ChatId, action: 'send' | 'react' | 'vote'): void {
+function requirePermission(
+  state: ChatState,
+  id: ChatId,
+  action: 'send' | 'reply' | 'react' | 'vote'
+): void {
   const chat = requireChat(state, id);
   if (chatPermissions(chat, sessionFor(state, id))[action]) return;
   const doing = action === 'send' ? 'send messages' : action;

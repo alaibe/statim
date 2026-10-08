@@ -248,7 +248,7 @@ describe('MatrixSession chats', () => {
                 {
                   type: 'com.beeper.room_features',
                   state_key: 'meta',
-                  content: { edit: 2, delete: 2, reaction: 2, file: { 'm.image': {} } },
+                  content: { edit: 2, delete: 2, reply: 2, reaction: 2, file: { 'm.image': {} } },
                 },
               ],
             },

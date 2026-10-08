@@ -20,7 +20,7 @@ export interface ChatActions {
 /** `thread` is false inside a thread, where replies already stay in it. */
 export type ActionSupport = Pick<
   ChatPermissions,
-  'send' | 'edit' | 'delete' | 'deleteForMe' | 'deleteOthers' | 'pin' | 'thread'
+  'send' | 'reply' | 'edit' | 'delete' | 'deleteForMe' | 'deleteOthers' | 'pin' | 'thread'
 >;
 
 export function messageActions(
@@ -41,12 +41,13 @@ export function messageActions(
         icon: 'refresh-outline',
         onPress: () => actions.retry(message),
       },
-    !message.privateToMe && {
-      id: 'reply',
-      label: 'Reply',
-      icon: 'arrow-undo-outline',
-      onPress: () => actions.reply(message),
-    },
+    can.reply &&
+      !message.privateToMe && {
+        id: 'reply',
+        label: 'Reply',
+        icon: 'arrow-undo-outline',
+        onPress: () => actions.reply(message),
+      },
     can.thread &&
       sent &&
       !message.privateToMe && {

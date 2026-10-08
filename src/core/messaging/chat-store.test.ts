@@ -218,6 +218,18 @@ describe('sending', () => {
     expect(session.sent).toHaveLength(1);
   });
 
+  it('sends a reply only where the chat’s network takes one', async () => {
+    const session = new InMemoryChatSession();
+    session.seedChat({ id: 'slack', lacks: ['reply'] });
+    await connect(session);
+    await expect(
+      useChatStore.getState().sendMessage(ns('slack'), { kind: 'text', text: 'hi' }, 'm1')
+    ).rejects.toThrow('cannot reply');
+    expect(session.sent).toHaveLength(0);
+    await useChatStore.getState().sendMessage(ns('slack'), { kind: 'text', text: 'hi' });
+    expect(session.sent).toHaveLength(1);
+  });
+
   it('sends a still sticker as a photo where the network has no stickers', async () => {
     const session = new InMemoryChatSession();
     session.seedChat({ id: 'c1' });

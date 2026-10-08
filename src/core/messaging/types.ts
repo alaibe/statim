@@ -141,6 +141,7 @@ export type ChatFeature =
   | 'pin'
   | 'poll'
   | 'thread'
+  | 'reply'
   | 'react'
   | 'images'
   | 'video'

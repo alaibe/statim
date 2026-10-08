@@ -5,6 +5,7 @@ import type { Chat, ChatFeature } from './types';
 
 export interface ChatPermissions {
   send: boolean;
+  reply: boolean;
   attach: boolean;
   /** Pictures go out as pictures; without, only as files. */
   sendImages: boolean;
@@ -38,6 +39,7 @@ export interface ChatPermissions {
 
 export const NO_PERMISSIONS: Readonly<ChatPermissions> = Object.freeze({
   send: false,
+  reply: false,
   attach: false,
   sendImages: false,
   sendVideo: false,
@@ -70,8 +72,10 @@ export function chatPermissions(chat: Chat, session: ChatSession | undefined): C
   const has = (feature: ChatFeature) => !chat.lacks?.includes(feature);
   const deletes = supports(session, 'deleteMessage') && has('delete');
   const attach = takesAttachments(chat.id);
+  const send = !chat.blocked && (chat.canSend ?? chat.kind !== 'channel');
   return {
-    send: !chat.blocked && (chat.canSend ?? chat.kind !== 'channel'),
+    send,
+    reply: send && has('reply'),
     attach,
     // The app's own chats keep what you send on this device, pictures included.
     sendImages: attach && (isLocalChat(chat.id) || Boolean(session?.sendsImages)) && has('images'),
