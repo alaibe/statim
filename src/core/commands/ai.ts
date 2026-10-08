@@ -3,23 +3,19 @@ import { TRANSLATE_CHIP_LABEL } from '@/core/ai/device';
 import { AiError, isAiError } from '@/core/ai/errors';
 import { deviceLanguage, findLanguage } from '@/core/ai/languages';
 import {
+  completeOver,
   parseStyle,
   parseSuggestions,
   rewriteRequest,
   STYLES,
+  SUGGEST_CONTEXT,
   suggestRequest,
   summaryRequest,
-  transcript,
 } from '@/core/ai/prompts';
-import {
-  resolveProvider,
-  type AiAnswer,
-  type AiProvider,
-  type CompletionRequest,
-} from '@/core/ai/providers';
+import { resolveProvider, type AiAnswer } from '@/core/ai/providers';
 import { translateText } from '@/core/ai/translate';
 import { useAppearanceStore } from '@/core/app/appearance';
-import { recentLines, type ChatLine } from '@/core/messaging/chat-lines';
+import { recentLines } from '@/core/messaging/chat-lines';
 import type { WidgetContent } from '@/core/messaging/types';
 import type { CoreFeature } from '@/core/plugins/registry';
 import type { ComposerAction, SlashCommand } from '@/core/plugins/types';
@@ -27,29 +23,11 @@ import { W } from '@/design/widgets';
 
 const SUMMARY_DEFAULT = 50;
 const SUMMARY_MAX = 300;
-const SUGGEST_CONTEXT = 20;
 
 function account(): string {
   const id = useAccountStore.getState().activeAccountId;
   if (!id) throw new AiError('unavailable', 'No account is active yet.');
   return id;
-}
-
-async function completeOver(
-  model: AiProvider,
-  lines: readonly ChatLine[],
-  build: (chat: string) => CompletionRequest
-): Promise<{ text: string; count: number }> {
-  let budget = model.maxInputChars - build('').instructions.length - 32;
-  for (;;) {
-    const chat = transcript(lines, budget);
-    try {
-      return { text: await model.complete(build(chat.text)), count: chat.count };
-    } catch (error) {
-      if (!isAiError(error, 'too-long') || chat.count <= 2) throw error;
-      budget = Math.floor(chat.text.length / 2);
-    }
-  }
 }
 
 function afterFirstWord(rest: string): string {

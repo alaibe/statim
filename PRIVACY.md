@@ -120,6 +120,15 @@ people's in a group. Translation also falls back to that server when the device
 has no translator for a language. The address and the key you enter stay on
 this device.
 
+**Suggest replies on open** is a separate, optional setting in Settings → AI.
+When enabled with your TypeSafe API key, opening an eligible DM or group, or
+receiving a new message while it is open, sends up to 20 recent messages to
+TypeSafe's Jev to decide whether you need to reply. This includes other
+participants' messages and happens even when your reply model runs on the
+device. If a reply is needed, your selected model receives recent messages to
+write a suggestion. You review and send it yourself. The TypeSafe key stays
+with your account's other keys on this device and is sent only to TypeSafe.
+
 ### Notifications from your computer
 
 iOS stops Statim soon after you leave it, so an iPhone can hear about new

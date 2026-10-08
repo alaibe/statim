@@ -13,12 +13,13 @@ import {
   toast,
   Toggle,
 } from '@/design';
+import { readCredentials } from '@/core/account/credentials';
 import { useAccountStore } from '@/core/account/account-store';
 import {
   loadAiConfig,
-  loadAiKey,
   saveAiConfig,
   saveAiKey,
+  saveTypesafeKey,
   type AiConfig,
   type AiSource,
 } from '@/core/ai/config';
@@ -37,7 +38,9 @@ import { useAction } from '@/features/use-action';
 const DESKTOP = process.env.EXPO_OS === 'web';
 
 interface Draft extends AiConfig {
+  suggestOnOpen: boolean;
   key: string;
+  typesafeKey: string;
 }
 
 interface Saved {
@@ -46,12 +49,20 @@ interface Saved {
 }
 
 async function loadSaved(accountId: string): Promise<Saved> {
-  const [config, key, device] = await Promise.all([
+  const [config, credentials, device] = await Promise.all([
     loadAiConfig(accountId),
-    loadAiKey(accountId),
+    readCredentials(accountId),
     deviceModelState(),
   ]);
-  return { draft: { ...config, key: key ?? '' }, device };
+  return {
+    draft: {
+      ...config,
+      suggestOnOpen: config.suggestOnOpen ?? false,
+      key: credentials.ai ?? '',
+      typesafeKey: credentials.typesafe ?? '',
+    },
+    device,
+  };
 }
 
 function automaticHint(device: DeviceModelState): string {
@@ -119,18 +130,29 @@ function AiSettingsForm({
   const pick = (source: AiSource) => {
     if (source === draft.source) return;
     setModels([]);
-    setDraft(source === saved.draft.source ? saved.draft : { source, url: '', model: '', key: '' });
+    setDraft({
+      ...(source === saved.draft.source ? saved.draft : { source, url: '', model: '', key: '' }),
+      suggestOnOpen: draft.suggestOnOpen,
+      typesafeKey: draft.typesafeKey,
+    });
   };
 
   const dirty =
     draft.source !== saved.draft.source ||
     draft.url.trim() !== saved.draft.url ||
     draft.model.trim() !== saved.draft.model ||
-    draft.key.trim() !== saved.draft.key;
+    draft.key.trim() !== saved.draft.key ||
+    draft.typesafeKey.trim() !== saved.draft.typesafeKey ||
+    draft.suggestOnOpen !== saved.draft.suggestOnOpen;
 
   const save = useAction(
     async () => {
-      await Promise.all([saveAiConfig(accountId, draft), saveAiKey(accountId, draft.key)]);
+      if (draft.suggestOnOpen && !draft.typesafeKey.trim()) {
+        throw new Error('Enter a TypeSafe API key to suggest replies on open.');
+      }
+      await saveAiKey(accountId, draft.key);
+      await saveTypesafeKey(accountId, draft.typesafeKey);
+      await saveAiConfig(accountId, draft);
       onSaved();
     },
     { success: 'AI settings saved', failure: 'Could not save the AI settings' }
@@ -186,6 +208,44 @@ function AiSettingsForm({
 
       {enabled ? (
         <>
+          <Section title="Reply suggestions" surface="card" className="mb-6">
+            <ListItem
+              testID="ai-suggest-on-open"
+              title="Suggest replies on open"
+              subtitle="Jev checks whether you need to reply. Your selected AI writes a suggestion for you to review."
+              numberOfLinesSubtitle={3}
+              trailing={
+                <Toggle
+                  label="Suggest replies on open"
+                  value={draft.suggestOnOpen}
+                  onValueChange={(suggestOnOpen) => change({ suggestOnOpen })}
+                />
+              }
+            />
+            <View className="gap-3 px-gutter py-4">
+              <Field
+                testID="ai-typesafe-key"
+                label="TypeSafe API key"
+                value={draft.typesafeKey}
+                onChangeText={(typesafeKey) => change({ typesafeKey })}
+                placeholder="Your Jev key"
+                autoCorrect={false}
+                autoCapitalize="none"
+                secureTextEntry
+              />
+              <Text variant="footnote">
+                When enabled, opening a DM or group sends recent messages to TypeSafe, including
+                other participants’ messages. Suggestions use the model selected below.
+              </Text>
+              <Button
+                label="Get a TypeSafe key"
+                tone="neutral"
+                size="sm"
+                onPress={() => openExternal('https://console.typesafe.ai').catch(() => {})}
+              />
+            </View>
+          </Section>
+
           <Section title="Model" surface="card" className="mb-6">
             {SOURCES.map((source) => (
               <ListItem
@@ -292,12 +352,14 @@ function AiSettingsForm({
 
       <Note className="mx-gutter" icon="information-circle-outline">
         <Text variant="footnote">
-          AI is off until you turn it on. Each command runs only when you type it or tap its chip,
-          and nothing is sent until you send it yourself.
+          AI is off until you turn it on. Commands run when you type them or tap their chips. Reply
+          suggestions also run when you open a chat if you enable them. Nothing is sent to the chat
+          until you send it yourself.
         </Text>
         <Text variant="footnote">
-          Automatic uses the model built into this device, so the text never leaves it. Translation
-          uses the device&apos;s own translator first, when it has the language.
+          Automatic uses the model built into this device. Reply decisions still go to TypeSafe if
+          you enable suggestions on open. Translation uses the device&apos;s own translator first,
+          when it has the language.
         </Text>
         <Text variant="footnote">
           With your server or Anthropic, each request goes to that server: the text you rewrite or

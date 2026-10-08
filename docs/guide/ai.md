@@ -2,8 +2,27 @@
 
 AI rewrites what you are about to send, translates, summarises a chat and
 suggests replies. It is off until you turn on **AI in chats** in **Settings ›
-AI**, and it only runs when you ask: nothing is read in the background and
-nothing is sent until you press send yourself.
+AI**. Commands run when you ask. You can also enable reply suggestions when
+you open a chat. Nothing is sent to the chat until you press send yourself.
+
+## Replies when you open a chat
+
+In **Settings › AI**, enter your **TypeSafe API key**, turn on **Suggest replies
+on open**, and press **Save**. Get a key from the
+[TypeSafe console](https://console.typesafe.ai). Select and test your reply
+model below; Jev decides whether you need to answer, and that model writes the reply.
+
+When you open a DM or group with an incoming message last and an empty composer,
+Statim sends up to 20 recent messages to TypeSafe's Jev. If its estimated
+probability that a reply is needed is at least 70%, your selected model prepares
+a short suggestion above the composer. Tap **Use reply** to edit it before
+sending, or dismiss it. Suggestions may take a moment to appear.
+
+The check also runs when a new message arrives in the open chat. It skips
+channels, threads, requests, blocked chats and chats where you cannot send.
+Typing, leaving the chat or switching accounts discards unfinished suggestions.
+An error leaves the composer available; you can still use **Suggest a reply**
+manually.
 
 ## The commands
 
@@ -91,5 +110,9 @@ On a computer, any address works. Ollama's default is
   `/suggest` the recent messages of the chat. In a group those include other
   people's messages, and they did not choose your server.
 
-The API key stays on this device with your account's other keys, and only goes
-to the server it was saved for.
+- **Suggest replies on open**: recent messages also go to TypeSafe for the
+  decision, even if your reply model runs on your device. The suggestion itself
+  uses your selected model. This setting is off by default.
+
+API keys stay on this device with your account's other keys. The TypeSafe key
+only goes to TypeSafe; the reply model's key only goes to its configured server.

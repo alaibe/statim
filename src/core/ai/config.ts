@@ -1,5 +1,5 @@
 import { readCredential, writeCredential } from '@/core/account/credentials';
-import { isString, oneOf, shape } from '@/lib/guards';
+import { isBoolean, isString, oneOf, optional, shape } from '@/lib/guards';
 import { accountAiConfigKey, vaultGet, vaultSet } from '@/storage/vault';
 
 const AI_SOURCES = ['auto', 'openai', 'anthropic'] as const;
@@ -15,6 +15,7 @@ export interface AiConfig {
   readonly source: AiSource;
   readonly url: string;
   readonly model: string;
+  readonly suggestOnOpen?: boolean;
 }
 
 export const DEFAULT_AI_CONFIG: AiConfig = { source: 'auto', url: '', model: '' };
@@ -23,6 +24,7 @@ const isAiConfig = shape<AiConfig>({
   source: oneOf(...AI_SOURCES),
   url: isString,
   model: isString,
+  suggestOnOpen: optional(isBoolean),
 });
 
 export async function loadAiConfig(accountId: string): Promise<AiConfig> {
@@ -38,9 +40,18 @@ export async function loadAiConfig(accountId: string): Promise<AiConfig> {
 export async function saveAiConfig(accountId: string, config: AiConfig): Promise<void> {
   await vaultSet(
     accountAiConfigKey(accountId),
-    JSON.stringify({ source: config.source, url: config.url.trim(), model: config.model.trim() })
+    JSON.stringify({
+      source: config.source,
+      url: config.url.trim(),
+      model: config.model.trim(),
+      suggestOnOpen: config.suggestOnOpen === true,
+    })
   );
 }
 
 export const loadAiKey = (accountId: string) => readCredential(accountId, 'ai');
 export const saveAiKey = (accountId: string, key: string) => writeCredential(accountId, 'ai', key);
+
+export const loadTypesafeKey = (accountId: string) => readCredential(accountId, 'typesafe');
+export const saveTypesafeKey = (accountId: string, key: string) =>
+  writeCredential(accountId, 'typesafe', key);

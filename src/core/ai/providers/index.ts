@@ -44,7 +44,7 @@ export async function providerFor(config: AiConfig, key: string | null): Promise
   }
 }
 
-export async function resolveProvider(accountId: string): Promise<AiProvider> {
-  const config = await loadAiConfig(accountId);
+export async function resolveProvider(accountId: string, loaded?: AiConfig): Promise<AiProvider> {
+  const config = loaded ?? (await loadAiConfig(accountId));
   return providerFor(config, config.source === 'auto' ? null : await loadAiKey(accountId));
 }

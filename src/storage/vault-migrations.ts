@@ -17,6 +17,5 @@ export type VaultStep = (vault: VaultEntries) => Promise<void>;
  * already moved as they are.
  */
 export const VAULT_MIGRATIONS: readonly VaultStep[] = [
-  // The desktop no longer deletes the notes it leaves in iCloud; the iPhone does.
   (vault) => vault.remove('notifications.icloudNotes'),
 ];

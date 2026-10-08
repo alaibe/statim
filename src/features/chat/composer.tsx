@@ -43,6 +43,7 @@ import { useCommandDispatch } from './use-command-dispatch';
 import { useMentionSuggestions } from './use-mention-suggestions';
 import { useChatPermissions } from './use-chat-permissions';
 import { withFinalEmoji } from './typed-emoji';
+import { ReplySuggestion } from './reply-suggestion';
 import { useTypingAnnouncer } from './use-typing-announcer';
 
 interface ComposerProps {
@@ -152,6 +153,9 @@ export function Composer({
 
   return (
     <View>
+      {!thread && (scope === 'dm' || scope === 'group') ? (
+        <ReplySuggestion chatId={chatId} available={!busy && !banner} onUse={fill} />
+      ) : null}
       <SuggestionPopover
         items={mentions.matches}
         keyOf={(person) => person.id}
