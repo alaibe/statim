@@ -37,6 +37,19 @@ chat ordering stay as they are. Sending a message clears the badge. Jev's
 decision is shared with reply suggestions while the account remains open, so
 opening an unchanged chat does not need a second decision request.
 
+## Follow-ups
+
+**Suggest follow-ups** is a separate opt-in under **Settings › AI**. Once your
+latest sent message has waited at least 24 hours without an answer, Jev checks
+whether your question or request is still unresolved. It skips failed and
+unsent messages. A positive decision adds a **Follow up** badge to the chat list
+and prepares a polite nudge when you open the chat with an empty composer.
+
+This works even if **Suggest replies on open** and **Highlight chats needing a
+reply** are off. It checks while you view the list or chat; it does not schedule
+notifications. A new answer removes the follow-up. You review, edit and send
+the suggestion yourself.
+
 ## The commands
 
 Once it is on, chips sit above the composer in DMs and groups. Each has

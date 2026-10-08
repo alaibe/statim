@@ -1,7 +1,9 @@
 import { useIsFocused } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { useFollowUpDue } from './use-follow-up-due';
 
-import { prepareReply, replyTarget } from '@/core/ai/chat-assistance';
+import { isAssistanceMessage, prepareReply, replyTarget } from '@/core/ai/chat-assistance';
+import type { ReplyKind } from '@/core/ai/reply-decision';
 import { useAiConfig } from '@/core/ai/use-config';
 import { errorMessage } from '@/core/errors';
 import { useChatStore } from '@/core/messaging/chat-store';
@@ -10,7 +12,7 @@ import type { ChatId } from '@/core/messaging/types';
 
 type Suggestion =
   | { status: 'pending'; label: string }
-  | { status: 'ready'; text: string; label: string }
+  | { status: 'ready'; text: string; label: string; kind: ReplyKind }
   | { status: 'error'; text: string };
 
 export function useReplySuggestion(chatId: ChatId, available: boolean) {
@@ -20,11 +22,16 @@ export function useReplySuggestion(chatId: ChatId, available: boolean) {
   const draft = useChatStore((s) => s.drafts[draftKey(chatId)] ?? '');
   const messages = useChatStore((s) => s.messages[chatId]);
   const history = useChatStore((s) => s.messageHistory[chatId]);
-  const target = replyTarget(messages);
-  const key = accountId && target ? `${accountId}\n${chatId}\n${target}` : null;
+  const followUp = useFollowUpDue(
+    messages?.findLast(isAssistanceMessage),
+    config?.followUps === true
+  );
+  const kind = followUp ? 'follow-up' : 'reply';
+  const target = replyTarget(messages, kind);
+  const key = accountId && target ? `${accountId}\n${chatId}\n${kind}\n${target}` : null;
   const enabled =
     focused &&
-    config?.suggestOnOpen === true &&
+    (followUp ? config?.followUps === true : config?.suggestOnOpen === true) &&
     available &&
     history !== undefined &&
     !history.loading &&
@@ -44,15 +51,18 @@ export function useReplySuggestion(chatId: ChatId, available: boolean) {
     void Promise.resolve()
       .then(async () => {
         if (controller.signal.aborted) return;
-        show({ status: 'pending', label: 'Preparing a reply…' });
-        const reply = await prepareReply(accountId, chatId, config, controller.signal);
+        show({
+          status: 'pending',
+          label: followUp ? 'Preparing a follow-up…' : 'Preparing a reply…',
+        });
+        const reply = await prepareReply(accountId, chatId, config, controller.signal, kind);
         show(reply ? { status: 'ready', ...reply } : null);
       })
       .catch((error) =>
         show({ status: 'error', text: errorMessage(error, 'Could not suggest a reply') })
       );
     return () => controller.abort();
-  }, [accountId, chatId, config, enabled, key, settled]);
+  }, [accountId, chatId, config, enabled, followUp, key, kind, settled]);
 
   return {
     suggestion: enabled ? current : null,

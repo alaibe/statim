@@ -12,6 +12,7 @@ import { draftKey } from '@/core/messaging/drafts';
 import { asChatId } from '@/core/messaging/testing/ids';
 import type { ChatId, ChatMessage } from '@/core/messaging/types';
 import { useReplySuggestion } from './use-reply-suggestion';
+import { FOLLOW_UP_DELAY } from './use-follow-up-due';
 
 jest.mock('expo-router', () => ({ useIsFocused: jest.fn(() => true) }));
 jest.mock('@/core/ai/config', () => ({
@@ -80,6 +81,7 @@ beforeEach(() => {
 
 afterEach(() => {
   if (tree) act(() => tree.unmount());
+  jest.useRealTimers();
 });
 
 it('asks Jev before preparing a reply and leaves the composer untouched', async () => {
@@ -89,6 +91,7 @@ it('asks Jev before preparing a reply and leaves the composer untouched', async 
     status: 'ready',
     text: 'What time?',
     label: 'Local model',
+    kind: 'reply',
   });
   expect(useChatStore.getState().drafts).toEqual({});
   expect(jest.mocked(needsReply).mock.invocationCallOrder[0]).toBeLessThan(
@@ -221,4 +224,41 @@ it('ignores reactions and private cards, but checks a new incoming message', asy
     useChatStore.setState({ messages: { [id]: [incoming, { ...incoming, id: 'next' }] } });
   });
   expect(needsReply).toHaveBeenCalledTimes(2);
+});
+
+it('offers a follow-up after a day, independently of automatic replies', async () => {
+  jest.useFakeTimers({ now: 2 * FOLLOW_UP_DELAY });
+  jest
+    .mocked(loadAiConfig)
+    .mockResolvedValue({ source: 'auto', model: '', url: '', followUps: true });
+  useChatStore.setState({
+    messages: { [id]: [{ ...incoming, fromMe: true, sentAt: FOLLOW_UP_DELAY + 1000 }] },
+  });
+  await mount();
+  expect(needsReply).not.toHaveBeenCalled();
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+  expect(needsReply).toHaveBeenCalledWith(lines, 'jev-key', 'follow-up');
+  expect(result().suggestion).toMatchObject({ status: 'ready', kind: 'follow-up' });
+  expect(complete.mock.calls[0][0].instructions).toContain('polite nudge');
+});
+
+it.each(['disabled', 'answered', 'failed'])('skips follow-ups when %s', async (reason) => {
+  jest.useFakeTimers({ now: 2 * FOLLOW_UP_DELAY });
+  jest
+    .mocked(loadAiConfig)
+    .mockResolvedValue({ source: 'auto', model: '', url: '', followUps: reason !== 'disabled' });
+  const sent = {
+    ...incoming,
+    fromMe: true,
+    sentAt: 1,
+    status: reason === 'failed' ? ('failed' as const) : ('sent' as const),
+  };
+  useChatStore.setState({ messages: { [id]: reason === 'answered' ? [sent, incoming] : [sent] } });
+  await mount();
+  await act(async () => {
+    jest.advanceTimersByTime(FOLLOW_UP_DELAY);
+  });
+  expect(needsReply).not.toHaveBeenCalled();
 });

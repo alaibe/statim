@@ -47,3 +47,15 @@ it('reports rejected keys without exposing them', async () => {
     'api.typesafe.ai did not accept the API key'
   );
 });
+
+it('asks about the user’s unresolved request when deciding a follow-up', async () => {
+  fetchMock.mockResolvedValueOnce(
+    new Response(JSON.stringify({ answers: { reply_needed: { type: 'noul', noul: 0.9 } } }))
+  );
+  await expect(
+    needsReply([{ ...lines[0], from: 'You', fromMe: true }], 'key', 'follow-up')
+  ).resolves.toBe(true);
+  const request = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+  expect(request.questions.reply_needed.instructions).toContain('at least a day ago');
+  expect(request.questions.reply_needed.criteria.false).toContain('wait longer');
+});

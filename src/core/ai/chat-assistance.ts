@@ -6,9 +6,16 @@ import type { Chat, ChatId, ChatMessage } from '@/core/messaging/types';
 
 import { loadTypesafeKey, type AiConfig } from './config';
 import { AiError } from './errors';
-import { bareLine, completeOver, replyRequest, SUGGEST_CONTEXT, transcript } from './prompts';
+import {
+  bareLine,
+  completeOver,
+  followUpRequest,
+  replyRequest,
+  SUGGEST_CONTEXT,
+  transcript,
+} from './prompts';
 import { resolveProvider } from './providers';
-import { needsReply } from './reply-decision';
+import { needsReply, type ReplyKind } from './reply-decision';
 
 export const isAssistanceMessage = (message: ChatMessage) =>
   isChatLine(message) && !message.threadRoot && message.content.kind !== 'system';
@@ -20,9 +27,14 @@ export const canAssist = (chat: Chat) =>
   !chat.blocked &&
   chat.canSend !== false;
 
-export function replyTarget(messages: readonly ChatMessage[] | undefined): string | null {
+export function replyTarget(
+  messages: readonly ChatMessage[] | undefined,
+  kind: ReplyKind = 'reply'
+): string | null {
   const message = messages?.findLast(isAssistanceMessage);
-  return message && !message.fromMe ? `${message.id}\n${contentPreview(message.content)}` : null;
+  const matches =
+    message && (kind === 'reply' ? !message.fromMe : message.fromMe && message.status === 'sent');
+  return matches ? `${message.id}\n${contentPreview(message.content)}` : null;
 }
 
 export async function assistanceLines(chatId: ChatId) {
@@ -41,16 +53,17 @@ export async function replyNeeded(
   accountId: string,
   chatId: ChatId,
   lines: readonly ChatLine[],
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  kind: ReplyKind = 'reply'
 ) {
   const key = await loadTypesafeKey(accountId);
   if (signal?.aborted) return false;
   if (!key) throw new AiError('unavailable', 'Enter a TypeSafe API key in Settings › AI.');
-  const id = `${accountId}\n${chatId}`;
-  const text = `${key}\n${replyTarget(useChatStore.getState().messages[chatId])}\n${transcript(lines, 12_000).text}`;
+  const id = `${accountId}\n${chatId}\n${kind}`;
+  const text = `${key}\n${replyTarget(useChatStore.getState().messages[chatId], kind)}\n${transcript(lines, 12_000).text}`;
   const previous = decisions.get(id);
   if (previous?.text === text) return previous.promise;
-  const promise = needsReply(lines, key);
+  const promise = kind === 'reply' ? needsReply(lines, key) : needsReply(lines, key, kind);
   const entry = { text, promise };
   decisions.set(id, entry);
   if (decisions.size > 200) decisions.delete(decisions.keys().next().value!);
@@ -66,14 +79,21 @@ export async function prepareReply(
   accountId: string,
   chatId: ChatId,
   config: AiConfig,
-  signal: AbortSignal
+  signal: AbortSignal,
+  kind: ReplyKind = 'reply'
 ) {
   const lines = await assistanceLines(chatId);
-  if (signal.aborted || !(await replyNeeded(accountId, chatId, lines, signal)) || signal.aborted)
+  if (
+    signal.aborted ||
+    !(await replyNeeded(accountId, chatId, lines, signal, kind)) ||
+    signal.aborted
+  )
     return null;
   const model = await resolveProvider(accountId, config);
   if (signal.aborted) return null;
-  const text = bareLine((await completeOver(model, lines, replyRequest)).text);
+  const text = bareLine(
+    (await completeOver(model, lines, kind === 'follow-up' ? followUpRequest : replyRequest)).text
+  );
   if (!text) throw new AiError('server', 'The model suggested nothing.');
-  return signal.aborted ? null : { text, label: model.label };
+  return signal.aborted ? null : { text, label: model.label, kind };
 }

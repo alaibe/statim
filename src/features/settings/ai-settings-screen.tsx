@@ -40,6 +40,7 @@ const DESKTOP = process.env.EXPO_OS === 'web';
 interface Draft extends AiConfig {
   suggestOnOpen: boolean;
   replyBadges: boolean;
+  followUps: boolean;
   key: string;
   typesafeKey: string;
 }
@@ -60,6 +61,7 @@ async function loadSaved(accountId: string): Promise<Saved> {
       ...config,
       suggestOnOpen: config.suggestOnOpen ?? false,
       replyBadges: config.replyBadges ?? false,
+      followUps: config.followUps ?? false,
       key: credentials.ai ?? '',
       typesafeKey: credentials.typesafe ?? '',
     },
@@ -136,6 +138,7 @@ function AiSettingsForm({
       ...(source === saved.draft.source ? saved.draft : { source, url: '', model: '', key: '' }),
       suggestOnOpen: draft.suggestOnOpen,
       replyBadges: draft.replyBadges,
+      followUps: draft.followUps,
       typesafeKey: draft.typesafeKey,
     });
   };
@@ -147,11 +150,15 @@ function AiSettingsForm({
     draft.key.trim() !== saved.draft.key ||
     draft.typesafeKey.trim() !== saved.draft.typesafeKey ||
     draft.suggestOnOpen !== saved.draft.suggestOnOpen ||
-    draft.replyBadges !== saved.draft.replyBadges;
+    draft.replyBadges !== saved.draft.replyBadges ||
+    draft.followUps !== saved.draft.followUps;
 
   const save = useAction(
     async () => {
-      if ((draft.suggestOnOpen || draft.replyBadges) && !draft.typesafeKey.trim()) {
+      if (
+        (draft.suggestOnOpen || draft.replyBadges || draft.followUps) &&
+        !draft.typesafeKey.trim()
+      ) {
         throw new Error('Enter a TypeSafe API key to enable these chat features.');
       }
       await saveAiKey(accountId, draft.key);
@@ -235,6 +242,19 @@ function AiSettingsForm({
                   label="Highlight chats needing a reply"
                   value={draft.replyBadges}
                   onValueChange={(replyBadges) => change({ replyBadges })}
+                />
+              }
+            />
+            <ListItem
+              testID="ai-follow-ups"
+              title="Suggest follow-ups"
+              subtitle="After a day without an answer, show a Follow up badge and suggest a polite nudge when you open the chat."
+              numberOfLinesSubtitle={3}
+              trailing={
+                <Toggle
+                  label="Suggest follow-ups"
+                  value={draft.followUps}
+                  onValueChange={(followUps) => change({ followUps })}
                 />
               }
             />

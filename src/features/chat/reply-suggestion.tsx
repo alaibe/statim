@@ -19,7 +19,11 @@ export function ReplySuggestion({
     <Card testID="ai-reply-suggestion" className="mx-gutter mb-2 gap-2 p-3">
       <View className="flex-row items-center justify-between">
         <Text variant="caption">
-          {suggestion.status === 'pending' ? suggestion.label : 'Suggested reply'}
+          {suggestion.status === 'pending'
+            ? suggestion.label
+            : suggestion.status === 'ready' && suggestion.kind === 'follow-up'
+              ? 'Suggested follow-up'
+              : 'Suggested reply'}
         </Text>
         <IconButton icon="close" label="Dismiss reply suggestion" onPress={dismiss} size={18} />
       </View>

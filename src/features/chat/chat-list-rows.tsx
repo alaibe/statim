@@ -125,7 +125,9 @@ export function ChatRow({
         }
         subtitleTrailing={
           <View className="flex-row items-center gap-1">
-            {attention ? <Badge label={attention} tone="brand" /> : null}
+            {attention ? (
+              <Badge label={attention} tone={attention === 'Follow up' ? 'warning' : 'brand'} />
+            ) : null}
             {unread ? (
               <CountBadge count={unreadBadge(chat, since, loaded)} muted={muted} />
             ) : pinned ? (

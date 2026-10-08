@@ -134,6 +134,11 @@ history for chats visible in the chat list and sends up to 20 recent messages
 to TypeSafe for the badge decision, without marking the chat read. This does
 not generate or send a reply.
 
+**Suggest follow-ups** separately allows Jev to check recent messages once
+your latest sent message has gone unanswered for at least 24 hours. The check
+runs while you view the list or chat. If a follow-up is useful, your selected
+model prepares a suggestion when you open the chat; nothing is sent for you.
+
 ### Notifications from your computer
 
 iOS stops Statim soon after you leave it, so an iPhone can hear about new
