@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { View } from 'react-native';
 
 import {
@@ -16,10 +16,12 @@ import {
 import { readCredentials } from '@/core/account/credentials';
 import { useAccountStore } from '@/core/account/account-store';
 import {
+  aiConfigRevision,
   loadAiConfig,
   saveAiConfig,
   saveAiKey,
   saveTypesafeKey,
+  subscribeAiConfig,
   type AiConfig,
   type AiSource,
 } from '@/core/ai/config';
@@ -37,11 +39,39 @@ import { useAction } from '@/features/use-action';
 
 const DESKTOP = process.env.EXPO_OS === 'web';
 
-interface Draft extends AiConfig {
-  suggestOnOpen: boolean;
-  replyBadges: boolean;
-  followUps: boolean;
-  suggestActions: boolean;
+const JEV_FEATURES = [
+  {
+    flag: 'suggestOnOpen',
+    testID: 'ai-suggest-on-open',
+    title: 'Suggest replies on open',
+    subtitle:
+      'Jev checks whether you need to reply. Your selected AI writes a suggestion for you to review.',
+  },
+  {
+    flag: 'replyBadges',
+    testID: 'ai-reply-badges',
+    title: 'Highlight chats needing a reply',
+    subtitle: 'Show a Reply needed badge in the chat list.',
+  },
+  {
+    flag: 'followUps',
+    testID: 'ai-follow-ups',
+    title: 'Suggest follow-ups',
+    subtitle:
+      'After a day without an answer, show a Follow up badge and suggest a polite nudge when you open the chat.',
+  },
+  {
+    flag: 'suggestActions',
+    testID: 'ai-suggest-actions',
+    title: 'Suggest useful AI actions',
+    subtitle:
+      'Highlight Summarize or Translate when it would help with the open chat. The action runs when you tap it.',
+  },
+] as const;
+
+type JevFlag = (typeof JEV_FEATURES)[number]['flag'];
+
+interface Draft extends Omit<AiConfig, JevFlag>, Record<JevFlag, boolean> {
   key: string;
   typesafeKey: string;
 }
@@ -100,32 +130,19 @@ const FORM: Record<Exclude<AiSource, 'auto'>, { title: string; key: string; mode
 
 export function AiSettingsScreen() {
   const accountId = useAccountStore((s) => s.activeAccountId);
-  const [version, setVersion] = useState(0);
-  const saved = useKeyedLoad(accountId, loadSaved, version).value;
+  const revision = useSyncExternalStore(subscribeAiConfig, aiConfigRevision);
+  const saved = useKeyedLoad(accountId, loadSaved, revision).value;
 
   return (
     <SettingsScreen title="AI">
       {accountId && saved ? (
-        <AiSettingsForm
-          key={accountId}
-          accountId={accountId}
-          saved={saved}
-          onSaved={() => setVersion((v) => v + 1)}
-        />
+        <AiSettingsForm key={accountId} accountId={accountId} saved={saved} />
       ) : null}
     </SettingsScreen>
   );
 }
 
-function AiSettingsForm({
-  accountId,
-  saved,
-  onSaved,
-}: {
-  accountId: string;
-  saved: Saved;
-  onSaved: () => void;
-}) {
+function AiSettingsForm({ accountId, saved }: { accountId: string; saved: Saved }) {
   const enabled = useAppearanceStore((s) => s.aiInChats);
   const [draft, setDraft] = useState<Draft>(saved.draft);
   const [models, setModels] = useState<readonly string[]>([]);
@@ -136,14 +153,8 @@ function AiSettingsForm({
   const pick = (source: AiSource) => {
     if (source === draft.source) return;
     setModels([]);
-    setDraft({
-      ...(source === saved.draft.source ? saved.draft : { source, url: '', model: '', key: '' }),
-      suggestOnOpen: draft.suggestOnOpen,
-      replyBadges: draft.replyBadges,
-      followUps: draft.followUps,
-      suggestActions: draft.suggestActions,
-      typesafeKey: draft.typesafeKey,
-    });
+    const restored = source === saved.draft.source ? saved.draft : { url: '', model: '', key: '' };
+    setDraft({ ...draft, source, url: restored.url, model: restored.model, key: restored.key });
   };
 
   const dirty =
@@ -152,23 +163,16 @@ function AiSettingsForm({
     draft.model.trim() !== saved.draft.model ||
     draft.key.trim() !== saved.draft.key ||
     draft.typesafeKey.trim() !== saved.draft.typesafeKey ||
-    draft.suggestOnOpen !== saved.draft.suggestOnOpen ||
-    draft.replyBadges !== saved.draft.replyBadges ||
-    draft.followUps !== saved.draft.followUps ||
-    draft.suggestActions !== saved.draft.suggestActions;
+    JEV_FEATURES.some(({ flag }) => draft[flag] !== saved.draft[flag]);
 
   const save = useAction(
     async () => {
-      if (
-        (draft.suggestOnOpen || draft.replyBadges || draft.followUps || draft.suggestActions) &&
-        !draft.typesafeKey.trim()
-      ) {
+      if (JEV_FEATURES.some(({ flag }) => draft[flag]) && !draft.typesafeKey.trim()) {
         throw new Error('Enter a TypeSafe API key to enable these chat features.');
       }
       await saveAiKey(accountId, draft.key);
       await saveTypesafeKey(accountId, draft.typesafeKey);
       await saveAiConfig(accountId, draft);
-      onSaved();
     },
     { success: 'AI settings saved', failure: 'Could not save the AI settings' }
   );
@@ -224,57 +228,22 @@ function AiSettingsForm({
       {enabled ? (
         <>
           <Section title="Jev" surface="card" className="mb-6">
-            <ListItem
-              testID="ai-suggest-on-open"
-              title="Suggest replies on open"
-              subtitle="Jev checks whether you need to reply. Your selected AI writes a suggestion for you to review."
-              numberOfLinesSubtitle={3}
-              trailing={
-                <Toggle
-                  label="Suggest replies on open"
-                  value={draft.suggestOnOpen}
-                  onValueChange={(suggestOnOpen) => change({ suggestOnOpen })}
-                />
-              }
-            />
-            <ListItem
-              testID="ai-reply-badges"
-              title="Highlight chats needing a reply"
-              subtitle="Show a Reply needed badge in the chat list."
-              trailing={
-                <Toggle
-                  label="Highlight chats needing a reply"
-                  value={draft.replyBadges}
-                  onValueChange={(replyBadges) => change({ replyBadges })}
-                />
-              }
-            />
-            <ListItem
-              testID="ai-follow-ups"
-              title="Suggest follow-ups"
-              subtitle="After a day without an answer, show a Follow up badge and suggest a polite nudge when you open the chat."
-              numberOfLinesSubtitle={3}
-              trailing={
-                <Toggle
-                  label="Suggest follow-ups"
-                  value={draft.followUps}
-                  onValueChange={(followUps) => change({ followUps })}
-                />
-              }
-            />
-            <ListItem
-              testID="ai-suggest-actions"
-              title="Suggest useful AI actions"
-              subtitle="Highlight Summarize or Translate when it would help with the open chat. The action runs when you tap it."
-              numberOfLinesSubtitle={3}
-              trailing={
-                <Toggle
-                  label="Suggest useful AI actions"
-                  value={draft.suggestActions}
-                  onValueChange={(suggestActions) => change({ suggestActions })}
-                />
-              }
-            />
+            {JEV_FEATURES.map(({ flag, testID, title, subtitle }) => (
+              <ListItem
+                key={flag}
+                testID={testID}
+                title={title}
+                subtitle={subtitle}
+                numberOfLinesSubtitle={3}
+                trailing={
+                  <Toggle
+                    label={title}
+                    value={draft[flag]}
+                    onValueChange={(on) => change({ [flag]: on })}
+                  />
+                }
+              />
+            ))}
             <View className="gap-3 px-gutter py-4">
               <Field
                 testID="ai-typesafe-key"

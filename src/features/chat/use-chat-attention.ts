@@ -1,59 +1,32 @@
 import { useEffect, useState } from 'react';
-import { useFollowUpDue } from './use-follow-up-due';
 
-import {
-  assistanceLines,
-  canAssist,
-  isAssistanceMessage,
-  replyNeeded,
-  replyTarget,
-} from '@/core/ai/chat-assistance';
+import { assistanceLines, canAssist, replyNeeded } from '@/core/ai/chat-assistance';
 import type { AiConfig } from '@/core/ai/config';
-import { useChatStore } from '@/core/messaging/chat-store';
+import type { ReplyKind } from '@/core/ai/reply-decision';
 import type { Chat } from '@/core/messaging/types';
+import { useReplyKey } from './use-reply-key';
 
-export function useChatAttention(chat: Chat, config: AiConfig | undefined) {
-  const accountId = useChatStore((s) => s.accountId);
-  const messages = useChatStore((s) => s.messages[chat.id]);
-  const history = useChatStore((s) => s.messageHistory[chat.id]);
-  const loadMessages = useChatStore((s) => s.loadMessages);
-  const enabled = (config?.replyBadges || config?.followUps) && canAssist(chat);
-  const followUp = useFollowUpDue(
-    messages?.findLast(isAssistanceMessage),
+export function useChatAttention(chat: Chat, config: AiConfig | undefined): ReplyKind | null {
+  const { accountId, kind, key } = useReplyKey(
+    chat.id,
+    chat.lastMessage,
     config?.followUps === true
   );
-  const kind = followUp ? 'follow-up' : 'reply';
-  const target = replyTarget(messages, kind);
-  const key = accountId && target ? `${accountId}\n${chat.id}\n${kind}\n${target}` : null;
-  const [result, setResult] = useState<{ key: string; needed: boolean } | null>(null);
+  const checking = (kind === 'follow-up' || config?.replyBadges === true) && canAssist(chat);
+  const [result, setResult] = useState<{ key: string; needed: boolean | null } | null>(null);
+  const decided = result?.key === key && result.needed !== null;
 
   useEffect(() => {
-    if (enabled && !history) void loadMessages(chat.id);
-  }, [chat.id, enabled, history, loadMessages]);
-
-  const checking = enabled && (followUp ? config?.followUps : config?.replyBadges);
-  const ready = checking && history && !history.loading && !history.error;
-  useEffect(() => {
-    if (!ready || !accountId || !key) return;
+    if (!checking || !accountId || !key || decided) return;
     const controller = new AbortController();
     void assistanceLines(chat.id)
-      .then((lines) =>
-        !controller.signal.aborted
-          ? replyNeeded(accountId, chat.id, lines, controller.signal, kind)
-          : false
-      )
+      .then((lines) => replyNeeded(accountId, chat.id, lines, controller.signal, kind))
+      .catch(() => null)
       .then((needed) => {
         if (!controller.signal.aborted) setResult({ key, needed });
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setResult({ key, needed: false });
       });
     return () => controller.abort();
-  }, [accountId, chat.id, key, kind, ready]);
+  }, [accountId, chat.id, checking, decided, key, kind]);
 
-  return checking && key && result?.key === key && result.needed
-    ? followUp
-      ? 'Follow up'
-      : 'Reply needed'
-    : null;
+  return checking && result?.key === key && result.needed ? kind : null;
 }

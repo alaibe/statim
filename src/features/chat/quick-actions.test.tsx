@@ -20,8 +20,8 @@ jest.mock('@/core/plugins/host', () => ({
   }),
 }));
 jest.mock('./use-chat-permissions', () => ({ useChatSession: () => undefined }));
-jest.mock('./use-suggested-action', () => ({ useSuggestedAction: () => 'summarize' }));
 jest.mock('@/design', () => ({
+  cn: (...classes: string[]) => classes.join(' '),
   Enter: { fade: () => undefined },
   Exit: { fade: () => undefined },
   Icon: 'Icon',
@@ -38,6 +38,7 @@ it('labels the suggested chip and waits for a tap to run it', () => {
         chatId: asChatId('xmtp-chat'),
         scope: 'dm',
         hasDraft: false,
+        suggestedId: 'ai-summarize',
         onRun,
       })
     );

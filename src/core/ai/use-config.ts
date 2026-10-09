@@ -21,9 +21,10 @@ export function useAiConfig() {
   const unlocked = useLockStore((s) => s.status === 'open');
   const active = useSyncExternalStore(subscribeForeground, foreground);
   const revision = useSyncExternalStore(subscribeAiConfig, aiConfigRevision);
-  const key =
-    enabled && unlocked && active && accountId && accountId === settingsAccountId
-      ? `${accountId}:${revision}`
-      : null;
-  return useKeyedLoad(key, () => loadAiConfig(accountId!)).value;
+  const config = useKeyedLoad(
+    enabled && accountId === settingsAccountId ? accountId : null,
+    loadAiConfig,
+    revision
+  ).value;
+  return unlocked && active ? config : undefined;
 }

@@ -4,6 +4,7 @@ import type { Keyring } from '../account/keyring';
 import { useAppearanceStore } from './appearance';
 import { clearLinkPreviewCache, hydrateLinkPreviewCache } from '../messaging/link-preview-cache';
 import { clearEnsCache, hydrateEnsCache } from '@/lib/evm/ens-cache';
+import { clearDecisions } from '../ai/chat-assistance';
 import { loadProtocolConfig, saveProtocolConfig, type ProtocolConfig } from '../messaging/config';
 import {
   clearChatProjection,
@@ -364,6 +365,7 @@ export class AccountRuntime {
       useAppearanceStore.getState().clear();
       clearLinkPreviewCache();
       clearEnsCache();
+      clearDecisions();
     }
   }
 
@@ -386,6 +388,7 @@ export class AccountRuntime {
       useAppearanceStore.getState().clear();
       clearLinkPreviewCache();
       clearEnsCache();
+      clearDecisions();
     }
     return this.generation;
   }

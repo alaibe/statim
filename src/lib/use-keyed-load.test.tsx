@@ -41,7 +41,7 @@ describe('useKeyedLoad', () => {
     expect(seen.value).toBe('value of b');
 
     await render({ id: 'b', load, v: 2 });
-    expect(load).toHaveBeenLastCalledWith('b');
+    expect(load).toHaveBeenLastCalledWith('b', expect.any(AbortSignal));
     expect(load).toHaveBeenCalledTimes(3);
 
     await act(async () => seen.update((value) => `${value}!`));

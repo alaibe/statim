@@ -12,7 +12,7 @@ interface Loaded<T> {
  */
 export function useKeyedLoad<T, K extends string = string>(
   key: K | null,
-  load: (key: K) => Promise<T>,
+  load: (key: K, signal: AbortSignal) => Promise<T>,
   version?: unknown
 ) {
   const [loaded, setLoaded] = useState<Loaded<T> | null>(null);
@@ -20,14 +20,12 @@ export function useKeyedLoad<T, K extends string = string>(
 
   useEffect(() => {
     if (key === null) return;
-    let cancelled = false;
-    run(key).then(
-      (value) => !cancelled && setLoaded({ key, value }),
-      (error: unknown) => !cancelled && setLoaded({ key, error })
+    const controller = new AbortController();
+    run(key, controller.signal).then(
+      (value) => !controller.signal.aborted && setLoaded({ key, value }),
+      (error: unknown) => !controller.signal.aborted && setLoaded({ key, error })
     );
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [key, version]);
 
   const current = key !== null && loaded?.key === key ? loaded : undefined;

@@ -4,6 +4,7 @@ import { useIsFocused } from 'expo-router';
 import { AppState } from 'react-native';
 
 import { useLockStore } from '@/core/account/lock-store';
+import { clearDecisions } from '@/core/ai/chat-assistance';
 import { loadAiConfig, loadTypesafeKey } from '@/core/ai/config';
 import { resolveProvider } from '@/core/ai/providers';
 import { needsReply } from '@/core/ai/reply-decision';
@@ -14,7 +15,7 @@ import { draftKey } from '@/core/messaging/drafts';
 import { asChatId } from '@/core/messaging/testing/ids';
 import type { ChatId, ChatMessage } from '@/core/messaging/types';
 import { useReplySuggestion } from './use-reply-suggestion';
-import { FOLLOW_UP_DELAY } from './use-follow-up-due';
+import { FOLLOW_UP_DELAY } from './use-reply-key';
 
 jest.mock('expo-router', () => ({ useIsFocused: jest.fn(() => true) }));
 jest.mock('@/core/ai/config', () => ({
@@ -61,7 +62,7 @@ beforeEach(() => {
   jest.mocked(AppState.addEventListener).mockReturnValue({ remove: jest.fn() });
   useLockStore.setState({ status: 'open' });
   jest.mocked(useIsFocused).mockReturnValue(true);
-  useChatStore.setState(useChatStore.getInitialState(), true);
+  clearDecisions();
   useChatStore.setState(
     {
       ...useChatStore.getInitialState(),
@@ -77,7 +78,11 @@ beforeEach(() => {
     .mockResolvedValue({ source: 'auto', url: '', model: '', suggestOnOpen: true });
   jest.mocked(loadTypesafeKey).mockResolvedValue('jev-key');
   jest.mocked(needsReply).mockResolvedValue(true);
-  jest.mocked(linesFromMessages).mockResolvedValue(lines);
+  jest
+    .mocked(linesFromMessages)
+    .mockImplementation(async (_, picked) =>
+      picked.map((m) => ({ ...lines[0], fromMe: m.fromMe, from: m.fromMe ? 'You' : 'Ann' }))
+    );
   complete.mockResolvedValue('What time?');
   jest
     .mocked(resolveProvider)
@@ -91,13 +96,13 @@ afterEach(() => {
 
 it('asks Jev before preparing a reply and leaves the composer untouched', async () => {
   await mount();
-  expect(needsReply).toHaveBeenCalledWith(lines, 'jev-key');
+  expect(needsReply).toHaveBeenCalledWith(lines, 'jev-key', 'reply');
   expect(result().suggestion).toEqual({
     status: 'ready',
     text: 'What time?',
     label: 'Local model',
-    kind: 'reply',
   });
+  expect(result().kind).toBe('reply');
   expect(useChatStore.getState().drafts).toEqual({});
   expect(jest.mocked(needsReply).mock.invocationCallOrder[0]).toBeLessThan(
     complete.mock.invocationCallOrder[0]
@@ -252,8 +257,13 @@ it('offers a follow-up after a day, independently of automatic replies', async (
   await act(async () => {
     jest.advanceTimersByTime(1000);
   });
-  expect(needsReply).toHaveBeenCalledWith(lines, 'jev-key', 'follow-up');
-  expect(result().suggestion).toMatchObject({ status: 'ready', kind: 'follow-up' });
+  expect(needsReply).toHaveBeenCalledWith(
+    [{ ...lines[0], from: 'You', fromMe: true }],
+    'jev-key',
+    'follow-up'
+  );
+  expect(result().suggestion?.status).toBe('ready');
+  expect(result().kind).toBe('follow-up');
   expect(complete.mock.calls[0][0].instructions).toContain('polite nudge');
 });
 

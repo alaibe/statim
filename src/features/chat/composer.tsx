@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
+import { SUGGESTED_ACTION_IDS } from '@/core/commands/ai';
 import { completeCommandName } from '@/core/commands/parser';
 import {
   ActionSheet,
@@ -44,6 +45,7 @@ import { useMentionSuggestions } from './use-mention-suggestions';
 import { useChatPermissions } from './use-chat-permissions';
 import { withFinalEmoji } from './typed-emoji';
 import { ReplySuggestion } from './reply-suggestion';
+import { useSuggestedAction } from './use-suggested-action';
 import { useTypingAnnouncer } from './use-typing-announcer';
 
 interface ComposerProps {
@@ -150,12 +152,13 @@ export function Composer({
   }, [chatId, thread]);
 
   const canSend = value.trim().length > 0 && !busy;
+  const assists = !thread && (scope === 'dm' || scope === 'group');
+  const idle = !busy && !banner;
+  const suggested = useSuggestedAction(chatId, assists && idle && !value.trim());
 
   return (
     <View>
-      {!thread && (scope === 'dm' || scope === 'group') ? (
-        <ReplySuggestion chatId={chatId} available={!busy && !banner} onUse={fill} />
-      ) : null}
+      {assists ? <ReplySuggestion chatId={chatId} available={idle} onUse={fill} /> : null}
       <SuggestionPopover
         items={mentions.matches}
         keyOf={(person) => person.id}
@@ -197,7 +200,7 @@ export function Composer({
         chatId={chatId}
         scope={scope}
         hasDraft={value.trim() !== ''}
-        allowSuggestions={!thread && !banner && !editing && !busy}
+        suggestedId={suggested ? SUGGESTED_ACTION_IDS[suggested] : undefined}
         onRun={(action) => {
           const draft = useChatStore.getState().drafts[draftKey(chatId, thread)]?.trim();
           void dispatch(

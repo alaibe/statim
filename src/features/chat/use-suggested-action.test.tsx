@@ -83,3 +83,23 @@ it('shows a recommendation and removes it when opted out', async () => {
   await act(async () => tree.update(createElement(Probe)));
   expect(action()).toBeNull();
 });
+
+it('does not ask again when the user sends a message', async () => {
+  await act(async () => {
+    tree = create(createElement(Probe));
+  });
+  const reply: ChatMessage = {
+    ...incoming,
+    fromMe: true,
+    senderId: 'me',
+    content: { kind: 'text', text: 'Hi' },
+  };
+  for (const sent of [
+    { ...reply, id: 'pending:1', status: 'sending' as const },
+    { ...reply, id: 'sent-1' },
+  ]) {
+    await act(async () => useChatStore.setState({ messages: { [id]: [incoming, sent] } }));
+  }
+  expect(recommendAction).toHaveBeenCalledTimes(1);
+  expect(action()).toBe('translate');
+});

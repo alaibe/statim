@@ -1,37 +1,29 @@
 import { useIsFocused } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { useFollowUpDue } from './use-follow-up-due';
 
-import { isAssistanceMessage, prepareReply, replyTarget } from '@/core/ai/chat-assistance';
-import type { ReplyKind } from '@/core/ai/reply-decision';
+import { isAssistanceMessage, prepareReply } from '@/core/ai/chat-assistance';
 import { useAiConfig } from '@/core/ai/use-config';
 import { errorMessage } from '@/core/errors';
 import { useChatStore } from '@/core/messaging/chat-store';
 import { draftKey } from '@/core/messaging/drafts';
 import type { ChatId } from '@/core/messaging/types';
+import { useReplyKey } from './use-reply-key';
 
 type Suggestion =
-  | { status: 'pending'; label: string }
-  | { status: 'ready'; text: string; label: string; kind: ReplyKind }
+  | { status: 'pending' }
+  | { status: 'ready'; text: string; label: string }
   | { status: 'error'; text: string };
 
 export function useReplySuggestion(chatId: ChatId, available: boolean) {
   const focused = useIsFocused();
   const config = useAiConfig();
-  const accountId = useChatStore((s) => s.accountId);
   const draft = useChatStore((s) => s.drafts[draftKey(chatId)] ?? '');
-  const messages = useChatStore((s) => s.messages[chatId]);
   const history = useChatStore((s) => s.messageHistory[chatId]);
-  const followUp = useFollowUpDue(
-    messages?.findLast(isAssistanceMessage),
-    config?.followUps === true
-  );
-  const kind = followUp ? 'follow-up' : 'reply';
-  const target = replyTarget(messages, kind);
-  const key = accountId && target ? `${accountId}\n${chatId}\n${kind}\n${target}` : null;
+  const last = useChatStore((s) => s.messages[chatId])?.findLast(isAssistanceMessage);
+  const { accountId, kind, key } = useReplyKey(chatId, last, config?.followUps === true);
   const enabled =
     focused &&
-    (followUp ? config?.followUps === true : config?.suggestOnOpen === true) &&
+    (kind === 'follow-up' || config?.suggestOnOpen === true) &&
     available &&
     history !== undefined &&
     !history.loading &&
@@ -42,8 +34,7 @@ export function useReplySuggestion(chatId: ChatId, available: boolean) {
   const settled = result?.key === key && (current === null || current.status === 'ready');
 
   useEffect(() => {
-    if (!enabled || !accountId || !key) return;
-    if (settled || !config) return;
+    if (!enabled || !config || !accountId || !key || settled) return;
     const controller = new AbortController();
     const show = (suggestion: Suggestion | null) => {
       if (!controller.signal.aborted) setResult({ key, suggestion });
@@ -51,10 +42,7 @@ export function useReplySuggestion(chatId: ChatId, available: boolean) {
     void Promise.resolve()
       .then(async () => {
         if (controller.signal.aborted) return;
-        show({
-          status: 'pending',
-          label: followUp ? 'Preparing a follow-up…' : 'Preparing a reply…',
-        });
+        show({ status: 'pending' });
         const reply = await prepareReply(accountId, chatId, config, controller.signal, kind);
         show(reply ? { status: 'ready', ...reply } : null);
       })
@@ -62,10 +50,11 @@ export function useReplySuggestion(chatId: ChatId, available: boolean) {
         show({ status: 'error', text: errorMessage(error, 'Could not suggest a reply') })
       );
     return () => controller.abort();
-  }, [accountId, chatId, config, enabled, followUp, key, kind, settled]);
+  }, [accountId, chatId, config, enabled, key, kind, settled]);
 
   return {
     suggestion: enabled ? current : null,
+    kind,
     dismiss: () => {
       if (key) setResult({ key, suggestion: null });
     },

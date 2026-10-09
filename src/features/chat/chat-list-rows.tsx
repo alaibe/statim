@@ -29,6 +29,11 @@ import { networkLabel } from '@/features/protocols/presentation';
 import { ChatAvatar } from './chat-avatar';
 import { DeliveryIcon, useReadUpTo } from './delivery-icon';
 
+const ATTENTION = {
+  reply: { label: 'Reply needed', tone: 'brand' },
+  'follow-up': { label: 'Follow up', tone: 'warning' },
+} as const;
+
 export function ChatRow({
   chat,
   aiConfig,
@@ -52,7 +57,8 @@ export function ChatRow({
   onMenu: (chat: Chat, anchor: MenuAnchor | null) => void;
   onToggle: (id: ChatId, key: keyof ChatPrefs) => void;
 }) {
-  const attention = useChatAttention(chat, aiConfig);
+  const attentionKind = useChatAttention(chat, aiConfig);
+  const attention = attentionKind ? ATTENTION[attentionKind] : null;
   const last = chat.lastMessage;
   const preview = messagePreview(last);
   const pinned = Boolean(prefs.pinned);
@@ -101,7 +107,7 @@ export function ChatRow({
             ) : null}
           </>
         }
-        accessibilityLabel={[title, attention, chat.typing ? 'typing' : preview]
+        accessibilityLabel={[title, attention?.label, chat.typing ? 'typing' : preview]
           .filter(Boolean)
           .join(', ')}
         subtitle={chat.typing ? 'typing…' : preview}
@@ -124,16 +130,16 @@ export function ChatRow({
           ) : undefined
         }
         subtitleTrailing={
-          <View className="flex-row items-center gap-1">
-            {attention ? (
-              <Badge label={attention} tone={attention === 'Follow up' ? 'warning' : 'brand'} />
-            ) : null}
-            {unread ? (
-              <CountBadge count={unreadBadge(chat, since, loaded)} muted={muted} />
-            ) : pinned ? (
-              <Icon name="pin" size={14} tone="subtle" />
-            ) : null}
-          </View>
+          attention || unread || pinned ? (
+            <View className="flex-row items-center gap-1">
+              {attention ? <Badge label={attention.label} tone={attention.tone} /> : null}
+              {unread ? (
+                <CountBadge count={unreadBadge(chat, since, loaded)} muted={muted} />
+              ) : pinned ? (
+                <Icon name="pin" size={14} tone="subtle" />
+              ) : null}
+            </View>
+          ) : undefined
         }
       />
     </SwipeableRow>

@@ -13,17 +13,13 @@ export function ReplySuggestion({
   available: boolean;
   onUse(text: string): void;
 }) {
-  const { suggestion, dismiss } = useReplySuggestion(chatId, available);
+  const { suggestion, kind, dismiss } = useReplySuggestion(chatId, available);
   if (!suggestion) return null;
   return (
     <Card testID="ai-reply-suggestion" className="mx-gutter mb-2 gap-2 p-3">
       <View className="flex-row items-center justify-between">
         <Text variant="caption">
-          {suggestion.status === 'pending'
-            ? suggestion.label
-            : suggestion.status === 'ready' && suggestion.kind === 'follow-up'
-              ? 'Suggested follow-up'
-              : 'Suggested reply'}
+          {suggestion.status === 'pending' ? `Preparing a ${kind}…` : `Suggested ${kind}`}
         </Text>
         <IconButton icon="close" label="Dismiss reply suggestion" onPress={dismiss} size={18} />
       </View>

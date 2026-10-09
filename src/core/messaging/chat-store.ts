@@ -1362,6 +1362,13 @@ export function dropChats(ids: ChatId[]): void {
   }));
 }
 
+/** The newest messages of a chat, read without opening it: nothing is kept or synced afterwards. */
+export async function peekMessages(id: ChatId, limit: number): Promise<ChatMessage[]> {
+  const state = useChatStore.getState();
+  if (!isLocalChat(id) && !routeOrNull(state, id)) return [];
+  return foldReactions(await loadMessagePage(state, id, limit));
+}
+
 export function clearChatProjection(status: ConnectionStatus = 'idle'): void {
   sentAs.clear();
   useChatStore.setState({ ...EMPTY_PROJECTION, status });

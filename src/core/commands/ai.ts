@@ -1,5 +1,6 @@
 import { useAccountStore } from '@/core/account/account-store';
 import { TRANSLATE_CHIP_LABEL } from '@/core/ai/device';
+import type { SuggestedAction } from '@/core/ai/action-decision';
 import { AiError, isAiError } from '@/core/ai/errors';
 import { deviceLanguage, findLanguage } from '@/core/ai/languages';
 import {
@@ -191,6 +192,11 @@ const commands = (
   ] satisfies SlashCommand[]
 ).map(offeringSetup);
 
+export const SUGGESTED_ACTION_IDS: Record<SuggestedAction, string> = {
+  summarize: 'ai-summarize',
+  translate: 'ai-translate',
+};
+
 const composerActions: ComposerAction[] = [
   {
     id: 'ai-rewrite',
@@ -201,14 +207,14 @@ const composerActions: ComposerAction[] = [
     showIn: ['dm', 'group'],
   },
   {
-    id: 'ai-translate',
+    id: SUGGESTED_ACTION_IDS.translate,
     label: TRANSLATE_CHIP_LABEL,
     icon: 'globe-outline',
     command: '/translate',
     showIn: ['dm', 'group', 'channel'],
   },
   {
-    id: 'ai-summarize',
+    id: SUGGESTED_ACTION_IDS.summarize,
     label: 'Summarize',
     icon: 'document-text-outline',
     command: '/summarize',

@@ -58,6 +58,9 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   const colors = useThemeColors();
   const focused = useIsFocused();
   const aiConfig = useAiConfig();
+  const badgeConfig =
+    focused && (aiConfig?.replyBadges || aiConfig?.followUps) ? aiConfig : undefined;
+  const badgesOn = badgeConfig !== undefined;
   const [visibleIds, setVisibleIds] = useState<ReadonlySet<string>>(NO_IDS);
 
   const baseChats = useChatStore((s) => s.chats);
@@ -129,6 +132,9 @@ export function ChatList({ query, selectedId }: ChatListProps) {
     searching: trimmed !== '',
     setFolder,
   });
+  useEffect(() => {
+    if (badgesOn) list.current?.recomputeViewableItems();
+  }, [badgesOn, list]);
 
   const filterContext = { prefs: chatPrefs, readAt };
   const protocol = folderProtocol(folder);
@@ -137,7 +143,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
       return (
         <ChatRow
           chat={row.chat}
-          aiConfig={focused && visibleIds.has(row.chat.id) ? aiConfig : undefined}
+          aiConfig={visibleIds.has(row.chat.id) ? badgeConfig : undefined}
           title={titleOf(row.chat)}
           selfId={selfIdOf(row.chat)}
           unread={isUnread(row.chat, readAt)}
@@ -175,13 +181,14 @@ export function ChatList({ query, selectedId }: ChatListProps) {
             ref={list}
             data={rows}
             extraData={visibleIds}
-            onViewableItemsChanged={({ viewableItems }) =>
+            onViewableItemsChanged={({ viewableItems }) => {
+              if (!badgesOn) return;
               setVisibleIds(
                 new Set(
                   viewableItems.flatMap(({ item }) => (item.kind === 'chat' ? [item.chat.id] : []))
                 )
-              )
-            }
+              );
+            }}
             keyExtractor={(row) => (row.kind === 'chat' ? row.chat.id : row.folder)}
             getItemType={(row) => row.kind}
             drawDistance={process.env.EXPO_OS === 'web' ? 2000 : undefined}

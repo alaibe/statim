@@ -66,13 +66,15 @@ export const NO_PERMISSIONS: Readonly<ChatPermissions> = Object.freeze({
   answerJoinRequests: false,
 });
 
+export const canSend = (chat: Chat) => !chat.blocked && (chat.canSend ?? chat.kind !== 'channel');
+
 export function chatPermissions(chat: Chat, session: ChatSession | undefined): ChatPermissions {
   const manages = chat.selfRole === 'owner' || chat.selfRole === 'admin';
   const managesGroup = chat.kind === 'group' && manages;
   const has = (feature: ChatFeature) => !chat.lacks?.includes(feature);
   const deletes = supports(session, 'deleteMessage') && has('delete');
   const attach = takesAttachments(chat.id);
-  const send = !chat.blocked && (chat.canSend ?? chat.kind !== 'channel');
+  const send = canSend(chat);
   return {
     send,
     reply: send && has('reply'),
