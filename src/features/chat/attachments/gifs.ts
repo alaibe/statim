@@ -5,12 +5,18 @@ import { readCredential, writeCredential } from '@/core/account/credentials';
 import { INLINE_LIMIT_BYTES } from '@/core/messaging/attachments';
 import type { MessageContent } from '@/core/messaging/types';
 
-export interface Gif {
-  id: string;
+interface GifFile {
   url: string;
-  previewUrl: string;
   width: number;
   height: number;
+  size: number;
+}
+
+export interface Gif {
+  id: string;
+  /** Largest first. */
+  files: GifFile[];
+  previewUrl: string;
   description: string;
 }
 
@@ -41,14 +47,13 @@ async function fetchGifs(key: string, path: string): Promise<Gif[]> {
     );
   }
 
-  type KlipyFile = { url: string; width: number; height: number; size: number };
   const body = (await response.json()) as {
     data?: {
       data?: {
         id: number;
         title?: string;
         type?: string;
-        file?: Partial<Record<'xs' | 'sm' | 'md' | 'hd', { gif?: KlipyFile }>>;
+        file?: Partial<Record<'xs' | 'sm' | 'md' | 'hd', { gif?: GifFile }>>;
       }[];
     };
   };
@@ -57,34 +62,35 @@ async function fetchGifs(key: string, path: string): Promise<Gif[]> {
     .map((item) => {
       // Results can interleave `type: 'ad'` items.
       const { md, sm, xs } = item.file ?? {};
-      const full = [md?.gif, sm?.gif, xs?.gif].find((f) => f && f.size <= INLINE_LIMIT_BYTES);
-      if (item.type !== 'gif' || !sm?.gif || !full) return null;
+      const files = [md?.gif, sm?.gif, xs?.gif].filter((f): f is GifFile => f !== undefined);
+      if (item.type !== 'gif' || !sm?.gif) return null;
       return {
         id: String(item.id),
-        url: full.url,
+        files,
         previewUrl: sm.gif.url,
-        width: full.width,
-        height: full.height,
         description: item.title ?? 'GIF',
       };
     })
     .filter((g): g is Gif => g !== null);
 }
 
-export async function gifToContent(accountId: string, gif: Gif): Promise<MessageContent> {
-  const file = await downloadMedia('gifs', `${gif.id}.gif`, accountId, gif.url);
-
-  const size = file.size;
-  if (size > INLINE_LIMIT_BYTES) {
-    throw new Error('That GIF is too large to send inline.');
-  }
+export async function gifToContent(
+  accountId: string,
+  gif: Gif,
+  largeFiles: boolean
+): Promise<MessageContent> {
+  const fits = (size: number) => largeFiles || size <= INLINE_LIMIT_BYTES;
+  const chosen = gif.files.find((f) => fits(f.size));
+  if (!chosen) throw new Error('That GIF is too large to send inline.');
+  const file = await downloadMedia('gifs', `${gif.id}-${chosen.width}.gif`, accountId, chosen.url);
+  if (!fits(file.size)) throw new Error('That GIF is too large to send inline.');
 
   return {
     kind: 'image',
     uri: file.uri,
-    width: gif.width,
-    height: gif.height,
-    size,
+    width: chosen.width,
+    height: chosen.height,
+    size: file.size,
     name: `${gif.id}.gif`,
     mimeType: 'image/gif',
     caption: undefined,

@@ -11,6 +11,7 @@ import { useKeyedLoad } from '@/lib/use-keyed-load';
 import { featuredGifs, gifToContent, loadGifKey, searchGifs, type Gif } from './attachments/gifs';
 import { EmojiGrid } from './emoji-grid';
 import { StickerGrid } from './sticker-grid';
+import { useChatPermissions } from './use-chat-permissions';
 
 export type MediaTab = 'emoji' | 'stickers' | 'gifs';
 
@@ -63,7 +64,12 @@ export function MediaPanelContent({
         ) : tab === 'stickers' ? (
           <StickerGrid chatId={chatId} width={width} onSend={onSend} />
         ) : (
-          <GifGrid width={width} onSend={onSend} autoFocusSearch={autoFocusSearch} />
+          <GifGrid
+            chatId={chatId}
+            width={width}
+            onSend={onSend}
+            autoFocusSearch={autoFocusSearch}
+          />
         )}
       </View>
 
@@ -94,15 +100,18 @@ export function MediaPanelContent({
 }
 
 function GifGrid({
+  chatId,
   width,
   onSend,
   autoFocusSearch,
 }: {
+  chatId: ChatId;
   width: number;
   onSend(content: MessageContent): void;
   autoFocusSearch?: boolean;
 }) {
   const accountId = useAccountStore((s) => s.activeAccountId);
+  const { largeFiles } = useChatPermissions(chatId);
 
   const gifKey = useKeyedLoad(accountId, loadGifKey);
   const key = gifKey.loading ? undefined : (gifKey.value ?? null);
@@ -153,7 +162,7 @@ function GifGrid({
   const send = async (gif: Gif) => {
     if (!accountId) return;
     try {
-      onSend(await gifToContent(accountId, gif));
+      onSend(await gifToContent(accountId, gif, largeFiles));
     } catch (e) {
       setError(errorMessage(e, 'Could not send that GIF'));
     }
