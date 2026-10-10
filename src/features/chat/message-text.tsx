@@ -119,7 +119,7 @@ function Blocks({ blocks, look }: { blocks: readonly Block[]; look: Look }) {
             <View
               className={cn('w-0.5 rounded-full', fromMe ? 'bg-bubble-out-on/60' : 'bg-brand')}
             />
-            <View className="min-w-0 flex-1 gap-1">
+            <View className="min-w-0 grow shrink gap-1">
               <Blocks blocks={block.blocks} look={look} />
             </View>
           </View>
@@ -130,7 +130,7 @@ function Blocks({ blocks, look }: { blocks: readonly Block[]; look: Look }) {
             {block.items.map((item, n) => (
               <View key={n} className="flex-row gap-1.5">
                 <Text className={className}>{listMarker(block, n)}</Text>
-                <View className="min-w-0 flex-1 gap-1">
+                <View className="min-w-0 grow shrink gap-1">
                   <Blocks blocks={item} look={look} />
                 </View>
               </View>
