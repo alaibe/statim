@@ -10,6 +10,8 @@ export interface ChatPermissions {
   /** Pictures go out as pictures; without, only as files. */
   sendImages: boolean;
   sendVideo: boolean;
+  /** Files of any size, because the protocol uploads them; without, each must fit inside the message. */
+  largeFiles: boolean;
   announceTyping: boolean;
   mention: boolean;
   /** Pick from your sticker packs on the network. */
@@ -43,6 +45,7 @@ export const NO_PERMISSIONS: Readonly<ChatPermissions> = Object.freeze({
   attach: false,
   sendImages: false,
   sendVideo: false,
+  largeFiles: false,
   announceTyping: false,
   mention: false,
   networkStickers: false,
@@ -82,6 +85,7 @@ export function chatPermissions(chat: Chat, session: ChatSession | undefined): C
     // The app's own chats keep what you send on this device, pictures included.
     sendImages: attach && (isLocalChat(chat.id) || Boolean(session?.sendsImages)) && has('images'),
     sendVideo: Boolean(session?.sendsVideo) && has('video'),
+    largeFiles: !session?.inlinesFiles,
     announceTyping: supports(session, 'setTyping'),
     mention: chat.kind === 'group' && supports(session, 'mentionCandidates'),
     networkStickers: supports(session, 'stickerPacks'),

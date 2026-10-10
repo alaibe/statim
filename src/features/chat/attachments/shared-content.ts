@@ -7,7 +7,7 @@ import { basenameOf } from '@/core/messaging/media-store';
 import type { MessageContent } from '@/core/messaging/types';
 
 import { jpegName, PHOTO_JPEG_QUALITY, photoScale } from './photo-encoding';
-import { assertFits } from './pick';
+import { assertFits, type AttachLimits } from './pick';
 
 export const isSharedText = (payload: SharePayload) =>
   payload.shareType === 'text' || payload.shareType === 'url';
@@ -22,11 +22,11 @@ export function sharedText(payloads: SharePayload[]): string {
 
 export async function contentFromShare(
   payload: SharePayload,
-  sendsVideo: boolean
+  can: AttachLimits
 ): Promise<MessageContent> {
   const name = basenameOf(payload.value);
   if (payload.shareType === 'image' && payload.mimeType !== 'image/gif') {
-    return imageFromShare(payload.value, name);
+    return imageFromShare(payload.value, name, can.largeFiles);
   }
   const base = {
     uri: payload.value,
@@ -35,15 +35,19 @@ export async function contentFromShare(
     size: new File(payload.value).size ?? undefined,
   };
   if (payload.shareType === 'image') {
-    assertFits(base.size, 'That GIF');
+    assertFits(base.size, 'That GIF', can.largeFiles);
     return { kind: 'image', ...base };
   }
-  if (payload.shareType === 'video' && sendsVideo) return { kind: 'video', ...base };
-  assertFits(base.size, 'That file');
+  if (payload.shareType === 'video' && can.sendVideo) return { kind: 'video', ...base };
+  assertFits(base.size, 'That file', can.largeFiles);
   return { kind: 'file', ...base, name: name ?? 'file' };
 }
 
-async function imageFromShare(uri: string, name: string | undefined): Promise<MessageContent> {
+async function imageFromShare(
+  uri: string,
+  name: string | undefined,
+  largeFiles: boolean
+): Promise<MessageContent> {
   const context = ImageManipulator.manipulate(uri);
   const original = await context.renderAsync();
   const scale = photoScale(original.width, original.height);
@@ -53,7 +57,7 @@ async function imageFromShare(uri: string, name: string | undefined): Promise<Me
       : original;
   const saved = await image.saveAsync({ compress: PHOTO_JPEG_QUALITY, format: SaveFormat.JPEG });
   const size = new File(saved.uri).size ?? undefined;
-  assertFits(size, 'That photo');
+  assertFits(size, 'That photo', largeFiles);
 
   return {
     kind: 'image',

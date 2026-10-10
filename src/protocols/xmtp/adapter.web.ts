@@ -157,6 +157,7 @@ export class XmtpSession implements ChatSession {
   readonly self: SelfParticipant;
   readonly sendsImages = true;
   readonly sendsCustom = true;
+  readonly inlinesFiles = true;
 
   private readonly addressCache = new Map<ParticipantId, string>();
   private readonly streams = new Set<{ end(): Promise<unknown> }>();

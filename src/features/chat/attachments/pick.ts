@@ -2,16 +2,19 @@ import { getDocumentAsync } from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 
 import { INLINE_LIMIT_BYTES } from '@/core/messaging/attachments';
+import type { ChatPermissions } from '@/core/messaging/permissions';
 
 import { compressPickedImage } from './compress-image';
 import type { MessageContent } from '@/core/messaging/types';
+
+export type AttachLimits = Pick<ChatPermissions, 'sendVideo' | 'largeFiles'>;
 
 const PHOTO_QUALITY = 0.5;
 
 class AttachmentRejected extends Error {}
 
-export function assertFits(size: number | undefined, what: string): void {
-  if (size !== undefined && size > INLINE_LIMIT_BYTES) {
+export function assertFits(size: number | undefined, what: string, largeFiles: boolean): void {
+  if (!largeFiles && size !== undefined && size > INLINE_LIMIT_BYTES) {
     throw new AttachmentRejected(
       `${what} is ${Math.round(size / 1024)}KB. The limit is ` +
         `${Math.round(INLINE_LIMIT_BYTES / 1024)}KB, because attachments are sent ` +
@@ -20,8 +23,8 @@ export function assertFits(size: number | undefined, what: string): void {
   }
 }
 
-function imageFrom(asset: ImagePicker.ImagePickerAsset): MessageContent {
-  assertFits(asset.fileSize, 'That photo');
+function imageFrom(asset: ImagePicker.ImagePickerAsset, largeFiles: boolean): MessageContent {
+  assertFits(asset.fileSize, 'That photo', largeFiles);
   return {
     kind: 'image',
     uri: asset.uri,
@@ -33,7 +36,7 @@ function imageFrom(asset: ImagePicker.ImagePickerAsset): MessageContent {
   };
 }
 
-async function imageFromBrowserFile(file: File): Promise<MessageContent> {
+async function imageFromBrowserFile(file: File, largeFiles: boolean): Promise<MessageContent> {
   const uri = URL.createObjectURL(file);
   let resultUri = uri;
   try {
@@ -46,7 +49,7 @@ async function imageFromBrowserFile(file: File): Promise<MessageContent> {
       mimeType: file.type,
     });
     resultUri = asset.uri;
-    const content = imageFrom(asset);
+    const content = imageFrom(asset, largeFiles);
     if (resultUri !== uri) URL.revokeObjectURL(uri);
     return content;
   } catch (error) {
@@ -58,18 +61,18 @@ async function imageFromBrowserFile(file: File): Promise<MessageContent> {
 
 export async function contentFromBrowserFile(
   file: File,
-  sendsVideo: boolean
+  can: AttachLimits
 ): Promise<MessageContent> {
   if (file.type.startsWith('image/') && file.type !== 'image/svg+xml')
-    return imageFromBrowserFile(file);
+    return imageFromBrowserFile(file, can.largeFiles);
   const base = {
     uri: URL.createObjectURL(file),
     name: file.name,
     mimeType: file.type || undefined,
     size: file.size,
   };
-  if (sendsVideo && file.type.startsWith('video/')) return { kind: 'video', ...base };
-  assertFits(file.size, 'That file');
+  if (can.sendVideo && file.type.startsWith('video/')) return { kind: 'video', ...base };
+  assertFits(file.size, 'That file', can.largeFiles);
   return { kind: 'file', ...base };
 }
 
@@ -83,12 +86,12 @@ async function fromLibrary(
   return result.canceled ? null : (result.assets[0] ?? null);
 }
 
-export async function pickImage(): Promise<MessageContent | null> {
+export async function pickImage({ largeFiles }: AttachLimits): Promise<MessageContent | null> {
   const asset = await fromLibrary(
     { mediaTypes: ['images'], quality: PHOTO_QUALITY, exif: false },
     'Photo access is off for this app.'
   );
-  return asset ? imageFrom(await compressPickedImage(asset)) : null;
+  return asset ? imageFrom(await compressPickedImage(asset), largeFiles) : null;
 }
 
 export async function pickVideo(): Promise<MessageContent | null> {
@@ -106,7 +109,7 @@ export async function pickVideo(): Promise<MessageContent | null> {
   };
 }
 
-export async function takePhoto(): Promise<MessageContent | null> {
+export async function takePhoto({ largeFiles }: AttachLimits): Promise<MessageContent | null> {
   const permission = await ImagePicker.requestCameraPermissionsAsync();
   if (!permission.granted) throw new AttachmentRejected('Camera access is off for this app.');
 
@@ -115,15 +118,15 @@ export async function takePhoto(): Promise<MessageContent | null> {
     exif: false,
   });
   if (result.canceled || !result.assets[0]) return null;
-  return imageFrom(await compressPickedImage(result.assets[0]));
+  return imageFrom(await compressPickedImage(result.assets[0]), largeFiles);
 }
 
-export async function pickFile(): Promise<MessageContent | null> {
+export async function pickFile({ largeFiles }: AttachLimits): Promise<MessageContent | null> {
   const result = await getDocumentAsync({ copyToCacheDirectory: true });
   if (result.canceled || !result.assets?.[0]) return null;
 
   const asset = result.assets[0];
-  assertFits(asset.size, 'That file');
+  assertFits(asset.size, 'That file', largeFiles);
 
   return {
     kind: 'file',

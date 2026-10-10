@@ -27,6 +27,7 @@ import { errorMessage } from '@/core/errors';
 import { MediaPanel, type MediaAnchor } from './media-panel';
 import type { MediaTab } from './media-panel-content';
 import {
+  type AttachLimits,
   contentFromBrowserFile,
   pickFile,
   pickImage,
@@ -236,9 +237,7 @@ export function Composer({
             }}
             onSubmit={() => void submit()}
             onFile={
-              canAttach
-                ? (file) => void attach(() => contentFromBrowserFile(file, can.sendVideo))
-                : undefined
+              canAttach ? (file) => void attach(() => contentFromBrowserFile(file, can)) : undefined
             }
             placeholder={thread ? 'Reply in thread' : 'Message'}
             placeholderColor={colors['content-subtle']}
@@ -292,7 +291,7 @@ export function Composer({
         onClose={() => setAttaching(false)}
         carriesImages={carriesImages}
         sendsVideo={can.sendVideo}
-        onAttach={(pick) => void attach(pick)}
+        onAttach={(pick) => void attach(() => pick(can))}
         onGifs={() => openMedia('gifs')}
       />
     </View>
@@ -311,7 +310,7 @@ function AttachSheet({
   onClose: () => void;
   carriesImages: boolean;
   sendsVideo: boolean;
-  onAttach: (pick: () => Promise<MessageContent | null>) => void;
+  onAttach: (pick: (can: AttachLimits) => Promise<MessageContent | null>) => void;
   onGifs: () => void;
 }) {
   const actions: SheetAction[] = [];

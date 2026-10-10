@@ -112,6 +112,13 @@ describe('chatPermissions', () => {
     });
   });
 
+  it('bounds files only where they travel inside the message', () => {
+    const inline = { inlinesFiles: true } as unknown as ChatSession;
+    expect(chatPermissions(testChat(), session()).largeFiles).toBe(true);
+    expect(chatPermissions(testChat(), inline).largeFiles).toBe(false);
+    expect(chatPermissions(testChat({ id: SAVED_LOCAL_ID }), undefined).largeFiles).toBe(true);
+  });
+
   it('mentions in a group and shows group details outside a DM', () => {
     const both = session('mentionCandidates', 'getGroupInfo');
     expect(chatPermissions(testChat(), both)).toMatchObject({

@@ -67,6 +67,8 @@ export interface ChatSession {
   /** Messages carry `threadRoot`, and `send` posts into a thread. */
   readonly threads?: boolean;
   readonly sendsCustom?: boolean;
+  /** Files travel inside the encrypted message, so each must fit INLINE_LIMIT_BYTES. */
+  readonly inlinesFiles?: boolean;
 
   listChats(): Promise<ProtocolChat[]>;
   getMessages(

@@ -8,7 +8,8 @@ import {
 import { readMediaBytes } from '@/core/messaging/media-store';
 import { awaitsFile } from '@/core/messaging/preview';
 import { LOTTIE_STICKER } from '@/core/messaging/stickers';
-import type { ChatMessage, ChatId, MessageContent } from '@/core/messaging/types';
+import { chatPermissions } from '@/core/messaging/permissions';
+import type { Chat, ChatMessage, ChatId, MessageContent } from '@/core/messaging/types';
 import { errorMessage } from '@/core/errors';
 import { contentFromBrowserFile } from '@/features/chat/attachments/pick';
 
@@ -29,15 +30,17 @@ import { basename, readFileArg, stdinText } from './input';
 
 async function attachment(
   io: CliIo,
-  chatId: ChatId,
+  chat: Chat,
   path: string,
   name: string | undefined
 ): Promise<MessageContent> {
   const filename = name ?? (path === '-' ? 'file' : basename(path));
   const bytes = await readFileArg(io, path);
   const file = new File([bytes as BlobPart], filename, { type: fallbackMimeType(filename) });
-  const sendsVideo = Boolean(sessionFor(useChatStore.getState(), chatId)?.sendsVideo);
-  return contentFromBrowserFile(file, sendsVideo);
+  return contentFromBrowserFile(
+    file,
+    chatPermissions(chat, sessionFor(useChatStore.getState(), chat.id))
+  );
 }
 
 function sent(chatId: ChatId, outcome: SendOutcome | null): void {
@@ -71,7 +74,7 @@ export const messageHandlers = {
     if (file)
       await deliver(
         chat.id,
-        await attachment(io, chat.id, file, flags.name as string | undefined),
+        await attachment(io, chat, file, flags.name as string | undefined),
         reply?.id
       );
     if (text?.trim()) await deliver(chat.id, { kind: 'text', text }, file ? undefined : reply?.id);

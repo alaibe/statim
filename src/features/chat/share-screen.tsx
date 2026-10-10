@@ -97,10 +97,10 @@ function appendToDraft(chat: Chat, text: string) {
 
 async function sendFiles(chat: Chat, files: SharePayload[]) {
   const { sendMessage, sessions } = useChatStore.getState();
-  const { sendVideo } = chatPermissions(chat, sessionFor({ sessions }, chat.id));
+  const can = chatPermissions(chat, sessionFor({ sessions }, chat.id));
   try {
     for (const file of files) {
-      await sendMessage(chat.id, await contentFromShare(file, sendVideo));
+      await sendMessage(chat.id, await contentFromShare(file, can));
     }
   } catch (e) {
     toast.error(errorMessage(e, 'Could not send that'));

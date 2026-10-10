@@ -132,6 +132,7 @@ export class XmtpSession implements ChatSession {
   readonly self: SelfParticipant;
   readonly sendsImages = true;
   readonly sendsCustom = true;
+  readonly inlinesFiles = true;
 
   private readonly addressCache = new Map<ParticipantId, string>();
   private readonly deletedListeners = new Set<(id: ProtocolChatId, ids: MessageId[]) => void>();

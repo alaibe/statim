@@ -2,6 +2,9 @@ import { ImageManipulator } from 'expo-image-manipulator';
 
 import { contentFromShare, deleteSharedFiles, sharedText } from './shared-content';
 
+const inline = { sendVideo: false, largeFiles: false };
+const uploads = { sendVideo: true, largeFiles: true };
+
 const mockSizes: Record<string, number> = {};
 const mockDeleted: string[] = [];
 
@@ -56,7 +59,7 @@ it('bounds a shared photo to 1600 px and sends it as a JPEG', async () => {
   await expect(
     contentFromShare(
       { value: 'file:///group/IMG_0001.HEIC', shareType: 'image', mimeType: 'image/heic' },
-      false
+      inline
     )
   ).resolves.toEqual({
     kind: 'image',
@@ -77,10 +80,22 @@ it('leaves a small photo at its size and still refuses one over the limit', asyn
   await expect(
     contentFromShare(
       { value: 'file:///group/small.png', shareType: 'image', mimeType: 'image/png' },
-      false
+      inline
     )
   ).rejects.toThrow('The limit is');
   expect(resize).not.toHaveBeenCalled();
+});
+
+it('sends a photo over the inline limit where the protocol uploads it', async () => {
+  photoOf(800, 600);
+  mockSizes['file:///cache/out.jpg'] = 1479 * 1024;
+
+  await expect(
+    contentFromShare(
+      { value: 'file:///group/large.png', shareType: 'image', mimeType: 'image/png' },
+      uploads
+    )
+  ).resolves.toMatchObject({ kind: 'image', size: 1479 * 1024 });
 });
 
 it('keeps a GIF as it is, so it still moves', async () => {
@@ -89,7 +104,7 @@ it('keeps a GIF as it is, so it still moves', async () => {
   await expect(
     contentFromShare(
       { value: 'file:///group/party.gif', shareType: 'image', mimeType: 'image/gif' },
-      false
+      inline
     )
   ).resolves.toEqual({
     kind: 'image',
@@ -109,14 +124,14 @@ it('sends a video as a video where the protocol can, and as a file within the li
   } as const;
   mockSizes[clip.value] = 5 * 1024 * 1024;
 
-  await expect(contentFromShare(clip, true)).resolves.toEqual({
+  await expect(contentFromShare(clip, uploads)).resolves.toEqual({
     kind: 'video',
     uri: clip.value,
     name: 'clip.mov',
     mimeType: 'video/quicktime',
     size: 5 * 1024 * 1024,
   });
-  await expect(contentFromShare(clip, false)).rejects.toThrow('That file is 5120KB');
+  await expect(contentFromShare(clip, inline)).rejects.toThrow('That file is 5120KB');
 });
 
 it('sends anything else as a file', async () => {
@@ -127,7 +142,7 @@ it('sends anything else as a file', async () => {
   } as const;
   mockSizes[pdf.value] = 40 * 1024;
 
-  await expect(contentFromShare(pdf, true)).resolves.toEqual({
+  await expect(contentFromShare(pdf, uploads)).resolves.toEqual({
     kind: 'file',
     uri: pdf.value,
     name: 'notes.pdf',
