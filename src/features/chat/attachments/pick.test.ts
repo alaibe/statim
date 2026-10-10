@@ -1,5 +1,7 @@
 import { contentFromBrowserFile } from './pick';
 
+jest.mock('./compress-image', () => ({ compressPickedImage: async (asset: unknown) => asset }));
+
 const inline = { sendVideo: false, largeFiles: false };
 const uploads = { sendVideo: true, largeFiles: true };
 

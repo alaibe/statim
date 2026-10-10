@@ -1,13 +1,12 @@
 import { File } from 'expo-file-system';
-import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import type { SharePayload } from 'expo-sharing';
 
 import { reportError } from '@/core/app/report-error';
 import { basenameOf } from '@/core/messaging/media-store';
 import type { MessageContent } from '@/core/messaging/types';
 
-import { jpegName, PHOTO_JPEG_QUALITY, photoScale } from './photo-encoding';
-import { assertFits, type AttachLimits } from './pick';
+import { compressPickedImage } from './compress-image';
+import { assertFits, type AttachLimits, imageFrom } from './pick';
 
 export const isSharedText = (payload: SharePayload) =>
   payload.shareType === 'text' || payload.shareType === 'url';
@@ -26,7 +25,8 @@ export async function contentFromShare(
 ): Promise<MessageContent> {
   const name = basenameOf(payload.value);
   if (payload.shareType === 'image' && payload.mimeType !== 'image/gif') {
-    return imageFromShare(payload.value, name, can.largeFiles);
+    const asset = { uri: payload.value, width: 0, height: 0, fileName: name };
+    return imageFrom(await compressPickedImage(asset), can.largeFiles);
   }
   const base = {
     uri: payload.value,
@@ -41,33 +41,6 @@ export async function contentFromShare(
   if (payload.shareType === 'video' && can.sendVideo) return { kind: 'video', ...base };
   assertFits(base.size, 'That file', can.largeFiles);
   return { kind: 'file', ...base, name: name ?? 'file' };
-}
-
-async function imageFromShare(
-  uri: string,
-  name: string | undefined,
-  largeFiles: boolean
-): Promise<MessageContent> {
-  const context = ImageManipulator.manipulate(uri);
-  const original = await context.renderAsync();
-  const scale = photoScale(original.width, original.height);
-  const image =
-    scale < 1
-      ? await context.resize({ width: Math.round(original.width * scale) }).renderAsync()
-      : original;
-  const saved = await image.saveAsync({ compress: PHOTO_JPEG_QUALITY, format: SaveFormat.JPEG });
-  const size = new File(saved.uri).size ?? undefined;
-  assertFits(size, 'That photo', largeFiles);
-
-  return {
-    kind: 'image',
-    uri: saved.uri,
-    width: saved.width,
-    height: saved.height,
-    size,
-    name: jpegName(name),
-    mimeType: 'image/jpeg',
-  };
 }
 
 export function deleteSharedFiles(payloads: SharePayload[]): void {

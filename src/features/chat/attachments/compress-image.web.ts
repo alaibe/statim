@@ -2,11 +2,7 @@ import type { ImagePickerAsset } from 'expo-image-picker';
 
 import { jpegName, PHOTO_JPEG_QUALITY, photoScale } from './photo-encoding';
 
-/**
- * The browser picker hands over the original file untouched, so a photo is
- * re-encoded here the way the phone's picker does it: bounded in size and as
- * a JPEG, unless it is a GIF, which a re-encode would freeze.
- */
+/** Bounded in size and as a JPEG, unless it is a GIF, which a re-encode would freeze. */
 export async function compressPickedImage(asset: ImagePickerAsset): Promise<ImagePickerAsset> {
   if (asset.mimeType === 'image/gif') return asset;
 

@@ -9,8 +9,6 @@ import type { MessageContent } from '@/core/messaging/types';
 
 export type AttachLimits = Pick<ChatPermissions, 'sendVideo' | 'largeFiles'>;
 
-const PHOTO_QUALITY = 0.5;
-
 class AttachmentRejected extends Error {}
 
 export function assertFits(size: number | undefined, what: string, largeFiles: boolean): void {
@@ -23,7 +21,10 @@ export function assertFits(size: number | undefined, what: string, largeFiles: b
   }
 }
 
-function imageFrom(asset: ImagePicker.ImagePickerAsset, largeFiles: boolean): MessageContent {
+export function imageFrom(
+  asset: ImagePicker.ImagePickerAsset,
+  largeFiles: boolean
+): MessageContent {
   assertFits(asset.fileSize, 'That photo', largeFiles);
   return {
     kind: 'image',
@@ -88,7 +89,7 @@ async function fromLibrary(
 
 export async function pickImage({ largeFiles }: AttachLimits): Promise<MessageContent | null> {
   const asset = await fromLibrary(
-    { mediaTypes: ['images'], quality: PHOTO_QUALITY, exif: false },
+    { mediaTypes: ['images'], exif: false },
     'Photo access is off for this app.'
   );
   return asset ? imageFrom(await compressPickedImage(asset), largeFiles) : null;
@@ -113,10 +114,7 @@ export async function takePhoto({ largeFiles }: AttachLimits): Promise<MessageCo
   const permission = await ImagePicker.requestCameraPermissionsAsync();
   if (!permission.granted) throw new AttachmentRejected('Camera access is off for this app.');
 
-  const result = await ImagePicker.launchCameraAsync({
-    quality: PHOTO_QUALITY,
-    exif: false,
-  });
+  const result = await ImagePicker.launchCameraAsync({ exif: false });
   if (result.canceled || !result.assets[0]) return null;
   return imageFrom(await compressPickedImage(result.assets[0]), largeFiles);
 }
