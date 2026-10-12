@@ -1,16 +1,18 @@
 import { useObserve } from 'expo-observe';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { toast } from '@/design';
 import { reportError } from '@/core/app/report-error';
 import { useChatStore } from '@/core/messaging/chat-store';
 import type { ChatSession } from '@/core/messaging/protocol';
 import type { ChatMessage, ChatId, MessageId } from '@/core/messaging/types';
+import { isNewReply, newReplyCounts, threadReadAt } from '@/core/messaging/thread-reads';
 import { unreadState } from '@/core/messaging/unread';
 import { useJumpStore } from './jump-store';
 import type { MessageListHandle } from './message-list';
 
 const NO_MESSAGES: readonly ChatMessage[] = Object.freeze([]);
+const NO_COUNTS: ReadonlyMap<MessageId, number> = new Map();
 
 export function useChatTimeline(
   id: ChatId,
@@ -28,6 +30,8 @@ export function useChatTimeline(
   const watchPresence = useChatStore((s) => s.watchPresence);
   const markRead = useChatStore((s) => s.markRead);
   const readUpTo = useChatStore((s) => s.readAt[id] ?? 0);
+  const threadReads = useChatStore((s) => s.threadReads[id]);
+  const markThreadRead = useChatStore((s) => s.markThreadRead);
 
   const messages = useMemo(() => {
     if (!thread) return allMessages.filter((message) => !message.threadRoot);
@@ -46,6 +50,17 @@ export function useChatTimeline(
       }
     }
   }
+  const newReplies = countReplies ? newReplyCounts(allMessages, threadReads, readUpTo) : NO_COUNTS;
+
+  const threadSince = thread ? threadReadAt(threadReads, readUpTo, thread) : 0;
+  const [seenWhenOpened] = useState(threadSince);
+  const repliesIn = (since: number) =>
+    thread ? messages.filter((m) => m.threadRoot === thread && isNewReply(m, since)) : NO_MESSAGES;
+  const unseenReplies = repliesIn(seenWhenOpened);
+  const threadUnread = repliesIn(threadSince).length > 0;
+  useEffect(() => {
+    if (thread && threadUnread) markThreadRead(id, thread).catch(reportError);
+  }, [id, thread, threadUnread, markThreadRead]);
 
   const { markInteractive } = useObserve();
   useEffect(() => {
@@ -69,6 +84,11 @@ export function useChatTimeline(
   }, [id, thread, markRead, unseen, newestFromParticipant]);
 
   const list = useRef<MessageListHandle>(null);
+  const firstUnseenReply = unseenReplies[0]?.id;
+  useEffect(() => {
+    if (firstUnseenReply)
+      requestAnimationFrame(() => list.current?.scrollToMessage(firstUnseenReply));
+  }, [firstUnseenReply]);
   const followNewest = () => list.current?.scrollToEnd();
   const loadEarlier = () => {
     if (thread || !messageHistory?.hasOlder || messageHistory.loading || messageHistory.error)
@@ -111,6 +131,8 @@ export function useChatTimeline(
     messages,
     byId,
     replyCounts,
+    newReplies,
+    unseenReplies,
     messageHistory,
     loadMessages,
     loadOlderMessages,

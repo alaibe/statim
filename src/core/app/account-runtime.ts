@@ -21,6 +21,7 @@ import { loadChatPrefs } from '../messaging/chat-prefs';
 import { draftSync, flushDrafts, loadDrafts } from '../messaging/drafts';
 import { flushMediaIndex, loadMediaIndex } from '../messaging/media-index';
 import { readReadState } from '../messaging/read-state';
+import { loadThreadReads } from '../messaging/thread-reads';
 import type { MessageId } from '../messaging/types';
 import type { PluginRegistry } from '../plugins/registry';
 import { loadPluginPrefs, resolveEnabledIds, savePluginPrefs } from '../plugins/storage';
@@ -215,19 +216,21 @@ export class AccountRuntime {
     projectAccount(storage);
     const cache = new ChatCache(storage.messages);
 
-    const [readAt, chatPrefs, drafts, mediaIndex, prefs, , , , cached] = await Promise.all([
-      readReadState(storage),
-      loadChatPrefs(storage),
-      loadDrafts(storage),
-      loadMediaIndex(storage),
-      loadPluginPrefs(storage),
-      useAppearanceStore.getState().hydrate(storage),
-      hydrateLinkPreviewCache(storage),
-      hydrateEnsCache(storage),
-      cache.restore(),
-    ]);
+    const [readAt, threadReads, chatPrefs, drafts, mediaIndex, prefs, , , , cached] =
+      await Promise.all([
+        readReadState(storage),
+        loadThreadReads(storage),
+        loadChatPrefs(storage),
+        loadDrafts(storage),
+        loadMediaIndex(storage),
+        loadPluginPrefs(storage),
+        useAppearanceStore.getState().hydrate(storage),
+        hydrateLinkPreviewCache(storage),
+        hydrateEnsCache(storage),
+        cache.restore(),
+      ]);
     if (!this.isCurrent(generation)) return;
-    useChatStore.setState({ readAt, chatPrefs, drafts, mediaIndex });
+    useChatStore.setState({ readAt, threadReads, chatPrefs, drafts, mediaIndex });
     showCachedChats(cached);
     this.cache = cache;
     this.stopCaching = useChatStore.subscribe((state, previous) => {
@@ -355,6 +358,7 @@ export class AccountRuntime {
       messageHistory: {},
       bots: {},
       readAt: {},
+      threadReads: {},
       drafts: {},
     });
     if (current) await current.registry.deactivateAll();

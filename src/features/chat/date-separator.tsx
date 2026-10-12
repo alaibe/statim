@@ -14,3 +14,15 @@ export function DateSeparator({ at }: { at: number }) {
     </View>
   );
 }
+
+export function SectionDivider({ label }: { label: string }) {
+  return (
+    <View className="flex-row items-center gap-3 px-gutter py-2">
+      <View className="h-px flex-1 bg-line" />
+      <Text variant="micro" className="font-medium text-content-muted">
+        {label}
+      </Text>
+      <View className="h-px flex-1 bg-line" />
+    </View>
+  );
+}

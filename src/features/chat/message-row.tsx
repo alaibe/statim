@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { contentPreview, isNewDay } from '@/core/messaging/preview';
 import type { ChatMessage, MessageId } from '@/core/messaging/types';
 
-import { DateSeparator } from './date-separator';
+import { DateSeparator, SectionDivider } from './date-separator';
 import type { MessageAction } from './message-actions';
 import { MessageBubble, type ReplyPreview } from './message-bubble';
 
@@ -34,7 +34,10 @@ export function MessageRow({
   onReact,
   onVote,
   replies,
+  newReplies,
   onOpenThread,
+  divider,
+  endsRun = false,
 }: {
   message: ChatMessage;
   previous: ChatMessage | undefined;
@@ -51,15 +54,20 @@ export function MessageRow({
   onReact?: (messageId: MessageId, emoji: string) => void;
   onVote?: (messageId: MessageId, optionIds: number[]) => Promise<void>;
   replies: number;
+  newReplies: number;
   onOpenThread?: (root: MessageId) => void;
+  /** A line above this message that starts a new part of the transcript. */
+  divider?: string;
+  endsRun?: boolean;
 }) {
   const startsNewDay = isNewDay(previous?.sentAt, message.sentAt);
-  const grouped = !!previous && sameRun(previous, message);
-  const tail = !next || !sameRun(message, next);
+  const grouped = !divider && !!previous && sameRun(previous, message);
+  const tail = endsRun || !next || !sameRun(message, next);
 
   return (
     <>
       {startsNewDay ? <DateSeparator at={message.sentAt} /> : null}
+      {divider ? <SectionDivider label={divider} /> : null}
       <View className={highlighted ? 'bg-brand/15' : undefined}>
         <MessageBubble
           message={message}
@@ -83,7 +91,7 @@ export function MessageRow({
           onVote={onVote && ((optionIds) => onVote(message.id, optionIds))}
           thread={
             replies > 0 && onOpenThread
-              ? { replies, onOpen: () => onOpenThread(message.id) }
+              ? { replies, newReplies, onOpen: () => onOpenThread(message.id) }
               : undefined
           }
         />

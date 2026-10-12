@@ -54,6 +54,7 @@ export const CHAT_STORE: Record<Actions<ChatState>, Covered> = {
   leaveGroup: 'group leave',
   react: 'react',
   markRead: 'mark-read',
+  markThreadRead: 'app: opening a thread',
   fetchMedia: 'download',
   setTyping: 'internal',
   watchPresence: 'chat',

@@ -12,6 +12,7 @@ export interface ReplyPreview {
 
 export interface ThreadChip {
   replies: number;
+  newReplies: number;
   onOpen(): void;
 }
 
@@ -212,23 +213,31 @@ function ReplyQuote({ reply, side }: { reply: ReplyPreview; side: Side }) {
 }
 
 function ThreadButton({ thread }: { thread: ThreadChip }) {
+  const label = repliesLabel(thread.replies, thread.newReplies);
+  const unread = thread.newReplies > 0;
   return (
     <RNPressable
       accessibilityRole="button"
-      accessibilityLabel={`Open thread, ${repliesLabel(thread.replies)}`}
+      accessibilityLabel={`Open thread, ${label}`}
       onPress={thread.onOpen}
-      className="mt-1 flex-row items-center gap-1 rounded-pill bg-surface-sunken px-2.5 py-1">
-      <Icon name="chatbubbles-outline" size={13} tone="brand" />
-      <Text variant="caption" className="font-semibold text-brand">
-        {repliesLabel(thread.replies)}
+      className={cn(
+        'mt-1 flex-row items-center gap-1.5 rounded-pill px-2.5 py-1',
+        unread ? 'bg-brand' : 'bg-surface-sunken'
+      )}>
+      <Icon name="chatbubbles-outline" size={13} tone={unread ? 'brand-on' : 'brand'} />
+      <Text
+        variant="caption"
+        className={cn('font-semibold', unread ? 'text-brand-on' : 'text-brand')}>
+        {label}
       </Text>
-      <Icon name="chevron-forward" size={12} tone="brand" />
+      <Icon name="chevron-forward" size={12} tone={unread ? 'brand-on' : 'brand'} />
     </RNPressable>
   );
 }
 
-function repliesLabel(count: number): string {
-  return count === 1 ? '1 reply' : `${count} replies`;
+export function repliesLabel(count: number, fresh = 0): string {
+  const replies = count === 1 ? '1 reply' : `${count} replies`;
+  return fresh > 0 ? `${replies} · ${fresh} new` : replies;
 }
 
 const BUBBLE_SHADOW = { boxShadow: '0 1px 2px rgba(16, 35, 47, 0.15)' };

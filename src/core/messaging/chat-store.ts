@@ -17,6 +17,12 @@ import { saveChatPrefs, withPref, type ChatPrefs, type ChatPrefsMap } from './ch
 import { indexMessages, saveMediaIndexSoon, type MediaIndex } from './media-index';
 import { useAppearanceStore } from '../app/appearance';
 import { writeReadState } from './read-state';
+import {
+  keepThreadReads,
+  saveThreadReads,
+  withThreadRead,
+  type ThreadReadState,
+} from './thread-reads';
 import { foldReactions, hasReacted } from './reactions';
 import type {
   ChatSession,
@@ -95,6 +101,7 @@ export interface ChatState {
   syncing: boolean;
   bots: Record<string, Bot>;
   readAt: Record<ChatId, number>;
+  threadReads: ThreadReadState;
   chatPrefs: ChatPrefsMap;
   drafts: Drafts;
   mediaIndex: MediaIndex;
@@ -149,6 +156,7 @@ export interface ChatState {
   react(chatId: ChatId, messageId: MessageId, emoji: string): Promise<void>;
 
   markRead(id: ChatId): Promise<void>;
+  markThreadRead(id: ChatId, root: MessageId): Promise<void>;
   setTyping(id: ChatId, typing: boolean): Promise<void>;
   watchPresence(id: ChatId): Unsubscribe;
   markUnread(id: ChatId): Promise<void>;
@@ -208,6 +216,7 @@ const EMPTY_PROJECTION = Object.freeze({
   syncing: false,
   bots: EMPTY,
   readAt: EMPTY,
+  threadReads: EMPTY,
   chatPrefs: EMPTY,
   drafts: EMPTY,
   mediaIndex: EMPTY,
@@ -751,6 +760,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   async markRead(id) {
     const now = Date.now();
+    keepThreadsUnread(id);
     set((state) => ({ readAt: { ...state.readAt, [id]: now } }));
     await writeReadState(requireAccountStorage(get()), get().readAt);
     const route = routeOrNull(get(), id);
@@ -772,7 +782,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
     return route?.session.watchPresence?.(route.nativeId) ?? (() => {});
   },
 
+  async markThreadRead(id, root) {
+    const { threadReads, readAt } = get();
+    const next = withThreadRead(threadReads, id, root, readAt[id], Date.now());
+    set({ threadReads: next });
+    await saveThreadReads(requireAccountStorage(get()), next);
+  },
+
   async markUnread(id) {
+    keepThreadsUnread(id);
     set((state) => ({ readAt: { ...state.readAt, [id]: MARKED_UNREAD } }));
     await writeReadState(requireAccountStorage(get()), get().readAt);
     markOnProtocol(routeOrNull(get(), id), true);
@@ -908,6 +926,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const next = mergeChats(before, chats, draftSync.received.bind(draftSync), Date.now());
     const { drafts, readAt } = next;
     if (next.chats === before.chats && drafts === before.drafts && readAt === before.readAt) return;
+    if (readAt !== before.readAt) {
+      for (const id of Object.keys(readAt) as ChatId[]) {
+        if (readAt[id] !== before.readAt[id]) keepThreadsUnread(id);
+      }
+    }
     set(next);
 
     const storage = before.accountStorage;
@@ -943,6 +966,16 @@ interface Route {
   protocol: ProtocolId;
   nativeId: ProtocolChatId;
   session: ChatSession;
+}
+
+/** Call before the chat's read time moves. */
+function keepThreadsUnread(id: ChatId): void {
+  const state = useChatStore.getState();
+  if (!routeOrNull(state, id)?.session.threads) return;
+  const next = keepThreadReads(state.threadReads, id, state.readAt[id]);
+  if (next === state.threadReads) return;
+  useChatStore.setState({ threadReads: next });
+  if (state.accountStorage) void saveThreadReads(state.accountStorage, next);
 }
 
 function markOnProtocol(route: Route | null, unread: boolean): void {
