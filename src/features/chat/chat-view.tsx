@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ChatBackground,
   EmptyState,
+  Icon,
   Loading,
   Pressable,
   Text,
@@ -50,6 +51,7 @@ import { PinnedMessages } from './pinned-messages';
 import { ChatHeader, PendingChatHeader } from './chat-header';
 import { DeleteMessageSheet, type DeleteTarget } from './delete-message-sheet';
 import { MessageRow, replyPreview } from './message-row';
+import { repliesLabel } from './bubble-shell';
 
 interface ChatViewProps {
   id: ChatId;
@@ -86,6 +88,8 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
     messages,
     byId,
     replyCounts,
+    newReplies,
+    unseenReplies,
     messageHistory,
     loadMessages,
     loadOlderMessages,
@@ -130,11 +134,15 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
   };
   const actionsFor = (message: ChatMessage) => messageActions(message, handlers, can);
 
+  const dividerAt = (index: number) =>
+    thread ? threadDivider(thread, messages, index, unseenReplies) : undefined;
   const renderItem = (item: ChatMessage, index: number) => (
     <MessageRow
       message={item}
       previous={messages[index - 1]}
       next={messages[index + 1]}
+      divider={dividerAt(index)}
+      endsRun={dividerAt(index + 1) !== undefined}
       highlighted={item.id === highlighted}
       replyTarget={item.replyTo ? byId.get(item.replyTo) : undefined}
       nameFor={nameFor}
@@ -147,6 +155,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
       onReact={item.privateToMe || !permissions.react ? undefined : onReactTo}
       onVote={onVote}
       replies={onOpenThread ? (replyCounts.get(item.id) ?? 0) : 0}
+      newReplies={newReplies.get(item.id) ?? 0}
       onOpenThread={onOpenThread}
     />
   );
@@ -205,6 +214,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
         )}
 
         <View style={{ paddingBottom: insets.bottom }}>
+          {onOpenThread ? <NewRepliesBar counts={newReplies} onOpen={onOpenThread} /> : null}
           {chat ? (
             <ChatBar chat={chat} permissions={permissions} title={chatTitle(chat, selfId, nameFor)}>
               <Composer
@@ -239,6 +249,49 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
       {deleting ? (
         <DeleteMessageSheet chatId={id} target={deleting} onClose={() => setDeleting(null)} />
       ) : null}
+    </View>
+  );
+}
+
+function threadDivider(
+  root: MessageId,
+  messages: readonly ChatMessage[],
+  index: number,
+  unseen: readonly ChatMessage[]
+): string | undefined {
+  const message = messages[index];
+  const fresh = message?.id === unseen[0]?.id ? unseen.length : 0;
+  if (index === 1 && messages[0]?.id === root) return repliesLabel(messages.length - 1, fresh);
+  return fresh > 0 ? `${fresh} new` : undefined;
+}
+
+/** Thread replies are kept out of the timeline, so their unread ones are announced here. */
+function NewRepliesBar({
+  counts,
+  onOpen,
+}: {
+  counts: ReadonlyMap<MessageId, number>;
+  onOpen(root: MessageId): void;
+}) {
+  const [oldest] = counts.keys();
+  if (!oldest) return null;
+  const replies = [...counts.values()].reduce((sum, count) => sum + count, 0);
+  const label = `${replies === 1 ? '1 new reply' : `${replies} new replies`}${
+    counts.size > 1 ? ` in ${counts.size} threads` : ' in a thread'
+  }`;
+  return (
+    <View className="items-center pb-2">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${label}. Open thread`}
+        onPress={() => onOpen(oldest)}
+        className="flex-row items-center gap-1.5 rounded-pill bg-brand px-3.5 py-2 shadow-md">
+        <Icon name="chatbubbles-outline" size={15} tone="brand-on" />
+        <Text variant="caption" className="font-semibold text-brand-on">
+          {label}
+        </Text>
+        <Icon name="chevron-forward" size={13} tone="brand-on" />
+      </Pressable>
     </View>
   );
 }

@@ -1001,6 +1001,36 @@ describe('marking unread', () => {
   });
 });
 
+describe('thread reads', () => {
+  it('keeps thread replies unread when the chat is read, until the thread is opened', async () => {
+    const session = new InMemoryChatSession();
+    Object.assign(session, { threads: true });
+    session.seedChat({ id: 'c1' });
+    await connect(session);
+    const id = ns('c1');
+    useChatStore.setState({ readAt: { [id]: 100 } });
+
+    await useChatStore.getState().markRead(id);
+    expect(useChatStore.getState().threadReads[id]).toEqual({ since: 100, threads: {} });
+
+    await useChatStore.getState().markRead(id);
+    expect(useChatStore.getState().threadReads[id]?.since).toBe(100);
+
+    await useChatStore.getState().markThreadRead(id, 'root');
+    expect(useChatStore.getState().threadReads[id]?.threads.root).toBeGreaterThan(100);
+  });
+
+  it('keeps nothing for a protocol without threads', async () => {
+    const session = new InMemoryChatSession();
+    session.seedChat({ id: 'plain' });
+    await connect(session);
+    useChatStore.setState({ readAt: { [ns('plain')]: 100 } });
+
+    await useChatStore.getState().markRead(ns('plain'));
+    expect(useChatStore.getState().threadReads[ns('plain')]).toBeUndefined();
+  });
+});
+
 describe('blocking', () => {
   const blockedIn = () => useChatStore.getState().chats.find((c) => c.id === ns('ex'))?.blocked;
 

@@ -166,3 +166,42 @@ it('reads a streamed message while the protocol count is still zero', () => {
   expect(markRead).toHaveBeenCalledTimes(1);
   act(() => tree.unmount());
 });
+
+it('counts new thread replies in the chat and reads them when the thread opens', () => {
+  const id = asChatId('xmtp-chat');
+  const markThreadRead = jest.fn(async () => {
+    useChatStore.setState({ threadReads: { [id]: { since: 10, threads: { root: 50 } } } });
+  });
+  const incoming = { ...message('new', 'root'), sentAt: 20, fromMe: false };
+  useChatStore.setState({
+    messages: { [id]: [message('root'), incoming] },
+    readAt: { [id]: 30 },
+    threadReads: { [id]: { since: 10, threads: {} } },
+    markRead: jest.fn(async () => {}),
+    markThreadRead,
+  });
+
+  function ThreadProbe({ thread }: { thread?: string }) {
+    const timeline = useChatTimeline(id, thread, undefined, !thread);
+    return createElement('probe', {
+      fresh: timeline.newReplies.get('root'),
+      unseen: timeline.unseenReplies.map((item) => item.id),
+    });
+  }
+
+  let tree!: ReactTestRenderer;
+  act(() => {
+    tree = create(createElement(ThreadProbe));
+  });
+  expect(tree.root.findByType('probe' as never).props.fresh).toBe(1);
+  expect(markThreadRead).not.toHaveBeenCalled();
+  act(() => tree.unmount());
+
+  act(() => {
+    tree = create(createElement(ThreadProbe, { thread: 'root' }));
+  });
+  expect(markThreadRead).toHaveBeenCalledTimes(1);
+  expect(markThreadRead).toHaveBeenCalledWith(id, 'root');
+  expect(tree.root.findByType('probe' as never).props.unseen).toEqual(['new']);
+  act(() => tree.unmount());
+});
