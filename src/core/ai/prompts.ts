@@ -56,7 +56,8 @@ export function transcript(messages: readonly ChatLine[], budget: number) {
   const lines: string[] = [];
   let used = 0;
   for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const { from, text, described } = messages[i];
+    const { from, described } = messages[i];
+    const text = messages[i].text.replace(/\s+/g, ' ');
     const line = `${from}: ${described ? `[${text}]` : text}`;
     if (used + line.length + 1 > budget && lines.length > 0) break;
     lines.unshift(line.slice(0, budget));
