@@ -14,9 +14,11 @@ model below; Jev decides whether you need to answer, and that model writes the r
 
 When you open a DM or group with an incoming message last and an empty composer,
 Statim sends up to 20 recent messages to TypeSafe's Jev. If its estimated
-probability that a reply is needed is at least 70%, your selected model prepares
-a short suggestion above the composer. Tap **Use reply** to edit it before
-sending, or dismiss it. Suggestions may take a moment to appear.
+probability that a reply is needed is at least 70%, your selected model writes
+a short suggestion. After a moment it shows in purple inside the empty message
+field. Tap the sparkle next to the emoji button, or press Tab on a computer, to
+put it in the field and edit it before sending. Start typing to write your own
+reply instead.
 
 The check also runs when a new message arrives in the open chat. It skips
 channels, threads, requests, blocked chats and chats where you cannot send.

@@ -6,6 +6,7 @@ import { SUGGESTED_ACTION_IDS } from '@/core/commands/ai';
 import { completeCommandName } from '@/core/commands/parser';
 import {
   ActionSheet,
+  cn,
   Enter,
   ErrorText,
   Exit,
@@ -45,7 +46,7 @@ import { useCommandDispatch } from './use-command-dispatch';
 import { useMentionSuggestions } from './use-mention-suggestions';
 import { useChatPermissions } from './use-chat-permissions';
 import { withFinalEmoji } from './typed-emoji';
-import { ReplySuggestion } from './reply-suggestion';
+import { useReplySuggestion } from './use-reply-suggestion';
 import { useSuggestedAction } from './use-suggested-action';
 import { useTypingAnnouncer } from './use-typing-announcer';
 
@@ -156,10 +157,20 @@ export function Composer({
   const assists = !thread && (scope === 'dm' || scope === 'group');
   const idle = !busy && !banner;
   const suggested = useSuggestedAction(chatId, assists && idle && !value.trim());
+  const reply = useReplySuggestion(chatId, assists && idle);
+  const ghost = reply.suggestion;
+  const ready = ghost?.status === 'ready' ? ghost : null;
+  const takeReply = () => {
+    if (!ready) return;
+    fill(ready.text);
+    reply.dismiss();
+  };
+  const ghostText =
+    ready?.text ?? (ghost?.status === 'pending' ? `Preparing a ${reply.kind}…` : null);
+  const shownError = error ?? (ghost?.status === 'error' ? ghost.text : null);
 
   return (
     <View>
-      {assists ? <ReplySuggestion chatId={chatId} available={idle} onUse={fill} /> : null}
       <SuggestionPopover
         items={mentions.matches}
         keyOf={(person) => person.id}
@@ -191,9 +202,9 @@ export function Composer({
         )}
       />
 
-      {error ? (
+      {shownError ? (
         <Animated.View entering={Enter.fade()} exiting={Exit.fade()} className="mx-gutter mb-1.5">
-          <ErrorText>{error}</ErrorText>
+          <ErrorText>{shownError}</ErrorText>
         </Animated.View>
       ) : null}
 
@@ -225,7 +236,11 @@ export function Composer({
           />
         ) : null}
 
-        <View className="min-h-[44px] flex-1 flex-row items-end rounded-pill border border-line bg-surface-raised pl-4 pr-1">
+        <View
+          className={cn(
+            'min-h-[44px] flex-1 flex-row items-end rounded-pill border bg-surface-raised pl-4 pr-1',
+            ghostText ? 'border-ai/60' : 'border-line'
+          )}>
           <ComposerInput
             ref={inputRef}
             value={value}
@@ -233,15 +248,27 @@ export function Composer({
               announceTyping(text);
               if (error) setError(null);
               const typed = text.replace(/\t/g, '');
+              if (typed !== text && typed === '' && ready) return takeReply();
               setValue(typed === text ? text : (completeCommandName(typed, commandNames) ?? typed));
             }}
             onSubmit={() => void submit()}
             onFile={
               canAttach ? (file) => void attach(() => contentFromBrowserFile(file, can)) : undefined
             }
-            placeholder={thread ? 'Reply in thread' : 'Message'}
-            placeholderColor={colors['content-subtle']}
+            placeholder={ghostText ?? (thread ? 'Reply in thread' : 'Message')}
+            placeholderColor={ghostText ? colors.ai : colors['content-subtle']}
           />
+
+          {ready ? (
+            <Pressable
+              testID="ai-use-reply"
+              accessibilityRole="button"
+              accessibilityLabel={`Use suggested ${reply.kind}, by ${ready.label}`}
+              onPress={takeReply}
+              className="h-11 w-9 items-center justify-center">
+              <Icon name="sparkles-outline" size={20} tone="ai" />
+            </Pressable>
+          ) : null}
 
           <View ref={emojiButton} collapsable={false}>
             <Pressable

@@ -15,6 +15,7 @@ module.exports = {
           strong: 'rgb(var(--color-brand-strong) / <alpha-value>)',
           on: 'rgb(var(--color-brand-on) / <alpha-value>)',
         },
+        ai: 'rgb(var(--color-ai) / <alpha-value>)',
         canvas: 'rgb(var(--color-canvas) / <alpha-value>)',
         surface: {
           DEFAULT: 'rgb(var(--color-surface) / <alpha-value>)',

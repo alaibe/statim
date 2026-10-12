@@ -32,8 +32,8 @@ it('reads styles in any case and wraps the text as data', () => {
   );
 });
 
-it('takes three replies, however the model numbers or quotes them', () => {
-  expect(parseSuggestions('1. "Sure!"\n- Can we do Friday?\n\n• “No thanks”\nextra')).toEqual([
+it('takes three replies, however the model numbers, quotes or labels them', () => {
+  expect(parseSuggestions('1. "Sure!"\n- You: Can we do Friday?\n\n• “No thanks”\nextra')).toEqual([
     'Sure!',
     'Can we do Friday?',
     'No thanks',

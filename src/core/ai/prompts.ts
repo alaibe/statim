@@ -115,11 +115,12 @@ export function followUpRequest(chat: string): CompletionRequest {
   };
 }
 
-/** Models number or quote their lines however they like. */
+/** Models number, quote or label their lines however they like. */
 export function bareLine(line: string): string {
   return line
     .trim()
     .replace(/^(?:[-*•]|\d+[.)])\s*/, '')
+    .replace(/^You:\s*/, '')
     .replace(/^["“](.*)["”]$/, '$1')
     .trim();
 }

@@ -143,16 +143,20 @@ export function ComposerInput({
   const dragging = useWindowFileDrop(onFile);
 
   return (
-    <div style={{ position: 'relative', flex: 1, minWidth: 0, alignSelf: 'center' }}>
+    <div
+      style={{ position: 'relative', display: 'grid', flex: 1, minWidth: 0, alignSelf: 'center' }}>
       <style>{STYLE}</style>
       {dragging ? <DropZone /> : null}
       {value === '' ? (
         <div
           aria-hidden
           style={{
-            position: 'absolute',
-            top: 10,
-            left: 0,
+            gridArea: '1 / 1',
+            maxHeight: 128,
+            overflow: 'hidden',
+            overflowWrap: 'anywhere',
+            whiteSpace: 'pre-wrap',
+            padding: '10px 4px 10px 0',
             color: placeholderColor,
             pointerEvents: 'none',
           }}
@@ -172,7 +176,13 @@ export function ComposerInput({
         onInput={onInput}
         onPaste={onPaste}
         className="composer-rich text-body text-content"
-        style={{ maxHeight: 128, minHeight: 22, overflowY: 'auto', padding: '10px 4px 10px 0' }}
+        style={{
+          gridArea: '1 / 1',
+          maxHeight: 128,
+          minHeight: 22,
+          overflowY: 'auto',
+          padding: '10px 4px 10px 0',
+        }}
       />
     </div>
   );
