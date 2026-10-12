@@ -2,7 +2,7 @@ import type { ChatMessage } from '@/core/messaging/types';
 
 import { copyImage } from './attachments/copy-image';
 import { saveMedia } from './attachments/save-media';
-import { messageActions } from './message-commands';
+import { lastEditableMessage, messageActions } from './message-commands';
 import { asChatId } from '@/core/messaging/testing/ids';
 
 jest.mock('./attachments/save-media', () => ({ saveMedia: jest.fn(async () => {}) }));
@@ -143,5 +143,19 @@ describe('messageActions', () => {
       .find((a) => a.id === 'edit')
       ?.onPress();
     expect(handlers.edit).toHaveBeenCalledWith(m);
+  });
+});
+
+describe('lastEditableMessage', () => {
+  it('picks the newest of my sent texts', () => {
+    const messages = [
+      message({ id: 'm1' }),
+      message({ id: 'm2' }),
+      message({ id: 'm3', fromMe: false }),
+      message({ id: 'm4', status: 'sending' }),
+      message({ id: 'm5', content: { kind: 'image', uri: 'asset://localhost/a.jpg' } }),
+    ];
+    expect(lastEditableMessage(messages, all)?.id).toBe('m2');
+    expect(lastEditableMessage(messages, none)).toBeUndefined();
   });
 });

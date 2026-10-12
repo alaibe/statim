@@ -30,7 +30,6 @@ export function messageActions(
 ): MessageAction[] {
   const { content } = message;
   const sent = message.status === 'sent';
-  const mine = message.fromMe && sent;
   const copy = copyableText(content);
   const save = mediaSaver(message);
   const menu: (MessageAction | false)[] = [
@@ -81,14 +80,12 @@ export function messageActions(
       icon: 'arrow-redo-outline',
       onPress: () => actions.forward(message),
     },
-    can.edit &&
-      mine &&
-      content.kind === 'text' && {
-        id: 'edit',
-        label: 'Edit',
-        icon: 'create-outline',
-        onPress: () => actions.edit(message),
-      },
+    canEditMessage(message, can) && {
+      id: 'edit',
+      label: 'Edit',
+      icon: 'create-outline',
+      onPress: () => actions.edit(message),
+    },
     can.pin &&
       sent && {
         id: 'pin',
@@ -114,6 +111,17 @@ export function messageActions(
       },
   ];
   return menu.filter((action): action is MessageAction => action !== false);
+}
+
+function canEditMessage(message: ChatMessage, can: ActionSupport): boolean {
+  return can.edit && message.fromMe && message.status === 'sent' && message.content.kind === 'text';
+}
+
+export function lastEditableMessage(
+  messages: readonly ChatMessage[],
+  can: ActionSupport
+): ChatMessage | undefined {
+  return messages.findLast((message) => canEditMessage(message, can));
 }
 
 function copyableText(content: ChatMessage['content']): string | undefined {
