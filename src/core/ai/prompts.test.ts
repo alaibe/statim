@@ -20,6 +20,16 @@ it('brackets a photo or sticker, so the model reads it as something sent, not sa
   expect(transcript(messages, 1000).text).toBe('Ann: [📷 Photo]\nYou: Nice');
 });
 
+it("keeps a message of several lines on its sender's line", () => {
+  const messages = [
+    message('You', 'Fix refunds\n\nRelated Tickets\nAUR2-570'),
+    message('Amal', 'hey'),
+  ];
+  expect(transcript(messages, 1000).text).toBe(
+    'You: Fix refunds Related Tickets AUR2-570\nAmal: hey'
+  );
+});
+
 it('cuts one message that alone is longer than the budget, rather than sending nothing', () => {
   expect(transcript([message('Ann', 'x'.repeat(50))], 10).text).toHaveLength(10);
 });
