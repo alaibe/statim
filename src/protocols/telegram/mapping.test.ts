@@ -134,3 +134,46 @@ describe('Telegram animated emoji', () => {
     });
   });
 });
+
+const call = (reason: string, duration: number, outgoing = false, video = false): TdMessage => ({
+  ...animation('image/webp'),
+  is_outgoing: outgoing,
+  content: {
+    '@type': 'messageCall',
+    is_video: video,
+    discard_reason: { '@type': reason },
+    duration,
+  },
+});
+
+describe('Telegram calls', () => {
+  it('shows an unanswered incoming call as missed', () => {
+    expect(toMessage(call('callDiscardReasonMissed', 0), context).content).toEqual({
+      kind: 'call',
+      outcome: 'missed',
+    });
+  });
+
+  it('shows an unanswered outgoing call as cancelled', () => {
+    expect(toMessage(call('callDiscardReasonMissed', 0, true), context).content).toEqual({
+      kind: 'call',
+      outcome: 'cancelled',
+    });
+  });
+
+  it('shows a declined call', () => {
+    expect(toMessage(call('callDiscardReasonDeclined', 0, true), context).content).toEqual({
+      kind: 'call',
+      outcome: 'declined',
+    });
+  });
+
+  it('keeps the length of a call that was answered', () => {
+    expect(toMessage(call('callDiscardReasonHungUp', 192, false, true), context).content).toEqual({
+      kind: 'call',
+      outcome: 'ended',
+      video: true,
+      durationMs: 192_000,
+    });
+  });
+});

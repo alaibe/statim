@@ -227,6 +227,16 @@ const MAPPERS: Record<string, (input: Input) => MessageContent> = {
     const name = [contact.first_name, contact.last_name].filter(Boolean).join(' ');
     return unsupported('contact', `👤 ${name}`);
   },
+  messageCall: ({ content, raw }) => {
+    const duration = content.duration as number;
+    const video = content.is_video ? { video: true } : {};
+    if (duration > 0) {
+      return { kind: 'call', outcome: 'ended', ...video, durationMs: duration * 1000 };
+    }
+    const declined = (content.discard_reason as TdObject)['@type'] === 'callDiscardReasonDeclined';
+    const outcome = declined ? 'declined' : raw.is_outgoing ? 'cancelled' : 'missed';
+    return { kind: 'call', outcome, ...video };
+  },
   messageDice: ({ content }) =>
     unsupported('dice', `${content.emoji as string} ${content.value as number}`),
 

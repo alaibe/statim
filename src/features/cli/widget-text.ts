@@ -1,4 +1,5 @@
 import type { Widget, WidgetAction } from '@/design/widgets';
+import { callLabel } from '@/core/messaging/preview';
 import type { MessageContent } from '@/core/messaging/types';
 
 function actionLines(
@@ -63,5 +64,6 @@ export function contentLines(content: MessageContent, run: (command: string) => 
   if (content.kind === 'widget') return widgetLines(content.widget, run);
   if (content.kind === 'text' || content.kind === 'system') return content.text.split('\n');
   if (content.kind === 'custom' || content.kind === 'unsupported') return [content.fallback ?? ''];
+  if (content.kind === 'call') return [callLabel(content)];
   return [];
 }

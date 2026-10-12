@@ -48,3 +48,22 @@ describe('Matrix stickers', () => {
     });
   });
 });
+
+describe('Matrix calls', () => {
+  it('shows an Element call as started', () => {
+    expect(toContent({ ...event, content: { kind: 'call', video: true } }, context(true))).toEqual({
+      kind: 'call',
+      outcome: 'started',
+      video: true,
+    });
+  });
+
+  it('turns a bridge’s call notice into a call', () => {
+    const body = 'Incoming call. Use the WhatsApp app to answer.';
+    expect(toContent({ ...event, content: { kind: 'text', body } }, context(true))).toEqual({
+      kind: 'call',
+      outcome: 'started',
+      openIn: { network: 'whatsapp' },
+    });
+  });
+});

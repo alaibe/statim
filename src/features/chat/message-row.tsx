@@ -1,5 +1,6 @@
 import { View } from 'react-native';
 
+import { isLine } from '@/core/messaging/message-rules';
 import { contentPreview, isNewDay } from '@/core/messaging/preview';
 import type { ChatMessage, MessageId } from '@/core/messaging/types';
 
@@ -104,8 +105,8 @@ function sameRun(earlier: ChatMessage, later: ChatMessage): boolean {
   return (
     earlier.senderId === later.senderId &&
     later.sentAt - earlier.sentAt < GROUP_WINDOW_MS &&
-    earlier.content.kind !== 'system' &&
-    later.content.kind !== 'system' &&
+    !isLine(earlier) &&
+    !isLine(later) &&
     !isNewDay(earlier.sentAt, later.sentAt)
   );
 }

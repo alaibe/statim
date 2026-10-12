@@ -212,6 +212,9 @@ pub enum MxContent {
     Location,
     Redacted,
     Undecryptable,
+    Call {
+        video: bool,
+    },
     Membership {
         change: &'static str,
         user: String,

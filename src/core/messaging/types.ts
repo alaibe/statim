@@ -24,9 +24,21 @@ export type WidgetContent = {
   readonly live?: LiveView;
 };
 
+export type CallOutcome = 'started' | 'ended' | 'missed' | 'cancelled' | 'declined';
+
+export interface CallContent {
+  readonly kind: 'call';
+  readonly outcome: CallOutcome;
+  readonly video?: boolean;
+  readonly durationMs?: number;
+  /** A bridged call: only the network's own app can take it. */
+  readonly openIn?: { readonly network: BridgedNetwork; readonly url?: string };
+}
+
 export type MessageContent =
   | { readonly kind: 'text'; readonly text: string }
   | WidgetContent
+  | CallContent
   | {
       readonly kind: 'custom';
       readonly typeId: string;

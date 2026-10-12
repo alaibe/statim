@@ -108,6 +108,9 @@ _Avoid_: event, post
 **Thread**: The messages posted under one message, shown apart from the rest of the chat.
 _Avoid_: topic, sub-chat
 
+**Call**: A live voice or video conversation in a chat.
+_Avoid_: huddle, video chat
+
 **Request**: A chat someone started with you that you have not accepted yet. You accept it or decline it.
 _Avoid_: invite, message request, pending chat
 

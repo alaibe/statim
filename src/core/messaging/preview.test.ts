@@ -42,6 +42,19 @@ describe('messagePreview', () => {
     expect(messagePreview({ ...base, content: sticker })).toBe('Sticker');
   });
 
+  it('describes a call by how it went', () => {
+    const call = { kind: 'call' } as const;
+    expect(messagePreview({ ...base, content: { ...call, outcome: 'missed' } })).toBe(
+      '📞 Missed call'
+    );
+    expect(
+      messagePreview({
+        ...base,
+        content: { ...call, outcome: 'ended', video: true, durationMs: 192_000 },
+      })
+    ).toBe('📹 Video call ended · 3:12');
+  });
+
   it('falls back gracefully when a plugin is disabled', () => {
     expect(
       messagePreview({

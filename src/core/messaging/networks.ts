@@ -18,6 +18,13 @@ export const BRIDGED_NETWORKS = {
 
 export type BridgedNetwork = keyof typeof BRIDGED_NETWORKS;
 
+/** Where to send the user to answer a call the bridge cannot carry. */
+export const NETWORK_APPS: Partial<Record<BridgedNetwork, string>> = {
+  whatsapp: 'whatsapp://',
+  signal: 'sgnl://',
+  discord: 'https://discord.com/channels/@me',
+};
+
 export type NetworkId = ProtocolId | BridgedNetwork;
 
 export const NETWORK_IDS: readonly NetworkId[] = [
