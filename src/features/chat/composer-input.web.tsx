@@ -53,6 +53,7 @@ export function ComposerInput({
   onChangeText,
   onSubmit,
   onFile,
+  onEditLast,
   placeholder,
   placeholderColor,
 }: ComposerInputProps) {
@@ -92,6 +93,12 @@ export function ComposerInput({
       } else {
         onSubmit();
       }
+      return;
+    }
+    const modified = event.metaKey || event.ctrlKey || event.altKey || event.shiftKey;
+    if (event.key === 'ArrowUp' && !modified && onEditLast) {
+      event.preventDefault();
+      onEditLast();
       return;
     }
     if (event.key === 'Tab' && !event.shiftKey) {

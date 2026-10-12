@@ -44,7 +44,12 @@ import { useDisplayNames } from './use-display-names';
 import { useChatPermissions, useChatSession } from './use-chat-permissions';
 import { useComposerMode } from './composer-mode';
 import { usePinnedMessages } from './use-pinned-messages';
-import { type ActionSupport, type ChatActions, messageActions } from './message-commands';
+import {
+  type ActionSupport,
+  type ChatActions,
+  lastEditableMessage,
+  messageActions,
+} from './message-commands';
 import { HistoryStatus } from './history-status';
 import { useChatTimeline } from './use-chat-timeline';
 import { PinnedMessages } from './pinned-messages';
@@ -115,6 +120,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
   const previewOf = (target: ChatMessage) => replyPreview(target, nameFor);
 
   const composer = useComposerMode(id, followNewest, thread);
+  useEscapeKey(composer.mode.kind !== 'compose', () => composer.cancel());
 
   const isGroup = chat?.kind === 'group';
   const botName = chat?.title ?? 'Bot';
@@ -133,6 +139,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
     thread: permissions.thread && onOpenThread !== undefined,
   };
   const actionsFor = (message: ChatMessage) => messageActions(message, handlers, can);
+  const lastEditable = lastEditableMessage(messages, can);
 
   const dividerAt = (index: number) =>
     thread ? threadDivider(thread, messages, index, unseenReplies) : undefined;
@@ -224,6 +231,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
                 onSendText={(text) => composer.submit(text)}
                 onSendContent={onSendContent}
                 editing={composer.mode.kind === 'edit'}
+                onEditLast={lastEditable ? () => composer.edit(lastEditable) : undefined}
                 banner={composer.banner(previewOf)}
                 onCancelBanner={() => composer.cancel()}
                 pendingCommand={pendingCommand}

@@ -59,6 +59,7 @@ interface ComposerProps {
   onSendContent(content: MessageContent): Promise<void>;
   /** Editing hides attachments and mentions: only the text of a message can change. */
   editing?: boolean;
+  onEditLast?(): void;
   banner?: ComposerBanner | null;
   onCancelBanner(): void;
   pendingCommand: string | null;
@@ -73,6 +74,7 @@ export function Composer({
   onSendText,
   onSendContent,
   editing = false,
+  onEditLast,
   banner,
   onCancelBanner,
   pendingCommand,
@@ -255,6 +257,7 @@ export function Composer({
             onFile={
               canAttach ? (file) => void attach(() => contentFromBrowserFile(file, can)) : undefined
             }
+            onEditLast={value === '' && !busy && !editing ? onEditLast : undefined}
             placeholder={ghostText ?? (thread ? 'Reply in thread' : 'Message')}
             placeholderColor={ghostText ? colors.ai : colors['content-subtle']}
           />
