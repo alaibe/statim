@@ -134,6 +134,7 @@ const TONE = {
   subtle: 'content-subtle',
   brand: 'brand',
   'brand-on': 'brand-on',
+  ai: 'ai',
   'bubble-out-on': 'bubble-out-on',
   success: 'success',
   warning: 'warning',

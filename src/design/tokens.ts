@@ -5,6 +5,7 @@ export const Palette = {
     'brand-soft': '237 238 248',
     'brand-strong': '61 72 143',
     'brand-on': '255 255 255',
+    ai: '137 72 214',
 
     canvas: '255 255 255',
     surface: '247 247 250',
@@ -32,6 +33,7 @@ export const Palette = {
     'brand-soft': '27 30 55',
     'brand-strong': '177 186 241',
     'brand-on': '15 19 46',
+    ai: '196 153 255',
 
     canvas: '9 9 13',
     surface: '20 20 27',
