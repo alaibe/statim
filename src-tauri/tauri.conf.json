@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Statim",
-  "version": "0.7.6",
+  "version": "0.7.7",
   "identifier": "im.statim.app",
   "build": {
     "frontendDist": "../dist",
