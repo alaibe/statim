@@ -72,6 +72,10 @@ export function mapContent(content: sdk.TimelineItemContent): MxContent | null {
     }
     case sdk.TimelineItemContent_Tags.State:
       return mapState(content.inner.content);
+    case sdk.TimelineItemContent_Tags.CallInvite:
+      return { kind: 'call', video: false };
+    case sdk.TimelineItemContent_Tags.RtcNotification:
+      return { kind: 'call', video: content.inner.callIntent === 'video' };
     default:
       return null;
   }

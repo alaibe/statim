@@ -1,5 +1,5 @@
 import { plainText } from './markdown';
-import type { ChatMessage, MessageContent } from './types';
+import type { CallContent, ChatMessage, MessageContent } from './types';
 
 export const unsupported = (typeId: string, fallback: string): MessageContent => ({
   kind: 'unsupported',
@@ -25,6 +25,23 @@ export const labelled = (label: string, caption?: string) =>
   caption ? `${label} · ${caption}` : label;
 
 export const stickerLabel = (emoji?: string) => (emoji ? `${emoji} Sticker` : 'Sticker');
+
+export function callLabel({ outcome, video, durationMs }: CallContent): string {
+  const call = video ? 'video call' : 'call';
+  const Call = video ? 'Video call' : 'Call';
+  switch (outcome) {
+    case 'started':
+      return `${Call} started`;
+    case 'ended':
+      return `${Call} ended${durationMs ? ` · ${formatDuration(durationMs)}` : ''}`;
+    case 'missed':
+      return `Missed ${call}`;
+    case 'cancelled':
+      return `Cancelled ${call}`;
+    case 'declined':
+      return `Declined ${call}`;
+  }
+}
 
 export function contentPreview(content: MessageContent): string {
   switch (content.kind) {
@@ -53,6 +70,8 @@ export function contentPreview(content: MessageContent): string {
       return stickerLabel(content.emoji);
     case 'poll':
       return `\u{1F4CA} ${content.question}`;
+    case 'call':
+      return `${content.video ? '\u{1F4F9}' : '\u{1F4DE}'} ${callLabel(content)}`;
 
     case 'reaction':
       return '';

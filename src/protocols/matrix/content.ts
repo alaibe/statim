@@ -3,6 +3,7 @@ import { labelled, unsupported } from '@/core/messaging/preview';
 import type { MessageContent } from '@/core/messaging/types';
 
 import type { MxEvent, MxMedia, MxMembershipChange, MxStateChange } from './api';
+import { callNotice } from './call-notices';
 
 /** Bots write links as Markdown autolinks; the brackets are not part of the URL. */
 const AUTOLINK = /<(https?:\/\/[^\s<>]+)>/g;
@@ -39,6 +40,8 @@ export function toContent(raw: MxEvent, context: ContentContext): MessageContent
   const content = raw.content;
   switch (content.kind) {
     case 'text': {
+      const call = callNotice(raw.sender, content.body, content.msgtype);
+      if (call) return call;
       const body = content.html
         ? htmlToMarkdown(content.html)
         : content.body.replace(AUTOLINK, '$1');
@@ -146,5 +149,7 @@ export function toContent(raw: MxEvent, context: ContentContext): MessageContent
     }
     case 'state':
       return { kind: 'system', text: STATE[content.change](content.value) };
+    case 'call':
+      return { kind: 'call', outcome: 'started', ...(content.video ? { video: true } : {}) };
   }
 }

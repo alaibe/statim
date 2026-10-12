@@ -152,6 +152,7 @@ export type MxContent =
   | { kind: 'location' }
   | { kind: 'redacted' }
   | { kind: 'undecryptable' }
+  | { kind: 'call'; video: boolean }
   | { kind: 'membership'; change: MxMembershipChange; user: string; userName?: string }
   | { kind: 'state'; change: MxStateChange; value?: string };
 

@@ -1,4 +1,5 @@
 use super::*;
+use matrix_sdk::ruma::events::rtc::notification::CallIntent;
 
 pub(super) fn preview_of(latest: LatestEventValue) -> Option<MxPreview> {
     let (timestamp, sender, is_own, profile, content) = match latest {
@@ -204,6 +205,10 @@ pub(super) fn map_content(content: &TimelineItemContent) -> Option<MxContent> {
             };
             Some(MxContent::State { change, value })
         }
+        TimelineItemContent::CallInvite => Some(MxContent::Call { video: false }),
+        TimelineItemContent::RtcNotification { call_intent, .. } => Some(MxContent::Call {
+            video: call_intent.as_ref() == Some(&CallIntent::Video),
+        }),
         _ => None,
     }
 }

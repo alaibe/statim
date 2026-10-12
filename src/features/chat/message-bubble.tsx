@@ -1,11 +1,19 @@
 import { useEffect, type ReactNode } from 'react';
 import { View } from 'react-native';
 
-import { cn, Text } from '@/design';
+import { cn, Icon, type IconName, Pressable, Text, toast } from '@/design';
+import { errorMessage } from '@/core/errors';
+import { BRIDGED_NETWORKS, NETWORK_APPS } from '@/core/messaging/networks';
 import { usePluginHost } from '@/core/plugins/host';
 import { sessionFor, useChatStore } from '@/core/messaging/chat-store';
 import { hasReactions } from '@/core/messaging/reactions';
-import type { ChatMessage, LiveView, MessageId, WidgetContent } from '@/core/messaging/types';
+import type {
+  CallContent,
+  ChatMessage,
+  LiveView,
+  MessageId,
+  WidgetContent,
+} from '@/core/messaging/types';
 import type { MessageAction } from './message-actions';
 import { BubbleShell, type ReplyPreview, type ThreadChip } from './bubble-shell';
 import { ReactionRow } from './reaction-row';
@@ -27,9 +35,10 @@ import { StickerBubble } from './attachments/sticker-bubble';
 import { VoiceBubble } from './attachments/voice-bubble';
 import { VideoBubble } from './attachments/video-bubble';
 import { PollBubble } from './poll-bubble';
-import { awaitsFile, formatTimestamp } from '@/core/messaging/preview';
+import { awaitsFile, callLabel, formatTimestamp } from '@/core/messaging/preview';
 import { DeliveryIcon } from './delivery-icon';
 import { openUrlQuietly } from './link-actions';
+import { openExternal } from '@/lib/open-url';
 import { mediaSaver } from './message-commands';
 
 export type { ReplyPreview } from './bubble-shell';
@@ -72,15 +81,9 @@ export function MessageBubble({
 
   const { fromMe, content } = message;
 
-  if (content.kind === 'system') {
-    return (
-      <View className="items-center py-2">
-        <View className="rounded-pill bg-surface-sunken px-3 py-1">
-          <Text variant="caption">{content.text}</Text>
-        </View>
-      </View>
-    );
-  }
+  if (content.kind === 'system') return <NoticeLine text={content.text} />;
+
+  if (content.kind === 'call') return <CallLine call={content} />;
 
   if (content.kind === 'reaction') return null;
 
@@ -242,6 +245,48 @@ export function MessageBubble({
       bare={bare}>
       {children}
     </BubbleShell>
+  );
+}
+
+function NoticeLine({ text, icon, action }: { text: string; icon?: IconName; action?: ReactNode }) {
+  return (
+    <View className="items-center gap-1.5 py-2">
+      <View className="flex-row items-center gap-1.5 rounded-pill bg-surface-sunken px-3 py-1">
+        {icon ? <Icon name={icon} size={13} tone="muted" /> : null}
+        <Text variant="caption">{text}</Text>
+      </View>
+      {action}
+    </View>
+  );
+}
+
+function CallLine({ call }: { call: CallContent }) {
+  const { openIn } = call;
+  const url = openIn && (openIn.url ?? NETWORK_APPS[openIn.network]);
+  return (
+    <NoticeLine
+      text={callLabel(call)}
+      icon={call.video ? 'videocam-outline' : 'call-outline'}
+      action={
+        openIn && url ? <OpenInButton name={BRIDGED_NETWORKS[openIn.network]} url={url} /> : null
+      }
+    />
+  );
+}
+
+function OpenInButton({ name, url }: { name: string; url: string }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => {
+        openExternal(url).catch((e) => toast.error(errorMessage(e, `Could not open ${name}`)));
+      }}
+      className="flex-row items-center gap-1 rounded-pill border border-line px-3 py-1">
+      <Icon name="open-outline" size={13} tone="brand" />
+      <Text variant="caption" className="font-semibold text-brand">
+        Open in {name}
+      </Text>
+    </Pressable>
   );
 }
 
