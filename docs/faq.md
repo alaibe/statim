@@ -120,8 +120,6 @@ Android is in open testing on Google Play.
 [Join the test](https://play.google.com/apps/testing/im.statim.app) with the
 Google account your phone uses, then install Statim from
 [Google Play](https://play.google.com/store/apps/details?id=im.statim.app).
-Everything except Telegram works there. Telegram is not in the Android build
-yet.
 
 You can also use the desktop app for macOS, Windows and Linux, and the iPhone
 app through its [TestFlight beta](https://testflight.apple.com/join/kQGUUDUv).
