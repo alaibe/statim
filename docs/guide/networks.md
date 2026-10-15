@@ -175,7 +175,6 @@ by default.
 ## Telegram
 
 Your own Telegram account, in the same chat list: DMs, groups and channels.
-Telegram works everywhere except Android.
 
 ::: info Not end-to-end encrypted
 Telegram's servers hold and can read these chats, exactly as with the official
