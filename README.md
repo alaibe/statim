@@ -72,7 +72,7 @@ review step first.
 
 iOS, Android, macOS, Windows and Linux. The iPhone app is in beta on
 [TestFlight](https://testflight.apple.com/join/kQGUUDUv), and Android in
-testing on [Google Play](https://play.google.com/apps/internaltest/4701701549081878732).
+open testing on [Google Play](https://play.google.com/apps/testing/im.statim.app).
 On a Mac, `brew install --cask alaibe/tap/statim` installs the app and its
 `statim` command. Telegram on the phone needs TDLib in `modules/tdjson` first:
 `./scripts/tdlib.sh ios` or `./scripts/tdlib.sh android`.

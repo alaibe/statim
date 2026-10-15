@@ -6,7 +6,7 @@ import { CircleBackground } from '@/landing/CircleBackground';
 import { Container } from '@/landing/Container';
 import { DownloadButton, DownloadIcon, usePlatform } from '@/landing/DownloadButton';
 import type { Platform, Release } from '@/lib/release';
-import { repoUrl, testerEmail } from '@/lib/site';
+import { repoUrl } from '@/lib/site';
 
 const platforms: Array<{
   platform: Platform;
@@ -30,22 +30,7 @@ const platforms: Array<{
   },
   { platform: 'windows', name: 'Windows', empty: 'Not in this release.' },
   { platform: 'linux', name: 'Linux', empty: 'Not in this release.' },
-  {
-    platform: 'android',
-    name: 'Android',
-    empty: 'Not released yet.',
-    note: (
-      <>
-        Testers only for now. To join, email{' '}
-        <a
-          href={`mailto:${testerEmail}?subject=Statim%20Android%20tester`}
-          className="font-medium text-white underline decoration-white/30 hover:decoration-white">
-          {testerEmail}
-        </a>{' '}
-        from the Google account your phone uses.
-      </>
-    ),
-  },
+  { platform: 'android', name: 'Android', empty: 'Not released yet.' },
   { platform: 'ios', name: 'iPhone', empty: 'Not released yet.' },
 ];
 

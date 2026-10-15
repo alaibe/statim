@@ -116,10 +116,10 @@ shows "Windows protected your PC". Click More info, then Run anyway.
 
 ## Where is Android?
 
-Android is in testing on Google Play, for testers only. To be added, email
-[anthony@laibe.cc](mailto:anthony@laibe.cc) from the Google account your phone
-uses, then
-[join the test](https://play.google.com/apps/internaltest/4701701549081878732).
+Android is in open testing on Google Play.
+[Join the test](https://play.google.com/apps/testing/im.statim.app) with the
+Google account your phone uses, then install Statim from
+[Google Play](https://play.google.com/store/apps/details?id=im.statim.app).
 Everything except Telegram works there. Telegram is not in the Android build
 yet.
 
