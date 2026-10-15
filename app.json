@@ -2,7 +2,7 @@
   "expo": {
     "name": "Statim",
     "slug": "statim",
-    "version": "0.7.7",
+    "version": "0.7.8",
     "runtimeVersion": {
       "policy": "fingerprint"
     },
