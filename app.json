@@ -102,7 +102,10 @@
             "usePrecompiledModules": false
           },
           "android": {
-            "minSdkVersion": 26
+            "minSdkVersion": 26,
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "-keep class org.drinkless.tdlib.** { *; }\n-keepclassmembers class * extends com.google.protobuf.GeneratedMessageLite { <fields>; }\n-keep,allowshrinking class * extends com.sun.jna.Structure\n-if interface * extends com.sun.jna.Library\n-keep interface <1>\n-keepnames class org.xmtp.android.library.codecs.ReactionAction$*\n-keepnames class org.xmtp.android.library.codecs.ReactionSchema$*"
           }
         }
       ],
@@ -177,6 +180,7 @@
       ],
       "./plugins/with-sqlcipher-sqlite-fix",
       "./plugins/with-arm64-simulator",
+      "./plugins/with-gradle-heap",
       [
         "expo-sqlite",
         {
