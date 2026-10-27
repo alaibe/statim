@@ -1,4 +1,5 @@
 import { htmlToMarkdown } from './html-markdown';
+import { segmentText } from './links';
 import { parseMarkdown, plainText } from './markdown';
 
 describe('htmlToMarkdown', () => {
@@ -48,6 +49,13 @@ describe('htmlToMarkdown', () => {
     expect(htmlToMarkdown('[INFO] 2*3 my_var <br>- not a list')).toBe(
       '\\[INFO\\] 2\\*3 my_var\n\\- not a list'
     );
+  });
+
+  it('leaves an address the parser links as written unescaped', () => {
+    const url = 'https://x.com/how__to/status/1?s=46&q=*a*~b';
+    const markdown = htmlToMarkdown(`<b>see</b> ${url} or <a href="https://a.b">${url}_</a>`);
+    expect(segmentText(plainText(markdown))).toContainEqual({ kind: 'url', text: url, href: url });
+    expect(plainText(markdown)).toBe(`see ${url} or ${url}_`);
   });
 });
 

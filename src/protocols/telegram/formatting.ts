@@ -1,4 +1,5 @@
 import {
+  autolinkRanges,
   type Block,
   hasMarkup,
   listMarker,
@@ -24,6 +25,7 @@ interface Mark {
   text: string;
   verbatim?: boolean;
   quote?: boolean;
+  label?: boolean;
 }
 
 const INLINE: Record<string, string> = {
@@ -70,10 +72,10 @@ function entityMarks(text: string, { offset, length, type }: Entity): Mark[] {
     return pair(start, stop, fence, [...fence].reverse().join(''), { verbatim: true });
   }
   if (kind === 'textEntityTypeTextUrl') {
-    return pair(start, stop, '[', `](${encodeUrl(type.url as string)})`);
+    return pair(start, stop, '[', `](${encodeUrl(type.url as string)})`, { label: true });
   }
   if (kind === 'textEntityTypeMentionName') {
-    return pair(start, stop, '[', `](${mentionHref(String(type.user_id))})`);
+    return pair(start, stop, '[', `](${mentionHref(String(type.user_id))})`, { label: true });
   }
   return INLINE[kind] ? pair(start, stop, INLINE[kind], INLINE[kind]) : [];
 }
@@ -93,8 +95,11 @@ function render(text: string, marks: readonly Mark[]): string {
   let out = '';
   let verbatim = 0;
   let quote = 0;
+  let label = 0;
   let escapeAt = -1;
+  const autolinks = autolinkRanges(text);
   const atLineStart = () => out === '' || out.endsWith('\n');
+  const inAutolink = (i: number) => autolinks.some(([start, end]) => i >= start && i < end);
 
   const applyMark = (mark: Mark) => {
     out += mark.text;
@@ -105,12 +110,13 @@ function render(text: string, marks: readonly Mark[]): string {
       return;
     }
     if (mark.verbatim) verbatim += depth;
+    if (mark.label) label += depth;
     if (quote > 0 && mark.open && mark.verbatim && out.endsWith('\n')) out += '> ';
   };
 
   const writeChar = (i: number) => {
     const char = text[i];
-    if (verbatim > 0) {
+    if (verbatim > 0 || (label === 0 && inAutolink(i))) {
       out += char;
     } else {
       if (atLineStart() || (quote > 0 && out.endsWith('> '))) {

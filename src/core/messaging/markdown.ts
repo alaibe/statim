@@ -52,8 +52,17 @@ const marked = new Marked({
 
 const MARKUP = /[*_~`>#[\\]|^\s*(?:[-+]|\d+[.)])\s/m;
 
+// GFM's own rule for a bare address. Outside a link label marked takes it as
+// written, so a backslash escape there would stay in the link.
+const AUTOLINK = /(?:(?:https?|ftp):\/\/|www\.)[a-z0-9-][^\s<]*/gi;
+
 export function hasMarkup(text: string): boolean {
   return MARKUP.test(text);
+}
+
+/** Where plain text holds an address marked links as written, as [start, end) ranges. */
+export function autolinkRanges(text: string): [start: number, end: number][] {
+  return [...text.matchAll(AUTOLINK)].map((match) => [match.index, match.index + match[0].length]);
 }
 
 const hasShortcode = (text: string) => text.includes(':') && new RegExp(SHORTCODE).test(text);

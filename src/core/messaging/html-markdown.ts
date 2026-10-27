@@ -1,3 +1,4 @@
+import { autolinkRanges } from './markdown';
 import { decodeId, mentionHref } from './mentions';
 
 interface Element {
@@ -165,9 +166,10 @@ function block(el: Element): string[] {
   }
 }
 
-function inline(node: Node): string {
-  if (typeof node === 'string') return escapeInline(node.replace(/\s+/g, ' '));
-  const inner = () => node.children.map(inline).join('');
+function inline(node: Node, label = false): string {
+  if (typeof node === 'string') return escapeInline(node.replace(/\s+/g, ' '), label);
+  const inner = () =>
+    node.children.map((child) => inline(child, label || node.tag === 'a')).join('');
   switch (node.tag) {
     case 'mx-reply':
       return '';
@@ -188,7 +190,7 @@ function inline(node: Node): string {
     case 'a':
       return link(node, inner());
     case 'img':
-      return escapeInline(node.attrs.alt ?? '');
+      return escapeInline(node.attrs.alt ?? '', label);
     default:
       return inner();
   }
@@ -225,8 +227,17 @@ function textContent(node: Node): string {
   return typeof node === 'string' ? node : node.children.map(textContent).join('');
 }
 
-function escapeInline(text: string): string {
-  return text.replace(/[\\*`[\]]|_(?![\p{L}\p{N}])|(?<![\p{L}\p{N}])_|~/gu, '\\$&');
+function escapeInline(text: string, label: boolean): string {
+  const escape = (part: string) =>
+    part.replace(/[\\*`[\]]|_(?![\p{L}\p{N}])|(?<![\p{L}\p{N}])_|~/gu, '\\$&');
+  if (label) return escape(text);
+  let out = '';
+  let at = 0;
+  for (const [start, end] of autolinkRanges(text)) {
+    out += escape(text.slice(at, start)) + text.slice(start, end);
+    at = end;
+  }
+  return out + escape(text.slice(at));
 }
 
 function escapeLineStarts(text: string): string {

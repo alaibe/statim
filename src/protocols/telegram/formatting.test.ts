@@ -1,3 +1,6 @@
+import { segmentText } from '@/core/messaging/links';
+import { plainText } from '@/core/messaging/markdown';
+
 import type { TdObject } from './api';
 import { formattedToMarkdown, markdownToFormatted } from './formatting';
 
@@ -48,6 +51,21 @@ describe('formattedToMarkdown', () => {
     expect(formattedToMarkdown({ text: '> 2*3 = 6\n1. no list\nsnake_case', entities: [] })).toBe(
       '\\> 2\\*3 = 6\n1\\. no list\nsnake_case'
     );
+  });
+
+  it('leaves an address the parser links as written unescaped', () => {
+    const url = 'https://x.com/how__to/status/1?s=46&q=*a*~b';
+    const text = `see ${url} or ${url}_`;
+    const markdown = formattedToMarkdown({
+      text,
+      entities: [
+        entity(text.length - url.length - 1, url.length + 1, 'textEntityTypeTextUrl', {
+          url: 'https://a.b',
+        }),
+      ],
+    });
+    expect(segmentText(plainText(markdown))).toContainEqual({ kind: 'url', text: url, href: url });
+    expect(plainText(markdown)).toBe(text);
   });
 });
 
