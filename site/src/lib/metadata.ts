@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import { basePath, origin } from '@/lib/site';
+import { basePath, origin, siteUrl } from '@/lib/site';
 
 export const siteMetadata: Metadata = {
   metadataBase: new URL(origin),
@@ -11,3 +11,26 @@ export const siteMetadata: Metadata = {
   },
   twitter: { card: 'summary_large_image' },
 };
+
+export function pageUrl(path: string) {
+  return `${siteUrl}${path.replace(/\/?$/, '/')}`;
+}
+
+export function pageMetadata({
+  title,
+  description,
+  path,
+}: {
+  title: string;
+  description: string;
+  path: string;
+}): Metadata {
+  let url = pageUrl(path);
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { ...siteMetadata.openGraph, title, description, url },
+    twitter: { ...siteMetadata.twitter, title, description },
+  };
+}

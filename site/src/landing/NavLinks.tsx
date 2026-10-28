@@ -14,6 +14,7 @@ export function NavLinks() {
     ['Tour', '/#tour'],
     ['Download', '/#download'],
     ['FAQ', '/#faqs'],
+    ['Compare', '/compare'],
     ['Guide', '/guide'],
   ].map(([label, href], index) => (
     <Link

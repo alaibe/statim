@@ -1,4 +1,6 @@
+import { comparisonPath, comparisons } from '@/lib/compare';
 import { getPage, markdownUrl } from '@/lib/docs';
+import { pageUrl } from '@/lib/metadata';
 import { navigation, siteUrl } from '@/lib/site';
 
 export const dynamic = 'force-static';
@@ -21,6 +23,12 @@ export function GET() {
       `This is the user guide. Every page is Markdown; [llms-full.txt](${siteUrl}/llms-full.txt) has all of them in one file.`,
       `## For AI assistants\n\nOn a computer, the \`statim\` command reads and sends the user's messages through the running app. It is off until the user turns it on in Settings › Command line. \`statim skills install\` gives Claude Code the instructions (\`--codex\` for Codex, \`--dir <folder>\` for another assistant), and \`statim --skills\` prints them. \`statim mcp\` offers the same commands as tools to any app that takes a local MCP server, such as Claude Desktop or Cursor.\n\n- [Command line](${markdownUrl('/guide/command-line')}): turning it on, installing it, connecting an AI app over MCP, and what the assistant may do.\n- [Statim skill](${siteUrl}/skills/statim/SKILL.md): the file \`statim skills install\` writes.`,
       ...sections,
+      `## Comparisons\n\n${comparisons
+        .map(
+          (comparison) =>
+            `- [Statim vs ${comparison.name}](${pageUrl(comparisonPath(comparison))}): ${comparison.description}`
+        )
+        .join('\n')}`,
     ].join('\n\n')}\n`,
     { headers: { 'Content-Type': 'text/plain; charset=utf-8' } }
   );

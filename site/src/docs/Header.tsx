@@ -74,6 +74,7 @@ export const Header = forwardRef<
           <ul role="list" className="flex items-center gap-8">
             <TopLevelNavItem href="/">Home</TopLevelNavItem>
             <TopLevelNavItem href="/faq">FAQ</TopLevelNavItem>
+            <TopLevelNavItem href="/compare">Compare</TopLevelNavItem>
             <TopLevelNavItem href={repoUrl}>GitHub</TopLevelNavItem>
           </ul>
         </nav>

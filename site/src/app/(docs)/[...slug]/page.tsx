@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Markdown } from '@/docs/Markdown';
 import { Prose } from '@/docs/Prose';
 import { allSlugs, getPage, markdownUrl } from '@/lib/docs';
+import { pageMetadata } from '@/lib/metadata';
 import { repoUrl } from '@/lib/site';
 
 type Params = { params: Promise<{ slug: Array<string> }> };
@@ -15,10 +16,14 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   let page = getPage((await params).slug.join('/'));
-  return {
+  let metadata = pageMetadata({
     title: page.title,
     description: page.description,
-    alternates: { types: { 'text/markdown': markdownUrl(page.href) } },
+    path: page.href,
+  });
+  return {
+    ...metadata,
+    alternates: { ...metadata.alternates, types: { 'text/markdown': markdownUrl(page.href) } },
   };
 }
 

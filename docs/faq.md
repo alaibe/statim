@@ -129,7 +129,9 @@ app through its [TestFlight beta](https://testflight.apple.com/join/kQGUUDUv).
 No. Statim takes its logo from the 2018 Status app. It is not affiliated with
 or endorsed by Status. It speaks Status's chat protocol, though, so you can have
 DMs and groups with Status users. Communities are not supported. See
-[Protocols](./guide/networks#status).
+[Protocols](./guide/networks#status), and
+[Statim vs Status](https://statim.laibe.cc/compare/statim-vs-status/) for how
+the two apps differ.
 
 ## Where do I report a bug?
 

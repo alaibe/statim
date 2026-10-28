@@ -4,6 +4,7 @@ import { Container } from '@/landing/Container';
 import { GitHubIcon } from '@/landing/Header';
 import { Logomark } from '@/landing/Logo';
 import { NavLinks } from '@/landing/NavLinks';
+import { comparisonPath, comparisons } from '@/lib/compare';
 import { repoUrl } from '@/lib/site';
 
 const legal = [
@@ -28,6 +29,19 @@ export function Footer() {
             </div>
             <nav className="mt-11 flex flex-wrap gap-8">
               <NavLinks />
+            </nav>
+            <nav
+              aria-label="Comparisons"
+              className="mt-8 flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-500">
+              <span>Statim vs</span>
+              {comparisons.map((comparison) => (
+                <Link
+                  key={comparison.id}
+                  href={comparisonPath(comparison)}
+                  className="hover:text-gray-900">
+                  {comparison.name}
+                </Link>
+              ))}
             </nav>
           </div>
           <a

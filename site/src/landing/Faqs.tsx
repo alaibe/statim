@@ -63,6 +63,10 @@ export function Faqs() {
             <Link href="/faq" className="text-gray-900 underline">
               full FAQ
             </Link>
+            . How it stacks up against Signal, Telegram or Status is under{' '}
+            <Link href="/compare" className="text-gray-900 underline">
+              Compare
+            </Link>
             , and bugs go to{' '}
             <a href="https://github.com/alaibe/statim/issues" className="text-gray-900 underline">
               GitHub issues

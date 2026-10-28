@@ -1,17 +1,17 @@
-import type { Metadata } from 'next';
-
 import { Button } from '@/docs/Button';
 import { Heading } from '@/docs/Heading';
 import { HeroPattern } from '@/docs/HeroPattern';
 import { Prose } from '@/docs/Prose';
 import { Resources } from '@/docs/Resources';
 import { getPage } from '@/lib/docs';
+import { pageMetadata } from '@/lib/metadata';
 import { navigation } from '@/lib/site';
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: 'Introduction',
   description: 'How to use Statim, the self-custodial messenger.',
-};
+  path: '/guide',
+});
 
 export default function Introduction() {
   let guides = navigation[0].links
