@@ -23,8 +23,9 @@ For later iOS sessions, boot the simulator and run `npm start`. Run
 2. Find the closest existing feature and its tests. App code is under `src/`;
    native desktop code is under `src-tauri/`. Follow the patterns already used
    nearby and keep the change focused.
-3. Add or update tests when behavior changes. Update the user guide in `docs/`
-   when the way people use the app changes.
+3. Add or update tests when behavior changes. When the way people use the app
+   changes, say so in the pull request, so the user guide at
+   https://statim.laibe.cc/guide can follow.
 4. Leave generated files as they are, except database migrations, which you
    generate as [AGENTS.md](AGENTS.md) describes. The maintainer regenerates the
    rest from your source change. If you change a dependency patch, update

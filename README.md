@@ -13,19 +13,19 @@ Statim takes its logo from the 2018 Status app. It is not affiliated with or
 endorsed by Status.
 
 <p align="center">
-  <a href="docs/public/promo/film-16x9.mp4"><img src="docs/public/promo/film.webp" width="800" alt="The promo film: a twelve-word account, five protocols in one chat list, and an AI agent paying a friend back while you approve on the phone"></a>
+  <a href="https://statim.laibe.cc/promo/film-16x9.mp4"><img src="https://statim.laibe.cc/promo/film.webp" width="800" alt="The promo film: a twelve-word account, five protocols in one chat list, and an AI agent paying a friend back while you approve on the phone"></a>
 </p>
 
 <p align="center">
-  <img src="docs/public/screenshots/welcome.png" width="196" alt="Welcome screen: create an account, restore a phrase or connect a hardware wallet">
-  <img src="docs/public/screenshots/statim-chat.png" width="196" alt="The Statim chat, with slash command chips above the composer">
-  <img src="docs/public/screenshots/message-actions.png" width="196" alt="Long-pressing a message: reactions, reply, copy and forward">
-  <img src="docs/public/screenshots/plugins.png" width="196" alt="Plugins screen: assistant, names, bots, wallet, browser and markets">
+  <img src="https://statim.laibe.cc/screenshots/welcome.png" width="196" alt="Welcome screen: create an account, restore a phrase or connect a hardware wallet">
+  <img src="https://statim.laibe.cc/screenshots/statim-chat.png" width="196" alt="The Statim chat, with slash command chips above the composer">
+  <img src="https://statim.laibe.cc/screenshots/message-actions.png" width="196" alt="Long-pressing a message: reactions, reply, copy and forward">
+  <img src="https://statim.laibe.cc/screenshots/plugins.png" width="196" alt="Plugins screen: assistant, names, bots, wallet, browser and markets">
 </p>
 
 **[User guide](https://statim.laibe.cc/)** ·
 [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) ·
-[Privacy](PRIVACY.md) · [Disclaimer](DISCLAIMER.md)
+[Privacy](https://statim.laibe.cc/privacy) · [Disclaimer](https://statim.laibe.cc/disclaimer)
 
 ## Five protocols, one chat list
 
@@ -124,11 +124,11 @@ put a name to a mint.
 
 | For | Where |
 | --- | --- |
-| Using the app | [statim.laibe.cc](https://statim.laibe.cc/) (`docs/`) |
+| Using the app | [statim.laibe.cc](https://statim.laibe.cc/guide) |
 | Working on the code | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
 | Reporting a vulnerability | [`SECURITY.md`](SECURITY.md) |
-| What leaves your device | [`PRIVACY.md`](PRIVACY.md) |
-| What the developer is not responsible for | [`DISCLAIMER.md`](DISCLAIMER.md) |
+| What leaves your device | [Privacy policy](https://statim.laibe.cc/privacy) |
+| What the developer is not responsible for | [Disclaimer](https://statim.laibe.cc/disclaimer) |
 | Why each dependency is patched | [`patches/README.md`](patches/README.md) |
 | End-to-end tests | [`e2e/README.md`](e2e/README.md) |
 | Running your own bots | [Your own bots](https://statim.laibe.cc/guide/bots) |
@@ -144,7 +144,7 @@ Apple.
 - Committers and reviewers: [Anthony Laibe](https://github.com/alaibe)
 - Approvers: [Anthony Laibe](https://github.com/alaibe)
 
-What the app sends, and where, is in [`PRIVACY.md`](PRIVACY.md).
+What the app sends, and where, is in the [privacy policy](https://statim.laibe.cc/privacy).
 
 ## License
 

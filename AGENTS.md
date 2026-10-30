@@ -20,6 +20,17 @@ Nostr and Status networks, build artifacts. New material of that kind goes
 there too. `priv/` documents itself, including how each tool runs. A worktree
 has no `priv/`; use the main checkout's.
 
+## Website
+
+statim.laibe.cc and everything that ships Statim live in the laibe repository:
+the user guide, FAQ, privacy policy and disclaimer (`content/statim/`), the
+generators of the guide's screenshots, the sticker pack and the promo film
+(`php artisan generate statim …`), and the release (`php artisan deploy
+statim`, which tags it and builds the phone apps). When a change alters how the
+app is used or what it sends, update the guide or the privacy policy there.
+This repository holds the app; the release workflow stays in `.github/` because
+GitHub runs it from here.
+
 ## Before you finish
 
 ```bash
@@ -38,8 +49,7 @@ Biome formats TypeScript and JSON, rustfmt formats `src-tauri`. Neither lints;
   `skills/statim/SKILL.md`, `src-tauri/cli/help.txt` and
   `src-tauri/cli/mcp.json` from `src/features/cli/commands.ts`;
   `assets/brand/mark.svg` and every icon; `chat-pattern-tile.ts`; both token
-  lists; `docs/public/promo/` and `docs/public/stickers/`. Editing the output
-  is undone on the next build.
+  lists. Editing the output is undone on the next build.
 - `.web.ts` / `.web.tsx` is the desktop. There is no browser deployment.
   A platform file must have a non-platform neighbour, and Expo Router needs a
   non-platform file for every route.
@@ -103,7 +113,7 @@ _Avoid_: event, post
 
 **Sticker**: A message that is one picture or short animation, drawn large and without a bubble.
 
-**Sticker pack**: A named set of stickers you pick from: your packs on a network, or Statim's own, published with the site.
+**Sticker pack**: A named set of stickers you pick from: your packs on a network, or Statim's own, which statim.laibe.cc serves.
 
 **Thread**: The messages posted under one message, shown apart from the rest of the chat.
 _Avoid_: topic, sub-chat

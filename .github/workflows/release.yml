@@ -12,7 +12,6 @@ on:
 
 permissions:
   contents: write
-  actions: write
   id-token: write
   attestations: write
 
@@ -174,7 +173,6 @@ jobs:
           gh api -X POST -H "Content-Type: text/plain" --input SHA256SUMS --silent \
             "https://uploads.github.com/$RELEASE/assets?name=SHA256SUMS"
           gh api -X PATCH "$RELEASE" -F draft=false --silent
-          gh workflow run site.yml --repo "${{ github.repository }}" --ref main
 
   homebrew:
     needs: [prepare, publish]

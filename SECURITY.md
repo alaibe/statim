@@ -127,5 +127,5 @@ where it matters:
   erase paths there use the same code, but only iOS and macOS have been gone
   over.
 
-[`PRIVACY.md`](PRIVACY.md) is the exhaustive list of what leaves the device and
+The [privacy policy](https://statim.laibe.cc/privacy) is the exhaustive list of what leaves the device and
 to whom.

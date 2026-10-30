@@ -5,7 +5,7 @@ import { SITE } from '@/lib/guide';
 
 import type { PickerPack } from '@/core/messaging/stickers';
 
-/** Where the site publishes the packs, ending in `/`; a local copy of `docs/public/stickers/` while developing. */
+/** Where the site publishes the packs, ending in `/`; laibe's dev server while developing. */
 const PACKS = process.env.EXPO_PUBLIC_STICKERS_URL ?? `${SITE}stickers/`;
 const SIDE = 512;
 const TIMEOUT_MS = 5_000;

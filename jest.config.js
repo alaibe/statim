@@ -8,8 +8,8 @@ module.exports = {
    */
   resolver: '<rootDir>/node_modules/react-native-worklets/jest/resolver.js',
   /** Agent worktrees under .claude/ hold full copies of the project. */
-  testPathIgnorePatterns: ['/node_modules/', '/.claude/', '<rootDir>/site/'],
-  modulePathIgnorePatterns: ['/.claude/', '<rootDir>/site/'],
+  testPathIgnorePatterns: ['/node_modules/', '/.claude/'],
+  modulePathIgnorePatterns: ['/.claude/'],
   // Mirrors the "@/assets/*" and "@/*" aliases from tsconfig.json, in that order.
   moduleNameMapper: {
     '^@/assets/(.*)$': '<rootDir>/assets/$1',
