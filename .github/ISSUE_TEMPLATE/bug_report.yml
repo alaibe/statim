@@ -1,0 +1,59 @@
+name: Report a problem
+description: Something in Statim does not work the way it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Issues are public. Leave out your recovery phrase, keys, private messages and anything else you would not post openly. To report a security vulnerability, follow [SECURITY.md](https://github.com/alaibe/statim/security/policy) instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: Include any error message as it appeared.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a group on Matrix
+        2. Send a photo
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Filled in when you come from Settings › Report a problem.
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      description: The system and its version. For a problem on statim.laibe.cc, the browser.
+      placeholder: iOS 26.1, Android 16, macOS 26.1, Windows 11, Ubuntu 24.04
+    validations:
+      required: true
+  - type: dropdown
+    id: protocol
+    attributes:
+      label: Protocol
+      description: The protocol of the chat where it happened, if any.
+      multiple: true
+      options:
+        - XMTP
+        - Matrix, or a network bridged through it
+        - Telegram
+        - Nostr
+        - Status
+        - Not about one protocol

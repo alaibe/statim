@@ -1,0 +1,45 @@
+name: Suggest a feature
+description: Something you would like Statim to do.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Issues are public. Leave out your recovery phrase, keys, private messages and anything else you would not post openly.
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you would like
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: What it would help with
+      description: What you do today instead, and where that falls short.
+    validations:
+      required: true
+  - type: dropdown
+    id: protocol
+    attributes:
+      label: Protocol
+      description: The protocol it is about, if any.
+      multiple: true
+      options:
+        - XMTP
+        - Matrix, or a network bridged through it
+        - Telegram
+        - Nostr
+        - Status
+        - Not about one protocol
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Filled in when you come from Settings › Suggest a feature.
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      description: The system and its version.
+      placeholder: iOS 26.1, Android 16, macOS 26.1, Windows 11, Ubuntu 24.04

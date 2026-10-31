@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
-import { Badge, Chevron, ConfirmSheet, ListItem, RowIcon, Section } from '@/design';
+import { Badge, Chevron, ConfirmSheet, Icon, ListItem, RowIcon, Section } from '@/design';
 import { activeAccount, useAccountStore } from '@/core/account/account-store';
 import { readCredentials, type Credentials } from '@/core/account/credentials';
 import { connectionFor, useChatStore } from '@/core/messaging/chat-store';
@@ -14,6 +14,8 @@ import { usePluginHost } from '@/core/plugins/host';
 import { openTab } from '@/features/navigation/open';
 import { connectionBadge, protocolIcon } from '@/features/protocols/presentation';
 import { SecuritySection } from '@/features/settings/security-section';
+import { feedbackUrl } from '@/lib/feedback';
+import { openExternal } from '@/lib/open-url';
 import { useKeyedLoad } from '@/lib/use-keyed-load';
 import { useAction } from '@/features/use-action';
 
@@ -69,6 +71,7 @@ export function SettingsSections({
 }) {
   const router = useRouter();
   const chevron = compact ? undefined : <Chevron />;
+  const external = compact ? undefined : <Icon name="open-outline" size={18} tone="subtle" />;
   const hint = (text: string) => (compact ? undefined : text);
   const accounts = useAccountStore((s) => s.accounts);
   const onWallet = useAccountStore((s) => activeAccount(s)?.kind === 'hardware');
@@ -242,6 +245,25 @@ export function SettingsSections({
             onPress={() => openTab('/settings/command-line')}
           />
         ) : null}
+      </Section>
+
+      <Section title="Feedback" surface="card" className="mb-6">
+        <ListItem
+          testID="settings-report-problem"
+          title="Report a problem"
+          subtitle={hint('Opens a public issue form on GitHub')}
+          leading={<RowIcon name="flag-outline" tone="red" />}
+          trailing={external}
+          onPress={() => openExternal(feedbackUrl('problem')).catch(() => {})}
+        />
+        <ListItem
+          testID="settings-suggest-feature"
+          title="Suggest a feature"
+          subtitle={hint('Opens a public issue form on GitHub')}
+          leading={<RowIcon name="bulb-outline" tone="orange" />}
+          trailing={external}
+          onPress={() => openExternal(feedbackUrl('feature')).catch(() => {})}
+        />
       </Section>
 
       <ConfirmSheet
