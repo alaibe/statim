@@ -5,6 +5,13 @@
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
+use std::time::{Duration, Instant};
+
+const GRACE: Duration = if cfg!(unix) {
+    Duration::from_secs(10)
+} else {
+    Duration::ZERO
+};
 
 pub struct Process {
     child: Child,
@@ -47,12 +54,41 @@ impl Process {
             .map(|status| status.to_string())
     }
 
-    pub fn stop(mut self) {
-        let _ = self.child.kill();
-        let _ = self.child.wait();
-        let _ = std::fs::remove_file(&self.pidfile);
+    pub fn stop(self) {
+        stop_all(vec![self]);
     }
 }
+
+pub fn stop_all(processes: Vec<Process>) {
+    stop_within(processes, GRACE);
+}
+
+fn stop_within(mut processes: Vec<Process>, grace: Duration) {
+    for process in &mut processes {
+        if process.exited().is_none() {
+            terminate(process.child.id());
+        }
+    }
+    let deadline = Instant::now() + grace;
+    while Instant::now() < deadline && processes.iter_mut().any(|p| p.exited().is_none()) {
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    for mut process in processes {
+        let _ = process.child.kill();
+        let _ = process.child.wait();
+        let _ = std::fs::remove_file(&process.pidfile);
+    }
+}
+
+#[cfg(unix)]
+fn terminate(pid: u32) {
+    unsafe {
+        libc::kill(pid as i32, libc::SIGTERM);
+    }
+}
+
+#[cfg(not(unix))]
+fn terminate(_pid: u32) {}
 
 /// Stops the process a pidfile names, but only if it still runs `program`:
 /// a pid can be reused by something else once its process is gone.
@@ -75,9 +111,7 @@ fn stop_left_behind(pidfile: &Path, program: &Path) {
         })
         .unwrap_or(false);
     if running {
-        unsafe {
-            libc::kill(pid, libc::SIGTERM);
-        }
+        terminate(pid as u32);
         for _ in 0..50 {
             if unsafe { libc::kill(pid, 0) } != 0 {
                 break;
@@ -116,5 +150,42 @@ mod tests {
         stop_left_behind(&pidfile, sleep);
         assert!(orphan.wait().is_ok());
         assert!(!pidfile.exists());
+    }
+
+    #[test]
+    fn asks_each_process_to_stop_and_kills_the_ones_that_do_not() {
+        let dir = std::env::temp_dir().join("statim-process-stop-test");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let shell = Path::new("/bin/sh");
+        let polite = Process::spawn(
+            "polite",
+            shell,
+            &dir,
+            &[],
+            &["-c", "trap 'touch stopped; exit 0' TERM; touch polite.ready; while :; do sleep 0.1; done"],
+        )
+        .unwrap();
+        let stubborn = Process::spawn(
+            "stubborn",
+            shell,
+            &dir,
+            &[],
+            &["-c", "trap '' TERM; touch stubborn.ready; exec sleep 30"],
+        )
+        .unwrap();
+        let ready = Instant::now() + Duration::from_secs(5);
+        while !(dir.join("polite.ready").exists() && dir.join("stubborn.ready").exists()) {
+            assert!(Instant::now() < ready, "the test processes never started");
+            std::thread::sleep(Duration::from_millis(20));
+        }
+
+        let started = Instant::now();
+        stop_within(vec![polite, stubborn], Duration::from_millis(500));
+
+        assert!(dir.join("stopped").exists(), "never asked to stop");
+        assert!(started.elapsed() < Duration::from_secs(5), "never killed");
+        assert!(!dir.join("polite.pid").exists());
+        assert!(!dir.join("stubborn.pid").exists());
     }
 }

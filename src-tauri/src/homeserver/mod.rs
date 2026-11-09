@@ -50,9 +50,7 @@ impl Running {
     /// Stops the programs; Tailscale keeps serving the port for a restart.
     fn stop(self) -> Option<PathBuf> {
         self.router.stop();
-        for bridge in self.bridges {
-            bridge.stop();
-        }
+        process::stop_all(self.bridges);
         self.server.stop();
         self.served
     }
@@ -394,12 +392,13 @@ async fn start(account: String, dir: PathBuf, bin: &Path) -> Result<Running, Str
 async fn answering(server: &mut Process, dir: &Path) -> Result<(), String> {
     let versions = format!("http://127.0.0.1:{SERVER_PORT}/_matrix/client/versions");
     let client = reqwest::Client::new();
+    let log = dir.join("tuwunel.log");
     let deadline = Instant::now() + START_TIMEOUT;
     while Instant::now() < deadline {
         if let Some(status) = server.exited() {
             return Err(format!(
                 "The homeserver stopped as it started ({status}); its log is {}.",
-                dir.join("tuwunel.log").display()
+                log.display()
             ));
         }
         if client
@@ -412,7 +411,11 @@ async fn answering(server: &mut Process, dir: &Path) -> Result<(), String> {
         }
         tokio::time::sleep(Duration::from_millis(200)).await;
     }
-    Err("The homeserver did not answer within 30 seconds.".into())
+    Err(format!(
+        "The homeserver did not answer within {} seconds; its log is {}.",
+        START_TIMEOUT.as_secs(),
+        log.display()
+    ))
 }
 
 /// Made once per account; new Matrix users on the server need it.

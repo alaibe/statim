@@ -36,7 +36,8 @@ pub fn tuwunel(
          allow_federation = false\n\
          trusted_servers = []\n\
          startup_netburst = false\n\
-         log = \"warn\"\n",
+         log = \"warn\"\n\
+         rocksdb_log_level = \"warn\"\n",
         server_name = quoted(server_name),
         database = quoted(&database.to_string_lossy()),
         token = quoted(registration_token),
