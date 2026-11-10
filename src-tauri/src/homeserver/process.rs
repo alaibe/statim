@@ -93,7 +93,7 @@ fn terminate(_pid: u32) {}
 /// Stops the process a pidfile names, but only if it still runs `program`:
 /// a pid can be reused by something else once its process is gone.
 #[cfg(unix)]
-fn stop_left_behind(pidfile: &Path, program: &Path) {
+pub fn stop_left_behind(pidfile: &Path, program: &Path) {
     let Some(pid) = std::fs::read_to_string(pidfile)
         .ok()
         .and_then(|text| text.trim().parse::<i32>().ok())
@@ -123,7 +123,7 @@ fn stop_left_behind(pidfile: &Path, program: &Path) {
 }
 
 #[cfg(not(unix))]
-fn stop_left_behind(pidfile: &Path, _program: &Path) {
+pub fn stop_left_behind(pidfile: &Path, _program: &Path) {
     let _ = std::fs::remove_file(pidfile);
 }
 

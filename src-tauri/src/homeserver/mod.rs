@@ -9,6 +9,7 @@ mod process;
 mod router;
 mod tailscale;
 mod users;
+mod wal;
 
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
@@ -326,6 +327,9 @@ async fn start(account: String, dir: PathBuf, bin: &Path) -> Result<Running, Str
         ),
     )
     .map_err(|e| e.to_string())?;
+    let tuwunel = bin.join("tuwunel");
+    process::stop_left_behind(&dir.join("tuwunel.pid"), &tuwunel);
+    wal::repair(&dir.join("db"));
     let router = Router::start(
         ROUTER_PORT,
         Routes {
@@ -338,7 +342,7 @@ async fn start(account: String, dir: PathBuf, bin: &Path) -> Result<Running, Str
     )?;
     let mut server = match Process::spawn(
         "tuwunel",
-        &bin.join("tuwunel"),
+        &tuwunel,
         &dir,
         &[("TUWUNEL_CONFIG", &config)],
         &[],
