@@ -123,9 +123,6 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          # Keeps src-tauri/target between releases on the Mac: a universal build from scratch takes long.
-          clean: false
 
       - name: Secrets are set
         env:
@@ -277,15 +274,15 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
       # The perl OpenSSL's build runs (openssl-src reads PERL): Strawberry's, never the MSYS one in Git's bash.
       PERL: C:\Strawberry\perl\bin\perl.exe
+      # Outside the job's folder, which the runner deletes after every job: compiled crates, and Tauri's WiX and NSIS
+      # (useLocalToolsDir below), stay from one release to the next. One job at a time on the VM, so one folder.
+      CARGO_TARGET_DIR: C:\runner\target\statim
     defaults:
       run:
         # Git's bash: the runner's own default on Windows is PowerShell.
         shell: bash
     steps:
       - uses: actions/checkout@v4
-        with:
-          # Keeps src-tauri/target between releases on the VM.
-          clean: false
 
       - name: The VM's tools
         run: |
@@ -298,14 +295,20 @@ jobs:
       - name: TDLib
         run: ./scripts/tdlib.sh desktop
 
-      # In PowerShell, not bash, so nothing in the build sees Git's MSYS tools first.
+      # In PowerShell, not bash, so nothing in the build sees Git's MSYS tools first. useLocalToolsDir keeps WiX and
+      # NSIS in CARGO_TARGET_DIR's .tauri: the runner's service is LocalSystem, whose profile is under System32, where
+      # Windows redirects 32-bit programs like WiX's candle.exe to SysWOW64 and they can't find their own files.
       - name: Build the MSI and NSIS installer
         shell: powershell
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
-          npx tauri build --config src-tauri/tauri.release.conf.json
+          # A file, not inline JSON: PowerShell 5.1 mangles quotes in arguments to programs. ASCII, so no BOM.
+          '{"bundle":{"useLocalToolsDir":true}}' | Set-Content -Encoding ascii "$env:RUNNER_TEMP\local-tools.json"
+          # Only this version's installers in the bundle folder.
+          Remove-Item -Recurse -Force "$env:CARGO_TARGET_DIR\release\bundle" -ErrorAction SilentlyContinue
+          npx tauri build --config src-tauri/tauri.release.conf.json --config "$env:RUNNER_TEMP\local-tools.json"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Attach to the release
@@ -313,7 +316,7 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: |
           shopt -s nullglob
-          bundle=src-tauri/target/release/bundle
+          bundle="$(cygpath -u "$CARGO_TARGET_DIR")/release/bundle"
           files=($bundle/msi/*.msi $bundle/nsis/*-setup.exe)
           [ ${#files[@]} -eq 2 ] || { echo "the MSI and NSIS installer weren't both built: ${files[*]}" >&2; exit 1; }
           for file in "${files[@]}"; do
