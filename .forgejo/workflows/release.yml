@@ -1,7 +1,7 @@
 # Builds the desktop apps when a `v*` tag is pushed to git.laibe.cc (weekly.yml pushes it), on Forgejo Actions, and
 # releases them on the public GitHub repository alaibe/statim, which mirrors this one: the site's download links,
 # the Homebrew cask and the installed apps' updater all read its releases. A tag run also builds the Android app and
-# sends it to Google Play.
+# sends it to Google Play and, once the IOS variable is on, the iPhone app to TestFlight.
 #
 # Runners (the homeserver repository has their setup):
 #   mac         forgejo-runner on the Mac, steps on the Mac itself with its Xcode, Rust, Node, EAS and Android SDK
@@ -14,12 +14,13 @@
 # - Windows (`windows`): the MSI and NSIS installers.
 # - publish (`home-linux`): SHA256SUMS and the updater's latest.json from what the jobs attached, then the release
 #   leaves draft, only once every build passed.
-# - Then the Homebrew cask, the AUR package (once its key is set) and the Android build, on tag runs only.
+# - Then the Homebrew cask, the AUR package (once its key is set), the Android build and the iPhone build (once the
+#   IOS variable is `true`), on tag runs only.
 #
 # A run by hand builds the branch it's started on into a draft and goes no further. It refuses a version whose
 # release is already published, so it can't overwrite one.
 #
-# Secrets (Settings › Actions › Secrets on git.laibe.cc/anthony/status-original):
+# Secrets (Settings › Actions › Secrets on git.laibe.cc/anthony/statim):
 #   RELEASES_TOKEN              a GitHub fine-grained token with Contents read and write on alaibe/statim and
 #                               alaibe/homebrew-tap
 #   APPLE_CERTIFICATE           base64 of the Developer ID Application .p12
@@ -434,8 +435,8 @@ jobs:
           git -C aur -c user.name="Anthony Laibe" -c user.email="anthony@laibe.cc" commit -am "statim $V"
           git -C aur push
 
-  # Laibe's statim:phones did this from the Mac; the Mac's EAS login and Android SDK do it here. iOS stays a hand
-  # build (`eas build --local --platform ios` on the Mac).
+  # Laibe's statim:phones did this from the Mac; the Mac's EAS login and Android SDK do it here. EAS's pre-install hook
+  # (package.json) puts TDLib in place for the platform it builds.
   android:
     needs: [prepare, publish]
     if: startsWith(github.ref, 'refs/tags/')
@@ -460,3 +461,28 @@ jobs:
           eas build --local --non-interactive --platform android --profile production --output "$AAB"
           eas submit --non-interactive --no-wait --platform android --profile production --path "$AAB"
           rm -rf "$(dirname "$AAB")"
+
+  # Off until the repository's IOS variable (Settings › Actions › Variables) is `true`: App Store Connect refuses
+  # uploads until Apple's new agreement is accepted, as it refuses notarization. Xcode, CocoaPods and the EAS login
+  # are the Mac's own; EAS keeps the signing certificate and profile, and the App Store Connect key for the upload.
+  ios:
+    needs: [prepare, publish]
+    if: startsWith(github.ref, 'refs/tags/') && vars.IOS == 'true'
+    runs-on: mac
+    timeout-minutes: 120
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: npm ci
+
+      - name: Build the iPhone app and send it to TestFlight
+        run: |
+          eas whoami
+          IPA="$(mktemp -d)/statim-$VERSION.ipa"
+          eas build --local --non-interactive --platform ios --profile production --output "$IPA"
+          eas submit --non-interactive --no-wait --platform ios --profile production --path "$IPA"
+          rm -rf "$(dirname "$IPA")"

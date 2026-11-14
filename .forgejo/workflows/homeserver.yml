@@ -17,7 +17,7 @@ on:
         default: 3.2.16
 
 env:
-  ORIGIN: ssh://git@git.laibe.cc:2222/anthony/status-original.git
+  ORIGIN: ssh://git@git.laibe.cc:2222/anthony/statim.git
   RELEASES_REPOSITORY: alaibe/statim
   GH_HOST: github.com
 

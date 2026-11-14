@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
 
 env:
-  ORIGIN: ssh://git@git.laibe.cc:2222/anthony/status-original.git
+  ORIGIN: ssh://git@git.laibe.cc:2222/anthony/statim.git
 
 jobs:
   due:
