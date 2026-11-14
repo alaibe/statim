@@ -1,0 +1,462 @@
+# Builds the desktop apps when a `v*` tag is pushed to git.laibe.cc (weekly.yml pushes it), on Forgejo Actions, and
+# releases them on the public GitHub repository alaibe/statim, which mirrors this one: the site's download links,
+# the Homebrew cask and the installed apps' updater all read its releases. A tag run also builds the Android app and
+# sends it to Google Play.
+#
+# Runners (the homeserver repository has their setup):
+#   mac         forgejo-runner on the Mac, steps on the Mac itself with its Xcode, Rust, Node, EAS and Android SDK
+#   home-linux  forgejo-runner on the home server, Ubuntu containers with nothing cached
+#   windows     a Windows 11 VM on the home server, steps on Windows itself
+#
+# - macOS (`mac`): the universal app, signed with a throwaway keychain and notarized when the NOTARIZE variable is
+#   `true` (off while Apple's new agreement waits), its DMG, and its update bundle.
+# - Linux (`home-linux`): the deb, rpm and AppImage.
+# - Windows (`windows`): the MSI and NSIS installers.
+# - publish (`home-linux`): SHA256SUMS and the updater's latest.json from what the jobs attached, then the release
+#   leaves draft, only once every build passed.
+# - Then the Homebrew cask, the AUR package (once its key is set) and the Android build, on tag runs only.
+#
+# A run by hand builds the branch it's started on into a draft and goes no further. It refuses a version whose
+# release is already published, so it can't overwrite one.
+#
+# Secrets (Settings › Actions › Secrets on git.laibe.cc/anthony/status-original):
+#   RELEASES_TOKEN              a GitHub fine-grained token with Contents read and write on alaibe/statim and
+#                               alaibe/homebrew-tap
+#   APPLE_CERTIFICATE           base64 of the Developer ID Application .p12
+#   APPLE_CERTIFICATE_PASSWORD  its password
+#   APPLE_SIGNING_IDENTITY      "Developer ID Application: … (8N3Z3WWTK7)"
+#   APPLE_API_KEY, APPLE_API_ISSUER, APPLE_API_PRIVATE_KEY   notarization, read only when NOTARIZE is true
+#   TAURI_SIGNING_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY_PASSWORD   the updater key (~/.tauri/status-original.key)
+#   AUR_SSH_PRIVATE_KEY         optional: statim-bin on the AUR stays as it is without it
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RELEASES_REPOSITORY: alaibe/statim
+  # gh talks to GitHub, not to the Forgejo the job runs for.
+  GH_HOST: github.com
+  GH_VERSION: 2.104.0
+
+jobs:
+  prepare:
+    runs-on: home-linux
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      release_id: ${{ steps.release.outputs.id }}
+    steps:
+      - name: Secrets are set
+        env:
+          RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: '[ -n "$RELEASES_TOKEN" ] || { echo "The RELEASES_TOKEN secret is not set." >&2; exit 1; }'
+
+      - uses: actions/checkout@v4
+
+      - name: gh
+        run: curl -fsSL "https://github.com/cli/cli/releases/download/v$GH_VERSION/gh_${GH_VERSION}_linux_amd64.tar.gz" | sudo tar -xz -C /usr/local --strip-components=1
+
+      - id: version
+        name: Manifests agree with the tag
+        run: |
+          V=$(jq -r .expo.version app.json)
+          case "${{ github.ref }}" in
+            refs/tags/*) [ "${{ github.ref_name }}" = "v$V" ] || { echo "tag ${{ github.ref_name }} does not match app.json $V" >&2; exit 1; } ;;
+          esac
+          for pair in package.json:.version src-tauri/tauri.conf.json:.version; do
+            found=$(jq -r "${pair#*:}" "${pair%%:*}")
+            [ "$found" = "$V" ] || { echo "${pair%%:*} is $found, expected $V" >&2; exit 1; }
+          done
+          grep -q "^version = \"$V\"" src-tauri/Cargo.toml || { echo "src-tauri/Cargo.toml is not $V" >&2; exit 1; }
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+
+      # The mirror pushes the tag to GitHub within seconds of the push here. Publishing a release whose tag GitHub
+      # doesn't have would make one from GitHub's main, and the mirror would then overwrite it.
+      - name: GitHub has the tag, at this commit
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          for attempt in $(seq 60); do
+            ref=$(gh api "repos/$RELEASES_REPOSITORY/git/ref/tags/$TAG" --jq '"\(.object.type) \(.object.sha)"' 2>/dev/null || true)
+            if [ "${ref%% *}" = tag ]; then
+              ref="commit $(gh api "repos/$RELEASES_REPOSITORY/git/tags/${ref#* }" --jq .object.sha)"
+            fi
+            [ "${ref#* }" = "$GITHUB_SHA" ] && { echo "GitHub has $TAG at $GITHUB_SHA."; exit 0; }
+            sleep 10
+          done
+          echo "After ten minutes GitHub's $TAG is '${ref:-missing}', not $GITHUB_SHA: is the push mirror to GitHub working?" >&2
+          exit 1
+
+      - id: release
+        name: Draft release
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          V="${{ steps.version.outputs.version }}"
+          TAG="v$V"
+          # Looking a release up by tag never finds a draft.
+          release=$(gh api "repos/$RELEASES_REPOSITORY/releases" --paginate \
+            --jq ".[] | select(.tag_name == \"$TAG\") | \"\(.id) \(.draft)\"" | head -1)
+          if [ -n "$release" ]; then
+            [ "${release#* }" = true ] || { echo "Statim $V is already published; this run would overwrite its files." >&2; exit 1; }
+            id=${release%% *}
+          else
+            id=$(gh api "repos/$RELEASES_REPOSITORY/releases" \
+              -f tag_name="$TAG" -f name="Statim $V" -F draft=true -F prerelease=false --jq .id)
+          fi
+          [[ "$id" =~ ^[0-9]+$ ]] || { echo "no release id: $id" >&2; exit 1; }
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+  macos:
+    needs: prepare
+    runs-on: mac
+    timeout-minutes: 120
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Keeps src-tauri/target between releases on the Mac: a universal build from scratch takes long.
+          clean: false
+
+      - name: Secrets are set
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          for name in APPLE_CERTIFICATE APPLE_SIGNING_IDENTITY TAURI_SIGNING_PRIVATE_KEY; do
+            [ -n "${!name}" ] || { echo "The $name secret is not set." >&2; exit 1; }
+          done
+
+      - name: The Mac's tools
+        run: |
+          WORK=$(mktemp -d)
+          echo "WORK=$WORK" >> "$GITHUB_ENV"
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          # Whole outputs: `| head` would end a command early, and the pipe's SIGPIPE fails the step.
+          xcodebuild -version; cargo --version; node --version; npm --version; gh --version
+
+      - run: npm ci
+
+      # Relinked from Swiftgram's framework, cached in ~/.cache/statim from one release to the next.
+      - name: TDLib
+        run: ./scripts/tdlib.sh desktop
+
+      - name: Signing keychain
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN="$WORK/signing.keychain-db"
+          PASS=$(openssl rand -hex 16)
+          security create-keychain -p "$PASS" "$KEYCHAIN"
+          security set-keychain-settings -lut 3600 "$KEYCHAIN"
+          security unlock-keychain -p "$PASS" "$KEYCHAIN"
+          printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$WORK/certificate.p12"
+          security import "$WORK/certificate.p12" -k "$KEYCHAIN" -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$PASS" "$KEYCHAIN" > /dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm "$WORK/certificate.p12"
+          echo "KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
+
+      - name: Notarization, when NOTARIZE is on
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+          # The repository's NOTARIZE variable (Settings › Actions › Variables) set to `true`. Off while Apple refuses
+          # the team's requests until its new agreement is accepted; an un-notarized app asks "Open Anyway" on its
+          # first launch from a download.
+          NOTARIZE: ${{ vars.NOTARIZE }}
+        run: |
+          if [ "$NOTARIZE" != true ]; then
+            echo "Not notarized: NOTARIZE isn't true."
+            exit 0
+          fi
+          printf '%s\n' "$APPLE_API_PRIVATE_KEY" > "$WORK/AuthKey.p8"
+          # Tauri notarizes and staples the app when these are set.
+          {
+            echo "APPLE_API_KEY=$APPLE_API_KEY"
+            echo "APPLE_API_ISSUER=$APPLE_API_ISSUER"
+            echo "APPLE_API_KEY_PATH=$WORK/AuthKey.p8"
+          } >> "$GITHUB_ENV"
+
+      - name: Build the universal app, its DMG and update bundle
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npx tauri build --target universal-apple-darwin --config src-tauri/tauri.release.conf.json
+
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          bundle=src-tauri/target/universal-apple-darwin/release/bundle
+          codesign --verify --deep --strict "$bundle/macos/Statim.app"
+          # The names tauri-action gave them, which the site and the cask link to.
+          cp "$bundle/macos/Statim.app.tar.gz" "$WORK/Statim_${VERSION}_universal.app.tar.gz"
+          cp "$bundle/macos/Statim.app.tar.gz.sig" "$WORK/Statim_${VERSION}_universal.app.tar.gz.sig"
+          gh release upload "v$VERSION" "$bundle/dmg/Statim_${VERSION}_universal.dmg" \
+            "$WORK/Statim_${VERSION}_universal.app.tar.gz" "$WORK/Statim_${VERSION}_universal.app.tar.gz.sig" \
+            --clobber --repo "$RELEASES_REPOSITORY"
+
+      - name: Remove the signing keychain and the work folder
+        if: always()
+        run: |
+          [ -n "${KEYCHAIN:-}" ] && security delete-keychain "$KEYCHAIN" || true
+          [ -n "${WORK:-}" ] && rm -rf "$WORK" || true
+
+  linux:
+    needs: prepare
+    runs-on: home-linux
+    timeout-minutes: 120
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Tauri's own prerequisites, plus cmake for aws-lc (matrix-sdk), perl for OpenSSL (SQLCipher) and libudev for
+      # hidapi (Ledger).
+      - name: Linux packages and gh
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev \
+            libssl-dev libayatana-appindicator3-dev librsvg2-dev \
+            cmake perl libudev-dev pkg-config patchelf xdg-utils
+          curl -fsSL "https://github.com/cli/cli/releases/download/v$GH_VERSION/gh_${GH_VERSION}_linux_amd64.tar.gz" | sudo tar -xz -C /usr/local --strip-components=1
+
+      - uses: https://github.com/dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci
+
+      - name: TDLib
+        run: ./scripts/tdlib.sh desktop
+
+      # A plain build and gh, not tauri-action: the runner gives JavaScript actions git.laibe.cc's GITHUB_TOKEN over
+      # the one set here, which GitHub refuses.
+      - name: Build the deb, rpm and AppImage
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # linuxdeploy is an AppImage itself, and the job container has no FUSE to mount it.
+          APPIMAGE_EXTRACT_AND_RUN: 1
+        run: npx tauri build --config src-tauri/tauri.release.conf.json
+
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          shopt -s nullglob
+          bundle=src-tauri/target/release/bundle
+          files=($bundle/deb/*.deb $bundle/rpm/*.rpm $bundle/appimage/*.AppImage)
+          [ ${#files[@]} -eq 3 ] || { echo "the deb, rpm and AppImage weren't all built: ${files[*]}" >&2; exit 1; }
+          for file in "${files[@]}"; do
+            [ -f "$file.sig" ] || { echo "$file has no update signature" >&2; exit 1; }
+          done
+          gh release upload "v$VERSION" "${files[@]}" "${files[@]/%/.sig}" --clobber --repo "$RELEASES_REPOSITORY"
+
+  windows:
+    needs: prepare
+    runs-on: windows
+    timeout-minutes: 120
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      # The perl OpenSSL's build runs (openssl-src reads PERL): Strawberry's, never the MSYS one in Git's bash.
+      PERL: C:\Strawberry\perl\bin\perl.exe
+    defaults:
+      run:
+        # Git's bash: the runner's own default on Windows is PowerShell.
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Keeps src-tauri/target between releases on the VM.
+          clean: false
+
+      - name: The VM's tools
+        run: |
+          which bash node npm cargo gh nasm
+          node --version; cargo --version; gh --version
+          "$PERL" -v
+
+      - run: npm ci
+
+      - name: TDLib
+        run: ./scripts/tdlib.sh desktop
+
+      # In PowerShell, not bash, so nothing in the build sees Git's MSYS tools first.
+      - name: Build the MSI and NSIS installer
+        shell: powershell
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          npx tauri build --config src-tauri/tauri.release.conf.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          shopt -s nullglob
+          bundle=src-tauri/target/release/bundle
+          files=($bundle/msi/*.msi $bundle/nsis/*-setup.exe)
+          [ ${#files[@]} -eq 2 ] || { echo "the MSI and NSIS installer weren't both built: ${files[*]}" >&2; exit 1; }
+          for file in "${files[@]}"; do
+            [ -f "$file.sig" ] || { echo "$file has no update signature" >&2; exit 1; }
+          done
+          gh release upload "v$VERSION" "${files[@]}" "${files[@]/%/.sig}" --clobber --repo "$RELEASES_REPOSITORY"
+
+  publish:
+    needs: [prepare, macos, linux, windows]
+    runs-on: home-linux
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      RELEASE: repos/alaibe/statim/releases/${{ needs.prepare.outputs.release_id }}
+      GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+    steps:
+      - name: gh
+        run: curl -fsSL "https://github.com/cli/cli/releases/download/v$GH_VERSION/gh_${GH_VERSION}_linux_amd64.tar.gz" | sudo tar -xz -C /usr/local --strip-components=1
+
+      - name: The release's files
+        run: |
+          mkdir files && cd files
+          gh api "$RELEASE/assets" --paginate \
+            --jq '.[] | select(.name | test("\\.json$|^SHA256SUMS$") | not) | "\(.id) \(.name)"' |
+            while read -r id name; do
+              gh api -H "Accept: application/octet-stream" "repos/$RELEASES_REPOSITORY/releases/assets/$id" > "$name"
+            done
+          ls -l
+
+      - name: SHA256SUMS
+        working-directory: files
+        run: |
+          find . -maxdepth 1 -type f ! -name '*.sig' -printf '%f\n' | sort | xargs sha256sum -- > "$RUNNER_TEMP/SHA256SUMS"
+          cat "$RUNNER_TEMP/SHA256SUMS"
+
+      # What an installed copy reads before updating, with the keys tauri-action wrote: a copy looks for its own
+      # installer's key first (windows-x86_64-nsis, linux-x86_64-deb), then the bare one.
+      - name: latest.json
+        working-directory: files
+        run: |
+          BASE="https://github.com/$RELEASES_REPOSITORY/releases/download/v$VERSION"
+          entry() {
+            [ -f "$1" ] && [ -f "$1.sig" ] || { echo "$1 or its signature is missing" >&2; exit 1; }
+            jq -n --arg url "$BASE/$1" --rawfile signature "$1.sig" '{signature: $signature, url: $url}'
+          }
+          MSI=$(entry "Statim_${VERSION}_x64_en-US.msi")
+          NSIS=$(entry "Statim_${VERSION}_x64-setup.exe")
+          APPIMAGE=$(entry "Statim_${VERSION}_amd64.AppImage")
+          DEB=$(entry "Statim_${VERSION}_amd64.deb")
+          RPM=$(entry "Statim-${VERSION}-1.x86_64.rpm")
+          MAC=$(entry "Statim_${VERSION}_universal.app.tar.gz")
+          jq -n --arg version "$VERSION" --arg date "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+            --argjson msi "$MSI" --argjson nsis "$NSIS" --argjson appimage "$APPIMAGE" \
+            --argjson deb "$DEB" --argjson rpm "$RPM" --argjson mac "$MAC" '{
+              version: $version, notes: "", pub_date: $date,
+              platforms: {
+                "windows-x86_64": $msi, "windows-x86_64-msi": $msi, "windows-x86_64-nsis": $nsis,
+                "linux-x86_64": $appimage, "linux-x86_64-appimage": $appimage,
+                "linux-x86_64-deb": $deb, "linux-x86_64-rpm": $rpm,
+                "darwin-aarch64": $mac, "darwin-x86_64": $mac, "darwin-universal": $mac,
+                "darwin-aarch64-app": $mac, "darwin-x86_64-app": $mac, "darwin-universal-app": $mac
+              }
+            }' > "$RUNNER_TEMP/latest.json"
+          jq '.platforms | map_values(.url)' "$RUNNER_TEMP/latest.json"
+
+      - name: Attach them
+        run: gh release upload "v$VERSION" "$RUNNER_TEMP/SHA256SUMS" "$RUNNER_TEMP/latest.json" --clobber --repo "$RELEASES_REPOSITORY"
+
+      # Only a tag's run publishes; a run by hand leaves its draft for a look.
+      - name: Leave draft
+        if: startsWith(github.ref, 'refs/tags/')
+        run: gh api -X PATCH "$RELEASE" -F draft=false --silent
+
+  homebrew:
+    needs: [prepare, publish]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: home-linux
+    steps:
+      - name: Move the cask to this release
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          curl -fsSL "https://github.com/cli/cli/releases/download/v$GH_VERSION/gh_${GH_VERSION}_linux_amd64.tar.gz" | sudo tar -xz -C /usr/local --strip-components=1
+          V="${{ needs.prepare.outputs.version }}"
+          DMG="Statim_${V}_universal.dmg"
+          curl -fsSL -o "$DMG" "https://github.com/$RELEASES_REPOSITORY/releases/download/v$V/$DMG"
+          SHA=$(sha256sum "$DMG" | cut -d' ' -f1)
+          gh repo clone alaibe/homebrew-tap tap -- --depth 1
+          sed -i -E "s/^  version \".*\"/  version \"$V\"/; s/^  sha256 \".*\"/  sha256 \"$SHA\"/" tap/Casks/statim.rb
+          gh auth setup-git
+          git -C tap -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -am "statim $V"
+          git -C tap push
+
+  aur:
+    needs: [prepare, publish]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: home-linux
+    # makepkg runs on Arch itself: the job container can't run Docker.
+    container:
+      image: archlinux:latest
+    steps:
+      - env:
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        run: |
+          [ -n "$AUR_SSH_PRIVATE_KEY" ] || { echo "No AUR key yet; statim-bin stays as it is."; exit 0; }
+          V="${{ needs.prepare.outputs.version }}"
+          pacman -Sy --noconfirm --needed git openssh pacman-contrib base-devel > /dev/null
+          mkdir -p ~/.ssh
+          printf '%s\n' "$AUR_SSH_PRIVATE_KEY" > ~/.ssh/aur && chmod 600 ~/.ssh/aur
+          echo 'aur.archlinux.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEuBKrPzbawxA/k2g6NcyV5jmqwJ2s+zpgZGZ7tpLIcN' \
+            >> ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/aur -o IdentitiesOnly=yes"
+          git clone ssh://aur@aur.archlinux.org/statim-bin.git aur
+          sed -i -E "s/^pkgver=.*/pkgver=$V/; s/^pkgrel=.*/pkgrel=1/" aur/PKGBUILD
+          # makepkg won't run as root.
+          useradd -m b && chown -R b aur
+          su b -c "cd aur && updpkgsums && makepkg --printsrcinfo > .SRCINFO"
+          git config --global --add safe.directory "$PWD/aur"
+          git -C aur -c user.name="Anthony Laibe" -c user.email="anthony@laibe.cc" commit -am "statim $V"
+          git -C aur push
+
+  # Laibe's statim:phones did this from the Mac; the Mac's EAS login and Android SDK do it here. iOS stays a hand
+  # build (`eas build --local --platform ios` on the Mac).
+  android:
+    needs: [prepare, publish]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: mac
+    timeout-minutes: 90
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+      ANDROID_HOME: /opt/homebrew/share/android-commandlinetools
+      JAVA_HOME: /opt/homebrew/opt/openjdk@21
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: npm ci
+
+      - name: Build the Android bundle and send it to Google Play
+        run: |
+          export PATH="$JAVA_HOME/bin:$PATH"
+          eas whoami
+          AAB="$(mktemp -d)/statim-$VERSION.aab"
+          eas build --local --non-interactive --platform android --profile production --output "$AAB"
+          eas submit --non-interactive --no-wait --platform android --profile production --path "$AAB"
+          rm -rf "$(dirname "$AAB")"

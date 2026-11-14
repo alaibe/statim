@@ -1,0 +1,82 @@
+# Releases Statim every week when main has commits since the last release, in place of laibe's deploy:nightly.
+#
+# On the home runner, `due` counts the commits since the last `v*` tag; with none, the run ends there. Otherwise the
+# Mac runs the type check and the tests, moves a version that's already tagged to its next patch in its six files
+# and commits it, then tags `v<version>` and pushes both over SSH with the Mac's own key. A tag pushed with the job's
+# own token starts no workflow; this one starts release.yml.
+#
+# Sundays at 21:00 in Paris in winter, 22:00 in summer, an hour before Kestrel's nightly; the job waits for the Mac
+# when it's asleep.
+
+name: Weekly release
+
+on:
+  schedule:
+    - cron: '0 20 * * 0'
+  workflow_dispatch:
+
+env:
+  ORIGIN: ssh://git@git.laibe.cc:2222/anthony/status-original.git
+
+jobs:
+  due:
+    runs-on: home-linux
+    outputs:
+      due: ${{ steps.due.outputs.due }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: due
+        name: Commits since the last release
+        run: |
+          LAST=$(git describe --tags --abbrev=0 --match 'v*' HEAD)
+          COUNT=$(git rev-list --count "$LAST..HEAD")
+          echo "$COUNT commits since $LAST"
+          if [ "$COUNT" -gt 0 ]; then echo "due=true" >> "$GITHUB_OUTPUT"; else echo "due=false" >> "$GITHUB_OUTPUT"; fi
+
+  tag:
+    needs: due
+    if: needs.due.outputs.due == 'true'
+    runs-on: mac
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+      - name: Version, commit and tag
+        run: |
+          V=$(jq -r .expo.version app.json)
+          if git rev-parse -q --verify "refs/tags/v$V" > /dev/null; then
+            NEXT="${V%.*}.$((${V##*.} + 1))"
+            FILES="app.json package.json package-lock.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock"
+            perl -pi -e "s/^(    \"version\": \")\Q$V\E\"/\${1}$NEXT\"/" app.json
+            perl -pi -e "s/^(  \"version\": \")\Q$V\E\"/\${1}$NEXT\"/" package.json src-tauri/tauri.conf.json
+            perl -0pi -e "s/(\"name\": \"statim\",\s+\"version\": \")\Q$V\E\"/\${1}$NEXT\"/g" package-lock.json
+            perl -0pi -e "s/^(\[package\]\nname = \"statim\"\nversion = \")\Q$V\E\"/\${1}$NEXT\"/m" src-tauri/Cargo.toml
+            perl -0pi -e "s/^(name = \"statim\"\nversion = \")\Q$V\E\"/\${1}$NEXT\"/m" src-tauri/Cargo.lock
+            for pair in app.json:.expo.version package.json:.version 'package-lock.json:.packages[""].version' \
+              package-lock.json:.version src-tauri/tauri.conf.json:.version; do
+              found=$(jq -r "${pair#*:}" "${pair%%:*}")
+              [ "$found" = "$NEXT" ] || { echo "${pair%%:*} still says $found" >&2; exit 1; }
+            done
+            grep -q "^version = \"$NEXT\"" src-tauri/Cargo.toml || { echo "src-tauri/Cargo.toml isn't $NEXT" >&2; exit 1; }
+            grep -A1 '^name = "statim"$' src-tauri/Cargo.lock | grep -q "^version = \"$NEXT\"" \
+              || { echo "src-tauri/Cargo.lock isn't $NEXT" >&2; exit 1; }
+            [ "$(git diff --numstat -- $FILES | wc -l)" -eq 6 ] || { git diff --stat; echo "not all six files moved" >&2; exit 1; }
+            git add $FILES
+            git -c user.name="Statim weekly" -c user.email="weekly@git.laibe.cc" commit -q -m "Release $NEXT"
+            git push "$ORIGIN" HEAD:main
+            V=$NEXT
+          fi
+          git tag "v$V"
+          git push "$ORIGIN" "v$V"
+          echo "Tagged v$V: release.yml builds it."

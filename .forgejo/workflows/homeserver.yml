@@ -1,0 +1,90 @@
+# Builds tuwunel and libolm for Apple silicon on the Mac and releases them on alaibe/statim as homeserver-<tuwunel
+# tag>, where the desktop app downloads them when Matrix runs on the computer (src-tauri/src/homeserver/artifacts.rs
+# names the release and the files' checksums).
+#
+# The tag goes to git.laibe.cc first: GitHub's copy is a push mirror, which deletes any tag that exists only there.
+
+name: Homeserver
+
+on:
+  workflow_dispatch:
+    inputs:
+      tuwunel:
+        description: tuwunel tag
+        default: v1.9.3
+      olm:
+        description: libolm tag
+        default: 3.2.16
+
+env:
+  ORIGIN: ssh://git@git.laibe.cc:2222/anthony/status-original.git
+  RELEASES_REPOSITORY: alaibe/statim
+  GH_HOST: github.com
+
+jobs:
+  mac:
+    runs-on: mac
+    timeout-minutes: 90
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '15.0'
+      TAG: homeserver-${{ inputs.tuwunel }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Work folder
+        run: echo "WORK=$(mktemp -d)" >> "$GITHUB_ENV"
+
+      - name: tuwunel
+        run: |
+          git clone --depth 1 --branch "${{ inputs.tuwunel }}" \
+            https://github.com/matrix-construct/tuwunel.git "$WORK/tuwunel"
+          cd "$WORK/tuwunel"
+          cargo build --release --locked -p tuwunel --no-default-features \
+            --features brotli_compression,element_hacks,gzip_compression,media_thumbnail,release_max_log_level,url_preview,zstd_compression
+          mkdir -p "$WORK/out"
+          cp target/release/tuwunel "$WORK/out/tuwunel-macos-arm64"
+
+      - name: libolm
+        run: |
+          git clone --depth 1 --branch "${{ inputs.olm }}" \
+            https://gitlab.matrix.org/matrix-org/olm.git "$WORK/olm"
+          cd "$WORK/olm"
+          sed -i '' \
+            -e 's/T \* const other_pos = other._data;/T const * other_pos = other._data;/' \
+            -e 's/\*this_pos = \*other;/*this_pos = *other_pos;/' \
+            include/olm/list.hh
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DOLM_TESTS=OFF \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build build --config Release
+          cp build/libolm.3.dylib "$WORK/out/libolm.3.dylib"
+          otool -D "$WORK/out/libolm.3.dylib" | grep -q '@rpath/libolm.3.dylib'
+
+      - name: Tag, here and on GitHub
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          git tag "$TAG" "$GITHUB_SHA"
+          git push "$ORIGIN" "refs/tags/$TAG"
+          for attempt in $(seq 60); do
+            sha=$(gh api "repos/$RELEASES_REPOSITORY/git/ref/tags/$TAG" --jq .object.sha 2>/dev/null || true)
+            [ "$sha" = "$GITHUB_SHA" ] && exit 0
+            sleep 10
+          done
+          echo "After ten minutes GitHub's $TAG is '${sha:-missing}', not $GITHUB_SHA: is the push mirror working?" >&2
+          exit 1
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          cd "$WORK/out"
+          shasum -a 256 * > sha256sums.txt
+          cat sha256sums.txt
+          gh release create "$TAG" --verify-tag --repo "$RELEASES_REPOSITORY" --latest=false \
+            --title "Homeserver ${{ inputs.tuwunel }}" \
+            --notes "tuwunel ${{ inputs.tuwunel }} and libolm ${{ inputs.olm }} for Apple silicon, downloaded by the desktop app when Matrix runs on the computer." \
+            tuwunel-macos-arm64 libolm.3.dylib sha256sums.txt
+
+      - name: Remove the work folder
+        if: always()
+        run: '[ -n "${WORK:-}" ] && rm -rf "$WORK" || true'

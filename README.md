@@ -77,8 +77,12 @@ On a Mac, `brew install --cask alaibe/tap/statim` installs the app and its
 `statim` command. Telegram on the phone needs TDLib in `modules/tdjson` first:
 `./scripts/tdlib.sh ios` or `./scripts/tdlib.sh android`.
 
-One tag releases the desktop apps, through
-[`.github/workflows/release.yml`](.github/workflows/release.yml).
+Releases are built on git.laibe.cc's Forgejo Actions, where this repository
+lives; this GitHub copy is its mirror. Every Sunday
+[`weekly.yml`](.forgejo/workflows/weekly.yml) tags main when it has commits
+since the last release, and the tag starts
+[`release.yml`](.forgejo/workflows/release.yml): the desktop apps for macOS,
+Windows and Linux, released here, then the Homebrew cask and the Android app.
 
 ## Quick start
 
