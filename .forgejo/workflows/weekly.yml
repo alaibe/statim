@@ -33,8 +33,10 @@ jobs:
         run: |
           LAST=$(git describe --tags --abbrev=0 --match 'v*' HEAD)
           COUNT=$(git rev-list --count "$LAST..HEAD")
-          echo "$COUNT commits since $LAST"
-          if [ "$COUNT" -gt 0 ]; then echo "due=true" >> "$GITHUB_OUTPUT"; else echo "due=false" >> "$GITHUB_OUTPUT"; fi
+          # Commits that only touch the workflows, docs/ or the top-level notes (README.md, AGENTS.md…) make no release.
+          APP=$(git rev-list --count "$LAST..HEAD" -- . ':(exclude).forgejo' ':(exclude).github' ':(exclude)docs' ':(exclude,glob)*.md')
+          echo "$COUNT commits since $LAST, $APP of them changing the app"
+          if [ "$APP" -gt 0 ]; then echo "due=true" >> "$GITHUB_OUTPUT"; else echo "due=false" >> "$GITHUB_OUTPUT"; fi
 
   tag:
     needs: due
