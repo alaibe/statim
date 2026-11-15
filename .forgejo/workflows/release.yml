@@ -20,7 +20,8 @@
 # A run by hand builds the branch it's started on into a draft and goes no further. It refuses a version whose
 # release is already published, so it can't overwrite one.
 #
-# Secrets (Settings › Actions › Secrets on git.laibe.cc/anthony/statim):
+# Secrets on git.laibe.cc: the APPLE_* ones and RELEASES_TOKEN are shared by every repository (user level, set with
+# the homeserver repository's ci-secrets.sh, whose AGENTS.md maps every credential); the others are statim's own:
 #   RELEASES_TOKEN              a GitHub fine-grained token with Contents read and write on alaibe/statim and
 #                               alaibe/homebrew-tap
 #   APPLE_CERTIFICATE           base64 of the Developer ID Application .p12
