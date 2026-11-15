@@ -55,7 +55,9 @@ jobs:
 
       - run: npm run typecheck
 
-      - run: npm test
+      # 20 seconds a test instead of Jest's 5: the runner starts from a fresh node_modules with every core busy, and
+      # the lock screen's first render went past 5 there while the whole suite takes 18 seconds in a terminal.
+      - run: npm test -- --testTimeout=20000
 
       - name: Version, commit and tag
         run: |
