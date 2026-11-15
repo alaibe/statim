@@ -1,0 +1,36 @@
+# Checks every push to Statim on git.laibe.cc's home runner: the type check and the Jest tests, as weekly.yml runs them
+# on the Mac before tagging a release. A failure reaches ntfy through the home server's actions-alerts.sh; the desktop
+# and phone builds stay in release.yml.
+
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: home-linux
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - run: npm ci
+
+      # Expo writes expo-env.d.ts (gitignored) into a working checkout; without it TypeScript can't type the CSS import.
+      - name: Expo's type references
+        run: '[ -f expo-env.d.ts ] || echo ''/// <reference types="expo/types" />'' > expo-env.d.ts'
+
+      - run: npm run typecheck
+
+      # 20 seconds a test, as in weekly.yml: a fresh node_modules on a busy runner is slower than a terminal.
+      - run: npm test -- --testTimeout=20000
