@@ -48,6 +48,11 @@ jobs:
 
       - run: npm ci
 
+      # Expo writes expo-env.d.ts (gitignored) into a working checkout; a fresh clone has none, and without expo/types
+      # TypeScript can't type `import '@/global.css'`. This is the line Expo writes.
+      - name: Expo's type references
+        run: '[ -f expo-env.d.ts ] || echo ''/// <reference types="expo/types" />'' > expo-env.d.ts'
+
       - run: npm run typecheck
 
       - run: npm test
