@@ -257,7 +257,7 @@ export class SqliteMessageStore implements MessageStore {
         for (const rows of chunks(keep, CACHE_ROWS_PER_STATEMENT)) {
           await tx
             .insert(pageCache)
-            .values(rows.map((page) => ({ chatId: page.chatId, data: JSON.stringify(page.messages) })))
+            .values(rows.map((page) => ({ chatId: page.chatId, data: pageData(page.messages) })))
             .onConflictDoUpdate({ target: pageCache.chatId, set: { data: excluded(pageCache.data) } });
         }
         for (const ids of chunks(drop, CACHE_ROWS_PER_STATEMENT)) {
@@ -328,6 +328,14 @@ function toChat<Id extends AnyChatId>(row: typeof chats.$inferSelect): StoredCha
 
 function isCachedChat(value: unknown): value is Chat {
   return isRecord(value) && isString(value.id) && parseChatId(value.id) !== null;
+}
+
+/** A message this large is fetched again rather than kept. */
+const LARGEST_KEPT_MESSAGE = 32_000;
+
+function pageData(messages: readonly ChatMessage[]): string {
+  const kept = messages.map((message) => JSON.stringify(message)).filter((json) => json.length <= LARGEST_KEPT_MESSAGE);
+  return `[${kept.join(",")}]`;
 }
 
 function isCachedMessage(value: unknown, chatId: ChatId): value is ChatMessage {

@@ -51,7 +51,6 @@ const RECONNECTING_GRACE_MS = 3_000;
 export class ProtocolRuntime {
   private subscriptions = new Map<ProtocolId, Unsubscribe[]>();
   private sessions = new Map<ProtocolId, ChatSession>();
-  private cache: ChatCache | undefined;
   private context: Connecting | null = null;
   private retries = new Map<ProtocolId, { attempt: number; timer: ReturnType<typeof setTimeout> | null }>();
   private resumedAt = -Infinity;
@@ -60,8 +59,12 @@ export class ProtocolRuntime {
   /** `recover` replaces a protocol's `lost` session, or connects it when it has none; the caller serializes it. */
   constructor(
     private readonly descriptors: readonly ProtocolDescriptor[],
-    private readonly recover: (protocolId: ProtocolId, lost?: ChatSession) => void = () => {},
+    private readonly recover: (protocolId: ProtocolId, lost?: ChatSession) => void,
   ) {}
+
+  private get cache(): ChatCache | undefined {
+    return this.context?.input.cache;
+  }
 
   async connect(
     input: ProtocolAccount,
@@ -70,7 +73,6 @@ export class ProtocolRuntime {
     only?: ProtocolId[],
   ): Promise<void> {
     if (!active()) return;
-    this.cache = input.cache;
     this.context = { input, storage, active };
     useChatStore.setState({ status: "connecting", error: null });
     const selected = input.only ?? (input.createSession ? ["xmtp" as const] : undefined);
@@ -78,7 +80,7 @@ export class ProtocolRuntime {
       (descriptor) => (!selected || selected.includes(descriptor.id)) && (!only || only.includes(descriptor.id)),
     );
 
-    const configs = input.createSession ? undefined : loadProtocolConfigs(input.accountId);
+    const configs = configsFor(input);
     await Promise.all(descriptors.map((descriptor) => this.connectOne(descriptor, configs)));
 
     if (active()) this.rollUpStatus();
@@ -91,13 +93,8 @@ export class ProtocolRuntime {
     const current = this.sessions.get(protocolId);
     if (!context?.active() || !descriptor || (lost ? current !== lost : current)) return;
     this.cancelRetry(protocolId);
-    await this.disconnect([protocolId]);
-    useChatStore.setState((state) => {
-      const { [protocolId]: _gone, ...sessions } = state.sessions;
-      return { sessions };
-    });
-    const configs = context.input.createSession ? undefined : loadProtocolConfigs(context.input.accountId);
-    await this.connectOne(descriptor, configs);
+    await this.dropSession(protocolId);
+    await this.connectOne(descriptor, configsFor(context.input));
     if (context.active()) this.rollUpStatus();
   }
 
@@ -108,10 +105,12 @@ export class ProtocolRuntime {
     for (const [protocolId, session] of this.sessions) {
       if (this.resuming.has(protocolId)) continue;
       this.resuming.add(protocolId);
-      void (session.resume?.() ?? Promise.resolve())
+      void (session.resume?.() ?? Promise.resolve(true))
         .then(
-          () =>
-            this.sessions.get(protocolId) === session ? useChatStore.getState().syncProtocol(protocolId) : undefined,
+          (behind) =>
+            behind && this.sessions.get(protocolId) === session
+              ? useChatStore.getState().syncProtocol(protocolId)
+              : undefined,
           () => this.recover(protocolId, session),
         )
         .finally(() => this.resuming.delete(protocolId));
@@ -124,10 +123,7 @@ export class ProtocolRuntime {
     }
   }
 
-  private async connectOne(
-    descriptor: ProtocolDescriptor,
-    configs: ReturnType<typeof loadProtocolConfigs> | undefined,
-  ): Promise<void> {
+  private async connectOne(descriptor: ProtocolDescriptor, configs: ReturnType<typeof configsFor>): Promise<void> {
     const context = this.context;
     if (!context?.active()) return;
     const { input, storage, active } = context;
@@ -165,11 +161,7 @@ export class ProtocolRuntime {
       await useChatStore.getState().syncProtocol(protocolId);
     } catch (error) {
       if (!active()) return;
-      if (session && this.sessions.get(protocolId) === session) await this.disconnect([protocolId]);
-      useChatStore.setState((state) => {
-        const { [protocolId]: _failed, ...sessions } = state.sessions;
-        return { sessions };
-      });
+      if (session && this.sessions.get(protocolId) === session) await this.dropSession(protocolId);
       this.setProtocol(protocolId, { ...NO_CONNECTION, status: "error", error: errorMessage(error) });
       this.scheduleRetry(protocolId);
     }
@@ -180,7 +172,7 @@ export class ProtocolRuntime {
     descriptor: ProtocolDescriptor,
     input: ProtocolAccount,
     storage: AccountStorage,
-    configs: ReturnType<typeof loadProtocolConfigs> | undefined,
+    configs: ReturnType<typeof configsFor>,
     active: () => boolean,
   ): Promise<ChatSession | null> {
     const protocolId = descriptor.id;
@@ -209,6 +201,14 @@ export class ProtocolRuntime {
       contentTypes: input.contentTypes(),
       config,
       storage,
+    });
+  }
+
+  private async dropSession(protocolId: ProtocolId): Promise<void> {
+    await this.disconnect([protocolId]);
+    useChatStore.setState((state) => {
+      const { [protocolId]: _dropped, ...sessions } = state.sessions;
+      return { sessions };
     });
   }
 
@@ -391,4 +391,8 @@ export class ProtocolRuntime {
       useChatStore.setState({ status: "idle", error: null });
     }
   }
+}
+
+function configsFor(input: ProtocolAccount) {
+  return input.createSession ? undefined : loadProtocolConfigs(input.accountId);
 }

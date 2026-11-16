@@ -1,3 +1,5 @@
+import { LinkTracker } from "@/core/messaging/link";
+
 export type XmtpEnvironment = "dev" | "local" | "production";
 
 export function xmtpEnvironment(): XmtpEnvironment {
@@ -52,4 +54,56 @@ export function newestReadByOthers<T>(
     if (inboxId !== self) newest = Math.max(newest ?? 0, toMs(ns));
   }
   return newest;
+}
+
+const REOPEN_DELAYS_MS = [5_000, 30_000, 120_000, 600_000];
+
+/**
+ * The SDK does not open a stream again once the connection drops for long:
+ * this reopens the streams that ended, backing off while they keep ending
+ * before bringing anything, and reports the link meanwhile.
+ */
+export class StreamReopener {
+  readonly link = new LinkTracker();
+  private timer: ReturnType<typeof setTimeout> | null = null;
+  private ends = 0;
+  private stopped = false;
+
+  /** `reopen` opens the streams that ended and says whether there were any. */
+  constructor(private readonly reopen: () => Promise<boolean>) {}
+
+  ended(): void {
+    if (this.stopped || this.timer) return;
+    this.link.set("reconnecting");
+    const delay = REOPEN_DELAYS_MS[Math.min(this.ends++, REOPEN_DELAYS_MS.length - 1)];
+    this.timer = setTimeout(() => {
+      this.timer = null;
+      void this.now();
+    }, delay);
+  }
+
+  brought(): void {
+    this.ends = 0;
+  }
+
+  async now(): Promise<boolean> {
+    if (this.stopped) return false;
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = null;
+    try {
+      const reopened = await this.reopen();
+      if (!this.timer) this.link.set("online");
+      return reopened;
+    } catch (error) {
+      console.warn("[xmtp] could not reopen the streams", error);
+      this.ended();
+      return false;
+    }
+  }
+
+  stop(): void {
+    this.stopped = true;
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = null;
+  }
 }

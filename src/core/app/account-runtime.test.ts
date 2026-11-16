@@ -473,18 +473,26 @@ describe("AccountRuntime recovery", () => {
     await runtime.synchronize(null);
   });
 
-  it("resumes at most once in a short while, then catches up", async () => {
+  it("resumes at most once in a short while, and catches up only on what was reopened", async () => {
+    jest.useFakeTimers();
     const runtime = new AccountRuntime(PROTOCOLS);
     const session = new InMemoryChatSession();
-    const resume = jest.fn(async () => {});
+    const resume = jest.fn(async () => true);
     Object.assign(session, { resume });
     await runtime.synchronize(input("account-a", new PluginRegistry(), async () => session));
     const syncs = session.syncCount;
 
     runtime.resume();
     runtime.resume();
-    await new Promise((resolve) => setImmediate(resolve));
+    await jest.advanceTimersByTimeAsync(0);
     expect(resume).toHaveBeenCalledTimes(1);
+    expect(session.syncCount).toBe(syncs + 1);
+
+    resume.mockResolvedValue(false);
+    await jest.advanceTimersByTimeAsync(10_000);
+    runtime.resume();
+    await jest.advanceTimersByTimeAsync(0);
+    expect(resume).toHaveBeenCalledTimes(2);
     expect(session.syncCount).toBe(syncs + 1);
     await runtime.synchronize(null);
   });

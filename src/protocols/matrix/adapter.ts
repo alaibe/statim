@@ -1,4 +1,5 @@
 import { UnsupportedError } from "@/core/errors";
+import { LinkTracker } from "@/core/messaging/link";
 import type { BridgedNetwork } from "@/core/messaging/networks";
 import type {
   ChatSession,
@@ -75,8 +76,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   private userId: string | null = null;
   private login: LoginState | null = null;
   private readonly loginListeners = new Set<(login: LoginState | null) => void>();
-  private link: LinkState = "online";
-  private readonly linkListeners = new Set<(link: LinkState) => void>();
+  private readonly link = new LinkTracker();
   private listed: Promise<void> = Promise.resolve();
   private markListed = () => {};
   private readonly messageListeners = new Set<(message: ProtocolMessage) => void>();
@@ -156,19 +156,13 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   }
 
   subscribeLink(listener: (link: LinkState) => void): Unsubscribe {
-    this.linkListeners.add(listener);
-    listener(this.link);
-    return () => this.linkListeners.delete(listener);
+    return this.link.subscribe(listener);
   }
 
-  async resume(): Promise<void> {
+  /** The SDK catches up on what it missed by itself. */
+  async resume(): Promise<boolean> {
     if (this.userId) await this.api.resume();
-  }
-
-  private setLink(link: LinkState): void {
-    if (link === this.link) return;
-    this.link = link;
-    for (const listener of this.linkListeners) listener(link);
+    return false;
   }
 
   subscribeLogin(listener: (login: LoginState | null) => void): Unsubscribe {
@@ -247,7 +241,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
       case "listed":
         return this.markListed();
       case "link":
-        if (this.userId) this.setLink(LINK[update.state]);
+        if (this.userId) this.link.set(LINK[update.state]);
         return;
       case "roomGone":
         this.rooms.delete(update.roomId);

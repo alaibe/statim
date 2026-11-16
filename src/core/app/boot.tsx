@@ -1,6 +1,5 @@
 import * as Linking from "expo-linking";
 import { useEffect } from "react";
-import { AppState } from "react-native";
 import { accountRuntime } from "@/runtime";
 import { useAccountStore } from "../account/account-store";
 import { useLockStore } from "../account/lock-store";
@@ -8,6 +7,7 @@ import { registerHardwareVendors } from "../account/vendors";
 import { handleTrezorCallback, isTrezorCallback } from "../account/vendors/trezor";
 import { usePluginHost } from "../plugins/host";
 import { reportError } from "./report-error";
+import { useOnReturnFromBackground } from "./use-return-from-background";
 
 registerHardwareVendors();
 
@@ -22,7 +22,8 @@ export function useAppBoot(): void {
     if (status === "loading") void restore();
   }, [status, restore]);
 
-  useEffect(watchForReturn, []);
+  useOnReturnFromBackground(() => accountRuntime.resume());
+  useEffect(watchForWake, []);
 
   useEffect(() => {
     void accountRuntime.synchronize(
@@ -43,14 +44,9 @@ export function useAppBoot(): void {
 const CLOCK_TICK_MS = 10_000;
 const SLEPT_MS = 30_000;
 
-/** Coming back to the foreground, online or from sleep (seen as the clock jumping) lets protocols re-open. */
-function watchForReturn(): () => void {
+/** Coming back online or from sleep, seen as the clock jumping, lets protocols re-open. */
+function watchForWake(): () => void {
   const resume = () => accountRuntime.resume();
-  let state = AppState.currentState;
-  const subscription = AppState.addEventListener("change", (next) => {
-    if (next === "active" && state === "background") resume();
-    state = next;
-  });
   let tick = Date.now();
   const clock = setInterval(() => {
     const now = Date.now();
@@ -60,7 +56,6 @@ function watchForReturn(): () => void {
   const events = typeof globalThis.addEventListener === "function" ? globalThis : null;
   events?.addEventListener("online", resume);
   return () => {
-    subscription.remove();
     clearInterval(clock);
     events?.removeEventListener("online", resume);
   };

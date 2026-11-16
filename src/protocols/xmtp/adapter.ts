@@ -50,6 +50,7 @@ import {
   newestReadByOthers,
   REVOKED_AND_FULL,
   ReadMarks,
+  StreamReopener,
   xmtpEnvironment,
 } from "./shared";
 
@@ -141,11 +142,9 @@ export class XmtpSession implements ChatSession {
   private readonly chatListeners = new Set<(c: ProtocolChat) => void>();
   private closed = false;
   private messageSink: ((message: ProtocolMessage) => void) | null = null;
-  private reopening: ReturnType<typeof setTimeout> | null = null;
-  /** How many times in a row the streams ended before bringing anything. */
-  private streamEnds = 0;
-  private link: LinkState = "online";
-  private readonly linkListeners = new Set<(link: LinkState) => void>();
+  private messagesOpen = false;
+  private chatsOpen = false;
+  private readonly streams = new StreamReopener(() => this.reopenStreams());
   private readonly blockedDmIds = new Set<string>();
 
   private constructor(
@@ -468,6 +467,7 @@ export class XmtpSession implements ChatSession {
     await this.openMessageStream();
     return () => {
       this.messageSink = null;
+      this.messagesOpen = false;
       this.client.conversations.cancelStreamAllMessages();
     };
   }
@@ -477,67 +477,69 @@ export class XmtpSession implements ChatSession {
     await this.openChatStream();
     return () => {
       this.chatListeners.delete(onChat);
+      this.chatsOpen = false;
       this.client.conversations.cancelStream();
     };
   }
 
-  async resume(): Promise<void> {
-    if (this.closed) return;
-    if (this.reopening) clearTimeout(this.reopening);
-    this.reopening = null;
-    if (this.messageSink) await this.openMessageStream();
-    if (this.chatListeners.size > 0) await this.openChatStream();
-    if (!this.reopening) this.setLink("online");
+  subscribeLink(listener: (link: LinkState) => void): Unsubscribe {
+    return this.streams.link.subscribe(listener);
+  }
+
+  async resume(): Promise<boolean> {
+    return !this.closed && this.streams.now();
+  }
+
+  private async reopenStreams(): Promise<boolean> {
+    const reopening = [
+      this.messageSink && !this.messagesOpen ? this.openMessageStream() : null,
+      this.chatListeners.size > 0 && !this.chatsOpen ? this.openChatStream() : null,
+    ].filter((opening) => opening !== null);
+    await Promise.all(reopening);
+    return reopening.length > 0;
   }
 
   private async openMessageStream(): Promise<void> {
     this.client.conversations.cancelStreamAllMessages();
-    await this.client.conversations.streamAllMessages(
-      (message) => this.onStreamedMessage(message),
-      "all",
-      ["allowed", "unknown"],
-      () => this.streamEnded(),
-    );
+    this.messagesOpen = true;
+    await this.client.conversations
+      .streamAllMessages(
+        (message) => this.onStreamedMessage(message),
+        "all",
+        ["allowed", "unknown"],
+        () => {
+          this.messagesOpen = false;
+          this.streams.ended();
+        },
+      )
+      .catch((error: unknown) => {
+        this.messagesOpen = false;
+        throw error;
+      });
   }
 
   private async openChatStream(): Promise<void> {
     this.client.conversations.cancelStream();
-    await this.client.conversations.stream(
-      (conversation) => this.emitChat(conversation),
-      "all",
-      () => this.streamEnded(),
-    );
-  }
-
-  subscribeLink(listener: (link: LinkState) => void): Unsubscribe {
-    this.linkListeners.add(listener);
-    listener(this.link);
-    return () => this.linkListeners.delete(listener);
-  }
-
-  private setLink(link: LinkState): void {
-    if (link === this.link) return;
-    this.link = link;
-    for (const listener of this.linkListeners) listener(link);
-  }
-
-  private streamEnded(): void {
-    if (this.closed || this.reopening) return;
-    this.setLink("reconnecting");
-    const delay = STREAM_RETRY_MS[Math.min(this.streamEnds++, STREAM_RETRY_MS.length - 1)];
-    this.reopening = setTimeout(() => {
-      this.reopening = null;
-      this.resume().catch((error) => {
-        console.warn("[xmtp] could not reopen the streams", error);
-        this.streamEnded();
+    this.chatsOpen = true;
+    await this.client.conversations
+      .stream(
+        (conversation) => this.emitChat(conversation),
+        "all",
+        () => {
+          this.chatsOpen = false;
+          this.streams.ended();
+        },
+      )
+      .catch((error: unknown) => {
+        this.chatsOpen = false;
+        throw error;
       });
-    }, delay);
   }
 
   private async onStreamedMessage(message: DecodedMessageUnion<any>): Promise<void> {
     const onMessage = this.messageSink;
     if (this.closed || !onMessage) return;
-    this.streamEnds = 0;
+    this.streams.brought();
     const fromSelf = message.senderInboxId === this.self.participantId;
     if (isReadReceipt(message) && fromSelf) return;
     const id =
@@ -568,8 +570,7 @@ export class XmtpSession implements ChatSession {
 
   async disconnect(): Promise<void> {
     this.closed = true;
-    if (this.reopening) clearTimeout(this.reopening);
-    this.reopening = null;
+    this.streams.stop();
     this.client.conversations.cancelStream();
     this.client.conversations.cancelStreamAllMessages();
   }
@@ -751,8 +752,6 @@ export class XmtpSession implements ChatSession {
 }
 
 const GROUP_TOPIC = /\/xmtp\/mls\/1\/g-(.*?)\/proto/;
-
-const STREAM_RETRY_MS = [5_000, 30_000, 120_000, 600_000];
 
 function toXmtpId(id: string): XmtpConversationId {
   return id as XmtpConversationId;

@@ -221,13 +221,7 @@ it("announces a receipt for what you just sent from this device", async () => {
   expect(announced).toEqual([3_000, later]);
 });
 
-it("opens a stream that ended on its own again, reconnecting meanwhile", async () => {
-  jest.useFakeTimers();
-  const opened: string[] = [];
-  const ended = (kind: string) => async () => {
-    opened.push(kind);
-    return endable((async function* () {})());
-  };
+function connectWith(accountId: string, conversations: Record<string, unknown>) {
   mockBuild.mockResolvedValue({
     inboxId: "me",
     installationId: "this-device",
@@ -235,14 +229,31 @@ it("opens a stream that ended on its own again, reconnecting meanwhile", async (
     accountIdentifier: { identifier: "0xabc" },
     isRegistered: async () => true,
     preferences: { fetchInboxState: async () => ({ installations: [{ id: "this-device" }] }) },
-    conversations: { stream: ended("chats"), streamAllMessages: ended("messages") },
+    conversations,
   });
-  const session = await XmtpSession.connect({
-    accountId: "xmtp-reopen",
+  return XmtpSession.connect({
+    accountId,
     account: { address: "0xabc" } as unknown as LocalAccount,
     dbEncryptionKey: new Uint8Array(32),
     env: "dev",
   });
+}
+
+const endless = () =>
+  endable(
+    (async function* () {
+      await new Promise(() => {});
+    })(),
+  );
+
+it("opens a stream that ended on its own again, reconnecting meanwhile", async () => {
+  jest.useFakeTimers();
+  const opened: string[] = [];
+  const ended = (kind: string) => async () => {
+    opened.push(kind);
+    return endable((async function* () {})());
+  };
+  const session = await connectWith("xmtp-reopen", { stream: ended("chats"), streamAllMessages: ended("messages") });
   const links: string[] = [];
   session.subscribeLink((link) => links.push(link));
   await session.streamMessages(() => {});
@@ -268,36 +279,40 @@ it("opens a stream that ended on its own again, reconnecting meanwhile", async (
 it("reports the link online again once a reopened stream stays open", async () => {
   jest.useFakeTimers();
   let opens = 0;
-  const streamAllMessages = async () => {
-    opens++;
-    if (opens === 1) return endable((async function* () {})());
-    return endable(
-      (async function* () {
-        await new Promise(() => {});
-      })(),
-    );
-  };
-  mockBuild.mockResolvedValue({
-    inboxId: "me",
-    installationId: "this-device",
-    close: () => {},
-    accountIdentifier: { identifier: "0xabc" },
-    isRegistered: async () => true,
-    preferences: { fetchInboxState: async () => ({ installations: [{ id: "this-device" }] }) },
-    conversations: { streamAllMessages },
-  });
-  const session = await XmtpSession.connect({
-    accountId: "xmtp-reopened",
-    account: { address: "0xabc" } as unknown as LocalAccount,
-    dbEncryptionKey: new Uint8Array(32),
-    env: "dev",
-  });
+  const streamAllMessages = async () => (++opens === 1 ? endable((async function* () {})()) : endless());
+  const session = await connectWith("xmtp-reopened", { streamAllMessages });
   const links: string[] = [];
   session.subscribeLink((link) => links.push(link));
   await session.streamMessages(() => {});
   await jest.advanceTimersByTimeAsync(5_000);
   expect(opens).toBe(2);
   expect(links).toEqual(["online", "reconnecting", "online"]);
+  await session.disconnect();
+  jest.useRealTimers();
+});
+
+it("reopens only the streams that ended when resumed, and says whether it did", async () => {
+  jest.useFakeTimers();
+  const opened: string[] = [];
+  let messages = 0;
+  const session = await connectWith("xmtp-resume", {
+    stream: async () => {
+      opened.push("chats");
+      return endless();
+    },
+    streamAllMessages: async () => {
+      opened.push("messages");
+      return ++messages === 1 ? endable((async function* () {})()) : endless();
+    },
+  });
+  await session.streamChats(() => {});
+  await session.streamMessages(() => {});
+  await jest.advanceTimersByTimeAsync(0);
+
+  expect(await session.resume()).toBe(true);
+  expect(opened).toEqual(["chats", "messages", "messages"]);
+  expect(await session.resume()).toBe(false);
+  expect(opened).toHaveLength(3);
   await session.disconnect();
   jest.useRealTimers();
 });

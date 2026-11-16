@@ -311,8 +311,8 @@ export class StoreBackedSession implements ChatSession, TransportSink {
     return this.store.countUnreadMessages(id, since);
   }
 
-  async resume(): Promise<void> {
-    this.transport.resume?.();
+  async resume(): Promise<boolean> {
+    return this.transport.resume?.() ?? false;
   }
 
   subscribeHistory(listener: (state: HistoryState) => void): Unsubscribe {

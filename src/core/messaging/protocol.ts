@@ -143,10 +143,12 @@ export interface ChatSession {
   subscribeLink?(listener: (link: LinkState) => void): Unsubscribe;
   /**
    * Called when the app comes back to the foreground, the device is back
-   * online or wakes from sleep: re-opens whatever dropped meanwhile. Throwing
-   * means the session cannot recover and is replaced.
+   * online or wakes from sleep: re-opens whatever dropped meanwhile. Resolves
+   * true when something was reopened and may have missed messages, so the
+   * chats are fetched again. Throwing means the session cannot recover and
+   * is replaced.
    */
-  resume?(): Promise<void>;
+  resume?(): Promise<boolean>;
 
   subscribeLogin?(listener: (login: LoginState | null) => void): Unsubscribe;
   submitLogin?(value: string): Promise<void>;

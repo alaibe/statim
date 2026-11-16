@@ -1,4 +1,5 @@
 import { UnsupportedError } from "@/core/errors";
+import { LinkTracker } from "@/core/messaging/link";
 import type {
   ChatSession,
   GroupInfo,
@@ -79,8 +80,7 @@ export class TelegramSession implements ChatSession {
   private login: LoginState | null = null;
   private loginErrorAfterRestart: string | undefined;
   private readonly loginListeners = new Set<(login: LoginState | null) => void>();
-  private link: LinkState = "online";
-  private readonly linkListeners = new Set<(link: LinkState) => void>();
+  private readonly link = new LinkTracker();
   private readonly messageListeners = new Set<(message: ProtocolMessage) => void>();
   private readonly deletedListeners = new Set<(id: ProtocolChatId, messageIds: MessageId[]) => void>();
   private readonly chatListeners = new Set<(chat: ProtocolChat) => void>();
@@ -137,7 +137,7 @@ export class TelegramSession implements ChatSession {
     const updates = this.api.onUpdate((update) => {
       this.handleUpdate(update).catch(() => {});
     });
-    const lost = this.api.onLost(() => this.setLink("lost"));
+    const lost = this.api.onLost(() => this.link.set("lost"));
     this.unsubscribe = () => {
       updates();
       lost();
@@ -161,21 +161,13 @@ export class TelegramSession implements ChatSession {
   }
 
   subscribeLink(listener: (link: LinkState) => void): Unsubscribe {
-    this.linkListeners.add(listener);
-    listener(this.link);
-    return () => this.linkListeners.delete(listener);
+    return this.link.subscribe(listener);
   }
 
-  /** Reopens TDLib's connections, which may have died while the app was suspended or the network changed. */
-  async resume(): Promise<void> {
-    if (!this.me) return;
-    await this.api.send({ "@type": "setNetworkType", type: { "@type": "networkTypeOther" } });
-  }
-
-  private setLink(link: LinkState): void {
-    if (link === this.link) return;
-    this.link = link;
-    for (const listener of this.linkListeners) listener(link);
+  /** Reopens TDLib's connections, which may have died while the app was suspended; TDLib then catches up by itself. */
+  async resume(): Promise<boolean> {
+    if (this.me) await this.api.send({ "@type": "setNetworkType", type: { "@type": "networkTypeOther" } });
+    return false;
   }
 
   subscribeLogin(listener: (login: LoginState | null) => void): Unsubscribe {
@@ -324,7 +316,7 @@ export class TelegramSession implements ChatSession {
       case "updateAuthorizationState":
         return this.onAuthorizationState(update.authorization_state);
       case "updateConnectionState":
-        return this.setLink(update.state["@type"] === "connectionStateReady" ? "online" : "reconnecting");
+        return this.link.set(update.state["@type"] === "connectionStateReady" ? "online" : "reconnecting");
       case "updateUser": {
         const { user } = update;
         this.td.users.set(user.id, user);

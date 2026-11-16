@@ -64,6 +64,7 @@ import {
   newestReadByOthers,
   REVOKED_AND_FULL,
   ReadMarks,
+  StreamReopener,
   type XmtpEnvironment,
   xmtpEnvironment,
 } from "./shared";
@@ -159,11 +160,7 @@ export class XmtpSession implements ChatSession {
 
   private readonly addressCache = new Map<ParticipantId, string>();
   private readonly followed = new Set<FollowedStream<any>>();
-  private reopening: ReturnType<typeof setTimeout> | null = null;
-  /** How many times in a row the streams ended before bringing anything. */
-  private streamEnds = 0;
-  private link: LinkState = "online";
-  private readonly linkListeners = new Set<(link: LinkState) => void>();
+  private readonly streams = new StreamReopener(() => this.reopenStreams());
   private closed = false;
   private readonly blockedDmIds = new Set<string>();
   private readonly chatListeners = new Set<(c: ProtocolChat) => void>();
@@ -539,12 +536,18 @@ export class XmtpSession implements ChatSession {
     };
   }
 
-  async resume(): Promise<void> {
-    if (this.closed) return;
-    if (this.reopening) clearTimeout(this.reopening);
-    this.reopening = null;
-    await Promise.all([...this.followed].map((stream) => stream.restart()));
-    if (!this.reopening) this.setLink("online");
+  subscribeLink(listener: (link: LinkState) => void): Unsubscribe {
+    return this.streams.link.subscribe(listener);
+  }
+
+  async resume(): Promise<boolean> {
+    return !this.closed && this.streams.now();
+  }
+
+  private async reopenStreams(): Promise<boolean> {
+    const ended = [...this.followed].filter((stream) => !stream.running);
+    await Promise.all(ended.map((stream) => stream.start()));
+    return ended.length > 0;
   }
 
   private async follow<T>(
@@ -552,10 +555,10 @@ export class XmtpSession implements ChatSession {
     handle: (value: T) => void | Promise<void>,
   ): Promise<Unsubscribe> {
     const handled = (value: T) => {
-      this.streamEnds = 0;
+      this.streams.brought();
       return handle(value);
     };
-    const stream = new FollowedStream(open, handled, () => this.streamEnded());
+    const stream = new FollowedStream(open, handled, () => this.streams.ended());
     this.followed.add(stream);
     await stream.start();
     return () => {
@@ -564,35 +567,9 @@ export class XmtpSession implements ChatSession {
     };
   }
 
-  subscribeLink(listener: (link: LinkState) => void): Unsubscribe {
-    this.linkListeners.add(listener);
-    listener(this.link);
-    return () => this.linkListeners.delete(listener);
-  }
-
-  private setLink(link: LinkState): void {
-    if (link === this.link) return;
-    this.link = link;
-    for (const listener of this.linkListeners) listener(link);
-  }
-
-  private streamEnded(): void {
-    if (this.closed || this.reopening) return;
-    this.setLink("reconnecting");
-    const delay = STREAM_RETRY_MS[Math.min(this.streamEnds++, STREAM_RETRY_MS.length - 1)];
-    this.reopening = setTimeout(() => {
-      this.reopening = null;
-      this.resume().catch((error) => {
-        console.warn("[xmtp] could not reopen the streams", error);
-        this.streamEnded();
-      });
-    }, delay);
-  }
-
   async disconnect(): Promise<void> {
     this.closed = true;
-    if (this.reopening) clearTimeout(this.reopening);
-    this.reopening = null;
+    this.streams.stop();
     for (const stream of this.followed) stream.stop();
     this.followed.clear();
     this.client.close();
@@ -796,14 +773,12 @@ function describeGroupUpdate(update: GroupUpdated): string {
   return parts.join(" · ") || "Group updated";
 }
 
-const STREAM_RETRY_MS = [5_000, 30_000, 120_000, 600_000];
-
 type Stream<T> = AsyncIterable<T> & { end(): Promise<unknown> };
 
 /**
  * A stream drained as it comes, since the SDK queues every value until
  * something reads it. `ended` is called when it ends on its own rather than
- * by `restart` or `stop`.
+ * by `stop`.
  */
 class FollowedStream<T> {
   private current: Stream<T> | null = null;
@@ -816,6 +791,10 @@ class FollowedStream<T> {
     private readonly ended: () => void,
   ) {}
 
+  get running(): boolean {
+    return this.current !== null;
+  }
+
   async start(): Promise<void> {
     const turn = ++this.opened;
     const stream = await this.open();
@@ -825,14 +804,6 @@ class FollowedStream<T> {
     }
     this.current = stream;
     void this.drain(stream);
-  }
-
-  async restart(): Promise<void> {
-    if (this.stopped) return;
-    const previous = this.current;
-    this.current = null;
-    if (previous) void previous.end();
-    await this.start();
   }
 
   stop(): void {

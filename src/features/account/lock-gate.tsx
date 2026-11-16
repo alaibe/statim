@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
-import { ActivityIndicator, AppState, KeyboardAvoidingView, ScrollView, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, ScrollView, View } from "react-native";
 import { useAccountStore } from "@/core/account/account-store";
 import { biometricCapability } from "@/core/account/biometrics";
 import { isKeyProtectionEnabled } from "@/core/account/key-protection";
@@ -9,6 +9,7 @@ import { useLockStore } from "@/core/account/lock-store";
 import { PIN_LENGTH, pinLockedUntil } from "@/core/account/pin";
 import { eraseEverything } from "@/core/app/erase-account";
 import { reportError } from "@/core/app/report-error";
+import { useOnReturnFromBackground } from "@/core/app/use-return-from-background";
 import {
   Button,
   cn,
@@ -93,24 +94,6 @@ function Unlock({ setup, label }: { setup: LockSetup; label: string }) {
     return <BiometricUnlock label={label} toPin={setup.pin ? () => setMethod("pin") : null} />;
   }
   return <LockFrame icon="lock-closed-outline" />;
-}
-
-/**
- * Re-prompts when the user comes back from another app, not when the prompt
- * itself hands focus back: that would re-open it the moment it is dismissed.
- */
-function useOnReturnFromBackground(onReturn: () => void) {
-  const handler = useEffectEvent(onReturn);
-  const last = useRef(AppState.currentState);
-
-  useEffect(() => {
-    const subscription = AppState.addEventListener("change", (next) => {
-      const previous = last.current;
-      last.current = next;
-      if (next === "active" && previous === "background") handler();
-    });
-    return () => subscription.remove();
-  }, []);
 }
 
 function BiometricUnlock({ label, toPin }: { label: string; toPin: (() => void) | null }) {

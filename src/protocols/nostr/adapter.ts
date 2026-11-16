@@ -293,8 +293,8 @@ class NostrTransport implements ChatTransport {
     return out;
   }
 
-  resume(): void {
-    if (!this.stopped) this.pool.reconnectNow();
+  resume(): boolean {
+    return !this.stopped && this.pool.reconnectNow();
   }
 
   async sync(): Promise<void> {

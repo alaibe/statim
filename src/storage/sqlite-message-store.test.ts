@@ -134,6 +134,10 @@ describe("the cached newest messages", () => {
     await store.forgetPages("matrix");
     expect(await store.cachedPage(asChatId("matrix-1"))).toEqual([]);
     expect(await store.cachedPage(asChatId("xmtp-1"))).toHaveLength(1);
+
+    const large = { ...message("xmtp-1", "large"), content: { kind: "text", text: "x".repeat(40_000) } } as const;
+    await store.cachePages([{ chatId: asChatId("xmtp-1"), messages: [large, message("xmtp-1", "d")] }], []);
+    expect(await store.cachedPage(asChatId("xmtp-1"))).toEqual([message("xmtp-1", "d")]);
   });
 });
 

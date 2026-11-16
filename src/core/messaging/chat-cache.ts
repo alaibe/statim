@@ -1,15 +1,10 @@
 import { isLocalChat } from "./bots";
-import { dropChats } from "./chat-store";
+import { dropChats, FIRST_PAGE } from "./chat-store";
 import type { CachedPage, MessageStore } from "./message-store";
-import type { ProtocolId } from "./namespace";
+import { type ProtocolId, protocolOf } from "./namespace";
 import type { Chat, ChatId, ChatMessage } from "./types";
 
 const SAVE_DELAY_MS = 2_000;
-
-const PAGE_SIZE = 50;
-
-/** A message this large is fetched again rather than kept. */
-const LARGEST_KEPT_MESSAGE = 32_000;
 
 function lasting({ typing: _typing, online: _online, lastSeenAt: _lastSeenAt, draft: _draft, ...rest }: Chat): Chat {
   return rest;
@@ -45,7 +40,8 @@ export class ChatCache {
   listed(protocol: ProtocolId, chats: Chat[]): void {
     this.complete.add(protocol);
     const present = new Set(chats.map((chat) => chat.id));
-    this.release(protocol, (id) => !present.has(id));
+    const dropped = this.release(protocol, (id) => !present.has(id));
+    if (dropped.length > 0) this.dropPages(dropped);
   }
 
   forget(protocol: ProtocolId): void {
@@ -55,6 +51,7 @@ export class ChatCache {
     if (drop.length > 0) {
       this.store.cacheChats([], drop).catch((error) => console.warn("[chat] could not forget cached chats", error));
     }
+    for (const id of [...this.pagesWritten.keys()]) if (protocolOf(id) === protocol) this.pagesWritten.delete(id);
     this.store.forgetPages(protocol).catch((error) => console.warn("[chat] could not forget cached messages", error));
     this.release(protocol, () => true);
   }
@@ -113,12 +110,11 @@ export class ChatCache {
     if (!pages) return;
     const keep: CachedPage[] = [];
     for (const [chatId, messages] of Object.entries(pages) as [ChatId, readonly ChatMessage[]][]) {
-      if (isLocalChat(chatId) || this.pagesWritten.get(chatId) === messages) continue;
-      this.pagesWritten.set(chatId, messages);
-      const kept = messages
-        .filter((message) => !message.id.startsWith("pending:") && !message.privateToMe)
-        .slice(-PAGE_SIZE)
-        .filter((message) => JSON.stringify(message).length <= LARGEST_KEPT_MESSAGE);
+      if (isLocalChat(chatId)) continue;
+      const kept = newestKept(messages);
+      const written = this.pagesWritten.get(chatId);
+      if (written && sameMessages(written, kept)) continue;
+      this.pagesWritten.set(chatId, kept);
       keep.push({ chatId, messages: kept });
     }
     if (keep.length === 0) return;
@@ -132,7 +128,7 @@ export class ChatCache {
     this.store.cachePages([], ids).catch((error) => console.warn("[chat] could not forget cached messages", error));
   }
 
-  private release(protocol: ProtocolId, stale: (id: ChatId) => boolean): void {
+  private release(protocol: ProtocolId, stale: (id: ChatId) => boolean): ChatId[] {
     const dropped: ChatId[] = [];
     for (const [id, owner] of [...this.restored]) {
       if (owner !== protocol) continue;
@@ -140,6 +136,20 @@ export class ChatCache {
       if (stale(id)) dropped.push(id);
     }
     dropChats(dropped);
-    if (dropped.length > 0) this.dropPages(dropped);
+    return dropped;
   }
+}
+
+/** Messages being sent and notes to yourself come back from elsewhere. */
+function newestKept(messages: readonly ChatMessage[]): ChatMessage[] {
+  const kept: ChatMessage[] = [];
+  for (let index = messages.length - 1; index >= 0 && kept.length < FIRST_PAGE; index--) {
+    const message = messages[index];
+    if (!message.id.startsWith("pending:") && !message.privateToMe) kept.push(message);
+  }
+  return kept.reverse();
+}
+
+function sameMessages(left: readonly ChatMessage[], right: readonly ChatMessage[]): boolean {
+  return left.length === right.length && left.every((message, index) => message === right[index]);
 }

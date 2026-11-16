@@ -169,7 +169,7 @@ export interface MessageHistoryState {
 
 const PRIMARY_PROTOCOL: ProtocolId = "xmtp";
 
-const FIRST_PAGE = 50;
+export const FIRST_PAGE = 50;
 
 const EMPTY = Object.freeze({});
 const NONE = Object.freeze([]);
@@ -221,23 +221,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const opened = get().messageHistory[id];
     if (opened?.loading) return;
     set((state) => withHistory(state, id, { loading: true, hasOlder: opened?.hasOlder ?? false }));
-    const project = (page: ChatMessage[], hasOlder: boolean) => {
-      set((state) => ({
-        ...withRaw(state, id, mergePage(rawOf(state, id), page)),
-        ...withHistory(state, id, { loading: false, hasOlder }),
-      }));
-      const indexed = indexMessages(get().mediaIndex, id, page);
-      if (indexed !== get().mediaIndex) {
-        set({ mediaIndex: indexed });
-        saveMediaIndexSoon(requireAccountStorage(get()), indexed);
-      }
-    };
 
     try {
       const newest = await loadMessagePage(get(), id, FIRST_PAGE);
       if (get().accountId !== accountId) return;
-      const more = newest.length === FIRST_PAGE;
-      project(newest, opened && !opened.error ? opened.hasOlder : more);
+      const hasOlder = opened && !opened.error ? opened.hasOlder : newest.length === FIRST_PAGE;
+      set((state) => ({
+        ...withRaw(state, id, mergePage(rawOf(state, id), newest)),
+        ...withHistory(state, id, { loading: false, hasOlder }),
+      }));
+      const indexed = indexMessages(get().mediaIndex, id, newest);
+      if (indexed !== get().mediaIndex) {
+        set({ mediaIndex: indexed });
+        saveMediaIndexSoon(requireAccountStorage(get()), indexed);
+      }
     } catch (error) {
       if (get().accountId !== accountId) return;
       set((state) =>
