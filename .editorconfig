@@ -1,0 +1,28 @@
+# The shared code standard: homeserver's AGENTS.md › Code standards.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+max_line_length = 120
+
+[*.{rs,php,swift,py,sh,bash}]
+indent_size = 4
+
+[*.md]
+trim_trailing_whitespace = false
+
+# cmd.exe reads the Windows installer's statim.cmd.
+[*.cmd]
+end_of_line = crlf
+
+# drizzle-kit writes the migrations with tabs.
+[src/storage/migrations/*.sql]
+indent_style = tab
+
+[{Makefile,*.mk}]
+indent_style = tab

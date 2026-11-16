@@ -1,1 +1,6 @@
+# Text keeps \n on every system; the Windows installer's statim.cmd keeps \r\n, which cmd.exe needs.
+* text=auto eol=lf
 *.cmd text eol=crlf
+*.png binary
+*.icns binary
+*.ico binary
