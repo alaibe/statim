@@ -102,11 +102,10 @@ fn run_within(cli: &Path, args: &[&str], limit: Duration) -> Result<String, Stri
         }
         std::thread::sleep(Duration::from_millis(100));
     }
+    // The whole group, the script's children too. Not with the kill program: procps-ng 3.3.17's (Ubuntu 22.04) takes
+    // `kill -KILL -<group>` for `kill -KILL -1`, every process the user has.
     #[cfg(unix)]
-    let _ = Command::new("kill")
-        .args(["-KILL", &format!("-{}", child.id())])
-        .stderr(Stdio::null())
-        .status();
+    let _ = unsafe { libc::kill(-(child.id() as i32), libc::SIGKILL) };
     let _ = child.kill();
     let output = child.wait_with_output().map_err(|e| e.to_string())?;
     Ok(format!(
