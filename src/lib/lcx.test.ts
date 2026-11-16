@@ -23,10 +23,14 @@ const quoted = {
   },
 };
 
-const built = (to: string = ROUTER) => ({
-  swap: { chainId: 8453, to, data: "0xfc54261d", value: "10000000000000000" },
-  minAmountOut: "18135819",
+const built = (swap: Partial<{ to: string; value: string; chainId: number }> = {}, minAmountOut = "18135819") => ({
+  swap: { chainId: 8453, to: ROUTER, data: "0xfc54261d", value: "10000000000000000", ...swap },
+  minAmountOut,
   routerDeployed: true,
+});
+
+const quotedFor = (input: Partial<{ amount: string; token: string }>) => ({
+  quote: { ...quoted.quote, input: { ...quoted.quote.input, ...input } },
 });
 
 function stub(...answers: { status: number; body: unknown }[]) {
@@ -69,13 +73,40 @@ describe("the LCX Liberty DEX client", () => {
     expect(swap.build.minAmountOut).toBe("18135819");
   });
 
-  it("refuses a build that calls another contract than the spender it quoted", async () => {
-    stub(
-      { status: 200, body: { data: quoted } },
-      { status: 200, body: { data: built("0x0000000000000000000000000000000000000bad") } },
-    );
+  it.each([
+    ["calls a contract other than the chain's published router", quoted, built({ to: `0x${"0b".repeat(20)}` })],
+    ["prices another amount than the one asked", quotedFor({ amount: "20000000000000000" }), built()],
+    ["sells another token than the one asked", quotedFor({ token: USDC }), built()],
+    ["sends more of the coin than the amount sold", quoted, built({ value: "20000000000000000" })],
+    ["builds a lower floor than it quoted", quoted, built({}, "1")],
+    ["is for another chain", quoted, built({ chainId: 10 })],
+  ])("refuses an answer that %s", async (_, quote, build) => {
+    stub({ status: 200, body: { data: quote } }, { status: 200, body: { data: build } });
 
-    await expect(lcxSwap(params, "lbk_key")).rejects.toThrow(/does not match its quote/);
+    await expect(lcxSwap(params, "lbk_key")).rejects.toThrow(/does not match the request/);
+  });
+
+  it("refuses a chain it has no published router for", async () => {
+    stub({ status: 200, body: { data: quoted } }, { status: 200, body: { data: built({ chainId: 11155111 }) } });
+
+    await expect(lcxSwap({ ...params, chainId: 11155111 }, "lbk_key")).rejects.toThrow(/does not match the request/);
+  });
+
+  it("expects no coin to be sent along when a token is sold", async () => {
+    const usdcIn = { ...params, tokenIn: USDC, tokenOut: NATIVE, amountIn: 5_000_000n };
+    const quote = {
+      quote: {
+        ...quoted.quote,
+        input: { amount: "5000000", token: USDC },
+        output: { ...quoted.quote.output, token: NATIVE },
+      },
+    };
+
+    stub({ status: 200, body: { data: quote } }, { status: 200, body: { data: built({ value: "0" }) } });
+    await expect(lcxSwap(usdcIn, "lbk_key")).resolves.toEqual(expect.objectContaining({ quote: quote.quote }));
+
+    stub({ status: 200, body: { data: quote } }, { status: 200, body: { data: built({ value: "5000000" }) } });
+    await expect(lcxSwap(usdcIn, "lbk_key")).rejects.toThrow(/does not match the request/);
   });
 
   it("says when the key was rejected", async () => {
