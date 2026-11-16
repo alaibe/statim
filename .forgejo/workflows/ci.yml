@@ -54,9 +54,16 @@ jobs:
           node-version-file: .node-version
 
       # rustfmt, for `npm run format:check`.
-      # The Rust in rust-toolchain.toml, with its components and targets (rustup before 1.28 installs it on first use).
+      # The Rust in rust-toolchain.toml, with its components and targets. The Linux image has no rustup: a minimal one
+      # goes in first, without a default toolchain, and on the PATH for the next steps.
       - name: Rust
-        run: rustup show active-toolchain || rustup toolchain install
+        run: |
+          if ! command -v rustup > /dev/null; then
+            curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+            PATH="$HOME/.cargo/bin:$PATH"
+          fi
+          rustup show active-toolchain || rustup toolchain install
 
       # On the PATH from the next step on.
       - name: Tools
@@ -165,9 +172,16 @@ jobs:
             libssl-dev libayatana-appindicator3-dev librsvg2-dev \
             cmake perl libudev-dev pkg-config patchelf xdg-utils
 
-      # The Rust in rust-toolchain.toml, with its components and targets (rustup before 1.28 installs it on first use).
+      # The Rust in rust-toolchain.toml, with its components and targets. The Linux image has no rustup: a minimal one
+      # goes in first, without a default toolchain, and on the PATH for the next steps.
       - name: Rust
-        run: rustup show active-toolchain || rustup toolchain install
+        run: |
+          if ! command -v rustup > /dev/null; then
+            curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+            PATH="$HOME/.cargo/bin:$PATH"
+          fi
+          rustup show active-toolchain || rustup toolchain install
 
       # tdlib.sh fetches Linux's TDLib with npm. tauri.linux.conf.json bundles it, and tauri-build checks it's there.
       - uses: actions/setup-node@v4

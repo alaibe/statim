@@ -248,9 +248,16 @@ jobs:
             cmake perl libudev-dev pkg-config patchelf xdg-utils
           curl -fsSL "https://github.com/cli/cli/releases/download/v$GH_VERSION/gh_${GH_VERSION}_linux_amd64.tar.gz" | sudo tar -xz -C /usr/local --strip-components=1
 
-      # The Rust in rust-toolchain.toml, with its components and targets (rustup before 1.28 installs it on first use).
+      # The Rust in rust-toolchain.toml, with its components and targets. The Linux image has no rustup: a minimal one
+      # goes in first, without a default toolchain, and on the PATH for the next steps.
       - name: Rust
-        run: rustup show active-toolchain || rustup toolchain install
+        run: |
+          if ! command -v rustup > /dev/null; then
+            curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+            PATH="$HOME/.cargo/bin:$PATH"
+          fi
+          rustup show active-toolchain || rustup toolchain install
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
@@ -304,9 +311,16 @@ jobs:
         with:
           node-version-file: .node-version
 
-      # The Rust in rust-toolchain.toml, with its components and targets (rustup before 1.28 installs it on first use).
+      # The Rust in rust-toolchain.toml, with its components and targets. The Linux image has no rustup: a minimal one
+      # goes in first, without a default toolchain, and on the PATH for the next steps.
       - name: Rust
-        run: rustup show active-toolchain || rustup toolchain install
+        run: |
+          if ! command -v rustup > /dev/null; then
+            curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+            PATH="$HOME/.cargo/bin:$PATH"
+          fi
+          rustup show active-toolchain || rustup toolchain install
 
       - name: The VM's tools
         run: |
