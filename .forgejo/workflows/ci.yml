@@ -51,12 +51,12 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version-file: .node-version
 
       # rustfmt, for `npm run format:check`.
-      - uses: https://github.com/dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt
+      # The Rust in rust-toolchain.toml, with its components and targets (rustup before 1.28 installs it on first use).
+      - name: Rust
+        run: rustup show active-toolchain || rustup toolchain install
 
       # On the PATH from the next step on.
       - name: Tools
@@ -165,14 +165,14 @@ jobs:
             libssl-dev libayatana-appindicator3-dev librsvg2-dev \
             cmake perl libudev-dev pkg-config patchelf xdg-utils
 
-      - uses: https://github.com/dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
+      # The Rust in rust-toolchain.toml, with its components and targets (rustup before 1.28 installs it on first use).
+      - name: Rust
+        run: rustup show active-toolchain || rustup toolchain install
 
       # tdlib.sh fetches Linux's TDLib with npm. tauri.linux.conf.json bundles it, and tauri-build checks it's there.
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version-file: .node-version
 
       - name: TDLib
         run: ../scripts/tdlib.sh desktop

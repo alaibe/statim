@@ -1,0 +1,7 @@
+# The Rust every build of the desktop shell uses, CI's and the releases' alike (rustup reads it from any folder
+# below this one). Bumped by hand: Renovate doesn't cover this repository.
+[toolchain]
+channel = "1.100.0"
+components = ["rustfmt", "clippy"]
+# The universal macOS build's two halves; the Linux and Windows hosts build for themselves.
+targets = ["aarch64-apple-darwin", "x86_64-apple-darwin"]

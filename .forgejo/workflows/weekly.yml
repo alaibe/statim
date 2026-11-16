@@ -51,6 +51,10 @@ jobs:
         env:
           GIT_CONFIG_GLOBAL: ${{ runner.temp }}/gitconfig
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+
       - run: npm ci
 
       # Expo writes expo-env.d.ts (gitignored) into a working checkout; a fresh clone has none, and without expo/types
