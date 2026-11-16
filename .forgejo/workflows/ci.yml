@@ -1,6 +1,13 @@
-# Checks every push to Statim on git.laibe.cc's home runner: the type check and the Jest tests, as weekly.yml runs them
-# on the Mac before tagging a release. A failure reaches ntfy through the home server's actions-alerts.sh; the desktop
-# and phone builds stay in release.yml.
+# Checks every push to Statim against the shared code standard (homeserver's AGENTS.md › Code standards), on
+# git.laibe.cc's home runner (homeserver repository, `forgejo-runner/`). A failure reaches ntfy through the home
+# server's actions-alerts.sh; the desktop and phone builds stay in release.yml, and weekly.yml runs the type check and
+# the tests again on the Mac before tagging a release.
+#
+# - check: the TypeScript's formatting (Biome) and lint (ESLint), its types and the Jest tests, the Rust's formatting,
+#   and the shell scripts' (shfmt, shellcheck, `bash -n`). Each npm script runs the same way in a terminal.
+# - swift: swift-format's lint of every Swift file, in Swift's official image, whose toolchain has swift-format.
+# - rust: Clippy and the tests of the desktop crate (src-tauri), which builds from scratch with TDLib and Tauri's Linux
+#   packages, so it runs after check and only when the push changed what it builds from.
 
 name: CI
 
@@ -13,16 +20,68 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  SHELLCHECK_VERSION: 0.11.0
+  SHFMT_VERSION: 3.14.1
+  CARGO_TERM_COLOR: always
+
 jobs:
   check:
     runs-on: home-linux
     timeout-minutes: 30
+    outputs:
+      rust: ${{ steps.rust.outputs.changed }}
     steps:
       - uses: actions/checkout@v4
+
+      # First, so the rust job learns it even when a check below fails. A new branch or a run by hand checks it.
+      - id: rust
+        name: Did the desktop crate change?
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          changed=true
+          if [ "$GITHUB_EVENT_NAME" = push ] && [ -n "${BEFORE//0/}" ] \
+            && git fetch -q --depth 1 origin "$BEFORE" \
+            && git diff --quiet "$BEFORE" HEAD -- src-tauri scripts/tdlib.sh .forgejo/workflows/ci.yml; then
+            changed=false
+          fi
+          echo "src-tauri, scripts/tdlib.sh or ci.yml changed since ${BEFORE:-nothing}: $changed"
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+
+      # rustfmt, for `npm run format:check`.
+      - uses: https://github.com/dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      # On the PATH from the next step on.
+      - name: Tools
+        run: |
+          BIN="$HOME/.local/bin"
+          mkdir -p "$BIN"
+          echo "$BIN" >> "$GITHUB_PATH"
+          SHELLCHECK="shellcheck-v$SHELLCHECK_VERSION"
+          URL="https://github.com/koalaman/shellcheck/releases/download/v$SHELLCHECK_VERSION"
+          curl -fsSL "$URL/$SHELLCHECK.linux.x86_64.tar.xz" |
+            tar -xJ --strip-components=1 -C "$BIN" "$SHELLCHECK/shellcheck"
+          URL="https://github.com/mvdan/sh/releases/download/v$SHFMT_VERSION"
+          curl -fsSL -o "$BIN/shfmt" "$URL/shfmt_v${SHFMT_VERSION}_linux_amd64"
+          chmod +x "$BIN/shfmt"
+          "$BIN/shellcheck" --version | sed -n 2p
+          "$BIN/shfmt" --version
+          cargo fmt --version
+
+      # Every tracked file with a bash or sh shebang: scripts/tdlib.sh and e2e/run.sh today.
+      - name: Shell scripts
+        run: |
+          git ls-files -z | while IFS= read -r -d '' file; do
+            if [ -f "$file" ] && head -c 40 "$file" | grep -qE '^#!.*(bash|/sh)'; then printf '%s\0' "$file"; fi
+          done > "$RUNNER_TEMP/shell"
+          tr '\0' '\n' < "$RUNNER_TEMP/shell"
 
       - run: npm ci
 
@@ -30,7 +89,92 @@ jobs:
       - name: Expo's type references
         run: '[ -f expo-env.d.ts ] || echo ''/// <reference types="expo/types" />'' > expo-env.d.ts'
 
-      - run: npm run typecheck
+      # Biome (biome.json) and rustfmt (src-tauri/rustfmt.toml), then shfmt.
+      - name: Format
+        run: |
+          npm run format:check
+          xargs -0 -r shfmt -d -i 4 -ci -bn < "$RUNNER_TEMP/shell"
+
+      # ESLint with eslint-config-expo and the layer rules (eslint.config.js), then shellcheck and bash's own parse.
+      - name: Lint
+        run: |
+          npm run lint
+          xargs -0 -r shellcheck -S warning < "$RUNNER_TEMP/shell"
+          xargs -0 -r -n 1 bash -n < "$RUNNER_TEMP/shell"
+
+      - name: Types
+        run: npm run typecheck
 
       # 20 seconds a test, as in weekly.yml: a fresh node_modules on a busy runner is slower than a terminal.
-      - run: npm test -- --testTimeout=20000
+      - name: Tests
+        run: npm test -- --testTimeout=20000
+
+  swift:
+    needs: check
+    if: ${{ !cancelled() }}
+    runs-on: home-linux
+    timeout-minutes: 15
+    # Not a -slim tag, whose toolchain has no swift-format. The release nearest Xcode 27.2's swift format (6.4.4).
+    container:
+      image: swift:6.4.2-noble
+    steps:
+      # The image has git but not the Node actions/checkout runs on.
+      - name: Checkout
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          git config --global --add safe.directory "$PWD"
+          git init -q .
+          AUTH=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w 0)
+          git -c http.extraHeader="Authorization: basic $AUTH" \
+            fetch -q --depth 1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$GITHUB_SHA"
+          git checkout -q FETCH_HEAD
+
+      # .swift-format: four spaces, 120 columns. --strict fails on any finding, formatting included.
+      - name: Lint
+        run: |
+          swift format --version
+          git ls-files -z '*.swift' | xargs -0 swift format lint --strict
+
+  rust:
+    needs: check
+    if: ${{ !cancelled() && needs.check.outputs.rust == 'true' }}
+    runs-on: home-linux
+    timeout-minutes: 90
+    env:
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+    defaults:
+      run:
+        working-directory: src-tauri
+    steps:
+      - uses: actions/checkout@v4
+
+      # As release.yml's linux job: Tauri's own prerequisites, plus cmake for aws-lc (matrix-sdk), perl for OpenSSL
+      # (SQLCipher) and libudev for hidapi (Ledger).
+      - name: Linux packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev \
+            libssl-dev libayatana-appindicator3-dev librsvg2-dev \
+            cmake perl libudev-dev pkg-config patchelf xdg-utils
+
+      - uses: https://github.com/dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      # tdlib.sh fetches Linux's TDLib with npm. tauri.linux.conf.json bundles it, and tauri-build checks it's there.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: TDLib
+        run: ../scripts/tdlib.sh desktop
+
+      - name: Lint
+        run: cargo clippy --all-targets --locked -- -D warnings
+
+      - name: Tests
+        run: cargo test --locked
