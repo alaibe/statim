@@ -134,7 +134,11 @@ jobs:
       - name: Lint
         run: |
           swift format --version
-          git ls-files -z '*.swift' | xargs -0 swift format lint --strict
+          files=$(git ls-files '*.swift')
+          # With no path, swift format would lint its empty stdin and pass.
+          [ -n "$files" ] || { echo "No Swift file found." >&2; exit 1; }
+          echo "$files"
+          echo "$files" | tr '\n' '\0' | xargs -0 swift format lint --strict
 
   rust:
     needs: check
