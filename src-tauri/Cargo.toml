@@ -3,7 +3,8 @@ name = "statim"
 version = "0.7.12"
 description = "A self-custodial messenger."
 edition = "2021"
-rust-version = "1.77.2"
+# matrix-sdk 0.19 needs 1.96; the 1.77.2 of Tauri's template was never true.
+rust-version = "1.96"
 publish = false
 
 [lib]

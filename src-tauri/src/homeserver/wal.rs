@@ -29,7 +29,7 @@ pub fn repair(db: &Path) {
         return;
     };
     for path in entries.flatten().map(|entry| entry.path()) {
-        if path.extension().map_or(true, |extension| extension != "log") {
+        if path.extension().is_none_or(|extension| extension != "log") {
             continue;
         }
         let Ok(data) = std::fs::read(&path) else {

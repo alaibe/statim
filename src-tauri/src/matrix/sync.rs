@@ -62,7 +62,7 @@ impl Session {
                     .set_room_subscriptions(&fresh.iter().map(|id| id.as_ref()).collect::<Vec<_>>())
                     .await;
             }
-            if grew && !entries.is_empty() && entries.len() % ROOM_PAGE == 0 {
+            if grew && !entries.is_empty() && entries.len().is_multiple_of(ROOM_PAGE) {
                 controller.add_one_page();
             }
         }
