@@ -15,12 +15,18 @@ on:
     - cron: '0 20 * * 0'
   workflow_dispatch:
 
+# One run at a time, never cancelled: a cancelled one could stop between its version commit and its tag.
+concurrency:
+  group: weekly
+  cancel-in-progress: false
+
 env:
   ORIGIN: ssh://git@git.laibe.cc:2222/anthony/statim.git
 
 jobs:
   due:
     runs-on: home-linux
+    timeout-minutes: 10
     outputs:
       due: ${{ steps.due.outputs.due }}
     steps:

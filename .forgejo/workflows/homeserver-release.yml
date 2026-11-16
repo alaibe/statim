@@ -4,7 +4,7 @@
 #
 # The tag goes to git.laibe.cc first: GitHub's copy is a push mirror, which deletes any tag that exists only there.
 
-name: Homeserver
+name: Homeserver release
 
 on:
   workflow_dispatch:
@@ -15,6 +15,11 @@ on:
       olm:
         description: libolm tag
         default: 3.2.16
+
+# One build at a time, never cancelled.
+concurrency:
+  group: homeserver-release
+  cancel-in-progress: false
 
 env:
   ORIGIN: ssh://git@git.laibe.cc:2222/anthony/statim.git

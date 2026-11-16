@@ -29,7 +29,7 @@ pub fn build_index() -> Option<usize> {
     }
 }
 
-/// Per `build_index`. `.github/workflows/homeserver.yml` builds the Mac's, with the
+/// Per `build_index`. `.forgejo/workflows/homeserver-release.yml` builds the Mac's, with the
 /// libolm its mautrix bridges link.
 const SERVER: [Option<&[Pin]>; 3] = [
     Some(&[
