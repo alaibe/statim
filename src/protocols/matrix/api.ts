@@ -198,7 +198,11 @@ export interface MxReceipt {
 }
 
 export type MxUpdate =
-  | { type: "room"; room: MxRoom }
+  | { type: "rooms"; rooms: MxRoom[] }
+  /** Every room the account is in has been announced. */
+  | { type: "listed" }
+  /** How the sync with the homeserver stands; `error` means it stopped and will not resume. */
+  | { type: "link"; state: "online" | "offline" | "error" }
   | { type: "roomGone"; roomId: string }
   | { type: "typing"; roomId: string; userIds: string[] }
   | { type: "receipts"; roomId: string; receipts: MxReceipt[] }
@@ -211,6 +215,8 @@ export interface MatrixApi {
   start(params: MxStartParams): Promise<MxSession | null>;
   login(password: string): Promise<MxSession>;
   logout(): Promise<void>;
+  /** Syncs again now if the sync had stopped or was waiting for the homeserver to come back. */
+  resume(): Promise<void>;
 
   room(id: string): Promise<MxRoom | null>;
   /** Oldest first; `before` is an event id from a previous page. */

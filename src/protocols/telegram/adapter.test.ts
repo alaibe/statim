@@ -186,6 +186,42 @@ describe("TelegramSession sign-in", () => {
   });
 });
 
+describe("TelegramSession connection", () => {
+  it("follows TDLib's connection state and reports a client that stopped answering as lost", async () => {
+    const { session, td } = await connect();
+    await signIn(td());
+    const links: string[] = [];
+    session.subscribeLink((link) => links.push(link));
+    const connection = (type: string) => td().emit({ "@type": "updateConnectionState", state: { "@type": type } });
+    connection("connectionStateWaitingForNetwork");
+    connection("connectionStateConnecting");
+    connection("connectionStateReady");
+    await flush();
+    td().lose();
+    expect(links).toEqual(["online", "reconnecting", "online", "lost"]);
+  });
+
+  it("reopens TDLib's connections when resumed, once signed in", async () => {
+    const { session, td } = await connect();
+    await session.resume();
+    expect(td().requests("setNetworkType")).toHaveLength(0);
+    await signIn(td());
+    await session.resume();
+    expect(td().requests("setNetworkType")).toEqual([
+      expect.objectContaining({ type: { "@type": "networkTypeOther" } }),
+    ]);
+  });
+
+  it("does not load the chat list again on every sync", async () => {
+    const { session, td } = await connect();
+    await signIn(td());
+    const loads = td().requests("loadChats").length;
+    await session.sync();
+    await session.sync();
+    expect(td().requests("loadChats")).toHaveLength(loads);
+  });
+});
+
 describe("TelegramSession chats", () => {
   async function signedIn() {
     const context = await connect();

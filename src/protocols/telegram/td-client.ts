@@ -5,7 +5,7 @@ import { type TdDriver, TdJsonClient } from "./json-client";
 
 // How long one receive may block natively; closing the client waits for it.
 const RECEIVE_TIMEOUT_S = 1;
-const RECEIVE_LIMIT = 500;
+const RECEIVE_LIMIT = 100;
 
 let clientId: number | null = null;
 

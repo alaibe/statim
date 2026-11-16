@@ -125,6 +125,51 @@ describe("MatrixSession sign-in", () => {
   });
 });
 
+describe("MatrixSession connection", () => {
+  it("lists every chat only once the SDK says its rooms are all announced", async () => {
+    const api = new FakeMatrix();
+    api.start = async (params) => params.session;
+    const chat = await MatrixSession.connect({
+      createApi: async () => api,
+      parameters: { ...PARAMETERS, session: SESSION },
+      persistSession: async () => {},
+    });
+    let everything: ProtocolChat[] | null = null;
+    void chat.whenListed().then((chats) => {
+      everything = chats;
+    });
+
+    api.emit({ type: "rooms", rooms: [DM] });
+    await flush();
+    expect(everything).toBeNull();
+
+    api.emit({ type: "rooms", rooms: [GROUP] });
+    api.emit({ type: "listed" });
+    await flush();
+    expect(everything!.map((c) => roomIdOf(c.id)).sort()).toEqual([DM.id, GROUP.id].sort());
+  });
+
+  it("reports the sync as reconnecting while offline and as lost once it stops", async () => {
+    const { chat, api } = await connect();
+    const links: string[] = [];
+    chat.subscribeLink((link) => links.push(link));
+    api.emit({ type: "link", state: "offline" });
+    api.emit({ type: "link", state: "online" });
+    api.emit({ type: "link", state: "error" });
+    expect(links).toEqual(["online", "reconnecting", "online", "lost"]);
+  });
+
+  it("restarts the sync when resumed, once signed in", async () => {
+    const { chat, api } = await connect();
+    await chat.resume();
+    expect(api.calls.map((call) => call.name)).toContain("resume");
+
+    const signedOut = await connect(null);
+    await signedOut.chat.resume();
+    expect(signedOut.api.calls.map((call) => call.name)).not.toContain("resume");
+  });
+});
+
 describe("MatrixSession chats", () => {
   it("lists joined rooms and invitations, not rooms that were left", async () => {
     const { chat, api } = await connect(SESSION, (api) => {
@@ -165,13 +210,8 @@ describe("MatrixSession chats", () => {
     });
     const invitedDm = chatIdOf("!dm-invite:example.org");
     api.emit({
-      type: "room",
-      room: room("!dm-invite:example.org", {
-        membership: "invited",
-        isDm: true,
-        inviter: BOB,
-        name: "Bob",
-      }),
+      type: "rooms",
+      rooms: [room("!dm-invite:example.org", { membership: "invited", isDm: true, inviter: BOB, name: "Bob" })],
     });
     expect((await chat.listChats()).find((c) => c.id === invitedDm)).toMatchObject({
       memberIds: [BOB, ME],
@@ -220,7 +260,7 @@ describe("MatrixSession chats", () => {
     await chat.streamChats((c) => chats.push(c));
     expect((await chat.listChats()).find((c) => c.id === chatIdOf(early.id))?.network).toBeUndefined();
 
-    api.emit({ type: "room", room: { ...early, elevated: [ME, bot] } });
+    api.emit({ type: "rooms", rooms: [{ ...early, elevated: [ME, bot] }] });
     await flush();
 
     expect(chats.findLast((c) => c.id === chatIdOf(early.id))).toMatchObject({ network: "slack" });
@@ -344,9 +384,9 @@ describe("MatrixSession chats", () => {
     await chat.streamChats((c) => chats.push(c));
     await chat.streamMessages((m) => messages.push(m));
 
-    api.emit({ type: "room", room: { ...DM, latest } });
+    api.emit({ type: "rooms", rooms: [{ ...DM, latest }] });
     api.emit({ type: "event", event: textEvent("$1", DM.id, BOB, "hello") });
-    api.emit({ type: "room", room: room("!gone:example.org", { membership: "left", latest }) });
+    api.emit({ type: "rooms", rooms: [room("!gone:example.org", { membership: "left", latest })] });
     api.emit({ type: "event", event: textEvent("$2", "!gone:example.org", BOB, "bye") });
     await flush();
 
@@ -644,7 +684,7 @@ describe("MatrixSession chats", () => {
       { userId: ME, role: "admin" },
       { userId: BOB, role: "admin" },
     ]);
-    api.emit({ type: "room", room: DM });
+    api.emit({ type: "rooms", rooms: [DM] });
     await flush();
     expect((await chat.getMembers(DM_ID)).map((m) => m.id)).toEqual([ME, BOB]);
   });

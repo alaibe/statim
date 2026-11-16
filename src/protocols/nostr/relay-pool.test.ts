@@ -49,6 +49,22 @@ describe("connecting", () => {
     factory.relays[0].open();
     expect(pool.states[0].status).toBe("open");
   });
+  it("reopens a dropped relay at once when asked, leaving open ones alone", () => {
+    jest.useFakeTimers();
+    const factory = fakeRelayFactory();
+    const pool = new RelayPool({ urls: ["wss://a.example", "wss://b.example"], createSocket: factory.create });
+    factory.relays[0].open();
+    factory.relays[1].open();
+    factory.relays[1].close();
+    expect(factory.relays).toHaveLength(2);
+
+    pool.reconnectNow();
+    expect(factory.relays.map((r) => r.url)).toEqual(["wss://a.example", "wss://b.example", "wss://b.example"]);
+    jest.advanceTimersByTime(120_000);
+    expect(factory.relays).toHaveLength(3);
+    pool.close();
+    jest.useRealTimers();
+  });
 });
 
 describe("subscriptions", () => {

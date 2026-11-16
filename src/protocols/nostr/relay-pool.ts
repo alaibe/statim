@@ -150,6 +150,18 @@ export class RelayPool {
     };
   }
 
+  /** Opens relays that are down now instead of when their backoff ends; open ones are left alone. */
+  reconnectNow() {
+    if (this.closed) return;
+    for (const connection of this.connections.values()) {
+      if (connection.status === "open" || connection.socket) continue;
+      if (connection.timer) clearTimeout(connection.timer);
+      connection.timer = null;
+      connection.attempts = 0;
+      this.open(connection);
+    }
+  }
+
   private scheduleReconnect(connection: Connection) {
     if (this.closed) return;
     if (connection.timer) clearTimeout(connection.timer);

@@ -35,6 +35,10 @@ class TauriMatrixClient implements MatrixApi {
     return invoke("mx_login", { password });
   }
 
+  resume(): Promise<void> {
+    return invoke("mx_resume");
+  }
+
   logout(): Promise<void> {
     return invoke("mx_logout");
   }

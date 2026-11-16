@@ -23,6 +23,8 @@ export class TdRequestError extends Error {
 export interface TdApi {
   send<T extends TdObject = TdObject>(request: TdObject): Promise<T>;
   onUpdate(listener: (update: TdObject) => void): () => void;
+  /** Called when the client stops answering without having been closed. */
+  onLost(listener: () => void): () => void;
   /** Flushes TDLib's databases and frees the client. Local data survives. */
   close(): Promise<void>;
   /** Closes TDLib and deletes everything it stored. */

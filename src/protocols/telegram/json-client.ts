@@ -31,6 +31,7 @@ export class TdJsonClient implements TdApi {
   private nextId = 1;
   private readonly pending = new Map<string, Pending>();
   private readonly listeners = new Set<(update: TdObject) => void>();
+  private readonly lostListeners = new Set<() => void>();
   private state: "open" | "closing" | "closed" = "open";
   private resolveClosed: (() => void) | null = null;
   private readonly closed = new Promise<void>((resolve) => {
@@ -51,6 +52,11 @@ export class TdJsonClient implements TdApi {
   onUpdate(listener: (update: TdObject) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
+  }
+
+  onLost(listener: () => void): () => void {
+    this.lostListeners.add(listener);
+    return () => this.lostListeners.delete(listener);
   }
 
   send<T extends TdObject = TdObject>(request: TdObject): Promise<T> {
@@ -87,7 +93,9 @@ export class TdJsonClient implements TdApi {
       try {
         responses = await this.driver.receive();
       } catch {
+        const unexpected = this.state === "open";
         await this.finishClose();
+        if (unexpected) for (const listener of this.lostListeners) listener();
         break;
       }
       for (const response of responses) {

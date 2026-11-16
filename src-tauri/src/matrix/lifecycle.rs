@@ -121,6 +121,12 @@ pub async fn mx_logout(state: State<'_, Matrix>) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub async fn mx_resume(state: State<'_, Matrix>) -> Result<(), String> {
+    current(&state)?.resume_sync().await;
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn mx_close(state: State<'_, Matrix>) -> Result<(), String> {
     take(&state).await;
     Ok(())

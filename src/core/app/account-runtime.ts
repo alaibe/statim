@@ -69,7 +69,7 @@ export class AccountRuntime {
   private eraseSessions = new Map<string, Map<ProtocolId, ChatSession & Partial<XmtpCapabilities>>>();
 
   constructor(private readonly descriptors: readonly ProtocolDescriptor[]) {
-    this.protocols = new ProtocolRuntime(descriptors);
+    this.protocols = new ProtocolRuntime(descriptors, (protocolId, lost) => this.recover(protocolId, lost));
   }
 
   synchronize(next: RuntimeAccount | null): Promise<void> {
@@ -98,6 +98,17 @@ export class AccountRuntime {
       if (!this.current || !this.isCurrent(this.currentGeneration)) return;
       await this.protocols.stop();
     });
+  }
+
+  resume(): void {
+    if (this.current && this.isCurrent(this.currentGeneration)) this.protocols.resume();
+  }
+
+  private recover(protocolId: ProtocolId, lost?: ChatSession): void {
+    const generation = this.currentGeneration;
+    void this.serialize(async () => {
+      if (this.isCurrent(generation)) await this.protocols.replace(protocolId, lost);
+    }).catch(reportError);
   }
 
   setPluginEnabled(id: PluginId, enabled: boolean): Promise<void> {
@@ -217,8 +228,9 @@ export class AccountRuntime {
     showCachedChats(cached);
     this.cache = cache;
     this.stopCaching = useChatStore.subscribe((state, previous) => {
-      if (state.accountId !== input.accountId || state.chats === previous.chats) return;
-      cache.saveSoon(state.chats);
+      if (state.accountId !== input.accountId) return;
+      if (state.chats !== previous.chats) cache.saveSoon(state.chats);
+      if (state.rawMessages !== previous.rawMessages) cache.savePagesSoon(state.rawMessages);
     });
 
     const enabled = resolveEnabledIds({

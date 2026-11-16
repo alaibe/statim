@@ -25,6 +25,12 @@ export interface LoginState {
   error?: string;
 }
 
+/**
+ * Whether a session still reaches its protocol. A session that is "lost" cannot
+ * come back by itself and is replaced.
+ */
+export type LinkState = "online" | "reconnecting" | "lost";
+
 export interface GroupInfo {
   description?: string;
   link?: string;
@@ -134,6 +140,13 @@ export interface ChatSession {
 
   sync(): Promise<void>;
   subscribeHistory?(listener: (state: HistoryState) => void): Unsubscribe;
+  subscribeLink?(listener: (link: LinkState) => void): Unsubscribe;
+  /**
+   * Called when the app comes back to the foreground, the device is back
+   * online or wakes from sleep: re-opens whatever dropped meanwhile. Throwing
+   * means the session cannot recover and is replaced.
+   */
+  resume?(): Promise<void>;
 
   subscribeLogin?(listener: (login: LoginState | null) => void): Unsubscribe;
   submitLogin?(value: string): Promise<void>;

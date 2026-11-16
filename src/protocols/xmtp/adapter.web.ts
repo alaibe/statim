@@ -41,7 +41,7 @@ import {
 import { isParticipantId } from "@/core/messaging/bots";
 import { showsInPreview } from "@/core/messaging/message-rules";
 import { protocolChatId } from "@/core/messaging/namespace";
-import type { ChatSession, GroupInfo, XmtpInstallation } from "@/core/messaging/protocol";
+import type { ChatSession, GroupInfo, LinkState, XmtpInstallation } from "@/core/messaging/protocol";
 import type {
   Chat,
   ConsentDecision,
@@ -158,7 +158,12 @@ export class XmtpSession implements ChatSession {
   readonly inlinesFiles = true;
 
   private readonly addressCache = new Map<ParticipantId, string>();
-  private readonly streams = new Set<{ end(): Promise<unknown> }>();
+  private readonly followed = new Set<FollowedStream<any>>();
+  private reopening: ReturnType<typeof setTimeout> | null = null;
+  /** How many times in a row the streams ended before bringing anything. */
+  private streamEnds = 0;
+  private link: LinkState = "online";
+  private readonly linkListeners = new Set<(link: LinkState) => void>();
   private closed = false;
   private readonly blockedDmIds = new Set<string>();
   private readonly chatListeners = new Set<(c: ProtocolChat) => void>();
@@ -485,11 +490,12 @@ export class XmtpSession implements ChatSession {
   }
 
   async streamMessages(onMessage: (m: ProtocolMessage) => void): Promise<Unsubscribe> {
-    const stream = await this.client.conversations.streamAllMessages({
-      consentStates: VISIBLE,
-      onError: (error) => console.warn("[xmtp] message stream error", error),
-    });
-    return this.consume(stream, async (message) => {
+    const open = () =>
+      this.client.conversations.streamAllMessages({
+        consentStates: VISIBLE,
+        onError: (error) => console.warn("[xmtp] message stream error", error),
+      });
+    return this.follow(open, async (message) => {
       const fromSelf = message.senderInboxId === this.self.participantId;
       if (isReadReceipt(message)) {
         if (!fromSelf && this.marks.raise(message.conversationId, Number(message.sentAtNs / 1_000_000n))) {
@@ -513,57 +519,82 @@ export class XmtpSession implements ChatSession {
   }
 
   async streamDeletedMessages(listener: (id: ProtocolChatId, messageIds: MessageId[]) => void): Promise<Unsubscribe> {
-    const stream = await this.client.conversations.streamDeletedMessages({
-      onError: (error) => console.warn("[xmtp] deletion stream error", error),
-    });
-    return this.consume(stream, (message) => listener(protocolChatId(message.conversationId), [message.id]));
+    const open = () =>
+      this.client.conversations.streamDeletedMessages({
+        onError: (error) => console.warn("[xmtp] deletion stream error", error),
+      });
+    return this.follow(open, (message) => listener(protocolChatId(message.conversationId), [message.id]));
   }
 
   async streamChats(onChat: (c: ProtocolChat) => void): Promise<Unsubscribe> {
     this.chatListeners.add(onChat);
-    const stream = await this.client.conversations.stream({
-      onError: (error) => console.warn("[xmtp] conversation stream error", error),
-    });
-    const stop = this.consume(stream, (conversation) => this.emitChat(conversation));
+    const open = () =>
+      this.client.conversations.stream({
+        onError: (error) => console.warn("[xmtp] conversation stream error", error),
+      });
+    const stop = await this.follow(open, (conversation) => this.emitChat(conversation));
     return () => {
       this.chatListeners.delete(onChat);
       stop();
     };
   }
 
-  /**
-   * Streams queue every value until something reads it, so they are drained
-   * here rather than observed through `onValue`.
-   */
-  private consume<T>(
-    stream: AsyncIterable<T> & { end(): Promise<unknown> },
+  async resume(): Promise<void> {
+    if (this.closed) return;
+    if (this.reopening) clearTimeout(this.reopening);
+    this.reopening = null;
+    await Promise.all([...this.followed].map((stream) => stream.restart()));
+    if (!this.reopening) this.setLink("online");
+  }
+
+  private async follow<T>(
+    open: () => Promise<Stream<T>>,
     handle: (value: T) => void | Promise<void>,
-  ): Unsubscribe {
-    this.streams.add(stream);
-    void (async () => {
-      try {
-        for await (const value of stream) {
-          if (this.closed) break;
-          await Promise.resolve(handle(value)).catch((error) =>
-            console.warn("[xmtp] could not handle a streamed value", error),
-          );
-        }
-      } catch (error) {
-        console.warn("[xmtp] stream ended with an error", error);
-      } finally {
-        this.streams.delete(stream);
-      }
-    })();
-    return () => {
-      this.streams.delete(stream);
-      void stream.end();
+  ): Promise<Unsubscribe> {
+    const handled = (value: T) => {
+      this.streamEnds = 0;
+      return handle(value);
     };
+    const stream = new FollowedStream(open, handled, () => this.streamEnded());
+    this.followed.add(stream);
+    await stream.start();
+    return () => {
+      this.followed.delete(stream);
+      stream.stop();
+    };
+  }
+
+  subscribeLink(listener: (link: LinkState) => void): Unsubscribe {
+    this.linkListeners.add(listener);
+    listener(this.link);
+    return () => this.linkListeners.delete(listener);
+  }
+
+  private setLink(link: LinkState): void {
+    if (link === this.link) return;
+    this.link = link;
+    for (const listener of this.linkListeners) listener(link);
+  }
+
+  private streamEnded(): void {
+    if (this.closed || this.reopening) return;
+    this.setLink("reconnecting");
+    const delay = STREAM_RETRY_MS[Math.min(this.streamEnds++, STREAM_RETRY_MS.length - 1)];
+    this.reopening = setTimeout(() => {
+      this.reopening = null;
+      this.resume().catch((error) => {
+        console.warn("[xmtp] could not reopen the streams", error);
+        this.streamEnded();
+      });
+    }, delay);
   }
 
   async disconnect(): Promise<void> {
     this.closed = true;
-    for (const stream of this.streams) void stream.end();
-    this.streams.clear();
+    if (this.reopening) clearTimeout(this.reopening);
+    this.reopening = null;
+    for (const stream of this.followed) stream.stop();
+    this.followed.clear();
     this.client.close();
   }
 
@@ -763,4 +794,67 @@ function describeGroupUpdate(update: GroupUpdated): string {
     if (field.fieldName === "group_name") parts.push(`Renamed to "${field.newValue}"`);
   }
   return parts.join(" · ") || "Group updated";
+}
+
+const STREAM_RETRY_MS = [5_000, 30_000, 120_000, 600_000];
+
+type Stream<T> = AsyncIterable<T> & { end(): Promise<unknown> };
+
+/**
+ * A stream drained as it comes, since the SDK queues every value until
+ * something reads it. `ended` is called when it ends on its own rather than
+ * by `restart` or `stop`.
+ */
+class FollowedStream<T> {
+  private current: Stream<T> | null = null;
+  private stopped = false;
+  private opened = 0;
+
+  constructor(
+    private readonly open: () => Promise<Stream<T>>,
+    private readonly handle: (value: T) => void | Promise<void>,
+    private readonly ended: () => void,
+  ) {}
+
+  async start(): Promise<void> {
+    const turn = ++this.opened;
+    const stream = await this.open();
+    if (this.stopped || turn !== this.opened) {
+      void stream.end();
+      return;
+    }
+    this.current = stream;
+    void this.drain(stream);
+  }
+
+  async restart(): Promise<void> {
+    if (this.stopped) return;
+    const previous = this.current;
+    this.current = null;
+    if (previous) void previous.end();
+    await this.start();
+  }
+
+  stop(): void {
+    this.stopped = true;
+    const current = this.current;
+    this.current = null;
+    if (current) void current.end();
+  }
+
+  private async drain(stream: Stream<T>): Promise<void> {
+    try {
+      for await (const value of stream) {
+        if (this.current !== stream) break;
+        await Promise.resolve(this.handle(value)).catch((error) =>
+          console.warn("[xmtp] could not handle a streamed value", error),
+        );
+      }
+    } catch (error) {
+      console.warn("[xmtp] stream ended with an error", error);
+    }
+    if (this.current !== stream) return;
+    this.current = null;
+    this.ended();
+  }
 }

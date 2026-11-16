@@ -227,6 +227,17 @@ export type TdChatUpdate =
 export type TdUpdate =
   | TdChatUpdate
   | { "@type": "updateAuthorizationState"; authorization_state: TdAuthorizationState }
+  | {
+      "@type": "updateConnectionState";
+      state: {
+        "@type":
+          | "connectionStateWaitingForNetwork"
+          | "connectionStateConnectingToProxy"
+          | "connectionStateConnecting"
+          | "connectionStateUpdating"
+          | "connectionStateReady";
+      };
+    }
   | { "@type": "updateUser"; user: TdUser }
   | { "@type": "updateUserStatus"; user_id: number; status: TdUserStatus }
   | {

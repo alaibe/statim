@@ -35,12 +35,33 @@ interface ProtocolAccount {
   cache?: ChatCache;
 }
 
+interface Connecting {
+  input: ProtocolAccount;
+  storage: AccountStorage;
+  active: () => boolean;
+}
+
+const RETRY_DELAYS_MS = [5_000, 15_000, 60_000, 300_000];
+
+const RESUME_GAP_MS = 10_000;
+
+/** TDLib and the Matrix SDK drop and restore their link often; only a drop that lasts shows. */
+const RECONNECTING_GRACE_MS = 3_000;
+
 export class ProtocolRuntime {
   private subscriptions = new Map<ProtocolId, Unsubscribe[]>();
   private sessions = new Map<ProtocolId, ChatSession>();
   private cache: ChatCache | undefined;
+  private context: Connecting | null = null;
+  private retries = new Map<ProtocolId, { attempt: number; timer: ReturnType<typeof setTimeout> | null }>();
+  private resumedAt = -Infinity;
+  private readonly resuming = new Set<ProtocolId>();
 
-  constructor(private readonly descriptors: readonly ProtocolDescriptor[]) {}
+  /** `recover` replaces a protocol's `lost` session, or connects it when it has none; the caller serializes it. */
+  constructor(
+    private readonly descriptors: readonly ProtocolDescriptor[],
+    private readonly recover: (protocolId: ProtocolId, lost?: ChatSession) => void = () => {},
+  ) {}
 
   async connect(
     input: ProtocolAccount,
@@ -50,6 +71,7 @@ export class ProtocolRuntime {
   ): Promise<void> {
     if (!active()) return;
     this.cache = input.cache;
+    this.context = { input, storage, active };
     useChatStore.setState({ status: "connecting", error: null });
     const selected = input.only ?? (input.createSession ? ["xmtp" as const] : undefined);
     const descriptors = connectableProtocols(this.descriptors).filter(
@@ -57,51 +79,100 @@ export class ProtocolRuntime {
     );
 
     const configs = input.createSession ? undefined : loadProtocolConfigs(input.accountId);
-    await Promise.all(
-      descriptors.map(async (descriptor) => {
-        if (!active()) return;
-        const protocolId = descriptor.id;
-        const subscriptions: Unsubscribe[] = [];
-        this.subscriptions.set(protocolId, subscriptions);
-        this.setProtocol(protocolId, { ...NO_CONNECTION, status: "connecting" });
-        try {
-          const session = await this.open(descriptor, input, storage, configs, active);
-          if (!session) return;
-          if (!active()) {
-            await session.disconnect().catch(() => {});
-            return;
-          }
-          this.sessions.set(protocolId, session);
-          useChatStore.setState((state) => ({
-            sessions: { ...state.sessions, [protocolId]: session },
-          }));
-          this.setProtocol(protocolId, { ...NO_CONNECTION, status: "ready" });
-          const live = () => active() && this.sessions.get(protocolId) === session;
-
-          subscriptions.push(...this.watch(protocolId, session, live));
-          const streams = await this.stream(protocolId, session, live);
-          if (!live()) {
-            for (const stop of streams) stop?.();
-            await session.disconnect().catch(() => {});
-            return;
-          }
-          for (const stop of streams) if (stop) subscriptions.push(stop);
-          await this.list(protocolId, session, live);
-          if (!live()) return;
-          await useChatStore.getState().syncProtocol(protocolId);
-        } catch (error) {
-          if (active()) {
-            this.setProtocol(protocolId, {
-              ...NO_CONNECTION,
-              status: "error",
-              error: errorMessage(error),
-            });
-          }
-        }
-      }),
-    );
+    await Promise.all(descriptors.map((descriptor) => this.connectOne(descriptor, configs)));
 
     if (active()) this.rollUpStatus();
+  }
+
+  /** Swaps a session that died for a new one, keeping the protocol's chats and messages on screen. */
+  async replace(protocolId: ProtocolId, lost?: ChatSession): Promise<void> {
+    const context = this.context;
+    const descriptor = this.descriptors.find((entry) => entry.id === protocolId);
+    const current = this.sessions.get(protocolId);
+    if (!context?.active() || !descriptor || (lost ? current !== lost : current)) return;
+    this.cancelRetry(protocolId);
+    await this.disconnect([protocolId]);
+    useChatStore.setState((state) => {
+      const { [protocolId]: _gone, ...sessions } = state.sessions;
+      return { sessions };
+    });
+    const configs = context.input.createSession ? undefined : loadProtocolConfigs(context.input.accountId);
+    await this.connectOne(descriptor, configs);
+    if (context.active()) this.rollUpStatus();
+  }
+
+  resume(): void {
+    const now = Date.now();
+    if (!this.context?.active() || now - this.resumedAt < RESUME_GAP_MS) return;
+    this.resumedAt = now;
+    for (const [protocolId, session] of this.sessions) {
+      if (this.resuming.has(protocolId)) continue;
+      this.resuming.add(protocolId);
+      void (session.resume?.() ?? Promise.resolve())
+        .then(
+          () =>
+            this.sessions.get(protocolId) === session ? useChatStore.getState().syncProtocol(protocolId) : undefined,
+          () => this.recover(protocolId, session),
+        )
+        .finally(() => this.resuming.delete(protocolId));
+    }
+    for (const [protocolId, retry] of this.retries) {
+      if (!retry.timer) continue;
+      clearTimeout(retry.timer);
+      retry.timer = null;
+      this.recover(protocolId);
+    }
+  }
+
+  private async connectOne(
+    descriptor: ProtocolDescriptor,
+    configs: ReturnType<typeof loadProtocolConfigs> | undefined,
+  ): Promise<void> {
+    const context = this.context;
+    if (!context?.active()) return;
+    const { input, storage, active } = context;
+    const protocolId = descriptor.id;
+    const subscriptions: Unsubscribe[] = [];
+    this.subscriptions.set(protocolId, subscriptions);
+    this.setProtocol(protocolId, { ...NO_CONNECTION, status: "connecting" });
+    let session: ChatSession | null = null;
+    try {
+      session = await this.open(descriptor, input, storage, configs, active);
+      if (!session) return;
+      if (!active()) {
+        await session.disconnect().catch(() => {});
+        return;
+      }
+      const current = session;
+      this.sessions.set(protocolId, current);
+      useChatStore.setState((state) => ({
+        sessions: { ...state.sessions, [protocolId]: current },
+      }));
+      this.setProtocol(protocolId, { ...NO_CONNECTION, status: "ready" });
+      const live = () => active() && this.sessions.get(protocolId) === current;
+
+      subscriptions.push(...this.watch(protocolId, current, live));
+      const streams = await this.stream(protocolId, current, live);
+      if (!live()) {
+        for (const stop of streams) stop?.();
+        await current.disconnect().catch(() => {});
+        return;
+      }
+      for (const stop of streams) if (stop) subscriptions.push(stop);
+      await this.list(protocolId, current, live);
+      if (!live()) return;
+      this.retries.delete(protocolId);
+      await useChatStore.getState().syncProtocol(protocolId);
+    } catch (error) {
+      if (!active()) return;
+      if (session && this.sessions.get(protocolId) === session) await this.disconnect([protocolId]);
+      useChatStore.setState((state) => {
+        const { [protocolId]: _failed, ...sessions } = state.sessions;
+        return { sessions };
+      });
+      this.setProtocol(protocolId, { ...NO_CONNECTION, status: "error", error: errorMessage(error) });
+      this.scheduleRetry(protocolId);
+    }
   }
 
   /** A session for `descriptor`, or null when the account changed or the protocol is not set up. */
@@ -141,6 +212,22 @@ export class ProtocolRuntime {
     });
   }
 
+  private scheduleRetry(protocolId: ProtocolId): void {
+    const attempt = this.retries.get(protocolId)?.attempt ?? 0;
+    const delay = RETRY_DELAYS_MS[Math.min(attempt, RETRY_DELAYS_MS.length - 1)];
+    const retry = { attempt: attempt + 1, timer: null as ReturnType<typeof setTimeout> | null };
+    retry.timer = setTimeout(() => {
+      retry.timer = null;
+      this.recover(protocolId);
+    }, delay);
+    this.retries.set(protocolId, retry);
+  }
+
+  private cancelRetry(protocolId: ProtocolId): void {
+    const timer = this.retries.get(protocolId)?.timer;
+    if (timer) clearTimeout(timer);
+  }
+
   private watch(protocolId: ProtocolId, session: ChatSession, live: () => boolean): Unsubscribe[] {
     const subscriptions: Unsubscribe[] = [];
     if (session.subscribeHistory) {
@@ -163,6 +250,37 @@ export class ProtocolRuntime {
             ...connectionFor(useChatStore.getState().protocols, protocolId),
             login,
           });
+        }),
+      );
+    }
+    if (session.subscribeLink) {
+      let grace: ReturnType<typeof setTimeout> | null = null;
+      let shown = false;
+      const status = (status: ProtocolConnection["status"]) =>
+        this.setProtocol(protocolId, { ...connectionFor(useChatStore.getState().protocols, protocolId), status });
+      subscriptions.push(
+        () => {
+          if (grace) clearTimeout(grace);
+        },
+        session.subscribeLink((link) => {
+          if (!live()) return;
+          if (grace) clearTimeout(grace);
+          grace = null;
+          if (link === "lost") {
+            status("connecting");
+            this.recover(protocolId, session);
+          } else if (link === "online") {
+            if (!shown) return;
+            shown = false;
+            status("ready");
+            void useChatStore.getState().syncProtocol(protocolId);
+          } else if (!shown) {
+            grace = setTimeout(() => {
+              if (!live()) return;
+              shown = true;
+              status("connecting");
+            }, RECONNECTING_GRACE_MS);
+          }
         }),
       );
     }
@@ -212,6 +330,10 @@ export class ProtocolRuntime {
   /** Drops the protocol projection of `only` (every protocol by default) but keeps local chats. */
   async stop(only?: ProtocolId[]): Promise<void> {
     for (const protocol of only ?? this.sessions.keys()) this.cache?.pause(protocol);
+    for (const protocol of only ?? []) {
+      this.cancelRetry(protocol);
+      this.retries.delete(protocol);
+    }
     await this.disconnect(only);
     const state = useChatStore.getState();
     const dropped = (protocol: ProtocolId) => (only ? only.includes(protocol) : protocol !== LOCAL_PROTOCOL);
@@ -244,6 +366,11 @@ export class ProtocolRuntime {
       const session = this.sessions.get(id);
       if (session) sessions.push(session);
       this.sessions.delete(id);
+    }
+    if (!only) {
+      this.context = null;
+      for (const id of this.retries.keys()) this.cancelRetry(id);
+      this.retries.clear();
     }
     await Promise.all(sessions.map((session) => session.disconnect().catch(() => {})));
   }

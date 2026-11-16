@@ -1,5 +1,6 @@
 import * as Linking from "expo-linking";
 import { useEffect } from "react";
+import { AppState } from "react-native";
 import { accountRuntime } from "@/runtime";
 import { useAccountStore } from "../account/account-store";
 import { useLockStore } from "../account/lock-store";
@@ -21,6 +22,8 @@ export function useAppBoot(): void {
     if (status === "loading") void restore();
   }, [status, restore]);
 
+  useEffect(watchForReturn, []);
+
   useEffect(() => {
     void accountRuntime.synchronize(
       status === "ready" && keyring && activeAccountId
@@ -35,6 +38,32 @@ export function useAppBoot(): void {
         : null,
     );
   }, [status, keyring, activeAccountId, registry, defaultEnabled, makeContext, onPluginsChanged]);
+}
+
+const CLOCK_TICK_MS = 10_000;
+const SLEPT_MS = 30_000;
+
+/** Coming back to the foreground, online or from sleep (seen as the clock jumping) lets protocols re-open. */
+function watchForReturn(): () => void {
+  const resume = () => accountRuntime.resume();
+  let state = AppState.currentState;
+  const subscription = AppState.addEventListener("change", (next) => {
+    if (next === "active" && state === "background") resume();
+    state = next;
+  });
+  let tick = Date.now();
+  const clock = setInterval(() => {
+    const now = Date.now();
+    if (now - tick > SLEPT_MS) resume();
+    tick = now;
+  }, CLOCK_TICK_MS);
+  const events = typeof globalThis.addEventListener === "function" ? globalThis : null;
+  events?.addEventListener("online", resume);
+  return () => {
+    subscription.remove();
+    clearInterval(clock);
+    events?.removeEventListener("online", resume);
+  };
 }
 
 export function useDeepLinkRouter() {

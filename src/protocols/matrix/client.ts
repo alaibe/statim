@@ -24,6 +24,12 @@ import { extensionOf, mapContent, mapMembership, mapRole, nameOf, receiptsOf, se
 import { fromSdkSession, latestOf, timelineConfiguration, toSdkSession } from "./native/session";
 
 const ROOM_PAGE = 500;
+
+const LINK: Partial<Record<sdk.SyncServiceState, Extract<MxUpdate, { type: "link" }>["state"]>> = {
+  [sdk.SyncServiceState.Running]: "online",
+  [sdk.SyncServiceState.Offline]: "offline",
+  [sdk.SyncServiceState.Error]: "error",
+};
 const HISTORY_PAGE = 40;
 const LIVE_TIMELINES = 16;
 
@@ -58,6 +64,12 @@ class RnMatrixClient implements MatrixApi {
   private readonly mapped = new WeakMap<sdk.TimelineItemLike, MappedItem>();
   private entries: sdk.RoomLike[] = [];
   private readonly subscribed = new Set<string>();
+  private stateHandle: sdk.TaskHandleLike | null = null;
+  private loadingHandle: sdk.TaskHandleLike | null = null;
+  private loaded = false;
+  private listed = false;
+  /** Batches are announced one after another, so an older one never lands after a newer one. */
+  private announcing = Promise.resolve();
 
   async start(params: MxStartParams): Promise<MxSession | null> {
     this.params = params;
@@ -88,6 +100,10 @@ class RnMatrixClient implements MatrixApi {
     return fromSdkSession(this.client.session());
   }
 
+  async resume(): Promise<void> {
+    await this.syncService?.start();
+  }
+
   async logout(): Promise<void> {
     await this.stopSync();
     await this.client.logout();
@@ -97,9 +113,23 @@ class RnMatrixClient implements MatrixApi {
     if (this.client.slidingSyncVersion() === sdk.SlidingSyncVersion.None) {
       throw new Error("This homeserver does not support sliding sync (MSC4186), which the app needs.");
     }
-    const syncService = await this.client.syncService().finish();
+    const syncService = await this.client.syncService().withOfflineMode().finish();
     this.syncService = syncService;
+    this.stateHandle = syncService.state({
+      onUpdate: (state) => {
+        const link = LINK[state];
+        if (link) this.emit({ type: "link", state: link });
+      },
+    });
     const allRooms = await syncService.roomListService().allRooms();
+    const loading = allRooms.loadingState({
+      onUpdate: (state) => {
+        this.loaded = state.tag === sdk.RoomListLoadingState_Tags.Loaded;
+      },
+    });
+    this.loaded = loading.state.tag === sdk.RoomListLoadingState_Tags.Loaded;
+    this.loadingHandle = loading.stateStream;
+    this.listed = false;
     this.roomEntries = allRooms.entriesWithDynamicAdapters(ROOM_PAGE, {
       onUpdate: (updates) => this.onRoomEntries(updates),
     });
@@ -122,6 +152,10 @@ class RnMatrixClient implements MatrixApi {
     this.live.clear();
     this.roomEntries?.entriesStream().cancel();
     this.roomEntries = null;
+    this.stateHandle?.cancel();
+    this.stateHandle = null;
+    this.loadingHandle?.cancel();
+    this.loadingHandle = null;
     this.entries = [];
     this.subscribed.clear();
     await this.syncService?.stop().catch(() => {});
@@ -131,6 +165,7 @@ class RnMatrixClient implements MatrixApi {
   /** Any change the SDK considers notable shows up here as a `Set`, so nothing else needs watching. */
   private onRoomEntries(updates: sdk.RoomListEntriesUpdate[]): void {
     const touched = new Map<string, sdk.RoomLike>();
+    const gone: string[] = [];
     let grew = false;
     for (const update of updates) {
       const { changed, removed } = applyDiff(this.entries, update as VectorDiff<sdk.RoomLike>);
@@ -141,7 +176,7 @@ class RnMatrixClient implements MatrixApi {
       for (const room of removed) {
         if (kept.has(room.id())) continue;
         touched.delete(room.id());
-        this.emit({ type: "roomGone", roomId: room.id() });
+        gone.push(room.id());
       }
       for (const room of changed) touched.set(room.id(), room);
     }
@@ -154,14 +189,23 @@ class RnMatrixClient implements MatrixApi {
         .subscribeToRooms(fresh)
         .catch(() => {});
     }
-    for (const room of touched.values()) this.announce(room).catch(() => {});
+    // The rooms are all here once a batch that arrived after the server answered is announced.
+    const loaded = this.loaded;
+    const rooms = [...touched.values()];
+    this.announcing = this.announcing
+      .then(async () => {
+        for (const roomId of gone) this.emit({ type: "roomGone", roomId });
+        const mapped = await Promise.all(rooms.map((room) => this.toMxRoom(room).catch(() => null)));
+        const announced = mapped.filter((room): room is MxRoom => room !== null);
+        if (announced.length > 0) this.emit({ type: "rooms", rooms: announced });
+        if (loaded && !this.listed) {
+          this.listed = true;
+          this.emit({ type: "listed" });
+        }
+      })
+      .catch(() => {});
     if (grew && this.entries.length > 0 && this.entries.length % ROOM_PAGE === 0)
       this.roomEntries?.controller().addOnePage();
-  }
-
-  private async announce(room: sdk.RoomLike): Promise<void> {
-    const mapped = await this.toMxRoom(room);
-    if (mapped) this.emit({ type: "room", room: mapped });
   }
 
   async room(id: string): Promise<MxRoom | null> {

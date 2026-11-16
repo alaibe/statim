@@ -621,28 +621,23 @@ describe("opening a chat", () => {
     }
   }
 
-  it("shows the newest page before the rest of the window arrives", async () => {
+  it("opens a chat on its newest page and leaves older messages to scrolling", async () => {
     const session = new InMemoryChatSession();
     seedLong(session, 120);
     await connect(session);
-    const shown: [number, boolean][] = [];
-    const unsubscribe = useChatStore.subscribe((state) => {
-      const loaded = state.messages[ns("long")];
-      if (loaded && shown.at(-1)?.[0] !== loaded.length)
-        shown.push([loaded.length, state.messageHistory[ns("long")].loading]);
-    });
+    const getMessages = jest.spyOn(session, "getMessages");
 
     await useChatStore.getState().loadMessages(ns("long"));
-    unsubscribe();
+    expect(getMessages).toHaveBeenCalledTimes(1);
+    expect(useChatStore.getState().messages[ns("long")]).toHaveLength(50);
+    expect(useChatStore.getState().messageHistory[ns("long")]).toEqual({ loading: false, hasOlder: true });
 
-    expect(shown).toEqual([
-      [50, true],
-      [120, false],
-    ]);
+    await useChatStore.getState().loadOlderMessages(ns("long"));
+    expect(useChatStore.getState().messages[ns("long")]).toHaveLength(120);
     expect(useChatStore.getState().messageHistory[ns("long")].hasOlder).toBe(false);
   });
 
-  it("loads the whole window again after its protocol reconnects", async () => {
+  it("loads the newest page again after its protocol reconnects", async () => {
     const session = new InMemoryChatSession();
     seedLong(session, 120);
     await connect(session);
@@ -653,8 +648,8 @@ describe("opening a chat", () => {
     expect(useChatStore.getState().messageHistory[ns("long")]).toBeUndefined();
     await useChatStore.getState().loadMessages(ns("long"));
 
-    expect(useChatStore.getState().messages[ns("long")]).toHaveLength(120);
-    expect(useChatStore.getState().messageHistory[ns("long")].hasOlder).toBe(false);
+    expect(useChatStore.getState().messages[ns("long")]).toHaveLength(50);
+    expect(useChatStore.getState().messageHistory[ns("long")].hasOlder).toBe(true);
   });
 
   it("waits for its protocol before recording that a chat was opened", async () => {
@@ -680,6 +675,7 @@ describe("opening a chat", () => {
     const getMessages = jest.spyOn(session, "getMessages");
 
     await useChatStore.getState().loadMessages(ns("long"));
+    await useChatStore.getState().loadOlderMessages(ns("long"));
 
     expect(getMessages).toHaveBeenCalledTimes(2);
     expect(getMessages.mock.calls[1][1]?.before).toMatchObject({ id: "m001" });
@@ -698,16 +694,16 @@ describe("opening a chat", () => {
     const after = useChatStore.getState().messages[ns("long")];
     expect(getMessages).toHaveBeenCalledTimes(1);
     expect(getMessages.mock.calls[0][1]).toMatchObject({ limit: 50 });
-    expect(after).toHaveLength(120);
+    expect(after).toHaveLength(50);
     expect(after.every((message, index) => message === before[index])).toBe(true);
   });
 });
 
 describe("stored history pagination", () => {
-  it("loads messages older than the initial hydration window", async () => {
+  it("loads messages older than the first page", async () => {
     const session = new InMemoryChatSession();
     session.seedChat({ id: "long" });
-    for (let index = 1; index <= 600; index++) {
+    for (let index = 1; index <= 130; index++) {
       session.deliver("long", {
         id: `m${String(index).padStart(3, "0")}`,
         sentAt: index,
@@ -717,18 +713,18 @@ describe("stored history pagination", () => {
     await connect(session);
 
     await useChatStore.getState().loadMessages(ns("long"));
-    expect(useChatStore.getState().messages[ns("long")]).toHaveLength(500);
+    expect(useChatStore.getState().messages[ns("long")]).toHaveLength(50);
     expect(useChatStore.getState().messageHistory[ns("long")].hasOlder).toBe(true);
 
     await useChatStore.getState().loadOlderMessages(ns("long"));
-    expect(useChatStore.getState().messages[ns("long")]).toHaveLength(600);
+    expect(useChatStore.getState().messages[ns("long")]).toHaveLength(130);
     expect(useChatStore.getState().messages[ns("long")][0].id).toBe("m001");
   });
 
   it("pages local chat history from the account store", async () => {
     const store = new InMemoryMessageStore();
     projectTestAccount("test-account", store);
-    for (let index = 1; index <= 600; index++) {
+    for (let index = 1; index <= 130; index++) {
       await store.insertMessage({
         id: `local-${String(index).padStart(3, "0")}`,
         chatId: STATIM_LOCAL_ID,
@@ -741,16 +737,16 @@ describe("stored history pagination", () => {
     }
 
     await useChatStore.getState().loadMessages(STATIM_LOCAL_ID);
-    expect(useChatStore.getState().messages[STATIM_LOCAL_ID]).toHaveLength(500);
+    expect(useChatStore.getState().messages[STATIM_LOCAL_ID]).toHaveLength(50);
     await useChatStore.getState().loadOlderMessages(STATIM_LOCAL_ID);
-    expect(useChatStore.getState().messages[STATIM_LOCAL_ID]).toHaveLength(600);
+    expect(useChatStore.getState().messages[STATIM_LOCAL_ID]).toHaveLength(130);
     expect(useChatStore.getState().messages[STATIM_LOCAL_ID][0].id).toBe("local-001");
   });
 
   it("folds a newer reaction when its target arrives from an older page", async () => {
     const store = new InMemoryMessageStore();
     projectTestAccount("test-account", store);
-    for (let index = 1; index <= 500; index++) {
+    for (let index = 1; index <= 100; index++) {
       await store.insertMessage({
         id: `m${String(index).padStart(3, "0")}`,
         chatId: STATIM_LOCAL_ID,
@@ -765,7 +761,7 @@ describe("stored history pagination", () => {
       id: "reaction-newer",
       chatId: STATIM_LOCAL_ID,
       senderId: "me",
-      sentAt: 501,
+      sentAt: 101,
       content: { kind: "reaction", targetId: "m001", emoji: "👍", action: "added" },
       fromMe: true,
       status: "sent",

@@ -60,6 +60,8 @@ export interface ChatTransport {
   resolveAddresses(ids: ParticipantId[]): Promise<Record<ParticipantId, string>>;
 
   sync(): Promise<void>;
+  /** Re-opens connections that dropped while the app was away; never throws. */
+  resume?(): void;
   disconnect(): Promise<void>;
 
   readonly rosterIsFixed: { onAdd: string; onRemove: string };

@@ -158,3 +158,56 @@ describe("the cached chat list", () => {
     await runtime.synchronize(null);
   });
 });
+
+describe("the cached newest messages", () => {
+  it("keeps the newest messages of an opened chat and shows them before the protocol connects", async () => {
+    jest.useFakeTimers();
+    const store = new InMemoryMessageStore();
+    const session = new InMemoryChatSession();
+    session.seedChat({ id: "kept" });
+    for (let index = 1; index <= 60; index++) session.deliver("kept", { id: `m${index}`, sentAt: index });
+    const runtime = new AccountRuntime(PROTOCOLS);
+    await runtime.synchronize(account(store, async () => session));
+    await useChatStore.getState().loadMessages(asChatId("xmtp-kept"));
+    await runtime.synchronize(null);
+
+    const page = await store.cachedPage(asChatId("xmtp-kept"));
+    expect(page.map((message) => message.id)).toEqual(Array.from({ length: 50 }, (_, index) => `m${index + 11}`));
+
+    let connect!: (session: InMemoryChatSession) => void;
+    const running = runtime.synchronize(account(store, () => new Promise((resolve) => (connect = resolve))));
+    await jest.advanceTimersByTimeAsync(0);
+    await useChatStore.getState().loadMessages(asChatId("xmtp-kept"));
+    expect(useChatStore.getState().messages[asChatId("xmtp-kept")]).toHaveLength(50);
+
+    connect(session);
+    await running;
+    await runtime.synchronize(null);
+    jest.useRealTimers();
+  });
+
+  it("forgets the kept messages of a protocol that is no longer set up", async () => {
+    const store = new InMemoryMessageStore();
+    const id = asChatId("telegram-gone");
+    const message = {
+      id: "m1",
+      chatId: id,
+      senderId: "them",
+      sentAt: 1,
+      content: { kind: "text", text: "hi" },
+      fromMe: false,
+      status: "sent",
+    } as const;
+    await store.cachePages([{ chatId: id, messages: [message] }], []);
+    const runtime = new AccountRuntime(PROTOCOLS);
+
+    await runtime.synchronize({
+      ...account(store, async () => new InMemoryChatSession()),
+      createSession: undefined,
+      only: ["telegram"],
+    });
+
+    expect(await store.cachedPage(id)).toEqual([]);
+    await runtime.synchronize(null);
+  });
+});

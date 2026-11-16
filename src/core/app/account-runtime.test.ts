@@ -7,6 +7,7 @@ import { useChatStore } from "../messaging/chat-store";
 import { InMemoryChatSession } from "../messaging/in-memory-session";
 import { InMemoryMessageStore } from "../messaging/message-store";
 import { protocolChatId } from "../messaging/namespace";
+import type { LinkState } from "../messaging/protocol";
 import { TEST_KEYRING } from "../messaging/testing/store";
 import type { ProtocolMessage } from "../messaging/types";
 import { PluginRegistry } from "../plugins/registry";
@@ -366,6 +367,142 @@ describe("AccountRuntime", () => {
     expect(useChatStore.getState().sessions.nostr).toBe(reconnected);
     expect(xmtp.disconnected).toBe(false);
     expect(useChatStore.getState().sessions.xmtp).toBe(xmtp);
+    await runtime.synchronize(null);
+  });
+});
+
+describe("AccountRuntime recovery", () => {
+  function linked(session: InMemoryChatSession) {
+    let report!: (link: LinkState) => void;
+    Object.assign(session, {
+      subscribeLink: (listener: (link: LinkState) => void) => {
+        report = listener;
+        listener("online");
+        return () => {};
+      },
+    });
+    return (link: LinkState) => report(link);
+  }
+
+  afterEach(() => jest.useRealTimers());
+
+  it("retries a protocol that failed to connect, on its own and again when the app comes back", async () => {
+    jest.useFakeTimers();
+    const runtime = new AccountRuntime(PROTOCOLS);
+    const session = new InMemoryChatSession();
+    let attempts = 0;
+    await runtime.synchronize(
+      input("account-a", new PluginRegistry(), async () => {
+        attempts++;
+        if (attempts < 3) throw new Error("offline");
+        return session;
+      }),
+    );
+    expect(useChatStore.getState().protocols.xmtp?.status).toBe("error");
+
+    await jest.advanceTimersByTimeAsync(5_000);
+    await runtime["transition"];
+    expect(attempts).toBe(2);
+    expect(useChatStore.getState().protocols.xmtp?.status).toBe("error");
+
+    runtime.resume();
+    await runtime["transition"];
+    expect(attempts).toBe(3);
+    expect(useChatStore.getState().sessions.xmtp).toBe(session);
+    expect(useChatStore.getState().protocols.xmtp?.status).toBe("ready");
+    expect(useChatStore.getState().status).toBe("ready");
+    await runtime.synchronize(null);
+  });
+
+  it("replaces a lost session and keeps its chats on screen meanwhile", async () => {
+    const runtime = new AccountRuntime(PROTOCOLS);
+    const first = new InMemoryChatSession();
+    first.seedChat({ id: "chat" });
+    const report = linked(first);
+    const second = new InMemoryChatSession();
+    second.seedChat({ id: "chat" });
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let starts = 0;
+    await runtime.synchronize(
+      input("account-a", new PluginRegistry(), async () => {
+        if (starts++ === 0) return first;
+        await held;
+        return second;
+      }),
+    );
+    expect(useChatStore.getState().chats.map((chat) => chat.id)).toContain("xmtp-chat");
+
+    report("lost");
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(first.disconnected).toBe(true);
+    expect(useChatStore.getState().protocols.xmtp?.status).toBe("connecting");
+    expect(useChatStore.getState().chats.map((chat) => chat.id)).toContain("xmtp-chat");
+
+    release();
+    await runtime["transition"];
+    expect(useChatStore.getState().sessions.xmtp).toBe(second);
+    expect(useChatStore.getState().protocols.xmtp?.status).toBe("ready");
+    expect(useChatStore.getState().status).toBe("ready");
+    await runtime.synchronize(null);
+  });
+
+  it("shows a protocol as connecting only when its link stays down", async () => {
+    jest.useFakeTimers();
+    const runtime = new AccountRuntime(PROTOCOLS);
+    const session = new InMemoryChatSession();
+    const report = linked(session);
+    await runtime.synchronize(input("account-a", new PluginRegistry(), async () => session));
+
+    report("reconnecting");
+    await jest.advanceTimersByTimeAsync(1_000);
+    report("online");
+    await jest.advanceTimersByTimeAsync(5_000);
+    expect(useChatStore.getState().protocols.xmtp?.status).toBe("ready");
+
+    const syncs = session.syncCount;
+    report("reconnecting");
+    await jest.advanceTimersByTimeAsync(5_000);
+    expect(useChatStore.getState().protocols.xmtp?.status).toBe("connecting");
+    report("online");
+    await jest.advanceTimersByTimeAsync(0);
+    expect(useChatStore.getState().protocols.xmtp?.status).toBe("ready");
+    expect(session.syncCount).toBe(syncs + 1);
+    await runtime.synchronize(null);
+  });
+
+  it("resumes at most once in a short while, then catches up", async () => {
+    const runtime = new AccountRuntime(PROTOCOLS);
+    const session = new InMemoryChatSession();
+    const resume = jest.fn(async () => {});
+    Object.assign(session, { resume });
+    await runtime.synchronize(input("account-a", new PluginRegistry(), async () => session));
+    const syncs = session.syncCount;
+
+    runtime.resume();
+    runtime.resume();
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(resume).toHaveBeenCalledTimes(1);
+    expect(session.syncCount).toBe(syncs + 1);
+    await runtime.synchronize(null);
+  });
+
+  it("asks sessions to resume and replaces one that cannot", async () => {
+    const runtime = new AccountRuntime(PROTOCOLS);
+    const first = new InMemoryChatSession();
+    const resume = jest.fn().mockRejectedValue(new Error("gone"));
+    Object.assign(first, { resume });
+    const second = new InMemoryChatSession();
+    let starts = 0;
+    await runtime.synchronize(input("account-a", new PluginRegistry(), async () => (starts++ ? second : first)));
+
+    runtime.resume();
+    await new Promise((resolve) => setImmediate(resolve));
+    await runtime["transition"];
+    expect(resume).toHaveBeenCalled();
+    expect(useChatStore.getState().sessions.xmtp).toBe(second);
     await runtime.synchronize(null);
   });
 });

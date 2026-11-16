@@ -216,15 +216,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   async loadMessages(id) {
-    if (!isLocalChat(id) && !routeOrNull(get(), id)) return;
+    if (!isLocalChat(id) && !routeOrNull(get(), id)) return showCachedPage(id);
     const accountId = get().accountId;
     const opened = get().messageHistory[id];
     if (opened?.loading) return;
     set((state) => withHistory(state, id, { loading: true, hasOlder: opened?.hasOlder ?? false }));
-    const project = (page: ChatMessage[], hasOlder: boolean, loading = false, merge = mergePage) => {
+    const project = (page: ChatMessage[], hasOlder: boolean) => {
       set((state) => ({
-        ...withRaw(state, id, merge(rawOf(state, id), page)),
-        ...withHistory(state, id, { loading, hasOlder }),
+        ...withRaw(state, id, mergePage(rawOf(state, id), page)),
+        ...withHistory(state, id, { loading: false, hasOlder }),
       }));
       const indexed = indexMessages(get().mediaIndex, id, page);
       if (indexed !== get().mediaIndex) {
@@ -237,17 +237,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const newest = await loadMessagePage(get(), id, FIRST_PAGE);
       if (get().accountId !== accountId) return;
       const more = newest.length === FIRST_PAGE;
-      if (opened) {
-        project(newest, opened.error ? more : opened.hasOlder);
-        return;
-      }
-      project(newest, more, more);
-      if (!more) return;
-
-      const rest = HYDRATE_LIMIT - FIRST_PAGE;
-      const older = await loadMessagePage(get(), id, rest, newest);
-      if (get().accountId !== accountId) return;
-      project(older, older.length === rest, false, (loaded, page) => dedupe([...page, ...loaded]));
+      project(newest, opened && !opened.error ? opened.hasOlder : more);
     } catch (error) {
       if (get().accountId !== accountId) return;
       set((state) =>
@@ -1273,6 +1263,15 @@ export function showCachedChats(cached: Chat[]): void {
     const added = cached.filter((chat) => !shown.has(chat.id));
     return { chats: sortChats([...state.chats, ...added]) };
   });
+}
+
+async function showCachedPage(id: ChatId): Promise<void> {
+  const before = useChatStore.getState();
+  if (!before.messageStore || before.rawMessages[id]) return;
+  const page = await before.messageStore.cachedPage(id).catch(() => []);
+  const now = useChatStore.getState();
+  if (page.length === 0 || now.accountId !== before.accountId || now.rawMessages[id] || routeOrNull(now, id)) return;
+  useChatStore.setState((state) => withRaw(state, id, page));
 }
 
 export function dropChats(ids: ChatId[]): void {

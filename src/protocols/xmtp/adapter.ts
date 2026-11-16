@@ -4,6 +4,7 @@ import {
   type ConsentState,
   ConversationVersion,
   type DecodedMessage,
+  type DecodedMessageUnion,
   Dm,
   Group,
   type InboxId,
@@ -25,7 +26,7 @@ import {
 import { isParticipantId } from "@/core/messaging/bots";
 import { showsInPreview } from "@/core/messaging/message-rules";
 import { protocolChatId } from "@/core/messaging/namespace";
-import type { ChatSession, GroupInfo, XmtpInstallation } from "@/core/messaging/protocol";
+import type { ChatSession, GroupInfo, LinkState, XmtpInstallation } from "@/core/messaging/protocol";
 import type {
   Chat,
   ConsentDecision,
@@ -139,6 +140,12 @@ export class XmtpSession implements ChatSession {
   private readonly marks = new ReadMarks();
   private readonly chatListeners = new Set<(c: ProtocolChat) => void>();
   private closed = false;
+  private messageSink: ((message: ProtocolMessage) => void) | null = null;
+  private reopening: ReturnType<typeof setTimeout> | null = null;
+  /** How many times in a row the streams ended before bringing anything. */
+  private streamEnds = 0;
+  private link: LinkState = "online";
+  private readonly linkListeners = new Set<(link: LinkState) => void>();
   private readonly blockedDmIds = new Set<string>();
 
   private constructor(
@@ -457,53 +464,112 @@ export class XmtpSession implements ChatSession {
   }
 
   async streamMessages(onMessage: (m: ProtocolMessage) => void): Promise<Unsubscribe> {
-    await this.client.conversations.streamAllMessages(
-      async (message) => {
-        if (this.closed) return;
-        const fromSelf = message.senderInboxId === this.self.participantId;
-        if (isReadReceipt(message) && fromSelf) return;
-        const id =
-          GROUP_TOPIC.exec(message.topic)?.[1] ??
-          (await this.client.conversations.findConversationByTopic(message.topic))?.id;
-        if (!id || this.closed) return;
-        if (isReadReceipt(message)) {
-          if (this.marks.raise(id, Math.round(message.sentNs / 1_000_000))) {
-            await this.announce(id).catch((error) => {
-              this.marks.forget(id);
-              console.warn("[xmtp] could not announce a chat", error);
-            });
-          }
-          return;
-        }
-        if (this.blockedDmIds.has(id) && !fromSelf) return;
-        if (isGroupUpdate(message) && (await this.isDm(id))) return;
-        const chatId = protocolChatId(id);
-        const deletedId = message.nativeContent?.deleteMessage?.messageId;
-        if (deletedId) {
-          for (const listener of this.deletedListeners) listener(chatId, [deletedId]);
-          return;
-        }
-        const converted = await this.toMessage(message, chatId);
-        if (converted.fromMe) this.marks.sent(id, converted.sentAt);
-        onMessage(converted);
-      },
-      "all",
-      ["allowed", "unknown"],
-    );
-    return () => this.client.conversations.cancelStreamAllMessages();
+    this.messageSink = onMessage;
+    await this.openMessageStream();
+    return () => {
+      this.messageSink = null;
+      this.client.conversations.cancelStreamAllMessages();
+    };
   }
 
   async streamChats(onChat: (c: ProtocolChat) => void): Promise<Unsubscribe> {
     this.chatListeners.add(onChat);
-    await this.client.conversations.stream((conversation) => this.emitChat(conversation));
+    await this.openChatStream();
     return () => {
       this.chatListeners.delete(onChat);
       this.client.conversations.cancelStream();
     };
   }
 
+  async resume(): Promise<void> {
+    if (this.closed) return;
+    if (this.reopening) clearTimeout(this.reopening);
+    this.reopening = null;
+    if (this.messageSink) await this.openMessageStream();
+    if (this.chatListeners.size > 0) await this.openChatStream();
+    if (!this.reopening) this.setLink("online");
+  }
+
+  private async openMessageStream(): Promise<void> {
+    this.client.conversations.cancelStreamAllMessages();
+    await this.client.conversations.streamAllMessages(
+      (message) => this.onStreamedMessage(message),
+      "all",
+      ["allowed", "unknown"],
+      () => this.streamEnded(),
+    );
+  }
+
+  private async openChatStream(): Promise<void> {
+    this.client.conversations.cancelStream();
+    await this.client.conversations.stream(
+      (conversation) => this.emitChat(conversation),
+      "all",
+      () => this.streamEnded(),
+    );
+  }
+
+  subscribeLink(listener: (link: LinkState) => void): Unsubscribe {
+    this.linkListeners.add(listener);
+    listener(this.link);
+    return () => this.linkListeners.delete(listener);
+  }
+
+  private setLink(link: LinkState): void {
+    if (link === this.link) return;
+    this.link = link;
+    for (const listener of this.linkListeners) listener(link);
+  }
+
+  private streamEnded(): void {
+    if (this.closed || this.reopening) return;
+    this.setLink("reconnecting");
+    const delay = STREAM_RETRY_MS[Math.min(this.streamEnds++, STREAM_RETRY_MS.length - 1)];
+    this.reopening = setTimeout(() => {
+      this.reopening = null;
+      this.resume().catch((error) => {
+        console.warn("[xmtp] could not reopen the streams", error);
+        this.streamEnded();
+      });
+    }, delay);
+  }
+
+  private async onStreamedMessage(message: DecodedMessageUnion<any>): Promise<void> {
+    const onMessage = this.messageSink;
+    if (this.closed || !onMessage) return;
+    this.streamEnds = 0;
+    const fromSelf = message.senderInboxId === this.self.participantId;
+    if (isReadReceipt(message) && fromSelf) return;
+    const id =
+      GROUP_TOPIC.exec(message.topic)?.[1] ??
+      (await this.client.conversations.findConversationByTopic(message.topic))?.id;
+    if (!id || this.closed) return;
+    if (isReadReceipt(message)) {
+      if (this.marks.raise(id, Math.round(message.sentNs / 1_000_000))) {
+        await this.announce(id).catch((error) => {
+          this.marks.forget(id);
+          console.warn("[xmtp] could not announce a chat", error);
+        });
+      }
+      return;
+    }
+    if (this.blockedDmIds.has(id) && !fromSelf) return;
+    if (isGroupUpdate(message) && (await this.isDm(id))) return;
+    const chatId = protocolChatId(id);
+    const deletedId = message.nativeContent?.deleteMessage?.messageId;
+    if (deletedId) {
+      for (const listener of this.deletedListeners) listener(chatId, [deletedId]);
+      return;
+    }
+    const converted = await this.toMessage(message, chatId);
+    if (converted.fromMe) this.marks.sent(id, converted.sentAt);
+    onMessage(converted);
+  }
+
   async disconnect(): Promise<void> {
     this.closed = true;
+    if (this.reopening) clearTimeout(this.reopening);
+    this.reopening = null;
     this.client.conversations.cancelStream();
     this.client.conversations.cancelStreamAllMessages();
   }
@@ -685,6 +751,8 @@ export class XmtpSession implements ChatSession {
 }
 
 const GROUP_TOPIC = /\/xmtp\/mls\/1\/g-(.*?)\/proto/;
+
+const STREAM_RETRY_MS = [5_000, 30_000, 120_000, 600_000];
 
 function toXmtpId(id: string): XmtpConversationId {
   return id as XmtpConversationId;

@@ -293,15 +293,20 @@ pub struct MxMedia {
 #[derive(Serialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum MxUpdate {
-    Room {
-        room: MxRoom,
+    Rooms {
+        rooms: Vec<MxRoom>,
+    },
+    /// Every room the account is in has been announced.
+    Listed,
+    Link {
+        state: MxLink,
     },
     #[serde(rename_all = "camelCase")]
     RoomGone {
         room_id: String,
     },
     Event {
-        event: MxEvent,
+        event: Box<MxEvent>,
     },
     #[serde(rename_all = "camelCase")]
     Typing {
@@ -314,4 +319,12 @@ pub enum MxUpdate {
         receipts: Vec<MxReceipt>,
     },
     SignedOut,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum MxLink {
+    Online,
+    Offline,
+    Error,
 }

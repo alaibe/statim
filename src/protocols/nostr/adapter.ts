@@ -293,6 +293,10 @@ class NostrTransport implements ChatTransport {
     return out;
   }
 
+  resume(): void {
+    if (!this.stopped) this.pool.reconnectNow();
+  }
+
   async sync(): Promise<void> {
     if (this.stopped) throw new Error("Nostr disconnected");
     if (this.retryHistory) {

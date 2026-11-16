@@ -1,5 +1,5 @@
 import { showsInPreview } from "./message-rules";
-import { LOCAL_PROTOCOL, type ProtocolId, parseChatId, protocolChatId } from "./namespace";
+import { LOCAL_PROTOCOL, type ProtocolId, parseChatId, protocolChatId, protocolOf } from "./namespace";
 import { matchesSearch, SEARCH_LIMIT } from "./search";
 import type {
   AnyChatId,
@@ -50,6 +50,11 @@ export function searchHit(
   return { message: message(protocolChatId(raw)), protocolId };
 }
 
+export interface CachedPage {
+  chatId: ChatId;
+  messages: readonly ChatMessage[];
+}
+
 export interface MessageStore {
   loadChats<Id extends AnyChatId>(protocolId: ProtocolId): Promise<StoredChat<Id>[]>;
   loadMessages<Id extends AnyChatId>(
@@ -72,6 +77,10 @@ export interface MessageStore {
   clear(protocolId: ProtocolId): Promise<void>;
   cachedChats(): Promise<Chat[]>;
   cacheChats(keep: Chat[], drop: ChatId[]): Promise<void>;
+  /** The newest messages of a chat as last shown, to show again before its protocol connects. */
+  cachedPage(chatId: ChatId): Promise<ChatMessage[]>;
+  cachePages(keep: CachedPage[], drop: ChatId[]): Promise<void>;
+  forgetPages(protocolId: ProtocolId): Promise<void>;
   getMessage<Id extends AnyChatId>(chatId: Id, id: MessageId): Promise<ChatMessage<Id> | null>;
   /** Replaces a stored message's content and edited mark; the rest stays as inserted. */
   updateMessage(message: ChatMessage<AnyChatId>): Promise<void>;
@@ -213,6 +222,21 @@ export class InMemoryMessageStore implements MessageStore {
   async cacheChats(keep: Chat[], drop: ChatId[]): Promise<void> {
     for (const chat of keep) this.cached.set(chat.id, chat);
     for (const id of drop) this.cached.delete(id);
+  }
+
+  private readonly pages = new Map<ChatId, readonly ChatMessage[]>();
+
+  async cachedPage(chatId: ChatId): Promise<ChatMessage[]> {
+    return [...(this.pages.get(chatId) ?? [])];
+  }
+
+  async cachePages(keep: CachedPage[], drop: ChatId[]): Promise<void> {
+    for (const page of keep) this.pages.set(page.chatId, page.messages);
+    for (const id of drop) this.pages.delete(id);
+  }
+
+  async forgetPages(protocolId: ProtocolId): Promise<void> {
+    for (const id of [...this.pages.keys()]) if (protocolOf(id) === protocolId) this.pages.delete(id);
   }
 
   async clear(protocolId: ProtocolId): Promise<void> {

@@ -38,5 +38,13 @@ export const MIGRATIONS: MigrationMeta[] = [
     "bps": true,
     "folderMillis": 1791214386121,
     "hash": "723f69b997d7e82973f85312fe7c0e3479fee2624683eb1cf1d342c231800727"
+  },
+  {
+    "sql": [
+      "CREATE TABLE `page_cache` (\n\t`chat_id` text PRIMARY KEY NOT NULL,\n\t`data` text NOT NULL\n);\n"
+    ],
+    "bps": true,
+    "folderMillis": 1794847325618,
+    "hash": "b709cb7dfc869fbde9b08c30319c26f251e1ecb25746eb588bc635c93ef0ee17"
   }
 ];

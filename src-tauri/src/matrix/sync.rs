@@ -11,16 +11,48 @@ impl Session {
             .unwrap()
             .push(tokio::spawn(async move { session.watch_sign_out().await }));
 
-        let sync = Arc::new(SyncService::builder(self.client.clone()).build().await.map_err(err)?);
+        let sync = Arc::new(
+            SyncService::builder(self.client.clone())
+                .with_offline_mode()
+                .build()
+                .await
+                .map_err(err)?,
+        );
         let room_list = sync.room_list_service().all_rooms().await.map_err(err)?;
-        let session = self.clone();
-        let service = sync.room_list_service();
-        self.tasks.lock().unwrap().push(tokio::spawn(
-            async move { session.follow_rooms(room_list, service).await },
-        ));
+        let states = sync.state();
+        {
+            let mut tasks = self.tasks.lock().unwrap();
+            let session = self.clone();
+            let service = sync.room_list_service();
+            tasks.push(tokio::spawn(
+                async move { session.follow_rooms(room_list, service).await },
+            ));
+            let session = self.clone();
+            tasks.push(tokio::spawn(async move { session.watch_link(states).await }));
+        }
         sync.start().await;
         *self.sync.lock().unwrap() = Some(sync);
         Ok(())
+    }
+
+    pub(super) async fn resume_sync(&self) {
+        let sync = self.sync.lock().unwrap().clone();
+        if let Some(sync) = sync {
+            sync.start().await;
+        }
+    }
+
+    async fn watch_link(&self, states: impl futures_util::Stream<Item = SyncState>) {
+        futures_util::pin_mut!(states);
+        while let Some(state) = states.next().await {
+            let link = match state {
+                SyncState::Running => MxLink::Online,
+                SyncState::Offline => MxLink::Offline,
+                SyncState::Error(_) => MxLink::Error,
+                SyncState::Idle | SyncState::Terminated => continue,
+            };
+            self.emit(MxUpdate::Link { state: link });
+        }
     }
 
     async fn watch_sign_out(&self) {
@@ -42,25 +74,27 @@ impl Session {
         // needs watching.
         let mut entries: Vector<Room> = Vector::new();
         let mut subscribed: HashSet<OwnedRoomId> = HashSet::new();
+        let mut listed = false;
         futures_util::pin_mut!(diffs);
         while let Some(batch) = diffs.next().await {
+            // The rooms are all here once a batch that arrived after the server answered is announced.
+            let loaded = matches!(room_list.loading_state().get(), RoomListLoadingState::Loaded { .. });
             let (touched, grew) = self.apply_room_diffs(&mut entries, batch);
             let fresh: Vec<OwnedRoomId> = touched
                 .keys()
                 .filter(|id| subscribed.insert((*id).clone()))
                 .cloned()
                 .collect();
-            stream::iter(touched.into_values())
-                .for_each_concurrent(ANNOUNCE_CONCURRENCY, |room| {
-                    let session = self.clone();
-                    async move { session.announce(&room).await }
-                })
-                .await;
+            self.announce_all(touched.into_values().collect()).await;
             // The SDK computes a room's latest event only once it is subscribed to.
             if !fresh.is_empty() {
                 service
                     .set_room_subscriptions(&fresh.iter().map(|id| id.as_ref()).collect::<Vec<_>>())
                     .await;
+            }
+            if loaded && !listed {
+                listed = true;
+                self.emit(MxUpdate::Listed);
             }
             if grew && !entries.is_empty() && entries.len().is_multiple_of(ROOM_PAGE) {
                 controller.add_one_page();
@@ -114,23 +148,40 @@ impl Session {
         }
     }
 
-    pub(super) async fn announce(self: &Arc<Self>, room: &Room) {
-        let Some((mapped, latest_id)) = self.to_mx_room(room).await else {
+    async fn announce_all(self: &Arc<Self>, rooms: Vec<Room>) {
+        let announced: Vec<(MxRoom, Option<MxEvent>)> = stream::iter(rooms)
+            .map(|room| {
+                let session = self.clone();
+                async move { session.announcement(&room).await }
+            })
+            .buffer_unordered(ANNOUNCE_CONCURRENCY)
+            .filter_map(|announced| async move { announced })
+            .collect()
+            .await;
+        if announced.is_empty() {
             return;
-        };
+        }
+        let (rooms, events): (Vec<MxRoom>, Vec<Option<MxEvent>>) = announced.into_iter().unzip();
+        self.emit(MxUpdate::Rooms { rooms });
+        for event in events.into_iter().flatten() {
+            self.emit(MxUpdate::Event { event: Box::new(event) });
+        }
+    }
+
+    /// The room as the app shows it, and its latest event when that is a message the app has not seen.
+    async fn announcement(self: &Arc<Self>, room: &Room) -> Option<(MxRoom, Option<MxEvent>)> {
+        let (mapped, latest_id) = self.to_mx_room(room).await?;
         let preview = mapped.latest.clone();
         let joined = mapped.membership == "joined";
-        self.emit(MxUpdate::Room { room: mapped });
-
         let (Some(preview), true) = (preview, joined) else {
-            return;
+            return Some((mapped, None));
         };
         let id = room.room_id().to_owned();
         let seen = {
             let mut seen = self.latest_seen.lock().unwrap();
             let previous = seen.get(&id).copied();
             if previous.is_some_and(|p| p >= preview.timestamp) {
-                return;
+                return Some((mapped, None));
             }
             seen.insert(id.clone(), preview.timestamp);
             previous
@@ -138,22 +189,19 @@ impl Session {
         // The first sighting is not a new message, and a live timeline reports its own;
         // otherwise the latest event stands in, with its real id.
         if seen.is_none() || self.touch_live(&id).await.is_some() {
-            return;
+            return Some((mapped, None));
         }
-        if let Some(event_id) = latest_id {
-            self.emit(MxUpdate::Event {
-                event: MxEvent {
-                    id: event_id.to_string(),
-                    room_id: id.to_string(),
-                    preview,
-                    status: "sent",
-                    reply_to: None,
-                    thread_root: None,
-                    reactions: None,
-                    edited: false,
-                },
-            });
-        }
+        let event = latest_id.map(|event_id| MxEvent {
+            id: event_id.to_string(),
+            room_id: id.to_string(),
+            preview,
+            status: "sent",
+            reply_to: None,
+            thread_root: None,
+            reactions: None,
+            edited: false,
+        });
+        Some((mapped, event))
     }
 }
 

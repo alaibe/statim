@@ -107,6 +107,36 @@ describe("the cached chat list", () => {
   });
 });
 
+describe("the cached newest messages", () => {
+  it("keeps a page per chat, replaces it, and forgets a protocol's pages", async () => {
+    const store = new SqliteMessageStore(freshAccount());
+    const message = (chatId: string, id: string) =>
+      ({
+        id,
+        chatId: asChatId(chatId),
+        senderId: "them",
+        sentAt: 1,
+        content: { kind: "text", text: id },
+        fromMe: false,
+        status: "sent",
+      }) as const;
+
+    await store.cachePages(
+      [
+        { chatId: asChatId("xmtp-1"), messages: [message("xmtp-1", "a")] },
+        { chatId: asChatId("matrix-1"), messages: [message("matrix-1", "b")] },
+      ],
+      [],
+    );
+    await store.cachePages([{ chatId: asChatId("xmtp-1"), messages: [message("xmtp-1", "c")] }], []);
+    expect(await store.cachedPage(asChatId("xmtp-1"))).toEqual([message("xmtp-1", "c")]);
+
+    await store.forgetPages("matrix");
+    expect(await store.cachedPage(asChatId("matrix-1"))).toEqual([]);
+    expect(await store.cachedPage(asChatId("xmtp-1"))).toHaveLength(1);
+  });
+});
+
 describe("chats", () => {
   it("round-trips every field, including the ones that are easy to drop", async () => {
     const id = freshAccount();

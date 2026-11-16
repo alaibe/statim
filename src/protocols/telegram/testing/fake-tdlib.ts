@@ -13,6 +13,7 @@ export class FakeTdlib implements TdApi {
   closed = false;
   destroyed = false;
   private readonly listeners = new Set<(update: TdObject) => void>();
+  private readonly lostListeners = new Set<() => void>();
 
   send<T extends TdObject = TdObject>(request: TdObject): Promise<T> {
     this.sent.push(request);
@@ -27,6 +28,15 @@ export class FakeTdlib implements TdApi {
   onUpdate(listener: (update: TdObject) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
+  }
+
+  onLost(listener: () => void): () => void {
+    this.lostListeners.add(listener);
+    return () => this.lostListeners.delete(listener);
+  }
+
+  lose(): void {
+    for (const listener of this.lostListeners) listener();
   }
 
   async close(): Promise<void> {

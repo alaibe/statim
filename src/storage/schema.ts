@@ -52,6 +52,11 @@ export const chatCache = sqliteTable("chat_cache", {
   data: text("data").notNull(),
 });
 
+export const pageCache = sqliteTable("page_cache", {
+  chatId: text("chat_id").primaryKey(),
+  data: text("data").notNull(),
+});
+
 export const protocolState = sqliteTable(
   "protocol_state",
   {

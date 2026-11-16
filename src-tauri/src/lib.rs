@@ -178,6 +178,7 @@ pub fn run() {
             matrix::mx_create_poll,
             matrix::mx_vote_poll,
             matrix::mx_media,
+            matrix::mx_resume,
             matrix::mx_close,
             matrix::mx_erase,
             cli::cli_install,

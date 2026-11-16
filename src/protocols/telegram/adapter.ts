@@ -3,6 +3,7 @@ import type {
   ChatSession,
   GroupInfo,
   JoinRequest,
+  LinkState,
   LoginState,
   MentionCandidate,
   PublicChatPreview,
@@ -78,6 +79,8 @@ export class TelegramSession implements ChatSession {
   private login: LoginState | null = null;
   private loginErrorAfterRestart: string | undefined;
   private readonly loginListeners = new Set<(login: LoginState | null) => void>();
+  private link: LinkState = "online";
+  private readonly linkListeners = new Set<(link: LinkState) => void>();
   private readonly messageListeners = new Set<(message: ProtocolMessage) => void>();
   private readonly deletedListeners = new Set<(id: ProtocolChatId, messageIds: MessageId[]) => void>();
   private readonly chatListeners = new Set<(chat: ProtocolChat) => void>();
@@ -131,9 +134,14 @@ export class TelegramSession implements ChatSession {
 
   private async start(): Promise<void> {
     this.api = await this.options.createApi();
-    this.unsubscribe = this.api.onUpdate((update) => {
+    const updates = this.api.onUpdate((update) => {
       this.handleUpdate(update).catch(() => {});
     });
+    const lost = this.api.onLost(() => this.setLink("lost"));
+    this.unsubscribe = () => {
+      updates();
+      lost();
+    };
     const p = this.options.parameters;
     await this.api.send({
       "@type": "setTdlibParameters",
@@ -150,6 +158,24 @@ export class TelegramSession implements ChatSession {
       application_version: p.applicationVersion,
       database_encryption_key: p.databaseEncryptionKey,
     });
+  }
+
+  subscribeLink(listener: (link: LinkState) => void): Unsubscribe {
+    this.linkListeners.add(listener);
+    listener(this.link);
+    return () => this.linkListeners.delete(listener);
+  }
+
+  /** Reopens TDLib's connections, which may have died while the app was suspended or the network changed. */
+  async resume(): Promise<void> {
+    if (!this.me) return;
+    await this.api.send({ "@type": "setNetworkType", type: { "@type": "networkTypeOther" } });
+  }
+
+  private setLink(link: LinkState): void {
+    if (link === this.link) return;
+    this.link = link;
+    for (const listener of this.linkListeners) listener(link);
   }
 
   subscribeLogin(listener: (login: LoginState | null) => void): Unsubscribe {
@@ -297,6 +323,8 @@ export class TelegramSession implements ChatSession {
       }
       case "updateAuthorizationState":
         return this.onAuthorizationState(update.authorization_state);
+      case "updateConnectionState":
+        return this.setLink(update.state["@type"] === "connectionStateReady" ? "online" : "reconnecting");
       case "updateUser": {
         const { user } = update;
         this.td.users.set(user.id, user);
@@ -715,7 +743,6 @@ export class TelegramSession implements ChatSession {
 
   async sync(): Promise<void> {
     if (!this.me) return;
-    this.chatsLoaded = null;
     await this.ensureChatsLoaded();
   }
 

@@ -1,7 +1,8 @@
-import { and, desc, eq, gt, inArray, lt, lte, notInArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, like, lt, lte, notInArray, or, sql } from "drizzle-orm";
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import { NON_PREVIEW_KINDS, NON_UNREAD_KINDS } from "@/core/messaging/message-rules";
 import {
+  type CachedPage,
   HYDRATE_LIMIT,
   type MessageStore,
   type StoredChat,
@@ -14,7 +15,7 @@ import { matchesSearch, SEARCH_LIMIT } from "@/core/messaging/search";
 import type { AnyChatId, Chat, ChatId, ChatMessage, MessageContent, MessageId } from "@/core/messaging/types";
 import { isRecord, isString } from "@/lib/guards";
 import { accountDatabaseGeneration, type Database, runAccountDatabaseOperation } from "./database";
-import { chatCache, chats, messages, transportCursors } from "./schema";
+import { chatCache, chats, messages, pageCache, transportCursors } from "./schema";
 
 type Queries = Pick<Database, "insert">;
 
@@ -238,6 +239,38 @@ export class SqliteMessageStore implements MessageStore {
     );
   }
 
+  async cachedPage(chatId: ChatId): Promise<ChatMessage[]> {
+    const rows = await this.operation((db) =>
+      db.select({ data: pageCache.data }).from(pageCache).where(eq(pageCache.chatId, chatId)),
+    );
+    try {
+      const page: unknown = JSON.parse(rows[0]?.data ?? "[]");
+      return Array.isArray(page) ? page.filter((message) => isCachedMessage(message, chatId)) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  async cachePages(keep: CachedPage[], drop: ChatId[]): Promise<void> {
+    await this.operation((db) =>
+      db.transaction(async (tx) => {
+        for (const rows of chunks(keep, CACHE_ROWS_PER_STATEMENT)) {
+          await tx
+            .insert(pageCache)
+            .values(rows.map((page) => ({ chatId: page.chatId, data: JSON.stringify(page.messages) })))
+            .onConflictDoUpdate({ target: pageCache.chatId, set: { data: excluded(pageCache.data) } });
+        }
+        for (const ids of chunks(drop, CACHE_ROWS_PER_STATEMENT)) {
+          await tx.delete(pageCache).where(inArray(pageCache.chatId, ids));
+        }
+      }),
+    );
+  }
+
+  async forgetPages(protocolId: ProtocolId): Promise<void> {
+    await this.operation((db) => db.delete(pageCache).where(like(pageCache.chatId, `${protocolId}-%`)));
+  }
+
   private operation<T>(work: (db: Database) => Promise<T>): Promise<T> {
     return runAccountDatabaseOperation(this.accountId, this.generation, work);
   }
@@ -295,6 +328,16 @@ function toChat<Id extends AnyChatId>(row: typeof chats.$inferSelect): StoredCha
 
 function isCachedChat(value: unknown): value is Chat {
   return isRecord(value) && isString(value.id) && parseChatId(value.id) !== null;
+}
+
+function isCachedMessage(value: unknown, chatId: ChatId): value is ChatMessage {
+  return (
+    isRecord(value) &&
+    isString(value.id) &&
+    value.chatId === chatId &&
+    typeof value.sentAt === "number" &&
+    isRecord(value.content)
+  );
 }
 
 function toMessage<Id extends AnyChatId>(row: typeof messages.$inferSelect, chatId: Id): ChatMessage<Id> {

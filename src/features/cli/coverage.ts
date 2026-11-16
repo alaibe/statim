@@ -118,6 +118,7 @@ export const ACCOUNT_RUNTIME: Record<Actions<AccountRuntime>, Covered> = {
   updateProtocolConfig: "protocols config",
   erase: "accounts erase",
   wasProactive: "internal",
+  resume: "internal",
 };
 
 export const XMTP: Record<Actions<XmtpCapabilities>, Covered> = {

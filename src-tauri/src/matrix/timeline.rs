@@ -86,7 +86,7 @@ impl Session {
             .lock()
             .unwrap()
             .insert(room_id.to_owned(), event.preview.timestamp);
-        self.emit(MxUpdate::Event { event });
+        self.emit(MxUpdate::Event { event: Box::new(event) });
     }
 
     pub(super) async fn touch_live(&self, room_id: &RoomId) -> Option<Arc<LiveTimeline>> {

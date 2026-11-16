@@ -32,15 +32,20 @@ export class FakeMatrix implements MatrixApi {
   erased = false;
   private readonly listeners = new Set<(update: MxUpdate) => void>();
 
-  /** With a session, announces every room in `roomsById`, as the SDK does once sync starts. */
+  /** With a session, announces every room in `roomsById` and that they are all listed, as the SDK does once sync starts. */
   async start(params: MxStartParams): Promise<MxSession | null> {
     this.startParams = params;
     if (params.session) {
       queueMicrotask(() => {
-        for (const room of this.roomsById.values()) this.emit({ type: "room", room });
+        this.emit({ type: "rooms", rooms: [...this.roomsById.values()] });
+        this.emit({ type: "listed" });
       });
     }
     return params.session;
+  }
+
+  async resume(): Promise<void> {
+    this.record("resume");
   }
 
   async login(password: string): Promise<MxSession> {

@@ -4,6 +4,7 @@ import type {
   ChatSession,
   GroupInfo,
   JoinRequest,
+  LinkState,
   LoginState,
   MentionCandidate,
   PublicChatPreview,
@@ -46,6 +47,12 @@ import { searchHomeserver } from "./search";
 
 const UNFETCHED_LIMIT = 2_000;
 
+const LINK: Record<Extract<MxUpdate, { type: "link" }>["state"], LinkState> = {
+  online: "online",
+  offline: "reconnecting",
+  error: "lost",
+};
+
 interface MatrixConnectOptions {
   createApi(): Promise<MatrixApi>;
   parameters: MxStartParams;
@@ -68,6 +75,10 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   private userId: string | null = null;
   private login: LoginState | null = null;
   private readonly loginListeners = new Set<(login: LoginState | null) => void>();
+  private link: LinkState = "online";
+  private readonly linkListeners = new Set<(link: LinkState) => void>();
+  private listed: Promise<void> = Promise.resolve();
+  private markListed = () => {};
   private readonly messageListeners = new Set<(message: ProtocolMessage) => void>();
   private readonly chatListeners = new Set<(chat: ProtocolChat) => void>();
   private readonly rooms = new Map<string, MxRoom>();
@@ -111,6 +122,9 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   }
 
   private async start(): Promise<void> {
+    this.listed = new Promise((resolve) => {
+      this.markListed = resolve;
+    });
     this.api = await this.options.createApi();
     this.unsubscribe = this.api.onUpdate((update) => {
       this.handleUpdate(update).catch(() => {});
@@ -139,6 +153,22 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     await this.api.close();
     await this.start();
     if (error && this.login) this.setLogin({ ...this.login, error });
+  }
+
+  subscribeLink(listener: (link: LinkState) => void): Unsubscribe {
+    this.linkListeners.add(listener);
+    listener(this.link);
+    return () => this.linkListeners.delete(listener);
+  }
+
+  async resume(): Promise<void> {
+    if (this.userId) await this.api.resume();
+  }
+
+  private setLink(link: LinkState): void {
+    if (link === this.link) return;
+    this.link = link;
+    for (const listener of this.linkListeners) listener(link);
   }
 
   subscribeLogin(listener: (login: LoginState | null) => void): Unsubscribe {
@@ -211,8 +241,14 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
 
   private async handleUpdate(update: MxUpdate): Promise<void> {
     switch (update.type) {
-      case "room":
-        return this.onRoom(update.room);
+      case "rooms":
+        for (const room of update.rooms) this.onRoom(room);
+        return;
+      case "listed":
+        return this.markListed();
+      case "link":
+        if (this.userId) this.setLink(LINK[update.state]);
+        return;
       case "roomGone":
         this.rooms.delete(update.roomId);
         this.typing.delete(update.roomId);
@@ -282,6 +318,11 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     if (room && !included(room)) return;
     const message = this.toMessage(raw, false);
     for (const listener of this.messageListeners) listener(message);
+  }
+
+  async whenListed(): Promise<ProtocolChat[]> {
+    await this.listed;
+    return this.listChats();
   }
 
   async listChats(): Promise<ProtocolChat[]> {
