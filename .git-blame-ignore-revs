@@ -1,0 +1,10 @@
+# Commits that only reformatted: git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# TypeScript and JavaScript formatted by Biome 2.6.7 (biome check --write)
+a2236aee61ad05801504d2439d37b7960303b34c
+# Rust formatted by rustfmt, max_width = 120 (cargo fmt --all)
+37bc3b0d0c081027836ff955044b0dc7f8dec6ce
+# Swift formatted by swift format (swift format --in-place)
+0dd059643a3714ee468b86358dcd1b3501be91bb
+# Shell scripts formatted by shfmt -i 4 -ci -bn
+3c8693247887b80d5c70be0d8832a6b0c430d222
