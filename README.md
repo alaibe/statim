@@ -79,14 +79,18 @@ On a Mac, `brew install --cask alaibe/tap/statim` installs the app and its
 
 Releases are built on git.laibe.cc's Forgejo Actions, where this repository
 lives; this GitHub copy is its mirror. Every Sunday
-[`weekly.yml`](.forgejo/workflows/weekly.yml) tags main when it has commits
+[`weekly.yml`](.forgejo/workflows/weekly.yml) tags main when the app changed
 since the last release, and the tag starts
 [`release.yml`](.forgejo/workflows/release.yml): the desktop apps for macOS,
 Windows and Linux, released here, then the Homebrew cask and the Android app.
+Every push runs [`ci.yml`](.forgejo/workflows/ci.yml): the formatting of the
+TypeScript, Rust, Swift and shell scripts, ESLint, swift-format's and
+shellcheck's lint, the type check and the Jest tests, then Clippy and the Rust
+tests when `src-tauri` changed.
 
 ## Quick start
 
-Node.js 22.13+, Xcode 26.3 with an iPhone simulator, and CocoaPods. Rust as
+Node.js 24, Xcode 26.3 with an iPhone simulator, and CocoaPods. Rust as
 well for the desktop app, and for Android its SDK and a JDK from 17 to 21.
 Expo Go cannot run this: XMTP, TDLib, SQLCipher and the hardware wallet
 transports are all native modules.
@@ -100,9 +104,10 @@ npx expo run:ios
 ```bash
 npm start            # Metro
 npm run desktop      # Metro on 8082 plus a Tauri window that reloads on save
-npm run typecheck && npm run lint && npm test
+npm run format       # Biome and rustfmt rewrite what they check
+npm run format:check && npm run lint && npm run typecheck && npm test
 npm run test:e2e     # Maestro, against a booted simulator with Metro running
-npm run test:all     # all four, in that order
+npm run test:all     # the four checks above, then the e2e tests
 ```
 
 ### Keys and configuration
@@ -139,11 +144,14 @@ put a name to a mint.
 
 ## Code signing policy
 
-Release builds come only from the release workflow, on GitHub's runners, at
-the tagged commit. Each file carries a GitHub build attestation:
-`gh attestation verify <file> --repo alaibe/statim` checks a download. The
-macOS app is signed with the maintainer's Apple Developer ID and notarized by
-Apple.
+Release builds come only from the release workflow
+([`release.yml`](.forgejo/workflows/release.yml)), on git.laibe.cc's Forgejo
+Actions runners, at the tagged commit. Each release lists every file's SHA-256
+in `SHA256SUMS`, and the desktop app installs an update only when it carries a
+signature from the key built into the app. The macOS app is signed with the
+maintainer's Apple Developer ID. Apple's notarization is paused until its new
+developer agreement is accepted, so for now a downloaded copy asks for "Open
+Anyway" on its first launch.
 
 - Committers and reviewers: [Anthony Laibe](https://github.com/alaibe)
 - Approvers: [Anthony Laibe](https://github.com/alaibe)

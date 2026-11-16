@@ -22,14 +22,15 @@ has no `priv/`; use the main checkout's.
 
 ## Website
 
-statim.laibe.cc and everything that ships Statim live in the laibe repository:
-the user guide, FAQ, privacy policy and disclaimer (`content/statim/`), the
-generators of the guide's screenshots, the sticker pack and the promo film
-(`php artisan generate statim …`), and the release (`php artisan deploy
-statim`, which tags it and builds the phone apps). When a change alters how the
-app is used or what it sends, update the guide or the privacy policy there.
-This repository holds the app; the release workflow stays in `.github/` because
-GitHub runs it from here.
+statim.laibe.cc lives in the laibe repository: the user guide, FAQ, privacy
+policy and disclaimer (`content/statim/`), and the commands that make the
+guide's screenshots, the sticker pack and the promo film (`php artisan
+statim:screenshots`, `statim:stickers`, `statim:promo`). When a change alters
+how the app is used or what it sends, update the guide or the privacy policy
+there. This repository holds the app and its release, on git.laibe.cc's Forgejo
+Actions: every Sunday `.forgejo/workflows/weekly.yml` tags main when the app
+changed since the last release, and the tag starts
+`.forgejo/workflows/release.yml`, which builds the desktop and phone apps.
 
 ## Before you finish
 
@@ -37,8 +38,17 @@ GitHub runs it from here.
 npm run format && npm run typecheck && npm run lint && npm test
 ```
 
-Biome formats TypeScript and JSON, rustfmt formats `src-tauri`. Neither lints;
-`expo lint` still does that.
+Biome formats TypeScript and JSON and sorts imports, rustfmt formats
+`src-tauri`. Neither lints; `expo lint` (ESLint) does that. CI
+(`.forgejo/workflows/ci.yml`) runs `npm run format:check`, the lint, the type
+check and the tests on every push, and also checks:
+
+- Swift with `swift format lint --strict` (`.swift-format`); fix it with
+  `swift format --in-place <files>`.
+- Shell scripts with `shfmt -d -i 4 -ci -bn` and `shellcheck -S warning`.
+- `src-tauri`, when a push changes it, with
+  `cargo clippy --all-targets --locked -- -D warnings` and
+  `cargo test --locked`, run in that folder.
 
 ## Things that are not obvious from the code
 
@@ -55,7 +65,8 @@ Biome formats TypeScript and JSON, rustfmt formats `src-tauri`. Neither lints;
   non-platform file for every route.
 - Polyfill order in `index.js` is load-bearing. viem and WalletConnect
   capture `globalThis.crypto` as they evaluate, so `src/polyfills` must run
-  before Expo Router builds the route tree.
+  before Expo Router builds the route tree. Biome's import sorting leaves
+  side-effect imports (`import "./crypto";`) where they are.
 - Protocols go in `src/protocols/<name>/` and implement `ChatSession`.
   Persistence is `src/storage`. Do not mix the two.
 - Stored data moves forward by migration. For the account database, edit
