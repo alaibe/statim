@@ -103,9 +103,13 @@ export class FleetNode implements WakuNode {
     for (const topic of fresh) this.subscribed.add(topic);
   }
 
+  /** Fails while no Status node is connected, since nothing can arrive then. */
   async poll(): Promise<WakuMessage[]> {
     const drained = this.buffer;
     this.buffer = [];
+    if (drained.length === 0 && this.node.libp2p.getPeers().length === 0) {
+      throw new Error("No Status node is connected.");
+    }
     return drained;
   }
 

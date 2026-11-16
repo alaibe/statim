@@ -453,6 +453,7 @@ describe("AccountRuntime recovery", () => {
     jest.useFakeTimers();
     const runtime = new AccountRuntime(PROTOCOLS);
     const session = new InMemoryChatSession();
+    Object.assign(session, { resume: async () => false });
     const report = linked(session);
     await runtime.synchronize(input("account-a", new PluginRegistry(), async () => session));
 
@@ -471,6 +472,35 @@ describe("AccountRuntime recovery", () => {
     expect(useChatStore.getState().protocols.xmtp?.status).toBe("ready");
     expect(session.syncCount).toBe(syncs + 1);
     await runtime.synchronize(null);
+  });
+
+  it("asks a session whose link is down to resume on the retry schedule until it is back", async () => {
+    jest.useFakeTimers();
+    const runtime = new AccountRuntime(PROTOCOLS);
+    const session = new InMemoryChatSession();
+    const resume = jest.fn(async () => false);
+    Object.assign(session, { resume });
+    const report = linked(session);
+    await runtime.synchronize(input("account-a", new PluginRegistry(), async () => session));
+
+    report("reconnecting");
+    await jest.advanceTimersByTimeAsync(4_999);
+    expect(resume).toHaveBeenCalledTimes(0);
+    await jest.advanceTimersByTimeAsync(1);
+    expect(resume).toHaveBeenCalledTimes(1);
+    await jest.advanceTimersByTimeAsync(15_000);
+    expect(resume).toHaveBeenCalledTimes(2);
+
+    report("online");
+    await jest.advanceTimersByTimeAsync(600_000);
+    expect(resume).toHaveBeenCalledTimes(2);
+
+    report("reconnecting");
+    await jest.advanceTimersByTimeAsync(5_000);
+    expect(resume).toHaveBeenCalledTimes(3);
+    await runtime.synchronize(null);
+    await jest.advanceTimersByTimeAsync(600_000);
+    expect(resume).toHaveBeenCalledTimes(3);
   });
 
   it("resumes at most once in a short while, and catches up only on what was reopened", async () => {

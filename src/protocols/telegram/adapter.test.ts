@@ -195,6 +195,7 @@ describe("TelegramSession connection", () => {
     const connection = (type: string) => td().emit({ "@type": "updateConnectionState", state: { "@type": type } });
     connection("connectionStateWaitingForNetwork");
     connection("connectionStateConnecting");
+    connection("connectionStateUpdating");
     connection("connectionStateReady");
     await flush();
     td().lose();

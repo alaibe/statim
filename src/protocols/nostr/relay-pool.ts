@@ -74,6 +74,7 @@ export class RelayPool {
   private seen = new Set<string>();
   private inFlight = new Set<string>();
   private publications = new Map<string, PendingPublication>();
+  private readonly statusListeners = new Set<() => void>();
   private closed = false;
 
   private readonly createSocket: (url: string) => WebSocketLike;
@@ -93,6 +94,16 @@ export class RelayPool {
       status: c.status,
       error: c.error,
     }));
+  }
+
+  /** Called whenever a relay connects or drops. */
+  onStatus(listener: () => void): () => void {
+    this.statusListeners.add(listener);
+    return () => this.statusListeners.delete(listener);
+  }
+
+  private statusChanged() {
+    for (const listener of this.statusListeners) listener();
   }
 
   private addRelay(url: string) {
@@ -129,6 +140,7 @@ export class RelayPool {
       connection.status = "open";
       connection.attempts = 0;
       connection.error = undefined;
+      this.statusChanged();
       for (const subscription of this.subscriptions.values()) {
         this.sendTo(connection, ["REQ", subscription.id, ...subscription.filters]);
       }
@@ -146,6 +158,7 @@ export class RelayPool {
       this.failPublicationsFor(connection.url, "Relay disconnected before acknowledging the event");
       connection.socket = null;
       connection.status = "closed";
+      this.statusChanged();
       this.scheduleReconnect(connection);
     };
   }
@@ -374,6 +387,7 @@ export class RelayPool {
 
   close() {
     this.closed = true;
+    this.statusListeners.clear();
     for (const eventId of [...this.publications.keys()]) {
       this.rejectPublication(eventId, new Error("Nostr relay pool closed before acknowledging the event"));
     }

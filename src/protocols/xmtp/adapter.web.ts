@@ -39,6 +39,7 @@ import {
   writeInlineAttachment,
 } from "@/core/messaging/attachments";
 import { isParticipantId } from "@/core/messaging/bots";
+import { LinkTracker } from "@/core/messaging/link";
 import { showsInPreview } from "@/core/messaging/message-rules";
 import { protocolChatId } from "@/core/messaging/namespace";
 import type { ChatSession, GroupInfo, LinkState, XmtpInstallation } from "@/core/messaging/protocol";
@@ -64,7 +65,7 @@ import {
   newestReadByOthers,
   REVOKED_AND_FULL,
   ReadMarks,
-  StreamReopener,
+  reopenEnded,
   type XmtpEnvironment,
   xmtpEnvironment,
 } from "./shared";
@@ -160,7 +161,7 @@ export class XmtpSession implements ChatSession {
 
   private readonly addressCache = new Map<ParticipantId, string>();
   private readonly followed = new Set<FollowedStream<any>>();
-  private readonly streams = new StreamReopener(() => this.reopenStreams());
+  private readonly link = new LinkTracker();
   private closed = false;
   private readonly blockedDmIds = new Set<string>();
   private readonly chatListeners = new Set<(c: ProtocolChat) => void>();
@@ -537,11 +538,16 @@ export class XmtpSession implements ChatSession {
   }
 
   subscribeLink(listener: (link: LinkState) => void): Unsubscribe {
-    return this.streams.link.subscribe(listener);
+    return this.link.subscribe(listener);
   }
 
   async resume(): Promise<boolean> {
-    return !this.closed && this.streams.now();
+    if (this.closed) return false;
+    return reopenEnded(
+      this.link,
+      () => this.reopenStreams(),
+      () => [...this.followed].every((stream) => stream.running),
+    );
   }
 
   private async reopenStreams(): Promise<boolean> {
@@ -554,11 +560,7 @@ export class XmtpSession implements ChatSession {
     open: () => Promise<Stream<T>>,
     handle: (value: T) => void | Promise<void>,
   ): Promise<Unsubscribe> {
-    const handled = (value: T) => {
-      this.streams.brought();
-      return handle(value);
-    };
-    const stream = new FollowedStream(open, handled, () => this.streams.ended());
+    const stream = new FollowedStream(open, handle, () => this.link.set("reconnecting"));
     this.followed.add(stream);
     await stream.start();
     return () => {
@@ -569,7 +571,6 @@ export class XmtpSession implements ChatSession {
 
   async disconnect(): Promise<void> {
     this.closed = true;
-    this.streams.stop();
     for (const stream of this.followed) stream.stop();
     this.followed.clear();
     this.client.close();

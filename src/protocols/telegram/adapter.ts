@@ -56,6 +56,9 @@ interface TelegramConnectOptions {
 }
 
 const MAIN_LIST = { "@type": "chatListMain" } as const;
+/** While updating, TDLib is connected and fetching what it missed. */
+const CONNECTED = new Set(["connectionStateReady", "connectionStateUpdating"]);
+
 const CHAT_PAGE = 100;
 const MAX_CHAT_PAGES = 20;
 
@@ -316,7 +319,7 @@ export class TelegramSession implements ChatSession {
       case "updateAuthorizationState":
         return this.onAuthorizationState(update.authorization_state);
       case "updateConnectionState":
-        return this.link.set(update.state["@type"] === "connectionStateReady" ? "online" : "reconnecting");
+        return this.link.set(CONNECTED.has(update.state["@type"]) ? "online" : "reconnecting");
       case "updateUser": {
         const { user } = update;
         this.td.users.set(user.id, user);

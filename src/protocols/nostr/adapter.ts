@@ -1,11 +1,18 @@
 import type { DerivedKey } from "@/core/account/keyring";
 import { PartialHistoryError } from "@/core/messaging/history";
+import { LinkTracker } from "@/core/messaging/link";
 import type { MessageStore, TransportChat } from "@/core/messaging/message-store";
 import { protocolChatId } from "@/core/messaging/namespace";
-import type { ChatSession } from "@/core/messaging/protocol";
+import type { ChatSession, LinkState } from "@/core/messaging/protocol";
 import { StoreBackedSession } from "@/core/messaging/store-backed-session";
 import type { ChatTransport, IncomingMessage, SendMeta, SendResult, TransportSink } from "@/core/messaging/transport";
-import type { MessageContent, ParticipantId, ProtocolChatId, SelfParticipant } from "@/core/messaging/types";
+import type {
+  MessageContent,
+  ParticipantId,
+  ProtocolChatId,
+  SelfParticipant,
+  Unsubscribe,
+} from "@/core/messaging/types";
 import { npubFor, parsePublicKey } from "@/lib/bech32";
 import type { AccountStorage } from "@/storage/account";
 import { firstTagValue, type NostrEvent, nowSeconds, type Rumor, signEvent, tagValues } from "./events";
@@ -127,6 +134,7 @@ class HandledWraps {
 class NostrTransport implements ChatTransport {
   readonly protocolId = NOSTR_PROTOCOL_ID;
   readonly self: SelfParticipant;
+  private readonly link = new LinkTracker();
 
   readonly rosterIsFixed = {
     onAdd:
@@ -161,6 +169,16 @@ class NostrTransport implements ChatTransport {
     private readonly handled?: HandledWraps,
   ) {
     this.self = { participantId: keys.publicKey, address: keys.npub };
+    pool.onStatus(() => this.link.set(this.anyRelayOpen() ? "online" : "reconnecting"));
+    if (!this.anyRelayOpen()) this.link.set("reconnecting");
+  }
+
+  subscribeLink(listener: (link: LinkState) => void): Unsubscribe {
+    return this.link.subscribe(listener);
+  }
+
+  private anyRelayOpen(): boolean {
+    return this.pool.states.some((relay) => relay.status === "open");
   }
 
   attach(sink: TransportSink): void {

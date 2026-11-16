@@ -1,6 +1,7 @@
 import type { TransportChat } from "./message-store";
 import type { ProtocolId } from "./namespace";
-import type { MessageContent, MessageId, ParticipantId, ProtocolChatId, SelfParticipant } from "./types";
+import type { LinkState } from "./protocol";
+import type { MessageContent, MessageId, ParticipantId, ProtocolChatId, SelfParticipant, Unsubscribe } from "./types";
 
 export interface TransportSink {
   deliverToParticipants(
@@ -62,6 +63,7 @@ export interface ChatTransport {
   sync(): Promise<void>;
   /** Re-opens connections that dropped while the app was away, saying whether any had; never throws. */
   resume?(): boolean;
+  subscribeLink?(listener: (link: LinkState) => void): Unsubscribe;
   disconnect(): Promise<void>;
 
   readonly rosterIsFixed: { onAdd: string; onRemove: string };

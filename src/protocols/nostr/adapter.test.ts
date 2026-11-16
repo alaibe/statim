@@ -54,6 +54,21 @@ function deliverFrom(
 
 const settleDeliveries = () => new Promise<void>((resolve) => setImmediate(resolve));
 
+describe("link", () => {
+  it("is online while any relay is open", async () => {
+    const { session, factory } = await connect(["wss://a.example", "wss://b.example"]);
+    const links: string[] = [];
+    session.subscribeLink((link) => links.push(link));
+    factory.relays[0].close();
+    factory.relays[1].close();
+    expect(links).toEqual(["online", "reconnecting"]);
+    expect(await session.resume()).toBe(true);
+    factory.relays[2].open();
+    expect(links).toEqual(["online", "reconnecting", "online"]);
+    await session.disconnect();
+  });
+});
+
 describe("the self participant", () => {
   it("derives at the NIP-06 path and exposes the npub as the address", async () => {
     const { session } = await connect();

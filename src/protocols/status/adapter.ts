@@ -3,10 +3,11 @@ import { sha256 } from "@noble/hashes/sha2";
 import { type DerivedKey, shortAddress } from "@/core/account/keyring";
 import { UnsupportedError } from "@/core/errors";
 import { type HistoryState, HistoryTracker, PartialHistoryError } from "@/core/messaging/history";
+import { LinkTracker } from "@/core/messaging/link";
 import { showsInPreview } from "@/core/messaging/message-rules";
 import type { MessageStore, TransportChat } from "@/core/messaging/message-store";
 import { protocolChatId } from "@/core/messaging/namespace";
-import type { ChatSession, GroupInfo, MentionCandidate } from "@/core/messaging/protocol";
+import type { ChatSession, GroupInfo, LinkState, MentionCandidate } from "@/core/messaging/protocol";
 import { emojiFromCodePoints } from "@/core/messaging/shortcodes";
 import type {
   Consent,
@@ -302,6 +303,7 @@ export class StatusSession implements ChatSession {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private polls = 0;
   private stopped = false;
+  private readonly link = new LinkTracker();
 
   private constructor(
     private readonly identity: StatusIdentity,
@@ -396,14 +398,29 @@ export class StatusSession implements ChatSession {
   pollOnce(): Promise<void> {
     return this.serially(async () => {
       if (this.stopped) return;
-      if (this.polls > 0 && this.polls % REFRESH_EVERY === 0) {
-        await this.node.subscribe(this.inbox);
-        await this.catchUp().catch((error) => console.warn("[status] catch-up failed", error));
-      }
+      if (this.polls > 0 && this.polls % REFRESH_EVERY === 0) await this.refresh();
       this.polls += 1;
-      for (const message of await this.node.poll()) await this.ingest(message);
+      for (const message of await this.reach(() => this.node.poll())) await this.ingest(message);
       await this.flushAcks();
     });
+  }
+
+  /** Subscribes again, which redials the node, and fetches what the subscription may have missed. */
+  private async refresh(): Promise<void> {
+    await this.reach(() => this.node.subscribe(this.inbox));
+    await this.catchUp().catch((error) => console.warn("[status] catch-up failed", error));
+  }
+
+  /** Whether the node answers is the link. */
+  private async reach<T>(call: () => Promise<T>): Promise<T> {
+    try {
+      const answer = await call();
+      this.link.set("online");
+      return answer;
+    } catch (error) {
+      this.link.set("reconnecting");
+      throw error;
+    }
   }
 
   private serially<T>(work: () => Promise<T>): Promise<T> {
@@ -1501,6 +1518,16 @@ export class StatusSession implements ChatSession {
       }),
     );
     await this.pollOnce();
+  }
+
+  subscribeLink(listener: (link: LinkState) => void): Unsubscribe {
+    return this.link.subscribe(listener);
+  }
+
+  /** Catches up by itself, so the chats need no fetching again. */
+  async resume(): Promise<boolean> {
+    await this.serially(() => this.refresh()).catch(() => {});
+    return false;
   }
 
   subscribeHistory(listener: (state: HistoryState) => void): Unsubscribe {

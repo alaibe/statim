@@ -135,6 +135,19 @@ describe("StatusSession", () => {
     await bob.session.disconnect();
   });
 
+  describe("link", () => {
+    it("is reconnecting while the node does not answer, and a resume never fails", async () => {
+      const links: string[] = [];
+      alice.session.subscribeLink((link) => links.push(link));
+      alice.node.down = true;
+      await expect(alice.session.pollOnce()).rejects.toThrow();
+      expect(await alice.session.resume()).toBe(false);
+      alice.node.down = false;
+      await alice.session.pollOnce();
+      expect(links).toEqual(["online", "reconnecting", "online"]);
+    });
+  });
+
   describe("identity", () => {
     it("is the Status chat key, shown the way Status shows it", () => {
       expect(alice.session.self).toEqual({

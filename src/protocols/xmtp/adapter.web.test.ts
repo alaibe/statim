@@ -246,49 +246,21 @@ const endless = () =>
     })(),
   );
 
-it("opens a stream that ended on its own again, reconnecting meanwhile", async () => {
-  jest.useFakeTimers();
-  const opened: string[] = [];
-  const ended = (kind: string) => async () => {
-    opened.push(kind);
-    return endable((async function* () {})());
-  };
-  const session = await connectWith("xmtp-reopen", { stream: ended("chats"), streamAllMessages: ended("messages") });
-  const links: string[] = [];
-  session.subscribeLink((link) => links.push(link));
-  await session.streamMessages(() => {});
-  await jest.advanceTimersByTimeAsync(4_000);
-  expect(opened).toEqual(["messages"]);
-  expect(links).toEqual(["online", "reconnecting"]);
-
-  await jest.advanceTimersByTimeAsync(1_000);
-  expect(opened).toEqual(["messages", "messages"]);
-  expect(links).toEqual(["online", "reconnecting"]);
-
-  await jest.advanceTimersByTimeAsync(29_000);
-  expect(opened).toHaveLength(2);
-  await jest.advanceTimersByTimeAsync(1_000);
-  expect(opened).toHaveLength(3);
-
-  await session.disconnect();
-  await jest.advanceTimersByTimeAsync(600_000);
-  expect(opened).toHaveLength(3);
-  jest.useRealTimers();
-});
-
-it("reports the link online again once a reopened stream stays open", async () => {
-  jest.useFakeTimers();
+it("reports a stream that ended as reconnecting until a resume reopens it", async () => {
   let opens = 0;
   const streamAllMessages = async () => (++opens === 1 ? endable((async function* () {})()) : endless());
   const session = await connectWith("xmtp-reopened", { streamAllMessages });
   const links: string[] = [];
   session.subscribeLink((link) => links.push(link));
   await session.streamMessages(() => {});
-  await jest.advanceTimersByTimeAsync(5_000);
+  await nextTask();
+  expect(links).toEqual(["online", "reconnecting"]);
+  expect(opens).toBe(1);
+
+  expect(await session.resume()).toBe(true);
   expect(opens).toBe(2);
   expect(links).toEqual(["online", "reconnecting", "online"]);
   await session.disconnect();
-  jest.useRealTimers();
 });
 
 it("reopens only the streams that ended when resumed, and says whether it did", async () => {

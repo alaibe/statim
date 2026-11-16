@@ -2,7 +2,7 @@ import { UnsupportedError } from "../errors";
 import { type HistoryState, HistoryTracker } from "./history";
 import { showsInPreview } from "./message-rules";
 import { HYDRATE_LIMIT, type MessageStore, type TransportChat } from "./message-store";
-import type { ChatSession } from "./protocol";
+import type { ChatSession, LinkState } from "./protocol";
 import type { ChatTransport, IncomingMessage, TransportSink, Withdrawal } from "./transport";
 import type {
   GroupMember,
@@ -309,6 +309,12 @@ export class StoreBackedSession implements ChatSession, TransportSink {
 
   countUnread(id: ProtocolChatId, since: number): Promise<number> {
     return this.store.countUnreadMessages(id, since);
+  }
+
+  subscribeLink(listener: (link: LinkState) => void): Unsubscribe {
+    if (this.transport.subscribeLink) return this.transport.subscribeLink(listener);
+    listener("online");
+    return () => {};
   }
 
   async resume(): Promise<boolean> {
