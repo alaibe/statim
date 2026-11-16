@@ -1,5 +1,6 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
   "files": {
     "includes": [
       "**",
@@ -14,23 +15,26 @@
       "!src/global.css",
       "!src/storage/migrations/**",
       "!**/token-list.json",
-      "!package-lock.json"
+      "!package-lock.json",
+      "!**/*.md",
+      "!**/*.yml",
+      "!**/*.yaml"
     ]
   },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
     "indentWidth": 2,
-    "lineWidth": 100
+    "lineWidth": 120
   },
   "javascript": {
     "formatter": {
-      "quoteStyle": "single",
+      "quoteStyle": "double",
       "jsxQuoteStyle": "double",
       "semicolons": "always",
-      "trailingCommas": "es5",
+      "trailingCommas": "all",
       "arrowParentheses": "always",
-      "bracketSameLine": true
+      "bracketSpacing": true
     }
   },
   "css": {
@@ -47,6 +51,7 @@
     "enabled": false
   },
   "assist": {
-    "enabled": false
+    "enabled": true,
+    "actions": { "source": { "organizeImports": "on" } }
   }
 }
