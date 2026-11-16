@@ -349,37 +349,42 @@ jobs:
       - name: SHA256SUMS
         working-directory: files
         run: |
-          find . -maxdepth 1 -type f ! -name '*.sig' -printf '%f\n' | sort | xargs sha256sum -- > "$RUNNER_TEMP/SHA256SUMS"
+          find . -maxdepth 1 -type f ! -name '*.sig' ! -name '*.sparkle' -printf '%f\n' | sort |
+            xargs sha256sum -- > "$RUNNER_TEMP/SHA256SUMS"
           cat "$RUNNER_TEMP/SHA256SUMS"
 
-      # What an installed copy reads before updating, with the keys tauri-action wrote: a copy looks for its own
-      # installer's key first (windows-x86_64-nsis, linux-x86_64-deb), then the bare one.
+      # The feed Tauri's updater reads, built alike in Kestrel's and Statim's release.yml: each key an installed copy
+      # looks up (its own installer's first, then the bare one) points at a file of this release, with that file's
+      # signature. FEED lists them, a key and a file name with {v} for the version.
       - name: latest.json
         working-directory: files
+        env:
+          FEED: |
+            windows-x86_64 Statim_{v}_x64_en-US.msi
+            windows-x86_64-msi Statim_{v}_x64_en-US.msi
+            windows-x86_64-nsis Statim_{v}_x64-setup.exe
+            linux-x86_64 Statim_{v}_amd64.AppImage
+            linux-x86_64-appimage Statim_{v}_amd64.AppImage
+            linux-x86_64-deb Statim_{v}_amd64.deb
+            linux-x86_64-rpm Statim-{v}-1.x86_64.rpm
+            darwin-aarch64 Statim_{v}_universal.app.tar.gz
+            darwin-x86_64 Statim_{v}_universal.app.tar.gz
+            darwin-universal Statim_{v}_universal.app.tar.gz
+            darwin-aarch64-app Statim_{v}_universal.app.tar.gz
+            darwin-x86_64-app Statim_{v}_universal.app.tar.gz
+            darwin-universal-app Statim_{v}_universal.app.tar.gz
         run: |
           BASE="https://github.com/$RELEASES_REPOSITORY/releases/download/v$VERSION"
-          entry() {
-            [ -f "$1" ] && [ -f "$1.sig" ] || { echo "$1 or its signature is missing" >&2; exit 1; }
-            jq -n --arg url "$BASE/$1" --rawfile signature "$1.sig" '{signature: $signature, url: $url}'
-          }
-          MSI=$(entry "Statim_${VERSION}_x64_en-US.msi")
-          NSIS=$(entry "Statim_${VERSION}_x64-setup.exe")
-          APPIMAGE=$(entry "Statim_${VERSION}_amd64.AppImage")
-          DEB=$(entry "Statim_${VERSION}_amd64.deb")
-          RPM=$(entry "Statim-${VERSION}-1.x86_64.rpm")
-          MAC=$(entry "Statim_${VERSION}_universal.app.tar.gz")
-          jq -n --arg version "$VERSION" --arg date "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
-            --argjson msi "$MSI" --argjson nsis "$NSIS" --argjson appimage "$APPIMAGE" \
-            --argjson deb "$DEB" --argjson rpm "$RPM" --argjson mac "$MAC" '{
-              version: $version, notes: "", pub_date: $date,
-              platforms: {
-                "windows-x86_64": $msi, "windows-x86_64-msi": $msi, "windows-x86_64-nsis": $nsis,
-                "linux-x86_64": $appimage, "linux-x86_64-appimage": $appimage,
-                "linux-x86_64-deb": $deb, "linux-x86_64-rpm": $rpm,
-                "darwin-aarch64": $mac, "darwin-x86_64": $mac, "darwin-universal": $mac,
-                "darwin-aarch64-app": $mac, "darwin-x86_64-app": $mac, "darwin-universal-app": $mac
-              }
-            }' > "$RUNNER_TEMP/latest.json"
+          platforms='{}'
+          while read -r key name; do
+            [ -n "$key" ] || continue
+            file="${name//\{v\}/$VERSION}"
+            [ -f "$file" ] && [ -f "$file.sig" ] || { echo "$file or its signature is missing" >&2; exit 1; }
+            platforms=$(jq --arg key "$key" --arg url "$BASE/$file" --rawfile signature "$file.sig" \
+              '. + {($key): {signature: $signature, url: $url}}' <<< "$platforms")
+          done <<< "$FEED"
+          jq -n --arg version "$VERSION" --arg date "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" --argjson platforms "$platforms" \
+            '{version: $version, notes: "", pub_date: $date, platforms: $platforms}' > "$RUNNER_TEMP/latest.json"
           jq '.platforms | map_values(.url)' "$RUNNER_TEMP/latest.json"
 
       - name: Attach them
