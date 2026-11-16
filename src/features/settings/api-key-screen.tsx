@@ -7,8 +7,7 @@ import { openExternal } from "@/lib/open-url";
 import { useKeyedLoad } from "@/lib/use-keyed-load";
 import { SettingsScreen } from "./settings-screen";
 
-interface ApiKeyScreenProps {
-  title: string;
+interface ApiKeySectionProps {
   sectionTitle: string;
   testIdPrefix: string;
   placeholder: string;
@@ -20,8 +19,16 @@ interface ApiKeyScreenProps {
   link: { label: string; url: string };
 }
 
-export function ApiKeyScreen({
-  title,
+export function ApiKeyScreen({ title, ...section }: ApiKeySectionProps & { title: string }) {
+  return (
+    <SettingsScreen title={title}>
+      <ApiKeySection {...section} />
+    </SettingsScreen>
+  );
+}
+
+/** One key's field and notes, for a screen that holds several keys. */
+export function ApiKeySection({
   sectionTitle,
   testIdPrefix,
   placeholder,
@@ -30,7 +37,7 @@ export function ApiKeyScreen({
   savedMessage,
   notes,
   link,
-}: ApiKeyScreenProps) {
+}: ApiKeySectionProps) {
   const accountId = useAccountStore((s) => s.activeAccountId);
   const [version, setVersion] = useState(0);
   const stored = useKeyedLoad(accountId, load, version);
@@ -48,7 +55,7 @@ export function ApiKeyScreen({
   );
 
   return (
-    <SettingsScreen title={title}>
+    <>
       {saved === undefined ? null : (
         <Section title={sectionTitle} surface="card" className="mb-6">
           <View className="gap-3 px-gutter py-4">
@@ -100,6 +107,6 @@ export function ApiKeyScreen({
         ))}
         <Button label={link.label} tone="neutral" onPress={() => openExternal(link.url).catch(() => {})} />
       </Note>
-    </SettingsScreen>
+    </>
   );
 }

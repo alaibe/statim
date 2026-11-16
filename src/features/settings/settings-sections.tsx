@@ -53,6 +53,11 @@ export function useSettingsKeys(revision: unknown): Credentials {
 
 const NO_KEYS: Readonly<Credentials> = Object.freeze({});
 
+function tradesHint(keys: Credentials): string {
+  if (keys.lcx) return "Swaps also compare LCX Liberty DEX";
+  return keys.trades ? "Swaps and bridges use your LI.FI key" : "Swap and bridge through LI.FI";
+}
+
 export function SettingsSections({
   keys,
   selected,
@@ -174,7 +179,7 @@ export function SettingsSections({
         <ListItem
           testID="settings-trades"
           title="Trades"
-          subtitle={hint(keys.trades ? "Swaps and bridges use your LI.FI key" : "Swap and bridge through LI.FI")}
+          subtitle={hint(tradesHint(keys))}
           leading={<RowIcon name="swap-horizontal-outline" tone="blue" />}
           trailing={chevron}
           selected={selected === "trades"}
