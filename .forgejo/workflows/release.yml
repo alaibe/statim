@@ -123,7 +123,10 @@ jobs:
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
+      # actions/checkout adds a safe.directory to the global git config: a throwaway one, not Anthony's ~/.gitconfig.
       - uses: actions/checkout@v4
+        env:
+          GIT_CONFIG_GLOBAL: ${{ runner.temp }}/gitconfig
 
       - name: Secrets are set
         env:
@@ -458,7 +461,10 @@ jobs:
       ANDROID_HOME: /opt/homebrew/share/android-commandlinetools
       JAVA_HOME: /opt/homebrew/opt/openjdk@21
     steps:
+      # actions/checkout adds a safe.directory to the global git config: a throwaway one, not Anthony's ~/.gitconfig.
       - uses: actions/checkout@v4
+        env:
+          GIT_CONFIG_GLOBAL: ${{ runner.temp }}/gitconfig
 
       - run: npm ci
 
@@ -484,7 +490,10 @@ jobs:
       LANG: en_US.UTF-8
       LC_ALL: en_US.UTF-8
     steps:
+      # actions/checkout adds a safe.directory to the global git config: a throwaway one, not Anthony's ~/.gitconfig.
       - uses: actions/checkout@v4
+        env:
+          GIT_CONFIG_GLOBAL: ${{ runner.temp }}/gitconfig
 
       - run: npm ci
 

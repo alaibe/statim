@@ -44,9 +44,12 @@ jobs:
     runs-on: mac
     timeout-minutes: 60
     steps:
+      # actions/checkout adds a safe.directory to the global git config: a throwaway one, not Anthony's ~/.gitconfig.
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+        env:
+          GIT_CONFIG_GLOBAL: ${{ runner.temp }}/gitconfig
 
       - run: npm ci
 

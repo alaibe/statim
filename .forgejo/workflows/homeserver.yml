@@ -29,7 +29,10 @@ jobs:
       MACOSX_DEPLOYMENT_TARGET: '15.0'
       TAG: homeserver-${{ inputs.tuwunel }}
     steps:
+      # actions/checkout adds a safe.directory to the global git config: a throwaway one, not Anthony's ~/.gitconfig.
       - uses: actions/checkout@v4
+        env:
+          GIT_CONFIG_GLOBAL: ${{ runner.temp }}/gitconfig
 
       - name: Work folder
         run: echo "WORK=$(mktemp -d)" >> "$GITHUB_ENV"
