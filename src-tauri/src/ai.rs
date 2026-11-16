@@ -29,9 +29,7 @@ fn at_least_macos(major: isize) -> bool {
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 mod model {
-    use fm_rs::{
-        Error, GenerationOptions, Guardrails, ModelAvailability, Session, SystemLanguageModel,
-    };
+    use fm_rs::{Error, GenerationOptions, Guardrails, ModelAvailability, Session, SystemLanguageModel};
 
     use super::{at_least_macos, AiError};
 
@@ -49,20 +47,14 @@ mod model {
 
     pub fn complete(instructions: &str, prompt: &str, max_tokens: u32) -> Result<String, AiError> {
         if !at_least_macos(26) {
-            return Err(AiError::new(
-                "ERR_UNAVAILABLE",
-                "Apple Intelligence needs macOS 26.",
-            ));
+            return Err(AiError::new("ERR_UNAVAILABLE", "Apple Intelligence needs macOS 26."));
         }
         // The default guardrails refuse ordinary messages, "pick up the kids at 5" among them.
         let model =
-            SystemLanguageModel::with_guardrails(Guardrails::PermissiveContentTransformations)
-                .map_err(failure)?;
+            SystemLanguageModel::with_guardrails(Guardrails::PermissiveContentTransformations).map_err(failure)?;
         model.ensure_available().map_err(failure)?;
         let session = Session::with_instructions(&model, instructions).map_err(failure)?;
-        let options = GenerationOptions::builder()
-            .max_response_tokens(max_tokens)
-            .build();
+        let options = GenerationOptions::builder().max_response_tokens(max_tokens).build();
         let response = session.respond(prompt, &options).map_err(failure)?;
         Ok(response.content().to_owned())
     }
@@ -76,17 +68,15 @@ mod model {
                 "ERR_TOO_LONG",
                 "That is more text than Apple Intelligence takes at once.",
             ),
-            Error::UnsupportedLanguageOrLocale(_) => AiError::new(
-                "ERR_REFUSED",
-                "Apple Intelligence does not speak this language yet.",
-            ),
+            Error::UnsupportedLanguageOrLocale(_) => {
+                AiError::new("ERR_REFUSED", "Apple Intelligence does not speak this language yet.")
+            }
             Error::AppleIntelligenceNotEnabled
             | Error::ModelNotReady
             | Error::DeviceNotEligible
-            | Error::ModelNotAvailable => AiError::new(
-                "ERR_UNAVAILABLE",
-                "Apple Intelligence is not ready on this Mac.",
-            ),
+            | Error::ModelNotAvailable => {
+                AiError::new("ERR_UNAVAILABLE", "Apple Intelligence is not ready on this Mac.")
+            }
             other => AiError::new("ERR_GENERATION", other.to_string()),
         }
     }
@@ -100,11 +90,7 @@ mod model {
         "unsupported"
     }
 
-    pub fn complete(
-        _instructions: &str,
-        _prompt: &str,
-        _max_tokens: u32,
-    ) -> Result<String, AiError> {
+    pub fn complete(_instructions: &str, _prompt: &str, _max_tokens: u32) -> Result<String, AiError> {
         Err(AiError::new(
             "ERR_UNAVAILABLE",
             "This computer has no AI model of its own.",
@@ -119,11 +105,7 @@ mod translator {
     use super::AiError;
 
     extern "C" {
-        fn statim_translate(
-            text: *const c_char,
-            target: *const c_char,
-            out: *mut *mut c_char,
-        ) -> i32;
+        fn statim_translate(text: *const c_char, target: *const c_char, out: *mut *mut c_char) -> i32;
         fn statim_free(pointer: *mut c_char);
     }
 
@@ -136,9 +118,7 @@ mod translator {
         let message = if out.is_null() {
             String::new()
         } else {
-            let owned = unsafe { CStr::from_ptr(out) }
-                .to_string_lossy()
-                .into_owned();
+            let owned = unsafe { CStr::from_ptr(out) }.to_string_lossy().into_owned();
             unsafe { statim_free(out) };
             owned
         };
@@ -162,9 +142,7 @@ mod translator {
     }
 }
 
-async fn blocking<T: Send + 'static>(
-    work: impl FnOnce() -> Result<T, AiError> + Send + 'static,
-) -> Result<T, AiError> {
+async fn blocking<T: Send + 'static>(work: impl FnOnce() -> Result<T, AiError> + Send + 'static) -> Result<T, AiError> {
     tauri::async_runtime::spawn_blocking(work)
         .await
         .map_err(|error| AiError::new("ERR_GENERATION", error.to_string()))?
@@ -176,11 +154,7 @@ pub async fn ai_model_state() -> Result<&'static str, AiError> {
 }
 
 #[tauri::command]
-pub async fn ai_complete(
-    instructions: String,
-    prompt: String,
-    max_tokens: u32,
-) -> Result<String, AiError> {
+pub async fn ai_complete(instructions: String, prompt: String, max_tokens: u32) -> Result<String, AiError> {
     blocking(move || model::complete(&instructions, &prompt, max_tokens)).await
 }
 

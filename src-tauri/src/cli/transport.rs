@@ -57,12 +57,7 @@ pub fn listen() -> io::Result<Listener> {
     }
     #[cfg(unix)]
     let umask = unsafe { libc::umask(0o177) };
-    let listener = with_name(|name| {
-        ListenerOptions::new()
-            .name(name)
-            .try_overwrite(true)
-            .create_sync()
-    });
+    let listener = with_name(|name| ListenerOptions::new().name(name).try_overwrite(true).create_sync());
     #[cfg(unix)]
     unsafe {
         libc::umask(umask);
@@ -74,8 +69,7 @@ pub fn listen() -> io::Result<Listener> {
 mod tests {
     #[test]
     fn identifier_matches_the_tauri_config() {
-        let config: serde_json::Value =
-            serde_json::from_str(include_str!("../../tauri.conf.json")).unwrap();
+        let config: serde_json::Value = serde_json::from_str(include_str!("../../tauri.conf.json")).unwrap();
         assert_eq!(config["identifier"], super::IDENTIFIER);
     }
 }

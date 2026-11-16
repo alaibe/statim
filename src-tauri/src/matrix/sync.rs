@@ -3,10 +3,7 @@ use super::*;
 impl Session {
     pub(super) async fn start_sync(self: &Arc<Self>) -> Result<(), String> {
         if matches!(self.client.sliding_sync_version(), SlidingSyncVersion::None) {
-            return Err(
-                "This homeserver does not support sliding sync (MSC4186), which the app needs."
-                    .to_string(),
-            );
+            return Err("This homeserver does not support sliding sync (MSC4186), which the app needs.".to_string());
         }
         let session = self.clone();
         self.tasks
@@ -14,18 +11,13 @@ impl Session {
             .unwrap()
             .push(tokio::spawn(async move { session.watch_sign_out().await }));
 
-        let sync = Arc::new(
-            SyncService::builder(self.client.clone())
-                .build()
-                .await
-                .map_err(err)?,
-        );
+        let sync = Arc::new(SyncService::builder(self.client.clone()).build().await.map_err(err)?);
         let room_list = sync.room_list_service().all_rooms().await.map_err(err)?;
         let session = self.clone();
         let service = sync.room_list_service();
-        self.tasks.lock().unwrap().push(tokio::spawn(async move {
-            session.follow_rooms(room_list, service).await
-        }));
+        self.tasks.lock().unwrap().push(tokio::spawn(
+            async move { session.follow_rooms(room_list, service).await },
+        ));
         sync.start().await;
         *self.sync.lock().unwrap() = Some(sync);
         Ok(())
@@ -167,9 +159,7 @@ impl Session {
 
 pub(super) fn changed_by<T: Clone>(diff: &VectorDiff<T>) -> Vec<T> {
     match diff {
-        VectorDiff::Append { values } | VectorDiff::Reset { values } => {
-            values.iter().cloned().collect()
-        }
+        VectorDiff::Append { values } | VectorDiff::Reset { values } => values.iter().cloned().collect(),
         VectorDiff::PushFront { value } | VectorDiff::PushBack { value } => vec![value.clone()],
         VectorDiff::Insert { value, .. } | VectorDiff::Set { value, .. } => vec![value.clone()],
         _ => Vec::new(),

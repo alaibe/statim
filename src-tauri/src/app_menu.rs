@@ -49,9 +49,7 @@ pub fn install(app: &AppHandle) -> tauri::Result<()> {
     } else if let Some(window) = app.get_webview_window("main") {
         window.set_menu(window_menu(app)?)?;
         let hidden = app_data_dir(app).is_ok_and(|dir| dir.join(HIDDEN_FLAG).exists());
-        app.state::<AppMenu>()
-            .hidden
-            .store(hidden, Ordering::Relaxed);
+        app.state::<AppMenu>().hidden.store(hidden, Ordering::Relaxed);
         if hidden {
             window.hide_menu()?;
         }
@@ -87,12 +85,7 @@ fn open(app: &AppHandle, url: &str) {
     }
 }
 
-fn page(
-    app: &AppHandle,
-    command: &str,
-    text: &str,
-    shortcut: Option<&str>,
-) -> tauri::Result<MenuItem<Wry>> {
+fn page(app: &AppHandle, command: &str, text: &str, shortcut: Option<&str>) -> tauri::Result<MenuItem<Wry>> {
     MenuItem::with_id(app, format!("{PAGE}{command}"), text, true, shortcut)
 }
 
@@ -163,20 +156,8 @@ fn go(app: &AppHandle) -> tauri::Result<Submenu<Wry>> {
 }
 
 fn history(app: &AppHandle) -> tauri::Result<Submenu<Wry>> {
-    let back = MenuItem::with_id(
-        app,
-        format!("{PAGE}back"),
-        "Back",
-        false,
-        Some("CmdOrCtrl+["),
-    )?;
-    let forward = MenuItem::with_id(
-        app,
-        format!("{PAGE}forward"),
-        "Forward",
-        false,
-        Some("CmdOrCtrl+]"),
-    )?;
+    let back = MenuItem::with_id(app, format!("{PAGE}back"), "Back", false, Some("CmdOrCtrl+["))?;
+    let forward = MenuItem::with_id(app, format!("{PAGE}forward"), "Forward", false, Some("CmdOrCtrl+]"))?;
     let submenu = Submenu::with_items(app, "History", true, &[&back, &forward])?;
     let _ = app.state::<AppMenu>().history.set(History {
         submenu: submenu.clone(),
@@ -246,10 +227,7 @@ fn mac_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
                 app,
                 "View",
                 true,
-                &[&PredefinedMenuItem::fullscreen(
-                    app,
-                    Some("Enter Full Screen"),
-                )?],
+                &[&PredefinedMenuItem::fullscreen(app, Some("Enter Full Screen"))?],
             )?,
             &go(app)?,
             &history(app)?,
@@ -321,11 +299,7 @@ fn peek(app: &AppHandle, show: bool) {
         return;
     }
     if let Some(window) = app.get_webview_window("main") {
-        let _ = if show {
-            window.show_menu()
-        } else {
-            window.hide_menu()
-        };
+        let _ = if show { window.show_menu() } else { window.hide_menu() };
     }
 }
 
@@ -335,11 +309,7 @@ pub fn menu_bar_hidden(state: tauri::State<'_, AppMenu>) -> bool {
 }
 
 #[tauri::command]
-pub fn menu_bar_set_hidden(
-    app: AppHandle,
-    state: tauri::State<'_, AppMenu>,
-    hidden: bool,
-) -> Result<(), String> {
+pub fn menu_bar_set_hidden(app: AppHandle, state: tauri::State<'_, AppMenu>, hidden: bool) -> Result<(), String> {
     let flag = app_data_dir(&app)?.join(HIDDEN_FLAG);
     if hidden {
         write_private(&flag, "")?;
@@ -348,12 +318,7 @@ pub fn menu_bar_set_hidden(
     }
     state.hidden.store(hidden, Ordering::Relaxed);
     if let Some(window) = app.get_webview_window("main") {
-        if hidden {
-            window.hide_menu()
-        } else {
-            window.show_menu()
-        }
-        .map_err(|e| e.to_string())?;
+        if hidden { window.hide_menu() } else { window.show_menu() }.map_err(|e| e.to_string())?;
     }
     Ok(())
 }

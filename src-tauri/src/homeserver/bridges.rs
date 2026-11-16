@@ -216,20 +216,16 @@ impl Bridge {
     /// `double_puppet` is the token that lets it post as the owner.
     pub fn config(&self, server_port: u16, tokens: &Tokens, double_puppet: &str) -> String {
         let (id, port) = (self.id, self.port);
-        let homeserver = format!(
-            "homeserver:\n    address: http://127.0.0.1:{server_port}\n    domain: {SERVER_NAME}\n"
-        );
+        let homeserver =
+            format!("homeserver:\n    address: http://127.0.0.1:{server_port}\n    domain: {SERVER_NAME}\n");
         let appservice = format!(
             "appservice:\n    address: http://127.0.0.1:{port}\n    hostname: 127.0.0.1\n    port: {port}\n    id: {id}\n    bot:\n        username: {id}bot\n    as_token: {as_token}\n    hs_token: {hs_token}\n",
             as_token = tokens.as_token,
             hs_token = tokens.hs_token,
         );
-        let permissions = format!(
-            "    permissions:\n        \"{SERVER_NAME}\": user\n        \"@{OWNER}:{SERVER_NAME}\": admin\n"
-        );
-        let database = |indent: &str| {
-            format!("type: sqlite3-fk-wal\n{indent}uri: file:{id}.db?_txlock=immediate\n")
-        };
+        let permissions =
+            format!("    permissions:\n        \"{SERVER_NAME}\": user\n        \"@{OWNER}:{SERVER_NAME}\": admin\n");
+        let database = |indent: &str| format!("type: sqlite3-fk-wal\n{indent}uri: file:{id}.db?_txlock=immediate\n");
         // Encryption, because Statim starts every DM encrypted, the one with the bot included;
         // backfill, so a chat arrives with its latest messages instead of empty.
         if self.legacy {
@@ -292,9 +288,8 @@ mod tests {
     #[test]
     fn configures_discord_the_way_bridges_before_bridgev2_were() {
         let config = bridge("discord").unwrap().config(47281, &tokens(), "dp");
-        assert!(config.contains(
-            "    database:\n        type: sqlite3-fk-wal\n        uri: file:discord.db?_txlock=immediate\n"
-        ));
+        assert!(config
+            .contains("    database:\n        type: sqlite3-fk-wal\n        uri: file:discord.db?_txlock=immediate\n"));
         assert!(config.contains("bridge:\n    username_template: discord_{{.}}\n"));
         assert!(config.contains("    login_shared_secret_map:\n        statim: \"as_token:dp\"\n"));
         assert!(config.contains("    encryption:\n        allow: true\n"));

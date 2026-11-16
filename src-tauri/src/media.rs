@@ -9,19 +9,11 @@ use tauri_plugin_dialog::DialogExt;
 
 use crate::paths::{data_dir, remove_dir, safe_component};
 
-fn media_path(
-    app: &AppHandle,
-    account_id: &str,
-    area: &str,
-    name: &str,
-) -> Result<PathBuf, String> {
+fn media_path(app: &AppHandle, account_id: &str, area: &str, name: &str) -> Result<PathBuf, String> {
     safe_component(account_id, "account")?;
     safe_component(area, "area")?;
     safe_component(name, "name")?;
-    Ok(data_dir(app, "media")?
-        .join(account_id)
-        .join(area)
-        .join(name))
+    Ok(data_dir(app, "media")?.join(account_id).join(area).join(name))
 }
 
 #[tauri::command]
@@ -64,11 +56,7 @@ pub async fn media_erase(app: AppHandle, account_id: String) -> Result<(), Strin
 
 /// `false` when the user cancels.
 #[tauri::command]
-pub async fn media_export(
-    app: AppHandle,
-    path: String,
-    name: Option<String>,
-) -> Result<bool, String> {
+pub async fn media_export(app: AppHandle, path: String, name: Option<String>) -> Result<bool, String> {
     let source = PathBuf::from(&path);
     if !app.asset_protocol_scope().is_allowed(&source) || !source.is_file() {
         return Err(format!("Not a file the app keeps: {path}"));

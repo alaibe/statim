@@ -2,10 +2,7 @@ use super::sync::changed_by;
 use super::*;
 
 impl Session {
-    pub(super) async fn live_timeline(
-        self: &Arc<Self>,
-        room_id: &RoomId,
-    ) -> Result<Arc<LiveTimeline>, String> {
+    pub(super) async fn live_timeline(self: &Arc<Self>, room_id: &RoomId) -> Result<Arc<LiveTimeline>, String> {
         if let Some(existing) = self.touch_live(room_id).await {
             return Ok(existing);
         }
@@ -36,9 +33,7 @@ impl Session {
                     // New or changed items only; bulk loads are what `messages` reads.
                     match &diff {
                         VectorDiff::PushBack { value } => session.emit_item(&id, value, None),
-                        VectorDiff::Set { index, value } => {
-                            session.emit_item(&id, value, items.get(*index))
-                        }
+                        VectorDiff::Set { index, value } => session.emit_item(&id, value, items.get(*index)),
                         _ => {}
                     }
                     diff.apply(&mut items);
@@ -65,11 +60,7 @@ impl Session {
         });
 
         let mut live = self.live.lock().await;
-        if let Some(existing) = live
-            .iter()
-            .find(|(id, _)| id == room_id)
-            .map(|(_, live)| live.clone())
-        {
+        if let Some(existing) = live.iter().find(|(id, _)| id == room_id).map(|(_, live)| live.clone()) {
             entry.task.abort();
             entry.typing_task.abort();
             return Ok(existing);
@@ -83,12 +74,7 @@ impl Session {
         Ok(entry)
     }
 
-    fn emit_item(
-        &self,
-        room_id: &RoomId,
-        item: &TimelineItem,
-        replaced: Option<&Arc<TimelineItem>>,
-    ) {
+    fn emit_item(&self, room_id: &RoomId, item: &TimelineItem, replaced: Option<&Arc<TimelineItem>>) {
         let Some(event) = to_mx_event(room_id, item) else {
             return;
         };
@@ -125,11 +111,7 @@ impl Session {
             let Some(end) = anchor_end(&items, before) else {
                 searched += 1;
                 if searched > ANCHOR_SEARCH_PAGES
-                    || live
-                        .timeline
-                        .paginate_backwards(HISTORY_PAGE)
-                        .await
-                        .map_err(err)?
+                    || live.timeline.paginate_backwards(HISTORY_PAGE).await.map_err(err)?
                 {
                     return Ok(Vec::new());
                 }
@@ -158,20 +140,13 @@ fn anchor_end(items: &Vector<Arc<TimelineItem>>, before: Option<&str>) -> Option
     let Some(id) = before else {
         return Some(items.len());
     };
-    items.iter().position(|item| {
-        item.as_event()
-            .and_then(|e| e.event_id())
-            .is_some_and(|e| e == id)
-    })
+    items
+        .iter()
+        .position(|item| item.as_event().and_then(|e| e.event_id()).is_some_and(|e| e == id))
 }
 
 /// The newest `limit` events before `end`, oldest first.
-fn page_before(
-    room_id: &RoomId,
-    items: &Vector<Arc<TimelineItem>>,
-    end: usize,
-    limit: usize,
-) -> Vec<MxEvent> {
+fn page_before(room_id: &RoomId, items: &Vector<Arc<TimelineItem>>, end: usize, limit: usize) -> Vec<MxEvent> {
     let mut page: Vec<MxEvent> = items
         .iter()
         .take(end)
@@ -208,31 +183,15 @@ pub async fn mx_mark_read(state: State<'_, Matrix>, room_id: String) -> Result<(
 }
 
 #[tauri::command]
-pub async fn mx_set_marked_unread(
-    state: State<'_, Matrix>,
-    room_id: String,
-    unread: bool,
-) -> Result<(), String> {
+pub async fn mx_set_marked_unread(state: State<'_, Matrix>, room_id: String, unread: bool) -> Result<(), String> {
     let session = current(&state)?;
-    session
-        .room(&room_id)?
-        .set_unread_flag(unread)
-        .await
-        .map_err(err)
+    session.room(&room_id)?.set_unread_flag(unread).await.map_err(err)
 }
 
 #[tauri::command]
-pub async fn mx_set_typing(
-    state: State<'_, Matrix>,
-    room_id: String,
-    typing: bool,
-) -> Result<(), String> {
+pub async fn mx_set_typing(state: State<'_, Matrix>, room_id: String, typing: bool) -> Result<(), String> {
     let session = current(&state)?;
-    session
-        .room(&room_id)?
-        .typing_notice(typing)
-        .await
-        .map_err(err)
+    session.room(&room_id)?.typing_notice(typing).await.map_err(err)
 }
 
 #[tauri::command]
@@ -254,10 +213,7 @@ pub async fn mx_toggle_reaction(
 }
 
 #[tauri::command]
-pub async fn mx_pinned_messages(
-    state: State<'_, Matrix>,
-    room_id: String,
-) -> Result<Vec<MxEvent>, String> {
+pub async fn mx_pinned_messages(state: State<'_, Matrix>, room_id: String) -> Result<Vec<MxEvent>, String> {
     let session = current(&state)?;
     let room = session.room(&room_id)?;
     if room.pinned_event_ids().is_none_or(|ids| ids.is_empty()) {
@@ -278,15 +234,10 @@ pub async fn mx_pinned_messages(
 }
 
 /// The receipts that moved past where each reader was last seen.
-fn moved(
-    readers: &mut HashMap<String, u64>,
-    receipts: impl Iterator<Item = MxReceipt>,
-) -> Vec<MxReceipt> {
+fn moved(readers: &mut HashMap<String, u64>, receipts: impl Iterator<Item = MxReceipt>) -> Vec<MxReceipt> {
     receipts
         .filter(|receipt| {
-            let rose = readers
-                .get(&receipt.user_id)
-                .is_none_or(|seen| receipt.at > *seen);
+            let rose = readers.get(&receipt.user_id).is_none_or(|seen| receipt.at > *seen);
             if rose {
                 readers.insert(receipt.user_id.clone(), receipt.at);
             }

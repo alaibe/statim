@@ -111,9 +111,7 @@ fn sticker_relation(
     match (thread_root, reply_to) {
         (Some(root), Some(reply_to)) => Some(Relation::Thread(Thread::reply(root, reply_to))),
         (Some(root), None) => Some(Relation::Thread(Thread::plain(root.clone(), root))),
-        (None, Some(reply_to)) => Some(Relation::Reply(InReplyToRelation::new(InReplyTo::new(
-            reply_to,
-        )))),
+        (None, Some(reply_to)) => Some(Relation::Reply(InReplyToRelation::new(InReplyTo::new(reply_to)))),
         (None, None) => None,
     }
 }
@@ -162,9 +160,7 @@ pub(super) async fn attachment(
             name,
             parse(mime_type, "application/octet-stream")?,
             tokio::fs::read(&path).await.map_err(err)?,
-            AttachmentInfo::File(BaseFileInfo {
-                size: size.map(uint),
-            }),
+            AttachmentInfo::File(BaseFileInfo { size: size.map(uint) }),
             None,
         )),
         MxOutgoing::Video {
@@ -244,11 +240,7 @@ pub async fn mx_edit(
 }
 
 #[tauri::command]
-pub async fn mx_redact(
-    state: State<'_, Matrix>,
-    room_id: String,
-    event_id: String,
-) -> Result<(), String> {
+pub async fn mx_redact(state: State<'_, Matrix>, room_id: String, event_id: String) -> Result<(), String> {
     let session = current(&state)?;
     let event_id = EventId::parse(&event_id).map_err(err)?;
     session
@@ -303,8 +295,7 @@ mod tests {
         MxText {
             body: body.into(),
             html: html.map(Into::into),
-            mentions: (!mentions.is_empty())
-                .then(|| mentions.iter().map(|id| id.to_string()).collect()),
+            mentions: (!mentions.is_empty()).then(|| mentions.iter().map(|id| id.to_string()).collect()),
         }
     }
 
@@ -314,8 +305,7 @@ mod tests {
         assert!(plain.mentions.is_none());
         assert_eq!(plain.msgtype.body(), "hi");
 
-        let mentioned =
-            text_content(text("hi Bob", Some("hi <a>Bob</a>"), &["@bob:example.org"])).unwrap();
+        let mentioned = text_content(text("hi Bob", Some("hi <a>Bob</a>"), &["@bob:example.org"])).unwrap();
         let ids: Vec<String> = mentioned
             .mentions
             .expect("mentions")
@@ -333,17 +323,11 @@ mod tests {
 
         let plain = relation(None, Some(root.clone())).unwrap();
         assert_eq!(plain.event_id, root);
-        assert_eq!(
-            plain.enforce_thread,
-            EnforceThread::Threaded(ReplyWithinThread::No)
-        );
+        assert_eq!(plain.enforce_thread, EnforceThread::Threaded(ReplyWithinThread::No));
 
         let answer = relation(Some(other.clone()), Some(root)).unwrap();
         assert_eq!(answer.event_id, other);
-        assert_eq!(
-            answer.enforce_thread,
-            EnforceThread::Threaded(ReplyWithinThread::Yes)
-        );
+        assert_eq!(answer.enforce_thread, EnforceThread::Threaded(ReplyWithinThread::Yes));
 
         let outside = relation(Some(other), None).unwrap();
         assert_eq!(outside.enforce_thread, EnforceThread::MaybeThreaded);
@@ -352,10 +336,9 @@ mod tests {
 
     #[test]
     fn reads_what_the_page_sends() {
-        let voice: MxOutgoing = serde_json::from_str(
-            r#"{"kind":"voice","path":"/v.m4a","durationMs":1200,"mimeType":"audio/mp4"}"#,
-        )
-        .unwrap();
+        let voice: MxOutgoing =
+            serde_json::from_str(r#"{"kind":"voice","path":"/v.m4a","durationMs":1200,"mimeType":"audio/mp4"}"#)
+                .unwrap();
         assert!(matches!(
             voice,
             MxOutgoing::Voice {
@@ -370,11 +353,7 @@ mod tests {
     fn a_sticker_replies_and_threads_like_the_phone_writes_it() {
         let relates = |reply_to: Option<&str>, thread_root: Option<&str>| {
             let id = |id: &str| OwnedEventId::try_from(id).unwrap();
-            let mut sticker = StickerEventContent::new(
-                "x".into(),
-                ImageInfo::new(),
-                "mxc://example.org/a".into(),
-            );
+            let mut sticker = StickerEventContent::new("x".into(), ImageInfo::new(), "mxc://example.org/a".into());
             sticker.relates_to = sticker_relation(reply_to.map(id), thread_root.map(id));
             serde_json::to_value(sticker).unwrap()["m.relates_to"].clone()
         };

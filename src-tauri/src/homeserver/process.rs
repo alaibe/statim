@@ -19,13 +19,7 @@ pub struct Process {
 }
 
 impl Process {
-    pub fn spawn(
-        name: &str,
-        program: &Path,
-        dir: &Path,
-        env: &[(&str, &Path)],
-        args: &[&str],
-    ) -> Result<Self, String> {
+    pub fn spawn(name: &str, program: &Path, dir: &Path, env: &[(&str, &Path)], args: &[&str]) -> Result<Self, String> {
         let pidfile = dir.join(format!("{name}.pid"));
         stop_left_behind(&pidfile, program);
         let log = File::create(dir.join(format!("{name}.log"))).map_err(|e| e.to_string())?;
@@ -39,19 +33,13 @@ impl Process {
         for (key, value) in env {
             command.env(key, value);
         }
-        let child = command
-            .spawn()
-            .map_err(|e| format!("Could not start {name}: {e}"))?;
+        let child = command.spawn().map_err(|e| format!("Could not start {name}: {e}"))?;
         std::fs::write(&pidfile, child.id().to_string()).map_err(|e| e.to_string())?;
         Ok(Self { child, pidfile })
     }
 
     pub fn exited(&mut self) -> Option<String> {
-        self.child
-            .try_wait()
-            .ok()
-            .flatten()
-            .map(|status| status.to_string())
+        self.child.try_wait().ok().flatten().map(|status| status.to_string())
     }
 
     pub fn stop(self) {
@@ -104,11 +92,7 @@ pub fn stop_left_behind(pidfile: &Path, program: &Path) {
     let running = Command::new("ps")
         .args(["-p", &pid.to_string(), "-o", "comm="])
         .output()
-        .map(|output| {
-            String::from_utf8_lossy(&output.stdout)
-                .trim()
-                .ends_with(name.as_ref())
-        })
+        .map(|output| String::from_utf8_lossy(&output.stdout).trim().ends_with(name.as_ref()))
         .unwrap_or(false);
     if running {
         terminate(pid as u32);
@@ -163,7 +147,10 @@ mod tests {
             shell,
             &dir,
             &[],
-            &["-c", "trap 'touch stopped; exit 0' TERM; touch polite.ready; while :; do sleep 0.1; done"],
+            &[
+                "-c",
+                "trap 'touch stopped; exit 0' TERM; touch polite.ready; while :; do sleep 0.1; done",
+            ],
         )
         .unwrap();
         let stubborn = Process::spawn(

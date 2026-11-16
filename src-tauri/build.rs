@@ -16,15 +16,9 @@ fn main() {
 }
 
 fn xcrun(args: &[&str]) -> String {
-    let output = Command::new("xcrun")
-        .args(args)
-        .output()
-        .expect("xcrun runs");
+    let output = Command::new("xcrun").args(args).output().expect("xcrun runs");
     assert!(output.status.success(), "xcrun {args:?} failed");
-    String::from_utf8(output.stdout)
-        .expect("utf-8")
-        .trim()
-        .to_owned()
+    String::from_utf8(output.stdout).expect("utf-8").trim().to_owned()
 }
 
 fn apple_translation() {
@@ -42,13 +36,7 @@ fn apple_translation() {
     let out = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR"));
     let sdk = xcrun(&["--sdk", "macosx", "--show-sdk-path"]);
     let status = Command::new("xcrun")
-        .args([
-            "swiftc",
-            "-emit-library",
-            "-static",
-            "-parse-as-library",
-            "-O",
-        ])
+        .args(["swiftc", "-emit-library", "-static", "-parse-as-library", "-O"])
         .args(["-module-name", "statim_translation"])
         .args(["-target", &format!("{arch}-apple-macosx15.0")])
         .args(["-sdk", &sdk])
@@ -60,10 +48,7 @@ fn apple_translation() {
     assert!(status.success(), "swiftc failed on {sources:?}");
 
     let swift = xcrun(&["--find", "swift"]);
-    let toolchain = Path::new(&swift)
-        .parent()
-        .and_then(Path::parent)
-        .expect("toolchain");
+    let toolchain = Path::new(&swift).parent().and_then(Path::parent).expect("toolchain");
     println!("cargo:rustc-link-search=native={}", out.display());
     println!("cargo:rustc-link-search=native={sdk}/usr/lib/swift");
     println!(

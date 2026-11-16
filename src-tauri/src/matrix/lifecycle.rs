@@ -1,9 +1,6 @@
 use super::*;
 
-pub(super) async fn build_session(
-    app: AppHandle,
-    params: StartParams,
-) -> Result<Arc<Session>, String> {
+pub(super) async fn build_session(app: AppHandle, params: StartParams) -> Result<Arc<Session>, String> {
     let data_directory = PathBuf::from(&params.data_directory);
     // A store only makes sense with its session; without one it belongs to a device that is gone.
     if params.session.is_none() {
@@ -73,8 +70,7 @@ pub async fn mx_start(
 }
 
 async fn restore(session: &Session, saved: &MxSession) -> Result<(), matrix_sdk::Error> {
-    let user_id =
-        UserId::parse(&saved.user_id).map_err(|e| matrix_sdk::Error::UnknownError(e.into()))?;
+    let user_id = UserId::parse(&saved.user_id).map_err(|e| matrix_sdk::Error::UnknownError(e.into()))?;
     session
         .client
         .restore_session(MatrixSession {
@@ -146,10 +142,7 @@ mod tests {
 
     fn mismatched() -> CryptoStoreError {
         CryptoStoreError::MismatchedAccount {
-            expected: (
-                owned_user_id!("@anthony:laibe.cc"),
-                owned_device_id!("UWDKCLTOSO"),
-            ),
+            expected: (owned_user_id!("@anthony:laibe.cc"), owned_device_id!("UWDKCLTOSO")),
             got: (owned_user_id!("@me:statim"), owned_device_id!("TnlTGg0PjJ")),
         }
     }
@@ -164,11 +157,11 @@ mod tests {
              @me:statim:TnlTGg0PjJ"
         );
         assert!(belongs_to_another_device(&restored));
-        assert!(belongs_to_another_device(
-            &matrix_sdk::Error::CryptoStoreError(Box::new(mismatched()))
-        ));
-        assert!(!belongs_to_another_device(
-            &matrix_sdk::Error::CryptoStoreError(Box::new(CryptoStoreError::AccountUnset))
-        ));
+        assert!(belongs_to_another_device(&matrix_sdk::Error::CryptoStoreError(
+            Box::new(mismatched())
+        )));
+        assert!(!belongs_to_another_device(&matrix_sdk::Error::CryptoStoreError(
+            Box::new(CryptoStoreError::AccountUnset)
+        )));
     }
 }

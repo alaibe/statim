@@ -85,10 +85,7 @@ mod tests {
             as_token: "as".into(),
             hs_token: "hs".into(),
             sender_localpart: "sender".into(),
-            users: vec![
-                r"^@whatsappbot:statim$".into(),
-                r"^@whatsapp_.*:statim$".into(),
-            ],
+            users: vec![r"^@whatsappbot:statim$".into(), r"^@whatsapp_.*:statim$".into()],
             exclusive: true,
         }
     }
@@ -113,13 +110,8 @@ mod tests {
     fn declares_each_bridge_with_the_users_it_owns() {
         let toml = tuwunel("statim", Path::new("/db"), 1, "t", &[bridge()]);
         assert!(toml.contains("[global.appservice.whatsapp]\nurl = \"http://127.0.0.1:47290\""));
-        assert!(
-            toml.contains("as_token = \"as\"\nhs_token = \"hs\"\nsender_localpart = \"sender\"")
-        );
-        assert_eq!(
-            toml.matches("[[global.appservice.whatsapp.users]]").count(),
-            2
-        );
+        assert!(toml.contains("as_token = \"as\"\nhs_token = \"hs\"\nsender_localpart = \"sender\""));
+        assert_eq!(toml.matches("[[global.appservice.whatsapp.users]]").count(), 2);
         assert!(toml.contains("regex = '^@whatsappbot:statim$'"));
     }
 

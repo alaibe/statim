@@ -22,9 +22,8 @@ mod platform {
     use objc2::runtime::{Bool, ProtocolObject};
     use objc2::AnyThread;
     use objc2_contacts::{
-        CNAuthorizationStatus, CNContact, CNContactFamilyNameKey, CNContactFetchRequest,
-        CNContactGivenNameKey, CNContactIdentifierKey, CNContactPhoneNumbersKey, CNContactStore,
-        CNEntityType, CNKeyDescriptor,
+        CNAuthorizationStatus, CNContact, CNContactFamilyNameKey, CNContactFetchRequest, CNContactGivenNameKey,
+        CNContactIdentifierKey, CNContactPhoneNumbersKey, CNContactStore, CNEntityType, CNKeyDescriptor,
     };
     use objc2_foundation::{NSArray, NSError, NSString};
 
@@ -49,8 +48,7 @@ mod platform {
             let _ = tx.send(granted.as_bool());
         });
         unsafe {
-            CNContactStore::new()
-                .requestAccessForEntityType_completionHandler(CNEntityType::Contacts, &handler);
+            CNContactStore::new().requestAccessForEntityType_completionHandler(CNEntityType::Contacts, &handler);
         }
         rx.recv().map_err(|e| e.to_string())?;
         Ok(access())
@@ -75,10 +73,7 @@ mod platform {
             ]
         };
         let request = unsafe {
-            CNContactFetchRequest::initWithKeysToFetch(
-                CNContactFetchRequest::alloc(),
-                &NSArray::from_slice(&keys),
-            )
+            CNContactFetchRequest::initWithKeysToFetch(CNContactFetchRequest::alloc(), &NSArray::from_slice(&keys))
         };
 
         let found = RefCell::new(Vec::new());
@@ -96,11 +91,7 @@ mod platform {
 
         let mut error = None;
         let ok = unsafe {
-            CNContactStore::new().enumerateContactsWithFetchRequest_error_usingBlock(
-                &request,
-                Some(&mut error),
-                &each,
-            )
+            CNContactStore::new().enumerateContactsWithFetchRequest_error_usingBlock(&request, Some(&mut error), &each)
         };
         drop(each);
         if !ok {

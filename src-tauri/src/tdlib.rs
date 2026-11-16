@@ -61,26 +61,18 @@ fn library_path(app: &AppHandle) -> Option<PathBuf> {
         candidates.push(dir.join(name));
     }
     if cfg!(debug_assertions) {
-        candidates.push(
-            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("frameworks")
-                .join(name),
-        );
+        candidates.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("frameworks").join(name));
     }
     candidates.into_iter().find(|path| path.exists())
 }
 
 unsafe fn symbol<T: Copy>(library: &Library, name: &[u8]) -> Result<T, String> {
-    library
-        .get::<T>(name)
-        .map(|found| *found)
-        .map_err(|e| e.to_string())
+    library.get::<T>(name).map(|found| *found).map_err(|e| e.to_string())
 }
 
 fn load(app: &AppHandle) -> Result<Api, String> {
-    let path = library_path(app).ok_or_else(|| {
-        "TDLib is not part of this build: `scripts/tdlib.sh desktop` fetches it.".to_string()
-    })?;
+    let path = library_path(app)
+        .ok_or_else(|| "TDLib is not part of this build: `scripts/tdlib.sh desktop` fetches it.".to_string())?;
     unsafe {
         let library = Library::new(&path).map_err(|e| e.to_string())?;
         Ok(Api {
@@ -140,8 +132,7 @@ pub async fn td_create(app: AppHandle, state: State<'_, Telegram>) -> Result<(),
     discard(api, previous).await?;
 
     let ptr = unsafe { (api.create)() };
-    let quiet =
-        CString::new(r#"{"@type":"setLogVerbosityLevel","new_verbosity_level":0}"#).unwrap();
+    let quiet = CString::new(r#"{"@type":"setLogVerbosityLevel","new_verbosity_level":0}"#).unwrap();
     unsafe { (api.execute)(ptr, quiet.as_ptr()) };
     *state.0.lock().unwrap() = Some(Arc::new(Client {
         ptr,
@@ -151,11 +142,7 @@ pub async fn td_create(app: AppHandle, state: State<'_, Telegram>) -> Result<(),
 }
 
 #[tauri::command]
-pub async fn td_send(
-    app: AppHandle,
-    state: State<'_, Telegram>,
-    request: String,
-) -> Result<(), String> {
+pub async fn td_send(app: AppHandle, state: State<'_, Telegram>, request: String) -> Result<(), String> {
     let api = api(&app)?;
     let client = current(&state)?;
     let request = CString::new(request).map_err(|e| e.to_string())?;

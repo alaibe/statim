@@ -88,10 +88,7 @@ pub async fn web_login_open(
                 NewWindowResponse::Deny
             }
         });
-    if let Some(agent) = user_agent
-        .filter(|agent| !agent.is_empty())
-        .or_else(browser_user_agent)
-    {
+    if let Some(agent) = user_agent.filter(|agent| !agent.is_empty()).or_else(browser_user_agent) {
         builder = builder.user_agent(&agent);
     }
     builder.build().map_err(|e| e.to_string())?;

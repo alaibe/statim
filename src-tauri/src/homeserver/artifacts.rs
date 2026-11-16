@@ -68,11 +68,7 @@ pub async fn install(dir: &Path, pins: &[Pin]) -> Result<(), String> {
     for pin in pins {
         let path = dir.join(pin.file);
         let checked = (path.clone(), pin.sha256);
-        if VERIFIED
-            .lock()
-            .map_err(|e| e.to_string())?
-            .contains(&checked)
-        {
+        if VERIFIED.lock().map_err(|e| e.to_string())?.contains(&checked) {
             continue;
         }
         if hash_of(&path).as_deref() != Some(pin.sha256) {
@@ -122,9 +118,7 @@ async fn download(pin: &Pin, path: &Path) -> Result<(), String> {
 fn unpack(zstd: &[u8]) -> Result<Vec<u8>, String> {
     let mut decoder = ruzstd::decoding::StreamingDecoder::new(zstd).map_err(|e| e.to_string())?;
     let mut contents = Vec::new();
-    decoder
-        .read_to_end(&mut contents)
-        .map_err(|e| e.to_string())?;
+    decoder.read_to_end(&mut contents).map_err(|e| e.to_string())?;
     Ok(contents)
 }
 
@@ -138,8 +132,7 @@ fn hash_of(path: &Path) -> Option<String> {
 #[cfg(unix)]
 fn make_executable(path: &Path) -> Result<(), String> {
     use std::os::unix::fs::PermissionsExt;
-    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755))
-        .map_err(|e| e.to_string())
+    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).map_err(|e| e.to_string())
 }
 
 #[cfg(not(unix))]
@@ -154,8 +147,8 @@ mod tests {
     #[test]
     fn unpacks_a_zstd_download() {
         let packed = [
-            0x28, 0xb5, 0x2f, 0xfd, 0x04, 0x58, 0x31, 0x00, 0x00, 0x62, 0x69, 0x6e, 0x61, 0x72,
-            0x79, 0x54, 0xd9, 0x26, 0x77,
+            0x28, 0xb5, 0x2f, 0xfd, 0x04, 0x58, 0x31, 0x00, 0x00, 0x62, 0x69, 0x6e, 0x61, 0x72, 0x79, 0x54, 0xd9, 0x26,
+            0x77,
         ];
         assert_eq!(unpack(&packed).unwrap(), b"binary");
         assert!(unpack(b"binary").is_err());

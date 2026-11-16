@@ -108,10 +108,7 @@ fn converse<R: Runtime>(app: AppHandle<R>, stream: Stream) {
     let cli = app.state::<Cli>();
     let id = cli.next_id.fetch_add(1, Ordering::Relaxed);
     let (reader, writer) = stream.split();
-    cli.clients
-        .lock()
-        .unwrap()
-        .insert(id, Arc::new(Mutex::new(writer)));
+    cli.clients.lock().unwrap().insert(id, Arc::new(Mutex::new(writer)));
 
     for line in BufReader::new(reader).lines() {
         let Ok(line) = line else { break };
@@ -188,8 +185,7 @@ pub fn cli_install() -> Install {
         link.canonicalize()
             .is_ok_and(|target| target == exe || Some(target.as_os_str()) == appimage().as_deref())
     };
-    let quoted =
-        |path: &std::ffi::OsStr| format!("'{}'", path.to_string_lossy().replace('\'', r"'\''"));
+    let quoted = |path: &std::ffi::OsStr| format!("'{}'", path.to_string_lossy().replace('\'', r"'\''"));
     let path = appimage()
         .map(std::path::PathBuf::from)
         .or_else(|| std::env::current_exe().ok())
@@ -198,8 +194,7 @@ pub fn cli_install() -> Install {
     if cfg!(target_os = "macos") {
         let link = std::path::Path::new("/usr/local/bin/statim");
         return Install {
-            installed: links_here(link)
-                || links_here(std::path::Path::new("/opt/homebrew/bin/statim")),
+            installed: links_here(link) || links_here(std::path::Path::new("/opt/homebrew/bin/statim")),
             command: Some(format!(
                 "sudo mkdir -p /usr/local/bin && sudo ln -sf {} /usr/local/bin/statim",
                 quoted(exe.as_os_str())
@@ -208,9 +203,7 @@ pub fn cli_install() -> Install {
         };
     }
     if let Some(image) = appimage() {
-        let link = dirs::home_dir()
-            .unwrap_or_default()
-            .join(".local/bin/statim");
+        let link = dirs::home_dir().unwrap_or_default().join(".local/bin/statim");
         return Install {
             installed: links_here(&link),
             command: Some(format!(

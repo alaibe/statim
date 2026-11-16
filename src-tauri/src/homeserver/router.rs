@@ -50,9 +50,7 @@ impl Router {
                 let routes = Arc::clone(&routes);
                 let client = client.clone();
                 tauri::async_runtime::spawn(async move {
-                    let service = service_fn(move |request| {
-                        forward(client.clone(), Arc::clone(&routes), request)
-                    });
+                    let service = service_fn(move |request| forward(client.clone(), Arc::clone(&routes), request));
                     let _ = http1::Builder::new()
                         .serve_connection(TokioIo::new(stream), service)
                         .await;
@@ -88,11 +86,7 @@ async fn forward(
 }
 
 fn failure(status: StatusCode) -> Response<BoxBody<Bytes, hyper::Error>> {
-    let mut response = Response::new(
-        Full::new(Bytes::new())
-            .map_err(|never| match never {})
-            .boxed(),
-    );
+    let mut response = Response::new(Full::new(Bytes::new()).map_err(|never| match never {}).boxed());
     *response.status_mut() = status;
     response
 }
@@ -119,10 +113,7 @@ mod tests {
     #[test]
     fn sends_everything_else_to_the_server() {
         assert_eq!(
-            route(
-                &routes(),
-                "/_matrix/client/unstable/org.matrix.simplified_msc3575/sync"
-            ),
+            route(&routes(), "/_matrix/client/unstable/org.matrix.simplified_msc3575/sync"),
             (
                 47281,
                 "/_matrix/client/unstable/org.matrix.simplified_msc3575/sync".into()

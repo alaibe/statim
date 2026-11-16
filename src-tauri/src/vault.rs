@@ -34,9 +34,7 @@ fn vault_path(app: &AppHandle) -> Result<PathBuf, String> {
 fn keychain_key() -> Result<Option<Vec<u8>>, String> {
     let entry = keyring::Entry::new(SERVICE, MASTER_KEY_ENTRY).map_err(|e| e.to_string())?;
     match entry.get_password() {
-        Ok(encoded) => Ok(Some(
-            BASE64_STANDARD.decode(encoded).map_err(|e| e.to_string())?,
-        )),
+        Ok(encoded) => Ok(Some(BASE64_STANDARD.decode(encoded).map_err(|e| e.to_string())?)),
         Err(keyring::Error::NoEntry) => Ok(None),
         Err(e) => Err(e.to_string()),
     }
@@ -168,21 +166,12 @@ pub fn preload(app: &AppHandle) {
 }
 
 #[tauri::command]
-pub async fn vault_get(
-    app: AppHandle,
-    vault: State<'_, Vault>,
-    key: String,
-) -> Result<Option<String>, String> {
+pub async fn vault_get(app: AppHandle, vault: State<'_, Vault>, key: String) -> Result<Option<String>, String> {
     with_vault(&app, &vault, |loaded| Ok(loaded.entries.get(&key).cloned()))
 }
 
 #[tauri::command]
-pub async fn vault_set(
-    app: AppHandle,
-    vault: State<'_, Vault>,
-    key: String,
-    value: String,
-) -> Result<(), String> {
+pub async fn vault_set(app: AppHandle, vault: State<'_, Vault>, key: String, value: String) -> Result<(), String> {
     with_vault(&app, &vault, |loaded| {
         loaded.entries.insert(key, value);
         save(&app, loaded)
@@ -190,11 +179,7 @@ pub async fn vault_set(
 }
 
 #[tauri::command]
-pub async fn vault_delete(
-    app: AppHandle,
-    vault: State<'_, Vault>,
-    key: String,
-) -> Result<(), String> {
+pub async fn vault_delete(app: AppHandle, vault: State<'_, Vault>, key: String) -> Result<(), String> {
     with_vault(&app, &vault, |loaded| {
         if loaded.entries.remove(&key).is_some() {
             save(&app, loaded)?;

@@ -29,10 +29,7 @@ pub fn repair(db: &Path) {
         return;
     };
     for path in entries.flatten().map(|entry| entry.path()) {
-        if path
-            .extension()
-            .map_or(true, |extension| extension != "log")
-        {
+        if path.extension().map_or(true, |extension| extension != "log") {
             continue;
         }
         let Ok(data) = std::fs::read(&path) else {
@@ -46,9 +43,7 @@ pub fn repair(db: &Path) {
             replace(&path, &framed).map_err(|e| e.to_string())?;
             Ok(missing)
         }) {
-            Ok(missing) => log::warn!(
-                "[homeserver] realigned {name}; {missing} writes were already missing from it"
-            ),
+            Ok(missing) => log::warn!("[homeserver] realigned {name}; {missing} writes were already missing from it"),
             Err(error) => {
                 log::warn!("[homeserver] {name} lost its blocks and stays as it is: {error}")
             }
@@ -204,11 +199,9 @@ fn checksum(kind: u8, payload: &[u8]) -> u32 {
         }
         table
     };
-    let crc = !std::iter::once(&kind)
-        .chain(payload)
-        .fold(!0u32, |crc, &byte| {
-            TABLE[((crc ^ u32::from(byte)) & 0xff) as usize] ^ (crc >> 8)
-        });
+    let crc = !std::iter::once(&kind).chain(payload).fold(!0u32, |crc, &byte| {
+        TABLE[((crc ^ u32::from(byte)) & 0xff) as usize] ^ (crc >> 8)
+    });
     crc.rotate_right(15).wrapping_add(0xa282_ead8)
 }
 
@@ -225,10 +218,7 @@ fn replace(path: &Path, data: &[u8]) -> std::io::Result<()> {
 #[cfg(unix)]
 fn unused(db: &Path) -> Option<File> {
     use std::os::fd::AsRawFd;
-    let lock = std::fs::OpenOptions::new()
-        .write(true)
-        .open(db.join("LOCK"))
-        .ok()?;
+    let lock = std::fs::OpenOptions::new().write(true).open(db.join("LOCK")).ok()?;
     let mut range: libc::flock = unsafe { std::mem::zeroed() };
     range.l_type = libc::F_WRLCK as _;
     range.l_whence = libc::SEEK_SET as _;
@@ -283,9 +273,7 @@ mod tests {
         log
     }
 
-    const SIZES: [usize; 12] = [
-        150, 40_000, 9, 32_700, 155, 70_000, 3, 1_200, 155, 20_000, 0, 5,
-    ];
+    const SIZES: [usize; 12] = [150, 40_000, 9, 32_700, 155, 70_000, 3, 1_200, 155, 20_000, 0, 5];
 
     #[test]
     fn leaves_a_log_as_rocksdb_writes_it() {
@@ -372,10 +360,7 @@ mod tests {
         let repaired = std::fs::read(db.join("000010.log")).unwrap();
         assert_eq!(repaired, realign(&broken).unwrap().0);
         assert_eq!(std::fs::read(db.join("000011.log")).unwrap(), healthy);
-        assert_eq!(
-            std::fs::read(db.join("archive/000009.log")).unwrap(),
-            broken
-        );
+        assert_eq!(std::fs::read(db.join("archive/000009.log")).unwrap(), broken);
         assert_eq!(std::fs::read(db.join("LOG")).unwrap(), broken);
         assert!(!db.join("000010.log.realigned").exists());
     }

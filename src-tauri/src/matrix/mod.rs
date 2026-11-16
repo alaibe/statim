@@ -17,8 +17,7 @@ use matrix_sdk::ruma::api::client::room::create_room;
 use matrix_sdk::ruma::events::poll::start::PollKind;
 use matrix_sdk::ruma::events::poll::unstable_response::UnstablePollResponseEventContent;
 use matrix_sdk::ruma::events::poll::unstable_start::{
-    NewUnstablePollStartEventContent, UnstablePollAnswer, UnstablePollAnswers,
-    UnstablePollStartContentBlock,
+    NewUnstablePollStartEventContent, UnstablePollAnswer, UnstablePollAnswers, UnstablePollStartContentBlock,
 };
 use matrix_sdk::ruma::events::room::encryption::RoomEncryptionEventContent;
 use matrix_sdk::ruma::events::room::message::{
@@ -27,15 +26,13 @@ use matrix_sdk::ruma::events::room::message::{
 };
 use matrix_sdk::ruma::events::room::power_levels::UserPowerLevel;
 use matrix_sdk::ruma::events::{
-    EmptyStateKey, InitialStateEvent, Mentions, MessageLikeEventType, StateEventContentChange,
-    StateEventType,
+    EmptyStateKey, InitialStateEvent, Mentions, MessageLikeEventType, StateEventContentChange, StateEventType,
 };
 use matrix_sdk::ruma::room::JoinRuleSummary;
 use matrix_sdk::ruma::{EventId, Int, OwnedEventId, OwnedRoomId, RoomId, RoomOrAliasId, UserId};
 use matrix_sdk::sliding_sync::{Version as SlidingSyncVersion, VersionBuilder};
 use matrix_sdk::{
-    AuthSession, Client, Room, RoomMemberships, RoomState, SessionChange, SessionMeta,
-    SessionTokens, SqliteStoreConfig,
+    AuthSession, Client, Room, RoomMemberships, RoomState, SessionChange, SessionMeta, SessionTokens, SqliteStoreConfig,
 };
 use matrix_sdk_ui::eyeball_im::{Vector, VectorDiff};
 use matrix_sdk_ui::room_list_service::filters::{
@@ -44,9 +41,9 @@ use matrix_sdk_ui::room_list_service::filters::{
 use matrix_sdk_ui::room_list_service::{RoomList, RoomListItem, RoomListService};
 use matrix_sdk_ui::sync_service::SyncService;
 use matrix_sdk_ui::timeline::{
-    AnyOtherStateEventContentChange, EventSendState, LatestEventValue, MembershipChange,
-    MsgLikeKind, RoomExt, Timeline, TimelineDetails, TimelineEventItemId, TimelineFocus,
-    TimelineItem, TimelineItemContent, TimelineReadReceiptTracking,
+    AnyOtherStateEventContentChange, EventSendState, LatestEventValue, MembershipChange, MsgLikeKind, RoomExt,
+    Timeline, TimelineDetails, TimelineEventItemId, TimelineFocus, TimelineItem, TimelineItemContent,
+    TimelineReadReceiptTracking,
 };
 use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Emitter, State};

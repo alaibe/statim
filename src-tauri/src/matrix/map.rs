@@ -69,9 +69,7 @@ pub(super) fn to_mx_event(room_id: &RoomId, item: &TimelineItem) -> Option<MxEve
             .and_then(|m| m.in_reply_to.as_ref().map(|r| r.event_id.to_string())),
         thread_root: msg_like.and_then(|m| m.thread_root.as_ref().map(|id| id.to_string())),
         reactions: (!reactions.is_empty()).then_some(reactions),
-        edited: msg_like.is_some_and(
-            |m| matches!(&m.kind, MsgLikeKind::Message(message) if message.is_edited()),
-        ),
+        edited: msg_like.is_some_and(|m| matches!(&m.kind, MsgLikeKind::Message(message) if message.is_edited())),
     })
 }
 
@@ -98,9 +96,7 @@ fn falls_back(event: &matrix_sdk_ui::timeline::EventTimelineItem) -> bool {
         .is_some_and(|content| content["m.relates_to"]["is_falling_back"] == true)
 }
 
-pub(super) fn name_of(
-    profile: &TimelineDetails<matrix_sdk_ui::timeline::Profile>,
-) -> Option<String> {
+pub(super) fn name_of(profile: &TimelineDetails<matrix_sdk_ui::timeline::Profile>) -> Option<String> {
     match profile {
         TimelineDetails::Ready(profile) => profile.display_name.clone(),
         _ => None,
@@ -192,9 +188,7 @@ pub(super) fn map_content(content: &TimelineItemContent) -> Option<MxContent> {
                 AnyOtherStateEventContentChange::RoomTopic(c) => (
                     "topic",
                     match c {
-                        StateEventContentChange::Original { content, .. } => {
-                            Some(content.topic.clone())
-                        }
+                        StateEventContentChange::Original { content, .. } => Some(content.topic.clone()),
                         StateEventContentChange::Redacted(_) => None,
                     },
                 ),
@@ -307,24 +301,18 @@ mod tests {
     #[test]
     fn text_keeps_its_html_and_kind() {
         assert_eq!(
-            mapped(MessageType::Text(TextMessageEventContent::html(
-                "hi",
-                "<b>hi</b>"
-            ))),
+            mapped(MessageType::Text(TextMessageEventContent::html("hi", "<b>hi</b>"))),
             json!({ "kind": "text", "body": "hi", "html": "<b>hi</b>" })
         );
         assert_eq!(
-            mapped(MessageType::Notice(NoticeMessageEventContent::plain(
-                "bot says"
-            ))),
+            mapped(MessageType::Notice(NoticeMessageEventContent::plain("bot says"))),
             json!({ "kind": "text", "body": "bot says", "msgtype": "notice" })
         );
     }
 
     #[test]
     fn media_carries_the_source_and_name() {
-        let image =
-            ImageMessageEventContent::plain("cat.png".into(), "mxc://example.org/abc".into());
+        let image = ImageMessageEventContent::plain("cat.png".into(), "mxc://example.org/abc".into());
         let value = mapped(MessageType::Image(image));
         assert_eq!(value["kind"], "image");
         assert_eq!(value["name"], "cat.png");

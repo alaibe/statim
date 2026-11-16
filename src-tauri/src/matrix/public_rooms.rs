@@ -12,21 +12,12 @@ pub async fn mx_preview_public_room(
         .iter()
         .map(|name| name.parse().map_err(err))
         .collect::<Result<Vec<_>, _>>()?;
-    let preview = session
-        .client
-        .get_room_preview(&target, servers)
-        .await
-        .map_err(err)?;
+    let preview = session.client.get_room_preview(&target, servers).await.map_err(err)?;
     Ok(MxPublicRoom {
         id: preview.room_id.to_string(),
         name: preview
             .name
-            .or_else(|| {
-                preview
-                    .canonical_alias
-                    .as_ref()
-                    .map(|alias| alias.to_string())
-            })
+            .or_else(|| preview.canonical_alias.as_ref().map(|alias| alias.to_string()))
             .unwrap_or(id_or_alias),
         topic: preview.topic,
         avatar_url: preview.avatar_url.map(|url| url.to_string()),

@@ -18,10 +18,7 @@ const CANDIDATES: &[&str] = &[
 ];
 
 pub fn cli() -> Option<PathBuf> {
-    CANDIDATES
-        .iter()
-        .map(PathBuf::from)
-        .find(|path| path.exists())
+    CANDIDATES.iter().map(PathBuf::from).find(|path| path.exists())
 }
 
 #[derive(Deserialize)]
@@ -67,17 +64,15 @@ pub fn stop(cli: &Path) {
 }
 
 fn host_of(status: &str) -> Result<String, String> {
-    let status: Status = serde_json::from_str(status)
-        .map_err(|_| "Tailscale did not say what this computer is called.".to_string())?;
+    let status: Status =
+        serde_json::from_str(status).map_err(|_| "Tailscale did not say what this computer is called.".to_string())?;
     if status.backend_state != "Running" {
         return Err("Tailscale is not connected on this computer.".into());
     }
     let name = status.me.map(|me| me.dns_name).unwrap_or_default();
     let name = name.trim_end_matches('.');
     if name.is_empty() {
-        return Err(
-            "Tailscale gave this computer no name; turn on MagicDNS for your tailnet.".into(),
-        );
+        return Err("Tailscale gave this computer no name; turn on MagicDNS for your tailnet.".into());
     }
     Ok(name.to_string())
 }
@@ -99,9 +94,7 @@ fn run_within(cli: &Path, args: &[&str], limit: Duration) -> Result<String, Stri
         .stderr(Stdio::piped());
     #[cfg(unix)]
     std::os::unix::process::CommandExt::process_group(&mut command, 0);
-    let mut child = command
-        .spawn()
-        .map_err(|e| format!("Could not run Tailscale: {e}"))?;
+    let mut child = command.spawn().map_err(|e| format!("Could not run Tailscale: {e}"))?;
     let deadline = Instant::now() + limit;
     while Instant::now() < deadline {
         if child.try_wait().map_err(|e| e.to_string())?.is_some() {

@@ -35,26 +35,22 @@ impl Session {
             .ok()
             .flatten()
             .map_or(0, |members| members.len() as u64);
-        let is_dm = room.is_direct().await.unwrap_or(false)
-            && room.active_members_count().saturating_sub(service_members) <= 2;
-        let power = if joined {
-            room.power_levels().await.ok()
-        } else {
-            None
-        };
+        let is_dm =
+            room.is_direct().await.unwrap_or(false) && room.active_members_count().saturating_sub(service_members) <= 2;
+        let power = if joined { room.power_levels().await.ok() } else { None };
         let broadcast = !is_dm
-            && power.as_ref().is_some_and(|levels| {
-                levels.for_message(MessageLikeEventType::RoomMessage) > levels.users_default
-            });
+            && power
+                .as_ref()
+                .is_some_and(|levels| levels.for_message(MessageLikeEventType::RoomMessage) > levels.users_default);
         let can_send = joined
             && power.as_ref().is_none_or(|levels| {
                 levels.user_can_send_message(room.own_user_id(), MessageLikeEventType::RoomMessage)
             });
         let own = room.own_user_id();
         let can_pin = joined
-            && power.as_ref().is_none_or(|levels| {
-                levels.user_can_send_state(own, StateEventType::RoomPinnedEvents)
-            });
+            && power
+                .as_ref()
+                .is_none_or(|levels| levels.user_can_send_state(own, StateEventType::RoomPinnedEvents));
         let can_delete_others = joined
             && power
                 .as_ref()
@@ -93,12 +89,7 @@ impl Session {
             .as_ref()
             .into_iter()
             .flat_map(|levels| levels.users.keys().map(|id| id.to_string()))
-            .chain(
-                room.creators()
-                    .unwrap_or_default()
-                    .into_iter()
-                    .map(|id| id.to_string()),
-            )
+            .chain(room.creators().unwrap_or_default().into_iter().map(|id| id.to_string()))
             .collect();
         let latest_id = joined.then(|| (**room).latest_event().event_id()).flatten();
         Some((
@@ -153,10 +144,7 @@ pub async fn mx_room(state: State<'_, Matrix>, id: String) -> Result<Option<MxRo
 }
 
 #[tauri::command]
-pub async fn mx_members(
-    state: State<'_, Matrix>,
-    room_id: String,
-) -> Result<Vec<MxMember>, String> {
+pub async fn mx_members(state: State<'_, Matrix>, room_id: String) -> Result<Vec<MxMember>, String> {
     let session = current(&state)?;
     let members = session
         .room(&room_id)?
@@ -178,10 +166,7 @@ pub async fn mx_members(
 }
 
 #[tauri::command]
-pub async fn mx_profile(
-    state: State<'_, Matrix>,
-    user_id: String,
-) -> Result<Option<MxProfile>, String> {
+pub async fn mx_profile(state: State<'_, Matrix>, user_id: String) -> Result<Option<MxProfile>, String> {
     let session = current(&state)?;
     let user = UserId::parse(&user_id).map_err(err)?;
     match session.client.account().fetch_user_profile_of(&user).await {
@@ -206,11 +191,7 @@ pub async fn mx_create_dm(state: State<'_, Matrix>, user_id: String) -> Result<S
 }
 
 #[tauri::command]
-pub async fn mx_create_room(
-    state: State<'_, Matrix>,
-    user_ids: Vec<String>,
-    name: String,
-) -> Result<String, String> {
+pub async fn mx_create_room(state: State<'_, Matrix>, user_ids: Vec<String>, name: String) -> Result<String, String> {
     let session = current(&state)?;
     let mut request = create_room::v3::Request::new();
     request.name = Some(name);
@@ -219,58 +200,33 @@ pub async fn mx_create_room(
         .map(|id| UserId::parse(id).map_err(err))
         .collect::<Result<_, _>>()?;
     request.preset = Some(create_room::v3::RoomPreset::PrivateChat);
-    request.initial_state = vec![InitialStateEvent::new(
-        EmptyStateKey,
-        RoomEncryptionEventContent::with_recommended_defaults(),
-    )
-    .to_raw_any()];
+    request.initial_state =
+        vec![
+            InitialStateEvent::new(EmptyStateKey, RoomEncryptionEventContent::with_recommended_defaults()).to_raw_any(),
+        ];
     let room = session.client.create_room(request).await.map_err(err)?;
     Ok(room.room_id().to_string())
 }
 
 #[tauri::command]
-pub async fn mx_invite(
-    state: State<'_, Matrix>,
-    room_id: String,
-    user_id: String,
-) -> Result<(), String> {
+pub async fn mx_invite(state: State<'_, Matrix>, room_id: String, user_id: String) -> Result<(), String> {
     let session = current(&state)?;
     let user = UserId::parse(&user_id).map_err(err)?;
-    session
-        .room(&room_id)?
-        .invite_user_by_id(&user)
-        .await
-        .map_err(err)
+    session.room(&room_id)?.invite_user_by_id(&user).await.map_err(err)
 }
 
 #[tauri::command]
-pub async fn mx_kick(
-    state: State<'_, Matrix>,
-    room_id: String,
-    user_id: String,
-) -> Result<(), String> {
+pub async fn mx_kick(state: State<'_, Matrix>, room_id: String, user_id: String) -> Result<(), String> {
     let session = current(&state)?;
     let user = UserId::parse(&user_id).map_err(err)?;
-    session
-        .room(&room_id)?
-        .kick_user(&user, None)
-        .await
-        .map_err(err)
+    session.room(&room_id)?.kick_user(&user, None).await.map_err(err)
 }
 
 #[tauri::command]
-pub async fn mx_ban(
-    state: State<'_, Matrix>,
-    room_id: String,
-    user_id: String,
-) -> Result<(), String> {
+pub async fn mx_ban(state: State<'_, Matrix>, room_id: String, user_id: String) -> Result<(), String> {
     let session = current(&state)?;
     let user = UserId::parse(&user_id).map_err(err)?;
-    session
-        .room(&room_id)?
-        .ban_user(&user, None)
-        .await
-        .map_err(err)
+    session.room(&room_id)?.ban_user(&user, None).await.map_err(err)
 }
 
 #[tauri::command]
@@ -290,11 +246,7 @@ pub async fn mx_ignored_users(state: State<'_, Matrix>) -> Result<Vec<String>, S
 }
 
 #[tauri::command]
-pub async fn mx_set_ignored(
-    state: State<'_, Matrix>,
-    user_id: String,
-    ignored: bool,
-) -> Result<(), String> {
+pub async fn mx_set_ignored(state: State<'_, Matrix>, user_id: String, ignored: bool) -> Result<(), String> {
     let session = current(&state)?;
     let user = UserId::parse(&user_id).map_err(err)?;
     let account = session.client.account();
@@ -325,18 +277,9 @@ pub async fn mx_set_power_level(
 }
 
 #[tauri::command]
-pub async fn mx_set_name(
-    state: State<'_, Matrix>,
-    room_id: String,
-    name: String,
-) -> Result<(), String> {
+pub async fn mx_set_name(state: State<'_, Matrix>, room_id: String, name: String) -> Result<(), String> {
     let session = current(&state)?;
-    session
-        .room(&room_id)?
-        .set_name(name)
-        .await
-        .map(|_| ())
-        .map_err(err)
+    session.room(&room_id)?.set_name(name).await.map(|_| ()).map_err(err)
 }
 
 #[tauri::command]

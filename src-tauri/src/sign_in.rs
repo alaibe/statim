@@ -52,11 +52,9 @@ pub async fn browser_sign_in(
         .map_err(|e| e.to_string())??;
     open(&app, url)?;
     let turns = Arc::clone(&sign_in.turns);
-    tauri::async_runtime::spawn_blocking(move || {
-        wait(&listeners, &path, || turns.load(Ordering::SeqCst) == turn)
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(move || wait(&listeners, &path, || turns.load(Ordering::SeqCst) == turn))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 /// A URL the system handed to the app, from the browser or a second launch.
@@ -67,9 +65,7 @@ pub fn opened<R: Runtime>(app: &AppHandle<R>, url: &str) {
 const UNFINISHED: &str = "The sign-in in the browser did not finish.";
 
 fn open(app: &AppHandle, url: String) -> Result<(), String> {
-    app.opener()
-        .open_url(url, None::<String>)
-        .map_err(|e| e.to_string())
+    app.opener().open_url(url, None::<String>).map_err(|e| e.to_string())
 }
 
 fn deliver(waiting: &Waiting, url: &str) {
@@ -85,9 +81,7 @@ fn deliver(waiting: &Waiting, url: &str) {
 }
 
 fn loopback(callback: &str) -> Option<(u16, String)> {
-    let (port, path) = callback
-        .strip_prefix("http://localhost:")?
-        .split_once('/')?;
+    let (port, path) = callback.strip_prefix("http://localhost:")?.split_once('/')?;
     Some((port.parse().ok()?, format!("/{path}")))
 }
 
@@ -109,11 +103,7 @@ fn bind(port: u16) -> Result<Vec<TcpListener>, String> {
     Ok(listeners)
 }
 
-fn wait(
-    listeners: &[TcpListener],
-    path: &str,
-    current: impl Fn() -> bool,
-) -> Result<String, String> {
+fn wait(listeners: &[TcpListener], path: &str, current: impl Fn() -> bool) -> Result<String, String> {
     let deadline = Instant::now() + WAIT;
     while current() && Instant::now() < deadline {
         let mut idle = true;
@@ -145,11 +135,7 @@ fn answer(mut stream: TcpStream, path: &str) -> Option<String> {
     BufReader::new(&stream).read_line(&mut line).ok()?;
     let target = line.split_whitespace().nth(1)?.to_string();
     let found = target.split('?').next() == Some(path);
-    let (status, body) = if found {
-        ("200 OK", PAGE)
-    } else {
-        ("404 Not Found", "")
-    };
+    let (status, body) = if found { ("200 OK", PAGE) } else { ("404 Not Found", "") };
     let _ = write!(
         stream,
         "HTTP/1.1 {status}\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
@@ -195,10 +181,7 @@ mod tests {
         let waiting = std::thread::spawn(move || wait(&listeners, "/icloud", || true));
         assert!(get(port, "/favicon.ico").starts_with("HTTP/1.1 404"));
         assert!(get(port, "/icloud?ckWebAuthToken=a%2Bb").contains("Signed in"));
-        assert_eq!(
-            waiting.join().unwrap().unwrap(),
-            "/icloud?ckWebAuthToken=a%2Bb"
-        );
+        assert_eq!(waiting.join().unwrap().unwrap(), "/icloud?ckWebAuthToken=a%2Bb");
     }
 
     #[test]
@@ -215,10 +198,7 @@ mod tests {
         deliver(&waiting, "other://signed-in?ckWebAuthToken=x");
         assert!(receiver.try_recv().is_err());
         deliver(&waiting, "scheme://signed-in?ckWebAuthToken=t");
-        assert_eq!(
-            receiver.try_recv().unwrap(),
-            "scheme://signed-in?ckWebAuthToken=t"
-        );
+        assert_eq!(receiver.try_recv().unwrap(), "scheme://signed-in?ckWebAuthToken=t");
         assert!(waiting.lock().unwrap().is_none());
     }
 }

@@ -27,9 +27,7 @@ static RUNNING: Mutex<BTreeMap<String, Arc<AtomicBool>>> = Mutex::new(BTreeMap::
 
 fn spec() -> &'static Value {
     static SPEC: OnceLock<Value> = OnceLock::new();
-    SPEC.get_or_init(|| {
-        serde_json::from_str(include_str!("../../cli/mcp.json")).expect("mcp.json is valid")
-    })
+    SPEC.get_or_init(|| serde_json::from_str(include_str!("../../cli/mcp.json")).expect("mcp.json is valid"))
 }
 
 /// An MCP server on stdin and stdout: each tool call is one command run in the
@@ -75,10 +73,7 @@ pub fn serve() -> i32 {
             "tools/call" => {
                 let cancelled = Arc::new(AtomicBool::new(false));
                 let key = id.to_string();
-                RUNNING
-                    .lock()
-                    .unwrap()
-                    .insert(key.clone(), cancelled.clone());
+                RUNNING.lock().unwrap().insert(key.clone(), cancelled.clone());
                 let params = params.clone();
                 thread::spawn(move || {
                     let reply = call_tool(&params, &cancelled);
@@ -98,11 +93,7 @@ pub fn serve() -> i32 {
 }
 
 fn versions() -> Vec<&'static str> {
-    MODERN_VERSIONS
-        .iter()
-        .chain(LEGACY_VERSIONS)
-        .copied()
-        .collect()
+    MODERN_VERSIONS.iter().chain(LEGACY_VERSIONS).copied().collect()
 }
 
 fn check_meta(meta: &Value) -> Result<(), Value> {
@@ -114,10 +105,7 @@ fn check_meta(meta: &Value) -> Result<(), Value> {
             "data": { "supported": versions(), "requested": meta[VERSION] },
         }));
     }
-    if meta
-        .get("io.modelcontextprotocol/clientCapabilities")
-        .is_none()
-    {
+    if meta.get("io.modelcontextprotocol/clientCapabilities").is_none() {
         return Err(error(
             -32602,
             "Missing io.modelcontextprotocol/clientCapabilities in _meta",
@@ -201,13 +189,11 @@ fn call_tool(params: &Value, cancelled: &AtomicBool) -> Reply {
         if kind == "out" { &mut out } else { &mut err }.push_str(text);
     };
     let stop = || cancelled.load(Ordering::Relaxed);
-    Ok(
-        match client::exchange(stream, &request, collect, answer, stop) {
-            Some(0) => result(out.trim_end(), false),
-            Some(_) => result(err.trim_end(), true),
-            None => result("Statim closed the connection.", true),
-        },
-    )
+    Ok(match client::exchange(stream, &request, collect, answer, stop) {
+        Some(0) => result(out.trim_end(), false),
+        Some(_) => result(err.trim_end(), true),
+        None => result("Statim closed the connection.", true),
+    })
 }
 
 /// One at a time: dialling changes the working directory, and two calls
@@ -272,10 +258,7 @@ mod tests {
             send,
             &json!({ "chat": "alice", "text": "--hi there", "reply": "m1", "file": null }),
         );
-        assert_eq!(
-            argv,
-            ["send", "--reply=m1", "--json", "--", "alice", "--hi there"]
-        );
+        assert_eq!(argv, ["send", "--reply=m1", "--json", "--", "alice", "--hi there"]);
 
         let add = &super::spec()["calls"]["group_add"];
         let argv = super::argv(add, &json!({ "chat": "team", "address": ["a", "b"] }));

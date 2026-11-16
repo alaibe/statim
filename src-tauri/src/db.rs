@@ -97,11 +97,7 @@ fn close_named(open: &mut HashMap<String, Shared>, name: &str) -> Result<(), Str
 }
 
 #[tauri::command]
-pub async fn db_open(
-    app: AppHandle,
-    dbs: State<'_, Databases>,
-    name: String,
-) -> Result<(), String> {
+pub async fn db_open(app: AppHandle, dbs: State<'_, Databases>, name: String) -> Result<(), String> {
     let path = database_path(&app, &name)?;
     let mut open = dbs.0.lock().map_err(|e| e.to_string())?;
     if open.contains_key(&name) {
@@ -114,10 +110,7 @@ pub async fn db_open(
 
 #[tauri::command]
 pub async fn db_exec(dbs: State<'_, Databases>, name: String, sql: String) -> Result<(), String> {
-    query(connection(&dbs, &name)?, move |conn| {
-        conn.execute_batch(&sql)
-    })
-    .await
+    query(connection(&dbs, &name)?, move |conn| conn.execute_batch(&sql)).await
 }
 
 #[tauri::command]
@@ -129,9 +122,7 @@ pub async fn db_run(
 ) -> Result<RunResult, String> {
     let params = bind(params)?;
     query(connection(&dbs, &name)?, move |conn| {
-        let changes = conn
-            .prepare_cached(&sql)?
-            .execute(params_from_iter(params))?;
+        let changes = conn.prepare_cached(&sql)?.execute(params_from_iter(params))?;
         Ok(RunResult {
             changes,
             last_insert_row_id: conn.last_insert_rowid(),
@@ -141,12 +132,7 @@ pub async fn db_run(
 }
 
 #[tauri::command]
-pub async fn db_all(
-    dbs: State<'_, Databases>,
-    name: String,
-    sql: String,
-    params: Vec<Value>,
-) -> Result<Rows, String> {
+pub async fn db_all(dbs: State<'_, Databases>, name: String, sql: String, params: Vec<Value>) -> Result<Rows, String> {
     let params = bind(params)?;
     query(connection(&dbs, &name)?, move |conn| {
         let mut stmt = conn.prepare_cached(&sql)?;
@@ -172,11 +158,7 @@ pub async fn db_close(dbs: State<'_, Databases>, name: String) -> Result<(), Str
 }
 
 #[tauri::command]
-pub async fn db_delete(
-    app: AppHandle,
-    dbs: State<'_, Databases>,
-    name: String,
-) -> Result<(), String> {
+pub async fn db_delete(app: AppHandle, dbs: State<'_, Databases>, name: String) -> Result<(), String> {
     let path = database_path(&app, &name)?;
     {
         let mut open = dbs.0.lock().map_err(|e| e.to_string())?;

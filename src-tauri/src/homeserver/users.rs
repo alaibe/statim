@@ -54,23 +54,12 @@ pub async fn sign_in(
 
 /// A code another device of the owner trades for its own session, once and
 /// within `expires_in_ms`. A session opened only to ask for it is closed again.
-pub async fn login_token(
-    dir: &Path,
-    server: &str,
-    localpart: &str,
-) -> Result<(String, u64), String> {
+pub async fn login_token(dir: &Path, server: &str, localpart: &str) -> Result<(String, u64), String> {
     let password = std::fs::read_to_string(dir.join("password"))
         .map_err(|_| "Sign in to Matrix on this computer first.".to_string())?;
     let password = password.trim();
     let client = reqwest::Client::new();
-    let asking = login(
-        &client,
-        server,
-        localpart,
-        password,
-        "Statim, linking a device",
-    )
-    .await?;
+    let asking = login(&client, server, localpart, password, "Statim, linking a device").await?;
     let url = format!("{server}/_matrix/client/v1/login/get_token");
     let mut response = client
         .post(&url)

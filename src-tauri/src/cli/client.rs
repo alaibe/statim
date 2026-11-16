@@ -163,8 +163,7 @@ pub(super) fn exchange(
             kind @ ("out" | "err") => output(kind, message["text"].as_str().unwrap_or_default()),
             "exit" => return Some(message["code"].as_i64().unwrap_or(1) as i32),
             "prompt" | "stdin" | "read" | "write" => {
-                let reply =
-                    json!({ "type": "reply", "seq": message["seq"], "result": answer(&message) });
+                let reply = json!({ "type": "reply", "seq": message["seq"], "result": answer(&message) });
                 super::write_line(&mut writer, &reply).ok()?;
             }
             _ => {}
@@ -254,8 +253,7 @@ mod tests {
 
     #[test]
     fn stops_waiting_for_an_app_that_never_answers() {
-        let path =
-            std::env::temp_dir().join(format!("statim-exchange-{}.sock", std::process::id()));
+        let path = std::env::temp_dir().join(format!("statim-exchange-{}.sock", std::process::id()));
         let name = || path.as_os_str().to_fs_name::<GenericFilePath>().unwrap();
         let listener = ListenerOptions::new()
             .name(name())
@@ -269,9 +267,7 @@ mod tests {
         });
 
         let stream = Stream::connect(name()).unwrap();
-        stream
-            .set_recv_timeout(Some(Duration::from_millis(20)))
-            .unwrap();
+        stream.set_recv_timeout(Some(Duration::from_millis(20))).unwrap();
         let started = Instant::now();
         let code = super::exchange(stream, &json!({}), |_, _| {}, |_| json!({}), || true);
 

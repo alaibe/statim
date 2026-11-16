@@ -35,9 +35,9 @@ mod platform {
             LAError::UserFallback => "user_fallback",
             LAError::SystemCancel => "system_cancel",
             LAError::PasscodeNotSet => "passcode_not_set",
-            LAError::BiometryNotAvailable
-            | LAError::BiometryNotPaired
-            | LAError::BiometryDisconnected => "not_available",
+            LAError::BiometryNotAvailable | LAError::BiometryNotPaired | LAError::BiometryDisconnected => {
+                "not_available"
+            }
             LAError::BiometryNotEnrolled => "not_enrolled",
             LAError::BiometryLockout => "lockout",
             LAError::AppCancel => "app_cancel",
@@ -48,9 +48,7 @@ mod platform {
 
     pub fn capability() -> Capability {
         let context = unsafe { LAContext::new() };
-        let checked = unsafe {
-            context.canEvaluatePolicy_error(LAPolicy::DeviceOwnerAuthenticationWithBiometrics)
-        };
+        let checked = unsafe { context.canEvaluatePolicy_error(LAPolicy::DeviceOwnerAuthenticationWithBiometrics) };
         match checked.map_err(|error| LAError(error.code())) {
             Ok(()) | Err(LAError::BiometryLockout) => Capability {
                 available: true,
@@ -83,13 +81,7 @@ mod platform {
             let code = unsafe { error.as_ref() }.map(|error| error.code());
             let _ = tx.send((passed.as_bool(), code));
         });
-        unsafe {
-            context.evaluatePolicy_localizedReason_reply(
-                policy,
-                &NSString::from_str(&reason),
-                &reply,
-            )
-        };
+        unsafe { context.evaluatePolicy_localizedReason_reply(policy, &NSString::from_str(&reason), &reply) };
 
         let (success, code) = rx.recv().map_err(|e| e.to_string())?;
         Ok(Outcome {
