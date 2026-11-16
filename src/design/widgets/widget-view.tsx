@@ -1,14 +1,13 @@
-import { View } from 'react-native';
+import { useState } from "react";
+import { View } from "react-native";
 
-import { useState } from 'react';
-
-import { ActionSheet, Badge, Button, Eyebrow, Pressable, Text } from '../components';
-import { Icon } from '../icon';
-import { cn } from '../lib/cn';
-import { copyText } from '../copy-text';
-import { affordanceFor } from './affordance';
-import { FormWidget } from './form-widget';
-import { type Widget, type WidgetAction, type WidgetOf, type WidgetTone } from './schema';
+import { ActionSheet, Badge, Button, Eyebrow, Pressable, Text } from "../components";
+import { copyText } from "../copy-text";
+import { Icon } from "../icon";
+import { cn } from "../lib/cn";
+import { affordanceFor } from "./affordance";
+import { FormWidget } from "./form-widget";
+import { type Widget, type WidgetAction, type WidgetOf, type WidgetTone } from "./schema";
 
 interface WidgetViewProps {
   widget: Widget;
@@ -18,19 +17,19 @@ interface WidgetViewProps {
 }
 
 const TEXT_TONE: Record<WidgetTone, string> = {
-  neutral: 'text-content',
-  brand: 'text-brand',
-  success: 'text-success',
-  warning: 'text-warning',
-  danger: 'text-danger',
+  neutral: "text-content",
+  brand: "text-brand",
+  success: "text-success",
+  warning: "text-warning",
+  danger: "text-danger",
 };
 
 const CARD_TONE: Record<WidgetTone, string> = {
-  neutral: 'border-line bg-surface-raised',
-  brand: 'border-brand/40 bg-brand-soft',
-  success: 'border-success/40 bg-success/10',
-  warning: 'border-warning/40 bg-warning/10',
-  danger: 'border-danger/40 bg-danger/10',
+  neutral: "border-line bg-surface-raised",
+  brand: "border-brand/40 bg-brand-soft",
+  success: "border-success/40 bg-success/10",
+  warning: "border-warning/40 bg-warning/10",
+  danger: "border-danger/40 bg-danger/10",
 };
 
 export function WidgetView(props: WidgetViewProps) {
@@ -45,7 +44,7 @@ export function WidgetView(props: WidgetViewProps) {
       <WidgetNode
         {...props}
         onOffer={(heading, actions) => {
-          if (actions.length === 1 && actions[0].tone !== 'danger') {
+          if (actions.length === 1 && actions[0].tone !== "danger") {
             props.onCommand?.(actions[0].command);
             return;
           }
@@ -79,7 +78,7 @@ function Affordance({ actions }: { actions: WidgetAction[] | undefined }) {
   if (primary.icon) {
     return (
       <View className="h-7 w-7 items-center justify-center rounded-pill bg-surface-sunken">
-        <Icon name={primary.icon} size={15} tone={primary.tone === 'danger' ? 'danger' : 'brand'} />
+        <Icon name={primary.icon} size={15} tone={primary.tone === "danger" ? "danger" : "brand"} />
       </View>
     );
   }
@@ -89,10 +88,8 @@ function Affordance({ actions }: { actions: WidgetAction[] | undefined }) {
   return (
     <Text
       numberOfLines={1}
-      className={cn(
-        'shrink-0 text-footnote font-medium',
-        single?.tone === 'danger' ? 'text-danger' : 'text-brand'
-      )}>
+      className={cn("shrink-0 text-footnote font-medium", single?.tone === "danger" ? "text-danger" : "text-brand")}
+    >
       {label}
     </Text>
   );
@@ -110,7 +107,7 @@ function Offerable({
   heading: { title: string; subtitle?: string };
   label?: string;
   className?: string;
-  onOffer: WidgetViewProps['onOffer'];
+  onOffer: WidgetViewProps["onOffer"];
   children: React.ReactNode;
 }) {
   if (!actions?.length) return children;
@@ -121,55 +118,49 @@ function Offerable({
       accessibilityHint={affordanceFor(actions) ?? undefined}
       pressScale={0.99}
       onPress={() => onOffer?.(heading, actions)}
-      className={className}>
+      className={className}
+    >
       {children}
     </Pressable>
   );
 }
 
-function StateDot({ state }: { state: 'on' | 'off' }) {
+function StateDot({ state }: { state: "on" | "off" }) {
   return (
-    <View
-      className={cn(
-        'h-2 w-2 shrink-0 rounded-pill',
-        state === 'on' ? 'bg-success' : 'bg-content-subtle/40'
-      )}
-    />
+    <View className={cn("h-2 w-2 shrink-0 rounded-pill", state === "on" ? "bg-success" : "bg-content-subtle/40")} />
   );
 }
 
 function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) {
   switch (widget.kind) {
-    case 'stat':
+    case "stat":
       return <StatWidget widget={widget} onOffer={onOffer} />;
 
-    case 'rows':
+    case "rows":
       return <RowsWidget widget={widget} onOffer={onOffer} />;
 
-    case 'list':
+    case "list":
       return <ListWidget widget={widget} onOffer={onOffer} />;
 
-    case 'text':
+    case "text":
       return <Text variant="footnote">{widget.text}</Text>;
 
-    case 'code':
+    case "code":
       return <CodeWidget widget={widget} />;
 
-    case 'card':
-      return (
-        <CardWidget widget={widget} onCommand={onCommand} onOpenUrl={onOpenUrl} onOffer={onOffer} />
-      );
+    case "card":
+      return <CardWidget widget={widget} onCommand={onCommand} onOpenUrl={onOpenUrl} onOffer={onOffer} />;
 
-    case 'badges':
+    case "badges":
       return (
         <View className="flex-row flex-wrap gap-1.5">
           {widget.badges.map((b, i) => (
-            <Badge key={`${b.label}-${i}`} label={b.label} tone={b.tone ?? 'neutral'} />
+            <Badge key={`${b.label}-${i}`} label={b.label} tone={b.tone ?? "neutral"} />
           ))}
         </View>
       );
 
-    case 'actions':
+    case "actions":
       return (
         <View className="flex-row flex-wrap gap-2">
           {widget.actions.map((action, i) => (
@@ -184,42 +175,40 @@ function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) 
         </View>
       );
 
-    case 'form':
+    case "form":
       return <FormWidget widget={widget} onCommand={onCommand} />;
 
-    case 'link':
+    case "link":
       return (
         <Pressable
           accessibilityRole="link"
           accessibilityLabel={widget.label}
           onPress={() => onOpenUrl?.(widget.url)}
-          className="flex-row items-center gap-1.5">
-          <Icon name={widget.icon ?? 'open-outline'} size={14} tone="brand" />
-          <Text className="min-w-0 flex-1 text-footnote font-medium text-brand">
-            {widget.label}
-          </Text>
+          className="flex-row items-center gap-1.5"
+        >
+          <Icon name={widget.icon ?? "open-outline"} size={14} tone="brand" />
+          <Text className="min-w-0 flex-1 text-footnote font-medium text-brand">{widget.label}</Text>
         </Pressable>
       );
   }
 }
 
-interface OfferingWidgetProps<K extends Widget['kind']> {
+interface OfferingWidgetProps<K extends Widget["kind"]> {
   widget: WidgetOf<K>;
-  onOffer: WidgetViewProps['onOffer'];
+  onOffer: WidgetViewProps["onOffer"];
 }
 
-function StatWidget({ widget, onOffer }: OfferingWidgetProps<'stat'>) {
+function StatWidget({ widget, onOffer }: OfferingWidgetProps<"stat">) {
   return (
     <Offerable
       actions={widget.actions}
-      heading={
-        widget.label ? { title: widget.label, subtitle: widget.value } : { title: widget.value }
-      }
-      onOffer={onOffer}>
+      heading={widget.label ? { title: widget.label, subtitle: widget.value } : { title: widget.value }}
+      onOffer={onOffer}
+    >
       <View className="flex-row items-center justify-between gap-2">
         <View className="flex-1 gap-0.5">
           {widget.label ? <Text variant="caption">{widget.label}</Text> : null}
-          <Text variant="amount" className={TEXT_TONE[widget.tone ?? 'neutral']}>
+          <Text variant="amount" className={TEXT_TONE[widget.tone ?? "neutral"]}>
             {widget.value}
           </Text>
           {widget.caption ? <Text variant="caption">{widget.caption}</Text> : null}
@@ -230,7 +219,7 @@ function StatWidget({ widget, onOffer }: OfferingWidgetProps<'stat'>) {
   );
 }
 
-function RowsWidget({ widget, onOffer }: OfferingWidgetProps<'rows'>) {
+function RowsWidget({ widget, onOffer }: OfferingWidgetProps<"rows">) {
   return (
     <View className="gap-1.5">
       {widget.rows.map((row, i) => (
@@ -240,22 +229,21 @@ function RowsWidget({ widget, onOffer }: OfferingWidgetProps<'rows'>) {
           heading={{ title: row.label, subtitle: row.value || undefined }}
           label={`${row.label}, ${row.value}`}
           className="-mx-1 rounded-field px-1 py-0.5 active:bg-surface-sunken"
-          onOffer={onOffer}>
-          <View className={cn('flex-row gap-3', row.state ? 'items-center' : 'items-baseline')}>
+          onOffer={onOffer}
+        >
+          <View className={cn("flex-row gap-3", row.state ? "items-center" : "items-baseline")}>
             {row.state ? <StateDot state={row.state} /> : null}
-            <Text
-              variant="caption"
-              className={cn(row.state ? 'grow shrink' : 'shrink-0')}
-              numberOfLines={1}>
+            <Text variant="caption" className={cn(row.state ? "grow shrink" : "shrink-0")} numberOfLines={1}>
               {row.label}
             </Text>
             {row.value ? (
               <Text
                 numberOfLines={1}
                 className={cn(
-                  'grow shrink text-right text-footnote font-medium tabular-nums',
-                  TEXT_TONE[row.tone ?? 'neutral']
-                )}>
+                  "grow shrink text-right text-footnote font-medium tabular-nums",
+                  TEXT_TONE[row.tone ?? "neutral"],
+                )}
+              >
                 {row.value}
               </Text>
             ) : null}
@@ -269,7 +257,7 @@ function RowsWidget({ widget, onOffer }: OfferingWidgetProps<'rows'>) {
   );
 }
 
-function ListWidget({ widget, onOffer }: OfferingWidgetProps<'list'>) {
+function ListWidget({ widget, onOffer }: OfferingWidgetProps<"list">) {
   return (
     <View className="gap-1">
       {widget.items.map((item, i) => (
@@ -279,14 +267,13 @@ function ListWidget({ widget, onOffer }: OfferingWidgetProps<'list'>) {
           heading={{ title: item.title, subtitle: item.subtitle }}
           label={item.subtitle ? `${item.title}, ${item.subtitle}` : item.title}
           className="-mx-1.5 rounded-field px-1.5 active:bg-surface-sunken"
-          onOffer={onOffer}>
+          onOffer={onOffer}
+        >
           <View className="flex-row items-center gap-2.5 py-2">
             {item.state ? <StateDot state={item.state} /> : null}
             {item.icon ? <Icon name={item.icon} size={17} tone="muted" /> : null}
             <View className="min-w-0 grow shrink gap-0.5">
-              <Text
-                numberOfLines={1}
-                className={cn('text-footnote font-semibold', TEXT_TONE[item.tone ?? 'neutral'])}>
+              <Text numberOfLines={1} className={cn("text-footnote font-semibold", TEXT_TONE[item.tone ?? "neutral"])}>
                 {item.title}
               </Text>
               {item.subtitle ? (
@@ -295,9 +282,7 @@ function ListWidget({ widget, onOffer }: OfferingWidgetProps<'list'>) {
                 </Text>
               ) : null}
             </View>
-            {item.status ? (
-              <Badge label={item.status} tone={item.tone === 'brand' ? 'brand' : 'neutral'} />
-            ) : null}
+            {item.status ? <Badge label={item.status} tone={item.tone === "brand" ? "brand" : "neutral"} /> : null}
             <View className="pl-2">
               <Affordance actions={item.actions} />
             </View>
@@ -308,7 +293,7 @@ function ListWidget({ widget, onOffer }: OfferingWidgetProps<'list'>) {
   );
 }
 
-function CodeWidget({ widget }: { widget: WidgetOf<'code'> }) {
+function CodeWidget({ widget }: { widget: WidgetOf<"code"> }) {
   const body = (
     <View className="gap-0.5">
       {widget.label ? <Text variant="caption">{widget.label}</Text> : null}
@@ -325,43 +310,28 @@ function CodeWidget({ widget }: { widget: WidgetOf<'code'> }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Copy ${widget.label ?? 'value'}`}
+      accessibilityLabel={`Copy ${widget.label ?? "value"}`}
       pressScale={0.99}
-      onPress={() => void copyText(widget.value)}>
+      onPress={() => void copyText(widget.value)}
+    >
       {body}
     </Pressable>
   );
 }
 
-function CardWidget({
-  widget,
-  onCommand,
-  onOpenUrl,
-  onOffer,
-}: WidgetViewProps & { widget: WidgetOf<'card'> }) {
+function CardWidget({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps & { widget: WidgetOf<"card"> }) {
   return (
-    <View
-      className={cn('gap-2.5 rounded-bubble border p-3.5', CARD_TONE[widget.tone ?? 'neutral'])}>
+    <View className={cn("gap-2.5 rounded-bubble border p-3.5", CARD_TONE[widget.tone ?? "neutral"])}>
       {widget.title ? (
         <View className="flex-row items-center gap-1.5">
           {widget.icon ? (
-            <Icon
-              name={widget.icon}
-              size={15}
-              tone={widget.tone === 'neutral' || !widget.tone ? 'muted' : 'brand'}
-            />
+            <Icon name={widget.icon} size={15} tone={widget.tone === "neutral" || !widget.tone ? "muted" : "brand"} />
           ) : null}
           <Eyebrow>{widget.title}</Eyebrow>
         </View>
       ) : null}
       {widget.children.map((child, i) => (
-        <WidgetNode
-          key={i}
-          widget={child}
-          onCommand={onCommand}
-          onOpenUrl={onOpenUrl}
-          onOffer={onOffer}
-        />
+        <WidgetNode key={i} widget={child} onCommand={onCommand} onOpenUrl={onOpenUrl} onOffer={onOffer} />
       ))}
     </View>
   );

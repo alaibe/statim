@@ -1,12 +1,11 @@
-import { eq } from 'drizzle-orm';
-
-import type { PluginStorage } from '@/core/plugins/types';
-import type { MessageStore } from '@/core/messaging/message-store';
-import type { ProtocolId } from '@/core/messaging/namespace';
-import { accountDatabaseGeneration, runAccountDatabaseOperation, type Database } from './database';
-import { sqliteProtocolState, type ProtocolState } from './protocol-state';
-import { accountState } from './schema';
-import { SqliteMessageStore } from './sqlite-message-store';
+import { eq } from "drizzle-orm";
+import type { MessageStore } from "@/core/messaging/message-store";
+import type { ProtocolId } from "@/core/messaging/namespace";
+import type { PluginStorage } from "@/core/plugins/types";
+import { accountDatabaseGeneration, type Database, runAccountDatabaseOperation } from "./database";
+import { type ProtocolState, sqliteProtocolState } from "./protocol-state";
+import { accountState } from "./schema";
+import { SqliteMessageStore } from "./sqlite-message-store";
 
 export interface AccountStorage {
   readonly accountId: string;
@@ -20,18 +19,13 @@ export interface AccountStorage {
 
 export function createAccountStorage(accountId: string): AccountStorage {
   const generation = accountDatabaseGeneration(accountId);
-  const run = <T>(work: (db: Database) => Promise<T>) =>
-    runAccountDatabaseOperation(accountId, generation, work);
+  const run = <T>(work: (db: Database) => Promise<T>) => runAccountDatabaseOperation(accountId, generation, work);
 
   const storage: AccountStorage = {
     accountId,
     async get<T>(name: string) {
       const row = await run((db) =>
-        db
-          .select({ value: accountState.value })
-          .from(accountState)
-          .where(eq(accountState.key, name))
-          .get()
+        db.select({ value: accountState.value }).from(accountState).where(eq(accountState.key, name)).get(),
       );
       return row ? (row.value as T) : null;
     },
@@ -41,7 +35,7 @@ export function createAccountStorage(accountId: string): AccountStorage {
         db
           .insert(accountState)
           .values({ key: name, value })
-          .onConflictDoUpdate({ target: accountState.key, set: { value } })
+          .onConflictDoUpdate({ target: accountState.key, set: { value } }),
       );
     },
     async remove(name: string) {

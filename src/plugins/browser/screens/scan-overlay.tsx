@@ -1,8 +1,8 @@
-import { QrScanner } from '@/design';
-import type { PluginContext } from '@/core/plugins/types';
-import { errorMessage } from '@/core/errors';
+import { errorMessage } from "@/core/errors";
+import type { PluginContext } from "@/core/plugins/types";
+import { QrScanner } from "@/design";
 
-import { useWalletConnectStore } from '../walletconnect';
+import { useWalletConnectStore } from "../walletconnect";
 
 export function makeScanOverlay(context: PluginContext) {
   return function ScanOverlay() {
@@ -11,15 +11,15 @@ export function makeScanOverlay(context: PluginContext) {
     if (!scanning) return null;
 
     const pair = async (data: string) => {
-      if (!data.startsWith('wc:')) return 'That is a QR code, but not a WalletConnect one.';
+      if (!data.startsWith("wc:")) return "That is a QR code, but not a WalletConnect one.";
       try {
         const store = useWalletConnectStore.getState();
         if (!store.kit) await store.init();
         await store.pair(data);
       } catch (e) {
-        return errorMessage(e, 'Could not pair with that code');
+        return errorMessage(e, "Could not pair with that code");
       }
-      context.ui.notify('Pairing… approve the request when it appears.');
+      context.ui.notify("Pairing… approve the request when it appears.");
       setScanning(false);
       return null;
     };

@@ -1,22 +1,16 @@
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import { useChatStore } from "@/core/messaging/chat-store";
+import { BRIDGED_NETWORKS } from "@/core/messaging/networks";
+import type { ChatSession } from "@/core/messaging/protocol";
+import { Button, Card, ListItem, Text } from "@/design";
+import { connectByChat, existingBotChat } from "@/features/bridge-login/connect-by-chat";
+import { guideUrl } from "@/lib/guide";
+import { openExternal } from "@/lib/open-url";
+import { bridgeBotId, KNOWN_BRIDGES, type KnownBridge, provisioningName } from "@/protocols/matrix/bridges";
+import type { MatrixCapabilities } from "@/protocols/matrix/provisioning";
 
-import { Button, Card, ListItem, Text } from '@/design';
-import { useChatStore } from '@/core/messaging/chat-store';
-import { BRIDGED_NETWORKS } from '@/core/messaging/networks';
-import type { ChatSession } from '@/core/messaging/protocol';
-import { guideUrl } from '@/lib/guide';
-import { openExternal } from '@/lib/open-url';
-import { connectByChat, existingBotChat } from '@/features/bridge-login/connect-by-chat';
-import {
-  bridgeBotId,
-  KNOWN_BRIDGES,
-  provisioningName,
-  type KnownBridge,
-} from '@/protocols/matrix/bridges';
-import type { MatrixCapabilities } from '@/protocols/matrix/provisioning';
-
-const PROTOCOL = 'matrix';
+const PROTOCOL = "matrix";
 
 interface FoundBridge {
   bridge: KnownBridge;
@@ -36,9 +30,7 @@ export function MatrixBridges({ session }: { session: ChatSession & Partial<Matr
     let cancelled = false;
     void Promise.all(
       KNOWN_BRIDGES.map(async (bridge): Promise<FoundBridge | null> => {
-        const botId = await resolveParticipant(PROTOCOL, bridgeBotId(bridge, self)).catch(
-          () => null
-        );
+        const botId = await resolveParticipant(PROTOCOL, bridgeBotId(bridge, self)).catch(() => null);
         if (!botId) return null;
         const whoami = await session
           .bridgeProvisioning?.(provisioningName(bridge))
@@ -46,7 +38,7 @@ export function MatrixBridges({ session }: { session: ChatSession & Partial<Matr
           .catch(() => null);
         const accounts = whoami ? whoami.logins.map((login) => login.name || login.id) : null;
         return { bridge, botId, accounts };
-      })
+      }),
     ).then((results) => {
       if (!cancelled) setFound(results.filter((result) => result !== null));
     });
@@ -57,7 +49,7 @@ export function MatrixBridges({ session }: { session: ChatSession & Partial<Matr
 
   async function connect(item: FoundBridge) {
     if (item.accounts !== null) {
-      router.push({ pathname: '/bridge-login', params: { bridge: item.bridge.localpart } });
+      router.push({ pathname: "/bridge-login", params: { bridge: item.bridge.localpart } });
       return;
     }
     setBusy(item.botId);
@@ -75,21 +67,20 @@ export function MatrixBridges({ session }: { session: ChatSession & Partial<Matr
       ) : found.length === 0 ? (
         <>
           <Text variant="caption">
-            This homeserver runs none of the usual bridges. A bridge brings WhatsApp, Signal,
-            Messenger and others into this list.
+            This homeserver runs none of the usual bridges. A bridge brings WhatsApp, Signal, Messenger and others into
+            this list.
           </Text>
           <Button
             label="How to add bridges"
             tone="neutral"
             size="sm"
-            onPress={() => openExternal(guideUrl('homeserver')).catch(() => {})}
+            onPress={() => openExternal(guideUrl("homeserver")).catch(() => {})}
           />
         </>
       ) : (
         <>
           <Text variant="caption">
-            Connect signs you in to the network through its bridge. Your chats from there then
-            appear in this list.
+            Connect signs you in to the network through its bridge. Your chats from there then appear in this list.
           </Text>
           {found.map((item) => {
             const connected = item.accounts !== null && item.accounts.length > 0;
@@ -99,12 +90,12 @@ export function MatrixBridges({ session }: { session: ChatSession & Partial<Matr
                 key={item.botId}
                 testID={`matrix-bridge-${item.bridge.localpart}`}
                 title={BRIDGED_NETWORKS[item.bridge.network]}
-                subtitle={connected ? `Signed in as ${item.accounts!.join(', ')}` : item.botId}
+                subtitle={connected ? `Signed in as ${item.accounts!.join(", ")}` : item.botId}
                 trailing={
                   <Button
-                    label={connected ? 'Manage' : chat ? 'Open' : 'Connect'}
+                    label={connected ? "Manage" : chat ? "Open" : "Connect"}
                     size="sm"
-                    tone={connected || chat ? 'neutral' : undefined}
+                    tone={connected || chat ? "neutral" : undefined}
                     loading={busy === item.botId}
                     disabled={busy !== null}
                     onPress={() => connect(item)}

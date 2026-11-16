@@ -1,20 +1,9 @@
-import type { LocalAccount } from 'viem';
-
-import type { DerivedKey } from '../account/keyring';
-import {
-  missingFields,
-  withDefaults,
-  type ProtocolConfig,
-  type ProtocolConfigSchema,
-} from './config';
-import type { ProtocolId } from './namespace';
-import type {
-  ChatProtocolMeta,
-  ChatSession,
-  CustomContentType,
-  XmtpInstallation,
-} from './protocol';
-import type { AccountStorage } from '@/storage/account';
+import type { LocalAccount } from "viem";
+import type { AccountStorage } from "@/storage/account";
+import type { DerivedKey } from "../account/keyring";
+import { missingFields, type ProtocolConfig, type ProtocolConfigSchema, withDefaults } from "./config";
+import type { ProtocolId } from "./namespace";
+import type { ChatProtocolMeta, ChatSession, CustomContentType, XmtpInstallation } from "./protocol";
 
 export interface PublicChatsCopy {
   title: string;
@@ -77,9 +66,7 @@ export interface ProtocolDescriptor {
   };
 }
 
-export function connectableProtocols(
-  protocols: readonly ProtocolDescriptor[]
-): ProtocolDescriptor[] {
+export function connectableProtocols(protocols: readonly ProtocolDescriptor[]): ProtocolDescriptor[] {
   return protocols.filter((protocol) => protocol.connect);
 }
 
@@ -87,9 +74,6 @@ export function isConfigured(descriptor: ProtocolDescriptor, config: ProtocolCon
   return Boolean(descriptor.connect) && missingFields(descriptor.configSchema, config).length === 0;
 }
 
-export function effectiveConfig(
-  descriptor: ProtocolDescriptor,
-  config: ProtocolConfig
-): ProtocolConfig {
+export function effectiveConfig(descriptor: ProtocolDescriptor, config: ProtocolConfig): ProtocolConfig {
   return withDefaults(descriptor.configSchema, config);
 }

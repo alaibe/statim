@@ -1,6 +1,6 @@
-import type { NostrEvent } from './events';
+import type { NostrEvent } from "./events";
 
-type RelayStatus = 'connecting' | 'open' | 'closed';
+type RelayStatus = "connecting" | "open" | "closed";
 
 export interface RelayState {
   url: string;
@@ -77,11 +77,10 @@ export class RelayPool {
   private closed = false;
 
   private readonly createSocket: (url: string) => WebSocketLike;
-  private readonly authenticate?: RelayPoolOptions['authenticate'];
+  private readonly authenticate?: RelayPoolOptions["authenticate"];
 
   constructor(options: RelayPoolOptions) {
-    this.createSocket =
-      options.createSocket ?? ((url) => new WebSocket(url) as unknown as WebSocketLike);
+    this.createSocket = options.createSocket ?? ((url) => new WebSocket(url) as unknown as WebSocketLike);
     this.authenticate = options.authenticate;
     for (const id of options.handled ?? []) this.seen.add(id);
 
@@ -101,7 +100,7 @@ export class RelayPool {
     const connection: Connection = {
       url,
       socket: null,
-      status: 'connecting',
+      status: "connecting",
       attempts: 0,
       timer: null,
     };
@@ -112,7 +111,7 @@ export class RelayPool {
   private open(connection: Connection) {
     if (this.closed) return;
 
-    connection.status = 'connecting';
+    connection.status = "connecting";
     connection.authChallenge = undefined;
     connection.authEventId = undefined;
 
@@ -127,11 +126,11 @@ export class RelayPool {
     connection.socket = socket;
 
     socket.onopen = () => {
-      connection.status = 'open';
+      connection.status = "open";
       connection.attempts = 0;
       connection.error = undefined;
       for (const subscription of this.subscriptions.values()) {
-        this.sendTo(connection, ['REQ', subscription.id, ...subscription.filters]);
+        this.sendTo(connection, ["REQ", subscription.id, ...subscription.filters]);
       }
     };
 
@@ -144,9 +143,9 @@ export class RelayPool {
     };
 
     socket.onclose = () => {
-      this.failPublicationsFor(connection.url, 'Relay disconnected before acknowledging the event');
+      this.failPublicationsFor(connection.url, "Relay disconnected before acknowledging the event");
       connection.socket = null;
-      connection.status = 'closed';
+      connection.status = "closed";
       this.scheduleReconnect(connection);
     };
   }
@@ -166,7 +165,7 @@ export class RelayPool {
   }
 
   private handleMessage(connection: Connection, raw: unknown) {
-    if (typeof raw !== 'string') return;
+    if (typeof raw !== "string") return;
 
     let message: unknown;
     try {
@@ -174,48 +173,48 @@ export class RelayPool {
     } catch {
       return;
     }
-    if (!Array.isArray(message) || typeof message[0] !== 'string') return;
+    if (!Array.isArray(message) || typeof message[0] !== "string") return;
 
     switch (message[0]) {
-      case 'AUTH':
+      case "AUTH":
         return this.onAuth(connection, message[1]);
-      case 'OK':
+      case "OK":
         return this.onOk(connection, message[1], message[2] === true, message[3]);
-      case 'EVENT': {
+      case "EVENT": {
         const [, subscriptionId, event] = message as [string, string, NostrEvent];
         return this.onEvent(subscriptionId, event);
       }
-      case 'EOSE': {
+      case "EOSE": {
         const [, subscriptionId] = message as [string, string];
         this.subscriptions.get(subscriptionId)?.onEose?.(connection.url);
         return;
       }
-      case 'NOTICE':
-      case 'CLOSED':
-        connection.error = String(message[message.length - 1] ?? '');
+      case "NOTICE":
+      case "CLOSED":
+        connection.error = String(message[message.length - 1] ?? "");
         return;
     }
   }
 
   private onAuth(connection: Connection, challenge: unknown) {
-    if (!this.authenticate || typeof challenge !== 'string') return;
+    if (!this.authenticate || typeof challenge !== "string") return;
     if (connection.authChallenge === challenge) return;
     connection.authChallenge = challenge;
     try {
       const event = this.authenticate(connection.url, challenge);
       connection.authEventId = event.id;
       // Authentication belongs to this socket, never to the public event feed.
-      this.sendTo(connection, ['AUTH', event]);
+      this.sendTo(connection, ["AUTH", event]);
     } catch (error) {
       connection.error = describe(error);
     }
   }
 
   private onOk(connection: Connection, eventId: unknown, accepted: boolean, reason: unknown) {
-    const publication = typeof eventId === 'string' ? this.publications.get(eventId) : undefined;
+    const publication = typeof eventId === "string" ? this.publications.get(eventId) : undefined;
     if (publication) {
       if (accepted) return this.finishPublication(publication.event.id);
-      const why = String(reason || 'Relay rejected the event');
+      const why = String(reason || "Relay rejected the event");
       if (/auth/i.test(why) && connection.authEventId) publication.authBlocked.add(connection.url);
       else this.failPublicationRelay(publication.event.id, connection.url, why);
       return;
@@ -223,23 +222,19 @@ export class RelayPool {
     if (!connection.authEventId || eventId !== connection.authEventId) return;
     connection.authEventId = undefined;
     if (accepted) this.authenticated(connection);
-    else this.authenticationFailed(connection, String(reason || 'Relay authentication failed'));
+    else this.authenticationFailed(connection, String(reason || "Relay authentication failed"));
   }
 
   private authenticated(connection: Connection) {
     connection.error = undefined;
     // AUTH does not reopen the DM requests rejected before authentication.
     for (const subscription of this.subscriptions.values()) {
-      this.sendTo(connection, ['REQ', subscription.id, ...subscription.filters]);
+      this.sendTo(connection, ["REQ", subscription.id, ...subscription.filters]);
     }
     for (const pending of this.publications.values()) {
       if (!pending.authBlocked.delete(connection.url)) continue;
-      if (!this.sendTo(connection, ['EVENT', pending.event])) {
-        this.failPublicationRelay(
-          pending.event.id,
-          connection.url,
-          'Relay write failed after authentication'
-        );
+      if (!this.sendTo(connection, ["EVENT", pending.event])) {
+        this.failPublicationRelay(pending.event.id, connection.url, "Relay write failed after authentication");
       }
     }
   }
@@ -275,15 +270,15 @@ export class RelayPool {
   subscribe(subscription: Subscription): () => void {
     this.subscriptions.set(subscription.id, subscription);
     for (const connection of this.connections.values()) {
-      if (connection.status === 'open') {
-        this.sendTo(connection, ['REQ', subscription.id, ...subscription.filters]);
+      if (connection.status === "open") {
+        this.sendTo(connection, ["REQ", subscription.id, ...subscription.filters]);
       }
     }
 
     return () => {
       this.subscriptions.delete(subscription.id);
       for (const connection of this.connections.values()) {
-        if (connection.status === 'open') this.sendTo(connection, ['CLOSE', subscription.id]);
+        if (connection.status === "open") this.sendTo(connection, ["CLOSE", subscription.id]);
       }
     };
   }
@@ -293,11 +288,9 @@ export class RelayPool {
       return Promise.reject(new Error(`Event ${event.id} is already awaiting relay acceptance`));
     }
 
-    const open = [...this.connections.values()].filter(
-      (connection) => connection.status === 'open'
-    );
+    const open = [...this.connections.values()].filter((connection) => connection.status === "open");
     if (open.length === 0) {
-      return Promise.reject(new Error('No relay accepted the event because none is connected'));
+      return Promise.reject(new Error("No relay accepted the event because none is connected"));
     }
 
     return new Promise<void>((resolve, reject) => {
@@ -307,7 +300,7 @@ export class RelayPool {
         authBlocked: new Set(),
         failures: new Map(),
         timer: setTimeout(() => {
-          this.rejectPublication(event.id, new Error('Nostr relay acknowledgment timed out'));
+          this.rejectPublication(event.id, new Error("Nostr relay acknowledgment timed out"));
         }, PUBLISH_TIMEOUT_MS),
         resolve,
         reject,
@@ -315,8 +308,8 @@ export class RelayPool {
       this.publications.set(event.id, pending);
 
       for (const connection of open) {
-        if (!this.sendTo(connection, ['EVENT', event])) {
-          this.failPublicationRelay(event.id, connection.url, 'Relay socket write failed');
+        if (!this.sendTo(connection, ["EVENT", event])) {
+          this.failPublicationRelay(event.id, connection.url, "Relay socket write failed");
         }
       }
     });
@@ -344,7 +337,7 @@ export class RelayPool {
     pending.authBlocked.delete(url);
     pending.failures.set(url, reason);
     if (pending.waiting.size === 0) {
-      this.rejectPublication(eventId, new Error([...pending.failures.values()].join('; ')));
+      this.rejectPublication(eventId, new Error([...pending.failures.values()].join("; ")));
     }
   }
 
@@ -367,10 +360,7 @@ export class RelayPool {
   close() {
     this.closed = true;
     for (const eventId of [...this.publications.keys()]) {
-      this.rejectPublication(
-        eventId,
-        new Error('Nostr relay pool closed before acknowledging the event')
-      );
+      this.rejectPublication(eventId, new Error("Nostr relay pool closed before acknowledging the event"));
     }
     this.subscriptions.clear();
     for (const connection of this.connections.values()) this.teardown(connection);
@@ -382,7 +372,7 @@ export class RelayPool {
     connection.timer = null;
     const socket = connection.socket;
     connection.socket = null;
-    connection.status = 'closed';
+    connection.status = "closed";
     if (socket) {
       socket.onopen = null;
       socket.onclose = null;
@@ -412,8 +402,8 @@ export function normalizeRelayUrl(raw: string): string | null {
   const withScheme = hasScheme ? trimmed : `wss://${trimmed}`;
   try {
     const url = new URL(withScheme);
-    if (url.protocol !== 'ws:' && url.protocol !== 'wss:') return null;
-    return url.href.replace(/\/$/, '');
+    if (url.protocol !== "ws:" && url.protocol !== "wss:") return null;
+    return url.href.replace(/\/$/, "");
   } catch {
     return null;
   }
@@ -421,8 +411,8 @@ export function normalizeRelayUrl(raw: string): string | null {
 
 function describe(value: unknown): string {
   if (value instanceof Error) return value.message;
-  if (typeof value === 'object' && value !== null && 'message' in value) {
+  if (typeof value === "object" && value !== null && "message" in value) {
     return String((value as { message: unknown }).message);
   }
-  return 'Relay error';
+  return "Relay error";
 }

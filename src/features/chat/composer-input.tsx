@@ -1,7 +1,7 @@
-import { type Ref, useImperativeHandle, useRef } from 'react';
-import { TextInput } from 'react-native';
+import { type Ref, useImperativeHandle, useRef } from "react";
+import { TextInput } from "react-native";
 
-import { withTypedEmoji } from './typed-emoji';
+import { withTypedEmoji } from "./typed-emoji";
 
 export interface ComposerInputHandle {
   focus(): void;

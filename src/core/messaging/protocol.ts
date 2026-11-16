@@ -1,24 +1,24 @@
+import type { HistoryState } from "./history";
+import type { StickerChoice, StickerContent, StickerPack } from "./stickers";
 import type {
-  ProtocolChatId,
+  ConsentDecision,
   GroupMember,
   MessageContent,
   MessageId,
   ParticipantId,
+  ProtocolChat,
+  ProtocolChatId,
+  ProtocolMessage,
   SelfParticipant,
   Unsubscribe,
-  ConsentDecision,
-  ProtocolMessage,
-  ProtocolChat,
-} from './types';
-import type { HistoryState } from './history';
-import type { StickerChoice, StickerContent, StickerPack } from './stickers';
+} from "./types";
 
 /**
  * A protocol that signs in interactively (a phone number, a one-time code)
  * reports the step it is waiting on; null once signed in.
  */
 export interface LoginState {
-  step: 'phone' | 'code' | 'password';
+  step: "phone" | "code" | "password";
   /** Replaces the generic "Sign in to …" heading when the step means something more specific. */
   title?: string;
   hint?: string;
@@ -38,7 +38,7 @@ export interface PublicChatPreview extends GroupInfo {
   /** What `joinPublicChat` takes: the protocol's chat id, an alias or an invite link. */
   id: string;
   title: string;
-  kind: 'group' | 'channel';
+  kind: "group" | "channel";
   joined: boolean;
   requiresApproval?: boolean;
   joinUnavailableReason?: string;
@@ -73,7 +73,7 @@ export interface ChatSession {
   listChats(): Promise<ProtocolChat[]>;
   getMessages(
     id: ProtocolChatId,
-    opts?: { limit?: number; before?: { sentAt: number; id: MessageId } }
+    opts?: { limit?: number; before?: { sentAt: number; id: MessageId } },
   ): Promise<ProtocolMessage[]>;
   searchMessages?(query: string, id?: ProtocolChatId): Promise<ProtocolMessage[]>;
   countUnread?(id: ProtocolChatId, since: number): Promise<number>;
@@ -94,11 +94,7 @@ export interface ChatSession {
   joinPublicChat?(reference: string): Promise<ProtocolChat | null>;
   createInviteLink?(id: ProtocolChatId, requiresApproval: boolean): Promise<string>;
   getJoinRequests?(id: ProtocolChatId): Promise<JoinRequest[]>;
-  processJoinRequest?(
-    id: ProtocolChatId,
-    participantId: ParticipantId,
-    approve: boolean
-  ): Promise<void>;
+  processJoinRequest?(id: ProtocolChatId, participantId: ParticipantId, approve: boolean): Promise<void>;
 
   getMembers(id: ProtocolChatId): Promise<GroupMember[]>;
   getGroupInfo?(id: ProtocolChatId): Promise<GroupInfo>;
@@ -111,12 +107,7 @@ export interface ChatSession {
   renameGroup(id: ProtocolChatId, title: string): Promise<void>;
   leaveGroup(id: ProtocolChatId): Promise<void>;
 
-  send(
-    id: ProtocolChatId,
-    content: MessageContent,
-    replyTo?: MessageId,
-    threadRoot?: MessageId
-  ): Promise<MessageId>;
+  send(id: ProtocolChatId, content: MessageContent, replyTo?: MessageId, threadRoot?: MessageId): Promise<MessageId>;
   /** Emits the edited message through streamMessages when the server confirms it. */
   editMessage?(id: ProtocolChatId, messageId: MessageId, text: string): Promise<void>;
   deleteMessage?(id: ProtocolChatId, messageId: MessageId): Promise<void>;
@@ -127,9 +118,7 @@ export interface ChatSession {
   setMessagePinned?(id: ProtocolChatId, messageId: MessageId, pinned: boolean): Promise<void>;
   /** Fetches a message's files that are not on this device yet; the message streams again once they are. */
   fetchMedia?(id: ProtocolChatId, messageId: MessageId): Promise<void>;
-  streamDeletedMessages?(
-    listener: (id: ProtocolChatId, messageIds: MessageId[]) => void
-  ): Promise<Unsubscribe>;
+  streamDeletedMessages?(listener: (id: ProtocolChatId, messageIds: MessageId[]) => void): Promise<Unsubscribe>;
 
   /** Answers a request; declining an accepted chat is not supported. */
   setConsent?(id: ProtocolChatId, consent: ConsentDecision): Promise<void>;
@@ -171,15 +160,15 @@ export interface XmtpCapabilities {
   revokeInstallations?(ids: string[]): Promise<void>;
 }
 
-type GroupModel = 'enforced' | 'participant-set';
+type GroupModel = "enforced" | "participant-set";
 
 export interface ChatProtocolMeta {
   trustModel: string;
   properties: {
     endToEndEncrypted: boolean;
     forwardSecrecy: boolean;
-    metadataPrivacy: 'low' | 'medium' | 'high';
-    maxGroupSize: number | 'unbounded';
+    metadataPrivacy: "low" | "medium" | "high";
+    maxGroupSize: number | "unbounded";
     groupModel: GroupModel;
     durableHistory: boolean;
   };

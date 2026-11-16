@@ -1,6 +1,6 @@
-import { accountCredentialsKey, vaultDelete, vaultGet, vaultSet } from '@/storage/vault';
+import { accountCredentialsKey, vaultDelete, vaultGet, vaultSet } from "@/storage/vault";
 
-export type CredentialId = 'gifs' | 'trades' | 'ai' | 'typesafe';
+export type CredentialId = "gifs" | "trades" | "ai" | "typesafe";
 
 export type Credentials = Partial<Record<CredentialId, string>>;
 
@@ -10,10 +10,8 @@ export async function readCredentials(accountId: string): Promise<Credentials> {
   if (!raw) return {};
   try {
     const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
-    return Object.fromEntries(
-      Object.entries(parsed).filter(([, value]) => typeof value === 'string')
-    ) as Credentials;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    return Object.fromEntries(Object.entries(parsed).filter(([, value]) => typeof value === "string")) as Credentials;
   } catch {
     return {};
   }
@@ -23,11 +21,7 @@ export async function readCredential(accountId: string, id: CredentialId): Promi
   return (await readCredentials(accountId))[id] ?? null;
 }
 
-export async function writeCredential(
-  accountId: string,
-  id: CredentialId,
-  value: string
-): Promise<void> {
+export async function writeCredential(accountId: string, id: CredentialId, value: string): Promise<void> {
   const entry = accountCredentialsKey(accountId);
   const trimmed = value.trim();
   const credentials = await readCredentials(accountId);

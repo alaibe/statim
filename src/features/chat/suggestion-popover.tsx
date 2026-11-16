@@ -1,8 +1,8 @@
-import type { ReactNode } from 'react';
-import { ScrollView } from 'react-native';
-import Animated from 'react-native-reanimated';
+import type { ReactNode } from "react";
+import { ScrollView } from "react-native";
+import Animated from "react-native-reanimated";
 
-import { Enter, Exit, Pressable } from '@/design';
+import { Enter, Exit, Pressable } from "@/design";
 
 export function SuggestionPopover<T>({
   items,
@@ -26,12 +26,9 @@ export function SuggestionPopover<T>({
     <Animated.View
       entering={Enter.fade()}
       exiting={Exit.fade()}
-      className="mx-gutter mb-2 overflow-hidden rounded-card border border-line bg-surface-raised">
-      <ScrollView
-        testID={testID}
-        keyboardShouldPersistTaps="handled"
-        nestedScrollEnabled
-        className="max-h-64">
+      className="mx-gutter mb-2 overflow-hidden rounded-card border border-line bg-surface-raised"
+    >
+      <ScrollView testID={testID} keyboardShouldPersistTaps="handled" nestedScrollEnabled className="max-h-64">
         {items.map((item) => (
           <Pressable
             key={keyOf(item)}
@@ -40,7 +37,8 @@ export function SuggestionPopover<T>({
             accessibilityLabel={labelOf?.(item)}
             onPress={() => onPick(item)}
             pressScale={1}
-            className="flex-row items-baseline gap-2 border-b border-line px-3 py-2.5 last:border-b-0 active:bg-surface">
+            className="flex-row items-baseline gap-2 border-b border-line px-3 py-2.5 last:border-b-0 active:bg-surface"
+          >
             {render(item)}
           </Pressable>
         ))}

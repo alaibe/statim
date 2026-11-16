@@ -1,6 +1,6 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
-import { ConfirmSheet } from '@/design';
+import { ConfirmSheet } from "@/design";
 
 interface Pending {
   id: number;
@@ -36,13 +36,10 @@ export function CliApprovals() {
       visible
       onClose={() => settle(current.id, false)}
       title="The command line is asking"
-      body={[
-        ...current.request.split('\n'),
-        'Approve only what you, or an assistant you are running, just asked for.',
-      ]}
+      body={[...current.request.split("\n"), "Approve only what you, or an assistant you are running, just asked for."]}
       confirm={{
-        label: 'Approve',
-        testID: 'cli-approve',
+        label: "Approve",
+        testID: "cli-approve",
         onPress: () => settle(current.id, true),
       }}
       cancelLabel="Decline"

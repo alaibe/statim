@@ -1,4 +1,4 @@
-import { requireNativeModule } from 'expo-modules-core';
+import { requireNativeModule } from "expo-modules-core";
 
 interface TdJsonModule {
   create(): number;
@@ -8,4 +8,4 @@ interface TdJsonModule {
   destroy(clientId: number): void;
 }
 
-export default requireNativeModule<TdJsonModule>('TdJson');
+export default requireNativeModule<TdJsonModule>("TdJson");

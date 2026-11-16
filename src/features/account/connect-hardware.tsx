@@ -1,20 +1,14 @@
-import type { UR } from '@ngraveio/bc-ur';
-import { useRef, useState } from 'react';
-import { View } from 'react-native';
+import type { UR } from "@ngraveio/bc-ur";
+import { useRef, useState } from "react";
+import { View } from "react-native";
+import { useAccountStore } from "@/core/account/account-store";
+import { Cancelled, type LinkedVendor } from "@/core/account/device-prompt";
+import { DEFAULT_EVM_PATH, type HardwareSigner, type HardwareVendor, hardwareVendors } from "@/core/account/hardware";
+import { readAccountUr, urReader } from "@/core/account/vendors/keystone";
+import { errorMessage } from "@/core/errors";
+import { Button, ErrorText, ListItem, Note, QrReader, RowIcon, Sheet, Text, toast } from "@/design";
 
-import { Button, ErrorText, ListItem, Note, QrReader, RowIcon, Sheet, Text, toast } from '@/design';
-import { errorMessage } from '@/core/errors';
-import { Cancelled, type LinkedVendor } from '@/core/account/device-prompt';
-import {
-  DEFAULT_EVM_PATH,
-  hardwareVendors,
-  type HardwareSigner,
-  type HardwareVendor,
-} from '@/core/account/hardware';
-import { useAccountStore } from '@/core/account/account-store';
-import { readAccountUr, urReader } from '@/core/account/vendors/keystone';
-
-import { CONNECTION, DeviceList } from './device-prompt';
+import { CONNECTION, DeviceList } from "./device-prompt";
 
 export function ConnectHardware({ visible, onClose }: { visible: boolean; onClose(): void }) {
   const addHardwareAccount = useAccountStore((s) => s.addHardwareAccount);
@@ -24,7 +18,7 @@ export function ConnectHardware({ visible, onClose }: { visible: boolean; onClos
   const reader = useRef<ReturnType<typeof urReader> | null>(null);
 
   const leave = () => {
-    if (chosen?.connection === 'companion-app') chosen.cancel();
+    if (chosen?.connection === "companion-app") chosen.cancel();
     reader.current = null;
     setChosen(null);
     setBusy(null);
@@ -34,12 +28,12 @@ export function ConnectHardware({ visible, onClose }: { visible: boolean; onClos
   const finish = async (
     wallet: HardwareVendor,
     signer: HardwareSigner,
-    key: { path: string; device?: string; xfp?: string }
+    key: { path: string; device?: string; xfp?: string },
   ) => {
     setBusy(
-      wallet.connection === 'companion-app'
-        ? 'Finish in Trezor Suite: it asks for your address, then to sign Statim’s chat key message.'
-        : `Approve on your ${wallet.label}: it signs Statim’s chat key message, which moves no funds.`
+      wallet.connection === "companion-app"
+        ? "Finish in Trezor Suite: it asks for your address, then to sign Statim’s chat key message."
+        : `Approve on your ${wallet.label}: it signs Statim’s chat key message, which moves no funds.`,
     );
     setError(null);
     try {
@@ -79,7 +73,7 @@ export function ConnectHardware({ visible, onClose }: { visible: boolean; onClos
   const choose = (wallet: HardwareVendor) => {
     setError(null);
     setChosen(wallet);
-    if (wallet.connection === 'companion-app') {
+    if (wallet.connection === "companion-app") {
       void finish(wallet, wallet.open(), { path: DEFAULT_EVM_PATH });
     }
   };
@@ -90,8 +84,8 @@ export function ConnectHardware({ visible, onClose }: { visible: boolean; onClos
         <>
           <Note icon="hardware-chip-outline">
             <Text variant="footnote">
-              The key stays on the device. Every payment is confirmed on the wallet itself, so
-              Statim can ask but never sign on its own.
+              The key stays on the device. Every payment is confirmed on the wallet itself, so Statim can ask but never
+              sign on its own.
             </Text>
           </Note>
           {hardwareVendors().map((wallet) => (
@@ -109,27 +103,26 @@ export function ConnectHardware({ visible, onClose }: { visible: boolean; onClos
       );
     }
     if (busy) return <Text variant="footnote">{busy}</Text>;
-    if (chosen.connection === 'companion-app') return null;
-    if (chosen.connection === 'qr') {
+    if (chosen.connection === "companion-app") return null;
+    if (chosen.connection === "qr") {
       const wallet = chosen;
       const read = async (data: string) => {
         reader.current ??= urReader();
         try {
           const result: UR | number = reader.current.read(data);
-          if (typeof result === 'number') return undefined;
+          if (typeof result === "number") return undefined;
           const key = readAccountUr(result);
           void finish(wallet, wallet.open(key), key);
           return null;
         } catch (e) {
           reader.current = null;
-          return errorMessage(e, 'That QR is not a Keystone account.');
+          return errorMessage(e, "That QR is not a Keystone account.");
         }
       };
       return (
         <>
           <Text variant="footnote">
-            On your {wallet.label}, open Connect Software Wallet, choose MetaMask, and scan the QR
-            code it shows.
+            On your {wallet.label}, open Connect Software Wallet, choose MetaMask, and scan the QR code it shows.
           </Text>
           <QrReader
             purpose={`The camera reads the account QR from your ${wallet.label}, and nothing else.`}
@@ -155,7 +148,8 @@ export function ConnectHardware({ visible, onClose }: { visible: boolean; onClos
         leave();
         onClose();
       }}
-      title={chosen ? `Connect your ${chosen.label}` : 'Connect a hardware wallet'}>
+      title={chosen ? `Connect your ${chosen.label}` : "Connect a hardware wallet"}
+    >
       <View className="gap-3">
         {content()}
         <ErrorText>{error}</ErrorText>
@@ -164,7 +158,7 @@ export function ConnectHardware({ visible, onClose }: { visible: boolean; onClos
             label="Back"
             tone="neutral"
             fullWidth
-            disabled={busy !== null && chosen.connection !== 'companion-app'}
+            disabled={busy !== null && chosen.connection !== "companion-app"}
             onPress={leave}
           />
         ) : null}

@@ -1,6 +1,6 @@
-import { formatEther, type Address, type Hex } from 'viem';
+import { type Address, formatEther, type Hex } from "viem";
 
-import { chainById, publicClientFor, trimDecimals } from './chains';
+import { chainById, publicClientFor, trimDecimals } from "./chains";
 
 interface TransactionSummary {
   hash: Hex;
@@ -10,7 +10,7 @@ interface TransactionSummary {
   to: Address | null;
   value: string;
   symbol: string;
-  status: 'success' | 'reverted' | 'pending';
+  status: "success" | "reverted" | "pending";
   blockNumber?: bigint;
   explorerUrl?: string;
 }
@@ -46,7 +46,7 @@ async function readTransaction(hash: Hex, chainId: number): Promise<TransactionS
       to: transaction.to ?? null,
       value: trimDecimals(formatEther(transaction.value)),
       symbol: chain.nativeCurrency.symbol,
-      status: receipt ? (receipt.status === 'success' ? 'success' : 'reverted') : 'pending',
+      status: receipt ? (receipt.status === "success" ? "success" : "reverted") : "pending",
       blockNumber: receipt?.blockNumber,
       explorerUrl: explorerUrlFor(chainId, hash),
     };
@@ -57,21 +57,18 @@ async function readTransaction(hash: Hex, chainId: number): Promise<TransactionS
 
 const located = new Map<Hex, Promise<TransactionSummary | null>>();
 
-export function locateTransaction(
-  hash: Hex,
-  chainIds: number[]
-): Promise<TransactionSummary | null> {
+export function locateTransaction(hash: Hex, chainIds: number[]): Promise<TransactionSummary | null> {
   const cached = located.get(hash);
   if (cached) return cached;
 
   const lookup = Promise.all(chainIds.map((id) => readTransaction(hash, id))).then(
-    (results) => results.find((summary) => summary !== null) ?? null
+    (results) => results.find((summary) => summary !== null) ?? null,
   );
   located.set(hash, lookup);
   // Only a settled transaction is worth remembering; a pending or missing one
   // may look different on the next mount.
   void lookup.then((summary) => {
-    if (!summary || summary.status === 'pending') located.delete(hash);
+    if (!summary || summary.status === "pending") located.delete(hash);
   });
   return lookup;
 }

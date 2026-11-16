@@ -1,6 +1,6 @@
-const { withDangerousMod, withPodfileProperties } = require('expo/config-plugins');
-const fs = require('fs');
-const path = require('path');
+const { withDangerousMod, withPodfileProperties } = require("expo/config-plugins");
+const fs = require("fs");
+const path = require("path");
 
 /**
  * Lets a target use the system SQLite while SQLCipher is also linked.
@@ -35,7 +35,7 @@ const HOOK = `
     end
 `;
 
-const MARKER = 'with-sqlcipher-sqlite-fix.js';
+const MARKER = "with-sqlcipher-sqlite-fix.js";
 
 // Expo prefixes its public SQLite functions with `ex`, but SDK 57's SQLCipher
 // amalgamation still exports these unprefixed symbols. XMTP carries a different
@@ -61,39 +61,37 @@ sqlite3rebaser_create sqlite3rebaser_delete sqlite3rebaser_rebase sqlite3rebaser
 
 module.exports = function withSqlcipherSqliteFix(config) {
   config = withPodfileProperties(config, (modConfig) => {
-    const key = 'expo.sqlite.customBuildFlags';
-    const flags = new Set((modConfig.modResults[key] ?? '').split(/\s+/).filter(Boolean));
+    const key = "expo.sqlite.customBuildFlags";
+    const flags = new Set((modConfig.modResults[key] ?? "").split(/\s+/).filter(Boolean));
     for (const symbol of EXPO_SQLCIPHER_EXPORTS) flags.add(`-D${symbol}=ex${symbol}`);
-    modConfig.modResults[key] = [...flags].join(' ');
+    modConfig.modResults[key] = [...flags].join(" ");
     return modConfig;
   });
   return withDangerousMod(config, [
-    'ios',
+    "ios",
     (modConfig) => {
-      const podfile = path.join(modConfig.modRequest.platformProjectRoot, 'Podfile');
-      const contents = fs.readFileSync(podfile, 'utf8');
+      const podfile = path.join(modConfig.modRequest.platformProjectRoot, "Podfile");
+      const contents = fs.readFileSync(podfile, "utf8");
 
       if (contents.includes(MARKER)) return modConfig;
 
-      const opener = '  post_install do |installer|\n';
+      const opener = "  post_install do |installer|\n";
       if (!contents.includes(opener)) {
         throw new Error(
-          'with-sqlcipher-sqlite-fix: no `post_install do |installer|` block in the Podfile. ' +
-            'The Expo template changed shape — update this plugin rather than dropping it, ' +
-            'or the iOS build fails on sqlite3ext.h with no hint as to why.'
+          "with-sqlcipher-sqlite-fix: no `post_install do |installer|` block in the Podfile. " +
+            "The Expo template changed shape — update this plugin rather than dropping it, " +
+            "or the iOS build fails on sqlite3ext.h with no hint as to why.",
         );
       }
 
       // At the end of post_install: `react_native_post_install` rewrites the
       // same xcconfigs and would undo a strip that ran before it.
-      const closer = contents.lastIndexOf('\n  end');
+      const closer = contents.lastIndexOf("\n  end");
       if (closer === -1 || closer < contents.indexOf(opener)) {
-        throw new Error(
-          'with-sqlcipher-sqlite-fix: could not find the end of the post_install block.'
-        );
+        throw new Error("with-sqlcipher-sqlite-fix: could not find the end of the post_install block.");
       }
 
-      fs.writeFileSync(podfile, contents.slice(0, closer) + '\n' + HOOK + contents.slice(closer));
+      fs.writeFileSync(podfile, contents.slice(0, closer) + "\n" + HOOK + contents.slice(closer));
       return modConfig;
     },
   ]);

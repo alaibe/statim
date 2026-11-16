@@ -1,4 +1,4 @@
-import { registerLedger } from './ledger';
+import { registerLedger } from "./ledger";
 
 export function registerHardwareVendors(): void {
   registerLedger();

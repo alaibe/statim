@@ -1,17 +1,17 @@
 import {
+  type Address,
+  domainSeparator,
   encodeFunctionData,
   erc20Abi,
-  domainSeparator,
+  type Hex,
+  type LocalAccount,
   maxUint256,
   parseAbi,
   parseSignature,
-  type Address,
-  type Hex,
-  type LocalAccount,
   type TypedDataDomain,
-} from 'viem';
+} from "viem";
 
-import { publicClientFor } from './chains';
+import { publicClientFor } from "./chains";
 
 /**
  * An EIP-712 signature in place of an `approve` transaction, taken by LI.FI's
@@ -25,46 +25,46 @@ import { publicClientFor } from './chains';
  * A trade with no plan falls back to a plain approval: a chain with no proxy,
  * or a signer that cannot sign typed data.
  */
-type PermitKind = 'eip2612' | 'permit2';
+type PermitKind = "eip2612" | "permit2";
 
 /** Canonical on most chains; LI.FI reports the exception per chain. */
-export const PERMIT2 = '0x000000000022D473030F116dDEE9F6B43aC78BA3' as const;
+export const PERMIT2 = "0x000000000022D473030F116dDEE9F6B43aC78BA3" as const;
 
 const MINUTES_VALID = 30;
 
 const PROXY_ABI = parseAbi([
-  'function nextNonce(address owner) view returns (uint256)',
-  'function callDiamondWithPermit2(bytes diamondCalldata, ((address token, uint256 amount) permitted, uint256 nonce, uint256 deadline) permit, bytes signature) external',
-  'function callDiamondWithEIP2612Signature(address tokenAddress, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s, bytes diamondCalldata) external payable',
+  "function nextNonce(address owner) view returns (uint256)",
+  "function callDiamondWithPermit2(bytes diamondCalldata, ((address token, uint256 amount) permitted, uint256 nonce, uint256 deadline) permit, bytes signature) external",
+  "function callDiamondWithEIP2612Signature(address tokenAddress, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s, bytes diamondCalldata) external payable",
 ]);
 
 const PERMIT_ABI = parseAbi([
-  'function nonces(address owner) view returns (uint256)',
-  'function name() view returns (string)',
-  'function version() view returns (string)',
-  'function DOMAIN_SEPARATOR() view returns (bytes32)',
+  "function nonces(address owner) view returns (uint256)",
+  "function name() view returns (string)",
+  "function version() view returns (string)",
+  "function DOMAIN_SEPARATOR() view returns (bytes32)",
 ]);
 
 const PERMIT2_TYPES = {
   TokenPermissions: [
-    { name: 'token', type: 'address' },
-    { name: 'amount', type: 'uint256' },
+    { name: "token", type: "address" },
+    { name: "amount", type: "uint256" },
   ],
   PermitTransferFrom: [
-    { name: 'permitted', type: 'TokenPermissions' },
-    { name: 'spender', type: 'address' },
-    { name: 'nonce', type: 'uint256' },
-    { name: 'deadline', type: 'uint256' },
+    { name: "permitted", type: "TokenPermissions" },
+    { name: "spender", type: "address" },
+    { name: "nonce", type: "uint256" },
+    { name: "deadline", type: "uint256" },
   ],
 } as const;
 
 const EIP2612_TYPES = {
   Permit: [
-    { name: 'owner', type: 'address' },
-    { name: 'spender', type: 'address' },
-    { name: 'value', type: 'uint256' },
-    { name: 'nonce', type: 'uint256' },
-    { name: 'deadline', type: 'uint256' },
+    { name: "owner", type: "address" },
+    { name: "spender", type: "address" },
+    { name: "value", type: "uint256" },
+    { name: "nonce", type: "uint256" },
+    { name: "deadline", type: "uint256" },
   ],
 } as const;
 
@@ -89,27 +89,21 @@ interface NativePermit {
 }
 
 /** A token's name and version never change, so the answer is kept. */
-const probed = new Map<string, Promise<Omit<NativePermit, 'nonce'> | null>>();
+const probed = new Map<string, Promise<Omit<NativePermit, "nonce"> | null>>();
 
 /**
  * Checked by rebuilding the token's domain and comparing it with the separator
  * the token reports, so a token that disagrees gets no signature it would only
  * reject.
  */
-export async function supportsEip2612(
-  chainId: number,
-  token: Address,
-  owner: Address
-): Promise<NativePermit | null> {
+export async function supportsEip2612(chainId: number, token: Address, owner: Address): Promise<NativePermit | null> {
   const client = publicClientFor(chainId);
   const contract = { address: token, abi: PERMIT_ABI } as const;
   const key = `${chainId}:${token.toLowerCase()}`;
 
   const read = <T>(call: Promise<T>) => call.catch(() => null);
 
-  const nonce = await read(
-    client.readContract({ ...contract, functionName: 'nonces', args: [owner] })
-  );
+  const nonce = await read(client.readContract({ ...contract, functionName: "nonces", args: [owner] }));
   if (nonce === null) return null;
 
   if (!probed.has(key)) {
@@ -120,15 +114,15 @@ export async function supportsEip2612(
           read(
             client.readContract({
               ...contract,
-              functionName: 'DOMAIN_SEPARATOR',
-            })
+              functionName: "DOMAIN_SEPARATOR",
+            }),
           ),
-          read(client.readContract({ ...contract, functionName: 'name' })),
-          read(client.readContract({ ...contract, functionName: 'version' })),
+          read(client.readContract({ ...contract, functionName: "name" })),
+          read(client.readContract({ ...contract, functionName: "version" })),
         ]);
         if (separator === null || name === null) return null;
 
-        for (const version of reported ? [reported] : ['1', '2']) {
+        for (const version of reported ? [reported] : ["1", "2"]) {
           const domain: TypedDataDomain = {
             name,
             version,
@@ -138,7 +132,7 @@ export async function supportsEip2612(
           if (domainSeparator({ domain }) === separator) return { name, version };
         }
         return null;
-      })()
+      })(),
     );
   }
 
@@ -150,16 +144,11 @@ export function clearPermitCache(): void {
   probed.clear();
 }
 
-async function permit2Allowance(
-  chainId: number,
-  token: Address,
-  owner: Address,
-  permit2: Address
-): Promise<bigint> {
+async function permit2Allowance(chainId: number, token: Address, owner: Address, permit2: Address): Promise<bigint> {
   return publicClientFor(chainId).readContract({
     address: token,
     abi: erc20Abi,
-    functionName: 'allowance',
+    functionName: "allowance",
     args: [owner, permit2],
   });
 }
@@ -174,16 +163,16 @@ export async function planPermit(
   owner: Address,
   amount: bigint,
   targets: PermitTargets | null,
-  { canSignTypedData = true }: { canSignTypedData?: boolean } = {}
+  { canSignTypedData = true }: { canSignTypedData?: boolean } = {},
 ): Promise<PermitPlan | null> {
   if (!targets || !canSignTypedData) return null;
 
   const native = await supportsEip2612(chainId, token, owner).catch(() => null);
-  if (native) return { kind: 'eip2612' };
+  if (native) return { kind: "eip2612" };
 
   const allowed = await permit2Allowance(chainId, token, owner, targets.permit2);
   return {
-    kind: 'permit2',
+    kind: "permit2",
     ...(allowed < amount && {
       approve: { spender: targets.permit2, amount: maxUint256 },
     }),
@@ -196,21 +185,21 @@ export async function permittedCall(
   account: LocalAccount,
   targets: PermitTargets,
   plan: PermitPlan,
-  { token, amount, diamondCalldata }: { token: Address; amount: bigint; diamondCalldata: Hex }
+  { token, amount, diamondCalldata }: { token: Address; amount: bigint; diamondCalldata: Hex },
 ): Promise<{ to: Address; data: Hex }> {
   const client = publicClientFor(chainId);
   const deadline = deadlineFromNow();
 
-  if (plan.kind === 'eip2612') {
+  if (plan.kind === "eip2612") {
     const supported = await supportsEip2612(chainId, token, account.address);
-    if (!supported) throw new Error('That token stopped answering as a permit token.');
+    if (!supported) throw new Error("That token stopped answering as a permit token.");
 
     const { nonce, ...domain } = supported;
 
     const signature = await account.signTypedData({
       domain: { ...domain, chainId, verifyingContract: token },
       types: EIP2612_TYPES,
-      primaryType: 'Permit',
+      primaryType: "Permit",
       message: {
         owner: account.address,
         spender: targets.proxy,
@@ -225,7 +214,7 @@ export async function permittedCall(
       to: targets.proxy,
       data: encodeFunctionData({
         abi: PROXY_ABI,
-        functionName: 'callDiamondWithEIP2612Signature',
+        functionName: "callDiamondWithEIP2612Signature",
         args: [token, amount, deadline, yParity + 27, r, s, diamondCalldata],
       }),
     };
@@ -234,14 +223,14 @@ export async function permittedCall(
   const nonce = await client.readContract({
     address: targets.proxy,
     abi: PROXY_ABI,
-    functionName: 'nextNonce',
+    functionName: "nextNonce",
     args: [account.address],
   });
 
   const signature = await account.signTypedData({
-    domain: { name: 'Permit2', chainId, verifyingContract: targets.permit2 },
+    domain: { name: "Permit2", chainId, verifyingContract: targets.permit2 },
     types: PERMIT2_TYPES,
-    primaryType: 'PermitTransferFrom',
+    primaryType: "PermitTransferFrom",
     message: {
       permitted: { token, amount },
       spender: targets.proxy,
@@ -254,7 +243,7 @@ export async function permittedCall(
     to: targets.proxy,
     data: encodeFunctionData({
       abi: PROXY_ABI,
-      functionName: 'callDiamondWithPermit2',
+      functionName: "callDiamondWithPermit2",
       args: [diamondCalldata, { permitted: { token, amount }, nonce, deadline }, signature],
     }),
   };

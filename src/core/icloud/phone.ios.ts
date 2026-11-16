@@ -1,19 +1,19 @@
-import { noteSecretKey, shareWithExtension, unshare } from '@/storage/shared-keychain';
+import { noteSecretKey, shareWithExtension, unshare } from "@/storage/shared-keychain";
 
-import ICloudNotes from '../../../modules/icloud-notes';
-import { forgetNoteKey, noteKeyInUse, rememberNoteKey, storedNoteKey } from './account-key';
-import { ICLOUD_CONTAINER, icloudContainer } from './container';
-import type { ListeningState } from './phone';
+import ICloudNotes from "../../../modules/icloud-notes";
+import { forgetNoteKey, noteKeyInUse, rememberNoteKey, storedNoteKey } from "./account-key";
+import { ICLOUD_CONTAINER, icloudContainer } from "./container";
+import type { ListeningState } from "./phone";
 
 export async function listeningState(accountId: string): Promise<ListeningState> {
-  if (!ICloudNotes || !icloudContainer()) return 'unavailable';
-  return (await storedNoteKey(accountId)) ? 'on' : 'off';
+  if (!ICloudNotes || !icloudContainer()) return "unavailable";
+  return (await storedNoteKey(accountId)) ? "on" : "off";
 }
 
 export async function listenToComputer(accountId: string): Promise<void> {
-  if (!ICloudNotes) throw new Error('This build of Statim cannot reach iCloud.');
+  if (!ICloudNotes) throw new Error("This build of Statim cannot reach iCloud.");
   if (!(await ICloudNotes.available(ICLOUD_CONTAINER))) {
-    throw new Error('Sign in to iCloud in the Settings app first.');
+    throw new Error("Sign in to iCloud in the Settings app first.");
   }
   const key = await rememberNoteKey(accountId);
   try {

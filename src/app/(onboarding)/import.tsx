@@ -1,40 +1,39 @@
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { KeyboardAvoidingView, View } from 'react-native';
-import Animated from 'react-native-reanimated';
-
-import { Button, Enter, Field, IconButton, Screen, Text } from '@/design';
-import { useAccountStore } from '@/core/account/account-store';
-import { isValidMnemonic, normalizeMnemonic } from '@/core/account/keyring';
-import { errorMessage } from '@/core/errors';
-import { useBack } from '@/features/navigation/use-back';
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import { KeyboardAvoidingView, View } from "react-native";
+import Animated from "react-native-reanimated";
+import { useAccountStore } from "@/core/account/account-store";
+import { isValidMnemonic, normalizeMnemonic } from "@/core/account/keyring";
+import { errorMessage } from "@/core/errors";
+import { Button, Enter, Field, IconButton, Screen, Text } from "@/design";
+import { useBack } from "@/features/navigation/use-back";
 
 export default function ImportAccount() {
   const router = useRouter();
-  const goBack = useBack('/(onboarding)/welcome');
+  const goBack = useBack("/(onboarding)/welcome");
   const adoptAccount = useAccountStore((s) => s.adoptAccount);
 
-  const [phrase, setPhrase] = useState('');
+  const [phrase, setPhrase] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const wordCount = phrase.trim() ? normalizeMnemonic(phrase).split(' ').length : 0;
+  const wordCount = phrase.trim() ? normalizeMnemonic(phrase).split(" ").length : 0;
   const looksComplete = wordCount === 12 || wordCount === 24;
 
   async function submit() {
     setError(null);
 
     if (!isValidMnemonic(phrase)) {
-      setError('That phrase is not valid. Check for typos and that the words are in order.');
+      setError("That phrase is not valid. Check for typos and that the words are in order.");
       return;
     }
 
     setBusy(true);
     try {
       await adoptAccount(phrase);
-      router.replace('/chats');
+      router.replace("/chats");
     } catch (e) {
-      setError(errorMessage(e, 'Could not restore that account'));
+      setError(errorMessage(e, "Could not restore that account"));
       setBusy(false);
     }
   }
@@ -53,9 +52,7 @@ export default function ImportAccount() {
         <Animated.View entering={Enter.content()} className="gap-4 pt-4">
           <View className="gap-1.5">
             <Text variant="headline">Restore your account</Text>
-            <Text variant="bodyMuted">
-              Enter the 12 or 24 word recovery phrase. It never leaves this device.
-            </Text>
+            <Text variant="bodyMuted">Enter the 12 or 24 word recovery phrase. It never leaves this device.</Text>
           </View>
 
           <Field
@@ -67,7 +64,7 @@ export default function ImportAccount() {
               if (error) setError(null);
             }}
             error={error ?? undefined}
-            hint={wordCount > 0 ? `${wordCount} words` : 'Separate each word with a space'}
+            hint={wordCount > 0 ? `${wordCount} words` : "Separate each word with a space"}
             multiline
             numberOfLines={4}
             autoCapitalize="none"

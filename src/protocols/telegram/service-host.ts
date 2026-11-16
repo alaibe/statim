@@ -1,8 +1,8 @@
-import type { ProtocolMessage, ProtocolChat } from '@/core/messaging/types';
+import type { ProtocolChat, ProtocolMessage } from "@/core/messaging/types";
 
-import type { TdApi } from './api';
-import type { TdDirectory } from './directory';
-import type { TdChat, TdMessage } from './types';
+import type { TdApi } from "./api";
+import type { TdDirectory } from "./directory";
+import type { TdChat, TdMessage } from "./types";
 
 export interface TelegramHost {
   api(): TdApi;

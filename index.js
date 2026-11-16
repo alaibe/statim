@@ -3,6 +3,6 @@
  * requiring the route modules pulls in viem and WalletConnect, which capture
  * `globalThis.crypto` as they evaluate.
  */
-import './src/polyfills';
+import "./src/polyfills";
 
-import 'expo-router/entry';
+import "expo-router/entry";

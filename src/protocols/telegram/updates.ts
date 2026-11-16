@@ -1,44 +1,44 @@
-import { withPosition } from './chats';
-import type { TdChat, TdChatUpdate } from './types';
+import { withPosition } from "./chats";
+import type { TdChat, TdChatUpdate } from "./types";
 
 export function patchChat(chat: TdChat, update: TdChatUpdate): void {
-  switch (update['@type']) {
-    case 'updateChatPosition':
+  switch (update["@type"]) {
+    case "updateChatPosition":
       chat.positions = withPosition(chat.positions, update.position);
       return;
-    case 'updateChatTitle':
+    case "updateChatTitle":
       chat.title = update.title;
       return;
-    case 'updateChatPhoto':
+    case "updateChatPhoto":
       chat.photo = update.photo;
       return;
-    case 'updateChatLastMessage':
+    case "updateChatLastMessage":
       chat.last_message = update.last_message ?? undefined;
       chat.positions = update.positions;
       return;
-    case 'updateChatReadInbox':
+    case "updateChatReadInbox":
       chat.unread_count = update.unread_count;
       return;
-    case 'updateChatReadOutbox':
+    case "updateChatReadOutbox":
       chat.last_read_outbox_message_id = update.last_read_outbox_message_id;
       return;
-    case 'updateChatUnreadMentionCount':
+    case "updateChatUnreadMentionCount":
       chat.unread_mention_count = update.unread_mention_count;
       return;
-    case 'updateChatPendingJoinRequests':
+    case "updateChatPendingJoinRequests":
       chat.pending_join_requests = update.pending_join_requests;
       return;
-    case 'updateChatDraftMessage':
+    case "updateChatDraftMessage":
       chat.draft_message = update.draft_message;
       chat.positions = update.positions;
       return;
-    case 'updateChatIsMarkedAsUnread':
+    case "updateChatIsMarkedAsUnread":
       chat.is_marked_as_unread = update.is_marked_as_unread;
       return;
-    case 'updateChatPermissions':
+    case "updateChatPermissions":
       chat.permissions = update.permissions;
       return;
-    case 'updateChatBlockList':
+    case "updateChatBlockList":
       chat.block_list = update.block_list;
       return;
   }
@@ -65,7 +65,7 @@ export class TypingTracker {
       setTimeout(() => {
         this.timers.delete(chatId);
         this.onLapse(chatId);
-      }, TYPING_TIMEOUT_MS)
+      }, TYPING_TIMEOUT_MS),
     );
   }
 

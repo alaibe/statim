@@ -1,8 +1,7 @@
-import { ScrollView, View } from 'react-native';
-
-import { Button, Icon, Pressable, Sheet, Text } from '@/design';
-import { contentPreview, formatTimestamp } from '@/core/messaging/preview';
-import type { ChatMessage } from '@/core/messaging/types';
+import { ScrollView, View } from "react-native";
+import { contentPreview, formatTimestamp } from "@/core/messaging/preview";
+import type { ChatMessage } from "@/core/messaging/types";
+import { Button, Icon, Pressable, Sheet, Text } from "@/design";
 
 export function PinnedMessages({
   messages,
@@ -29,11 +28,12 @@ export function PinnedMessages({
         accessibilityLabel={`View ${messages.length} pinned messages`}
         onPress={onOpen}
         style={{ top }}
-        className="absolute left-3 right-3 z-[9] flex-row items-center gap-2 rounded-card border border-line bg-surface-raised px-3 py-2 shadow-sm">
+        className="absolute left-3 right-3 z-[9] flex-row items-center gap-2 rounded-card border border-line bg-surface-raised px-3 py-2 shadow-sm"
+      >
         <Icon name="pin-outline" size={17} tone="brand" />
         <View className="min-w-0 flex-1">
           <Text variant="micro" className="font-semibold text-brand">
-            {messages.length === 1 ? 'Pinned message' : `${messages.length} pinned messages`}
+            {messages.length === 1 ? "Pinned message" : `${messages.length} pinned messages`}
           </Text>
           <Text variant="caption" numberOfLines={1}>
             {contentPreview(newest.content)}
@@ -47,17 +47,9 @@ export function PinnedMessages({
             <View key={message.id} className="gap-1 border-b border-line px-4 py-3">
               <Text variant="micro">{formatTimestamp(message.sentAt)}</Text>
               <Text selectable>
-                {message.content.kind === 'text'
-                  ? message.content.text
-                  : contentPreview(message.content)}
+                {message.content.kind === "text" ? message.content.text : contentPreview(message.content)}
               </Text>
-              <Button
-                label="Unpin"
-                tone="ghost"
-                size="sm"
-                onPress={() => onUnpin(message)}
-                className="self-start"
-              />
+              <Button label="Unpin" tone="ghost" size="sm" onPress={() => onUnpin(message)} className="self-start" />
             </View>
           ))}
         </ScrollView>

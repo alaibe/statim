@@ -1,28 +1,22 @@
-import { FlashList } from '@shopify/flash-list';
-import { clearSharedPayloads, getSharedPayloads, type SharePayload } from 'expo-sharing';
-import { useState } from 'react';
+import { FlashList } from "@shopify/flash-list";
+import { clearSharedPayloads, getSharedPayloads, type SharePayload } from "expo-sharing";
+import { useState } from "react";
+import { useAccountStore } from "@/core/account/account-store";
+import { errorMessage } from "@/core/errors";
+import { sessionFor, useChatStore } from "@/core/messaging/chat-store";
+import { draftKey } from "@/core/messaging/drafts";
+import { chatPermissions } from "@/core/messaging/permissions";
+import type { Chat } from "@/core/messaging/types";
+import { EmptyState, ListItem, Loading, ModalHeader, Screen, toast } from "@/design";
+import { openChatFromSheet } from "@/features/navigation/open";
+import { useBack } from "@/features/navigation/use-back";
 
-import { EmptyState, ListItem, Loading, ModalHeader, Screen, toast } from '@/design';
-import { useAccountStore } from '@/core/account/account-store';
-import { sessionFor, useChatStore } from '@/core/messaging/chat-store';
-import { draftKey } from '@/core/messaging/drafts';
-import { chatPermissions } from '@/core/messaging/permissions';
-import type { Chat } from '@/core/messaging/types';
-import { errorMessage } from '@/core/errors';
-import { openChatFromSheet } from '@/features/navigation/open';
-import { useBack } from '@/features/navigation/use-back';
-
-import {
-  contentFromShare,
-  deleteSharedFiles,
-  isSharedText,
-  sharedText,
-} from './attachments/shared-content';
-import { ChatAvatar } from './chat-avatar';
-import { useChatTitles } from './use-display-names';
+import { contentFromShare, deleteSharedFiles, isSharedText, sharedText } from "./attachments/shared-content";
+import { ChatAvatar } from "./chat-avatar";
+import { useChatTitles } from "./use-display-names";
 
 export function ShareScreen() {
-  const goBack = useBack('/');
+  const goBack = useBack("/");
   const status = useAccountStore((s) => s.status);
   const [shared] = useState(getSharedPayloads);
   const text = sharedText(shared);
@@ -35,11 +29,11 @@ export function ShareScreen() {
   };
 
   return (
-    <Screen className="px-0" edges={['top', 'bottom']}>
+    <Screen className="px-0" edges={["top", "bottom"]}>
       <ModalHeader title="Send to" onClose={close} className="px-gutter" />
-      {status === 'loading' ? (
+      {status === "loading" ? (
         <Loading className="flex-1" />
-      ) : status !== 'ready' ? (
+      ) : status !== "ready" ? (
         <EmptyState
           icon="person-circle-outline"
           title="No account yet"
@@ -49,7 +43,7 @@ export function ShareScreen() {
         <EmptyState icon="paper-plane-outline" title="Nothing to send" />
       ) : (
         <ChatPicker
-          photos={files.some((p) => p.shareType === 'image')}
+          photos={files.some((p) => p.shareType === "image")}
           onPick={(chat) => {
             clearSharedPayloads();
             if (text) appendToDraft(chat, text);
@@ -103,7 +97,7 @@ async function sendFiles(chat: Chat, files: SharePayload[]) {
       await sendMessage(chat.id, await contentFromShare(file, can));
     }
   } catch (e) {
-    toast.error(errorMessage(e, 'Could not send that'));
+    toast.error(errorMessage(e, "Could not send that"));
   } finally {
     deleteSharedFiles(files);
   }

@@ -1,23 +1,23 @@
-import { isLocalChat } from './bots';
-import { type ChatPrefsMap, prefsFor } from './chat-prefs';
-import { LOCAL_PROTOCOL, type ProtocolId } from './namespace';
-import { isBridgedNetwork, type NetworkId } from './networks';
-import { hasUnreadMentions, isSilenced, isUnread } from './unread';
-import type { Chat, ChatId } from './types';
+import { isLocalChat } from "./bots";
+import { type ChatPrefsMap, prefsFor } from "./chat-prefs";
+import { LOCAL_PROTOCOL, type ProtocolId } from "./namespace";
+import { isBridgedNetwork, type NetworkId } from "./networks";
+import type { Chat, ChatId } from "./types";
+import { hasUnreadMentions, isSilenced, isUnread } from "./unread";
 
-export type Folder = 'archive' | 'blocked' | NetworkId;
+export type Folder = "archive" | "blocked" | NetworkId;
 
-export function isOwnFolder(folder: Folder): folder is 'archive' | 'blocked' {
-  return folder === 'archive' || folder === 'blocked';
+export function isOwnFolder(folder: Folder): folder is "archive" | "blocked" {
+  return folder === "archive" || folder === "blocked";
 }
 
 /** The protocol a network folder's chats arrive over; every bridge sits on Matrix. */
 export function folderProtocol(folder: Folder | null): ProtocolId | undefined {
   if (!folder || isOwnFolder(folder)) return undefined;
-  return isBridgedNetwork(folder) ? 'matrix' : folder;
+  return isBridgedNetwork(folder) ? "matrix" : folder;
 }
 
-export type ChatFilter = 'all' | 'unread' | 'mentions' | 'dms' | 'groups';
+export type ChatFilter = "all" | "unread" | "mentions" | "dms" | "groups";
 
 export interface FilterContext {
   prefs: ChatPrefsMap;
@@ -25,8 +25,8 @@ export interface FilterContext {
 }
 
 export type ChatListRow =
-  | { kind: 'chat'; chat: Chat }
-  | { kind: 'folder'; folder: Folder; latest: Chat; chats: Chat[] };
+  | { kind: "chat"; chat: Chat }
+  | { kind: "folder"; folder: Folder; latest: Chat; chats: Chat[] };
 
 export function splitRequests(chats: readonly Chat[]): {
   accepted: Chat[];
@@ -36,8 +36,8 @@ export function splitRequests(chats: readonly Chat[]): {
   const split = { accepted: [] as Chat[], requests: [] as Chat[], blocked: [] as Chat[] };
   for (const chat of chats) {
     if (chat.blocked) split.blocked.push(chat);
-    else if (chat.consent === 'accepted') split.accepted.push(chat);
-    else if (chat.consent === 'request') split.requests.push(chat);
+    else if (chat.consent === "accepted") split.accepted.push(chat);
+    else if (chat.consent === "request") split.requests.push(chat);
   }
   return split;
 }
@@ -52,7 +52,7 @@ const chatRows = new WeakMap<Chat, ChatListRow>();
 export function chatRow(chat: Chat): ChatListRow {
   let row = chatRows.get(chat);
   if (!row) {
-    row = { kind: 'chat', chat };
+    row = { kind: "chat", chat };
     chatRows.set(chat, row);
   }
   return row;
@@ -63,23 +63,23 @@ export function isUnreadHere(chat: Chat, context: FilterContext): boolean {
 }
 
 /** Archived and blocked chats keep to a folder of their own; a blocked one stays in Blocked. */
-export function ownFolder(chat: Chat, prefs: ChatPrefsMap): 'archive' | 'blocked' | null {
-  if (chat.blocked) return 'blocked';
-  return prefsFor(prefs, chat.id).archived ? 'archive' : null;
+export function ownFolder(chat: Chat, prefs: ChatPrefsMap): "archive" | "blocked" | null {
+  if (chat.blocked) return "blocked";
+  return prefsFor(prefs, chat.id).archived ? "archive" : null;
 }
 
 export function matchesFilter(chat: Chat, filter: ChatFilter, context: FilterContext): boolean {
   switch (filter) {
-    case 'all':
+    case "all":
       return true;
-    case 'unread':
+    case "unread":
       return isUnreadHere(chat, context);
-    case 'mentions':
+    case "mentions":
       return hasUnreadMentions(chat, context.readAt);
-    case 'dms':
-      return chat.kind === 'dm' && !isLocalChat(chat.id);
-    case 'groups':
-      return chat.kind === 'group' || chat.kind === 'channel';
+    case "dms":
+      return chat.kind === "dm" && !isLocalChat(chat.id);
+    case "groups":
+      return chat.kind === "group" || chat.kind === "channel";
   }
 }
 
@@ -89,11 +89,7 @@ export function inFolder(chat: Chat, folder: Folder, context: FilterContext): bo
 }
 
 /** A pinned chat stays out of its network's folder, since pinning asks to see it. */
-export function homeFolder(
-  chat: Chat,
-  prefs: ChatPrefsMap,
-  folded: (network: NetworkId) => boolean
-): Folder | null {
+export function homeFolder(chat: Chat, prefs: ChatPrefsMap, folded: (network: NetworkId) => boolean): Folder | null {
   const own = ownFolder(chat, prefs);
   if (own) return own;
   const network = networkOf(chat);
@@ -105,10 +101,10 @@ export function chatListRows(
   ordered: Chat[],
   include: (chat: Chat) => boolean,
   folded: (network: NetworkId) => boolean,
-  context: FilterContext
+  context: FilterContext,
 ): ChatListRow[] {
   const rows: ChatListRow[] = [];
-  const folders = new Map<Folder, Extract<ChatListRow, { kind: 'folder' }>>();
+  const folders = new Map<Folder, Extract<ChatListRow, { kind: "folder" }>>();
   for (const chat of ordered) {
     if (!include(chat)) continue;
     const folder = homeFolder(chat, context.prefs, folded);
@@ -121,18 +117,18 @@ export function chatListRows(
       existing.chats.push(chat);
       continue;
     }
-    const row: Extract<ChatListRow, { kind: 'folder' }> = {
-      kind: 'folder',
+    const row: Extract<ChatListRow, { kind: "folder" }> = {
+      kind: "folder",
       folder,
       latest: chat,
       chats: [chat],
     };
     folders.set(folder, row);
-    if (folder !== 'archive' && folder !== 'blocked') rows.push(row);
+    if (folder !== "archive" && folder !== "blocked") rows.push(row);
   }
-  const own = (folder: 'archive' | 'blocked') => {
+  const own = (folder: "archive" | "blocked") => {
     const row = folders.get(folder);
     return row ? [row] : [];
   };
-  return [...own('archive'), ...rows, ...own('blocked')];
+  return [...own("archive"), ...rows, ...own("blocked")];
 }

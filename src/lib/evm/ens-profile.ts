@@ -1,33 +1,33 @@
-import type { Address } from 'viem';
-import { mainnet } from 'viem/chains';
+import type { Address } from "viem";
+import { mainnet } from "viem/chains";
 
-import { publicClientFor } from './chains';
-import { lookupName } from './ens';
-import { ensProfiles, type StoredEnsProfile } from './ens-cache';
-import { viemEns } from './viem-ens';
+import { publicClientFor } from "./chains";
+import { lookupName } from "./ens";
+import { ensProfiles, type StoredEnsProfile } from "./ens-cache";
+import { viemEns } from "./viem-ens";
 
-const BASE_REGISTRAR = '0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85' as const;
+const BASE_REGISTRAR = "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85" as const;
 
 const NAME_EXPIRES_ABI = [
   {
-    name: 'nameExpires',
-    type: 'function',
-    stateMutability: 'view',
-    inputs: [{ name: 'id', type: 'uint256' }],
-    outputs: [{ name: '', type: 'uint256' }],
+    name: "nameExpires",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "id", type: "uint256" }],
+    outputs: [{ name: "", type: "uint256" }],
   },
 ] as const;
 
 async function ensPaidUntil(name: string): Promise<Date | null> {
-  const parts = name.toLowerCase().split('.');
-  if (parts.length !== 2 || parts[1] !== 'eth') return null;
+  const parts = name.toLowerCase().split(".");
+  if (parts.length !== 2 || parts[1] !== "eth") return null;
 
   try {
     const { labelhash } = viemEns();
     const expiry = await ensClient().readContract({
       address: BASE_REGISTRAR,
       abi: NAME_EXPIRES_ABI,
-      functionName: 'nameExpires',
+      functionName: "nameExpires",
       args: [BigInt(labelhash(parts[0]))],
     });
     return expiry > 0n ? new Date(Number(expiry) * 1000) : null;
@@ -48,7 +48,7 @@ function ensClient() {
   return publicClientFor(mainnet.id);
 }
 
-const TEXT_KEYS = ['description', 'url'] as const;
+const TEXT_KEYS = ["description", "url"] as const;
 
 export async function resolveEnsProfile(address: Address): Promise<EnsProfile | null> {
   try {

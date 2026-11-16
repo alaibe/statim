@@ -1,28 +1,28 @@
-import { PROTOCOL_IDS, type ProtocolId } from './namespace';
+import { PROTOCOL_IDS, type ProtocolId } from "./namespace";
 
 export const BRIDGED_NETWORKS = {
-  whatsapp: 'WhatsApp',
-  signal: 'Signal',
-  messenger: 'Messenger',
-  instagram: 'Instagram',
-  slack: 'Slack',
-  discord: 'Discord',
-  googlemessages: 'Google Messages',
-  imessage: 'iMessage',
-  x: 'X',
-  bluesky: 'Bluesky',
-  linkedin: 'LinkedIn',
-  googlechat: 'Google Chat',
-  googlevoice: 'Google Voice',
+  whatsapp: "WhatsApp",
+  signal: "Signal",
+  messenger: "Messenger",
+  instagram: "Instagram",
+  slack: "Slack",
+  discord: "Discord",
+  googlemessages: "Google Messages",
+  imessage: "iMessage",
+  x: "X",
+  bluesky: "Bluesky",
+  linkedin: "LinkedIn",
+  googlechat: "Google Chat",
+  googlevoice: "Google Voice",
 } as const;
 
 export type BridgedNetwork = keyof typeof BRIDGED_NETWORKS;
 
 /** Where to send the user to answer a call the bridge cannot carry. */
 export const NETWORK_APPS: Partial<Record<BridgedNetwork, string>> = {
-  whatsapp: 'whatsapp://',
-  signal: 'sgnl://',
-  discord: 'https://discord.com/channels/@me',
+  whatsapp: "whatsapp://",
+  signal: "sgnl://",
+  discord: "https://discord.com/channels/@me",
 };
 
 export type NetworkId = ProtocolId | BridgedNetwork;

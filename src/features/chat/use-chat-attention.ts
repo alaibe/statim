@@ -1,18 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
-import { assistanceLines, canAssist, replyNeeded } from '@/core/ai/chat-assistance';
-import type { AiConfig } from '@/core/ai/config';
-import type { ReplyKind } from '@/core/ai/reply-decision';
-import type { Chat } from '@/core/messaging/types';
-import { useReplyKey } from './use-reply-key';
+import { assistanceLines, canAssist, replyNeeded } from "@/core/ai/chat-assistance";
+import type { AiConfig } from "@/core/ai/config";
+import type { ReplyKind } from "@/core/ai/reply-decision";
+import type { Chat } from "@/core/messaging/types";
+import { useReplyKey } from "./use-reply-key";
 
 export function useChatAttention(chat: Chat, config: AiConfig | undefined): ReplyKind | null {
-  const { accountId, kind, key } = useReplyKey(
-    chat.id,
-    chat.lastMessage,
-    config?.followUps === true
-  );
-  const checking = (kind === 'follow-up' || config?.replyBadges === true) && canAssist(chat);
+  const { accountId, kind, key } = useReplyKey(chat.id, chat.lastMessage, config?.followUps === true);
+  const checking = (kind === "follow-up" || config?.replyBadges === true) && canAssist(chat);
   const [result, setResult] = useState<{ key: string; needed: boolean | null } | null>(null);
   const decided = result?.key === key && result.needed !== null;
 

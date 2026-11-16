@@ -1,12 +1,12 @@
-import { useColorScheme } from 'nativewind';
+import { useColorScheme } from "nativewind";
 
-import { colorsFor, type ResolvedColors, type ThemeName } from '../tokens';
+import { colorsFor, type ResolvedColors, type ThemeName } from "../tokens";
 
 export type ThemeColors = ResolvedColors & { scheme: ThemeName };
 
 const THEMES: Record<ThemeName, ThemeColors> = {
-  light: { ...colorsFor('light'), scheme: 'light' },
-  dark: { ...colorsFor('dark'), scheme: 'dark' },
+  light: { ...colorsFor("light"), scheme: "light" },
+  dark: { ...colorsFor("dark"), scheme: "dark" },
 };
 
 /**
@@ -15,5 +15,5 @@ const THEMES: Record<ThemeName, ThemeColors> = {
  */
 export function useThemeColors(): ThemeColors {
   const { colorScheme } = useColorScheme();
-  return THEMES[colorScheme === 'dark' ? 'dark' : 'light'];
+  return THEMES[colorScheme === "dark" ? "dark" : "light"];
 }

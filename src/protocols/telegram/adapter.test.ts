@@ -1,7 +1,7 @@
-import type { LoginState } from '@/core/messaging/protocol';
-import type { ProtocolMessage, ProtocolChat } from '@/core/messaging/types';
-import { TelegramSession } from './adapter';
-import { chatIdOf, messageIdOf } from './ids';
+import type { LoginState } from "@/core/messaging/protocol";
+import type { ProtocolChat, ProtocolMessage } from "@/core/messaging/types";
+import { TelegramSession } from "./adapter";
+import { chatIdOf, messageIdOf } from "./ids";
 import {
   authState,
   channelChat,
@@ -14,25 +14,25 @@ import {
   tdError,
   textMessage,
   user,
-} from './testing/fake-tdlib';
+} from "./testing/fake-tdlib";
 
 /**
  * The Telegram adapter against a scripted TDLib. What matters here is the
  * mapping and the sign-in state machine; TDLib itself is not under test.
  */
 
-const ME = user(100, 'Me', '', 'me_user');
-const BOB = user(200, 'Bob', 'Builder', 'bob');
-const CAROL = user(300, 'Carol');
+const ME = user(100, "Me", "", "me_user");
+const BOB = user(200, "Bob", "Builder", "bob");
+const CAROL = user(300, "Carol");
 
 const PARAMETERS = {
-  databaseDirectory: '/tmp/tdlib',
+  databaseDirectory: "/tmp/tdlib",
   apiId: 1,
-  apiHash: 'hash',
-  databaseEncryptionKey: 'a2V5',
-  deviceModel: 'test',
-  systemVersion: '1',
-  applicationVersion: '1',
+  apiHash: "hash",
+  databaseEncryptionKey: "a2V5",
+  deviceModel: "test",
+  systemVersion: "1",
+  applicationVersion: "1",
 };
 
 async function connect() {
@@ -40,9 +40,9 @@ async function connect() {
   const session = await TelegramSession.connect({
     createApi: async () => {
       const api = new FakeTdlib();
-      api.answer('getMe', ME);
-      api.answer('loadChats', tdError(404, 'Not Found'));
-      api.answer('getChats', { '@type': 'chats', chat_ids: [] });
+      api.answer("getMe", ME);
+      api.answer("loadChats", tdError(404, "Not Found"));
+      api.answer("getChats", { "@type": "chats", chat_ids: [] });
       apis.push(api);
       return api;
     },
@@ -52,7 +52,7 @@ async function connect() {
 }
 
 async function signIn(td: FakeTdlib) {
-  td.emit(authState('authorizationStateReady'));
+  td.emit(authState("authorizationStateReady"));
   await flush();
 }
 
@@ -62,121 +62,121 @@ function trackLogin(session: TelegramSession) {
   return states;
 }
 
-describe('TelegramSession sign-in', () => {
-  it('sends TDLib parameters with the caller’s directory and key', async () => {
+describe("TelegramSession sign-in", () => {
+  it("sends TDLib parameters with the caller’s directory and key", async () => {
     const { td } = await connect();
-    const [params] = td().requests('setTdlibParameters');
+    const [params] = td().requests("setTdlibParameters");
     expect(params).toMatchObject({
-      database_directory: '/tmp/tdlib',
+      database_directory: "/tmp/tdlib",
       api_id: 1,
-      api_hash: 'hash',
-      database_encryption_key: 'a2V5',
+      api_hash: "hash",
+      database_encryption_key: "a2V5",
       use_secret_chats: false,
     });
   });
 
-  it('walks phone, code and password, then knows who it is', async () => {
+  it("walks phone, code and password, then knows who it is", async () => {
     const { session, td } = await connect();
     const states = trackLogin(session);
 
-    td().emit(authState('authorizationStateWaitPhoneNumber'));
+    td().emit(authState("authorizationStateWaitPhoneNumber"));
     await flush();
-    expect(states.at(-1)).toMatchObject({ step: 'phone' });
-    expect(session.self).toEqual({ participantId: '', address: '' });
+    expect(states.at(-1)).toMatchObject({ step: "phone" });
+    expect(session.self).toEqual({ participantId: "", address: "" });
 
-    await session.submitLogin(' +44123 ');
-    expect(td().requests('setAuthenticationPhoneNumber')[0]).toMatchObject({
-      phone_number: '+44123',
+    await session.submitLogin(" +44123 ");
+    expect(td().requests("setAuthenticationPhoneNumber")[0]).toMatchObject({
+      phone_number: "+44123",
     });
 
     td().emit(
-      authState('authorizationStateWaitCode', {
-        code_info: { type: { '@type': 'authenticationCodeTypeTelegramMessage' } },
-      })
+      authState("authorizationStateWaitCode", {
+        code_info: { type: { "@type": "authenticationCodeTypeTelegramMessage" } },
+      }),
     );
     await flush();
     expect(states.at(-1)).toMatchObject({
-      step: 'code',
-      hint: expect.stringContaining('other signed-in devices'),
+      step: "code",
+      hint: expect.stringContaining("other signed-in devices"),
     });
 
-    await session.submitLogin('12345');
-    expect(td().requests('checkAuthenticationCode')[0]).toMatchObject({ code: '12345' });
+    await session.submitLogin("12345");
+    expect(td().requests("checkAuthenticationCode")[0]).toMatchObject({ code: "12345" });
 
-    td().emit(authState('authorizationStateWaitPassword', { password_hint: 'pet' }));
+    td().emit(authState("authorizationStateWaitPassword", { password_hint: "pet" }));
     await flush();
-    expect(states.at(-1)).toMatchObject({ step: 'password', hint: expect.stringContaining('pet') });
+    expect(states.at(-1)).toMatchObject({ step: "password", hint: expect.stringContaining("pet") });
 
-    await session.submitLogin('hunter2');
-    expect(td().requests('checkAuthenticationPassword')[0]).toMatchObject({ password: 'hunter2' });
+    await session.submitLogin("hunter2");
+    expect(td().requests("checkAuthenticationPassword")[0]).toMatchObject({ password: "hunter2" });
 
     await signIn(td());
     expect(states.at(-1)).toBeNull();
-    expect(session.self).toEqual({ participantId: '100', address: '@me_user' });
-    expect(td().requests('setOption')[0]).toMatchObject({ name: 'online' });
+    expect(session.self).toEqual({ participantId: "100", address: "@me_user" });
+    expect(td().requests("setOption")[0]).toMatchObject({ name: "online" });
   });
 
-  it('translates TDLib’s auth errors and keeps the step', async () => {
+  it("translates TDLib’s auth errors and keeps the step", async () => {
     const { session, td } = await connect();
     const states = trackLogin(session);
     td().emit(
-      authState('authorizationStateWaitCode', {
-        code_info: { type: { '@type': 'authenticationCodeTypeSms' } },
-      })
+      authState("authorizationStateWaitCode", {
+        code_info: { type: { "@type": "authenticationCodeTypeSms" } },
+      }),
     );
     await flush();
 
-    td().answer('checkAuthenticationCode', tdError(400, 'PHONE_CODE_INVALID'));
-    await expect(session.submitLogin('0000')).rejects.toThrow('That code is not right.');
-    expect(states.at(-1)).toMatchObject({ step: 'code', error: 'That code is not right.' });
+    td().answer("checkAuthenticationCode", tdError(400, "PHONE_CODE_INVALID"));
+    await expect(session.submitLogin("0000")).rejects.toThrow("That code is not right.");
+    expect(states.at(-1)).toMatchObject({ step: "code", error: "That code is not right." });
 
-    td().answer('checkAuthenticationCode', tdError(429, 'Too Many Requests: retry after 30'));
-    await expect(session.submitLogin('0000')).rejects.toThrow('Wait 30 seconds');
+    td().answer("checkAuthenticationCode", tdError(429, "Too Many Requests: retry after 30"));
+    await expect(session.submitLogin("0000")).rejects.toThrow("Wait 30 seconds");
   });
 
-  it('starts over when the number has no account, and says why', async () => {
+  it("starts over when the number has no account, and says why", async () => {
     const { session, apis, td } = await connect();
     const states = trackLogin(session);
 
-    td().emit(authState('authorizationStateWaitRegistration'));
+    td().emit(authState("authorizationStateWaitRegistration"));
     await flush();
-    expect(td().requests('destroy')).toHaveLength(1);
+    expect(td().requests("destroy")).toHaveLength(1);
 
-    td().emit(authState('authorizationStateClosed'));
+    td().emit(authState("authorizationStateClosed"));
     await flush();
     expect(apis).toHaveLength(2);
     expect(apis[0].closed).toBe(true);
 
-    td().emit(authState('authorizationStateWaitPhoneNumber'));
+    td().emit(authState("authorizationStateWaitPhoneNumber"));
     await flush();
     expect(states.at(-1)).toMatchObject({
-      step: 'phone',
-      error: expect.stringContaining('no Telegram account'),
+      step: "phone",
+      error: expect.stringContaining("no Telegram account"),
     });
   });
 
-  it('signs out through TDLib and comes back ready for a new sign-in', async () => {
+  it("signs out through TDLib and comes back ready for a new sign-in", async () => {
     const { session, apis, td } = await connect();
     await signIn(td());
-    expect(session.self.participantId).toBe('100');
+    expect(session.self.participantId).toBe("100");
 
     await session.signOut();
-    expect(td().requests('logOut')).toHaveLength(1);
+    expect(td().requests("logOut")).toHaveLength(1);
 
-    td().emit(authState('authorizationStateClosed'));
+    td().emit(authState("authorizationStateClosed"));
     await flush();
     expect(apis).toHaveLength(2);
-    expect(session.self.participantId).toBe('');
+    expect(session.self.participantId).toBe("");
 
-    td().emit(authState('authorizationStateWaitPhoneNumber'));
+    td().emit(authState("authorizationStateWaitPhoneNumber"));
     await flush();
   });
 
-  it('does not restart after disconnect or erase', async () => {
+  it("does not restart after disconnect or erase", async () => {
     const { session, apis, td } = await connect();
     await session.disconnect();
     expect(td().closed).toBe(true);
-    td().emit(authState('authorizationStateClosed'));
+    td().emit(authState("authorizationStateClosed"));
     await flush();
     expect(apis).toHaveLength(1);
 
@@ -186,79 +186,79 @@ describe('TelegramSession sign-in', () => {
   });
 });
 
-describe('TelegramSession chats', () => {
+describe("TelegramSession chats", () => {
   async function signedIn() {
     const context = await connect();
     await signIn(context.td());
-    context.td().emit({ '@type': 'updateUser', user: BOB });
-    context.td().emit({ '@type': 'updateUser', user: CAROL });
+    context.td().emit({ "@type": "updateUser", user: BOB });
+    context.td().emit({ "@type": "updateUser", user: CAROL });
     return context;
   }
 
-  it('loads group details, public links, and the chat photo', async () => {
+  it("loads group details, public links, and the chat photo", async () => {
     const { session, td } = await signedIn();
-    const channel = channelChat(9, 'News');
+    const channel = channelChat(9, "News");
     channel.photo = {
       small: {
-        '@type': 'file',
+        "@type": "file",
         id: 7,
         size: 12,
         local: {
-          path: '/tmp/news.jpg',
+          path: "/tmp/news.jpg",
           is_downloading_completed: true,
           is_downloading_active: false,
         },
       },
       big: {
-        '@type': 'file',
+        "@type": "file",
         id: 8,
         size: 12,
-        local: { path: '', is_downloading_completed: false, is_downloading_active: false },
+        local: { path: "", is_downloading_completed: false, is_downloading_active: false },
       },
     };
-    td().emit({ '@type': 'updateNewChat', chat: channel });
-    td().answer('getSupergroup', {
-      '@type': 'supergroup',
+    td().emit({ "@type": "updateNewChat", chat: channel });
+    td().answer("getSupergroup", {
+      "@type": "supergroup",
       id: 9,
-      usernames: { active_usernames: ['newsfeed'] },
+      usernames: { active_usernames: ["newsfeed"] },
       member_count: 27,
-      status: { '@type': 'chatMemberStatusMember' },
+      status: { "@type": "chatMemberStatusMember" },
       is_channel: true,
     });
-    td().answer('getSupergroupFullInfo', {
-      '@type': 'supergroupFullInfo',
-      description: 'Daily updates',
+    td().answer("getSupergroupFullInfo", {
+      "@type": "supergroupFullInfo",
+      description: "Daily updates",
       member_count: 27,
-      invite_link: { invite_link: 'https://t.me/+private' },
+      invite_link: { invite_link: "https://t.me/+private" },
     });
 
     expect(await session.getGroupInfo(chatIdOf(-1000000000009))).toEqual({
-      description: 'Daily updates',
-      link: 'https://t.me/newsfeed',
+      description: "Daily updates",
+      link: "https://t.me/newsfeed",
       memberCount: 27,
-      avatarUri: 'file:///tmp/news.jpg',
+      avatarUri: "file:///tmp/news.jpg",
     });
-    expect(td().requests('getSupergroupFullInfo')[0]).toMatchObject({ supergroup_id: 9 });
+    expect(td().requests("getSupergroupFullInfo")[0]).toMatchObject({ supergroup_id: 9 });
   });
 
-  it('shows and changes slow mode for a supergroup administrator with restriction rights', async () => {
+  it("shows and changes slow mode for a supergroup administrator with restriction rights", async () => {
     const { session, td } = await signedIn();
-    const group = channelChat(9, 'Team');
-    group.type = { '@type': 'chatTypeSupergroup', supergroup_id: 9, is_channel: false };
-    td().emit({ '@type': 'updateNewChat', chat: group });
-    td().answer('getSupergroup', {
-      '@type': 'supergroup',
+    const group = channelChat(9, "Team");
+    group.type = { "@type": "chatTypeSupergroup", supergroup_id: 9, is_channel: false };
+    td().emit({ "@type": "updateNewChat", chat: group });
+    td().answer("getSupergroup", {
+      "@type": "supergroup",
       id: 9,
       member_count: 12,
       status: {
-        '@type': 'chatMemberStatusAdministrator',
+        "@type": "chatMemberStatusAdministrator",
         rights: { can_restrict_members: true },
       },
       is_channel: false,
     });
-    td().answer('getSupergroupFullInfo', {
-      '@type': 'supergroupFullInfo',
-      description: 'Team chat',
+    td().answer("getSupergroupFullInfo", {
+      "@type": "supergroupFullInfo",
+      description: "Team chat",
       member_count: 12,
       slow_mode_delay: 30,
     });
@@ -268,371 +268,369 @@ describe('TelegramSession chats', () => {
       canSetSlowMode: true,
     });
     await session.setSlowModeDelay(chatIdOf(group.id), 60);
-    expect(td().requests('setChatSlowModeDelay')[0]).toMatchObject({
+    expect(td().requests("setChatSlowModeDelay")[0]).toMatchObject({
       chat_id: group.id,
       slow_mode_delay: 60,
     });
     await expect(session.setSlowModeDelay(chatIdOf(group.id), 7)).rejects.toThrow();
   });
 
-  it('says what an admin may do to messages, and what a member may not', async () => {
+  it("says what an admin may do to messages, and what a member may not", async () => {
     const { session, td } = await signedIn();
-    const group = channelChat(9, 'Team');
-    group.type = { '@type': 'chatTypeSupergroup', supergroup_id: 9, is_channel: false };
+    const group = channelChat(9, "Team");
+    group.type = { "@type": "chatTypeSupergroup", supergroup_id: 9, is_channel: false };
     group.permissions = { can_send_basic_messages: true, can_pin_messages: false };
     td().emit({
-      '@type': 'updateSupergroup',
+      "@type": "updateSupergroup",
       supergroup: {
-        '@type': 'supergroup',
+        "@type": "supergroup",
         id: 9,
         member_count: 3,
         status: {
-          '@type': 'chatMemberStatusAdministrator',
+          "@type": "chatMemberStatusAdministrator",
           rights: { can_delete_messages: true, can_pin_messages: false },
         },
         is_channel: false,
       },
     });
-    td().emit({ '@type': 'updateNewChat', chat: group });
-    td().answer('getChats', { '@type': 'chats', chat_ids: [group.id] });
+    td().emit({ "@type": "updateNewChat", chat: group });
+    td().answer("getChats", { "@type": "chats", chat_ids: [group.id] });
     const [admin] = await session.listChats();
     expect(admin).toMatchObject({ canPin: false, canDeleteOthers: true });
 
-    td().emit({ '@type': 'updateNewChat', chat: privateChat(200, 'Bob') });
-    td().answer('getChats', { '@type': 'chats', chat_ids: [200] });
+    td().emit({ "@type": "updateNewChat", chat: privateChat(200, "Bob") });
+    td().answer("getChats", { "@type": "chats", chat_ids: [200] });
     const [dm] = await session.listChats();
     expect(dm).toMatchObject({ canPin: true, canDeleteOthers: true });
 
     await session.deleteMessageForMe(chatIdOf(200), messageIdOf(200, 7));
-    expect(td().requests('deleteMessages')[0]).toMatchObject({
+    expect(td().requests("deleteMessages")[0]).toMatchObject({
       chat_id: 200,
       message_ids: [7],
       revoke: false,
     });
   });
 
-  it('previews and joins a public channel by its link', async () => {
+  it("previews and joins a public channel by its link", async () => {
     const { session, td } = await signedIn();
-    const previewChat = channelChat(9, 'News');
+    const previewChat = channelChat(9, "News");
     previewChat.positions = [];
-    td().answer('searchPublicChat', previewChat);
-    td().answer('getSupergroup', {
-      '@type': 'supergroup',
+    td().answer("searchPublicChat", previewChat);
+    td().answer("getSupergroup", {
+      "@type": "supergroup",
       id: 9,
       member_count: 27,
       join_by_request: true,
-      status: { '@type': 'chatMemberStatusLeft' },
+      status: { "@type": "chatMemberStatusLeft" },
       is_channel: true,
     });
-    td().answer('getSupergroupFullInfo', {
-      '@type': 'supergroupFullInfo',
-      description: 'Daily updates',
+    td().answer("getSupergroupFullInfo", {
+      "@type": "supergroupFullInfo",
+      description: "Daily updates",
       member_count: 27,
     });
-    td().answer('getChat', channelChat(9, 'News'));
+    td().answer("getChat", channelChat(9, "News"));
 
-    expect(await session.previewPublicChat('https://t.me/newsfeed')).toMatchObject({
-      id: '-1000000000009',
-      title: 'News',
-      kind: 'channel',
+    expect(await session.previewPublicChat("https://t.me/newsfeed")).toMatchObject({
+      id: "-1000000000009",
+      title: "News",
+      kind: "channel",
       joined: false,
       requiresApproval: true,
-      description: 'Daily updates',
+      description: "Daily updates",
     });
-    expect(td().requests('searchPublicChat')[0]).toMatchObject({ username: 'newsfeed' });
-    td().answer('joinChat', tdError(400, 'INVITE_REQUEST_SENT'));
-    expect(await session.joinPublicChat('-1000000000009')).toBeNull();
-    td().answer('joinChat', { '@type': 'ok' });
-    expect(await session.joinPublicChat('-1000000000009')).toMatchObject({
-      id: '-1000000000009',
-      kind: 'channel',
+    expect(td().requests("searchPublicChat")[0]).toMatchObject({ username: "newsfeed" });
+    td().answer("joinChat", tdError(400, "INVITE_REQUEST_SENT"));
+    expect(await session.joinPublicChat("-1000000000009")).toBeNull();
+    td().answer("joinChat", { "@type": "ok" });
+    expect(await session.joinPublicChat("-1000000000009")).toMatchObject({
+      id: "-1000000000009",
+      kind: "channel",
     });
-    expect(td().requests('joinChat')[0]).toMatchObject({ chat_id: -1_000_000_000_009 });
+    expect(td().requests("joinChat")[0]).toMatchObject({ chat_id: -1_000_000_000_009 });
   });
 
-  it('previews invite links and treats approval requests as pending', async () => {
+  it("previews invite links and treats approval requests as pending", async () => {
     const { session, td } = await signedIn();
-    td().answer('checkChatInviteLink', {
-      '@type': 'chatInviteLinkInfo',
-      title: 'Members only',
-      description: 'Private updates',
+    td().answer("checkChatInviteLink", {
+      "@type": "chatInviteLinkInfo",
+      title: "Members only",
+      description: "Private updates",
       member_count: 12,
       creates_join_request: true,
-      type: { '@type': 'inviteLinkChatTypeChannel' },
+      type: { "@type": "inviteLinkChatTypeChannel" },
     });
-    expect(await session.previewPublicChat('t.me/+abc123')).toMatchObject({
-      id: 'https://t.me/+abc123',
+    expect(await session.previewPublicChat("t.me/+abc123")).toMatchObject({
+      id: "https://t.me/+abc123",
       joined: false,
-      title: 'Members only',
-      kind: 'channel',
+      title: "Members only",
+      kind: "channel",
       memberCount: 12,
       requiresApproval: true,
     });
-    td().answer('joinChatByInviteLink', tdError(400, 'INVITE_REQUEST_SENT'));
-    expect(await session.joinPublicChat('https://t.me/+abc123')).toBeNull();
-    expect(td().requests('joinChatByInviteLink')[0]).toMatchObject({
-      invite_link: 'https://t.me/+abc123',
+    td().answer("joinChatByInviteLink", tdError(400, "INVITE_REQUEST_SENT"));
+    expect(await session.joinPublicChat("https://t.me/+abc123")).toBeNull();
+    expect(td().requests("joinChatByInviteLink")[0]).toMatchObject({
+      invite_link: "https://t.me/+abc123",
     });
 
-    td().answer('joinChatByInviteLink', channelChat(10, 'Members only'));
-    expect(await session.joinPublicChat('https://t.me/+abc123')).toMatchObject({
-      id: '-1000000000010',
-      kind: 'channel',
+    td().answer("joinChatByInviteLink", channelChat(10, "Members only"));
+    expect(await session.joinPublicChat("https://t.me/+abc123")).toMatchObject({
+      id: "-1000000000010",
+      kind: "channel",
     });
   });
 
-  it('creates regular and approval invite links', async () => {
+  it("creates regular and approval invite links", async () => {
     const { session, td } = await signedIn();
-    td().answer('createChatInviteLink', {
-      '@type': 'chatInviteLink',
-      invite_link: 'https://t.me/+newlink',
+    td().answer("createChatInviteLink", {
+      "@type": "chatInviteLink",
+      invite_link: "https://t.me/+newlink",
     });
-    expect(await session.createInviteLink(chatIdOf(-5), false)).toBe('https://t.me/+newlink');
-    expect(await session.createInviteLink(chatIdOf(-5), true)).toBe('https://t.me/+newlink');
-    expect(td().requests('createChatInviteLink')).toEqual([
+    expect(await session.createInviteLink(chatIdOf(-5), false)).toBe("https://t.me/+newlink");
+    expect(await session.createInviteLink(chatIdOf(-5), true)).toBe("https://t.me/+newlink");
+    expect(td().requests("createChatInviteLink")).toEqual([
       expect.objectContaining({ chat_id: -5, creates_join_request: false, member_limit: 0 }),
       expect.objectContaining({ chat_id: -5, creates_join_request: true, member_limit: 0 }),
     ]);
   });
 
-  it('lists and processes administrator join requests', async () => {
+  it("lists and processes administrator join requests", async () => {
     const { session, td } = await signedIn();
-    td().answer('getChatJoinRequests', {
-      '@type': 'chatJoinRequests',
+    td().answer("getChatJoinRequests", {
+      "@type": "chatJoinRequests",
       total_count: 1,
-      requests: [{ '@type': 'chatJoinRequest', user_id: 200, date: 1_700_000_000, bio: 'Hi' }],
+      requests: [{ "@type": "chatJoinRequest", user_id: 200, date: 1_700_000_000, bio: "Hi" }],
     });
     expect(await session.getJoinRequests(chatIdOf(-5))).toEqual([
       {
-        participantId: '200',
-        name: 'Bob Builder',
-        bio: 'Hi',
+        participantId: "200",
+        name: "Bob Builder",
+        bio: "Hi",
         requestedAt: 1_700_000_000_000,
       },
     ]);
-    expect(td().requests('getChatJoinRequests')[0]).toMatchObject({ chat_id: -5, limit: 100 });
+    expect(td().requests("getChatJoinRequests")[0]).toMatchObject({ chat_id: -5, limit: 100 });
 
-    await session.processJoinRequest(chatIdOf(-5), '200', true);
-    await session.processJoinRequest(chatIdOf(-5), '200', false);
-    expect(td().requests('processChatJoinRequest')).toEqual([
+    await session.processJoinRequest(chatIdOf(-5), "200", true);
+    await session.processJoinRequest(chatIdOf(-5), "200", false);
+    expect(td().requests("processChatJoinRequest")).toEqual([
       expect.objectContaining({ chat_id: -5, user_id: 200, approve: true }),
       expect.objectContaining({ chat_id: -5, user_id: 200, approve: false }),
     ]);
   });
 
-  it('bans and mutes members, and says who is muted', async () => {
+  it("bans and mutes members, and says who is muted", async () => {
     const { session, td } = await signedIn();
-    td().answer('getBasicGroupFullInfo', {
-      '@type': 'basicGroupFullInfo',
+    td().answer("getBasicGroupFullInfo", {
+      "@type": "basicGroupFullInfo",
       members: [
         {
-          member_id: { '@type': 'messageSenderUser', user_id: 300 },
+          member_id: { "@type": "messageSenderUser", user_id: 300 },
           status: {
-            '@type': 'chatMemberStatusRestricted',
+            "@type": "chatMemberStatusRestricted",
             permissions: { can_send_basic_messages: false },
           },
         },
       ],
     });
-    td().emit({ '@type': 'updateNewChat', chat: groupChat(5, 'Builders') });
+    td().emit({ "@type": "updateNewChat", chat: groupChat(5, "Builders") });
     await flush();
-    expect(await session.getMembers(chatIdOf(-5))).toEqual([
-      { id: '300', role: 'member', muted: true },
-    ]);
+    expect(await session.getMembers(chatIdOf(-5))).toEqual([{ id: "300", role: "member", muted: true }]);
 
-    await session.setMemberMuted(chatIdOf(-5), '300', false);
-    await session.setMemberMuted(chatIdOf(-5), '300', true);
-    await session.banMember(chatIdOf(-5), '300');
+    await session.setMemberMuted(chatIdOf(-5), "300", false);
+    await session.setMemberMuted(chatIdOf(-5), "300", true);
+    await session.banMember(chatIdOf(-5), "300");
     expect(
       td()
-        .requests('setChatMemberStatus')
-        .map((r) => r.status)
+        .requests("setChatMemberStatus")
+        .map((r) => r.status),
     ).toEqual([
-      { '@type': 'chatMemberStatusMember', member_until_date: 0 },
+      { "@type": "chatMemberStatusMember", member_until_date: 0 },
       expect.objectContaining({
-        '@type': 'chatMemberStatusRestricted',
+        "@type": "chatMemberStatusRestricted",
         permissions: expect.objectContaining({ can_send_basic_messages: false }),
       }),
     ]);
-    expect(td().requests('banChatMember')[0]).toMatchObject({
+    expect(td().requests("banChatMember")[0]).toMatchObject({
       chat_id: -5,
-      member_id: { '@type': 'messageSenderUser', user_id: 300 },
+      member_id: { "@type": "messageSenderUser", user_id: 300 },
       banned_until_date: 0,
     });
   });
 
-  it('tells how far the other side has read, from TDLib’s read marker', async () => {
+  it("tells how far the other side has read, from TDLib’s read marker", async () => {
     const { session, td } = await signedIn();
-    const bob = privateChat(200, 'Bob Builder');
-    bob.last_message = textMessage(200, 9, 100, 'later', { outgoing: true, date: 900 });
+    const bob = privateChat(200, "Bob Builder");
+    bob.last_message = textMessage(200, 9, 100, "later", { outgoing: true, date: 900 });
     bob.last_read_outbox_message_id = 7;
-    td().emit({ '@type': 'updateNewChat', chat: bob });
-    td().answer('getChats', { '@type': 'chats', chat_ids: [200] });
-    td().answer('getMessage', textMessage(200, 7, 100, 'earlier', { outgoing: true, date: 700 }));
+    td().emit({ "@type": "updateNewChat", chat: bob });
+    td().answer("getChats", { "@type": "chats", chat_ids: [200] });
+    td().answer("getMessage", textMessage(200, 7, 100, "earlier", { outgoing: true, date: 700 }));
 
     expect((await session.listChats())[0].readUpTo).toBeUndefined();
-    td().answer('getChatHistory', { '@type': 'messages', total_count: 0, messages: [] });
+    td().answer("getChatHistory", { "@type": "messages", total_count: 0, messages: [] });
     await session.getMessages(chatIdOf(200));
     await flush();
     expect((await session.listChats())[0].readUpTo).toBe(700_000);
 
-    td().emit({ '@type': 'updateChatReadOutbox', chat_id: 200, last_read_outbox_message_id: 9 });
+    td().emit({ "@type": "updateChatReadOutbox", chat_id: 200, last_read_outbox_message_id: 9 });
     await flush();
     expect((await session.listChats())[0].readUpTo).toBe(900_000);
   });
 
-  it('lists private chats, groups, and channels in TDLib’s order', async () => {
+  it("lists private chats, groups, and channels in TDLib’s order", async () => {
     const { session, td } = await signedIn();
-    td().answer('getBasicGroupFullInfo', {
-      '@type': 'basicGroupFullInfo',
+    td().answer("getBasicGroupFullInfo", {
+      "@type": "basicGroupFullInfo",
       members: [
         {
-          member_id: { '@type': 'messageSenderUser', user_id: 100 },
-          status: { '@type': 'chatMemberStatusCreator' },
+          member_id: { "@type": "messageSenderUser", user_id: 100 },
+          status: { "@type": "chatMemberStatusCreator" },
         },
         {
-          member_id: { '@type': 'messageSenderUser', user_id: 200 },
-          status: { '@type': 'chatMemberStatusMember' },
+          member_id: { "@type": "messageSenderUser", user_id: 200 },
+          status: { "@type": "chatMemberStatusMember" },
         },
         {
-          member_id: { '@type': 'messageSenderUser', user_id: 300 },
-          status: { '@type': 'chatMemberStatusLeft' },
+          member_id: { "@type": "messageSenderUser", user_id: 300 },
+          status: { "@type": "chatMemberStatusLeft" },
         },
       ],
     });
     td().emit({
-      '@type': 'updateBasicGroup',
+      "@type": "updateBasicGroup",
       basic_group_id: 5,
       basic_group: {
-        '@type': 'basicGroup',
+        "@type": "basicGroup",
         id: 5,
         member_count: 2,
-        status: { '@type': 'chatMemberStatusCreator' },
+        status: { "@type": "chatMemberStatusCreator" },
       },
     });
-    const bob = privateChat(200, 'Bob Builder');
-    bob.last_message = textMessage(200, 7, 200, 'hi');
+    const bob = privateChat(200, "Bob Builder");
+    bob.last_message = textMessage(200, 7, 200, "hi");
     bob.unread_count = 4;
-    td().emit({ '@type': 'updateNewChat', chat: bob });
-    td().emit({ '@type': 'updateNewChat', chat: groupChat(5, 'Builders') });
-    td().emit({ '@type': 'updateNewChat', chat: channelChat(9, 'News') });
-    td().answer('getChats', { '@type': 'chats', chat_ids: [-5, -1_000_000_000_009, 200] });
+    td().emit({ "@type": "updateNewChat", chat: bob });
+    td().emit({ "@type": "updateNewChat", chat: groupChat(5, "Builders") });
+    td().emit({ "@type": "updateNewChat", chat: channelChat(9, "News") });
+    td().answer("getChats", { "@type": "chats", chat_ids: [-5, -1_000_000_000_009, 200] });
 
     const chats = await session.listChats();
     expect(chats.map((c) => [c.id, c.kind, c.title])).toEqual([
-      ['-5', 'group', 'Builders'],
-      ['-1000000000009', 'channel', 'News'],
-      ['200', 'dm', 'Bob Builder'],
+      ["-5", "group", "Builders"],
+      ["-1000000000009", "channel", "News"],
+      ["200", "dm", "Bob Builder"],
     ]);
     expect(chats[0]).toMatchObject({
-      memberIds: ['100'],
+      memberIds: ["100"],
       memberCount: 2,
-      selfRole: 'owner',
+      selfRole: "owner",
       canSend: true,
-      consent: 'accepted',
+      consent: "accepted",
     });
-    expect(td().requests('getBasicGroupFullInfo')).toEqual([]);
-    expect((await session.getMembers(chatIdOf(-5))).map((m) => m.id)).toEqual(['100', '200']);
-    expect((await session.listChats())[0].memberIds).toEqual(['100', '200']);
-    expect(chats[1]).toMatchObject({ memberIds: ['100'], canSend: false });
+    expect(td().requests("getBasicGroupFullInfo")).toEqual([]);
+    expect((await session.getMembers(chatIdOf(-5))).map((m) => m.id)).toEqual(["100", "200"]);
+    expect((await session.listChats())[0].memberIds).toEqual(["100", "200"]);
+    expect(chats[1]).toMatchObject({ memberIds: ["100"], canSend: false });
     expect(chats[2]).toMatchObject({
-      memberIds: ['200', '100'],
+      memberIds: ["200", "100"],
       canSend: true,
-      lastMessage: { id: '200_7', content: { kind: 'text', text: 'hi' } },
+      lastMessage: { id: "200_7", content: { kind: "text", text: "hi" } },
       unreadCount: 4,
     });
   });
 
-  it('lists accepted chats without exposing a request decision', async () => {
+  it("lists accepted chats without exposing a request decision", async () => {
     const { session, td } = await signedIn();
-    td().emit({ '@type': 'updateNewChat', chat: privateChat(200, 'Bob') });
-    td().answer('getChats', { '@type': 'chats', chat_ids: [200] });
-    expect((await session.listChats()).find((chat) => chat.id === '200')?.consent).toBe('accepted');
-    expect('setConsent' in session).toBe(false);
+    td().emit({ "@type": "updateNewChat", chat: privateChat(200, "Bob") });
+    td().answer("getChats", { "@type": "chats", chat_ids: [200] });
+    expect((await session.listChats()).find((chat) => chat.id === "200")?.consent).toBe("accepted");
+    expect("setConsent" in session).toBe(false);
   });
 
-  it('blocks the other participant of a DM and follows the block list TDLib reports', async () => {
+  it("blocks the other participant of a DM and follows the block list TDLib reports", async () => {
     const { session, td } = await signedIn();
-    td().emit({ '@type': 'updateNewChat', chat: privateChat(200, 'Bob') });
-    td().emit({ '@type': 'updateNewChat', chat: groupChat(5, 'Builders') });
+    td().emit({ "@type": "updateNewChat", chat: privateChat(200, "Bob") });
+    td().emit({ "@type": "updateNewChat", chat: groupChat(5, "Builders") });
 
     await session.setBlocked(chatIdOf(200), true);
     await session.setBlocked(chatIdOf(200), false);
-    await expect(session.setBlocked(chatIdOf(-5), true)).rejects.toThrow('only a DM');
-    expect(td().requests('setMessageSenderBlockList')).toEqual([
+    await expect(session.setBlocked(chatIdOf(-5), true)).rejects.toThrow("only a DM");
+    expect(td().requests("setMessageSenderBlockList")).toEqual([
       {
-        '@type': 'setMessageSenderBlockList',
-        sender_id: { '@type': 'messageSenderUser', user_id: 200 },
-        block_list: { '@type': 'blockListMain' },
+        "@type": "setMessageSenderBlockList",
+        sender_id: { "@type": "messageSenderUser", user_id: 200 },
+        block_list: { "@type": "blockListMain" },
       },
       {
-        '@type': 'setMessageSenderBlockList',
-        sender_id: { '@type': 'messageSenderUser', user_id: 200 },
+        "@type": "setMessageSenderBlockList",
+        sender_id: { "@type": "messageSenderUser", user_id: 200 },
         block_list: null,
       },
     ]);
 
-    td().answer('getChats', { '@type': 'chats', chat_ids: [200] });
+    td().answer("getChats", { "@type": "chats", chat_ids: [200] });
     const bob = async () => (await session.listChats())[0];
     expect((await bob()).blocked).toBeUndefined();
     td().emit({
-      '@type': 'updateChatBlockList',
+      "@type": "updateChatBlockList",
       chat_id: 200,
-      block_list: { '@type': 'blockListMain' },
+      block_list: { "@type": "blockListMain" },
     });
     expect((await bob()).blocked).toBe(true);
     td().emit({
-      '@type': 'updateChatBlockList',
+      "@type": "updateChatBlockList",
       chat_id: 200,
-      block_list: { '@type': 'blockListStories' },
+      block_list: { "@type": "blockListStories" },
     });
     expect((await bob()).blocked).toBeUndefined();
   });
 
-  it('lets a channel admin post only with the right to post', async () => {
+  it("lets a channel admin post only with the right to post", async () => {
     const { session, td } = await signedIn();
     const admin = (rights: { can_post_messages?: boolean }) =>
       td().emit({
-        '@type': 'updateSupergroup',
+        "@type": "updateSupergroup",
         supergroup: {
-          '@type': 'supergroup',
+          "@type": "supergroup",
           id: 9,
           member_count: 3,
           is_channel: true,
-          status: { '@type': 'chatMemberStatusAdministrator', rights },
+          status: { "@type": "chatMemberStatusAdministrator", rights },
         },
       });
     admin({});
-    td().emit({ '@type': 'updateNewChat', chat: channelChat(9, 'News') });
-    td().answer('getChats', { '@type': 'chats', chat_ids: [-1_000_000_000_009] });
+    td().emit({ "@type": "updateNewChat", chat: channelChat(9, "News") });
+    td().answer("getChats", { "@type": "chats", chat_ids: [-1_000_000_000_009] });
     expect((await session.listChats())[0].canSend).toBe(false);
 
     admin({ can_post_messages: true });
     expect((await session.listChats())[0].canSend).toBe(true);
   });
 
-  it('updates group posting rights when permissions change', async () => {
+  it("updates group posting rights when permissions change", async () => {
     const { session, td } = await signedIn();
     td().emit({
-      '@type': 'updateBasicGroup',
+      "@type": "updateBasicGroup",
       basic_group_id: 5,
       basic_group: {
-        '@type': 'basicGroup',
+        "@type": "basicGroup",
         id: 5,
         member_count: 2,
-        status: { '@type': 'chatMemberStatusMember' },
+        status: { "@type": "chatMemberStatusMember" },
       },
     });
-    const chat = groupChat(5, 'Builders');
+    const chat = groupChat(5, "Builders");
     chat.permissions = { can_send_basic_messages: false };
-    td().emit({ '@type': 'updateNewChat', chat });
-    td().answer('getChats', { '@type': 'chats', chat_ids: [-5] });
+    td().emit({ "@type": "updateNewChat", chat });
+    td().answer("getChats", { "@type": "chats", chat_ids: [-5] });
     expect((await session.listChats())[0].canSend).toBe(false);
 
     const seen: ProtocolChat[] = [];
     await session.streamChats((c) => seen.push(c));
     td().emit({
-      '@type': 'updateChatPermissions',
+      "@type": "updateChatPermissions",
       chat_id: -5,
       permissions: { can_send_basic_messages: true },
     });
@@ -640,42 +638,42 @@ describe('TelegramSession chats', () => {
     expect(seen.at(-1)?.canSend).toBe(true);
   });
 
-  it('announces a chat once for all the updates that touched it in one batch', async () => {
+  it("announces a chat once for all the updates that touched it in one batch", async () => {
     const { session, td } = await signedIn();
     const seen: ProtocolChat[] = [];
     await session.streamChats((c) => seen.push(c));
 
-    td().emit({ '@type': 'updateNewChat', chat: privateChat(200, 'Bob') });
-    td().emit({ '@type': 'updateChatTitle', chat_id: 200, title: 'Robert' });
+    td().emit({ "@type": "updateNewChat", chat: privateChat(200, "Bob") });
+    td().emit({ "@type": "updateChatTitle", chat_id: 200, title: "Robert" });
     td().emit({
-      '@type': 'updateUserStatus',
+      "@type": "updateUserStatus",
       user_id: 200,
-      status: { '@type': 'userStatusOnline' },
+      status: { "@type": "userStatusOnline" },
     });
     await flush();
 
-    expect(seen.map((c) => [c.title, c.online])).toEqual([['Robert', true]]);
+    expect(seen.map((c) => [c.title, c.online])).toEqual([["Robert", true]]);
   });
 
-  it('streams a chat when it lands in the main list, and again when its title changes', async () => {
+  it("streams a chat when it lands in the main list, and again when its title changes", async () => {
     const { session, td } = await signedIn();
     const seen: ProtocolChat[] = [];
     await session.streamChats((c) => seen.push(c));
 
-    td().emit({ '@type': 'updateNewChat', chat: privateChat(200, 'Bob', []) });
+    td().emit({ "@type": "updateNewChat", chat: privateChat(200, "Bob", []) });
     await flush();
     expect(seen).toHaveLength(0);
 
-    td().emit({ '@type': 'updateChatPosition', chat_id: 200, position: MAIN_POSITION });
+    td().emit({ "@type": "updateChatPosition", chat_id: 200, position: MAIN_POSITION });
     await flush();
-    expect(seen.map((c) => c.title)).toEqual(['Bob']);
+    expect(seen.map((c) => c.title)).toEqual(["Bob"]);
 
-    td().emit({ '@type': 'updateChatTitle', chat_id: 200, title: 'Robert' });
+    td().emit({ "@type": "updateChatTitle", chat_id: 200, title: "Robert" });
     await flush();
-    expect(seen.map((c) => c.title)).toEqual(['Bob', 'Robert']);
+    expect(seen.map((c) => c.title)).toEqual(["Bob", "Robert"]);
 
     td().emit({
-      '@type': 'updateChatReadInbox',
+      "@type": "updateChatReadInbox",
       chat_id: 200,
       last_read_inbox_message_id: 3,
       unread_count: 2,
@@ -684,7 +682,7 @@ describe('TelegramSession chats', () => {
     expect(seen.at(-1)?.unreadCount).toBe(2);
 
     td().emit({
-      '@type': 'updateChatUnreadMentionCount',
+      "@type": "updateChatUnreadMentionCount",
       chat_id: 200,
       unread_mention_count: 3,
     });
@@ -692,40 +690,40 @@ describe('TelegramSession chats', () => {
     expect(seen.at(-1)?.mentionCount).toBe(3);
   });
 
-  it('shows typing and the other participant’s online or last-seen status', async () => {
+  it("shows typing and the other participant’s online or last-seen status", async () => {
     const { session, td } = await signedIn();
     const seen: ProtocolChat[] = [];
     await session.streamChats((chat) => seen.push(chat));
-    td().emit({ '@type': 'updateNewChat', chat: privateChat(200, 'Bob') });
+    td().emit({ "@type": "updateNewChat", chat: privateChat(200, "Bob") });
     await flush();
 
     td().emit({
-      '@type': 'updateUserStatus',
+      "@type": "updateUserStatus",
       user_id: 200,
-      status: { '@type': 'userStatusOnline', expires: 1_700_000_000 },
+      status: { "@type": "userStatusOnline", expires: 1_700_000_000 },
     });
     await flush();
     expect(seen.at(-1)?.online).toBe(true);
 
     td().emit({
-      '@type': 'updateChatAction',
+      "@type": "updateChatAction",
       chat_id: 200,
-      sender_id: { '@type': 'messageSenderUser', user_id: 200 },
-      action: { '@type': 'chatActionTyping' },
+      sender_id: { "@type": "messageSenderUser", user_id: 200 },
+      action: { "@type": "chatActionTyping" },
     });
     await flush();
     expect(seen.at(-1)?.typing).toBe(true);
 
     td().emit({
-      '@type': 'updateChatAction',
+      "@type": "updateChatAction",
       chat_id: 200,
-      sender_id: { '@type': 'messageSenderUser', user_id: 200 },
-      action: { '@type': 'chatActionCancel' },
+      sender_id: { "@type": "messageSenderUser", user_id: 200 },
+      action: { "@type": "chatActionCancel" },
     });
     td().emit({
-      '@type': 'updateUserStatus',
+      "@type": "updateUserStatus",
       user_id: 200,
-      status: { '@type': 'userStatusOffline', was_online: 1_700_000_000 },
+      status: { "@type": "userStatusOffline", was_online: 1_700_000_000 },
     });
     await flush();
     expect(seen.at(-1)).toMatchObject({
@@ -735,95 +733,95 @@ describe('TelegramSession chats', () => {
     });
   });
 
-  it('replays chats that arrived before anyone listened', async () => {
+  it("replays chats that arrived before anyone listened", async () => {
     const { session, td } = await signedIn();
-    td().emit({ '@type': 'updateNewChat', chat: privateChat(200, 'Bob') });
+    td().emit({ "@type": "updateNewChat", chat: privateChat(200, "Bob") });
     const seen: ProtocolChat[] = [];
     await session.streamChats((c) => seen.push(c));
     await flush();
-    expect(seen.map((c) => c.id)).toEqual(['200']);
+    expect(seen.map((c) => c.id)).toEqual(["200"]);
   });
 
-  it('resolves usernames, links and phone numbers to people only', async () => {
+  it("resolves usernames, links and phone numbers to people only", async () => {
     const { session, td } = await signedIn();
-    td().answer('searchPublicChat', (request) =>
-      request.username === 'bob'
-        ? privateChat(200, 'Bob')
-        : request.username === 'news'
-          ? channelChat(9, 'News')
-          : tdError(400, 'USERNAME_NOT_OCCUPIED')
+    td().answer("searchPublicChat", (request) =>
+      request.username === "bob"
+        ? privateChat(200, "Bob")
+        : request.username === "news"
+          ? channelChat(9, "News")
+          : tdError(400, "USERNAME_NOT_OCCUPIED"),
     );
-    td().answer('searchUserByPhoneNumber', (request) =>
-      request.phone_number === '+44123' ? BOB : tdError(404, 'Not Found')
+    td().answer("searchUserByPhoneNumber", (request) =>
+      request.phone_number === "+44123" ? BOB : tdError(404, "Not Found"),
     );
-    td().answer('getUser', tdError(400, 'USER_ID_INVALID'));
+    td().answer("getUser", tdError(400, "USER_ID_INVALID"));
 
-    expect(await session.resolveParticipant('@bob')).toBe('200');
-    expect(await session.resolveParticipant('https://t.me/bob')).toBe('200');
-    expect(await session.resolveParticipant('@news')).toBeNull();
-    expect(await session.resolveParticipant('nobody_here')).toBeNull();
-    expect(await session.resolveParticipant('+44123')).toBe('200');
-    expect(await session.resolveParticipant('+1555')).toBeNull();
-    expect(await session.resolveParticipant('not an address!')).toBeNull();
+    expect(await session.resolveParticipant("@bob")).toBe("200");
+    expect(await session.resolveParticipant("https://t.me/bob")).toBe("200");
+    expect(await session.resolveParticipant("@news")).toBeNull();
+    expect(await session.resolveParticipant("nobody_here")).toBeNull();
+    expect(await session.resolveParticipant("+44123")).toBe("200");
+    expect(await session.resolveParticipant("+1555")).toBeNull();
+    expect(await session.resolveParticipant("not an address!")).toBeNull();
   });
 
-  it('gives handles as addresses and full names as names', async () => {
+  it("gives handles as addresses and full names as names", async () => {
     const { session } = await signedIn();
-    expect(await session.resolveAddresses(['200', '300', '999'])).toEqual({
-      '200': '@bob',
-      '300': '300',
+    expect(await session.resolveAddresses(["200", "300", "999"])).toEqual({
+      "200": "@bob",
+      "300": "300",
     });
-    expect(await session.resolveNames(['200', '300'])).toEqual({
-      '200': 'Bob Builder',
-      '300': 'Carol',
+    expect(await session.resolveNames(["200", "300"])).toEqual({
+      "200": "Bob Builder",
+      "300": "Carol",
     });
   });
 
-  it('suggests group members with Telegram usernames for mentions', async () => {
+  it("suggests group members with Telegram usernames for mentions", async () => {
     const { session, td } = await signedIn();
-    td().answer('searchChatMembers', {
-      '@type': 'chatMembers',
+    td().answer("searchChatMembers", {
+      "@type": "chatMembers",
       members: [
         {
-          member_id: { '@type': 'messageSenderUser', user_id: 100 },
-          status: { '@type': 'chatMemberStatusMember' },
+          member_id: { "@type": "messageSenderUser", user_id: 100 },
+          status: { "@type": "chatMemberStatusMember" },
         },
         {
-          member_id: { '@type': 'messageSenderUser', user_id: 200 },
-          status: { '@type': 'chatMemberStatusMember' },
+          member_id: { "@type": "messageSenderUser", user_id: 200 },
+          status: { "@type": "chatMemberStatusMember" },
         },
       ],
     });
-    expect(await session.mentionCandidates(chatIdOf(-5), 'bo')).toEqual([
-      { id: '200', name: 'Bob Builder', address: '@bob' },
+    expect(await session.mentionCandidates(chatIdOf(-5), "bo")).toEqual([
+      { id: "200", name: "Bob Builder", address: "@bob" },
     ]);
-    expect(td().requests('searchChatMembers')[0]).toMatchObject({
+    expect(td().requests("searchChatMembers")[0]).toMatchObject({
       chat_id: -5,
-      query: 'bo',
+      query: "bo",
       limit: 20,
     });
   });
 });
 
-describe('TelegramSession messages', () => {
+describe("TelegramSession messages", () => {
   async function inChatWithBob() {
     const context = await connect();
     await signIn(context.td());
-    context.td().emit({ '@type': 'updateUser', user: BOB });
-    context.td().emit({ '@type': 'updateNewChat', chat: privateChat(200, 'Bob') });
+    context.td().emit({ "@type": "updateUser", user: BOB });
+    context.td().emit({ "@type": "updateNewChat", chat: privateChat(200, "Bob") });
     const received: ProtocolMessage[] = [];
     await context.session.streamMessages((m) => received.push(m));
     return { ...context, received };
   }
 
-  it('lists recent stickers and installed packs, fetching previews behind, and a sticker to send', async () => {
+  it("lists recent stickers and installed packs, fetching previews behind, and a sticker to send", async () => {
     const { session, td } = await inChatWithBob();
     const file = (id: number, done: boolean) => ({
-      '@type': 'file',
+      "@type": "file",
       id,
       size: 900,
       local: {
-        path: done ? `/td/${id}` : '',
+        path: done ? `/td/${id}` : "",
         is_downloading_completed: done,
         is_downloading_active: false,
       },
@@ -833,133 +831,129 @@ describe('TelegramSession messages', () => {
       width: 512,
       height: 512,
       emoji,
-      format: { '@type': 'stickerFormatTgs' },
+      format: { "@type": "stickerFormatTgs" },
       thumbnail: { file: file(fileId + 1, previewed) },
       sticker: file(fileId, false),
     });
-    td().answer('getRecentStickers', {
-      '@type': 'stickers',
-      stickers: [sticker('1', 10, '👋')],
+    td().answer("getRecentStickers", {
+      "@type": "stickers",
+      stickers: [sticker("1", 10, "👋")],
     });
-    td().answer('getInstalledStickerSets', {
-      '@type': 'stickerSets',
-      sets: [{ id: '77', title: 'Ducks', covers: [sticker('2', 20, '🤗')] }],
+    td().answer("getInstalledStickerSets", {
+      "@type": "stickerSets",
+      sets: [{ id: "77", title: "Ducks", covers: [sticker("2", 20, "🤗")] }],
     });
-    td().answer('getStickerSet', {
-      '@type': 'stickerSet',
-      stickers: [sticker('2', 20, '🤗'), sticker('3', 30, '😘', false)],
+    td().answer("getStickerSet", {
+      "@type": "stickerSet",
+      stickers: [sticker("2", 20, "🤗"), sticker("3", 30, "😘", false)],
     });
-    td().answer('downloadFile', (request) => file(request.file_id as number, true));
+    td().answer("downloadFile", (request) => file(request.file_id as number, true));
 
     expect(await session.stickerPacks()).toEqual([
-      { id: 'recent', title: 'Recent', cover: 'file:///td/11' },
-      { id: '77', title: 'Ducks', cover: 'file:///td/21' },
+      { id: "recent", title: "Recent", cover: "file:///td/11" },
+      { id: "77", title: "Ducks", cover: "file:///td/21" },
     ]);
-    expect(await session.stickers(chatIdOf(200), '77')).toEqual([
-      { id: '2', emoji: '🤗', preview: 'file:///td/21' },
-      { id: '3', emoji: '😘', preview: undefined },
+    expect(await session.stickers(chatIdOf(200), "77")).toEqual([
+      { id: "2", emoji: "🤗", preview: "file:///td/21" },
+      { id: "3", emoji: "😘", preview: undefined },
     ]);
-    expect(await session.stickerContent(chatIdOf(200), '77', '3')).toEqual({
-      kind: 'sticker',
-      uri: 'file:///td/30',
-      mimeType: 'application/x-tgsticker',
+    expect(await session.stickerContent(chatIdOf(200), "77", "3")).toEqual({
+      kind: "sticker",
+      uri: "file:///td/30",
+      mimeType: "application/x-tgsticker",
       width: 512,
       height: 512,
       size: 900,
-      emoji: '😘',
+      emoji: "😘",
     });
-    expect(td().requests('downloadFile')).toEqual([
+    expect(td().requests("downloadFile")).toEqual([
       expect.objectContaining({ file_id: 31, priority: 24, synchronous: false }),
       expect.objectContaining({ file_id: 30, synchronous: true }),
     ]);
   });
 
-  it('searches one chat and all Telegram chats', async () => {
+  it("searches one chat and all Telegram chats", async () => {
     const { session, td } = await inChatWithBob();
-    td().answer('searchChatMessages', {
-      '@type': 'foundChatMessages',
-      messages: [textMessage(200, 2, 200, 'needle in this chat')],
+    td().answer("searchChatMessages", {
+      "@type": "foundChatMessages",
+      messages: [textMessage(200, 2, 200, "needle in this chat")],
       next_from_message_id: 0,
     });
-    td().answer('searchMessages', {
-      '@type': 'foundMessages',
-      messages: [textMessage(200, 2, 200, 'needle in this chat')],
-      next_offset: '',
+    td().answer("searchMessages", {
+      "@type": "foundMessages",
+      messages: [textMessage(200, 2, 200, "needle in this chat")],
+      next_offset: "",
     });
 
-    expect(
-      (await session.searchMessages('needle', chatIdOf(200))).map((message) => message.id)
-    ).toEqual(['200_2']);
-    expect((await session.searchMessages('needle')).map((message) => message.id)).toEqual([
-      '200_2',
-    ]);
-    expect(td().requests('searchChatMessages')[0]).toMatchObject({ chat_id: 200, query: 'needle' });
-    expect(td().requests('searchMessages')[0]).toMatchObject({ query: 'needle', chat_list: null });
+    expect((await session.searchMessages("needle", chatIdOf(200))).map((message) => message.id)).toEqual(["200_2"]);
+    expect((await session.searchMessages("needle")).map((message) => message.id)).toEqual(["200_2"]);
+    expect(td().requests("searchChatMessages")[0]).toMatchObject({ chat_id: 200, query: "needle" });
+    expect(td().requests("searchMessages")[0]).toMatchObject({ query: "needle", chat_list: null });
   });
 
-  it('lists pinned messages and pins or unpins with Telegram permissions', async () => {
+  it("lists pinned messages and pins or unpins with Telegram permissions", async () => {
     const { session, td, received } = await inChatWithBob();
-    const raw = textMessage(200, 8, 200, 'Keep this');
+    const raw = textMessage(200, 8, 200, "Keep this");
     raw.is_pinned = true;
-    td().answer('searchChatMessages', {
-      '@type': 'foundChatMessages',
+    td().answer("searchChatMessages", {
+      "@type": "foundChatMessages",
       messages: [raw],
       next_from_message_id: 0,
     });
     expect(await session.listPinnedMessages(chatIdOf(200))).toEqual([
-      expect.objectContaining({ id: '200_8', isPinned: true }),
+      expect.objectContaining({ id: "200_8", isPinned: true }),
     ]);
-    expect(td().requests('searchChatMessages')[0]).toMatchObject({
+    expect(td().requests("searchChatMessages")[0]).toMatchObject({
       chat_id: 200,
-      filter: { '@type': 'searchMessagesFilterPinned' },
+      filter: { "@type": "searchMessagesFilterPinned" },
     });
 
-    td().answer('getMessageProperties', {
-      '@type': 'messageProperties',
+    td().answer("getMessageProperties", {
+      "@type": "messageProperties",
       can_be_pinned: true,
     });
-    td().answer('getMessage', raw);
-    await session.setMessagePinned(chatIdOf(200), '200_8', true);
-    expect(td().requests('pinChatMessage')[0]).toMatchObject({
+    td().answer("getMessage", raw);
+    await session.setMessagePinned(chatIdOf(200), "200_8", true);
+    expect(td().requests("pinChatMessage")[0]).toMatchObject({
       chat_id: 200,
       message_id: 8,
       disable_notification: true,
       only_for_self: false,
     });
     expect(received.at(-1)?.isPinned).toBe(true);
-    await session.setMessagePinned(chatIdOf(200), '200_8', false);
-    expect(td().requests('unpinChatMessage')[0]).toMatchObject({ chat_id: 200, message_id: 8 });
+    await session.setMessagePinned(chatIdOf(200), "200_8", false);
+    expect(td().requests("unpinChatMessage")[0]).toMatchObject({ chat_id: 200, message_id: 8 });
   });
 
-  it('shows poll options and sends a vote through TDLib', async () => {
+  it("shows poll options and sends a vote through TDLib", async () => {
     const { session, td, received } = await inChatWithBob();
-    const raw = textMessage(200, 21, 200, '');
+    const raw = textMessage(200, 21, 200, "");
     raw.content = {
-      '@type': 'messagePoll',
+      "@type": "messagePoll",
       poll: {
-        '@type': 'poll',
+        "@type": "poll",
         id: 44,
-        question: { '@type': 'formattedText', text: 'Lunch?', entities: [] },
-        options: ['Pizza', 'Soup'].map((text) => ({
-          '@type': 'pollOption',
-          text: { '@type': 'formattedText', text, entities: [] },
+        question: { "@type": "formattedText", text: "Lunch?", entities: [] },
+        options: ["Pizza", "Soup"].map((text) => ({
+          "@type": "pollOption",
+          text: { "@type": "formattedText", text, entities: [] },
           voter_count: 0,
           vote_percentage: 0,
           is_chosen: false,
         })),
         total_voter_count: 0,
-        type: { '@type': 'pollTypeRegular', allow_multiple_answers: false },
+        type: { "@type": "pollTypeRegular", allow_multiple_answers: false },
         is_closed: false,
       },
     };
-    td().emit({ '@type': 'updateNewMessage', message: raw });
+    td().emit({ "@type": "updateNewMessage", message: raw });
     await flush();
     expect(received.at(-1)?.content).toMatchObject({
-      kind: 'poll',
-      question: 'Lunch?',
+      kind: "poll",
+      question: "Lunch?",
       options: [
-        { text: 'Pizza', chosen: false },
-        { text: 'Soup', chosen: false },
+        { text: "Pizza", chosen: false },
+        { text: "Soup", chosen: false },
       ],
     });
 
@@ -970,223 +964,215 @@ describe('TelegramSession messages', () => {
     };
     poll.options[1].is_chosen = true;
     poll.total_voter_count = 1;
-    td().answer('getMessage', voted);
-    await session.votePoll(chatIdOf(200), '200_21', [1]);
-    expect(td().requests('setPollAnswer')[0]).toMatchObject({
+    td().answer("getMessage", voted);
+    await session.votePoll(chatIdOf(200), "200_21", [1]);
+    expect(td().requests("setPollAnswer")[0]).toMatchObject({
       chat_id: 200,
       message_id: 21,
       option_ids: [1],
     });
     expect(received.at(-1)?.content).toMatchObject({
-      kind: 'poll',
+      kind: "poll",
       totalVoters: 1,
       options: [{ chosen: false }, { chosen: true }],
     });
   });
 
-  it('creates an anonymous single-choice poll through TDLib', async () => {
+  it("creates an anonymous single-choice poll through TDLib", async () => {
     const { session, td } = await inChatWithBob();
-    td().answer('sendMessage', textMessage(200, 25, 100, '', { outgoing: true }));
-    await session.createPoll(chatIdOf(200), 'Lunch?', ['Pizza', 'Soup']);
-    expect(td().requests('sendMessage')[0]).toMatchObject({
+    td().answer("sendMessage", textMessage(200, 25, 100, "", { outgoing: true }));
+    await session.createPoll(chatIdOf(200), "Lunch?", ["Pizza", "Soup"]);
+    expect(td().requests("sendMessage")[0]).toMatchObject({
       chat_id: 200,
       input_message_content: {
-        '@type': 'inputMessagePoll',
-        question: { text: 'Lunch?', entities: [] },
-        options: [{ text: 'Pizza' }, { text: 'Soup' }],
+        "@type": "inputMessagePoll",
+        question: { text: "Lunch?", entities: [] },
+        options: [{ text: "Pizza" }, { text: "Soup" }],
         is_anonymous: true,
-        type: { '@type': 'pollTypeRegular', allow_multiple_answers: false },
+        type: { "@type": "pollTypeRegular", allow_multiple_answers: false },
       },
     });
   });
 
-  it('edits text and revokes deleted messages for everyone', async () => {
+  it("edits text and revokes deleted messages for everyone", async () => {
     const { session, td, received } = await inChatWithBob();
     const deleted: string[][] = [];
     await session.streamDeletedMessages((id, ids) => deleted.push([id, ...ids]));
-    td().answer('getMessageProperties', {
-      '@type': 'messageProperties',
+    td().answer("getMessageProperties", {
+      "@type": "messageProperties",
       can_be_edited: true,
       can_be_deleted_for_all_users: true,
     });
-    td().answer('editMessageText', textMessage(200, 5, 100, 'new text', { outgoing: true }));
+    td().answer("editMessageText", textMessage(200, 5, 100, "new text", { outgoing: true }));
 
-    await session.editMessage(chatIdOf(200), '200_5', 'new text');
-    expect(td().requests('editMessageText')[0]).toMatchObject({
+    await session.editMessage(chatIdOf(200), "200_5", "new text");
+    expect(td().requests("editMessageText")[0]).toMatchObject({
       chat_id: 200,
       message_id: 5,
-      input_message_content: expect.objectContaining({ '@type': 'inputMessageText' }),
+      input_message_content: expect.objectContaining({ "@type": "inputMessageText" }),
     });
-    expect(received.at(-1)?.content).toEqual({ kind: 'text', text: 'new text' });
+    expect(received.at(-1)?.content).toEqual({ kind: "text", text: "new text" });
 
-    await session.deleteMessage(chatIdOf(200), '200_5');
-    expect(td().requests('deleteMessages')[0]).toMatchObject({
+    await session.deleteMessage(chatIdOf(200), "200_5");
+    expect(td().requests("deleteMessages")[0]).toMatchObject({
       chat_id: 200,
       message_ids: [5],
       revoke: true,
     });
     td().emit({
-      '@type': 'updateDeleteMessages',
+      "@type": "updateDeleteMessages",
       chat_id: 200,
       message_ids: [5],
       is_permanent: true,
       from_cache: false,
     });
-    expect(deleted).toEqual([['200', '200_5']]);
+    expect(deleted).toEqual([["200", "200_5"]]);
 
-    td().answer('getMessageProperties', {
-      '@type': 'messageProperties',
+    td().answer("getMessageProperties", {
+      "@type": "messageProperties",
       can_be_edited: false,
       can_be_deleted_for_all_users: false,
     });
-    await expect(session.editMessage(chatIdOf(200), '200_5', 'too late')).rejects.toThrow(
-      'does not allow editing'
-    );
-    await expect(session.deleteMessage(chatIdOf(200), '200_5')).rejects.toThrow('for everyone');
-    expect(td().requests('deleteMessages')).toHaveLength(1);
+    await expect(session.editMessage(chatIdOf(200), "200_5", "too late")).rejects.toThrow("does not allow editing");
+    await expect(session.deleteMessage(chatIdOf(200), "200_5")).rejects.toThrow("for everyone");
+    expect(td().requests("deleteMessages")).toHaveLength(1);
   });
 
-  it('delivers incoming messages with chat-scoped ids, replies and reactions', async () => {
+  it("delivers incoming messages with chat-scoped ids, replies and reactions", async () => {
     const { td, received } = await inChatWithBob();
-    const raw = textMessage(200, 12, 200, 'hello', { replyTo: 11 });
+    const raw = textMessage(200, 12, 200, "hello", { replyTo: 11 });
     raw.interaction_info = {
       reactions: {
         reactions: [
           {
-            type: { '@type': 'reactionTypeEmoji', emoji: '👍' },
+            type: { "@type": "reactionTypeEmoji", emoji: "👍" },
             total_count: 2,
             is_chosen: true,
-            recent_sender_ids: [{ '@type': 'messageSenderUser', user_id: 200 }],
+            recent_sender_ids: [{ "@type": "messageSenderUser", user_id: 200 }],
           },
         ],
       },
     };
-    td().emit({ '@type': 'updateNewMessage', message: raw });
+    td().emit({ "@type": "updateNewMessage", message: raw });
     await flush();
 
     expect(received).toEqual([
       expect.objectContaining({
-        id: '200_12',
-        chatId: '200',
-        senderId: '200',
+        id: "200_12",
+        chatId: "200",
+        senderId: "200",
         fromMe: false,
-        status: 'sent',
-        replyTo: '200_11',
-        reactions: { '👍': ['200', '100'] },
-        content: { kind: 'text', text: 'hello' },
+        status: "sent",
+        replyTo: "200_11",
+        reactions: { "👍": ["200", "100"] },
+        content: { kind: "text", text: "hello" },
       }),
     ]);
   });
 
-  it('streams channel posts', async () => {
+  it("streams channel posts", async () => {
     const { td, received } = await inChatWithBob();
-    td().emit({ '@type': 'updateNewChat', chat: channelChat(9, 'News') });
+    td().emit({ "@type": "updateNewChat", chat: channelChat(9, "News") });
     td().emit({
-      '@type': 'updateNewMessage',
-      message: textMessage(-1_000_000_000_009, 1, 200, 'broadcast'),
+      "@type": "updateNewMessage",
+      message: textMessage(-1_000_000_000_009, 1, 200, "broadcast"),
     });
     await flush();
     expect(received).toEqual([
       expect.objectContaining({
-        chatId: '-1000000000009',
-        content: { kind: 'text', text: 'broadcast' },
+        chatId: "-1000000000009",
+        content: { kind: "text", text: "broadcast" },
       }),
     ]);
   });
 
-  it('sends text as a reply and resolves once TDLib confirms the real id', async () => {
+  it("sends text as a reply and resolves once TDLib confirms the real id", async () => {
     const { session, td, received } = await inChatWithBob();
-    td().answer(
-      'sendMessage',
-      textMessage(200, 5_000, 100, 'yo', { outgoing: true, pending: true })
-    );
+    td().answer("sendMessage", textMessage(200, 5_000, 100, "yo", { outgoing: true, pending: true }));
 
-    const sending = session.send(chatIdOf(200), { kind: 'text', text: 'yo' }, '200_12');
+    const sending = session.send(chatIdOf(200), { kind: "text", text: "yo" }, "200_12");
     await flush();
-    expect(td().requests('sendMessage')[0]).toMatchObject({
+    expect(td().requests("sendMessage")[0]).toMatchObject({
       chat_id: 200,
-      reply_to: { '@type': 'inputMessageReplyToMessage', message_id: 12 },
-      input_message_content: { '@type': 'inputMessageText', text: { text: 'yo' } },
+      reply_to: { "@type": "inputMessageReplyToMessage", message_id: 12 },
+      input_message_content: { "@type": "inputMessageText", text: { text: "yo" } },
     });
     // The pending copy TDLib echoes is not the message.
     td().emit({
-      '@type': 'updateNewMessage',
-      message: textMessage(200, 5_000, 100, 'yo', { outgoing: true, pending: true }),
+      "@type": "updateNewMessage",
+      message: textMessage(200, 5_000, 100, "yo", { outgoing: true, pending: true }),
     });
     td().emit({
-      '@type': 'updateMessageSendSucceeded',
+      "@type": "updateMessageSendSucceeded",
       old_message_id: 5_000,
-      message: textMessage(200, 13, 100, 'yo', { outgoing: true }),
+      message: textMessage(200, 13, 100, "yo", { outgoing: true }),
     });
 
-    expect(await sending).toBe('200_13');
+    expect(await sending).toBe("200_13");
     await flush();
-    expect(received.map((m) => [m.id, m.fromMe, m.status])).toEqual([['200_13', true, 'sent']]);
+    expect(received.map((m) => [m.id, m.fromMe, m.status])).toEqual([["200_13", true, "sent"]]);
   });
 
-  it('turns a rejected send into a failure', async () => {
+  it("turns a rejected send into a failure", async () => {
     const { session, td } = await inChatWithBob();
-    td().answer(
-      'sendMessage',
-      textMessage(200, 5_001, 100, 'x', { outgoing: true, pending: true })
-    );
-    const sending = session.send(chatIdOf(200), { kind: 'text', text: 'x' });
+    td().answer("sendMessage", textMessage(200, 5_001, 100, "x", { outgoing: true, pending: true }));
+    const sending = session.send(chatIdOf(200), { kind: "text", text: "x" });
     await flush();
     td().emit({
-      '@type': 'updateMessageSendFailed',
+      "@type": "updateMessageSendFailed",
       old_message_id: 5_001,
-      error: { message: 'CHAT_WRITE_FORBIDDEN' },
+      error: { message: "CHAT_WRITE_FORBIDDEN" },
     });
-    await expect(sending).rejects.toThrow('CHAT_WRITE_FORBIDDEN');
+    await expect(sending).rejects.toThrow("CHAT_WRITE_FORBIDDEN");
   });
 
-  it('sends photos, files, voice notes and video from local paths', async () => {
+  it("sends photos, files, voice notes and video from local paths", async () => {
     const { session, td } = await inChatWithBob();
-    td().answer('sendMessage', textMessage(200, 14, 100, '', { outgoing: true }));
+    td().answer("sendMessage", textMessage(200, 14, 100, "", { outgoing: true }));
     await session.send(chatIdOf(200), {
-      kind: 'image',
-      uri: 'file:///tmp/a%20b.jpg',
-      caption: 'cap',
+      kind: "image",
+      uri: "file:///tmp/a%20b.jpg",
+      caption: "cap",
       width: 1,
       height: 2,
     });
     await session.send(chatIdOf(200), {
-      kind: 'file',
-      uri: 'file:///tmp/doc.pdf',
-      name: 'doc.pdf',
+      kind: "file",
+      uri: "file:///tmp/doc.pdf",
+      name: "doc.pdf",
     });
     await session.send(chatIdOf(200), {
-      kind: 'voice',
-      uri: 'file:///tmp/v.m4a',
+      kind: "voice",
+      uri: "file:///tmp/v.m4a",
       durationMs: 2_400,
     });
     await session.send(chatIdOf(200), {
-      kind: 'video',
-      uri: 'file:///tmp/movie.mp4',
+      kind: "video",
+      uri: "file:///tmp/movie.mp4",
       durationMs: 2_400,
       width: 640,
       height: 360,
     });
     const [photo, file, voice, video] = td()
-      .requests('sendMessage')
+      .requests("sendMessage")
       .map((r) => r.input_message_content);
     expect(photo).toMatchObject({
-      '@type': 'inputMessagePhoto',
-      photo: { photo: { path: '/tmp/a b.jpg' } },
-      caption: { text: 'cap' },
+      "@type": "inputMessagePhoto",
+      photo: { photo: { path: "/tmp/a b.jpg" } },
+      caption: { text: "cap" },
     });
     expect(file).toMatchObject({
-      '@type': 'inputMessageDocument',
-      document: { document: { path: '/tmp/doc.pdf' } },
+      "@type": "inputMessageDocument",
+      document: { document: { path: "/tmp/doc.pdf" } },
     });
     expect(voice).toMatchObject({
-      '@type': 'inputMessageVoiceNote',
+      "@type": "inputMessageVoiceNote",
       voice_note: { duration: 2 },
     });
     expect(video).toMatchObject({
-      '@type': 'inputMessageVideo',
+      "@type": "inputMessageVideo",
       video: {
-        video: { path: '/tmp/movie.mp4' },
+        video: { path: "/tmp/movie.mp4" },
         duration: 2,
         width: 640,
         height: 360,
@@ -1195,116 +1181,113 @@ describe('TelegramSession messages', () => {
     });
   });
 
-  it('adds and removes reactions on the target message', async () => {
+  it("adds and removes reactions on the target message", async () => {
     const { session, td } = await inChatWithBob();
     await session.send(chatIdOf(200), {
-      kind: 'reaction',
-      targetId: '200_12',
-      emoji: '❤️',
-      action: 'added',
+      kind: "reaction",
+      targetId: "200_12",
+      emoji: "❤️",
+      action: "added",
     });
     await session.send(chatIdOf(200), {
-      kind: 'reaction',
-      targetId: '200_12',
-      emoji: '❤️',
-      action: 'removed',
+      kind: "reaction",
+      targetId: "200_12",
+      emoji: "❤️",
+      action: "removed",
     });
-    expect(td().requests('addMessageReaction')[0]).toMatchObject({
+    expect(td().requests("addMessageReaction")[0]).toMatchObject({
       chat_id: 200,
       message_id: 12,
-      reaction_type: { emoji: '❤️' },
+      reaction_type: { emoji: "❤️" },
     });
-    expect(td().requests('removeMessageReaction')[0]).toMatchObject({
+    expect(td().requests("removeMessageReaction")[0]).toMatchObject({
       chat_id: 200,
       message_id: 12,
     });
   });
 
-  it('pages history oldest-first and stops at the boundary', async () => {
+  it("pages history oldest-first and stops at the boundary", async () => {
     const { session, td } = await inChatWithBob();
     const history = [30, 29, 28, 27, 26].map((id) => textMessage(200, id, 200, `m${id}`));
-    td().answer('getChatHistory', (request) => {
+    td().answer("getChatHistory", (request) => {
       const from = request.from_message_id as number;
       const older = history.filter((m) => from === 0 || m.id < from);
       // TDLib's first server page is often a single message.
       return {
-        '@type': 'messages',
+        "@type": "messages",
         total_count: older.length,
         messages: older.slice(0, from === 0 ? 1 : 2),
       };
     });
 
     const page = await session.getMessages(chatIdOf(200), { limit: 3 });
-    expect(page.map((m) => m.id)).toEqual(['200_28', '200_29', '200_30']);
+    expect(page.map((m) => m.id)).toEqual(["200_28", "200_29", "200_30"]);
 
     const earlier = await session.getMessages(chatIdOf(200), {
       limit: 10,
-      before: { id: '200_28', sentAt: 0 },
+      before: { id: "200_28", sentAt: 0 },
     });
-    expect(earlier.map((m) => m.id)).toEqual(['200_26', '200_27']);
+    expect(earlier.map((m) => m.id)).toEqual(["200_26", "200_27"]);
   });
 
-  it('shows a chat’s photo once TDLib has downloaded it', async () => {
+  it("shows a chat’s photo once TDLib has downloaded it", async () => {
     const { session, td } = await inChatWithBob();
     const chats: ProtocolChat[] = [];
     await session.streamChats((c) => chats.push(c));
     const small = {
-      '@type': 'file',
+      "@type": "file",
       id: 88,
       size: 1,
-      local: { path: '', is_downloading_completed: false, is_downloading_active: false },
+      local: { path: "", is_downloading_completed: false, is_downloading_active: false },
     };
-    td().answer('downloadFile', small);
-    const chat = privateChat(300, 'Carol');
+    td().answer("downloadFile", small);
+    const chat = privateChat(300, "Carol");
     chat.photo = { small, big: small } as never;
-    td().emit({ '@type': 'updateNewChat', chat });
+    td().emit({ "@type": "updateNewChat", chat });
     await flush();
     expect(chats.at(-1)?.avatarUri).toBeUndefined();
-    expect(td().requests('downloadFile')[0]).toMatchObject({ file_id: 88, priority: 1 });
+    expect(td().requests("downloadFile")[0]).toMatchObject({ file_id: 88, priority: 1 });
 
-    const done = { ...small, local: { path: '/files/carol.jpg', is_downloading_completed: true } };
-    td().answer('downloadFile', done);
-    td().emit({ '@type': 'updateFile', file: done });
+    const done = { ...small, local: { path: "/files/carol.jpg", is_downloading_completed: true } };
+    td().answer("downloadFile", done);
+    td().emit({ "@type": "updateFile", file: done });
     await flush();
-    expect(chats.at(-1)).toMatchObject({ id: '300' });
-    expect(chats.at(-1)?.avatarUri).toContain('/files/carol.jpg');
-    expect(td().requests('downloadFile')).toHaveLength(1);
+    expect(chats.at(-1)).toMatchObject({ id: "300" });
+    expect(chats.at(-1)?.avatarUri).toContain("/files/carol.jpg");
+    expect(td().requests("downloadFile")).toHaveLength(1);
   });
 
-  it('shows a placeholder for a photo, downloads it when it is shown, then the image', async () => {
+  it("shows a placeholder for a photo, downloads it when it is shown, then the image", async () => {
     const { session, td, received } = await inChatWithBob();
-    td().answer('downloadFile', {
-      '@type': 'file',
+    td().answer("downloadFile", {
+      "@type": "file",
       id: 77,
       size: 1,
-      local: { path: '', is_downloading_completed: false, is_downloading_active: true },
+      local: { path: "", is_downloading_completed: false, is_downloading_active: true },
     });
-    const pending = photoMessage(200, 15, 200, { id: 77, path: '', downloaded: false }, 'sunset');
-    td().emit({ '@type': 'updateNewMessage', message: pending });
+    const pending = photoMessage(200, 15, 200, { id: 77, path: "", downloaded: false }, "sunset");
+    td().emit({ "@type": "updateNewMessage", message: pending });
     await flush();
     expect(received[0].content).toEqual({
-      kind: 'unsupported',
-      typeId: 'photo',
-      fallback: '📷 Photo · sunset',
+      kind: "unsupported",
+      typeId: "photo",
+      fallback: "📷 Photo · sunset",
     });
-    expect(td().requests('downloadFile')).toEqual([]);
+    expect(td().requests("downloadFile")).toEqual([]);
 
-    td().answer('getMessage', pending);
+    td().answer("getMessage", pending);
     await session.fetchMedia(chatIdOf(200), received[0].id);
-    expect(td().requests('downloadFile')[0]).toMatchObject({ file_id: 77 });
+    expect(td().requests("downloadFile")[0]).toMatchObject({ file_id: 77 });
 
-    td().answer(
-      'getMessage',
-      photoMessage(200, 15, 200, { id: 77, path: '/files/p.jpg', downloaded: true }, 'sunset')
-    );
+    td().answer("getMessage", photoMessage(200, 15, 200, { id: 77, path: "/files/p.jpg", downloaded: true }, "sunset"));
     td().emit({
-      '@type': 'updateFile',
+      "@type": "updateFile",
       file: {
-        '@type': 'file',
+        "@type": "file",
         id: 77,
         size: 1,
         local: {
-          path: '/files/p.jpg',
+          path: "/files/p.jpg",
           is_downloading_completed: true,
           is_downloading_active: false,
         },
@@ -1312,184 +1295,183 @@ describe('TelegramSession messages', () => {
     });
     await flush();
     expect(received[1].content).toEqual({
-      kind: 'image',
-      uri: 'file:///files/p.jpg',
+      kind: "image",
+      uri: "file:///files/p.jpg",
       width: 800,
       height: 600,
       size: 1234,
-      caption: 'sunset',
+      caption: "sunset",
     });
   });
 
-  it('shows every message that waits on the same file once it is downloaded', async () => {
+  it("shows every message that waits on the same file once it is downloaded", async () => {
     const { session, td, received } = await inChatWithBob();
     let downloaded = false;
-    const photo = (id: number) =>
-      photoMessage(200, id, 200, { id: 77, path: '/files/p.jpg', downloaded });
+    const photo = (id: number) => photoMessage(200, id, 200, { id: 77, path: "/files/p.jpg", downloaded });
     const file = () => ({
-      '@type': 'file',
+      "@type": "file",
       id: 77,
       size: 1234,
-      local: { path: '/files/p.jpg', is_downloading_completed: downloaded },
+      local: { path: "/files/p.jpg", is_downloading_completed: downloaded },
     });
-    td().answer('downloadFile', file());
-    td().answer('getMessage', (request) => photo(request.message_id as number));
-    td().emit({ '@type': 'updateNewMessage', message: photo(15) });
-    td().emit({ '@type': 'updateNewMessage', message: photo(16) });
+    td().answer("downloadFile", file());
+    td().answer("getMessage", (request) => photo(request.message_id as number));
+    td().emit({ "@type": "updateNewMessage", message: photo(15) });
+    td().emit({ "@type": "updateNewMessage", message: photo(16) });
     await flush();
 
     await session.fetchMedia(chatIdOf(200), received[0].id);
     await session.fetchMedia(chatIdOf(200), received[1].id);
     downloaded = true;
-    td().emit({ '@type': 'updateFile', file: file() });
+    td().emit({ "@type": "updateFile", file: file() });
     await flush();
 
-    expect(td().requests('downloadFile')).toHaveLength(1);
+    expect(td().requests("downloadFile")).toHaveLength(1);
     expect(received.slice(2).map((m) => [m.id, m.content.kind])).toEqual([
-      ['200_15', 'image'],
-      ['200_16', 'image'],
+      ["200_15", "image"],
+      ["200_16", "image"],
     ]);
   });
 
-  it('renders a downloaded Telegram video with its caption', async () => {
+  it("renders a downloaded Telegram video with its caption", async () => {
     const { td, received } = await inChatWithBob();
-    const message = textMessage(200, 16, 200, '');
+    const message = textMessage(200, 16, 200, "");
     message.content = {
-      '@type': 'messageVideo',
+      "@type": "messageVideo",
       video: {
         duration: 12,
         width: 640,
         height: 360,
         video: {
-          '@type': 'file',
+          "@type": "file",
           id: 88,
           size: 1000,
-          local: { path: '/files/movie.mp4', is_downloading_completed: true },
+          local: { path: "/files/movie.mp4", is_downloading_completed: true },
         },
       },
-      caption: { '@type': 'formattedText', text: 'At the beach', entities: [] },
+      caption: { "@type": "formattedText", text: "At the beach", entities: [] },
     };
-    td().emit({ '@type': 'updateNewMessage', message });
+    td().emit({ "@type": "updateNewMessage", message });
     await flush();
     expect(received.at(-1)?.content).toEqual({
-      kind: 'video',
-      uri: 'file:///files/movie.mp4',
+      kind: "video",
+      uri: "file:///files/movie.mp4",
       durationMs: 12_000,
       width: 640,
       height: 360,
-      caption: 'At the beach',
+      caption: "At the beach",
     });
   });
 
-  it('says when a message was edited', async () => {
+  it("says when a message was edited", async () => {
     const { td, received } = await inChatWithBob();
-    const edited = textMessage(200, 7, 200, 'fixed');
+    const edited = textMessage(200, 7, 200, "fixed");
     edited.edit_date = 1_700_000_000;
-    td().emit({ '@type': 'updateNewMessage', message: edited });
+    td().emit({ "@type": "updateNewMessage", message: edited });
     await flush();
     expect(received.at(-1)).toMatchObject({ edited: true });
   });
 
-  it('describes service messages with names', async () => {
+  it("describes service messages with names", async () => {
     const { td, received } = await inChatWithBob();
-    td().emit({ '@type': 'updateNewChat', chat: groupChat(5, 'Builders') });
-    const joined = textMessage(-5, 3, 200, '');
-    joined.content = { '@type': 'messageChatAddMembers', member_user_ids: [200] };
-    td().emit({ '@type': 'updateNewMessage', message: joined });
+    td().emit({ "@type": "updateNewChat", chat: groupChat(5, "Builders") });
+    const joined = textMessage(-5, 3, 200, "");
+    joined.content = { "@type": "messageChatAddMembers", member_user_ids: [200] };
+    td().emit({ "@type": "updateNewMessage", message: joined });
     await flush();
-    expect(received[0].content).toEqual({ kind: 'system', text: 'Bob Builder joined' });
+    expect(received[0].content).toEqual({ kind: "system", text: "Bob Builder joined" });
   });
 
-  it('marks the latest message read on request', async () => {
+  it("marks the latest message read on request", async () => {
     const { session, td } = await inChatWithBob();
-    const chat = privateChat(200, 'Bob');
-    chat.last_message = textMessage(200, 40, 200, 'last');
+    const chat = privateChat(200, "Bob");
+    chat.last_message = textMessage(200, 40, 200, "last");
     td().emit({
-      '@type': 'updateChatLastMessage',
+      "@type": "updateChatLastMessage",
       chat_id: 200,
       last_message: chat.last_message,
       positions: chat.positions,
     });
     await flush();
     await session.sendReadReceipt(chatIdOf(200));
-    expect(td().requests('viewMessages')[0]).toMatchObject({
+    expect(td().requests("viewMessages")[0]).toMatchObject({
       chat_id: 200,
       message_ids: [40],
       force_read: true,
     });
   });
 
-  it('counts requests to join as they arrive', async () => {
+  it("counts requests to join as they arrive", async () => {
     const { session, td } = await inChatWithBob();
     const chats: ProtocolChat[] = [];
     await session.streamChats((chat) => chats.push(chat));
     td().emit({
-      '@type': 'updateChatPendingJoinRequests',
+      "@type": "updateChatPendingJoinRequests",
       chat_id: 200,
       pending_join_requests: { total_count: 2, user_ids: [300] },
     });
     await flush();
-    expect(chats.at(-1)).toMatchObject({ id: '200', pendingJoinRequests: 2 });
+    expect(chats.at(-1)).toMatchObject({ id: "200", pendingJoinRequests: 2 });
   });
 
-  it('keeps drafts on Telegram so they follow the chat', async () => {
+  it("keeps drafts on Telegram so they follow the chat", async () => {
     const { session, td } = await inChatWithBob();
     const chats: ProtocolChat[] = [];
     await session.streamChats((chat) => chats.push(chat));
-    await session.saveDraft(chatIdOf(200), 'see **you**');
-    expect(td().requests('setChatDraftMessage')[0]).toMatchObject({
+    await session.saveDraft(chatIdOf(200), "see **you**");
+    expect(td().requests("setChatDraftMessage")[0]).toMatchObject({
       chat_id: 200,
       draft_message: {
-        '@type': 'draftMessage',
-        content: { '@type': 'draftMessageContentText', text: { text: 'see you' } },
+        "@type": "draftMessage",
+        content: { "@type": "draftMessageContentText", text: { text: "see you" } },
       },
     });
-    await session.saveDraft(chatIdOf(200), '');
-    expect(td().requests('setChatDraftMessage')[1]).toMatchObject({ draft_message: null });
+    await session.saveDraft(chatIdOf(200), "");
+    expect(td().requests("setChatDraftMessage")[1]).toMatchObject({ draft_message: null });
 
     td().emit({
-      '@type': 'updateChatDraftMessage',
+      "@type": "updateChatDraftMessage",
       chat_id: 200,
       draft_message: {
         content: {
-          '@type': 'draftMessageContentText',
-          text: { '@type': 'formattedText', text: 'from phone', entities: [] },
+          "@type": "draftMessageContentText",
+          text: { "@type": "formattedText", text: "from phone", entities: [] },
         },
       },
       positions: [MAIN_POSITION],
     });
     await flush();
-    expect(chats.at(-1)).toMatchObject({ id: '200', draft: 'from phone' });
+    expect(chats.at(-1)).toMatchObject({ id: "200", draft: "from phone" });
   });
 
-  it('marks a chat unread on Telegram and hears it from other devices', async () => {
+  it("marks a chat unread on Telegram and hears it from other devices", async () => {
     const { session, td } = await inChatWithBob();
     const chats: ProtocolChat[] = [];
     await session.streamChats((chat) => chats.push(chat));
     await session.setMarkedUnread(chatIdOf(200), true);
-    expect(td().requests('toggleChatIsMarkedAsUnread')[0]).toMatchObject({
+    expect(td().requests("toggleChatIsMarkedAsUnread")[0]).toMatchObject({
       chat_id: 200,
       is_marked_as_unread: true,
     });
-    td().emit({ '@type': 'updateChatIsMarkedAsUnread', chat_id: 200, is_marked_as_unread: true });
+    td().emit({ "@type": "updateChatIsMarkedAsUnread", chat_id: 200, is_marked_as_unread: true });
     await flush();
-    expect(chats.at(-1)).toMatchObject({ id: '200', markedUnread: true });
+    expect(chats.at(-1)).toMatchObject({ id: "200", markedUnread: true });
   });
 
-  it('tells the chat when you start and stop typing', async () => {
+  it("tells the chat when you start and stop typing", async () => {
     const { session, td } = await inChatWithBob();
     await session.setTyping(chatIdOf(200), true);
     await session.setTyping(chatIdOf(200), false);
     expect(
       td()
-        .requests('sendChatAction')
-        .map((r) => r.action)
-    ).toEqual([{ '@type': 'chatActionTyping' }, { '@type': 'chatActionCancel' }]);
+        .requests("sendChatAction")
+        .map((r) => r.action),
+    ).toEqual([{ "@type": "chatActionTyping" }, { "@type": "chatActionCancel" }]);
   });
 });
 
-describe('message ids', () => {
-  it('survive negative chat ids', () => {
-    expect(messageIdOf(-1_000_000_000_009, 42)).toBe('-1000000000009_42');
+describe("message ids", () => {
+  it("survive negative chat ids", () => {
+    expect(messageIdOf(-1_000_000_000_009, 42)).toBe("-1000000000009_42");
   });
 });

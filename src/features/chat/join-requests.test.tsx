@@ -1,26 +1,25 @@
-import { act, createElement } from 'react';
-import { create, type ReactTestRenderer } from 'react-test-renderer';
+import { act, createElement } from "react";
+import { create, type ReactTestRenderer } from "react-test-renderer";
+import { asChatId } from "@/core/messaging/testing/ids";
+import { JoinRequests } from "./join-requests";
 
-import { JoinRequests } from './join-requests';
-import { asChatId } from '@/core/messaging/testing/ids';
-
-jest.mock('@/design', () => ({
-  Avatar: 'Avatar',
-  IconButton: 'IconButton',
-  ListItem: 'ListItem',
-  Section: 'Section',
-  Text: 'Text',
+jest.mock("@/design", () => ({
+  Avatar: "Avatar",
+  IconButton: "IconButton",
+  ListItem: "ListItem",
+  Section: "Section",
+  Text: "Text",
   toast: { success: jest.fn(), error: jest.fn() },
 }));
 
 const mockStore = {
   getJoinRequests: jest.fn(async () => [
-    { participantId: 'carol', name: 'Carol', bio: 'Friend of Bob', requestedAt: 1 },
-    { participantId: 'dan', name: 'Dan', requestedAt: 2 },
+    { participantId: "carol", name: "Carol", bio: "Friend of Bob", requestedAt: 1 },
+    { participantId: "dan", name: "Dan", requestedAt: 2 },
   ]),
   processJoinRequest: jest.fn(async () => {}),
 };
-jest.mock('@/core/messaging/chat-store', () => ({
+jest.mock("@/core/messaging/chat-store", () => ({
   useChatStore: (select: (state: typeof mockStore) => unknown) => select(mockStore),
 }));
 
@@ -30,18 +29,18 @@ afterEach(async () => {
   await act(() => tree?.unmount());
 });
 
-it('lists requests and drops each one once answered', async () => {
+it("lists requests and drops each one once answered", async () => {
   await act(async () => {
-    tree = create(createElement(JoinRequests, { chatId: asChatId('matrix-room') }));
+    tree = create(createElement(JoinRequests, { chatId: asChatId("matrix-room") }));
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
-  const names = () => tree.root.findAllByType('ListItem' as never).map((n) => n.props.title);
-  expect(names()).toEqual(['Carol', 'Dan']);
+  const names = () => tree.root.findAllByType("ListItem" as never).map((n) => n.props.title);
+  expect(names()).toEqual(["Carol", "Dan"]);
 
-  const carol = tree.root.findAllByType('ListItem' as never)[0];
+  const carol = tree.root.findAllByType("ListItem" as never)[0];
   const [approve] = carol.props.trailing.props.children;
-  expect(approve.props.label).toBe('Approve Carol');
+  expect(approve.props.label).toBe("Approve Carol");
   await act(async () => approve.props.onPress());
-  expect(mockStore.processJoinRequest).toHaveBeenCalledWith('matrix-room', 'carol', true);
-  expect(names()).toEqual(['Dan']);
+  expect(mockStore.processJoinRequest).toHaveBeenCalledWith("matrix-room", "carol", true);
+  expect(names()).toEqual(["Dan"]);
 });

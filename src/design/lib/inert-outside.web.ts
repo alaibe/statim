@@ -1,5 +1,5 @@
-import { type RefObject, useEffect } from 'react';
-import type { View } from 'react-native';
+import { type RefObject, useEffect } from "react";
+import type { View } from "react-native";
 
 export function useInertOutside(ref: RefObject<View | null>): void {
   useEffect(() => {
@@ -21,7 +21,7 @@ function inertOutside(inside: HTMLElement): () => void {
       if (sibling === node || !(sibling instanceof HTMLElement) || sibling.inert) continue;
       const visibility = sibling.style.visibility;
       sibling.inert = true;
-      if (atBody) sibling.style.visibility = 'hidden';
+      if (atBody) sibling.style.visibility = "hidden";
       undo.push(() => {
         sibling.inert = false;
         sibling.style.visibility = visibility;

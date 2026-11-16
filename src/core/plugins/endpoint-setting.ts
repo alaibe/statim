@@ -1,4 +1,4 @@
-import type { PluginContext } from '@/core/plugins/types';
+import type { PluginContext } from "@/core/plugins/types";
 
 interface EndpointSetting {
   hydrate(context: PluginContext): Promise<void>;
@@ -8,13 +8,7 @@ interface EndpointSetting {
 }
 
 /** A stored endpoint URL, read once at hydrate time and kept in memory after. */
-export function createEndpointSetting({
-  key,
-  fallback,
-}: {
-  key: string;
-  fallback: string;
-}): EndpointSetting {
+export function createEndpointSetting({ key, fallback }: { key: string; fallback: string }): EndpointSetting {
   let cached = fallback;
 
   return {

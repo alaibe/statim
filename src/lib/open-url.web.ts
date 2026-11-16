@@ -1,6 +1,6 @@
-import { openPath, openUrl } from '@tauri-apps/plugin-opener';
+import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 
-import { assetPath } from './asset-url';
+import { assetPath } from "./asset-url";
 
 // The desktop window has no in-app browser: everything goes to the system,
 // and a stored attachment opens in whatever handles its type.

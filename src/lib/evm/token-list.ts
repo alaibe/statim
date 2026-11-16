@@ -1,4 +1,4 @@
-import type { Address } from 'viem';
+import type { Address } from "viem";
 
 export interface ListedToken {
   address: Address;
@@ -19,7 +19,7 @@ interface Bundled {
 /** 58KB a messenger with the wallet switched off should never parse. */
 let bundled: Bundled | null = null;
 
-const list = (): Bundled => (bundled ??= require('./token-list.json') as Bundled);
+const list = (): Bundled => (bundled ??= require("./token-list.json") as Bundled);
 
 const byChain = new Map<number, ListedToken[]>();
 
@@ -44,11 +44,11 @@ export function listedTokens(chainId: number): ListedToken[] {
  * one the list does not carry is not offered.
  */
 const POPULAR: Record<number, string[]> = {
-  1: ['USDC', 'USDT', 'DAI', 'WETH', 'WBTC'],
-  10: ['USDC', 'USDT', 'DAI', 'WETH', 'WBTC', 'OP'],
-  137: ['USDC', 'USDT', 'DAI', 'WETH', 'WBTC'],
-  8453: ['USDC', 'DAI', 'WETH', 'cbBTC', 'AERO'],
-  42161: ['USDC', 'DAI', 'WETH', 'WBTC', 'ARB'],
+  1: ["USDC", "USDT", "DAI", "WETH", "WBTC"],
+  10: ["USDC", "USDT", "DAI", "WETH", "WBTC", "OP"],
+  137: ["USDC", "USDT", "DAI", "WETH", "WBTC"],
+  8453: ["USDC", "DAI", "WETH", "cbBTC", "AERO"],
+  42161: ["USDC", "DAI", "WETH", "WBTC", "ARB"],
 };
 
 export function popularTokens(chainId: number): ListedToken[] {

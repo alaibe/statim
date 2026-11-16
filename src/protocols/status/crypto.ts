@@ -1,11 +1,11 @@
-import { ctr, gcm } from '@noble/ciphers/aes';
-import { secp256k1 } from '@noble/curves/secp256k1';
-import { hmac } from '@noble/hashes/hmac';
-import { sha256 } from '@noble/hashes/sha2';
-import { keccak_256 } from '@noble/hashes/sha3';
+import { ctr, gcm } from "@noble/ciphers/aes";
+import { secp256k1 } from "@noble/curves/secp256k1";
+import { hmac } from "@noble/hashes/hmac";
+import { sha256 } from "@noble/hashes/sha2";
+import { keccak_256 } from "@noble/hashes/sha3";
 
-import { concat, timingSafeEqual } from '@/lib/bytes';
-import { randomBytes } from '@/lib/random';
+import { concat, timingSafeEqual } from "@/lib/bytes";
+import { randomBytes } from "@/lib/random";
 
 export function keccak256(...parts: Uint8Array[]): Uint8Array {
   return keccak_256(concat(parts));
@@ -71,14 +71,14 @@ export function encryptSymmetric(key: Uint8Array, plaintext: Uint8Array): Uint8A
 }
 
 export function decryptSymmetric(key: Uint8Array, data: Uint8Array): Uint8Array {
-  if (data.length < NONCE_LENGTH) throw new Error('Symmetric payload is too short');
+  if (data.length < NONCE_LENGTH) throw new Error("Symmetric payload is too short");
   const nonce = data.subarray(data.length - NONCE_LENGTH);
   return gcm(key, nonce).decrypt(data.subarray(0, data.length - NONCE_LENGTH));
 }
 
 /** status-go's `common.Decrypt`, used for profile pictures: AES-256-GCM with the nonce in front. */
 export function decryptNonceFirst(key: Uint8Array, data: Uint8Array): Uint8Array {
-  if (data.length < NONCE_LENGTH) throw new Error('Encrypted payload is too short');
+  if (data.length < NONCE_LENGTH) throw new Error("Encrypted payload is too short");
   return gcm(key, data.subarray(0, NONCE_LENGTH)).decrypt(data.subarray(NONCE_LENGTH));
 }
 
@@ -108,13 +108,13 @@ export function eciesEncrypt(recipient: Uint8Array, message: Uint8Array): Uint8A
 
 export function eciesDecrypt(privateKey: Uint8Array, data: Uint8Array): Uint8Array {
   if (data.length < UNCOMPRESSED + ECIES_BLOCK + ECIES_TAG || data[0] !== 4) {
-    throw new Error('Not an ECIES message');
+    throw new Error("Not an ECIES message");
   }
   const ephemeral = data.subarray(0, UNCOMPRESSED);
   const body = data.subarray(UNCOMPRESSED, data.length - ECIES_TAG);
   const keys = eciesKeys(sharedSecret(privateKey, ephemeral));
   if (!timingSafeEqual(hmac(sha256, keys.mac, body), data.subarray(data.length - ECIES_TAG))) {
-    throw new Error('ECIES message authentication failed');
+    throw new Error("ECIES message authentication failed");
   }
   return ctr(keys.encryption, body.subarray(0, ECIES_BLOCK)).decrypt(body.subarray(ECIES_BLOCK));
 }

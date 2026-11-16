@@ -1,15 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
+import { relayState, turnOffRelay, turnOnRelay } from "@/core/icloud/relay";
+import { Icon, ListItem, Section, Toggle } from "@/design";
 
-import { Icon, ListItem, Section, Toggle } from '@/design';
-import { relayState, turnOffRelay, turnOnRelay } from '@/core/icloud/relay';
-
-import { opensAtLogin, setOpenAtLogin } from './open-at-login';
-import { useAccountSwitch } from './use-account-switch';
+import { opensAtLogin, setOpenAtLogin } from "./open-at-login";
+import { useAccountSwitch } from "./use-account-switch";
 
 export const notificationsIntro =
-  'Statim notifies you while it runs. Closing the window leaves it running; quitting stops it until you open it again.';
+  "Statim notifies you while it runs. Closing the window leaves it running; quitting stops it until you open it again.";
 
-export const notificationsHint: string | null = 'Open at login';
+export const notificationsHint: string | null = "Open at login";
 
 export function NotificationSettings() {
   return (
@@ -53,26 +52,26 @@ function NotifyIphone() {
     relayState,
     turnOnRelay,
     turnOffRelay,
-    'Could not change iPhone notifications'
+    "Could not change iPhone notifications",
   );
 
-  if (!state || state === 'unavailable') return null;
+  if (!state || state === "unavailable") return null;
   return (
     <Section title="Your iPhone" surface="card" className="mb-6">
       <ListItem
         testID="notify-iphone"
         title="Notify my iPhone"
         subtitle={
-          state === 'signed-out'
-            ? 'iCloud signed this computer out. Turn it on to sign in again.'
-            : 'While this window is in the background, new messages wake your iPhone through your own iCloud, encrypted with a key from this account. Off by default.'
+          state === "signed-out"
+            ? "iCloud signed this computer out. Turn it on to sign in again."
+            : "While this window is in the background, new messages wake your iPhone through your own iCloud, encrypted with a key from this account. Off by default."
         }
         numberOfLinesSubtitle={4}
         leading={<Icon name="phone-portrait-outline" size={20} tone="muted" />}
         trailing={
           <Toggle
             label="Notify my iPhone"
-            value={state === 'on'}
+            value={state === "on"}
             disabled={change.busy}
             onValueChange={(next) => void change.run(next)}
           />

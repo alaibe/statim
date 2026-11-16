@@ -1,7 +1,7 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
-import type { WidgetContent } from '../messaging/types';
-import type { PluginContext, PluginId, PluginView } from './types';
+import type { WidgetContent } from "../messaging/types";
+import type { PluginContext, PluginId, PluginView } from "./types";
 
 export const useLiveViews = create<{ versions: Record<PluginId, number> }>(() => ({
   versions: {},
@@ -27,13 +27,11 @@ export function notifyLiveViews(pluginId: PluginId): void {
   }, 0);
 }
 
-type CardBuilder = (
-  args: string[]
-) => Promise<Omit<WidgetContent, 'live'>> | Omit<WidgetContent, 'live'>;
+type CardBuilder = (args: string[]) => Promise<Omit<WidgetContent, "live">> | Omit<WidgetContent, "live">;
 
 export function liveViews<K extends string>(
   context: PluginContext,
-  builders: Record<K, CardBuilder>
+  builders: Record<K, CardBuilder>,
 ): Record<K, PluginView> {
   const pluginId = context.manifest.id;
   const entries = Object.entries<CardBuilder>(builders).map(([view, build]) => [

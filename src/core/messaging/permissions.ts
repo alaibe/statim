@@ -1,7 +1,7 @@
-import { isLocalChat, takesAttachments } from './bots';
-import { supports } from './capability';
-import type { ChatSession } from './protocol';
-import type { Chat, ChatFeature } from './types';
+import { isLocalChat, takesAttachments } from "./bots";
+import { supports } from "./capability";
+import type { ChatSession } from "./protocol";
+import type { Chat, ChatFeature } from "./types";
 
 export interface ChatPermissions {
   send: boolean;
@@ -69,43 +69,43 @@ export const NO_PERMISSIONS: Readonly<ChatPermissions> = Object.freeze({
   answerJoinRequests: false,
 });
 
-export const canSend = (chat: Chat) => !chat.blocked && (chat.canSend ?? chat.kind !== 'channel');
+export const canSend = (chat: Chat) => !chat.blocked && (chat.canSend ?? chat.kind !== "channel");
 
 export function chatPermissions(chat: Chat, session: ChatSession | undefined): ChatPermissions {
-  const manages = chat.selfRole === 'owner' || chat.selfRole === 'admin';
-  const managesGroup = chat.kind === 'group' && manages;
+  const manages = chat.selfRole === "owner" || chat.selfRole === "admin";
+  const managesGroup = chat.kind === "group" && manages;
   const has = (feature: ChatFeature) => !chat.lacks?.includes(feature);
-  const deletes = supports(session, 'deleteMessage') && has('delete');
+  const deletes = supports(session, "deleteMessage") && has("delete");
   const attach = takesAttachments(chat.id);
   const send = canSend(chat);
   return {
     send,
-    reply: send && has('reply'),
+    reply: send && has("reply"),
     attach,
     // The app's own chats keep what you send on this device, pictures included.
-    sendImages: attach && (isLocalChat(chat.id) || Boolean(session?.sendsImages)) && has('images'),
-    sendVideo: Boolean(session?.sendsVideo) && has('video'),
+    sendImages: attach && (isLocalChat(chat.id) || Boolean(session?.sendsImages)) && has("images"),
+    sendVideo: Boolean(session?.sendsVideo) && has("video"),
     largeFiles: !session?.inlinesFiles,
-    announceTyping: supports(session, 'setTyping'),
-    mention: chat.kind === 'group' && supports(session, 'mentionCandidates'),
-    networkStickers: supports(session, 'stickerPacks'),
-    edit: supports(session, 'editMessage') && has('edit'),
+    announceTyping: supports(session, "setTyping"),
+    mention: chat.kind === "group" && supports(session, "mentionCandidates"),
+    networkStickers: supports(session, "stickerPacks"),
+    edit: supports(session, "editMessage") && has("edit"),
     delete: deletes,
-    deleteForMe: supports(session, 'deleteMessageForMe'),
+    deleteForMe: supports(session, "deleteMessageForMe"),
     deleteOthers: deletes && chat.canDeleteOthers === true,
-    pin: supports(session, 'setMessagePinned') && chat.canPin !== false && has('pin'),
-    seePins: supports(session, 'listPinnedMessages'),
-    react: !chat.blocked && has('react'),
-    vote: !chat.blocked && supports(session, 'votePoll') && has('poll'),
-    thread: Boolean(session?.threads) && has('thread'),
-    answerRequest: chat.consent === 'request' && !chat.blocked && supports(session, 'setConsent'),
-    block: chat.kind === 'dm' && supports(session, 'setBlocked'),
-    seeGroupInfo: chat.kind !== 'dm' && supports(session, 'getGroupInfo'),
-    addMembers: managesGroup && has('invite'),
-    removeMembers: managesGroup && has('remove'),
-    ban: managesGroup && supports(session, 'banMember') && has('ban'),
-    muteMembers: managesGroup && supports(session, 'setMemberMuted'),
-    invite: manages && supports(session, 'createInviteLink'),
-    answerJoinRequests: manages && supports(session, 'getJoinRequests'),
+    pin: supports(session, "setMessagePinned") && chat.canPin !== false && has("pin"),
+    seePins: supports(session, "listPinnedMessages"),
+    react: !chat.blocked && has("react"),
+    vote: !chat.blocked && supports(session, "votePoll") && has("poll"),
+    thread: Boolean(session?.threads) && has("thread"),
+    answerRequest: chat.consent === "request" && !chat.blocked && supports(session, "setConsent"),
+    block: chat.kind === "dm" && supports(session, "setBlocked"),
+    seeGroupInfo: chat.kind !== "dm" && supports(session, "getGroupInfo"),
+    addMembers: managesGroup && has("invite"),
+    removeMembers: managesGroup && has("remove"),
+    ban: managesGroup && supports(session, "banMember") && has("ban"),
+    muteMembers: managesGroup && supports(session, "setMemberMuted"),
+    invite: manages && supports(session, "createInviteLink"),
+    answerJoinRequests: manages && supports(session, "getJoinRequests"),
   };
 }

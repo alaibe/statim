@@ -1,11 +1,11 @@
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useEffect, useRef, useState } from 'react';
-import { AppState, Linking, View } from 'react-native';
+import { CameraView, useCameraPermissions } from "expo-camera";
+import { useEffect, useRef, useState } from "react";
+import { AppState, Linking, View } from "react-native";
 
-import { cn } from '../lib/cn';
-import { Button } from './button';
-import { ErrorText } from './error-text';
-import { Text } from './text';
+import { cn } from "../lib/cn";
+import { Button } from "./button";
+import { ErrorText } from "./error-text";
+import { Text } from "./text";
 
 export interface QrReaderProps {
   /** Shown until the camera is allowed: what the camera is for. */
@@ -27,9 +27,9 @@ export function QrReader({ purpose, onScanned, className }: QrReaderProps) {
   const seen = useRef(new Set<string>());
 
   useEffect(() => {
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') {
-        getPermission().catch(() => setError('Could not check camera permission'));
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        getPermission().catch(() => setError("Could not check camera permission"));
       }
     });
     return () => subscription.remove();
@@ -40,7 +40,7 @@ export function QrReader({ purpose, onScanned, className }: QrReaderProps) {
       if (permission?.canAskAgain === false) await Linking.openSettings();
       else await requestPermission();
     } catch {
-      setError('Could not request camera access');
+      setError("Could not request camera access");
     }
   };
 
@@ -55,13 +55,13 @@ export function QrReader({ purpose, onScanned, className }: QrReaderProps) {
   };
 
   return (
-    <View className={cn('gap-2', className)}>
+    <View className={cn("gap-2", className)}>
       {permission?.granted ? (
         <View className="flex-1 overflow-hidden rounded-card">
           <CameraView
             style={{ flex: 1 }}
             facing="back"
-            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+            barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
             onBarcodeScanned={done ? undefined : (scan) => void scanned(scan)}
             onMountError={({ message }) => setError(message)}
           />
@@ -70,7 +70,7 @@ export function QrReader({ purpose, onScanned, className }: QrReaderProps) {
         <View className="flex-1 justify-center gap-4">
           <Text variant="bodyMuted">{purpose}</Text>
           <Button
-            label={permission?.canAskAgain === false ? 'Open Settings' : 'Allow the camera'}
+            label={permission?.canAskAgain === false ? "Open Settings" : "Allow the camera"}
             fullWidth
             onPress={allowCamera}
           />

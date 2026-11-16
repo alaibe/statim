@@ -1,35 +1,29 @@
-import { stringToBytes, type Address, type Hex } from 'viem';
-import { create } from 'zustand';
-
+import { type Address, type Hex, stringToBytes } from "viem";
+import { create } from "zustand";
+import { errorMessage } from "../errors";
 import {
+  type AccountRecord,
   addressForMnemonic,
   createAccountId,
+  forgetAccount,
   loadAccounts,
   loadActiveAccountId,
   saveAccounts,
   setActiveAccountId,
-  forgetAccount,
-  type AccountRecord,
-} from './accounts';
-import { CHAT_KEY_MESSAGE, chatSeedFrom, hardwareKeyring } from './chat-seed';
-import { deviceSigner, holdDevice, keyOf, releaseDevice } from './device-session';
-import { hardwareAccount, type HardwareSigner } from './hardware';
-import {
-  deleteAccountSecret,
-  readAccountSecret,
-  writeAccountSecret,
-  type AccountSecret,
-} from './key-protection';
+} from "./accounts";
+import { CHAT_KEY_MESSAGE, chatSeedFrom, hardwareKeyring } from "./chat-seed";
+import { deviceSigner, holdDevice, keyOf, releaseDevice } from "./device-session";
+import { type HardwareSigner, hardwareAccount } from "./hardware";
+import { type AccountSecret, deleteAccountSecret, readAccountSecret, writeAccountSecret } from "./key-protection";
 import {
   isValidMnemonic,
+  type Keyring,
   keyringFromMnemonic,
   normalizeMnemonic,
   persistAccountMnemonic,
-  type Keyring,
-} from './keyring';
-import { errorMessage } from '../errors';
+} from "./keyring";
 
-export type AccountStatus = 'loading' | 'absent' | 'ready' | 'blocked' | 'invalidated' | 'error';
+export type AccountStatus = "loading" | "absent" | "ready" | "blocked" | "invalidated" | "error";
 
 export interface AccountState {
   status: AccountStatus;
@@ -63,16 +57,14 @@ async function signChatKeys(signer: HardwareSigner, path: string): Promise<Hex> 
   return chatSeedFrom(await signer.signMessage(path, stringToBytes(CHAT_KEY_MESSAGE)));
 }
 
-export function activeAccount(
-  state: Pick<AccountState, 'accounts' | 'activeAccountId'>
-): AccountRecord | undefined {
+export function activeAccount(state: Pick<AccountState, "accounts" | "activeAccountId">): AccountRecord | undefined {
   return state.accounts.find((a) => a.id === state.activeAccountId);
 }
 
 let restoring = false;
 
 export const useAccountStore = create<AccountState>((set, get) => ({
-  status: 'loading',
+  status: "loading",
   accounts: [],
   activeAccountId: null,
   keyring: null,
@@ -85,7 +77,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
     try {
       const [accounts, storedId] = await Promise.all([loadAccounts(), loadActiveAccountId()]);
       if (accounts.length === 0) {
-        set({ status: 'absent', accounts: [], activeAccountId: null, keyring: null, error: null });
+        set({ status: "absent", accounts: [], activeAccountId: null, keyring: null, error: null });
         return;
       }
 
@@ -95,7 +87,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
       set({ accounts, error: null });
       await activate(active.id, set);
     } catch (error) {
-      set({ status: 'error', error: errorMessage(error) });
+      set({ status: "error", error: errorMessage(error) });
     } finally {
       restoring = false;
     }
@@ -108,7 +100,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
 
     restoring = true;
     try {
-      return (await activate(id, set)) === 'ready';
+      return (await activate(id, set)) === "ready";
     } finally {
       restoring = false;
     }
@@ -117,7 +109,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
   async adoptAccount(phrase: string, label?: string) {
     const normalized = normalizeMnemonic(phrase);
     if (!isValidMnemonic(normalized)) {
-      throw new Error('That recovery phrase is not valid. Check the spelling and word order.');
+      throw new Error("That recovery phrase is not valid. Check the spelling and word order.");
     }
 
     const address = addressForMnemonic(normalized);
@@ -141,7 +133,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
       label: label?.trim() || `Account ${existing.length + 1}`,
       address,
       createdAt: Date.now(),
-      kind: 'phrase',
+      kind: "phrase",
     };
     const accounts = [...existing, record];
     await saveAccounts(accounts);
@@ -153,18 +145,14 @@ export const useAccountStore = create<AccountState>((set, get) => ({
 
   async addHardwareAccount({ signer, ...params }: HardwareAccountParams) {
     const existing = get().accounts;
-    const duplicate = existing.find(
-      (a) => a.address.toLowerCase() === params.address.toLowerCase()
-    );
-    if (duplicate?.kind === 'phrase') {
-      throw new Error(
-        `This wallet's account is already here as ${duplicate.label}, with its recovery phrase.`
-      );
+    const duplicate = existing.find((a) => a.address.toLowerCase() === params.address.toLowerCase());
+    if (duplicate?.kind === "phrase") {
+      throw new Error(`This wallet's account is already here as ${duplicate.label}, with its recovery phrase.`);
     }
     const seed = await signChatKeys(signer, params.path);
     const fields = {
       address: params.address,
-      kind: 'hardware' as const,
+      kind: "hardware" as const,
       vendorId: params.vendorId,
       path: params.path,
       device: params.device,
@@ -179,11 +167,9 @@ export const useAccountStore = create<AccountState>((set, get) => ({
           createdAt: Date.now(),
           ...fields,
         };
-    const accounts = duplicate
-      ? existing.map((a) => (a.id === record.id ? record : a))
-      : [...existing, record];
+    const accounts = duplicate ? existing.map((a) => (a.id === record.id ? record : a)) : [...existing, record];
 
-    const secret = { kind: 'chatSeed', seed } as const;
+    const secret = { kind: "chatSeed", seed } as const;
     if (duplicate) await deleteAccountSecret(record.id);
     await writeAccountSecret(record.id, secret);
     await saveAccounts(accounts);
@@ -195,9 +181,9 @@ export const useAccountStore = create<AccountState>((set, get) => ({
 
   async setUpChatKeys() {
     const record = activeAccount(get());
-    if (record?.kind !== 'hardware') return;
+    if (record?.kind !== "hardware") return;
     const secret = {
-      kind: 'chatSeed',
+      kind: "chatSeed",
       seed: await signChatKeys(deviceSigner(record), keyOf(record).path),
     } as const;
     await writeAccountSecret(record.id, secret);
@@ -226,7 +212,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
     const remaining = await forgetAccount(id);
 
     if (remaining.length === 0) {
-      set({ status: 'absent', accounts: [], activeAccountId: null, keyring: null });
+      set({ status: "absent", accounts: [], activeAccountId: null, keyring: null });
       return;
     }
 
@@ -241,46 +227,40 @@ export const useAccountStore = create<AccountState>((set, get) => ({
 async function activate(
   accountId: string,
   set: (partial: Partial<AccountStateSlice>) => void,
-  secret?: AccountSecret
-): Promise<'ready' | 'blocked' | 'invalidated'> {
+  secret?: AccountSecret,
+): Promise<"ready" | "blocked" | "invalidated"> {
   const record = useAccountStore.getState().accounts.find((a) => a.id === accountId);
-  const result = secret
-    ? ({ status: 'ok', secret } as const)
-    : await readAccountSecret(accountId, true);
+  const result = secret ? ({ status: "ok", secret } as const) : await readAccountSecret(accountId, true);
 
-  if (record?.kind === 'hardware') {
-    if (result.status === 'denied') {
-      set({ status: 'blocked', activeAccountId: accountId, keyring: null, error: null });
-      return 'blocked';
+  if (record?.kind === "hardware") {
+    if (result.status === "denied") {
+      set({ status: "blocked", activeAccountId: accountId, keyring: null, error: null });
+      return "blocked";
     }
-    const seed =
-      result.status === 'ok' && result.secret.kind === 'chatSeed' ? result.secret.seed : null;
+    const seed = result.status === "ok" && result.secret.kind === "chatSeed" ? result.secret.seed : null;
     const key = keyOf(record);
     set({
-      status: 'ready',
+      status: "ready",
       activeAccountId: accountId,
       keyring: hardwareKeyring(hardwareAccount(deviceSigner(record), key.address, key.path), seed),
       error: null,
     });
-    return 'ready';
+    return "ready";
   }
 
-  if (result.status !== 'ok' || result.secret.kind !== 'phrase') {
-    const status = result.status === 'denied' ? 'blocked' : 'invalidated';
+  if (result.status !== "ok" || result.secret.kind !== "phrase") {
+    const status = result.status === "denied" ? "blocked" : "invalidated";
     set({ status, activeAccountId: accountId, keyring: null, error: null });
     return status;
   }
 
   set({
-    status: 'ready',
+    status: "ready",
     activeAccountId: accountId,
     keyring: keyringFromMnemonic(result.secret.phrase),
     error: null,
   });
-  return 'ready';
+  return "ready";
 }
 
-type AccountStateSlice = Pick<
-  AccountState,
-  'status' | 'accounts' | 'activeAccountId' | 'keyring' | 'error'
->;
+type AccountStateSlice = Pick<AccountState, "status" | "accounts" | "activeAccountId" | "keyring" | "error">;

@@ -44,19 +44,14 @@
             "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypePerformanceData",
             "NSPrivacyCollectedDataTypeLinked": false,
             "NSPrivacyCollectedDataTypeTracking": false,
-            "NSPrivacyCollectedDataTypePurposes": [
-              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
-            ]
+            "NSPrivacyCollectedDataTypePurposes": ["NSPrivacyCollectedDataTypePurposeAppFunctionality"]
           }
         ],
         "NSPrivacyTracking": false
       },
       "appleTeamId": "8N3Z3WWTK7",
       "entitlements": {
-        "keychain-access-groups": [
-          "$(AppIdentifierPrefix)im.statim.app",
-          "$(AppIdentifierPrefix)im.statim.app.shared"
-        ],
+        "keychain-access-groups": ["$(AppIdentifierPrefix)im.statim.app", "$(AppIdentifierPrefix)im.statim.app.shared"],
         "com.apple.developer.icloud-container-identifiers": ["iCloud.im.statim.app"],
         "com.apple.developer.icloud-services": ["CloudKit"]
       }

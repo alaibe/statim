@@ -1,9 +1,8 @@
-import { HttpError } from '@/core/errors';
-import { downloadMedia } from '@/core/messaging/media-store';
-import { arrayOf, isNumber, isString, shape } from '@/lib/guards';
-import { SITE } from '@/lib/guide';
-
-import type { PickerPack } from '@/core/messaging/stickers';
+import { HttpError } from "@/core/errors";
+import { downloadMedia } from "@/core/messaging/media-store";
+import type { PickerPack } from "@/core/messaging/stickers";
+import { arrayOf, isNumber, isString, shape } from "@/lib/guards";
+import { SITE } from "@/lib/guide";
 
 /** Where the site publishes the packs, ending in `/`; laibe's dev server while developing. */
 const PACKS = process.env.EXPO_PUBLIC_STICKERS_URL ?? `${SITE}stickers/`;
@@ -30,7 +29,7 @@ const isIndex = shape<{ packs: HostedPack[] }>({
       title: isString,
       version: isNumber,
       stickers: arrayOf(shape<HostedSticker>({ id: isString, emoji: isString })),
-    })
+    }),
   ),
 });
 
@@ -51,10 +50,7 @@ async function readIndex(): Promise<HostedPack[]> {
   try {
     const response = await fetch(`${PACKS}index.json`, { signal: abort.signal });
     if (!response.ok) {
-      throw new HttpError(
-        response.status,
-        `Could not load the Statim stickers (${response.status})`
-      );
+      throw new HttpError(response.status, `Could not load the Statim stickers (${response.status})`);
     }
     const body: unknown = await response.json();
     return isIndex(body) ? body.packs.filter((pack) => pack.stickers.length > 0) : [];
@@ -77,17 +73,17 @@ function pickerPack(accountId: string, pack: HostedPack): PickerPack {
       })),
     content: async (stickerId) => {
       const sticker = pack.stickers.find((each) => each.id === stickerId);
-      if (!sticker) throw new Error('That sticker is no longer in the pack.');
+      if (!sticker) throw new Error("That sticker is no longer in the pack.");
       const file = await downloadMedia(
-        'stickers',
+        "stickers",
         `${pack.id}-${pack.version}-${sticker.id}.webp`,
         accountId,
-        url(sticker)
+        url(sticker),
       );
       return {
-        kind: 'sticker',
+        kind: "sticker",
         uri: file.uri,
-        mimeType: 'image/webp',
+        mimeType: "image/webp",
         width: SIDE,
         height: SIDE,
         size: file.size,

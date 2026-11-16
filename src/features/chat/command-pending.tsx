@@ -1,14 +1,11 @@
-import { View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import { View } from "react-native";
+import Animated from "react-native-reanimated";
 
-import { Enter, Exit, Text } from '@/design';
+import { Enter, Exit, Text } from "@/design";
 
 export function CommandPending({ label }: { label: string }) {
   return (
-    <Animated.View
-      entering={Enter.fade()}
-      exiting={Exit.fade()}
-      className="items-start px-gutter pt-2">
+    <Animated.View entering={Enter.fade()} exiting={Exit.fade()} className="items-start px-gutter pt-2">
       <View className="rounded-bubble rounded-bl-md bg-bubble-in px-3.5 py-2">
         <View className="flex-row items-center gap-2">
           <Dots />
@@ -30,11 +27,11 @@ function Dots() {
           className="h-1.5 w-1.5 rounded-pill bg-bubble-in-on"
           style={{
             animationName: {
-              '0%, 100%': { opacity: 0.25 },
-              '50%': { opacity: 1 },
+              "0%, 100%": { opacity: 0.25 },
+              "50%": { opacity: 1 },
             },
-            animationDuration: '900ms',
-            animationIterationCount: 'infinite',
+            animationDuration: "900ms",
+            animationIterationCount: "infinite",
             animationDelay: `${i * 150}ms`,
           }}
         />

@@ -1,9 +1,9 @@
-import { orderChats, type ChatPrefsMap } from '@/core/messaging/chat-prefs';
+import { type ChatPrefsMap, orderChats } from "@/core/messaging/chat-prefs";
 import {
   type ChatFilter,
+  chatListRows,
   chatRow,
   type Folder,
-  chatListRows,
   inFolder,
   isOwnFolder,
   isUnreadHere,
@@ -11,17 +11,16 @@ import {
   networkOf,
   ownFolder,
   splitRequests,
-} from '@/core/messaging/folders';
-import { messagePreview } from '@/core/messaging/preview';
-import { isBridgedNetwork, type NetworkId } from '@/core/messaging/networks';
-import type { Chat, ChatId } from '@/core/messaging/types';
-import { hasUnreadMentions } from '@/core/messaging/unread';
-import { protocolById } from '@/protocols';
+} from "@/core/messaging/folders";
+import { isBridgedNetwork, type NetworkId } from "@/core/messaging/networks";
+import { messagePreview } from "@/core/messaging/preview";
+import type { Chat, ChatId } from "@/core/messaging/types";
+import { hasUnreadMentions } from "@/core/messaging/unread";
+import { protocolById } from "@/protocols";
 
-export const isFolded = (network: NetworkId) =>
-  isBridgedNetwork(network) || (protocolById(network)?.folded ?? true);
+export const isFolded = (network: NetworkId) => isBridgedNetwork(network) || (protocolById(network)?.folded ?? true);
 
-export const crossesFolders = (filter: ChatFilter) => filter === 'unread' || filter === 'mentions';
+export const crossesFolders = (filter: ChatFilter) => filter === "unread" || filter === "mentions";
 
 export function chatListContents({
   chats,
@@ -54,23 +53,20 @@ export function chatListContents({
   const filtering = !q && !(folder && isOwnFolder(folder));
   const include = (c: Chat) =>
     q
-      ? titleOf(c).toLowerCase().includes(q) ||
-        messagePreview(c.lastMessage).toLowerCase().includes(q)
-      : !filtering || matchesFilter(c, filter, context) || (filter === 'unread' && held.has(c.id));
+      ? titleOf(c).toLowerCase().includes(q) || messagePreview(c.lastMessage).toLowerCase().includes(q)
+      : !filtering || matchesFilter(c, filter, context) || (filter === "unread" && held.has(c.id));
   const rows =
     folder || q || crossesFolders(filter)
       ? scope.filter(include).map(chatRow)
       : chatListRows(ordered, include, isFolded, context);
-  const networks = new Set(
-    rows.flatMap((row) => (row.kind === 'chat' ? (networkOf(row.chat) ?? []) : []))
-  );
+  const networks = new Set(rows.flatMap((row) => (row.kind === "chat" ? (networkOf(row.chat) ?? []) : [])));
 
   return {
     listed,
     requests,
     rows,
     filtering,
-    unseen: filter === 'unread' ? unread.filter((c) => !held.has(c.id)).map((c) => c.id) : [],
+    unseen: filter === "unread" ? unread.filter((c) => !held.has(c.id)).map((c) => c.id) : [],
     unreadHere: unread.length,
     mentionsHere: everywhere.filter((c) => hasUnreadMentions(c, readAt)).length,
     showNetwork: !folder && networks.size > 1,

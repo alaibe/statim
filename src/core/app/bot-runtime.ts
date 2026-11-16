@@ -1,7 +1,7 @@
-import { botChatId, toContent, type Bot, type BotContext } from '../messaging/bots';
-import { useChatStore } from '../messaging/chat-store';
-import type { MessageId } from '../messaging/types';
-import { reportError } from './report-error';
+import { type Bot, type BotContext, botChatId, toContent } from "../messaging/bots";
+import { useChatStore } from "../messaging/chat-store";
+import type { MessageId } from "../messaging/types";
+import { reportError } from "./report-error";
 
 interface RunningBot {
   stopped: boolean;
@@ -45,7 +45,7 @@ export class BotRuntime {
         if (running.stopped || !active()) return;
         const store = useChatStore.getState();
         if (!store.chats.some((chat) => chat.id === chatId)) return;
-        await store.postLocalMessage(chatId, toContent(content), 'bot');
+        await store.postLocalMessage(chatId, toContent(content), "bot");
         if (running.stopped || !active()) return;
         const posted = useChatStore.getState().messages[chatId]?.at(-1);
         if (posted) {
@@ -57,7 +57,7 @@ export class BotRuntime {
     this.ready
       .then(() => (running.stopped ? undefined : bot.activate?.(context)))
       .then((dispose) => {
-        if (typeof dispose !== 'function') return;
+        if (typeof dispose !== "function") return;
         if (running.stopped) dispose();
         else running.dispose = dispose;
       })

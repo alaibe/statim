@@ -1,4 +1,4 @@
-import { persistedCache, type CacheStorage } from '../persisted-cache';
+import { type CacheStorage, persistedCache } from "../persisted-cache";
 
 export interface StoredEnsProfile {
   name: string;
@@ -12,9 +12,9 @@ export interface StoredEnsProfile {
 // A record edited on ENS shows within a day; a name claimed after a miss, within minutes.
 const LIFETIME = { limit: 300, ttlMs: 24 * 60 * 60 * 1000, missTtlMs: 10 * 60 * 1000 };
 
-export const ensNames = persistedCache<string | null>({ name: 'ens-names', ...LIFETIME });
+export const ensNames = persistedCache<string | null>({ name: "ens-names", ...LIFETIME });
 export const ensProfiles = persistedCache<StoredEnsProfile | null>({
-  name: 'ens-profiles',
+  name: "ens-profiles",
   ...LIFETIME,
 });
 

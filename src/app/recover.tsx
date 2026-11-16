@@ -1,11 +1,10 @@
-import { useRouter } from 'expo-router';
-import { View } from 'react-native';
-
-import { Button, Card, Icon, Screen, Text } from '@/design';
-import { eraseEverything } from '@/core/app/erase-account';
-import { useAccountStore } from '@/core/account/account-store';
-import { shortAddress } from '@/core/account/keyring';
-import { useAction } from '@/features/use-action';
+import { useRouter } from "expo-router";
+import { View } from "react-native";
+import { useAccountStore } from "@/core/account/account-store";
+import { shortAddress } from "@/core/account/keyring";
+import { eraseEverything } from "@/core/app/erase-account";
+import { Button, Card, Icon, Screen, Text } from "@/design";
+import { useAction } from "@/features/use-action";
 
 export default function RecoverScreen() {
   const router = useRouter();
@@ -14,9 +13,9 @@ export default function RecoverScreen() {
   const erase = useAction(
     async () => {
       await eraseEverything();
-      router.replace('/(onboarding)/welcome');
+      router.replace("/(onboarding)/welcome");
     },
-    { failure: 'Could not erase this device' }
+    { failure: "Could not erase this device" },
   );
 
   return (
@@ -31,8 +30,8 @@ export default function RecoverScreen() {
       </View>
 
       <Text variant="bodyMuted">
-        This device&apos;s biometrics changed, so iOS discarded the keys that were sealed to them.
-        That is the trade-off of protecting keys with Face ID, and it cannot be undone from here.
+        This device&apos;s biometrics changed, so iOS discarded the keys that were sealed to them. That is the trade-off
+        of protecting keys with Face ID, and it cannot be undone from here.
       </Text>
 
       <Card className="gap-2">
@@ -45,22 +44,13 @@ export default function RecoverScreen() {
       </Card>
 
       <Text variant="bodyMuted">
-        Your messages and settings are still here. Import an account&apos;s recovery phrase and it
-        picks up exactly where it left off.
+        Your messages and settings are still here. Import an account&apos;s recovery phrase and it picks up exactly
+        where it left off.
       </Text>
 
       <View className="gap-2">
-        <Button
-          label="Import a recovery phrase"
-          fullWidth
-          onPress={() => router.push('/(onboarding)/import')}
-        />
-        <Button
-          label="Erase everything and start over"
-          tone="danger"
-          fullWidth
-          onPress={() => erase.run()}
-        />
+        <Button label="Import a recovery phrase" fullWidth onPress={() => router.push("/(onboarding)/import")} />
+        <Button label="Erase everything and start over" tone="danger" fullWidth onPress={() => erase.run()} />
       </View>
     </Screen>
   );

@@ -1,32 +1,30 @@
-import type { WalletKit, WalletKitTypes } from '@reown/walletkit';
-import type { SessionTypes } from '@walletconnect/types';
-import { create } from 'zustand';
-
-import type { PluginContext } from '@/core/plugins/types';
-import { SUPPORTED_CHAINS, toCaip2 } from '@/lib/evm/chains';
-
-import { APP_METADATA, walletConnectProjectId } from './config';
-import { handleSessionRequest } from './rpc';
-import { errorMessage } from '@/core/errors';
+import type { WalletKit, WalletKitTypes } from "@reown/walletkit";
+import type { SessionTypes } from "@walletconnect/types";
+import { create } from "zustand";
+import { errorMessage } from "@/core/errors";
+import type { PluginContext } from "@/core/plugins/types";
+import { SUPPORTED_CHAINS, toCaip2 } from "@/lib/evm/chains";
+import { APP_METADATA, walletConnectProjectId } from "./config";
+import { handleSessionRequest } from "./rpc";
 
 const SUPPORTED_METHODS = [
-  'personal_sign',
-  'eth_sign',
-  'eth_signTypedData',
-  'eth_signTypedData_v4',
-  'eth_sendTransaction',
-  'eth_accounts',
-  'eth_chainId',
+  "personal_sign",
+  "eth_sign",
+  "eth_signTypedData",
+  "eth_signTypedData_v4",
+  "eth_sendTransaction",
+  "eth_accounts",
+  "eth_chainId",
 ] as const;
 
-const SUPPORTED_EVENTS = ['chainChanged', 'accountsChanged'] as const;
+const SUPPORTED_EVENTS = ["chainChanged", "accountsChanged"] as const;
 
 type Kit = Awaited<ReturnType<typeof WalletKit.init>>;
 
 export type PendingItem =
-  | { kind: 'proposal'; id: number; proposal: WalletKitTypes.SessionProposal }
+  | { kind: "proposal"; id: number; proposal: WalletKitTypes.SessionProposal }
   | {
-      kind: 'request';
+      kind: "request";
       id: number;
       topic: string;
       method: string;
@@ -41,7 +39,7 @@ interface WalletConnectState {
   error: string | null;
   queue: PendingItem[];
   /** The answer to the head of the queue that is in flight. */
-  answering: 'approve' | 'reject' | null;
+  answering: "approve" | "reject" | null;
   /** True while the QR scanner is on screen. The camera runs only then. */
   scanning: boolean;
 
@@ -59,46 +57,40 @@ let onProposal: ((p: WalletKitTypes.SessionProposal) => void) | null = null;
 let onRequest: ((e: WalletKitTypes.SessionRequest) => void) | null = null;
 let onDelete: (() => void) | null = null;
 
-function redirectOf(peer: SessionTypes.Struct['peer']['metadata']) {
+function redirectOf(peer: SessionTypes.Struct["peer"]["metadata"]) {
   return peer.redirect?.native || peer.redirect?.universal;
 }
 
-async function returnAfterPairing(
-  peer: SessionTypes.Struct['peer']['metadata'],
-  context: PluginContext
-) {
+async function returnAfterPairing(peer: SessionTypes.Struct["peer"]["metadata"], context: PluginContext) {
   const target = redirectOf(peer) || peer.url;
   if (target) await context.ui.openExternalUrl(target).catch(() => {});
 }
 
-async function returnAfterRequest(
-  peer: SessionTypes.Struct['peer']['metadata'],
-  context: PluginContext
-) {
+async function returnAfterRequest(peer: SessionTypes.Struct["peer"]["metadata"], context: PluginContext) {
   const target = redirectOf(peer);
   if (target) {
-    context.ui.notify('Approved', 'success');
+    context.ui.notify("Approved", "success");
     await context.ui.openExternalUrl(target).catch(() => {});
     return;
   }
-  context.ui.notify(`Approved. Switch back to ${peer.name || 'the site'} to carry on.`, 'success');
+  context.ui.notify(`Approved. Switch back to ${peer.name || "the site"} to carry on.`, "success");
 }
 
-const utils = () => import('@walletconnect/utils');
+const utils = () => import("@walletconnect/utils");
 
 async function isPairingUri(uri: string) {
   const { parseUri } = await utils();
   try {
     const { version, topic, symKey, relay } = parseUri(uri);
-    return version === 2 && /^[0-9a-f]{64}$/i.test(topic) && !!symKey && relay.protocol === 'irn';
+    return version === 2 && /^[0-9a-f]{64}$/i.test(topic) && !!symKey && relay.protocol === "irn";
   } catch {
     return false;
   }
 }
 
 async function answerHead(
-  kind: NonNullable<WalletConnectState['answering']>,
-  answer: (kit: Kit, head: PendingItem) => Promise<void>
+  kind: NonNullable<WalletConnectState["answering"]>,
+  answer: (kit: Kit, head: PendingItem) => Promise<void>,
 ) {
   const { kit, queue, answering } = useWalletConnectStore.getState();
   const head = queue[0];
@@ -134,25 +126,22 @@ export const useWalletConnectStore = create<WalletConnectState>((set, get) => ({
     if (!projectId) {
       set({
         error:
-          'WalletConnect needs a free project id. Add one to app.json under ' +
-          'expo.extra.walletConnectProjectId, or set ' +
-          'EXPO_PUBLIC_WALLETCONNECT_PROJECT_ID.',
+          "WalletConnect needs a free project id. Add one to app.json under " +
+          "expo.extra.walletConnectProjectId, or set " +
+          "EXPO_PUBLIC_WALLETCONNECT_PROJECT_ID.",
       });
       return;
     }
 
     set({ initializing: true, error: null });
     try {
-      const [{ Core }, { WalletKit }] = await Promise.all([
-        import('@walletconnect/core'),
-        import('@reown/walletkit'),
-      ]);
+      const [{ Core }, { WalletKit }] = await Promise.all([import("@walletconnect/core"), import("@reown/walletkit")]);
       const core = new Core({ projectId });
       const kit = await WalletKit.init({ core, metadata: APP_METADATA });
 
       onProposal = (proposal: WalletKitTypes.SessionProposal) => {
         set((s) => ({
-          queue: [...s.queue, { kind: 'proposal', id: proposal.id, proposal }],
+          queue: [...s.queue, { kind: "proposal", id: proposal.id, proposal }],
         }));
       };
 
@@ -162,13 +151,13 @@ export const useWalletConnectStore = create<WalletConnectState>((set, get) => ({
           queue: [
             ...s.queue,
             {
-              kind: 'request',
+              kind: "request",
               id: event.id,
               topic: event.topic,
               method: event.params.request.method,
               params: event.params.request.params as unknown[],
               chainId: event.params.chainId,
-              siteName: session?.peer.metadata.name ?? 'A site',
+              siteName: session?.peer.metadata.name ?? "A site",
             },
           ],
         }));
@@ -176,30 +165,28 @@ export const useWalletConnectStore = create<WalletConnectState>((set, get) => ({
 
       onDelete = () => {};
 
-      kit.on('session_proposal', onProposal);
-      kit.on('session_request', onRequest);
-      kit.on('session_delete', onDelete);
+      kit.on("session_proposal", onProposal);
+      kit.on("session_request", onRequest);
+      kit.on("session_delete", onDelete);
 
       set({ kit, initializing: false });
     } catch (error) {
-      set({ initializing: false, error: errorMessage(error, 'Could not start WalletConnect') });
+      set({ initializing: false, error: errorMessage(error, "Could not start WalletConnect") });
     }
   },
 
   async pair(uri) {
     const kit = get().kit;
-    if (!kit) throw new Error(get().error ?? 'WalletConnect is still starting up.');
+    if (!kit) throw new Error(get().error ?? "WalletConnect is still starting up.");
     if (!(await isPairingUri(uri))) {
-      throw new Error('That is not a whole pairing link. Copy it again from the site.');
+      throw new Error("That is not a whole pairing link. Copy it again from the site.");
     }
     try {
       await kit.pair({ uri });
     } catch (error) {
-      const reason = errorMessage(error, '');
-      if (reason.includes('Pairing already exists') || reason.includes('expired')) {
-        throw new Error(
-          'That link is spent. Ask the site for a fresh code, then scan or paste it again.'
-        );
+      const reason = errorMessage(error, "");
+      if (reason.includes("Pairing already exists") || reason.includes("expired")) {
+        throw new Error("That link is spent. Ask the site for a fresh code, then scan or paste it again.");
       }
       throw error;
     }
@@ -209,13 +196,13 @@ export const useWalletConnectStore = create<WalletConnectState>((set, get) => ({
     const kit = get().kit;
     if (!kit) return;
     const { getSdkError } = await utils();
-    await kit.disconnectSession({ topic, reason: getSdkError('USER_DISCONNECTED') });
+    await kit.disconnectSession({ topic, reason: getSdkError("USER_DISCONNECTED") });
   },
 
   approveHead(context) {
-    return answerHead('approve', async (kit, head) => {
+    return answerHead("approve", async (kit, head) => {
       try {
-        if (head.kind === 'proposal') {
+        if (head.kind === "proposal") {
           const address = context.account.address;
           const chains = SUPPORTED_CHAINS.map((c) => toCaip2(c.id));
 
@@ -233,29 +220,29 @@ export const useWalletConnectStore = create<WalletConnectState>((set, get) => ({
           });
 
           const session = await kit.approveSession({ id: head.id, namespaces });
-          context.ui.notify('Connected', 'success');
+          context.ui.notify("Connected", "success");
           await returnAfterPairing(session.peer.metadata, context);
         } else {
           const result = await handleSessionRequest(head, context);
           await kit.respondSessionRequest({
             topic: head.topic,
-            response: { id: head.id, jsonrpc: '2.0', result },
+            response: { id: head.id, jsonrpc: "2.0", result },
           });
           const session = kit.getActiveSessions()[head.topic];
           if (session) await returnAfterRequest(session.peer.metadata, context);
-          else context.ui.notify('Approved', 'success');
+          else context.ui.notify("Approved", "success");
         }
       } catch (error) {
-        const message = errorMessage(error, 'Request failed');
-        context.ui.notify(message, 'error');
+        const message = errorMessage(error, "Request failed");
+        context.ui.notify(message, "error");
 
-        if (head.kind === 'request') {
+        if (head.kind === "request") {
           await kit
             .respondSessionRequest({
               topic: head.topic,
               response: {
                 id: head.id,
-                jsonrpc: '2.0',
+                jsonrpc: "2.0",
                 error: { code: 5000, message },
               },
             })
@@ -266,17 +253,17 @@ export const useWalletConnectStore = create<WalletConnectState>((set, get) => ({
   },
 
   rejectHead() {
-    return answerHead('reject', async (kit, head) => {
+    return answerHead("reject", async (kit, head) => {
       const { getSdkError } = await utils();
-      if (head.kind === 'proposal') {
-        await kit.rejectSession({ id: head.id, reason: getSdkError('USER_REJECTED') });
+      if (head.kind === "proposal") {
+        await kit.rejectSession({ id: head.id, reason: getSdkError("USER_REJECTED") });
       } else {
         await kit.respondSessionRequest({
           topic: head.topic,
           response: {
             id: head.id,
-            jsonrpc: '2.0',
-            error: getSdkError('USER_REJECTED'),
+            jsonrpc: "2.0",
+            error: getSdkError("USER_REJECTED"),
           },
         });
       }
@@ -286,9 +273,9 @@ export const useWalletConnectStore = create<WalletConnectState>((set, get) => ({
   shutdown() {
     const kit = get().kit;
     if (kit) {
-      if (onProposal) kit.off('session_proposal', onProposal);
-      if (onRequest) kit.off('session_request', onRequest);
-      if (onDelete) kit.off('session_delete', onDelete);
+      if (onProposal) kit.off("session_proposal", onProposal);
+      if (onRequest) kit.off("session_request", onRequest);
+      if (onDelete) kit.off("session_delete", onDelete);
     }
     onProposal = onRequest = onDelete = null;
     set({ kit: null, queue: [] });

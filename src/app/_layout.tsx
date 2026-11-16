@@ -1,46 +1,40 @@
-import { EmptyState, toast, ToastHost, useThemeColors } from '@/design';
-import '@/global.css';
+import { EmptyState, ToastHost, toast, useThemeColors } from "@/design";
+import "@/global.css";
 
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
-import {
-  Observe,
-  ObserveRoot,
-  useObserve,
-  type ObserveErrorBoundaryFallbackProps,
-} from 'expo-observe';
-import { StatusBar } from 'expo-status-bar';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useColorScheme as useSystemColorScheme, View } from 'react-native';
-import { colorScheme as nativewindColorScheme } from 'nativewind';
+import { Observe, type ObserveErrorBoundaryFallbackProps, ObserveRoot, useObserve } from "expo-observe";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { colorScheme as nativewindColorScheme } from "nativewind";
+import { useEffect, useSyncExternalStore } from "react";
+import { useColorScheme as useSystemColorScheme, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { useEffect, useSyncExternalStore } from 'react';
-
-import { useAppearanceStore } from '@/core/app/appearance';
-import { useAppBoot, useAppLock, useDeepLinkRouter } from '@/core/app/boot';
-import { useMessageNotifications } from '@/core/app/use-notifications';
-import { type HostUi, PluginProvider, usePluginHost } from '@/core/plugins/host';
-import { CliApprovals } from '@/features/cli/approvals';
-import { useCliServer } from '@/features/cli/server';
-import { DevicePromptHost } from '@/features/account/device-prompt';
-import { LockGate } from '@/features/account/lock-gate';
-import { AppFrame } from '@/features/navigation/app-frame';
-import { Dialog } from '@/features/navigation/dialog';
-import { openChat, openTab } from '@/features/navigation/open';
-import { DIALOG_ROUTES } from '@/features/navigation/routes';
-import { stackScreenOptions } from '@/features/navigation/stack-options';
-import { ALL_PLUGINS, DEFAULT_ENABLED_PLUGINS } from '@/plugins';
+import { useAppearanceStore } from "@/core/app/appearance";
+import { useAppBoot, useAppLock, useDeepLinkRouter } from "@/core/app/boot";
+import { useMessageNotifications } from "@/core/app/use-notifications";
+import { type HostUi, PluginProvider, usePluginHost } from "@/core/plugins/host";
+import { DevicePromptHost } from "@/features/account/device-prompt";
+import { LockGate } from "@/features/account/lock-gate";
+import { CliApprovals } from "@/features/cli/approvals";
+import { useCliServer } from "@/features/cli/server";
+import { AppFrame } from "@/features/navigation/app-frame";
+import { Dialog } from "@/features/navigation/dialog";
+import { openChat, openTab } from "@/features/navigation/open";
+import { DIALOG_ROUTES } from "@/features/navigation/routes";
+import { stackScreenOptions } from "@/features/navigation/stack-options";
+import { ALL_PLUGINS, DEFAULT_ENABLED_PLUGINS } from "@/plugins";
 
 Observe.configure({
   integrations: {
-    'expo-router': { filteredParams: ['id'] },
+    "expo-router": { filteredParams: ["id"] },
   },
 });
 
 const HOST_UI: HostUi = {
-  notify: (message, tone = 'info') => toast[tone](message),
+  notify: (message, tone = "info") => toast[tone](message),
   openChat,
-  openSettings: (page) => openTab(page === 'pin' ? '/settings/pin' : '/settings'),
+  openSettings: (page) => openTab(page === "pin" ? "/settings/pin" : "/settings"),
 };
 
 /**
@@ -48,19 +42,19 @@ const HOST_UI: HostUi = {
  * not paint its own background behind them.
  */
 function navigationTheme(theme: typeof DefaultTheme): typeof DefaultTheme {
-  if (process.env.EXPO_OS !== 'web') return theme;
-  return { ...theme, colors: { ...theme.colors, background: 'transparent' } };
+  if (process.env.EXPO_OS !== "web") return theme;
+  return { ...theme, colors: { ...theme.colors, background: "transparent" } };
 }
 
 function RootLayout() {
   const system = useSystemColorScheme();
   const choice = useAppearanceStore((s) => s.theme);
 
-  const scheme = choice === 'system' ? system : choice;
+  const scheme = choice === "system" ? system : choice;
   // On a phone NativeWind's `set` also overrides React Native's Appearance, so handed the
   // resolved scheme it would pin it and stop following the device. The desktop draws dark
   // mode from a class, which only a resolved scheme sets.
-  const applied = process.env.EXPO_OS === 'web' ? (scheme === 'dark' ? 'dark' : 'light') : choice;
+  const applied = process.env.EXPO_OS === "web" ? (scheme === "dark" ? "dark" : "light") : choice;
   useEffect(() => {
     nativewindColorScheme.set(applied);
   }, [applied]);
@@ -68,11 +62,8 @@ function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ThemeProvider value={navigationTheme(scheme === 'dark' ? DarkTheme : DefaultTheme)}>
-          <PluginProvider
-            plugins={ALL_PLUGINS}
-            defaultEnabled={DEFAULT_ENABLED_PLUGINS}
-            ui={HOST_UI}>
+        <ThemeProvider value={navigationTheme(scheme === "dark" ? DarkTheme : DefaultTheme)}>
+          <PluginProvider plugins={ALL_PLUGINS} defaultEnabled={DEFAULT_ENABLED_PLUGINS} ui={HOST_UI}>
             <AppShell />
           </PluginProvider>
         </ThemeProvider>
@@ -107,7 +98,7 @@ function PluginOverlays() {
   const overlays = useSyncExternalStore(
     registry.subscribe,
     () => registry.overlays(),
-    () => registry.overlays()
+    () => registry.overlays(),
   );
 
   return (
@@ -120,11 +111,11 @@ function PluginOverlays() {
   );
 }
 
-const desktop = process.env.EXPO_OS === 'web';
+const desktop = process.env.EXPO_OS === "web";
 
 const SHEET_OPTIONS = {
-  presentation: desktop ? 'transparentModal' : 'modal',
-  animation: 'slide_from_bottom',
+  presentation: desktop ? "transparentModal" : "modal",
+  animation: "slide_from_bottom",
 } as const;
 
 function AppShell() {
@@ -138,45 +129,45 @@ function AppShell() {
 
   const { markInteractive } = useObserve();
   useEffect(() => {
-    if (lockStatus === 'open') markInteractive();
+    if (lockStatus === "open") markInteractive();
   }, [lockStatus, markInteractive]);
 
   return (
     <View className="flex-1 bg-canvas">
-      <StatusBar style={colors.scheme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style={colors.scheme === "dark" ? "light" : "dark"} />
       <AppFrame>
         <Stack
           screenOptions={{ headerShown: false, ...stackScreenOptions(colors) }}
           screenLayout={
             desktop
-              ? ({ route, children }) =>
-                  DIALOG_ROUTES.has(route.name) ? <Dialog>{children}</Dialog> : <>{children}</>
+              ? ({ route, children }) => (DIALOG_ROUTES.has(route.name) ? <Dialog>{children}</Dialog> : <>{children}</>)
               : undefined
-          }>
-          <Stack.Screen name="index" options={{ animation: 'none' }} />
-          <Stack.Screen name="(onboarding)" options={{ animation: 'fade' }} />
-          <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
-          <Stack.Screen name="chat/[id]" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="thread/[id]" options={{ animation: 'slide_from_right' }} />
+          }
+        >
+          <Stack.Screen name="index" options={{ animation: "none" }} />
+          <Stack.Screen name="(onboarding)" options={{ animation: "fade" }} />
+          <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
+          <Stack.Screen name="chat/[id]" options={{ animation: "slide_from_right" }} />
+          <Stack.Screen name="thread/[id]" options={{ animation: "slide_from_right" }} />
           <Stack.Screen
             name="profile/[id]"
             options={{
-              animation: 'slide_from_right',
-              presentation: desktop ? 'transparentModal' : 'card',
+              animation: "slide_from_right",
+              presentation: desktop ? "transparentModal" : "card",
             }}
           />
-          <Stack.Screen name="recover" options={{ animation: 'fade' }} />
+          <Stack.Screen name="recover" options={{ animation: "fade" }} />
           <Stack.Screen name="new-chat" options={SHEET_OPTIONS} />
           <Stack.Screen name="invite" options={SHEET_OPTIONS} />
           <Stack.Screen name="qr" options={SHEET_OPTIONS} />
           <Stack.Screen name="bridge-login" options={SHEET_OPTIONS} />
           <Stack.Screen name="search" options={SHEET_OPTIONS} />
-          <Stack.Screen name="share" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="share" options={{ animation: "slide_from_bottom" }} />
           <Stack.Screen
             name="sheet"
             options={{
-              presentation: 'formSheet',
-              sheetAllowedDetents: 'fitToContents',
+              presentation: "formSheet",
+              sheetAllowedDetents: "fitToContents",
               contentStyle: { backgroundColor: colors.surface },
             }}
           />
@@ -187,7 +178,7 @@ function AppShell() {
       <DevicePromptHost />
       <ToastHost />
 
-      {lockStatus === 'open' ? null : lockStatus === 'locked' ? (
+      {lockStatus === "open" ? null : lockStatus === "locked" ? (
         <LockGate />
       ) : (
         <View className="absolute inset-0 bg-canvas" />

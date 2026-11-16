@@ -1,8 +1,8 @@
-import { PermissionsAndroid, Platform } from 'react-native';
+import { PermissionsAndroid, Platform } from "react-native";
 
-import { registerVendor, type HardwareSigner } from '../hardware';
-import { ledgerSigner, type AppEth } from './ledger-signer';
-import { SPECULOS, speculosRunning, speculosTransport } from './speculos';
+import { type HardwareSigner, registerVendor } from "../hardware";
+import { type AppEth, ledgerSigner } from "./ledger-signer";
+import { SPECULOS, speculosRunning, speculosTransport } from "./speculos";
 
 interface LedgerDevice {
   id: string;
@@ -25,29 +25,29 @@ interface EthModule {
 }
 
 async function allowBluetooth(): Promise<void> {
-  if (Platform.OS !== 'android' || Platform.Version < 31) return;
+  if (Platform.OS !== "android" || Platform.Version < 31) return;
   const granted = await PermissionsAndroid.requestMultiple([
     PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
     PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
   ]);
   if (Object.values(granted).some((answer) => answer !== PermissionsAndroid.RESULTS.GRANTED)) {
-    throw new Error('Allow Nearby devices for Statim in Android Settings to find your Ledger.');
+    throw new Error("Allow Nearby devices for Statim in Android Settings to find your Ledger.");
   }
 }
 
 async function scanForLedgers(
   onFound: (device: LedgerDevice) => void,
-  onError: (error: unknown) => void
+  onError: (error: unknown) => void,
 ): Promise<() => void> {
   void speculosRunning().then((running) => running && onFound(SPECULOS));
   await allowBluetooth();
   const { default: Transport } = (await import(
-    '@ledgerhq/react-native-hw-transport-ble'
+    "@ledgerhq/react-native-hw-transport-ble"
   )) as unknown as TransportModule;
 
   const subscription = Transport.listen({
     next: (event) => {
-      if (event.type === 'add') onFound(event.descriptor);
+      if (event.type === "add") onFound(event.descriptor);
     },
     error: onError,
     complete: () => {},
@@ -58,13 +58,13 @@ async function scanForLedgers(
 
 async function connectLedger(deviceId: string): Promise<HardwareSigner> {
   if (deviceId === SPECULOS.id) {
-    const { default: AppEth } = (await import('@ledgerhq/hw-app-eth')) as unknown as EthModule;
+    const { default: AppEth } = (await import("@ledgerhq/hw-app-eth")) as unknown as EthModule;
     return ledgerSigner(new AppEth(speculosTransport()));
   }
   await allowBluetooth();
   const [{ default: Transport }, { default: AppEth }] = await Promise.all([
-    import('@ledgerhq/react-native-hw-transport-ble') as unknown as Promise<TransportModule>,
-    import('@ledgerhq/hw-app-eth') as unknown as Promise<EthModule>,
+    import("@ledgerhq/react-native-hw-transport-ble") as unknown as Promise<TransportModule>,
+    import("@ledgerhq/hw-app-eth") as unknown as Promise<EthModule>,
   ]);
 
   return ledgerSigner(new AppEth(await Transport.open(deviceId)));
@@ -72,9 +72,9 @@ async function connectLedger(deviceId: string): Promise<HardwareSigner> {
 
 export function registerLedger(): void {
   registerVendor({
-    id: 'ledger',
-    label: 'Ledger',
-    connection: 'bluetooth',
+    id: "ledger",
+    label: "Ledger",
+    connection: "bluetooth",
     scan: scanForLedgers,
     connect: connectLedger,
   });

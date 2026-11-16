@@ -1,7 +1,7 @@
 /** Structural equality for JSON-like values: primitives, arrays and plain objects. */
 export function sameValue(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) return true;
-  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false;
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
   if (Array.isArray(a) || Array.isArray(b)) {
     return (
       Array.isArray(a) &&

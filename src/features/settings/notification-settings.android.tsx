@@ -1,12 +1,11 @@
-import { useState } from 'react';
-
-import { Icon, ListItem, Section, Toggle } from '@/design';
-import { setStayConnected, staysConnected } from '@/core/stay-connected';
+import { useState } from "react";
+import { setStayConnected, staysConnected } from "@/core/stay-connected";
+import { Icon, ListItem, Section, Toggle } from "@/design";
 
 export const notificationsIntro =
-  'Statim notifies you while it runs. Android stops it soon after you leave it, and with it the connections that bring messages in.';
+  "Statim notifies you while it runs. Android stops it soon after you leave it, and with it the connections that bring messages in.";
 
-export const notificationsHint: string | null = 'Stay connected';
+export const notificationsHint: string | null = "Stay connected";
 
 export function NotificationSettings() {
   return <StayConnected />;

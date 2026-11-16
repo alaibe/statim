@@ -1,48 +1,39 @@
-import type { Capability } from '../messaging/capability';
-import type { ComponentType, ReactNode } from 'react';
-import type { Address, Hex, LocalAccount } from 'viem';
+import type { ComponentType, ReactNode } from "react";
+import type { Address, Hex, LocalAccount } from "viem";
+import type { IconName } from "@/design";
+import type { Guard } from "@/lib/guards";
+import type { AccountCapabilities } from "../account/account-kind";
+import type { DerivedKey } from "../account/keyring";
+import type { Ed25519Key } from "../account/slip10";
+import type { Bot } from "../messaging/bots";
+import type { Capability } from "../messaging/capability";
+import type { ChatScope } from "../messaging/chat-scope";
+import type { ChatId, ChatMessage, MessageContent, ParticipantId, WidgetContent } from "../messaging/types";
 
-import type { DerivedKey } from '../account/keyring';
-import type { Ed25519Key } from '../account/slip10';
-import type { AccountCapabilities } from '../account/account-kind';
-
-import type { IconName } from '@/design';
-import type { Guard } from '@/lib/guards';
-import type { ChatScope } from '../messaging/chat-scope';
-
-import type { Bot } from '../messaging/bots';
-import type {
-  ChatMessage,
-  ChatId,
-  MessageContent,
-  ParticipantId,
-  WidgetContent,
-} from '../messaging/types';
-
-export type { Bot, BotContext, BotDisposer } from '../messaging/bots';
-export { poll } from '../messaging/bots';
+export type { Bot, BotContext, BotDisposer } from "../messaging/bots";
+export { poll } from "../messaging/bots";
 
 export type PluginId = string;
 
 export type PluginPermission =
-  | 'account.read'
-  | 'account.sign'
-  | 'chat.read'
-  | 'chat.send'
-  | 'network'
-  | 'storage'
-  | 'browser.open'
-  | 'plugins.manage';
+  | "account.read"
+  | "account.sign"
+  | "chat.read"
+  | "chat.send"
+  | "network"
+  | "storage"
+  | "browser.open"
+  | "plugins.manage";
 
 export const PERMISSION_LABELS: Record<PluginPermission, string> = {
-  'account.read': 'See your address and participant id',
-  'account.sign': 'Ask you to sign messages and transactions',
-  'chat.read': 'Read messages in your chats',
-  'chat.send': 'Send messages on your behalf',
-  network: 'Make network requests',
-  storage: 'Store data on this device',
-  'browser.open': 'Open links in your browser',
-  'plugins.manage': 'Turn other plugins on and off',
+  "account.read": "See your address and participant id",
+  "account.sign": "Ask you to sign messages and transactions",
+  "chat.read": "Read messages in your chats",
+  "chat.send": "Send messages on your behalf",
+  network: "Make network requests",
+  storage: "Store data on this device",
+  "browser.open": "Open links in your browser",
+  "plugins.manage": "Turn other plugins on and off",
 };
 
 export interface PluginManifest {
@@ -74,10 +65,7 @@ export interface PluginAccountApi {
 
 export interface PluginChatApi {
   startDm(addressOrId: string): Promise<ChatId | null>;
-  startGroup(
-    addressesOrIds: string[],
-    title: string
-  ): Promise<{ chatId: ChatId; unreachable: string[] }>;
+  startGroup(addressesOrIds: string[], title: string): Promise<{ chatId: ChatId; unreachable: string[] }>;
   send(chatId: ChatId, content: MessageContent): Promise<void>;
   sendText(chatId: ChatId, text: string): Promise<void>;
   sendCustom(chatId: ChatId, typeId: string, data: unknown): Promise<void>;
@@ -85,7 +73,7 @@ export interface PluginChatApi {
 }
 
 export interface PluginUiApi {
-  notify(message: string, tone?: 'info' | 'success' | 'error'): void;
+  notify(message: string, tone?: "info" | "success" | "error"): void;
   /**
    * Hands the URL to the system browser. An in-app browser would lose the page
    * the moment the user came back here to approve a WalletConnect request.
@@ -97,7 +85,7 @@ export interface PluginUiApi {
 }
 
 /** The parts of Settings a plugin can send the user to: its Security section, or setting a PIN. */
-export type SettingsLink = 'security' | 'pin';
+export type SettingsLink = "security" | "pin";
 
 export interface PluginSummary {
   id: PluginId;
@@ -110,9 +98,7 @@ export interface PluginSummary {
 export interface PluginManagementApi {
   list(): PluginSummary[];
   setEnabled(id: PluginId, enabled: boolean): Promise<void>;
-  commands(
-    chatId: ChatId
-  ): { name: string; description: string; usage: string; pluginId: PluginId }[];
+  commands(chatId: ChatId): { name: string; description: string; usage: string; pluginId: PluginId }[];
   channelOwner(chatId: ChatId): PluginId | undefined;
 }
 
@@ -139,10 +125,10 @@ export interface CommandInvocation {
 }
 
 export type CommandResult =
-  | { type: 'handled' }
-  | { type: 'setComposer'; text: string }
-  | { type: 'notice'; message: string; tone?: 'info' | 'success' }
-  | { type: 'error'; message: string };
+  | { type: "handled" }
+  | { type: "setComposer"; text: string }
+  | { type: "notice"; message: string; tone?: "info" | "success" }
+  | { type: "error"; message: string };
 
 export interface SlashCommand {
   name: string;

@@ -1,8 +1,8 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
-import type { ChatMessage, MessageId } from '@/core/messaging/types';
+import type { ChatMessage, MessageId } from "@/core/messaging/types";
 
-type JumpTarget = Pick<ChatMessage, 'chatId' | 'id' | 'sentAt'>;
+type JumpTarget = Pick<ChatMessage, "chatId" | "id" | "sentAt">;
 
 interface JumpState {
   /** A message the chat screen should scroll to once it has it loaded. */

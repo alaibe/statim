@@ -1,6 +1,6 @@
-import { fromHex, toHex } from './bytes';
+import { fromHex, toHex } from "./bytes";
 
-const CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
+const CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
 const GENERATOR = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
 
 function polymod(values: number[]): number {
@@ -23,12 +23,7 @@ function hrpExpand(hrp: string): number[] {
   return out;
 }
 
-function convertBits(
-  data: ArrayLike<number>,
-  from: number,
-  to: number,
-  pad: boolean
-): number[] | null {
+function convertBits(data: ArrayLike<number>, from: number, to: number, pad: boolean): number[] | null {
   let acc = 0;
   let bits = 0;
   const out: number[] = [];
@@ -55,13 +50,13 @@ function convertBits(
 
 export function bech32Encode(hrp: string, data: Uint8Array): string {
   const words = convertBits(data, 8, 5, true);
-  if (!words) throw new Error('Could not convert to bech32 words');
+  if (!words) throw new Error("Could not convert to bech32 words");
 
   const checksum = polymod([...hrpExpand(hrp), ...words, 0, 0, 0, 0, 0, 0]) ^ 1;
   const check: number[] = [];
   for (let i = 0; i < 6; i++) check.push((checksum >> (5 * (5 - i))) & 31);
 
-  return `${hrp}1${[...words, ...check].map((w) => CHARSET[w]).join('')}`;
+  return `${hrp}1${[...words, ...check].map((w) => CHARSET[w]).join("")}`;
 }
 
 interface Bech32Decoded {
@@ -74,7 +69,7 @@ export function bech32Decode(value: string): Bech32Decoded | null {
   if (input !== input.toLowerCase() && input !== input.toUpperCase()) return null;
 
   const lower = input.toLowerCase();
-  const split = lower.lastIndexOf('1');
+  const split = lower.lastIndexOf("1");
   if (split < 1 || split + 7 > lower.length || lower.length > 5000) return null;
 
   const hrp = lower.slice(0, split);
@@ -93,8 +88,8 @@ export function bech32Decode(value: string): Bech32Decoded | null {
 }
 
 export function encodeNpub(publicKey: Uint8Array): string {
-  if (publicKey.length !== 32) throw new Error('A Nostr public key is 32 bytes');
-  return bech32Encode('npub', publicKey);
+  if (publicKey.length !== 32) throw new Error("A Nostr public key is 32 bytes");
+  return bech32Encode("npub", publicKey);
 }
 
 const HEX_PUBLIC_KEY = /^[0-9a-f]{64}$/i;
@@ -104,7 +99,7 @@ export function parsePublicKey(value: string): string | null {
   if (HEX_PUBLIC_KEY.test(trimmed)) return trimmed.toLowerCase();
 
   const decoded = bech32Decode(trimmed);
-  if (!decoded || decoded.hrp !== 'npub' || decoded.data.length !== 32) return null;
+  if (!decoded || decoded.hrp !== "npub" || decoded.data.length !== 32) return null;
   return toHex(decoded.data);
 }
 

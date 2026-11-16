@@ -1,16 +1,16 @@
+import { createPublicClient, http, type PublicClient } from "viem";
 import {
   arbitrum,
   arbitrumSepolia,
   base,
   baseSepolia,
+  type Chain,
   mainnet,
   optimism,
   optimismSepolia,
   polygon,
   sepolia,
-  type Chain,
-} from 'viem/chains';
-import { createPublicClient, http, type PublicClient } from 'viem';
+} from "viem/chains";
 
 const KNOWN_CHAINS: readonly Chain[] = [
   mainnet,
@@ -46,7 +46,7 @@ export function chainById(id: number): Chain | undefined {
 
 export function trimDecimals(value: string, places = 6): string {
   const n = Number(value);
-  return Number.isFinite(n) ? n.toFixed(places).replace(/\.?0+$/, '') : value;
+  return Number.isFinite(n) ? n.toFixed(places).replace(/\.?0+$/, "") : value;
 }
 
 export function publicClientFor(chainId: number): PublicClient {

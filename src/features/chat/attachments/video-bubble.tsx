@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
-import { useVideoPlayer, VideoView } from 'expo-video';
-import { View, useWindowDimensions } from 'react-native';
+import { useVideoPlayer, VideoView } from "expo-video";
+import { useEffect, useState } from "react";
+import { useWindowDimensions, View } from "react-native";
 
-import { formatDuration } from '@/core/messaging/preview';
-import { Icon, Pressable, Text } from '@/design';
-import { MessageText } from '../message-text';
-import { MediaViewer } from './media-viewer';
-import { HoverSave } from './save-button';
+import { formatDuration } from "@/core/messaging/preview";
+import { Icon, Pressable, Text } from "@/design";
+import { MessageText } from "../message-text";
+import { MediaViewer } from "./media-viewer";
+import { HoverSave } from "./save-button";
 
 interface VideoBubbleProps {
   uri: string;
@@ -53,10 +53,11 @@ export function VideoBubble({
       <HoverSave onSave={onSave}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={caption ?? (gif ? 'GIF' : 'Video')}
+          accessibilityLabel={caption ?? (gif ? "GIF" : "Video")}
           onPress={() => setOpen(true)}
-          pressScale={0.99}>
-          <View style={{ pointerEvents: 'none' }}>
+          pressScale={0.99}
+        >
+          <View style={{ pointerEvents: "none" }}>
             <VideoView
               player={player}
               style={{ width: boxWidth, height: boxHeight, borderRadius: 14 }}
@@ -79,11 +80,7 @@ export function VideoBubble({
         </Pressable>
       </HoverSave>
       {caption ? (
-        <MessageText
-          text={caption}
-          fromMe={fromMe}
-          className={fromMe ? 'text-bubble-out-on' : 'text-bubble-in-on'}
-        />
+        <MessageText text={caption} fromMe={fromMe} className={fromMe ? "text-bubble-out-on" : "text-bubble-in-on"} />
       ) : null}
 
       <MediaViewer visible={open} onClose={() => setOpen(false)} onSave={onSave} interactive={!gif}>
@@ -105,7 +102,5 @@ export function PlayOverlay() {
 
 function ViewerVideo({ uri, gif }: { uri: string; gif: boolean }) {
   const player = useMessagePlayer(uri, gif, true);
-  return (
-    <VideoView player={player} style={{ flex: 1 }} contentFit="contain" nativeControls={!gif} />
-  );
+  return <VideoView player={player} style={{ flex: 1 }} contentFit="contain" nativeControls={!gif} />;
 }

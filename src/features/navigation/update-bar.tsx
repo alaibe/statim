@@ -1,10 +1,10 @@
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import { relaunch } from '@tauri-apps/plugin-process';
-import { check, type Update } from '@tauri-apps/plugin-updater';
-import { useEffect, useEffectEvent, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { relaunch } from "@tauri-apps/plugin-process";
+import { check, type Update } from "@tauri-apps/plugin-updater";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { View } from "react-native";
 
-import { Button, Text, toast } from '@/design';
+import { Button, Text, toast } from "@/design";
 
 /** Downloads a newer release in the background and offers to restart into it. */
 export function UpdateBar() {
@@ -17,15 +17,15 @@ export function UpdateBar() {
     try {
       const found = await check();
       if (!found) {
-        if (asked) toast.success('Statim is up to date');
+        if (asked) toast.success("Statim is up to date");
         return null;
       }
       if (asked) toast.info(`Downloading version ${found.version}`);
       await found.download();
       return found;
     } catch (error) {
-      console.warn('[updater]', error);
-      if (asked) toast.error('Could not check for updates');
+      console.warn("[updater]", error);
+      if (asked) toast.error("Could not check for updates");
       return null;
     } finally {
       looking.current = false;
@@ -39,8 +39,8 @@ export function UpdateBar() {
     if (!__DEV__) void look(false).then(show);
     let stop: UnlistenFn | undefined;
     let cancelled = false;
-    void listen<string>('app-menu', ({ payload }) => {
-      if (payload === 'check-updates') void look(true).then(show);
+    void listen<string>("app-menu", ({ payload }) => {
+      if (payload === "check-updates") void look(true).then(show);
     }).then((unlisten) => {
       if (cancelled) unlisten();
       else stop = unlisten;
@@ -58,8 +58,8 @@ export function UpdateBar() {
       await update.install();
       await relaunch();
     } catch (error) {
-      console.warn('[updater]', error);
-      toast.error('The update could not be installed');
+      console.warn("[updater]", error);
+      toast.error("The update could not be installed");
     }
   };
 

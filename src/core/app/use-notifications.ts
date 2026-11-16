@@ -1,17 +1,17 @@
-import { useGlobalSearchParams, useSegments } from 'expo-router';
-import { useEffect } from 'react';
+import { useGlobalSearchParams, useSegments } from "expo-router";
+import { useEffect } from "react";
 
-import { wasProactive } from '@/runtime';
-import { useAccountStore } from '../account/account-store';
-import { useLockStore } from '../account/lock-store';
-import { relayToPhone } from '../icloud/relay';
-import { isLocalChat } from '../messaging/bots';
-import type { ChatPrefsMap } from '../messaging/chat-prefs';
-import { useChatStore, type ChatState } from '../messaging/chat-store';
-import { contentPreview } from '../messaging/preview';
-import { canBeUnread } from '../messaging/message-rules';
-import type { ChatMessage, Chat, ChatId } from '../messaging/types';
-import { isSilenced, totalUnread } from '../messaging/unread';
+import { wasProactive } from "@/runtime";
+import { useAccountStore } from "../account/account-store";
+import { useLockStore } from "../account/lock-store";
+import { relayToPhone } from "../icloud/relay";
+import { isLocalChat } from "../messaging/bots";
+import type { ChatPrefsMap } from "../messaging/chat-prefs";
+import { type ChatState, useChatStore } from "../messaging/chat-store";
+import { canBeUnread } from "../messaging/message-rules";
+import { contentPreview } from "../messaging/preview";
+import type { Chat, ChatId, ChatMessage } from "../messaging/types";
+import { isSilenced, totalUnread } from "../messaging/unread";
 import {
   appFocused,
   askForNotifications,
@@ -19,8 +19,8 @@ import {
   notifyMessage,
   onNotificationTapped,
   setBadgeCount,
-} from '../notifications';
-import { resumeStayingConnected } from '../stay-connected';
+} from "../notifications";
+import { resumeStayingConnected } from "../stay-connected";
 
 let onScreen: string | undefined;
 let watching = false;
@@ -30,15 +30,10 @@ function watchArrivals(): void {
   if (watching) return;
   watching = true;
   const since = Date.now();
-  const badge = (state: ChatState) =>
-    setBadgeCount(totalUnread(state.chats, state.readAt, state.chatPrefs));
+  const badge = (state: ChatState) => setBadgeCount(totalUnread(state.chats, state.readAt, state.chatPrefs));
   void badge(useChatStore.getState());
   useChatStore.subscribe((state, previous) => {
-    if (
-      state.chats !== previous.chats ||
-      state.readAt !== previous.readAt ||
-      state.chatPrefs !== previous.chatPrefs
-    ) {
+    if (state.chats !== previous.chats || state.readAt !== previous.readAt || state.chatPrefs !== previous.chatPrefs) {
       void badge(state);
     }
     if (state.chats === previous.chats) return;
@@ -61,9 +56,9 @@ function watchArrivals(): void {
 export function useMessageNotifications(onTap: (id: ChatId) => void) {
   const segments = useSegments() as string[];
   const { id } = useGlobalSearchParams<{ id?: string }>();
-  const shown = segments[0] === 'chat' ? id : undefined;
-  const unlocked = useLockStore((s) => s.status === 'open');
-  const signedIn = useAccountStore((s) => s.status === 'ready');
+  const shown = segments[0] === "chat" ? id : undefined;
+  const unlocked = useLockStore((s) => s.status === "open");
+  const signedIn = useAccountStore((s) => s.status === "ready");
 
   useEffect(() => {
     configureNotifications();
@@ -90,7 +85,7 @@ export function worthNotifying(
   chat: Chat,
   message: ChatMessage,
   prefs: ChatPrefsMap,
-  reading: string | undefined
+  reading: string | undefined,
 ): boolean {
   if (!canBeUnread(message)) return false;
   if (chat.id === reading || isSilenced(chat, prefs)) return false;
@@ -100,7 +95,7 @@ export function worthNotifying(
 export function arrivals(
   previous: readonly Chat[],
   current: readonly Chat[],
-  since: number
+  since: number,
 ): { chat: Chat; message: ChatMessage }[] {
   const before = new Map(previous.map((c) => [c.id, c.lastMessage]));
   return current.flatMap((chat) => {

@@ -1,13 +1,12 @@
-import { useState } from 'react';
-
-import { ConfirmSheet, ListItem, Section, toast, Toggle } from '@/design';
-import { useChatStore } from '@/core/messaging/chat-store';
-import { botChatLoss, botChatLossCopy, type BotChatLoss } from '@/core/plugins/bot-chats';
-import { usePluginHost } from '@/core/plugins/host';
-import { type Plugin } from '@/core/plugins/types';
-import { errorMessage } from '@/core/errors';
-import { PluginDetailSheet, PluginIcon } from '@/features/settings/plugin-detail-sheet';
-import { SettingsScreen } from '@/features/settings/settings-screen';
+import { useState } from "react";
+import { errorMessage } from "@/core/errors";
+import { useChatStore } from "@/core/messaging/chat-store";
+import { type BotChatLoss, botChatLoss, botChatLossCopy } from "@/core/plugins/bot-chats";
+import { usePluginHost } from "@/core/plugins/host";
+import { type Plugin } from "@/core/plugins/types";
+import { ConfirmSheet, ListItem, Section, Toggle, toast } from "@/design";
+import { PluginDetailSheet, PluginIcon } from "@/features/settings/plugin-detail-sheet";
+import { SettingsScreen } from "@/features/settings/settings-screen";
 
 export default function PluginsScreen() {
   const { registry, enabledIds, setEnabled } = usePluginHost();
@@ -22,13 +21,13 @@ export default function PluginsScreen() {
 
   const apply = async (plugin: Plugin, next: boolean) => {
     const id = plugin.manifest.id;
-    const done = `${plugin.manifest.name} ${next ? 'enabled' : 'disabled'}`;
+    const done = `${plugin.manifest.name} ${next ? "enabled" : "disabled"}`;
     setToggling((current) => ({ ...current, [id]: next }));
     try {
       await setEnabled(id, next);
       toast.success(done);
     } catch (e) {
-      toast.error(errorMessage(e, 'Could not update plugin'));
+      toast.error(errorMessage(e, "Could not update plugin"));
     } finally {
       setToggling(({ [id]: _settled, ...rest }) => rest);
     }
@@ -46,7 +45,8 @@ export default function PluginsScreen() {
   return (
     <SettingsScreen
       title="Plugins"
-      intro="Plugins add slash commands, message types and screens. They ship inside the app, so enabling one grants it the access its row lists.">
+      intro="Plugins add slash commands, message types and screens. They ship inside the app, so enabling one grants it the access its row lists."
+    >
       <Section surface="card" className="mb-6">
         {registry.list().map((plugin) => {
           const enabled = toggling[plugin.manifest.id] ?? enabledIds.includes(plugin.manifest.id);
@@ -59,11 +59,7 @@ export default function PluginsScreen() {
               numberOfLinesSubtitle={2}
               leading={<PluginIcon plugin={plugin} />}
               trailing={
-                <Toggle
-                  label={plugin.manifest.name}
-                  value={enabled}
-                  onValueChange={(next) => onToggle(plugin, next)}
-                />
+                <Toggle label={plugin.manifest.name} value={enabled} onValueChange={(next) => onToggle(plugin, next)} />
               }
               onPress={() => setDetail(plugin)}
             />
@@ -106,7 +102,7 @@ function ConfirmDisable({
       title={copy.title}
       body={copy.body}
       cancelLabel="Keep it on"
-      confirm={{ label: copy.confirmLabel, tone: 'danger', onPress: onConfirm }}
+      confirm={{ label: copy.confirmLabel, tone: "danger", onPress: onConfirm }}
     />
   );
 }

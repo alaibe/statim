@@ -1,22 +1,22 @@
 import {
+  type Address,
+  type CustomSource,
   getTypesForEIP712Domain,
+  type Hex,
   hashDomain,
   hashStruct,
   hexToBytes,
+  type LocalAccount,
   pad,
+  type SignableMessage,
+  type Signature,
   serializeTransaction,
   stringify,
   stringToBytes,
-  type Address,
-  type CustomSource,
-  type Hex,
-  type LocalAccount,
-  type Signature,
-  type SignableMessage,
   type TransactionSerializable,
   type TypedDataDefinition,
-} from 'viem';
-import { toAccount } from 'viem/accounts';
+} from "viem";
+import { toAccount } from "viem/accounts";
 
 export interface HardwareSigner {
   getAddress(path: string): Promise<Address>;
@@ -37,18 +37,15 @@ export interface HardwareKey {
 
 export type HardwareVendor = { id: string; label: string } & (
   | {
-      connection: 'bluetooth' | 'usb';
-      scan(
-        onFound: (device: { id: string; name: string }) => void,
-        onError: (e: unknown) => void
-      ): Promise<() => void>;
+      connection: "bluetooth" | "usb";
+      scan(onFound: (device: { id: string; name: string }) => void, onError: (e: unknown) => void): Promise<() => void>;
       connect(deviceId: string): Promise<HardwareSigner>;
     }
-  | { connection: 'qr'; open(key: HardwareKey): HardwareSigner }
-  | { connection: 'companion-app'; open(): HardwareSigner; cancel(): void }
+  | { connection: "qr"; open(key: HardwareKey): HardwareSigner }
+  | { connection: "companion-app"; open(): HardwareSigner; cancel(): void }
 );
 
-export type HardwareConnection = HardwareVendor['connection'];
+export type HardwareConnection = HardwareVendor["connection"];
 
 /** The wallet answered: it refused, or it needs something done on it. The link is still up. */
 export class DeviceAnswer extends Error {}
@@ -72,12 +69,12 @@ export function vendor(id: string): HardwareVendor {
 export const DEFAULT_EVM_PATH = "m/44'/60'/0'/0/0";
 
 function messageBytes(message: SignableMessage): Uint8Array {
-  if (typeof message === 'string') return stringToBytes(message);
-  return typeof message.raw === 'string' ? hexToBytes(message.raw) : message.raw;
+  if (typeof message === "string") return stringToBytes(message);
+  return typeof message.raw === "string" ? hexToBytes(message.raw) : message.raw;
 }
 
 /** The y parity behind a device's v, which a Ledger truncates to one byte for EIP-155. */
-export function parityOf(v: number, transaction: Pick<TransactionSerializable, 'chainId'>): number {
+export function parityOf(v: number, transaction: Pick<TransactionSerializable, "chainId">): number {
   if (v === 0 || v === 1) return v;
   if (v === 27 || v === 28) return v - 27;
   return ((((v - 35 - 2 * (transaction.chainId ?? 0)) % 256) + 256) % 256) & 1;
@@ -88,10 +85,10 @@ export function deviceSignature(
   r: string,
   s: string,
   v: number | string,
-  transaction: Pick<TransactionSerializable, 'chainId'> = {}
+  transaction: Pick<TransactionSerializable, "chainId"> = {},
 ): Signature {
-  const word = (hex: string) => pad(`0x${hex.replace(/^0x/, '')}` as Hex);
-  const yParity = parityOf(typeof v === 'number' ? v : parseInt(v, 16), transaction);
+  const word = (hex: string) => pad(`0x${hex.replace(/^0x/, "")}` as Hex);
+  const yParity = parityOf(typeof v === "number" ? v : parseInt(v, 16), transaction);
   // viem's legacy serializer works out EIP-155's v from this one.
   return { r: word(r), s: word(s), v: BigInt(27 + yParity), yParity };
 }
@@ -123,7 +120,7 @@ export function typedDataHashes(typedData: TypedData): { domain: Hex; message: H
 export function hardwareAccount(
   signer: HardwareSigner,
   address: Address,
-  path: string = DEFAULT_EVM_PATH
+  path: string = DEFAULT_EVM_PATH,
 ): LocalAccount {
   const source: CustomSource = {
     address,

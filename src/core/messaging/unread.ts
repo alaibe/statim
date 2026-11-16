@@ -1,6 +1,6 @@
-import { type ChatPrefsMap, prefsFor } from './chat-prefs';
-import { canBeUnread } from './message-rules';
-import type { AnyChatId, ChatMessage, Chat, ChatId } from './types';
+import { type ChatPrefsMap, prefsFor } from "./chat-prefs";
+import { canBeUnread } from "./message-rules";
+import type { AnyChatId, Chat, ChatId, ChatMessage } from "./types";
 
 /** Kept in `readAt` for a chat marked unread by hand: before any real read time. */
 export const MARKED_UNREAD = -1;
@@ -14,15 +14,12 @@ export function isUnread(chat: Chat, readAt: Record<ChatId, number>): boolean {
 }
 
 export function unreadState(
-  chat: Pick<Chat, 'lastMessage' | 'unreadCount'> | undefined,
+  chat: Pick<Chat, "lastMessage" | "unreadCount"> | undefined,
   since: number,
-  loaded: readonly ChatMessage[] = []
+  loaded: readonly ChatMessage[] = [],
 ): { unread: boolean; count: number } {
   const newest = loaded.at(-1);
-  const last =
-    !chat?.lastMessage || (newest && newest.sentAt > chat.lastMessage.sentAt)
-      ? newest
-      : chat.lastMessage;
+  const last = !chat?.lastMessage || (newest && newest.sentAt > chat.lastMessage.sentAt) ? newest : chat.lastMessage;
   if (since === MARKED_UNREAD) return { unread: true, count: 0 };
   if (last && since >= last.sentAt) return { unread: false, count: 0 };
   const reported = chat?.unreadCount;
@@ -56,11 +53,7 @@ export function isSilenced(chat: Chat, prefs: ChatPrefsMap): boolean {
   return Boolean(chat.blocked || prefsFor(prefs, chat.id).muted);
 }
 
-export function totalUnread(
-  chats: readonly Chat[],
-  readAt: Record<ChatId, number>,
-  prefs: ChatPrefsMap
-): number {
+export function totalUnread(chats: readonly Chat[], readAt: Record<ChatId, number>, prefs: ChatPrefsMap): number {
   return chats.filter((c) => !isSilenced(c, prefs) && isUnread(c, readAt)).length;
 }
 

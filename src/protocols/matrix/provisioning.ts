@@ -12,16 +12,16 @@ interface LoginFlow {
 
 export interface InputField {
   type:
-    | 'username'
-    | 'password'
-    | 'phone_number'
-    | 'email'
-    | '2fa_code'
-    | 'token'
-    | 'url'
-    | 'domain'
-    | 'select'
-    | 'captcha_code';
+    | "username"
+    | "password"
+    | "phone_number"
+    | "email"
+    | "2fa_code"
+    | "token"
+    | "url"
+    | "domain"
+    | "select"
+    | "captcha_code";
   id: string;
   name: string;
   description?: string;
@@ -31,7 +31,7 @@ export interface InputField {
 }
 
 interface CookieSource {
-  type: 'cookie' | 'local_storage' | 'request_header' | 'request_body' | 'special';
+  type: "cookie" | "local_storage" | "request_header" | "request_body" | "special";
   name: string;
   cookie_domain?: string;
 }
@@ -60,13 +60,13 @@ export interface CookiesParams {
 
 export interface LoginStep {
   login_id: string;
-  type: 'user_input' | 'cookies' | 'display_and_wait' | 'complete' | 'client_http' | 'webauthn';
+  type: "user_input" | "cookies" | "display_and_wait" | "complete" | "client_http" | "webauthn";
   step_id: string;
   instructions?: string;
   user_input?: { fields: InputField[] };
   cookies?: CookiesParams;
   display_and_wait?: {
-    type: 'qr' | 'emoji' | 'code' | 'nothing';
+    type: "qr" | "emoji" | "code" | "nothing";
     data?: string;
   };
 }
@@ -99,33 +99,28 @@ export interface RemotePerson {
   mxid?: string;
 }
 
-type ProvisionRequest = (
-  path: string,
-  init?: { method?: 'GET' | 'POST'; body?: unknown }
-) => Promise<unknown>;
+type ProvisionRequest = (path: string, init?: { method?: "GET" | "POST"; body?: unknown }) => Promise<unknown>;
 
 export class BridgeProvisioning {
   constructor(private readonly request: ProvisionRequest) {}
 
   whoami(): Promise<Whoami> {
-    return this.request('/v3/whoami') as Promise<Whoami>;
+    return this.request("/v3/whoami") as Promise<Whoami>;
   }
 
   async capabilities(): Promise<ProvisioningCapabilities> {
-    const { provisioning } = (await this.request('/v3/capabilities')) as {
+    const { provisioning } = (await this.request("/v3/capabilities")) as {
       provisioning: ProvisioningCapabilities;
     };
     return provisioning;
   }
 
   async search(query: string): Promise<RemotePerson[]> {
-    return (await this.post<{ results: RemotePerson[] }>('/v3/search_users', { query })).results;
+    return (await this.post<{ results: RemotePerson[] }>("/v3/search_users", { query })).results;
   }
 
   resolve(identifier: string): Promise<RemotePerson> {
-    return this.request(
-      `/v3/resolve_identifier/${encodeURIComponent(identifier)}`
-    ) as Promise<RemotePerson>;
+    return this.request(`/v3/resolve_identifier/${encodeURIComponent(identifier)}`) as Promise<RemotePerson>;
   }
 
   createDm(identifier: string): Promise<RemotePerson> {
@@ -150,12 +145,12 @@ export class BridgeProvisioning {
   }
 
   private post<T>(path: string, body?: unknown): Promise<T> {
-    return this.request(path, { method: 'POST', body }) as Promise<T>;
+    return this.request(path, { method: "POST", body }) as Promise<T>;
   }
 }
 
 function stepPath(step: LoginStep): string {
-  return `/v3/login/step/${[step.login_id, step.step_id, step.type].map(encodeURIComponent).join('/')}`;
+  return `/v3/login/step/${[step.login_id, step.step_id, step.type].map(encodeURIComponent).join("/")}`;
 }
 
 export interface MatrixCapabilities {
@@ -170,10 +165,7 @@ export interface WebSnapshot {
 }
 
 /** The fields the page can supply; request headers and bodies are not observed. */
-export function collectWebFields(
-  params: CookiesParams,
-  snapshot: WebSnapshot
-): Record<string, string> {
+export function collectWebFields(params: CookiesParams, snapshot: WebSnapshot): Record<string, string> {
   const values: Record<string, string> = {};
   for (const field of params.fields) {
     for (const source of field.sources) {
@@ -203,7 +195,7 @@ export function webFieldsComplete(params: CookiesParams, values: Record<string, 
 export function readyWebFields(
   params: CookiesParams,
   snapshot: WebSnapshot,
-  closedByUser = false
+  closedByUser = false,
 ): Record<string, string> | null {
   const values = collectWebFields(params, snapshot);
   if (!webFieldsComplete(params, values)) return null;
@@ -220,7 +212,7 @@ export function webDomains(params: CookiesParams): string[] {
   const domains = new Set<string>(host ? [host] : []);
   for (const field of params.fields) {
     for (const source of field.sources) {
-      if (source.type === 'cookie' && source.cookie_domain) domains.add(source.cookie_domain);
+      if (source.type === "cookie" && source.cookie_domain) domains.add(source.cookie_domain);
     }
   }
   return [...domains];
@@ -228,13 +220,13 @@ export function webDomains(params: CookiesParams): string[] {
 
 export function localStorageKeys(params: CookiesParams): string[] {
   return params.fields.flatMap((field) =>
-    field.sources.filter((source) => source.type === 'local_storage').map((source) => source.name)
+    field.sources.filter((source) => source.type === "local_storage").map((source) => source.name),
   );
 }
 
 /** Runs on every page load: new tabs stay in the window, and `extract_js` waits for the DOM. */
 export function extractionScript(params: CookiesParams): string {
-  const extract = params.extract_js ? `(${params.extract_js})` : 'null';
+  const extract = params.extract_js ? `(${params.extract_js})` : "null";
   return `(() => {
   window.open = (url) => {
     if (url) location.assign(new URL(url, location.href).href);
@@ -272,17 +264,16 @@ export function readbackScript(keys: string[]): string {
 
 function sourceValue(source: CookieSource, snapshot: WebSnapshot): string | undefined {
   switch (source.type) {
-    case 'cookie': {
+    case "cookie": {
       const value = snapshot.cookies.find(
         (cookie) =>
-          cookie.name === source.name &&
-          (!source.cookie_domain || domainMatches(cookie.domain, source.cookie_domain))
+          cookie.name === source.name && (!source.cookie_domain || domainMatches(cookie.domain, source.cookie_domain)),
       )?.value;
       return value === undefined ? undefined : decodeCookie(value);
     }
-    case 'local_storage':
+    case "local_storage":
       return snapshot.localStorage[source.name];
-    case 'special':
+    case "special":
       return snapshot.extracted?.[source.name];
     default:
       return undefined;
@@ -299,7 +290,7 @@ function decodeCookie(value: string): string {
 }
 
 function domainMatches(cookieDomain: string, wanted: string): boolean {
-  const host = cookieDomain.replace(/^\./, '');
+  const host = cookieDomain.replace(/^\./, "");
   return host === wanted || host.endsWith(`.${wanted}`);
 }
 

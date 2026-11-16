@@ -1,5 +1,5 @@
-import type { NostrEvent } from '../events';
-import type { WebSocketLike } from '../relay-pool';
+import type { NostrEvent } from "../events";
+import type { WebSocketLike } from "../relay-pool";
 
 export class FakeRelay implements WebSocketLike {
   onopen: ((event?: unknown) => void) | null = null;
@@ -25,13 +25,13 @@ export class FakeRelay implements WebSocketLike {
     const message = JSON.parse(data) as unknown[];
     this.sent.push(message);
 
-    if (message[0] === 'REQ') this.subscriptions.add(message[1] as string);
-    if (message[0] === 'CLOSE') this.subscriptions.delete(message[1] as string);
-    if (message[0] === 'EVENT') {
+    if (message[0] === "REQ") this.subscriptions.add(message[1] as string);
+    if (message[0] === "CLOSE") this.subscriptions.delete(message[1] as string);
+    if (message[0] === "EVENT") {
       const event = message[1] as NostrEvent;
       this.published.push(event);
       if (this.autoAcceptPublications) {
-        this.onmessage?.({ data: JSON.stringify(['OK', event.id, true, '']) });
+        this.onmessage?.({ data: JSON.stringify(["OK", event.id, true, ""]) });
       }
     }
   }
@@ -42,7 +42,7 @@ export class FakeRelay implements WebSocketLike {
   }
 
   deliver(subscriptionId: string, event: NostrEvent) {
-    this.onmessage?.({ data: JSON.stringify(['EVENT', subscriptionId, event]) });
+    this.onmessage?.({ data: JSON.stringify(["EVENT", subscriptionId, event]) });
   }
 
   broadcast(event: NostrEvent) {
@@ -50,21 +50,21 @@ export class FakeRelay implements WebSocketLike {
   }
 
   eose(subscriptionId: string) {
-    this.onmessage?.({ data: JSON.stringify(['EOSE', subscriptionId]) });
+    this.onmessage?.({ data: JSON.stringify(["EOSE", subscriptionId]) });
   }
 
   notice(text: string) {
-    this.onmessage?.({ data: JSON.stringify(['NOTICE', text]) });
+    this.onmessage?.({ data: JSON.stringify(["NOTICE", text]) });
   }
 
-  acknowledge(eventId: string, accepted: boolean, reason = '') {
-    this.onmessage?.({ data: JSON.stringify(['OK', eventId, accepted, reason]) });
+  acknowledge(eventId: string, accepted: boolean, reason = "") {
+    this.onmessage?.({ data: JSON.stringify(["OK", eventId, accepted, reason]) });
   }
 
   garbage() {
-    this.onmessage?.({ data: 'not json at all' });
-    this.onmessage?.({ data: JSON.stringify({ not: 'an array' }) });
-    this.onmessage?.({ data: JSON.stringify(['SOMETHING_NEW', 'x']) });
+    this.onmessage?.({ data: "not json at all" });
+    this.onmessage?.({ data: JSON.stringify({ not: "an array" }) });
+    this.onmessage?.({ data: JSON.stringify(["SOMETHING_NEW", "x"]) });
   }
 }
 

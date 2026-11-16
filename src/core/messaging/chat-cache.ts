@@ -1,17 +1,11 @@
-import { dropChats } from './chat-store';
-import type { MessageStore } from './message-store';
-import type { ProtocolId } from './namespace';
-import type { Chat, ChatId } from './types';
+import { dropChats } from "./chat-store";
+import type { MessageStore } from "./message-store";
+import type { ProtocolId } from "./namespace";
+import type { Chat, ChatId } from "./types";
 
 const SAVE_DELAY_MS = 2_000;
 
-function lasting({
-  typing: _typing,
-  online: _online,
-  lastSeenAt: _lastSeenAt,
-  draft: _draft,
-  ...rest
-}: Chat): Chat {
+function lasting({ typing: _typing, online: _online, lastSeenAt: _lastSeenAt, draft: _draft, ...rest }: Chat): Chat {
   return rest;
 }
 
@@ -46,14 +40,10 @@ export class ChatCache {
 
   forget(protocol: ProtocolId): void {
     this.complete.delete(protocol);
-    const drop = [...this.written]
-      .filter(([, row]) => row.source.protocol === protocol)
-      .map(([id]) => id);
+    const drop = [...this.written].filter(([, row]) => row.source.protocol === protocol).map(([id]) => id);
     for (const id of drop) this.written.delete(id);
     if (drop.length > 0) {
-      this.store
-        .cacheChats([], drop)
-        .catch((error) => console.warn('[chat] could not forget cached chats', error));
+      this.store.cacheChats([], drop).catch((error) => console.warn("[chat] could not forget cached chats", error));
     }
     this.release(protocol, () => true);
   }
@@ -95,7 +85,7 @@ export class ChatCache {
       if (keep.length === 0 && drop.length === 0) continue;
       await this.store
         .cacheChats(keep, drop)
-        .catch((error) => console.warn('[chat] could not keep the chat list', error));
+        .catch((error) => console.warn("[chat] could not keep the chat list", error));
     }
   }
 

@@ -1,41 +1,37 @@
-import { useEffect, useState } from 'react';
-import { View } from 'react-native';
-
-import { Button, Card, ErrorText, ListItem, QrCode, Text, Toggle } from '@/design';
-import { errorMessage } from '@/core/errors';
+import { useEffect, useState } from "react";
+import { View } from "react-native";
+import { errorMessage } from "@/core/errors";
 import {
   homeserverBridges,
   homeserverPhoneLink,
   homeserverSession,
   localHomeserverUrl,
+  type PhoneLink,
   setHomeserverBridge,
   startHomeserver,
-  type PhoneLink,
-} from '@/core/homeserver';
-import { loadProtocolConfig } from '@/core/messaging/config';
-import { BRIDGED_NETWORKS } from '@/core/messaging/networks';
-import { useAction } from '@/features/use-action';
-import { guideUrl } from '@/lib/guide';
-import { openExternal } from '@/lib/open-url';
-import { useKeyedLoad } from '@/lib/use-keyed-load';
-import { knownBridge } from '@/protocols/matrix/bridges';
-import { DEVICE_NAME, normaliseHomeserver } from '@/protocols/matrix/descriptor';
+} from "@/core/homeserver";
+import { loadProtocolConfig } from "@/core/messaging/config";
+import { BRIDGED_NETWORKS } from "@/core/messaging/networks";
+import { Button, Card, ErrorText, ListItem, QrCode, Text, Toggle } from "@/design";
+import { useAction } from "@/features/use-action";
+import { guideUrl } from "@/lib/guide";
+import { openExternal } from "@/lib/open-url";
+import { useKeyedLoad } from "@/lib/use-keyed-load";
+import { knownBridge } from "@/protocols/matrix/bridges";
+import { DEVICE_NAME, normaliseHomeserver } from "@/protocols/matrix/descriptor";
 
-import { adoptMatrixSession } from './matrix-session';
-import { phoneLinkCode } from './phone-link';
+import { adoptMatrixSession } from "./matrix-session";
+import { phoneLinkCode } from "./phone-link";
 
 /** Where this account's Matrix lives: on this computer, on a server it names, or nowhere yet. */
-type Here = 'unavailable' | 'elsewhere' | 'off' | 'on';
+type Here = "unavailable" | "elsewhere" | "off" | "on";
 
 export async function hereState(accountId: string): Promise<Here> {
-  const [url, config] = await Promise.all([
-    localHomeserverUrl(),
-    loadProtocolConfig(accountId, 'matrix'),
-  ]);
-  if (!url) return 'unavailable';
-  const homeserver = normaliseHomeserver(config.homeserver ?? '');
-  if (!homeserver) return 'off';
-  return homeserver === url ? 'on' : 'elsewhere';
+  const [url, config] = await Promise.all([localHomeserverUrl(), loadProtocolConfig(accountId, "matrix")]);
+  if (!url) return "unavailable";
+  const homeserver = normaliseHomeserver(config.homeserver ?? "");
+  if (!homeserver) return "off";
+  return homeserver === url ? "on" : "elsewhere";
 }
 
 export async function runHere(accountId: string): Promise<void> {
@@ -68,16 +64,16 @@ export function LocalHomeserver({
         setVersion((v) => v + 1);
       }
     },
-    { failure: 'Could not run Matrix on this computer' }
+    { failure: "Could not run Matrix on this computer" },
   );
 
-  if (here === 'off') {
+  if (here === "off") {
     return (
       <Card className="gap-2">
         <Text variant="headline">Matrix on this computer</Text>
         <Text variant="caption">
-          No homeserver of your own? Statim can run one on this computer while it runs, with bridges
-          to WhatsApp, Signal and more. Your phone reaches it through Tailscale.
+          No homeserver of your own? Statim can run one on this computer while it runs, with bridges to WhatsApp, Signal
+          and more. Your phone reaches it through Tailscale.
         </Text>
         <Button
           testID="matrix-run-here"
@@ -90,12 +86,10 @@ export function LocalHomeserver({
       </Card>
     );
   }
-  if (here !== 'on') return null;
+  if (here !== "on") return null;
   return (
     <Card className="gap-2">
-      <Text variant="caption">
-        {"This account's Matrix runs on this computer, and only while Statim runs."}
-      </Text>
+      <Text variant="caption">{"This account's Matrix runs on this computer, and only while Statim runs."}</Text>
       {signedOut ? (
         <Button
           testID="matrix-run-here"
@@ -130,7 +124,7 @@ function LocalBridges({ accountId, onChanged }: { accountId: string; onChanged: 
         onChanged();
       }
     },
-    { failure: 'Could not change that bridge' }
+    { failure: "Could not change that bridge" },
   );
 
   const offered = bridges?.filter((bridge) => bridge.available) ?? [];
@@ -141,15 +135,15 @@ function LocalBridges({ accountId, onChanged }: { accountId: string; onChanged: 
         Bridges on this computer
       </Text>
       <Text variant="caption">
-        Turning one on downloads it the first time and restarts the server. Then connect it below to
-        sign in to that network.
+        Turning one on downloads it the first time and restarts the server. Then connect it below to sign in to that
+        network.
       </Text>
       {offered.map((bridge) => (
         <ListItem
           key={bridge.id}
           testID={`local-bridge-${bridge.id}`}
           title={networkOf(bridge.id)}
-          subtitle={changing === bridge.id ? 'Restarting the server…' : undefined}
+          subtitle={changing === bridge.id ? "Restarting the server…" : undefined}
           trailing={
             <Toggle
               label={networkOf(bridge.id)}
@@ -182,7 +176,7 @@ function ConnectPhone({ accountId }: { accountId: string }) {
     try {
       setLink(await homeserverPhoneLink(accountId));
     } catch (e) {
-      setError(errorMessage(e, 'Could not make a code for your phone'));
+      setError(errorMessage(e, "Could not make a code for your phone"));
     } finally {
       setBusy(false);
     }
@@ -194,8 +188,8 @@ function ConnectPhone({ accountId }: { accountId: string }) {
         Your phone
       </Text>
       <Text variant="caption">
-        With Tailscale on this computer and on your phone, your phone can use this server too. In
-        Statim on the phone, open Settings › Matrix and scan the code.
+        With Tailscale on this computer and on your phone, your phone can use this server too. In Statim on the phone,
+        open Settings › Matrix and scan the code.
       </Text>
       {link ? (
         <View className="items-center gap-2">
@@ -213,7 +207,7 @@ function ConnectPhone({ accountId }: { accountId: string }) {
       ) : null}
       <Button
         testID="matrix-connect-phone"
-        label={link ? 'Show a new code' : 'Connect your phone'}
+        label={link ? "Show a new code" : "Connect your phone"}
         tone="neutral"
         size="sm"
         loading={busy}
@@ -223,7 +217,7 @@ function ConnectPhone({ accountId }: { accountId: string }) {
         label="How to set up Tailscale"
         tone="neutral"
         size="sm"
-        onPress={() => void openExternal(guideUrl('computer-matrix', 'your-phone')).catch(() => {})}
+        onPress={() => void openExternal(guideUrl("computer-matrix", "your-phone")).catch(() => {})}
       />
     </>
   );

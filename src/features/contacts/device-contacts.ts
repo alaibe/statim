@@ -1,12 +1,12 @@
-import { Contact, ContactField, getPermissionsAsync, requestPermissionsAsync } from 'expo-contacts';
+import { Contact, ContactField, getPermissionsAsync, requestPermissionsAsync } from "expo-contacts";
 
-import type { ContactAccess, DeviceContact } from './address-book';
+import type { ContactAccess, DeviceContact } from "./address-book";
 
-export { contactSortKeyFor, type ContactAccess, type DeviceContact } from './address-book';
+export { type ContactAccess, contactSortKeyFor, type DeviceContact } from "./address-book";
 
 function toAccess(result: { granted: boolean; accessPrivileges?: string }): ContactAccess {
-  if (!result.granted) return 'none';
-  return (result.accessPrivileges as ContactAccess | undefined) ?? 'all';
+  if (!result.granted) return "none";
+  return (result.accessPrivileges as ContactAccess | undefined) ?? "all";
 }
 
 export async function currentAccess(): Promise<ContactAccess> {
@@ -18,15 +18,11 @@ export async function askForAccess(): Promise<ContactAccess> {
 }
 
 export async function readDeviceContacts(): Promise<DeviceContact[]> {
-  const rows = await Contact.getAllDetails([
-    ContactField.GIVEN_NAME,
-    ContactField.FAMILY_NAME,
-    ContactField.PHONES,
-  ]);
+  const rows = await Contact.getAllDetails([ContactField.GIVEN_NAME, ContactField.FAMILY_NAME, ContactField.PHONES]);
 
   return rows
     .map((row) => ({
-      id: String(row.id ?? ''),
+      id: String(row.id ?? ""),
       given: row.givenName ?? null,
       family: row.familyName ?? null,
       phone: row.phones?.[0]?.number ?? null,

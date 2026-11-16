@@ -1,17 +1,17 @@
-import { appFetch } from '@/lib/http';
+import { appFetch } from "@/lib/http";
 
-const API = 'https://api.apple-cloudkit.com/database/1';
+const API = "https://api.apple-cloudkit.com/database/1";
 
 export interface Container {
   id: string;
-  environment: 'development' | 'production';
+  environment: "development" | "production";
   apiToken: string;
 }
 
 /** Apple wants the person to sign in, again or for the first time, at `redirectURL`. */
 export class SignInRequired extends Error {
   constructor(readonly redirectURL: string | null) {
-    super('Sign in to iCloud.');
+    super("Sign in to iCloud.");
   }
 }
 
@@ -29,12 +29,12 @@ interface Answer<T> {
 
 export async function signInURL(container: Container): Promise<string> {
   try {
-    await call(container, null, 'users/current');
+    await call(container, null, "users/current");
   } catch (error) {
     if (error instanceof SignInRequired && error.redirectURL) return error.redirectURL;
     throw error;
   }
-  throw new Error('iCloud did not ask for a sign-in.');
+  throw new Error("iCloud did not ask for a sign-in.");
 }
 
 export interface SealedNote {
@@ -44,34 +44,30 @@ export interface SealedNote {
 }
 
 /** The zone the iPhone creates and watches while it listens; without it, nobody is listening. */
-const NOTES_ZONE = 'notes';
-const ZONE_NOT_FOUND = 'ZONE_NOT_FOUND';
+const NOTES_ZONE = "notes";
+const ZONE_NOT_FOUND = "ZONE_NOT_FOUND";
 
-export async function saveNotes(
-  container: Container,
-  token: string,
-  notes: SealedNote[]
-): Promise<string> {
+export async function saveNotes(container: Container, token: string, notes: SealedNote[]): Promise<string> {
   const answer = await call<{ records?: Reply[] }>(
     container,
     token,
-    'records/modify',
+    "records/modify",
     {
       zoneID: { zoneName: NOTES_ZONE },
       atomic: false,
       operations: notes.map((note) => ({
-        operationType: 'create',
+        operationType: "create",
         record: {
           recordName: note.name,
-          recordType: 'Note',
+          recordType: "Note",
           fields: { tag: { value: note.tag }, sealed: { value: note.sealed } },
         },
       })),
     },
-    ZONE_NOT_FOUND
+    ZONE_NOT_FOUND,
   );
   const failed = (answer.body.records ?? []).find(
-    (record) => record.serverErrorCode && record.serverErrorCode !== ZONE_NOT_FOUND
+    (record) => record.serverErrorCode && record.serverErrorCode !== ZONE_NOT_FOUND,
   );
   if (failed) throw new Error(failed.reason ?? failed.serverErrorCode);
   return answer.token;
@@ -82,7 +78,7 @@ async function call<T>(
   token: string | null,
   path: string,
   body?: unknown,
-  tolerated?: string
+  tolerated?: string,
 ): Promise<Answer<T>> {
   let url = `${API}/${container.id}/${container.environment}/private/${path}?ckAPIToken=${encodeURIComponent(container.apiToken)}`;
   if (token) url += `&ckWebAuthToken=${encodeURIComponent(token)}`;
@@ -91,16 +87,16 @@ async function call<T>(
     body === undefined
       ? undefined
       : {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
-        }
+        },
   );
   const reply = (await response.json().catch(() => ({}))) as Reply & T;
   // A wrong API token and a spent session both answer AUTHENTICATION_FAILED; only a session can have run out.
   if (
-    reply.serverErrorCode === 'AUTHENTICATION_REQUIRED' ||
-    (token !== null && reply.serverErrorCode === 'AUTHENTICATION_FAILED')
+    reply.serverErrorCode === "AUTHENTICATION_REQUIRED" ||
+    (token !== null && reply.serverErrorCode === "AUTHENTICATION_FAILED")
   ) {
     throw new SignInRequired(reply.redirectURL ?? null);
   }
@@ -108,7 +104,7 @@ async function call<T>(
     throw new Error(reply.reason ?? `iCloud answered ${response.status}.`);
   }
   return {
-    token: response.headers.get('X-Apple-CloudKit-Web-Auth-Token') ?? token ?? '',
+    token: response.headers.get("X-Apple-CloudKit-Web-Auth-Token") ?? token ?? "",
     body: reply,
   };
 }

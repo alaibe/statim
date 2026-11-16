@@ -4,13 +4,12 @@ import {
   setAudioModeAsync,
   useAudioRecorder,
   useAudioRecorderState,
-} from 'expo-audio';
-import { useState } from 'react';
-import { View } from 'react-native';
-
-import { IconButton, Text } from '@/design';
-import { formatDuration } from '@/core/messaging/preview';
-import type { MessageContent } from '@/core/messaging/types';
+} from "expo-audio";
+import { useState } from "react";
+import { View } from "react-native";
+import { formatDuration } from "@/core/messaging/preview";
+import type { MessageContent } from "@/core/messaging/types";
+import { IconButton, Text } from "@/design";
 
 interface VoiceRecorderProps {
   onRecorded(content: MessageContent): void;
@@ -22,7 +21,7 @@ export function VoiceRecorder({ onRecorded, onError }: VoiceRecorderProps) {
     ...RecordingPresets.LOW_QUALITY,
     // The desktop's recorder writes whatever the browser prefers; a phone can
     // only play the AAC that the `.m4a` name promises.
-    web: { mimeType: 'audio/mp4', bitsPerSecond: 64000 },
+    web: { mimeType: "audio/mp4", bitsPerSecond: 64000 },
   });
   const state = useAudioRecorderState(recorder, 250);
 
@@ -33,14 +32,14 @@ export function VoiceRecorder({ onRecorded, onError }: VoiceRecorderProps) {
     try {
       const permission = await requestRecordingPermissionsAsync();
       if (!permission.granted) {
-        onError('Microphone access is off for this app.');
+        onError("Microphone access is off for this app.");
       } else {
         await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
         await recorder.prepareToRecordAsync();
         recorder.record();
       }
     } catch {
-      onError('Could not start recording.');
+      onError("Could not start recording.");
     }
     setStarting(false);
   };
@@ -50,7 +49,7 @@ export function VoiceRecorder({ onRecorded, onError }: VoiceRecorderProps) {
       await recorder.stop();
       await setAudioModeAsync({ allowsRecording: false });
     } catch {
-      onError('Could not save that recording.');
+      onError("Could not save that recording.");
       return;
     }
 
@@ -59,11 +58,11 @@ export function VoiceRecorder({ onRecorded, onError }: VoiceRecorderProps) {
 
     const durationMs = Math.round(state.durationMillis ?? 0);
     if (durationMs < 500) {
-      onError('Too short. Hold on a moment longer.');
+      onError("Too short. Hold on a moment longer.");
       return;
     }
 
-    onRecorded({ kind: 'voice', uri, durationMs, name: 'voice.m4a', mimeType: 'audio/m4a' });
+    onRecorded({ kind: "voice", uri, durationMs, name: "voice.m4a", mimeType: "audio/m4a" });
   };
 
   if (!state.isRecording) {

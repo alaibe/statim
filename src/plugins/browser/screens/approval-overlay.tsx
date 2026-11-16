@@ -1,11 +1,10 @@
-import { View } from 'react-native';
+import { View } from "react-native";
+import { errorMessage } from "@/core/errors";
+import type { PluginContext } from "@/core/plugins/types";
+import { Badge, Button, Sheet, Text } from "@/design";
 
-import { Badge, Button, Sheet, Text } from '@/design';
-import { errorMessage } from '@/core/errors';
-import type { PluginContext } from '@/core/plugins/types';
-
-import { describeRequest } from '../rpc';
-import { useWalletConnectStore } from '../walletconnect';
+import { describeRequest } from "../rpc";
+import { useWalletConnectStore } from "../walletconnect";
 
 export function makeApprovalOverlay(context: PluginContext) {
   return function ApprovalOverlay() {
@@ -14,12 +13,12 @@ export function makeApprovalOverlay(context: PluginContext) {
     const rejectHead = useWalletConnectStore((s) => s.rejectHead);
     const reject = () =>
       rejectHead().catch((error) =>
-        context.ui.notify(errorMessage(error, 'Could not tell the site you said no'), 'error')
+        context.ui.notify(errorMessage(error, "Could not tell the site you said no"), "error"),
       );
 
     if (!head) return null;
 
-    const isProposal = head.kind === 'proposal';
+    const isProposal = head.kind === "proposal";
     const metadata = isProposal ? head.proposal.params.proposer.metadata : null;
     const described = isProposal ? null : describeRequest(head);
 
@@ -27,7 +26,8 @@ export function makeApprovalOverlay(context: PluginContext) {
       <Sheet
         visible
         onClose={() => void reject()}
-        title={isProposal ? 'Connect to site' : (described?.title ?? 'Request')}>
+        title={isProposal ? "Connect to site" : (described?.title ?? "Request")}
+      >
         <View className="gap-3">
           <View className="gap-1 rounded-card bg-surface-sunken p-3">
             <Text className="font-semibold">{isProposal ? metadata?.name : head.siteName}</Text>
@@ -52,11 +52,7 @@ export function makeApprovalOverlay(context: PluginContext) {
             <Badge label="Signed on this device" tone="brand" />
           )}
 
-          <Button
-            label={isProposal ? 'Connect' : 'Approve'}
-            fullWidth
-            onPress={() => approve(context)}
-          />
+          <Button label={isProposal ? "Connect" : "Approve"} fullWidth onPress={() => approve(context)} />
           <Button label="Reject" tone="neutral" fullWidth onPress={reject} />
         </View>
       </Sheet>

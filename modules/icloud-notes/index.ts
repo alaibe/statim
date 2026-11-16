@@ -1,4 +1,4 @@
-import { requireOptionalNativeModule } from 'expo-modules-core';
+import { requireOptionalNativeModule } from "expo-modules-core";
 
 interface ICloudNotesModule {
   /** Whether the phone is signed in to an iCloud account that can use the container. */
@@ -9,4 +9,4 @@ interface ICloudNotesModule {
   unsubscribe(container: string): Promise<void>;
 }
 
-export default requireOptionalNativeModule<ICloudNotesModule>('ICloudNotes');
+export default requireOptionalNativeModule<ICloudNotesModule>("ICloudNotes");

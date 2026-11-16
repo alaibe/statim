@@ -24,14 +24,7 @@ export function parseLocation(url: string): Location | null {
 }
 
 function coordinatesOf(url: string, params: Record<string, string>) {
-  for (const candidate of [
-    params.ll,
-    params.coordinate,
-    params.q,
-    params.query,
-    params.daddr,
-    params.center,
-  ]) {
+  for (const candidate of [params.ll, params.coordinate, params.q, params.query, params.daddr, params.center]) {
     const pair = candidate ? parsePair(candidate) : null;
     if (pair) return pair;
   }
@@ -76,12 +69,12 @@ export function mapsLinks(location: Location): { apple: string; geo: string } {
   const { lat, lng, label, url } = location;
   const q = label ? encodeURIComponent(label) : undefined;
   if (lat === undefined || lng === undefined) {
-    return { apple: url, geo: url.startsWith('geo:') ? url : `geo:0,0?q=${q ?? ''}` };
+    return { apple: url, geo: url.startsWith("geo:") ? url : `geo:0,0?q=${q ?? ""}` };
   }
   const ll = `${lat},${lng}`;
   return {
-    apple: `https://maps.apple.com/?ll=${ll}${q ? `&q=${q}` : ''}`,
-    geo: `geo:${ll}?q=${ll}${q ? `(${q})` : ''}`,
+    apple: `https://maps.apple.com/?ll=${ll}${q ? `&q=${q}` : ""}`,
+    geo: `geo:${ll}?q=${ll}${q ? `(${q})` : ""}`,
   };
 }
 
@@ -100,18 +93,18 @@ function parsePair(value: string): { lat: number; lng: number } | null {
 }
 
 function queryOf(url: string): Record<string, string> {
-  const query = url.split('#')[0].split('?')[1];
+  const query = url.split("#")[0].split("?")[1];
   const out: Record<string, string> = {};
-  for (const part of query ? query.split('&') : []) {
-    const [key, ...rest] = part.split('=');
-    if (key) out[decode(key)] = decode(rest.join('='));
+  for (const part of query ? query.split("&") : []) {
+    const [key, ...rest] = part.split("=");
+    if (key) out[decode(key)] = decode(rest.join("="));
   }
   return out;
 }
 
 function decode(value: string): string {
   try {
-    return decodeURIComponent(value.replace(/\+/g, ' '));
+    return decodeURIComponent(value.replace(/\+/g, " "));
   } catch {
     return value;
   }

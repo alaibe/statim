@@ -1,9 +1,9 @@
-import type { PluginContext } from '@/core/plugins/types';
+import type { PluginContext } from "@/core/plugins/types";
 
-import { SUGGESTED_BOOKMARKS, type Bookmark } from './config';
+import { type Bookmark, SUGGESTED_BOOKMARKS } from "./config";
 
-const STORAGE_HIDDEN = 'bookmarks-hidden';
-const STORAGE_CUSTOM = 'bookmarks-custom';
+const STORAGE_HIDDEN = "bookmarks-hidden";
+const STORAGE_CUSTOM = "bookmarks-custom";
 
 async function custom(context: PluginContext): Promise<Bookmark[]> {
   const saved = (await context.storage.get<Bookmark[]>(STORAGE_CUSTOM)) ?? [];
@@ -28,27 +28,20 @@ export async function bookmarks(context: PluginContext): Promise<Bookmark[]> {
 }
 
 /** Matches an id, a name or a host, among hidden suggestions too. */
-export async function findBookmark(
-  context: PluginContext,
-  query: string
-): Promise<Bookmark | undefined> {
+export async function findBookmark(context: PluginContext, query: string): Promise<Bookmark | undefined> {
   const wanted = query.trim().toLowerCase();
   const all = [...SUGGESTED_BOOKMARKS, ...(await custom(context))];
   return (
     all.find((b) => b.id === wanted) ??
     all.find((b) => b.name.toLowerCase() === wanted) ??
-    all.find((b) => hostOf(b.url) === wanted.replace(/^www\./, ''))
+    all.find((b) => hostOf(b.url) === wanted.replace(/^www\./, ""))
   );
 }
 
 type AddResult = { bookmark: Bookmark; restored?: boolean } | { error: string };
 
 /** Adds a site, or brings back a suggested one that was removed. */
-export async function addBookmark(
-  context: PluginContext,
-  rawUrl: string,
-  rawName?: string
-): Promise<AddResult> {
+export async function addBookmark(context: PluginContext, rawUrl: string, rawName?: string): Promise<AddResult> {
   const suggested = await findBookmark(context, rawUrl);
   if (suggested && !suggested.custom) {
     if (!(await hidden(context)).has(suggested.id)) {
@@ -66,11 +59,11 @@ export async function addBookmark(
   } catch {
     return { error: `"${rawUrl}" is not a web address.` };
   }
-  if (parsed.protocol !== 'https:') {
-    return { error: 'A bookmark has to be https: a page served in the clear can be rewritten.' };
+  if (parsed.protocol !== "https:") {
+    return { error: "A bookmark has to be https: a page served in the clear can be rewritten." };
   }
 
-  const name = rawName?.trim() || parsed.host.replace(/^www\./, '');
+  const name = rawName?.trim() || parsed.host.replace(/^www\./, "");
   const id = slug(name);
 
   const existing = [...SUGGESTED_BOOKMARKS, ...(await custom(context))];
@@ -81,9 +74,9 @@ export async function addBookmark(
   const bookmark: Bookmark = {
     id,
     name,
-    url: parsed.toString().replace(/\/$/, ''),
-    description: parsed.host.replace(/^www\./, ''),
-    icon: 'globe-outline',
+    url: parsed.toString().replace(/\/$/, ""),
+    description: parsed.host.replace(/^www\./, ""),
+    icon: "globe-outline",
     custom: true,
   };
 
@@ -101,13 +94,13 @@ export async function removeBookmark(context: PluginContext, bookmark: Bookmark)
   const saved = (await context.storage.get<Bookmark[]>(STORAGE_CUSTOM)) ?? [];
   await context.storage.set(
     STORAGE_CUSTOM,
-    saved.filter((b) => b.id !== bookmark.id)
+    saved.filter((b) => b.id !== bookmark.id),
   );
 }
 
 export function hostOf(url: string): string {
   try {
-    return new URL(url).host.replace(/^www\./, '');
+    return new URL(url).host.replace(/^www\./, "");
   } catch {
     return url;
   }
@@ -117,7 +110,7 @@ function slug(name: string): string {
   return (
     name
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '') || 'bookmark'
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "bookmark"
   );
 }

@@ -1,13 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
-
-import { Badge, ConfirmSheet, Icon, ListItem, Loading, Note, Section, Text } from '@/design';
-import { errorMessage } from '@/core/errors';
-import { useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
-import { formatDayLabel } from '@/core/messaging/preview';
-import { useAction } from '@/features/use-action';
-import { SettingsScreen } from '@/features/settings/settings-screen';
-import type { XmtpInstallation as Installation } from '@/core/messaging/protocol';
-import { listXmtpInstallations, revokeXmtpInstallations } from '@/features/xmtp-devices';
+import { useCallback, useEffect, useState } from "react";
+import { errorMessage } from "@/core/errors";
+import { useChatStore, xmtpSessionFor } from "@/core/messaging/chat-store";
+import { formatDayLabel } from "@/core/messaging/preview";
+import type { XmtpInstallation as Installation } from "@/core/messaging/protocol";
+import { Badge, ConfirmSheet, Icon, ListItem, Loading, Note, Section, Text } from "@/design";
+import { SettingsScreen } from "@/features/settings/settings-screen";
+import { useAction } from "@/features/use-action";
+import { listXmtpInstallations, revokeXmtpInstallations } from "@/features/xmtp-devices";
 
 export default function DevicesScreen() {
   const session = useChatStore(xmtpSessionFor);
@@ -21,7 +20,7 @@ export default function DevicesScreen() {
       setInstallations(await listXmtpInstallations());
       setError(null);
     } catch (e) {
-      setError(errorMessage(e, 'Could not read your devices'));
+      setError(errorMessage(e, "Could not read your devices"));
     }
   }, []);
 
@@ -40,7 +39,7 @@ export default function DevicesScreen() {
       await revokeXmtpInstallations([installation.id]);
       await load();
     },
-    { success: 'Device revoked', failure: 'Could not revoke that device' }
+    { success: "Device revoked", failure: "Could not revoke that device" },
   );
 
   const others = (installations ?? []).filter((i) => !i.current);
@@ -56,7 +55,8 @@ export default function DevicesScreen() {
             title="This device"
             surface="card"
             empty="Not connected to XMTP. If every installation slot is taken, revoke an old device below, then reconnect."
-            className="mb-6">
+            className="mb-6"
+          >
             {here ? (
               <ListItem
                 title="Signed in here"
@@ -69,10 +69,11 @@ export default function DevicesScreen() {
           </Section>
 
           <Section
-            title={others.length > 0 ? `Other devices · ${others.length}` : 'Other devices'}
+            title={others.length > 0 ? `Other devices · ${others.length}` : "Other devices"}
             surface="card"
             empty="This account is only signed in here."
-            className="mb-4">
+            className="mb-4"
+          >
             {others.map((installation) => (
               <ListItem
                 key={installation.id}
@@ -96,9 +97,9 @@ export default function DevicesScreen() {
 
       <Note className="mx-gutter" title="What a device is" icon="phone-portrait-outline">
         <Text variant="footnote">
-          Each device holds its own keys and its own copy of your messages. Nothing sits on a server
-          for a new device to download. That is why a fresh install starts empty, and why revoking a
-          device here cuts it off for good rather than signing it out.
+          Each device holds its own keys and its own copy of your messages. Nothing sits on a server for a new device to
+          download. That is why a fresh install starts empty, and why revoking a device here cuts it off for good rather
+          than signing it out.
         </Text>
       </Note>
 
@@ -107,13 +108,13 @@ export default function DevicesScreen() {
         onClose={() => setConfirming(null)}
         title="Revoke this device?"
         body={[
-          'That device will no longer be able to read or send messages for this account. It cannot be undone: the device would have to be added again from scratch, and it would start with no history.',
-          'This needs a signature from your account.',
+          "That device will no longer be able to read or send messages for this account. It cannot be undone: the device would have to be added again from scratch, and it would start with no history.",
+          "This needs a signature from your account.",
         ]}
         confirm={{
-          label: 'Revoke device',
-          busyLabel: 'Revoking…',
-          tone: 'danger',
+          label: "Revoke device",
+          busyLabel: "Revoking…",
+          tone: "danger",
           onPress: async () => {
             if (confirming) await revoke.run(confirming);
             setConfirming(null);

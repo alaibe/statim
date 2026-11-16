@@ -5,12 +5,12 @@
  * Gating happens before de-duplication, which is what lets every protocol
  * define its own `/balance`: in any one chat at most one survives.
  */
-import { reportError } from '../app/report-error';
-import { botChatId, type Bot } from '../messaging/bots';
-import { inScope, type ChatScope } from '../messaging/chat-scope';
-import { supports } from '../messaging/capability';
-import type { ChatSession } from '../messaging/protocol';
-import type { ChatId, LiveView, ParticipantId } from '../messaging/types';
+import { reportError } from "../app/report-error";
+import { type Bot, botChatId } from "../messaging/bots";
+import { supports } from "../messaging/capability";
+import { type ChatScope, inScope } from "../messaging/chat-scope";
+import type { ChatSession } from "../messaging/protocol";
+import type { ChatId, LiveView, ParticipantId } from "../messaging/types";
 import type {
   ActivePlugin,
   ComposerAction,
@@ -21,7 +21,7 @@ import type {
   PluginOverlay,
   PluginView,
   SlashCommand,
-} from './types';
+} from "./types";
 
 interface CommandEntry {
   command: SlashCommand;
@@ -34,13 +34,13 @@ export function worksOn(command: SlashCommand, session: ChatSession | undefined)
   return !command.requires || supports(session, command.requires);
 }
 
-export const CORE_ID = 'statim';
+export const CORE_ID = "statim";
 
 const CORE_CONTEXT = new Proxy({} as PluginContext, {
   get(_target, property) {
     throw new Error(
       `A core command reached for context.${String(property)}. Core commands have no plugin ` +
-        'context: use the store directly, or make it a plugin.'
+        "context: use the store directly, or make it a plugin.",
     );
   },
 });
@@ -61,7 +61,7 @@ interface CoreContribution {
 
 function indexCommands(
   entries: Iterable<CommandEntry>,
-  onClash?: (key: string, pluginId: PluginId) => void
+  onClash?: (key: string, pluginId: PluginId) => void,
 ): Map<string, CommandEntry> {
   const out = new Map<string, CommandEntry>();
   for (const entry of entries) {
@@ -124,10 +124,7 @@ export class PluginRegistry {
   }
 
   private coreComposerActions(): ComposerAction[] {
-    return [
-      ...(this.core.composerActions ?? []),
-      ...this.featuresOn().flatMap((f) => f.composerActions),
-    ];
+    return [...(this.core.composerActions ?? []), ...this.featuresOn().flatMap((f) => f.composerActions)];
   }
 
   register(plugin: Plugin) {
@@ -153,11 +150,7 @@ export class PluginRegistry {
     return [...this.active.keys()];
   }
 
-  async activate(
-    id: PluginId,
-    makeContext: (plugin: Plugin) => PluginContext,
-    revoke?: () => void
-  ): Promise<void> {
+  async activate(id: PluginId, makeContext: (plugin: Plugin) => PluginContext, revoke?: () => void): Promise<void> {
     if (this.active.has(id)) return;
 
     const plugin = this.available.get(id);
@@ -182,7 +175,7 @@ export class PluginRegistry {
     if (contribution.start) {
       try {
         const dispose = await contribution.start();
-        if (typeof dispose === 'function') {
+        if (typeof dispose === "function") {
           if (this.active.get(id) === entry) entry.dispose = dispose;
           else dispose();
         }
@@ -238,10 +231,7 @@ export class PluginRegistry {
     return indexCommands(this.entries(chatId, scope));
   }
 
-  commandListFor(
-    chatId: ChatId,
-    scope?: ChatScope
-  ): { command: SlashCommand; pluginId: PluginId }[] {
+  commandListFor(chatId: ChatId, scope?: ChatScope): { command: SlashCommand; pluginId: PluginId }[] {
     return this.memo(`commands:${chatId}:${scope}`, () => {
       const seen = new Set<string>();
       const out: { command: SlashCommand; pluginId: PluginId }[] = [];
@@ -271,7 +261,7 @@ export class PluginRegistry {
 
   composerActionsFor(
     chatId: ChatId,
-    scope?: ChatScope
+    scope?: ChatScope,
   ): { action: ComposerAction; context: PluginContext; pluginId: PluginId }[] {
     return this.memo(`actions:${chatId}:${scope}`, () => {
       const core = this.coreComposerActions()
@@ -281,7 +271,7 @@ export class PluginRegistry {
       return [
         ...core,
         ...this.composerActions().filter((e) =>
-          this.offers(chatId, e.pluginId, e.action.global, e.action.showIn, scope)
+          this.offers(chatId, e.pluginId, e.action.global, e.action.showIn, scope),
         ),
       ];
     });
@@ -292,7 +282,7 @@ export class PluginRegistry {
     pluginId: PluginId,
     global: boolean | undefined,
     showIn: readonly ChatScope[] | undefined,
-    scope: ChatScope | undefined
+    scope: ChatScope | undefined,
   ): boolean {
     if (scope !== undefined && !inScope(showIn, scope)) return false;
     return chatId === undefined || this.inScope(chatId, pluginId, global);
@@ -312,9 +302,7 @@ export class PluginRegistry {
 
   customRenderer(typeId: string, data: unknown) {
     const entry = this.contentTypes().get(typeId);
-    return entry?.spec.is(data)
-      ? { render: entry.spec.render, context: entry.context, data }
-      : null;
+    return entry?.spec.is(data) ? { render: entry.spec.render, context: entry.context, data } : null;
   }
 
   /** Plain data, not protocol codecs: turning these into codecs is each adapter's job. */
@@ -344,7 +332,7 @@ export class PluginRegistry {
 
   async participantNames(): Promise<Record<ParticipantId, string>> {
     const all = await Promise.all(
-      [...this.active.values()].map((entry) => entry.contribution.names?.().catch(() => ({})))
+      [...this.active.values()].map((entry) => entry.contribution.names?.().catch(() => ({}))),
     );
     return Object.assign({}, ...all);
   }
@@ -382,7 +370,7 @@ export class PluginRegistry {
   }
 
   async handleUri(url: string): Promise<boolean> {
-    const scheme = url.split(':')[0]?.toLowerCase();
+    const scheme = url.split(":")[0]?.toLowerCase();
     if (!scheme) return false;
 
     for (const entry of this.active.values()) {

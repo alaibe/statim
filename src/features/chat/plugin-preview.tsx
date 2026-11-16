@@ -1,10 +1,10 @@
-import { View } from 'react-native';
+import { View } from "react-native";
 
-import type { LiveView } from '@/core/messaging/types';
-import { WidgetView } from '@/design/widgets/widget-view';
+import type { LiveView } from "@/core/messaging/types";
+import { WidgetView } from "@/design/widgets/widget-view";
 
-import { openUrlQuietly } from './link-actions';
-import { usePluginView } from './use-live-widget';
+import { openUrlQuietly } from "./link-actions";
+import { usePluginView } from "./use-live-widget";
 
 /** A plugin's card under a message; nothing while it is built or when the plugin is off. */
 export function PluginPreview({

@@ -1,14 +1,14 @@
-import { useChatStore } from '@/core/messaging/chat-store';
-import type { Chat, ChatId, ChatMessage } from '@/core/messaging/types';
-import { isTrezorCallback } from '@/core/account/vendors/trezor';
-import { moveInviteText } from '@/plugins/profile/move-invite';
+import { isTrezorCallback } from "@/core/account/vendors/trezor";
+import { useChatStore } from "@/core/messaging/chat-store";
+import type { Chat, ChatId, ChatMessage } from "@/core/messaging/types";
+import { moveInviteText } from "@/plugins/profile/move-invite";
 
 /**
  * `statim://fixture/<name>` opens a made-up chat in a debug build, for the
  * guide's screenshots of what a fresh account cannot have yet.
  */
 export function redirectSystemPath({ path }: { path: string; initial: boolean }): string | null {
-  if (path.startsWith('statim://expo-sharing')) return '/share';
+  if (path.startsWith("statim://expo-sharing")) return "/share";
   if (isTrezorCallback(path)) return null;
   if (!__DEV__) return path;
   try {
@@ -21,37 +21,33 @@ export function redirectSystemPath({ path }: { path: string; initial: boolean })
 }
 
 const FIXTURES: Record<string, () => ChatId> = {
-  'move-invite': () =>
-    seed('telegram-alice' as ChatId, 'Alice', [
-      [false, 'Did the flat photos come through?', 9],
-      [true, 'They did, thanks. The second one is great', 8],
-      [false, moveInviteText('0x4c7a1e0b9d3f2a6e8b5c1d7f0a9e3b2c6d8f1a4e'), 1],
+  "move-invite": () =>
+    seed("telegram-alice" as ChatId, "Alice", [
+      [false, "Did the flat photos come through?", 9],
+      [true, "They did, thanks. The second one is great", 8],
+      [false, moveInviteText("0x4c7a1e0b9d3f2a6e8b5c1d7f0a9e3b2c6d8f1a4e"), 1],
     ]),
 };
 
-function seed(
-  id: ChatId,
-  name: string,
-  lines: [fromMe: boolean, text: string, minutesAgo: number][]
-): ChatId {
+function seed(id: ChatId, name: string, lines: [fromMe: boolean, text: string, minutesAgo: number][]): ChatId {
   const now = Date.now();
   const messages: ChatMessage[] = lines.map(([fromMe, text, minutesAgo], n) => ({
     id: `fixture-${n}`,
     chatId: id,
-    senderId: fromMe ? 'me' : name,
+    senderId: fromMe ? "me" : name,
     sentAt: now - minutesAgo * 60_000,
-    content: { kind: 'text', text },
+    content: { kind: "text", text },
     fromMe,
-    status: 'sent',
+    status: "sent",
   }));
   const chat: Chat = {
     id,
-    protocol: 'telegram',
-    kind: 'dm',
+    protocol: "telegram",
+    kind: "dm",
     title: name,
     memberIds: [name],
     createdAt: now - 86_400_000,
-    consent: 'accepted',
+    consent: "accepted",
     lastMessage: messages.at(-1),
   };
   useChatStore.setState((state) => ({

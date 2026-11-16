@@ -1,28 +1,28 @@
-import { useChatStore } from '@/core/messaging/chat-store';
-import type { SlashCommand } from '@/core/plugins/types';
+import { useChatStore } from "@/core/messaging/chat-store";
+import type { SlashCommand } from "@/core/plugins/types";
 
 export const pollCommand: SlashCommand = {
-  name: 'poll',
-  description: 'Ask a question with choices',
+  name: "poll",
+  description: "Ask a question with choices",
   usage: '/poll "Question" "Choice one" "Choice two"',
-  requires: 'createPoll',
-  showIn: ['group', 'channel'],
+  requires: "createPoll",
+  showIn: ["group", "channel"],
   async run({ args, chatId }) {
     const chat = useChatStore.getState().chats.find((c) => c.id === chatId);
-    if (chat?.lacks?.includes('poll'))
-      return { type: 'error', message: 'Polls do not reach the network this chat is on.' };
+    if (chat?.lacks?.includes("poll"))
+      return { type: "error", message: "Polls do not reach the network this chat is on." };
     const [question, ...options] = args.map((value) => value.trim());
     if (!question || options.length < 2 || options.length > 10)
-      return { type: 'error', message: 'Use /poll "Question" "Choice one" "Choice two".' };
+      return { type: "error", message: 'Use /poll "Question" "Choice one" "Choice two".' };
     if (question.length > 255 || options.some((option) => !option || option.length > 100))
       return {
-        type: 'error',
-        message: 'Keep the question under 256 characters and each choice under 101.',
+        type: "error",
+        message: "Keep the question under 256 characters and each choice under 101.",
       };
     if (new Set(options.map((option) => option.toLowerCase())).size !== options.length)
-      return { type: 'error', message: 'Each poll choice must be different.' };
+      return { type: "error", message: "Each poll choice must be different." };
 
     await useChatStore.getState().createPoll(chatId, question, options);
-    return { type: 'handled' };
+    return { type: "handled" };
   },
 };

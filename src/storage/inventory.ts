@@ -3,19 +3,19 @@ type RetentionAreas = {
   device: readonly string[];
 };
 
-export type Medium = 'vault' | 'files' | 'database';
+export type Medium = "vault" | "files" | "database";
 
 const STORAGE_INVENTORY = {
   vault: {
-    account: ['account.'],
-    device: ['accounts.', 'security.'],
+    account: ["account."],
+    device: ["accounts.", "security."],
   },
   files: {
-    account: ['attachments', 'gifs', 'stickers', 'tdlib', 'matrix'],
+    account: ["attachments", "gifs", "stickers", "tdlib", "matrix"],
     device: [],
   },
   database: {
-    account: ['account-{account}.db'],
+    account: ["account-{account}.db"],
     device: [],
   },
 } as const satisfies Record<Medium, RetentionAreas>;

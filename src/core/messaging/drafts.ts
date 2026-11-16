@@ -1,13 +1,13 @@
-import type { AccountStorage } from '@/storage/account';
-import { deferredWrite } from '@/storage/deferred-write';
-import type { ChatId, MessageId } from './types';
+import type { AccountStorage } from "@/storage/account";
+import { deferredWrite } from "@/storage/deferred-write";
+import type { ChatId, MessageId } from "./types";
 
 declare const draftKeyBrand: unique symbol;
 type DraftKey = string & { readonly [draftKeyBrand]: true };
 
 export type Drafts = Record<DraftKey, string>;
 
-const KEY = 'chat.drafts';
+const KEY = "chat.drafts";
 
 export async function loadDrafts(storage: AccountStorage): Promise<Drafts> {
   return (await storage.get<Drafts>(KEY)) ?? {};
@@ -43,10 +43,10 @@ export class DraftSync {
       id,
       setTimeout(() => {
         this.timers.delete(id);
-        if ((this.remote.get(id) ?? '') === text) return;
+        if ((this.remote.get(id) ?? "") === text) return;
         this.remote.set(id, text);
-        push(text).catch((error) => console.warn('[chat] could not save the draft', error));
-      }, PUSH_DELAY_MS)
+        push(text).catch((error) => console.warn("[chat] could not save the draft", error));
+      }, PUSH_DELAY_MS),
     );
   }
 
@@ -55,7 +55,7 @@ export class DraftSync {
     const last = this.remote.get(id);
     this.remote.set(id, text);
     if (last === text || local === text || this.timers.has(id)) return undefined;
-    return local === (last ?? '') ? text : undefined;
+    return local === (last ?? "") ? text : undefined;
   }
 
   clear(): void {

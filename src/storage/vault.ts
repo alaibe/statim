@@ -1,35 +1,35 @@
-import * as Crypto from 'expo-crypto';
+import * as Crypto from "expo-crypto";
 
-import { toHex } from '@/lib/bytes';
+import { toHex } from "@/lib/bytes";
 
-import * as store from './secure-store';
-import { VAULT_MIGRATIONS, type VaultStep } from './vault-migrations';
+import * as store from "./secure-store";
+import { VAULT_MIGRATIONS, type VaultStep } from "./vault-migrations";
 
 export const VaultKey = {
-  accountIndex: 'accounts.index',
-  activeAccountId: 'accounts.active',
-  biometricLock: 'security.biometricLock',
-  commandLine: 'security.commandLine',
-  keyProtection: 'security.keyProtection',
-  icloudSession: 'notifications.icloudSession',
-  pin: 'security.pin',
-  pinAttempts: 'security.pinAttempts',
-  version: 'vault.version',
+  accountIndex: "accounts.index",
+  activeAccountId: "accounts.active",
+  biometricLock: "security.biometricLock",
+  commandLine: "security.commandLine",
+  keyProtection: "security.keyProtection",
+  icloudSession: "notifications.icloudSession",
+  pin: "security.pin",
+  pinAttempts: "security.pinAttempts",
+  version: "vault.version",
 } as const;
 
 type VaultKeyName = (typeof VaultKey)[keyof typeof VaultKey] | AccountScopedKey;
 
 type AccountScopedKey = `account.${string}.${
-  | 'mnemonic'
-  | 'dbKey'
-  | 'appDbKey'
-  | 'tdlibDbKey'
-  | 'matrixStoreKey'
-  | 'matrixSession'
-  | 'protocols'
-  | 'credentials'
-  | 'ai'
-  | 'icloudKey'}`;
+  | "mnemonic"
+  | "dbKey"
+  | "appDbKey"
+  | "tdlibDbKey"
+  | "matrixStoreKey"
+  | "matrixSession"
+  | "protocols"
+  | "credentials"
+  | "ai"
+  | "icloudKey"}`;
 
 export function accountMnemonicKey(accountId: string): AccountScopedKey {
   return `account.${accountId}.mnemonic`;
@@ -88,10 +88,10 @@ export function accountScopedKeys(accountId: string): VaultKeyName[] {
 }
 
 export type ProtectedRead =
-  | { status: 'ok'; value: string }
-  | { status: 'absent' }
-  | { status: 'invalidated' }
-  | { status: 'denied' };
+  | { status: "ok"; value: string }
+  | { status: "absent" }
+  | { status: "invalidated" }
+  | { status: "denied" };
 
 /**
  * Runs the steps this vault has not had yet. A vault with no version and no
@@ -124,21 +124,21 @@ function migratedVault(): Promise<void> {
 export async function vaultGetProtected(
   key: VaultKeyName,
   prompt: string,
-  expectExisting: boolean
+  expectExisting: boolean,
 ): Promise<ProtectedRead> {
   await migratedVault();
   try {
     const value = await store.getProtected(key, prompt);
-    if (value !== null) return { status: 'ok', value };
-    return expectExisting ? { status: 'invalidated' } : { status: 'absent' };
+    if (value !== null) return { status: "ok", value };
+    return expectExisting ? { status: "invalidated" } : { status: "absent" };
   } catch {
-    return { status: 'denied' };
+    return { status: "denied" };
   }
 }
 
 export async function vaultSetProtected(key: VaultKeyName, value: string): Promise<void> {
   await migratedVault();
-  return store.setProtected(key, value, 'Confirm to save your keys');
+  return store.setProtected(key, value, "Confirm to save your keys");
 }
 
 export async function vaultDeleteProtected(key: VaultKeyName): Promise<void> {
@@ -180,7 +180,7 @@ export function accountDatabaseKey(accountId: string): Promise<string> {
 /** Base64, which is how TDLib's JSON interface takes bytes. */
 export function accountTdlibDatabaseKey(accountId: string): Promise<string> {
   return accountSecret(accountTdlibDbKeyName(accountId), () =>
-    globalThis.btoa(String.fromCharCode(...Crypto.getRandomBytes(32)))
+    globalThis.btoa(String.fromCharCode(...Crypto.getRandomBytes(32))),
   );
 }
 

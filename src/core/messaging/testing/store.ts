@@ -1,26 +1,24 @@
-import type { LocalAccount } from 'viem';
+import type { LocalAccount } from "viem";
+import type { Keyring } from "@/core/account/keyring";
+import { PluginRegistry } from "@/core/plugins/registry";
+import { accountRuntime } from "@/runtime";
+import { type AccountStorage, createAccountStorage } from "@/storage/account";
+import { clearChatProjection, projectAccount } from "../chat-store";
+import { InMemoryMessageStore, type TransportChat } from "../message-store";
+import { namespacedId, type ProtocolId, protocolChatId, splitChatId } from "../namespace";
+import type { ChatSession } from "../protocol";
+import { StoreBackedSession } from "../store-backed-session";
+import type { ChatTransport, SendResult, TransportSink } from "../transport";
+import type { ChatId, MessageContent, ParticipantId, ProtocolChatId } from "../types";
 
-import { clearChatProjection, projectAccount } from '../chat-store';
-import { namespacedId, protocolChatId, splitChatId, type ProtocolId } from '../namespace';
-import { InMemoryMessageStore, type TransportChat } from '../message-store';
-
-import type { ChatSession } from '../protocol';
-import { StoreBackedSession } from '../store-backed-session';
-import type { ChatTransport, SendResult, TransportSink } from '../transport';
-import type { ChatId, MessageContent, ParticipantId, ProtocolChatId } from '../types';
-import { accountRuntime } from '@/runtime';
-import { PluginRegistry } from '@/core/plugins/registry';
-import type { Keyring } from '@/core/account/keyring';
-import { createAccountStorage, type AccountStorage } from '@/storage/account';
-
-export const TEST_PROTOCOL: ProtocolId = 'xmtp';
-export const STORE_TEST_SELF = 'me';
-export const STORE_TEST_PARTICIPANT = 'them';
+export const TEST_PROTOCOL: ProtocolId = "xmtp";
+export const STORE_TEST_SELF = "me";
+export const STORE_TEST_PARTICIPANT = "them";
 
 export class StoreBackedTestTransport implements ChatTransport {
-  readonly protocolId: ProtocolId = 'nostr';
-  readonly self = { participantId: STORE_TEST_SELF, address: 'me@stub' };
-  readonly rosterIsFixed = { onAdd: 'no', onRemove: 'no' };
+  readonly protocolId: ProtocolId = "nostr";
+  readonly self = { participantId: STORE_TEST_SELF, address: "me@stub" };
+  readonly rosterIsFixed = { onAdd: "no", onRemove: "no" };
 
   sink: TransportSink | null = null;
   opened: string[] = [];
@@ -33,7 +31,7 @@ export class StoreBackedTestTransport implements ChatTransport {
   }
 
   chatIdFor(participants: ParticipantId[]): ProtocolChatId {
-    return protocolChatId(`c:${[...participants].sort().join('+')}`);
+    return protocolChatId(`c:${[...participants].sort().join("+")}`);
   }
 
   async openChat(chat: TransportChat, options?: { since?: number }): Promise<void> {
@@ -77,7 +75,7 @@ export class StoreBackedTestTransport implements ChatTransport {
         senderId: STORE_TEST_PARTICIPANT,
         sentAt,
         transportTimestamp: sentAt,
-        content: { kind: 'text', text },
+        content: { kind: "text", text },
         fromMe: false,
       }) ?? Promise.resolve()
     );
@@ -93,14 +91,14 @@ export async function storeBackedSession(store = new InMemoryMessageStore()) {
 }
 
 export const TEST_KEYRING = {
-  kind: 'phrase',
+  kind: "phrase",
   mnemonic: null,
   account: {} as LocalAccount,
-  address: '0x0000000000000000000000000000000000000000',
-  chatKey: () => ({ path: '', privateKey: new Uint8Array(), publicKey: new Uint8Array() }),
+  address: "0x0000000000000000000000000000000000000000",
+  chatKey: () => ({ path: "", privateKey: new Uint8Array(), publicKey: new Uint8Array() }),
   wallet: {
-    derive: () => ({ path: '', privateKey: new Uint8Array(), publicKey: new Uint8Array() }),
-    deriveEd25519: () => ({ path: '', privateKey: new Uint8Array(), publicKey: new Uint8Array() }),
+    derive: () => ({ path: "", privateKey: new Uint8Array(), publicKey: new Uint8Array() }),
+    deriveEd25519: () => ({ path: "", privateKey: new Uint8Array(), publicKey: new Uint8Array() }),
   },
 } as Keyring;
 
@@ -120,30 +118,23 @@ export interface ConnectFakeOptions {
   sessionFor?(protocolId: ProtocolId): ChatSession;
 }
 
-export async function connectFake(
-  session: ChatSession,
-  options: ConnectFakeOptions = {}
-): Promise<void> {
-  const accountId = options.accountId ?? 'test-account';
+export async function connectFake(session: ChatSession, options: ConnectFakeOptions = {}): Promise<void> {
+  const accountId = options.accountId ?? "test-account";
   await accountRuntime.synchronize({
     accountId,
     keyring: TEST_KEYRING,
     registry: new PluginRegistry(),
     defaultEnabled: [],
     makeContext: () => {
-      throw new Error('No plugins in this test.');
+      throw new Error("No plugins in this test.");
     },
     only: options.protocols,
-    createSession: async ({ protocolId }) =>
-      options.sessionFor ? options.sessionFor(protocolId) : session,
+    createSession: async ({ protocolId }) => (options.sessionFor ? options.sessionFor(protocolId) : session),
     storage: testAccountStorage(accountId),
   });
 }
 
-export function projectTestAccount(
-  accountId: string,
-  messages = createAccountStorage(accountId).messages
-): void {
+export function projectTestAccount(accountId: string, messages = createAccountStorage(accountId).messages): void {
   projectAccount({ ...createAccountStorage(accountId), messages });
 }
 

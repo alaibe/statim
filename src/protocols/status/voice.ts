@@ -1,6 +1,6 @@
-import { concat } from '@/lib/bytes';
+import { concat } from "@/lib/bytes";
 
-import { AudioType } from './messages';
+import { AudioType } from "./messages";
 
 interface StatusAudio {
   payload: Uint8Array;
@@ -50,7 +50,7 @@ function adtsHeader({ objectType, frequencyIndex, channels }: AacConfig, size: n
     ((channels & 3) << 6) | (length >> 11),
     (length >> 3) & 0xff,
     ((length & 7) << 5) | 0x1f,
-    0xfc
+    0xfc,
   );
 }
 
@@ -93,16 +93,16 @@ class Container {
   }
 
   audio(): StatusAudio | null {
-    const moov = this.child(null, 'moov');
+    const moov = this.child(null, "moov");
     if (!moov) return null;
-    for (const trak of this.children(moov, 'trak')) {
-      const stbl = this.path(trak, ['mdia', 'minf', 'stbl']);
-      const stsd = stbl && this.child(stbl, 'stsd');
+    for (const trak of this.children(moov, "trak")) {
+      const stbl = this.path(trak, ["mdia", "minf", "stbl"]);
+      const stsd = stbl && this.child(stbl, "stsd");
       const entry = stsd && [...this.boxes(stsd.body + 8, stsd.end)][0];
-      if (!stbl || !entry || (entry.type !== 'mp4a' && entry.type !== 'samr')) continue;
+      if (!stbl || !entry || (entry.type !== "mp4a" && entry.type !== "samr")) continue;
       const samples = [...this.tableSamples(stbl), ...this.fragmentSamples(moov)];
       if (samples.length === 0) return null;
-      if (entry.type === 'samr') {
+      if (entry.type === "samr") {
         return { payload: concat([AMR_MAGIC, ...samples]), type: AudioType.AMR };
       }
       const config = this.aacConfig(entry);
@@ -155,21 +155,21 @@ class Container {
   }
 
   private slice(start: number, size: number): Uint8Array {
-    if (start + size > this.bytes.length) throw new RangeError('A sample runs past the file.');
+    if (start + size > this.bytes.length) throw new RangeError("A sample runs past the file.");
     return this.bytes.subarray(start, start + size);
   }
 
   private aacConfig(entry: Box): AacConfig | null {
     const version = this.view.getUint16(entry.body + 8);
     const start = entry.body + 28 + (version === 1 ? 16 : version === 2 ? 36 : 0);
-    const esds = [...this.boxes(start, entry.end)].find((box) => box.type === 'esds');
+    const esds = [...this.boxes(start, entry.end)].find((box) => box.type === "esds");
     return esds ? readAacConfig(this.bytes.subarray(esds.body + 4, esds.end)) : null;
   }
 
   private tableSamples(stbl: Box): Uint8Array[] {
-    const stsz = this.child(stbl, 'stsz');
-    const stsc = this.child(stbl, 'stsc');
-    const stco = this.child(stbl, 'stco') ?? this.child(stbl, 'co64');
+    const stsz = this.child(stbl, "stsz");
+    const stsc = this.child(stbl, "stsc");
+    const stco = this.child(stbl, "stco") ?? this.child(stbl, "co64");
     if (!stsz || !stsc || !stco) return [];
     const fixedSize = this.u32(stsz.body + 4);
     const count = this.u32(stsz.body + 8);
@@ -179,10 +179,7 @@ class Container {
     let run = 0;
     for (let chunk = 0; runs > 0 && chunk < chunks && samples.length < count; chunk++) {
       while (run + 1 < runs && this.u32(stsc.body + 8 + 12 * (run + 1)) <= chunk + 1) run++;
-      let offset =
-        stco.type === 'co64'
-          ? this.u64(stco.body + 8 + 8 * chunk)
-          : this.u32(stco.body + 8 + 4 * chunk);
+      let offset = stco.type === "co64" ? this.u64(stco.body + 8 + 8 * chunk) : this.u32(stco.body + 8 + 4 * chunk);
       const perChunk = this.u32(stsc.body + 12 + 12 * run);
       for (let i = 0; i < perChunk && samples.length < count; i++) {
         const size = fixedSize || this.u32(stsz.body + 12 + 4 * samples.length);
@@ -194,21 +191,21 @@ class Container {
   }
 
   private *fragmentSamples(moov: Box): Generator<Uint8Array> {
-    const trex = this.path(moov, ['mvex', 'trex']);
+    const trex = this.path(moov, ["mvex", "trex"]);
     const trexSize = trex ? this.u32(trex.body + 16) : 0;
-    for (const moof of this.children(null, 'moof')) {
-      for (const traf of this.children(moof, 'traf')) {
+    for (const moof of this.children(null, "moof")) {
+      for (const traf of this.children(moof, "traf")) {
         yield* this.trackFragmentSamples(moof, traf, trexSize);
       }
     }
   }
 
   private *trackFragmentSamples(moof: Box, traf: Box, trexSize: number): Generator<Uint8Array> {
-    const tfhd = this.child(traf, 'tfhd');
+    const tfhd = this.child(traf, "tfhd");
     if (!tfhd) return;
     const defaults = this.fragmentDefaults(moof, tfhd, trexSize);
     let next = defaults.base;
-    for (const trun of this.children(traf, 'trun')) {
+    for (const trun of this.children(traf, "trun")) {
       const flags = this.u32(trun.body) & 0xffffff;
       const count = this.u32(trun.body + 4);
       if (flags & 0x01) next = defaults.base + this.view.getInt32(trun.body + 8);
@@ -225,8 +222,7 @@ class Container {
 
   private fragmentDefaults(moof: Box, tfhd: Box, trexSize: number) {
     const flags = this.u32(tfhd.body) & 0xffffff;
-    const sizeAt =
-      tfhd.body + 8 + (flags & 0x01 ? 8 : 0) + (flags & 0x02 ? 4 : 0) + (flags & 0x08 ? 4 : 0);
+    const sizeAt = tfhd.body + 8 + (flags & 0x01 ? 8 : 0) + (flags & 0x02 ? 4 : 0) + (flags & 0x08 ? 4 : 0);
     return {
       base: flags & 0x01 ? this.u64(tfhd.body + 8) : moof.start,
       size: flags & 0x10 ? this.u32(sizeAt) : trexSize,

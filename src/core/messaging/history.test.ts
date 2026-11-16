@@ -1,8 +1,8 @@
-import { HistoryTracker, type HistoryState } from './history';
+import { type HistoryState, HistoryTracker } from "./history";
 
-it('keeps overlapping backfills visible and retains a failure until retry', async () => {
+it("keeps overlapping backfills visible and retains a failure until retry", async () => {
   const tracker = new HistoryTracker();
-  let latest: HistoryState = { status: 'idle' };
+  let latest: HistoryState = { status: "idle" };
   tracker.subscribe((state) => {
     latest = state;
   });
@@ -11,17 +11,17 @@ it('keeps overlapping backfills visible and retains a failure until retry', asyn
     () =>
       new Promise<void>((resolve) => {
         finish = resolve;
-      })
+      }),
   );
   await expect(
     tracker.run(async () => {
-      throw new Error('node unavailable');
-    })
+      throw new Error("node unavailable");
+    }),
   ).rejects.toThrow();
-  expect(latest.status).toBe('fetching');
+  expect(latest.status).toBe("fetching");
   finish();
   await slow;
-  expect(latest).toEqual({ status: 'error', error: 'node unavailable' });
+  expect(latest).toEqual({ status: "error", error: "node unavailable" });
   await tracker.run(async () => {});
-  expect(latest).toEqual({ status: 'idle' });
+  expect(latest).toEqual({ status: "idle" });
 });

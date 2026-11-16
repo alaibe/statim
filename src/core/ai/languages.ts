@@ -4,44 +4,44 @@ export interface Language {
   readonly name: string;
 }
 
-const ENGLISH: Language = { tag: 'en', name: 'English' };
+const ENGLISH: Language = { tag: "en", name: "English" };
 
 /** The languages both on-device translators carry. */
 const LANGUAGES: readonly Language[] = [
-  { tag: 'ar', name: 'Arabic' },
-  { tag: 'zh-Hans', name: 'Chinese' },
-  { tag: 'zh-Hant', name: 'Traditional Chinese' },
-  { tag: 'nl', name: 'Dutch' },
+  { tag: "ar", name: "Arabic" },
+  { tag: "zh-Hans", name: "Chinese" },
+  { tag: "zh-Hant", name: "Traditional Chinese" },
+  { tag: "nl", name: "Dutch" },
   ENGLISH,
-  { tag: 'fr', name: 'French' },
-  { tag: 'de', name: 'German' },
-  { tag: 'hi', name: 'Hindi' },
-  { tag: 'id', name: 'Indonesian' },
-  { tag: 'it', name: 'Italian' },
-  { tag: 'ja', name: 'Japanese' },
-  { tag: 'ko', name: 'Korean' },
-  { tag: 'pl', name: 'Polish' },
-  { tag: 'pt', name: 'Portuguese' },
-  { tag: 'ru', name: 'Russian' },
-  { tag: 'es', name: 'Spanish' },
-  { tag: 'th', name: 'Thai' },
-  { tag: 'tr', name: 'Turkish' },
-  { tag: 'uk', name: 'Ukrainian' },
-  { tag: 'vi', name: 'Vietnamese' },
+  { tag: "fr", name: "French" },
+  { tag: "de", name: "German" },
+  { tag: "hi", name: "Hindi" },
+  { tag: "id", name: "Indonesian" },
+  { tag: "it", name: "Italian" },
+  { tag: "ja", name: "Japanese" },
+  { tag: "ko", name: "Korean" },
+  { tag: "pl", name: "Polish" },
+  { tag: "pt", name: "Portuguese" },
+  { tag: "ru", name: "Russian" },
+  { tag: "es", name: "Spanish" },
+  { tag: "th", name: "Thai" },
+  { tag: "tr", name: "Turkish" },
+  { tag: "uk", name: "Ukrainian" },
+  { tag: "vi", name: "Vietnamese" },
 ];
 
 const ALIASES: Record<string, string> = {
-  zh: 'zh-Hans',
-  cn: 'zh-Hans',
-  'zh-cn': 'zh-Hans',
-  'zh-tw': 'zh-Hant',
-  'pt-br': 'pt',
-  'pt-pt': 'pt',
-  'en-us': 'en',
-  'en-gb': 'en',
-  jp: 'ja',
-  kr: 'ko',
-  ua: 'uk',
+  zh: "zh-Hans",
+  cn: "zh-Hans",
+  "zh-cn": "zh-Hans",
+  "zh-tw": "zh-Hant",
+  "pt-br": "pt",
+  "pt-pt": "pt",
+  "en-us": "en",
+  "en-gb": "en",
+  jp: "ja",
+  kr: "ko",
+  ua: "uk",
 };
 
 export function findLanguage(word: string): Language | null {
@@ -56,6 +56,6 @@ export function findLanguage(word: string): Language | null {
 }
 
 export function deviceLanguage(locale = Intl.DateTimeFormat().resolvedOptions().locale): Language {
-  const [base, region] = locale.split('-');
+  const [base, region] = locale.split("-");
   return (region && findLanguage(`${base}-${region}`)) || findLanguage(base) || ENGLISH;
 }

@@ -1,6 +1,6 @@
-import type { ParticipantId } from './types';
+import type { ParticipantId } from "./types";
 
-const SCHEME = 'mention:';
+const SCHEME = "mention:";
 
 /**
  * A mention of someone by name rather than by address, as Markdown the app
@@ -8,7 +8,7 @@ const SCHEME = 'mention:';
  * it into its own form (a Telegram entity, a Matrix pill) and back.
  */
 export function mentionLink(name: string, id: ParticipantId): string {
-  return `[${name.replace(/[[\]\\]/g, '\\$&')}](${mentionHref(id)})`;
+  return `[${name.replace(/[[\]\\]/g, "\\$&")}](${mentionHref(id)})`;
 }
 
 export function mentionHref(id: ParticipantId): string {

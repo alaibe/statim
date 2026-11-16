@@ -10,7 +10,7 @@ export function parseCommand(input: string): ParsedCommand | null {
   const match = COMMAND_RE.exec(input.trim());
   if (!match) return null;
 
-  const rest = match[2] ?? '';
+  const rest = match[2] ?? "";
   return {
     name: match[1].toLowerCase(),
     rest,
@@ -20,7 +20,7 @@ export function parseCommand(input: string): ParsedCommand | null {
 
 export function tokenize(input: string): string[] {
   const tokens: string[] = [];
-  let current = '';
+  let current = "";
   let quote: '"' | "'" | null = null;
 
   for (let i = 0; i < input.length; i++) {
@@ -40,7 +40,7 @@ export function tokenize(input: string): string[] {
     if (/\s/.test(char)) {
       if (current) {
         tokens.push(current);
-        current = '';
+        current = "";
       }
       continue;
     }
@@ -53,11 +53,11 @@ export function tokenize(input: string): string[] {
 }
 
 export function isTypingCommandName(input: string): boolean {
-  return /^\/[a-zA-Z][\w-]*$/.test(input) || input === '/';
+  return /^\/[a-zA-Z][\w-]*$/.test(input) || input === "/";
 }
 
 export function commandNamePrefix(input: string): string {
-  if (!input.startsWith('/')) return '';
+  if (!input.startsWith("/")) return "";
   return input.slice(1).split(/\s/)[0].toLowerCase();
 }
 

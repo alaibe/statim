@@ -1,14 +1,7 @@
-import {
-  encodeFunctionData,
-  erc20Abi,
-  formatUnits,
-  parseUnits,
-  type Address,
-  type Hex,
-} from 'viem';
+import { type Address, encodeFunctionData, erc20Abi, formatUnits, type Hex, parseUnits } from "viem";
 
-import { publicClientFor } from './chains';
-import { listedToken, listedTokens, type ListedToken } from './token-list';
+import { publicClientFor } from "./chains";
+import { type ListedToken, listedToken, listedTokens } from "./token-list";
 
 export function supportsTokens(chainId: number): boolean {
   return listedTokens(chainId).length > 0;
@@ -33,7 +26,7 @@ const BATCH_BYTES = 24_000;
 async function balancesOf(
   chainId: number,
   address: Address,
-  tokens: ListedToken[]
+  tokens: ListedToken[],
 ): Promise<{ token: ListedToken; raw: bigint }[]> {
   const results = await publicClientFor(chainId).multicall({
     allowFailure: true,
@@ -41,22 +34,17 @@ async function balancesOf(
     contracts: tokens.map((token) => ({
       address: token.address,
       abi: erc20Abi,
-      functionName: 'balanceOf' as const,
+      functionName: "balanceOf" as const,
       args: [address] as const,
     })),
   });
 
   return results.flatMap((result, i) =>
-    result.status === 'success' && result.result > 0n
-      ? [{ token: tokens[i], raw: result.result }]
-      : []
+    result.status === "success" && result.result > 0n ? [{ token: tokens[i], raw: result.result }] : [],
   );
 }
 
-export async function describeToken(
-  chainId: number,
-  contract: Address
-): Promise<ListedToken | null> {
+export async function describeToken(chainId: number, contract: Address): Promise<ListedToken | null> {
   const listed = listedToken(chainId, contract);
   if (listed) return listed;
 
@@ -66,17 +54,17 @@ export async function describeToken(
   const [symbol, name, decimals] = await client.multicall({
     allowFailure: true,
     contracts: [
-      { ...token, functionName: 'symbol' },
-      { ...token, functionName: 'name' },
-      { ...token, functionName: 'decimals' },
+      { ...token, functionName: "symbol" },
+      { ...token, functionName: "name" },
+      { ...token, functionName: "decimals" },
     ],
   });
 
-  if (decimals.status !== 'success') return null;
+  if (decimals.status !== "success") return null;
   return {
     address: contract,
-    symbol: symbol.status === 'success' ? symbol.result : '???',
-    name: name.status === 'success' ? name.result : 'Unknown token',
+    symbol: symbol.status === "success" ? symbol.result : "???",
+    name: name.status === "success" ? name.result : "Unknown token",
     decimals: decimals.result,
   };
 }
@@ -102,9 +90,9 @@ export function clearTokenCache(): void {
 export async function fetchTokens(
   chainId: number,
   address: Address,
-  { extra = [] }: { extra?: ListedToken[] } = {}
+  { extra = [] }: { extra?: ListedToken[] } = {},
 ): Promise<TokenBalance[]> {
-  const cacheKey = `${chainId}:${address.toLowerCase()}:${extra.map((t) => t.address).join(',')}`;
+  const cacheKey = `${chainId}:${address.toLowerCase()}:${extra.map((t) => t.address).join(",")}`;
   const cached = recent.get(cacheKey);
   if (cached && Date.now() - cached.at < FRESH_MS) return cached.tokens;
 
@@ -131,17 +119,17 @@ export function encodeTransfer(to: Address, amount: bigint): Hex {
   return encodeFunctionData({
     abi: [
       {
-        name: 'transfer',
-        type: 'function',
-        stateMutability: 'nonpayable',
+        name: "transfer",
+        type: "function",
+        stateMutability: "nonpayable",
         inputs: [
-          { name: 'to', type: 'address' },
-          { name: 'amount', type: 'uint256' },
+          { name: "to", type: "address" },
+          { name: "amount", type: "uint256" },
         ],
-        outputs: [{ name: '', type: 'bool' }],
+        outputs: [{ name: "", type: "bool" }],
       },
     ],
-    functionName: 'transfer',
+    functionName: "transfer",
     args: [to, amount],
   });
 }

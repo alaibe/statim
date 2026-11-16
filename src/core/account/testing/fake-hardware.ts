@@ -1,8 +1,8 @@
-import { keccak256, parseSignature, serializeTransaction } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import type { Address, Hex, Signature, TransactionSerializable } from 'viem';
+import type { Address, Hex, Signature, TransactionSerializable } from "viem";
+import { keccak256, parseSignature, serializeTransaction } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 
-import { DeviceAnswer, deviceSignature, type HardwareSigner, type TypedData } from '../hardware';
+import { DeviceAnswer, deviceSignature, type HardwareSigner, type TypedData } from "../hardware";
 
 export class FakeHardwareSigner implements HardwareSigner {
   refuse = false;
@@ -29,7 +29,7 @@ export class FakeHardwareSigner implements HardwareSigner {
     this.calls.push(`signTransaction:${path}`);
     this.guard();
     const { r, s, yParity } = parseSignature(
-      await this.account().sign({ hash: keccak256(serializeTransaction(transaction)) })
+      await this.account().sign({ hash: keccak256(serializeTransaction(transaction)) }),
     );
     return deviceSignature(r, s, yParity ?? 0, transaction);
   }
@@ -41,6 +41,6 @@ export class FakeHardwareSigner implements HardwareSigner {
   }
 
   private guard(): void {
-    if (this.refuse) throw new DeviceAnswer('Rejected on the device');
+    if (this.refuse) throw new DeviceAnswer("Rejected on the device");
   }
 }

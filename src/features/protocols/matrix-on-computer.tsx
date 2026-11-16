@@ -1,12 +1,11 @@
-import { useState } from 'react';
+import { useState } from "react";
+import { errorMessage } from "@/core/errors";
+import { Button, Card, QrScanner, Text } from "@/design";
+import { DEVICE_NAME } from "@/protocols/matrix/descriptor";
+import { loginWithToken } from "@/protocols/matrix/token-login";
 
-import { Button, Card, QrScanner, Text } from '@/design';
-import { errorMessage } from '@/core/errors';
-import { DEVICE_NAME } from '@/protocols/matrix/descriptor';
-import { loginWithToken } from '@/protocols/matrix/token-login';
-
-import { adoptMatrixSession } from './matrix-session';
-import { readPhoneLink } from './phone-link';
+import { adoptMatrixSession } from "./matrix-session";
+import { readPhoneLink } from "./phone-link";
 
 export interface MatrixOnComputerProps {
   accountId: string;
@@ -20,14 +19,11 @@ export function MatrixOnComputer({ accountId, signedIn }: MatrixOnComputerProps)
 
   const signIn = async (data: string) => {
     const link = readPhoneLink(data);
-    if (!link) return 'That is not a code from Statim on your computer.';
+    if (!link) return "That is not a code from Statim on your computer.";
     try {
-      await adoptMatrixSession(
-        accountId,
-        await loginWithToken(link.homeserver, link.loginToken, DEVICE_NAME)
-      );
+      await adoptMatrixSession(accountId, await loginWithToken(link.homeserver, link.loginToken, DEVICE_NAME));
     } catch (e) {
-      return errorMessage(e, 'Could not sign in with that code');
+      return errorMessage(e, "Could not sign in with that code");
     }
     setScanning(false);
     return null;
@@ -38,8 +34,8 @@ export function MatrixOnComputer({ accountId, signedIn }: MatrixOnComputerProps)
     <Card className="gap-2">
       <Text variant="headline">Matrix on your computer</Text>
       <Text variant="caption">
-        If Statim runs Matrix on your computer, choose Connect your phone there, under Settings ›
-        Matrix, and scan the code it shows. Both devices need Tailscale.
+        If Statim runs Matrix on your computer, choose Connect your phone there, under Settings › Matrix, and scan the
+        code it shows. Both devices need Tailscale.
       </Text>
       <Button
         testID="matrix-scan-computer"

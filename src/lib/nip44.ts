@@ -1,15 +1,14 @@
-import { chacha20 } from '@noble/ciphers/chacha';
-import { secp256k1 } from '@noble/curves/secp256k1';
-import { expand as hkdfExpand, extract as hkdfExtract } from '@noble/hashes/hkdf';
-import { hmac } from '@noble/hashes/hmac';
-import { sha256 } from '@noble/hashes/sha2';
-import { concatBytes, utf8ToBytes } from '@noble/hashes/utils';
-
-import { randomBytes } from './random';
-import { base64ToBytes, bytesToBase64, timingSafeEqual } from './bytes';
+import { chacha20 } from "@noble/ciphers/chacha";
+import { secp256k1 } from "@noble/curves/secp256k1";
+import { expand as hkdfExpand, extract as hkdfExtract } from "@noble/hashes/hkdf";
+import { hmac } from "@noble/hashes/hmac";
+import { sha256 } from "@noble/hashes/sha2";
+import { concatBytes, utf8ToBytes } from "@noble/hashes/utils";
+import { base64ToBytes, bytesToBase64, timingSafeEqual } from "./bytes";
+import { randomBytes } from "./random";
 
 const VERSION = 2;
-const SALT = utf8ToBytes('nip44-v2');
+const SALT = utf8ToBytes("nip44-v2");
 const MIN_PLAINTEXT = 1;
 const MAX_PLAINTEXT = 65_535;
 
@@ -38,7 +37,7 @@ function messageKeys(convKey: Uint8Array, nonce: Uint8Array): MessageKeys {
 }
 
 export function calcPaddedLen(unpadded: number): number {
-  if (unpadded <= 0) throw new Error('Cannot pad an empty plaintext');
+  if (unpadded <= 0) throw new Error("Cannot pad an empty plaintext");
   if (unpadded <= 32) return 32;
 
   const nextPower = 1 << (Math.floor(Math.log2(unpadded - 1)) + 1);
@@ -59,27 +58,20 @@ function pad(plaintext: string): Uint8Array {
 }
 
 function unpad(padded: Uint8Array): string {
-  if (padded.length < 2) throw new Error('Malformed NIP-44 padding');
+  if (padded.length < 2) throw new Error("Malformed NIP-44 padding");
 
-  const length = new DataView(padded.buffer, padded.byteOffset, padded.byteLength).getUint16(
-    0,
-    false
-  );
+  const length = new DataView(padded.buffer, padded.byteOffset, padded.byteLength).getUint16(0, false);
   const content = padded.subarray(2, 2 + length);
 
-  if (
-    length < MIN_PLAINTEXT ||
-    content.length !== length ||
-    padded.length !== 2 + calcPaddedLen(length)
-  ) {
-    throw new Error('Malformed NIP-44 padding');
+  if (length < MIN_PLAINTEXT || content.length !== length || padded.length !== 2 + calcPaddedLen(length)) {
+    throw new Error("Malformed NIP-44 padding");
   }
   return new TextDecoder().decode(content);
 }
 
 export function encryptWithKey(plaintext: string, convKey: Uint8Array, nonce?: Uint8Array): string {
   const messageNonce = nonce ?? randomBytes(32);
-  if (messageNonce.length !== 32) throw new Error('A NIP-44 nonce is 32 bytes');
+  if (messageNonce.length !== 32) throw new Error("A NIP-44 nonce is 32 bytes");
 
   const keys = messageKeys(convKey, messageNonce);
   const ciphertext = chacha20(keys.chachaKey, keys.chachaNonce, pad(plaintext));
@@ -89,8 +81,8 @@ export function encryptWithKey(plaintext: string, convKey: Uint8Array, nonce?: U
 }
 
 export function decryptWithKey(payload: string, convKey: Uint8Array): string {
-  if (payload.startsWith('#')) {
-    throw new Error('Unsupported NIP-44 encoding');
+  if (payload.startsWith("#")) {
+    throw new Error("Unsupported NIP-44 encoding");
   }
 
   const bytes = base64ToBytes(payload);
@@ -107,7 +99,7 @@ export function decryptWithKey(payload: string, convKey: Uint8Array): string {
 
   const keys = messageKeys(convKey, nonce);
   const expected = hmac(sha256, keys.hmacKey, concatBytes(nonce, ciphertext));
-  if (!timingSafeEqual(expected, mac)) throw new Error('NIP-44 MAC mismatch');
+  if (!timingSafeEqual(expected, mac)) throw new Error("NIP-44 MAC mismatch");
 
   return unpad(chacha20(keys.chachaKey, keys.chachaNonce, ciphertext));
 }

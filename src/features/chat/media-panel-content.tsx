@@ -1,21 +1,20 @@
-import { Image } from 'expo-image';
-import { useEffect, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Image } from "expo-image";
+import { useEffect, useState } from "react";
+import { ScrollView, View } from "react-native";
+import { useAccountStore } from "@/core/account/account-store";
+import { errorMessage } from "@/core/errors";
+import type { ChatId, MessageContent } from "@/core/messaging/types";
+import { ErrorText, Loading, Pressable, SearchField, Text } from "@/design";
+import { useKeyedLoad } from "@/lib/use-keyed-load";
 
-import { ErrorText, Loading, Pressable, SearchField, Text } from '@/design';
-import { useAccountStore } from '@/core/account/account-store';
-import type { ChatId, MessageContent } from '@/core/messaging/types';
-import { errorMessage } from '@/core/errors';
-import { useKeyedLoad } from '@/lib/use-keyed-load';
+import { featuredGifs, type Gif, gifToContent, loadGifKey, searchGifs } from "./attachments/gifs";
+import { EmojiGrid } from "./emoji-grid";
+import { StickerGrid } from "./sticker-grid";
+import { useChatPermissions } from "./use-chat-permissions";
 
-import { featuredGifs, gifToContent, loadGifKey, searchGifs, type Gif } from './attachments/gifs';
-import { EmojiGrid } from './emoji-grid';
-import { StickerGrid } from './sticker-grid';
-import { useChatPermissions } from './use-chat-permissions';
+export type MediaTab = "emoji" | "stickers" | "gifs";
 
-export type MediaTab = 'emoji' | 'stickers' | 'gifs';
-
-const TAB_LABELS: Record<MediaTab, string> = { emoji: 'Emoji', stickers: 'Stickers', gifs: 'GIFs' };
+const TAB_LABELS: Record<MediaTab, string> = { emoji: "Emoji", stickers: "Stickers", gifs: "GIFs" };
 
 export interface MediaAnchor {
   x: number;
@@ -35,7 +34,7 @@ export interface MediaPanelProps {
   onSend(content: MessageContent): void;
 }
 
-type MediaPanelContentProps = Omit<MediaPanelProps, 'anchor' | 'onClose'> & {
+type MediaPanelContentProps = Omit<MediaPanelProps, "anchor" | "onClose"> & {
   onTab(tab: MediaTab): void;
   /** A popover has the keyboard already; a bottom sheet would raise it over itself. */
   autoFocusSearch?: boolean;
@@ -59,17 +58,12 @@ export function MediaPanelContent({
   return (
     <View className="flex-1" onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
       <View className="flex-1">
-        {width === 0 ? null : tab === 'emoji' ? (
+        {width === 0 ? null : tab === "emoji" ? (
           <EmojiGrid width={width} onEmoji={onEmoji} autoFocusSearch={autoFocusSearch} />
-        ) : tab === 'stickers' ? (
+        ) : tab === "stickers" ? (
           <StickerGrid chatId={chatId} width={width} onSend={onSend} />
         ) : (
-          <GifGrid
-            chatId={chatId}
-            width={width}
-            onSend={onSend}
-            autoFocusSearch={autoFocusSearch}
-          />
+          <GifGrid chatId={chatId} width={width} onSend={onSend} autoFocusSearch={autoFocusSearch} />
         )}
       </View>
 
@@ -82,13 +76,9 @@ export function MediaPanelContent({
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
               onPress={() => onTab(entry)}
-              className={
-                active ? 'rounded-pill bg-surface-sunken px-4 py-1.5' : 'rounded-pill px-4 py-1.5'
-              }>
-              <Text
-                className={
-                  active ? 'font-semibold text-content' : 'font-medium text-content-muted'
-                }>
+              className={active ? "rounded-pill bg-surface-sunken px-4 py-1.5" : "rounded-pill px-4 py-1.5"}
+            >
+              <Text className={active ? "font-semibold text-content" : "font-medium text-content-muted"}>
                 {TAB_LABELS[entry]}
               </Text>
             </Pressable>
@@ -115,7 +105,7 @@ function GifGrid({
 
   const gifKey = useKeyedLoad(accountId, loadGifKey);
   const key = gifKey.loading ? undefined : (gifKey.value ?? null);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState<Gif[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -131,7 +121,7 @@ function GifGrid({
         const found = trimmed ? await searchGifs(key, trimmed) : await featuredGifs(key);
         if (!cancelled) setResults(found);
       } catch (e) {
-        if (!cancelled) setError(errorMessage(e, 'Could not load GIFs'));
+        if (!cancelled) setError(errorMessage(e, "Could not load GIFs"));
       }
       if (!cancelled) setBusy(false);
     };
@@ -146,12 +136,12 @@ function GifGrid({
     return (
       <View className="gap-3 px-4 py-4">
         <Text variant="footnote">
-          GIF search needs a KLIPY key, which you add in Settings. There is no keyless GIF API, and
-          this app does not ship credentials of its own.
+          GIF search needs a KLIPY key, which you add in Settings. There is no keyless GIF API, and this app does not
+          ship credentials of its own.
         </Text>
         <Text variant="footnote">
-          You can still send GIFs without one: pick them from your photo library like any other
-          image and they send animated.
+          You can still send GIFs without one: pick them from your photo library like any other image and they send
+          animated.
         </Text>
       </View>
     );
@@ -164,7 +154,7 @@ function GifGrid({
     try {
       onSend(await gifToContent(accountId, gif, largeFiles));
     } catch (e) {
-      setError(errorMessage(e, 'Could not send that GIF'));
+      setError(errorMessage(e, "Could not send that GIF"));
     }
   };
 
@@ -186,13 +176,15 @@ function GifGrid({
         <ScrollView
           contentContainerClassName="flex-row flex-wrap px-3 pb-3"
           contentContainerStyle={{ gap: GIF_GAP }}
-          keyboardShouldPersistTaps="handled">
+          keyboardShouldPersistTaps="handled"
+        >
           {results.map((gif) => (
             <Pressable
               key={gif.id}
               accessibilityRole="button"
               accessibilityLabel={gif.description}
-              onPress={() => void send(gif)}>
+              onPress={() => void send(gif)}
+            >
               <Image
                 source={{ uri: gif.previewUrl }}
                 style={{ width: tile, height: tile, borderRadius: 8 }}

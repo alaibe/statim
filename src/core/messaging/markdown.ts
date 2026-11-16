@@ -1,8 +1,8 @@
-import { Marked, type Token, type Tokens } from 'marked';
+import { Marked, type Token, type Tokens } from "marked";
 
-import { mentionIdOf } from './mentions';
-import { replaceShortcodes, SHORTCODE } from './shortcodes';
-import type { ParticipantId } from './types';
+import { mentionIdOf } from "./mentions";
+import { replaceShortcodes, SHORTCODE } from "./shortcodes";
+import type { ParticipantId } from "./types";
 
 interface SpanStyle {
   readonly bold?: boolean;
@@ -20,17 +20,17 @@ export interface Span {
 }
 
 export type Block = (
-  | { readonly kind: 'paragraph'; readonly spans: readonly Span[] }
-  | { readonly kind: 'heading'; readonly spans: readonly Span[] }
-  | { readonly kind: 'code'; readonly text: string; readonly lang?: string }
-  | { readonly kind: 'quote'; readonly blocks: readonly Block[] }
+  | { readonly kind: "paragraph"; readonly spans: readonly Span[] }
+  | { readonly kind: "heading"; readonly spans: readonly Span[] }
+  | { readonly kind: "code"; readonly text: string; readonly lang?: string }
+  | { readonly kind: "quote"; readonly blocks: readonly Block[] }
   | {
-      readonly kind: 'list';
+      readonly kind: "list";
       readonly ordered: boolean;
       readonly start: number;
       readonly items: readonly (readonly Block[])[];
     }
-  | { readonly kind: 'rule' }
+  | { readonly kind: "rule" }
 ) & {
   /** A blank line separated it from the block before. */
   readonly spaced?: boolean;
@@ -65,14 +65,14 @@ export function autolinkRanges(text: string): [start: number, end: number][] {
   return [...text.matchAll(AUTOLINK)].map((match) => [match.index, match.index + match[0].length]);
 }
 
-const hasShortcode = (text: string) => text.includes(':') && new RegExp(SHORTCODE).test(text);
+const hasShortcode = (text: string) => text.includes(":") && new RegExp(SHORTCODE).test(text);
 
 const parsed = new Map<string, readonly Block[]>();
 const PARSED_LIMIT = 500;
 
 export function parseMarkdown(text: string): readonly Block[] {
   if (!hasMarkup(text)) {
-    return [{ kind: 'paragraph', spans: [{ text: replaceShortcodes(text), style: {} }] }];
+    return [{ kind: "paragraph", spans: [{ text: replaceShortcodes(text), style: {} }] }];
   }
   let result = parsed.get(text);
   if (!result) {
@@ -87,7 +87,7 @@ function blocks(tokens: Token[]): Block[] {
   const out: Block[] = [];
   let spaced = false;
   for (const token of tokens) {
-    if (token.type === 'space') {
+    if (token.type === "space") {
       spaced = out.length > 0;
       continue;
     }
@@ -95,7 +95,7 @@ function blocks(tokens: Token[]): Block[] {
     if (!block) continue;
     const last = out.at(-1);
     // Bridges send one quote per paragraph; a reader sees a single quote.
-    if (block.kind === 'quote' && last?.kind === 'quote') {
+    if (block.kind === "quote" && last?.kind === "quote") {
       const [first, ...rest] = block.blocks;
       const joined = first ? [{ ...first, spaced }, ...rest] : [];
       out[out.length - 1] = { ...last, blocks: [...last.blocks, ...joined] };
@@ -110,32 +110,32 @@ function blocks(tokens: Token[]): Block[] {
 
 function toBlock(token: Token): Block | null {
   switch (token.type) {
-    case 'paragraph':
-    case 'text':
-      return { kind: 'paragraph', spans: inline(token.tokens ?? [token]) };
-    case 'heading':
-      return { kind: 'heading', spans: inline((token as Tokens.Heading).tokens) };
-    case 'code': {
+    case "paragraph":
+    case "text":
+      return { kind: "paragraph", spans: inline(token.tokens ?? [token]) };
+    case "heading":
+      return { kind: "heading", spans: inline((token as Tokens.Heading).tokens) };
+    case "code": {
       const code = token as Tokens.Code;
-      return { kind: 'code', text: code.text, lang: code.lang || undefined };
+      return { kind: "code", text: code.text, lang: code.lang || undefined };
     }
-    case 'blockquote':
-      return { kind: 'quote', blocks: blocks((token as Tokens.Blockquote).tokens) };
-    case 'list': {
+    case "blockquote":
+      return { kind: "quote", blocks: blocks((token as Tokens.Blockquote).tokens) };
+    case "list": {
       const list = token as Tokens.List;
       return {
-        kind: 'list',
+        kind: "list",
         ordered: list.ordered,
-        start: typeof list.start === 'number' ? list.start : 1,
+        start: typeof list.start === "number" ? list.start : 1,
         items: list.items.map((item) => blocks(item.tokens)),
       };
     }
-    case 'hr':
-      return { kind: 'rule' };
-    case 'def':
+    case "hr":
+      return { kind: "rule" };
+    case "def":
       return null;
     default:
-      return { kind: 'paragraph', spans: [{ text: token.raw.replace(/\n+$/, ''), style: {} }] };
+      return { kind: "paragraph", spans: [{ text: token.raw.replace(/\n+$/, ""), style: {} }] };
   }
 }
 
@@ -151,41 +151,39 @@ function inline(tokens: Token[], style: SpanStyle = {}, href?: string): Span[] {
 
   for (const token of tokens) {
     switch (token.type) {
-      case 'strong':
+      case "strong":
         spans.push(...inline((token as Tokens.Strong).tokens, { ...style, bold: true }, href));
         break;
-      case 'em':
+      case "em":
         spans.push(...inline((token as Tokens.Em).tokens, { ...style, italic: true }, href));
         break;
-      case 'del':
+      case "del":
         spans.push(...inline((token as Tokens.Del).tokens, { ...style, strike: true }, href));
         break;
-      case 'codespan':
+      case "codespan":
         push((token as Tokens.Codespan).text, { ...style, code: true });
         break;
-      case 'br':
-        push('\n');
+      case "br":
+        push("\n");
         break;
-      case 'link': {
+      case "link": {
         const link = token as Tokens.Link;
         const mention = mentionIdOf(link.href);
-        if (mention)
-          spans.push(...inline(link.tokens, style).map((span) => ({ ...span, mention })));
+        if (mention) spans.push(...inline(link.tokens, style).map((span) => ({ ...span, mention })));
         else if (link.text === link.href || link.href === `mailto:${link.text}`) push(link.text);
         else spans.push(...inline(link.tokens, style, link.href));
         break;
       }
-      case 'image': {
+      case "image": {
         const image = token as Tokens.Image;
         push(image.text || image.href, style, image.href);
         break;
       }
-      case 'text':
-        if ('tokens' in token && token.tokens?.length)
-          spans.push(...inline(token.tokens, style, href));
+      case "text":
+        if ("tokens" in token && token.tokens?.length) spans.push(...inline(token.tokens, style, href));
         else push(replaceShortcodes((token as Tokens.Text).text));
         break;
-      case 'escape':
+      case "escape":
         push((token as Tokens.Escape).text);
         break;
       default:
@@ -196,16 +194,11 @@ function inline(tokens: Token[], style: SpanStyle = {}, href?: string): Span[] {
 }
 
 function sameStyle(a: SpanStyle, b: SpanStyle): boolean {
-  return (
-    !!a.bold === !!b.bold &&
-    !!a.italic === !!b.italic &&
-    !!a.strike === !!b.strike &&
-    !!a.code === !!b.code
-  );
+  return !!a.bold === !!b.bold && !!a.italic === !!b.italic && !!a.strike === !!b.strike && !!a.code === !!b.code;
 }
 
-export function listMarker(list: Extract<Block, { kind: 'list' }>, index: number): string {
-  return list.ordered ? `${list.start + index}.` : '•';
+export function listMarker(list: Extract<Block, { kind: "list" }>, index: number): string {
+  return list.ordered ? `${list.start + index}.` : "•";
 }
 
 /** The text a reader sees, with the markup gone: for previews, copying and finding links. */
@@ -215,32 +208,30 @@ export function plainText(text: string): string {
 }
 
 function blocksText(list: readonly Block[]): string {
-  return list
-    .map((block, i) => (i > 0 ? (block.spaced ? '\n\n' : '\n') : '') + blockText(block))
-    .join('');
+  return list.map((block, i) => (i > 0 ? (block.spaced ? "\n\n" : "\n") : "") + blockText(block)).join("");
 }
 
 function blockText(block: Block): string {
   switch (block.kind) {
-    case 'paragraph':
-    case 'heading':
-      return block.spans.map((span) => span.text).join('');
-    case 'code':
+    case "paragraph":
+    case "heading":
+      return block.spans.map((span) => span.text).join("");
+    case "code":
       return block.text;
-    case 'quote':
+    case "quote":
       return blocksText(block.blocks);
-    case 'list':
-      return block.items.map((item, i) => `${listMarker(block, i)} ${blocksText(item)}`).join('\n');
-    case 'rule':
-      return '———';
+    case "list":
+      return block.items.map((item, i) => `${listMarker(block, i)} ${blocksText(item)}`).join("\n");
+    case "rule":
+      return "———";
   }
 }
 
 function* spansOf(list: readonly Block[]): Generator<Span> {
   for (const block of list) {
-    if (block.kind === 'paragraph' || block.kind === 'heading') yield* block.spans;
-    else if (block.kind === 'quote') yield* spansOf(block.blocks);
-    else if (block.kind === 'list') for (const item of block.items) yield* spansOf(item);
+    if (block.kind === "paragraph" || block.kind === "heading") yield* block.spans;
+    else if (block.kind === "quote") yield* spansOf(block.blocks);
+    else if (block.kind === "list") for (const item of block.items) yield* spansOf(item);
   }
 }
 
@@ -261,19 +252,19 @@ export function markdownHtml(text: string, linkTo?: (href: string) => string): s
   if (!hasMarkup(text)) return null;
   const walkTokens = linkTo
     ? (token: Token) => {
-        if (token.type === 'link') (token as Tokens.Link).href = linkTo(token.href);
+        if (token.type === "link") (token as Tokens.Link).href = linkTo(token.href);
       }
     : undefined;
   const html = (marked.parse(text, { async: false, walkTokens }) as string).trim();
-  const plain = `<p>${escapeHtml(text).replace(/\n/g, '<br>')}</p>`;
+  const plain = `<p>${escapeHtml(text).replace(/\n/g, "<br>")}</p>`;
   return html === plain ? null : html;
 }
 
 function escapeHtml(text: string): string {
   return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }

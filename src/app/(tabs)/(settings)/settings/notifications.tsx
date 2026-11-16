@@ -1,8 +1,5 @@
-import {
-  NotificationSettings,
-  notificationsIntro,
-} from '@/features/settings/notification-settings';
-import { SettingsScreen } from '@/features/settings/settings-screen';
+import { NotificationSettings, notificationsIntro } from "@/features/settings/notification-settings";
+import { SettingsScreen } from "@/features/settings/settings-screen";
 
 export default function NotificationsScreen() {
   return (

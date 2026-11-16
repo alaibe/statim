@@ -1,12 +1,12 @@
-import { bytesToNumberBE } from '@noble/curves/utils';
-import { utf8ToBytes } from '@noble/hashes/utils';
+import { bytesToNumberBE } from "@noble/curves/utils";
+import { utf8ToBytes } from "@noble/hashes/utils";
 
-import { toHex } from '@/lib/bytes';
+import { toHex } from "@/lib/bytes";
 
-import { keccak256 } from './crypto';
+import { keccak256 } from "./crypto";
 
 /** Cluster 16, shard 32: where status-go puts every DM and group message. */
-export const STATUS_PUBSUB_TOPIC = '/waku/2/rs/16/32';
+export const STATUS_PUBSUB_TOPIC = "/waku/2/rs/16/32";
 
 const PARTITIONS = 5000n;
 

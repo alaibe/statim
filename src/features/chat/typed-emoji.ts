@@ -1,45 +1,45 @@
-import { emojiNamed } from '@/core/messaging/shortcodes';
+import { emojiNamed } from "@/core/messaging/shortcodes";
 
 const EMOTICONS: Record<string, string> = {
-  ':)': '🙂',
-  ':-)': '🙂',
-  ':D': '😄',
-  ':-D': '😄',
-  xD: '😆',
-  XD: '😆',
-  ":')": '😂',
-  ';)': '😉',
-  ';-)': '😉',
-  'O:)': '😇',
-  'o:)': '😇',
-  ':*': '😘',
-  ':-*': '😘',
-  ':P': '😛',
-  ':p': '😛',
-  ':-P': '😛',
-  ':-p': '😛',
-  ';P': '😜',
-  ';p': '😜',
-  ':|': '😐',
-  ':/': '😕',
-  ':-/': '😕',
-  ':(': '🙁',
-  ':-(': '🙁',
-  ":'(": '😢',
-  ':O': '😮',
-  ':o': '😮',
-  ':-O': '😮',
-  ':-o': '😮',
-  '>:(': '😠',
-  '<3': '❤️',
-  '</3': '💔',
+  ":)": "🙂",
+  ":-)": "🙂",
+  ":D": "😄",
+  ":-D": "😄",
+  xD: "😆",
+  XD: "😆",
+  ":')": "😂",
+  ";)": "😉",
+  ";-)": "😉",
+  "O:)": "😇",
+  "o:)": "😇",
+  ":*": "😘",
+  ":-*": "😘",
+  ":P": "😛",
+  ":p": "😛",
+  ":-P": "😛",
+  ":-p": "😛",
+  ";P": "😜",
+  ";p": "😜",
+  ":|": "😐",
+  ":/": "😕",
+  ":-/": "😕",
+  ":(": "🙁",
+  ":-(": "🙁",
+  ":'(": "😢",
+  ":O": "😮",
+  ":o": "😮",
+  ":-O": "😮",
+  ":-o": "😮",
+  ">:(": "😠",
+  "<3": "❤️",
+  "</3": "💔",
 };
 
 const EMOTICON = new RegExp(
   `(?:^|\\s)(${Object.keys(EMOTICONS)
     .sort((a, b) => b.length - a.length)
-    .map((emoticon) => emoticon.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&'))
-    .join('|')})$`
+    .map((emoticon) => emoticon.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&"))
+    .join("|")})$`,
 );
 const SHORTCODE = /(?:^|[\s([{"'])(:[a-z0-9_+-]+:)$/;
 
@@ -60,7 +60,7 @@ export function typedEmoji(before: string): TypedEmoji | null {
 }
 
 function closed(before: string): TypedEmoji | null {
-  if (before.endsWith(':')) {
+  if (before.endsWith(":")) {
     const code = SHORTCODE.exec(before)?.[1];
     const emoji = code && emojiNamed(code.slice(1, -1));
     return emoji ? { from: before.length - code.length, to: before.length, emoji } : null;
@@ -68,13 +68,11 @@ function closed(before: string): TypedEmoji | null {
   if (!/\s$/.test(before)) return null;
   const text = before.slice(0, -1);
   const emoticon = EMOTICON.exec(text)?.[1];
-  return emoticon
-    ? { from: text.length - emoticon.length, to: text.length, emoji: EMOTICONS[emoticon] }
-    : null;
+  return emoticon ? { from: text.length - emoticon.length, to: text.length, emoji: EMOTICONS[emoticon] } : null;
 }
 
 /** Commands take their arguments as typed. */
-export const isCommand = (text: string) => text.trimStart().startsWith('/');
+export const isCommand = (text: string) => text.trimStart().startsWith("/");
 
 /** `next` with the emoji its one newly typed character closed, for a field that only reports its whole text. */
 export function withTypedEmoji(previous: string, next: string): string {

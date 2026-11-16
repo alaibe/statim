@@ -1,5 +1,5 @@
-import { TdRequestError, type TdApi, type TdError, type TdObject } from './api';
-import type { TdUpdate } from './types';
+import { type TdApi, type TdError, type TdObject, TdRequestError } from "./api";
+import type { TdUpdate } from "./types";
 
 /** The calls a platform makes into `td_json_client`; everything above them is shared. */
 export interface TdDriver {
@@ -15,7 +15,7 @@ interface Pending {
   reject(error: Error): void;
 }
 
-const EXTRA_PREFIX = 'so-';
+const EXTRA_PREFIX = "so-";
 
 let active: TdJsonClient | null = null;
 
@@ -31,7 +31,7 @@ export class TdJsonClient implements TdApi {
   private nextId = 1;
   private readonly pending = new Map<string, Pending>();
   private readonly listeners = new Set<(update: TdObject) => void>();
-  private state: 'open' | 'closing' | 'closed' = 'open';
+  private state: "open" | "closing" | "closed" = "open";
   private resolveClosed: (() => void) | null = null;
   private readonly closed = new Promise<void>((resolve) => {
     this.resolveClosed = resolve;
@@ -54,11 +54,11 @@ export class TdJsonClient implements TdApi {
   }
 
   send<T extends TdObject = TdObject>(request: TdObject): Promise<T> {
-    if (this.state !== 'open') return Promise.reject(new Error('TDLib client is closed'));
+    if (this.state !== "open") return Promise.reject(new Error("TDLib client is closed"));
     const extra = `${EXTRA_PREFIX}${this.nextId++}`;
     return new Promise<T>((resolve, reject) => {
-      this.pending.set(extra, { resolve: resolve as Pending['resolve'], reject });
-      this.driver.send({ ...request, '@extra': extra }).catch((error: unknown) => {
+      this.pending.set(extra, { resolve: resolve as Pending["resolve"], reject });
+      this.driver.send({ ...request, "@extra": extra }).catch((error: unknown) => {
         this.pending.delete(extra);
         reject(error instanceof Error ? error : new Error(String(error)));
       });
@@ -66,23 +66,23 @@ export class TdJsonClient implements TdApi {
   }
 
   close(): Promise<void> {
-    return this.shutDown('close');
+    return this.shutDown("close");
   }
 
   destroy(): Promise<void> {
-    return this.shutDown('destroy');
+    return this.shutDown("destroy");
   }
 
-  private shutDown(how: 'close' | 'destroy'): Promise<void> {
-    if (this.state === 'open') {
-      this.state = 'closing';
-      this.driver.send({ '@type': how }).catch(() => this.finishClose());
+  private shutDown(how: "close" | "destroy"): Promise<void> {
+    if (this.state === "open") {
+      this.state = "closing";
+      this.driver.send({ "@type": how }).catch(() => this.finishClose());
     }
     return this.closed;
   }
 
   private async receiveLoop(): Promise<void> {
-    while (this.state !== 'closed') {
+    while (this.state !== "closed") {
       let responses: TdObject[];
       try {
         responses = await this.driver.receive();
@@ -105,24 +105,24 @@ export class TdJsonClient implements TdApi {
    * loop is the sole caller, so no receive is in flight on the freed client.
    */
   private async finishClose(): Promise<void> {
-    if (this.state === 'closed') return;
-    this.state = 'closed';
+    if (this.state === "closed") return;
+    this.state = "closed";
     if (active === this) active = null;
     try {
       await this.driver.destroy();
     } catch {}
-    for (const { reject } of this.pending.values()) reject(new Error('TDLib client is closed'));
+    for (const { reject } of this.pending.values()) reject(new Error("TDLib client is closed"));
     this.pending.clear();
     this.resolveClosed?.();
   }
 
   private dispatch(response: TdObject): void {
-    const extra = response['@extra'];
-    if (typeof extra === 'string') {
+    const extra = response["@extra"];
+    if (typeof extra === "string") {
       const pending = this.pending.get(extra);
       this.pending.delete(extra);
       if (!pending) return;
-      if (response['@type'] === 'error') {
+      if (response["@type"] === "error") {
         const { code, message } = response as TdError;
         pending.reject(new TdRequestError(code, message));
       } else {
@@ -130,7 +130,7 @@ export class TdJsonClient implements TdApi {
       }
       return;
     }
-    if (response['@type'].startsWith('update')) {
+    if (response["@type"].startsWith("update")) {
       for (const listener of this.listeners) listener(response);
     }
   }
@@ -139,7 +139,6 @@ export class TdJsonClient implements TdApi {
 function isClosedState(raw: TdObject): boolean {
   const update = raw as TdUpdate;
   return (
-    update['@type'] === 'updateAuthorizationState' &&
-    update.authorization_state['@type'] === 'authorizationStateClosed'
+    update["@type"] === "updateAuthorizationState" && update.authorization_state["@type"] === "authorizationStateClosed"
   );
 }

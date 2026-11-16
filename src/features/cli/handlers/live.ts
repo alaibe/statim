@@ -1,17 +1,17 @@
-import { useChatStore, type ChatState } from '@/core/messaging/chat-store';
-import { protocolOf } from '@/core/messaging/namespace';
-import { showsInPreview } from '@/core/messaging/message-rules';
-import type { ChatMessage } from '@/core/messaging/types';
+import { type ChatState, useChatStore } from "@/core/messaging/chat-store";
+import { showsInPreview } from "@/core/messaging/message-rules";
+import { protocolOf } from "@/core/messaging/namespace";
+import type { ChatMessage } from "@/core/messaging/types";
 
 import {
+  type CliHandler,
   chatLabels,
   displayNames,
   findChat,
   messageJson,
   messageLine,
   whenAccountReady,
-  type CliHandler,
-} from '../context';
+} from "../context";
 
 /** What an update brought: the chats whose lists or latest message changed, nothing else. */
 function changed(state: ChatState, previous: ChatState): ChatMessage[] {
@@ -37,15 +37,14 @@ const HISTORY_SLACK_MS = 60_000;
 export const liveHandlers = {
   async watch({ flags }, { io }) {
     await whenAccountReady();
-    const only = typeof flags.in === 'string' ? (await findChat(flags.in)).id : undefined;
+    const only = typeof flags.in === "string" ? (await findChat(flags.in)).id : undefined;
     const since = Date.now() - HISTORY_SLACK_MS;
     const seen = new Set<string>();
     let printing = Promise.resolve();
 
     const unsubscribe = useChatStore.subscribe((state, previous) => {
       const fresh = changed(state, previous).filter((m) => {
-        if (seen.has(m.id) || m.preview || m.id.startsWith('pending:') || m.status === 'sending')
-          return false;
+        if (seen.has(m.id) || m.preview || m.id.startsWith("pending:") || m.status === "sending") return false;
         if (m.sentAt < since || !showsInPreview(m) || (only && m.chatId !== only)) return false;
         seen.add(m.id);
         return true;
@@ -60,8 +59,8 @@ export const liveHandlers = {
           ...protocols.map((p) =>
             displayNames(
               p,
-              fresh.filter((m) => protocolOf(m.chatId) === p).map((m) => m.senderId)
-            )
+              fresh.filter((m) => protocolOf(m.chatId) === p).map((m) => m.senderId),
+            ),
           ),
         ]);
         const senders = Object.assign({}, ...names);
@@ -70,16 +69,13 @@ export const liveHandlers = {
           io.print(
             io.json
               ? JSON.stringify({ ...messageJson(m, senders), chatTitle: title })
-              : `${title ?? m.chatId} › ${messageLine(m, senders)}`
+              : `${title ?? m.chatId} › ${messageLine(m, senders)}`,
           );
         }
       });
     });
 
-    if (!io.json)
-      io.warn(
-        only ? `Watching ${only}. Ctrl-C to stop.` : 'Watching for new messages. Ctrl-C to stop.'
-      );
+    if (!io.json) io.warn(only ? `Watching ${only}. Ctrl-C to stop.` : "Watching for new messages. Ctrl-C to stop.");
     await io.closed;
     unsubscribe();
   },

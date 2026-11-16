@@ -1,6 +1,6 @@
-import { requireOptionalNativeModule } from 'expo-modules-core';
+import { requireOptionalNativeModule } from "expo-modules-core";
 
-export type DeviceModelState = 'ready' | 'off' | 'downloading' | 'unsupported';
+export type DeviceModelState = "ready" | "off" | "downloading" | "unsupported";
 
 interface OnDeviceAiModule {
   modelState(): Promise<DeviceModelState>;
@@ -9,4 +9,4 @@ interface OnDeviceAiModule {
   translate(text: string, target: string): Promise<string>;
 }
 
-export default requireOptionalNativeModule<OnDeviceAiModule>('OnDeviceAi');
+export default requireOptionalNativeModule<OnDeviceAiModule>("OnDeviceAi");

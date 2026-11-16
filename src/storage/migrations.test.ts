@@ -1,10 +1,10 @@
-import { readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
-import { readMigrationFiles } from 'drizzle-orm/migrator';
+import { readMigrationFiles } from "drizzle-orm/migrator";
 
-const folder = join(__dirname, 'migrations');
-const bundle = join(folder, 'index.ts');
+const folder = join(__dirname, "migrations");
+const bundle = join(folder, "index.ts");
 
 /** What `migrations/index.ts` must hold: drizzle-kit's SQL files as Drizzle's own migrator reads them. */
 function render(): string {
@@ -14,6 +14,6 @@ function render(): string {
 
 if (process.env.DB_MIGRATIONS_WRITE) writeFileSync(bundle, render());
 
-it('bundles the SQL files as they are; `npm run db:bundle` rewrites it', () => {
-  expect(readFileSync(bundle, 'utf8')).toBe(render());
+it("bundles the SQL files as they are; `npm run db:bundle` rewrites it", () => {
+  expect(readFileSync(bundle, "utf8")).toBe(render());
 });

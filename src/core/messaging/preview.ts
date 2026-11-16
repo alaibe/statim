@@ -1,85 +1,75 @@
-import { plainText } from './markdown';
-import type { CallContent, ChatMessage, MessageContent } from './types';
+import { plainText } from "./markdown";
+import type { CallContent, ChatMessage, MessageContent } from "./types";
 
 export const unsupported = (typeId: string, fallback: string): MessageContent => ({
-  kind: 'unsupported',
+  kind: "unsupported",
   typeId,
   fallback,
 });
 
-const FILE_PLACEHOLDERS = new Set([
-  'photo',
-  'image',
-  'document',
-  'file',
-  'voice',
-  'video',
-  'animation',
-  'sticker',
-]);
+const FILE_PLACEHOLDERS = new Set(["photo", "image", "document", "file", "voice", "video", "animation", "sticker"]);
 
 export const awaitsFile = (content: MessageContent): boolean =>
-  content.kind === 'unsupported' && FILE_PLACEHOLDERS.has(content.typeId);
+  content.kind === "unsupported" && FILE_PLACEHOLDERS.has(content.typeId);
 
-export const labelled = (label: string, caption?: string) =>
-  caption ? `${label} · ${caption}` : label;
+export const labelled = (label: string, caption?: string) => (caption ? `${label} · ${caption}` : label);
 
-export const stickerLabel = (emoji?: string) => (emoji ? `${emoji} Sticker` : 'Sticker');
+export const stickerLabel = (emoji?: string) => (emoji ? `${emoji} Sticker` : "Sticker");
 
 export function callLabel({ outcome, video, durationMs }: CallContent): string {
-  const call = video ? 'video call' : 'call';
-  const Call = video ? 'Video call' : 'Call';
+  const call = video ? "video call" : "call";
+  const Call = video ? "Video call" : "Call";
   switch (outcome) {
-    case 'started':
+    case "started":
       return `${Call} started`;
-    case 'ended':
-      return `${Call} ended${durationMs ? ` · ${formatDuration(durationMs)}` : ''}`;
-    case 'missed':
+    case "ended":
+      return `${Call} ended${durationMs ? ` · ${formatDuration(durationMs)}` : ""}`;
+    case "missed":
       return `Missed ${call}`;
-    case 'cancelled':
+    case "cancelled":
       return `Cancelled ${call}`;
-    case 'declined':
+    case "declined":
       return `Declined ${call}`;
   }
 }
 
 export function contentPreview(content: MessageContent): string {
   switch (content.kind) {
-    case 'text':
-      return plainText(content.text).replace(/\s+/g, ' ').trim();
-    case 'system':
+    case "text":
+      return plainText(content.text).replace(/\s+/g, " ").trim();
+    case "system":
       return content.text;
-    case 'widget':
+    case "widget":
       return content.fallback;
-    case 'custom':
-      return content.fallback ?? 'Rich message';
-    case 'unsupported':
+    case "custom":
+      return content.fallback ?? "Rich message";
+    case "unsupported":
       return content.fallback;
 
-    case 'image':
-      if (content.mimeType === 'image/gif') return content.caption?.trim() || 'GIF';
-      return content.caption?.trim() ? `\u{1F4F7} ${content.caption.trim()}` : '\u{1F4F7} Photo';
-    case 'file':
+    case "image":
+      if (content.mimeType === "image/gif") return content.caption?.trim() || "GIF";
+      return content.caption?.trim() ? `\u{1F4F7} ${content.caption.trim()}` : "\u{1F4F7} Photo";
+    case "file":
       return `\u{1F4CE} ${content.name}`;
-    case 'voice':
+    case "voice":
       return `\u{1F3A4} Voice message (${formatDuration(content.durationMs)})`;
-    case 'video':
-      if (content.gif) return content.caption?.trim() || 'GIF';
-      return content.caption?.trim() ? `\u{1F3AC} ${content.caption.trim()}` : '\u{1F3AC} Video';
-    case 'sticker':
+    case "video":
+      if (content.gif) return content.caption?.trim() || "GIF";
+      return content.caption?.trim() ? `\u{1F3AC} ${content.caption.trim()}` : "\u{1F3AC} Video";
+    case "sticker":
       return stickerLabel(content.emoji);
-    case 'poll':
+    case "poll":
       return `\u{1F4CA} ${content.question}`;
-    case 'call':
-      return `${content.video ? '\u{1F4F9}' : '\u{1F4DE}'} ${callLabel(content)}`;
+    case "call":
+      return `${content.video ? "\u{1F4F9}" : "\u{1F4DE}"} ${callLabel(content)}`;
 
-    case 'reaction':
-      return '';
+    case "reaction":
+      return "";
   }
 }
 
 export function nameList<T>(items: readonly T[], nameOf: (item: T) => string): string {
-  const shown = items.slice(0, 2).map(nameOf).join(', ');
+  const shown = items.slice(0, 2).map(nameOf).join(", ");
   return items.length > 2 ? `${shown} +${items.length - 2}` : shown;
 }
 
@@ -87,22 +77,22 @@ export function formatDuration(ms: number): string {
   const total = Math.max(0, Math.round(ms / 1000));
   const minutes = Math.floor(total / 60);
   const seconds = total % 60;
-  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 export function messagePreview(message: ChatMessage | undefined): string {
-  if (!message) return 'No messages yet';
+  if (!message) return "No messages yet";
   const preview = contentPreview(message.content);
-  return preview || 'No messages yet';
+  return preview || "No messages yet";
 }
 
 const FORMATS = {
-  time: { hour: 'numeric', minute: '2-digit' },
-  shortWeekday: { weekday: 'short' },
-  shortDay: { month: 'short', day: 'numeric' },
-  weekday: { weekday: 'long' },
-  day: { month: 'long', day: 'numeric' },
-  dayOfYear: { month: 'long', day: 'numeric', year: 'numeric' },
+  time: { hour: "numeric", minute: "2-digit" },
+  shortWeekday: { weekday: "short" },
+  shortDay: { month: "short", day: "numeric" },
+  weekday: { weekday: "long" },
+  day: { month: "long", day: "numeric" },
+  dayOfYear: { month: "long", day: "numeric", year: "numeric" },
 } satisfies Record<string, Intl.DateTimeFormatOptions>;
 
 const formatters = new Map<keyof typeof FORMATS, Intl.DateTimeFormat>();
@@ -126,9 +116,9 @@ export function formatTimestamp(ms: number, now = Date.now()): string {
   const date = new Date(ms);
   const elapsed = now - ms;
 
-  if (new Date(now).toDateString() === date.toDateString()) return format(ms, 'time');
-  if (elapsed < 7 * 24 * 60 * 60 * 1000) return format(ms, 'shortWeekday');
-  return format(ms, 'shortDay');
+  if (new Date(now).toDateString() === date.toDateString()) return format(ms, "time");
+  if (elapsed < 7 * 24 * 60 * 60 * 1000) return format(ms, "shortWeekday");
+  return format(ms, "shortDay");
 }
 
 export function formatDayLabel(ms: number, now = Date.now()): string {
@@ -136,11 +126,11 @@ export function formatDayLabel(ms: number, now = Date.now()): string {
   const today = new Date(now);
   const yesterday = new Date(now - 24 * 60 * 60 * 1000);
 
-  if (date.toDateString() === today.toDateString()) return 'Today';
-  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  if (date.toDateString() === today.toDateString()) return "Today";
+  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
 
-  if (now - ms < 7 * 24 * 60 * 60 * 1000) return format(ms, 'weekday');
-  return format(ms, date.getFullYear() === today.getFullYear() ? 'day' : 'dayOfYear');
+  if (now - ms < 7 * 24 * 60 * 60 * 1000) return format(ms, "weekday");
+  return format(ms, date.getFullYear() === today.getFullYear() ? "day" : "dayOfYear");
 }
 
 export function isNewDay(previousMs: number | undefined, ms: number): boolean {

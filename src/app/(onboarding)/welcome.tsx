@@ -1,26 +1,17 @@
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
-
-import { Button, Enter, Glow, Screen, stagger, Text, useThemeColors } from '@/design';
-import { hardwareVendors } from '@/core/account/hardware';
-import { ConnectHardware } from '@/features/account/connect-hardware';
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { View } from "react-native";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
+import { hardwareVendors } from "@/core/account/hardware";
+import { Button, Enter, Glow, Screen, stagger, Text, useThemeColors } from "@/design";
+import { ConnectHardware } from "@/features/account/connect-hardware";
 
 function AuroraBackdrop() {
   const colors = useThemeColors();
   const drift = useSharedValue(0);
 
   useEffect(() => {
-    drift.set(
-      withRepeat(withTiming(1, { duration: 14000, easing: Easing.inOut(Easing.sin) }), -1, true)
-    );
+    drift.set(withRepeat(withTiming(1, { duration: 14000, easing: Easing.inOut(Easing.sin) }), -1, true));
   }, [drift]);
 
   const blobA = useAnimatedStyle(() => ({
@@ -40,7 +31,7 @@ function AuroraBackdrop() {
   }));
 
   return (
-    <View style={{ pointerEvents: 'none' }} className="absolute inset-0 overflow-hidden">
+    <View style={{ pointerEvents: "none" }} className="absolute inset-0 overflow-hidden">
       <Animated.View style={blobA} className="absolute -left-24 top-0">
         <Glow size={340} color={colors.brand} />
       </Animated.View>
@@ -70,25 +61,20 @@ export default function Welcome() {
         </Animated.View>
         <Animated.View entering={Enter.content(stagger(2, 70))}>
           <Text variant="bodyMuted" className="mt-2 max-w-[420px]">
-            End-to-end encrypted messaging with no company in the middle. Your account is a key you
-            hold, and it also works as your Ethereum wallet.
+            End-to-end encrypted messaging with no company in the middle. Your account is a key you hold, and it also
+            works as your Ethereum wallet.
           </Text>
         </Animated.View>
       </View>
 
       <Animated.View entering={Enter.content(stagger(3, 70))} className="gap-3 pb-8">
-        <Button
-          label="Create an account"
-          size="md"
-          fullWidth
-          onPress={() => router.push('/(onboarding)/create')}
-        />
+        <Button label="Create an account" size="md" fullWidth onPress={() => router.push("/(onboarding)/create")} />
         <Button
           label="I already have a recovery phrase"
           tone="ghost"
           size="md"
           fullWidth
-          onPress={() => router.push('/(onboarding)/import')}
+          onPress={() => router.push("/(onboarding)/import")}
         />
         {hardwareVendors().length > 0 ? (
           <Button
@@ -100,7 +86,7 @@ export default function Welcome() {
             onPress={() => setConnecting(true)}
           />
         ) : null}
-        {process.env.EXPO_OS === 'web' ? null : (
+        {process.env.EXPO_OS === "web" ? null : (
           <Text variant="caption" className="mt-1 text-center">
             No phone number or email, so nothing to leak.
           </Text>

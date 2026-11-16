@@ -1,52 +1,51 @@
-import { isAddress, type Address } from 'viem';
+import { type Address, isAddress } from "viem";
 
-import { shortAddress } from '@/core/account/keyring';
-import type { SlashCommand } from '@/core/plugins/types';
-import { W } from '@/design/widgets';
-import { listedTokens, tokenList } from '@/lib/evm/token-list';
-
-import { addCustomToken, readCustomTokens, removeCustomToken } from './chains/token-storage';
-import { pickEvm } from './chain-list';
+import { shortAddress } from "@/core/account/keyring";
+import type { SlashCommand } from "@/core/plugins/types";
+import { W } from "@/design/widgets";
+import { listedTokens, tokenList } from "@/lib/evm/token-list";
+import { pickEvm } from "./chain-list";
+import { addCustomToken, readCustomTokens, removeCustomToken } from "./chains/token-storage";
 
 export const tokensCommand: SlashCommand = {
-  name: 'tokens',
-  aliases: ['token'],
-  showIn: ['channel'],
-  description: 'The tokens the wallet looks for, and any you add yourself',
-  usage: '/tokens [add <contract> | remove <contract>] [--chain base]',
+  name: "tokens",
+  aliases: ["token"],
+  showIn: ["channel"],
+  description: "The tokens the wallet looks for, and any you add yourself",
+  usage: "/tokens [add <contract> | remove <contract>] [--chain base]",
   async run({ args, context, respond }) {
     const picked = await pickEvm(context, args);
-    if ('error' in picked) return { type: 'error', message: picked.error };
+    if ("error" in picked) return { type: "error", message: picked.error };
 
     const { chain, chainKey, rest } = picked;
     const [verb, given] = rest;
 
-    if (verb && verb !== 'add' && verb !== 'remove') {
+    if (verb && verb !== "add" && verb !== "remove") {
       return {
-        type: 'error',
-        message: 'Use /tokens add <contract> or /tokens remove <contract>.',
+        type: "error",
+        message: "Use /tokens add <contract> or /tokens remove <contract>.",
       };
     }
 
     if (verb) {
       if (!given || !isAddress(given)) {
         return {
-          type: 'error',
-          message: `"${given ?? ''}" is not a contract address on ${chain.name}.`,
+          type: "error",
+          message: `"${given ?? ""}" is not a contract address on ${chain.name}.`,
         };
       }
       const contract = given as Address;
 
-      if (verb === 'remove') {
+      if (verb === "remove") {
         const gone = await removeCustomToken(context, chain.id, contract);
         return gone
           ? {
-              type: 'notice',
-              tone: 'success',
+              type: "notice",
+              tone: "success",
               message: `Removed from ${chain.name}`,
             }
           : {
-              type: 'error',
+              type: "error",
               message: `That token was not one you added on ${chain.name}.`,
             };
       }
@@ -54,12 +53,12 @@ export const tokensCommand: SlashCommand = {
       const added = await addCustomToken(context, chain.id, contract);
       return added
         ? {
-            type: 'notice',
-            tone: 'success',
+            type: "notice",
+            tone: "success",
             message: `${added.symbol} is watched on ${chain.name}`,
           }
         : {
-            type: 'error',
+            type: "error",
             message: `${shortAddress(contract)} does not answer as a token on ${chain.name}. Check the contract and the chain.`,
           };
     }
@@ -69,13 +68,13 @@ export const tokensCommand: SlashCommand = {
     const listed = listedTokens(chain.id).length;
 
     await respond({
-      kind: 'widget',
+      kind: "widget",
       fallback: `${listed} tokens watched on ${chain.name}`,
       widget: W.card(
         [
           W.stat(`${listed + custom.length}`, {
             label: `Tokens watched on ${chain.name}`,
-            caption: `${bundled.name} v${bundled.version}${custom.length ? `, plus ${custom.length} of yours` : ''}`,
+            caption: `${bundled.name} v${bundled.version}${custom.length ? `, plus ${custom.length} of yours` : ""}`,
           }),
           ...(custom.length
             ? [
@@ -85,23 +84,22 @@ export const tokensCommand: SlashCommand = {
                     value: shortAddress(token.address),
                     actions: [
                       {
-                        label: 'Remove',
-                        tone: 'danger' as const,
+                        label: "Remove",
+                        tone: "danger" as const,
                         command: `/tokens remove ${token.address} --chain ${chainKey}`,
                       },
                     ],
-                  }))
+                  })),
                 ),
               ]
             : []),
           W.text(
-            'Add one the list misses with /tokens add <contract address>, and /tokens remove ' +
-              'takes it back off.'
+            "Add one the list misses with /tokens add <contract address>, and /tokens remove " + "takes it back off.",
           ),
         ],
-        { title: 'Tokens', icon: 'pricetag-outline' }
+        { title: "Tokens", icon: "pricetag-outline" },
       ),
     });
-    return { type: 'handled' };
+    return { type: "handled" };
   },
 };

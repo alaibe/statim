@@ -1,4 +1,4 @@
-import type { MenuAnchor } from './context-menu';
+import type { MenuAnchor } from "./context-menu";
 
 export function contextMenu(open: (anchor: MenuAnchor) => void): Record<string, unknown> {
   return {

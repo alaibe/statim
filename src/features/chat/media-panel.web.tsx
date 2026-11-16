@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import { Modal, Pressable, View, useWindowDimensions } from 'react-native';
+import { useState } from "react";
+import { Modal, Pressable, useWindowDimensions, View } from "react-native";
 
-import { useEscapeKey } from '@/design';
+import { useEscapeKey } from "@/design";
 
-import { MediaPanelContent, type MediaPanelProps, type MediaTab } from './media-panel-content';
+import { MediaPanelContent, type MediaPanelProps, type MediaTab } from "./media-panel-content";
 
-export type { MediaAnchor, MediaPanelProps } from './media-panel-content';
+export type { MediaAnchor, MediaPanelProps } from "./media-panel-content";
 
 const WIDTH = 380;
 const HEIGHT = 460;
@@ -26,14 +26,15 @@ export function MediaPanel({ tab: initialTab, anchor, onClose, ...content }: Med
       <Pressable accessibilityLabel="Close" onPress={onClose} className="flex-1" />
       <View
         style={{
-          position: 'absolute',
+          position: "absolute",
           right,
           bottom,
           width: WIDTH,
           height,
-          borderCurve: 'continuous',
+          borderCurve: "continuous",
         }}
-        className="overflow-hidden rounded-card border border-line bg-surface-raised shadow-xl">
+        className="overflow-hidden rounded-card border border-line bg-surface-raised shadow-xl"
+      >
         <MediaPanelContent {...content} tab={tab} onTab={setTab} autoFocusSearch />
       </View>
     </Modal>

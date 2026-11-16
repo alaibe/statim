@@ -4,7 +4,7 @@
  * carries both so the two converge. A DM only shows in the Status app once
  * both sides have added each other.
  */
-import type { PropagatedState } from './messages';
+import type { PropagatedState } from "./messages";
 
 export const RequestState = {
   NONE: 0,
@@ -121,10 +121,7 @@ export function remoteRetracted(contact: ContactState, clock: number): ContactCh
 }
 
 /** Their view of both sides, as a DM message or profile update carries it. */
-export function propagatedStateReceived(
-  contact: ContactState,
-  state: PropagatedState
-): ContactChange {
+export function propagatedStateReceived(contact: ContactState, state: PropagatedState): ContactChange {
   let change = unchanged(contact);
   const expectedLocalState = state.remoteState;
   const expectedLocalClock = state.remoteClock;

@@ -1,13 +1,11 @@
-import { useState } from 'react';
-import { View } from 'react-native';
-
-import { Button, Field, Note, Section, Text, toast } from '@/design';
-import { useAccountStore } from '@/core/account/account-store';
-import { openExternal } from '@/lib/open-url';
-import { useKeyedLoad } from '@/lib/use-keyed-load';
-
-import { SettingsScreen } from './settings-screen';
-import { useAction } from '@/features/use-action';
+import { useState } from "react";
+import { View } from "react-native";
+import { useAccountStore } from "@/core/account/account-store";
+import { Button, Field, Note, Section, Text, toast } from "@/design";
+import { useAction } from "@/features/use-action";
+import { openExternal } from "@/lib/open-url";
+import { useKeyedLoad } from "@/lib/use-keyed-load";
+import { SettingsScreen } from "./settings-screen";
 
 interface ApiKeyScreenProps {
   title: string;
@@ -38,15 +36,15 @@ export function ApiKeyScreen({
   const stored = useKeyedLoad(accountId, load, version);
   const saved = stored.loading ? undefined : (stored.value ?? null);
   const [draft, setDraft] = useState<{ accountId: string | null; text: string } | null>(null);
-  const key = draft?.accountId === accountId ? draft.text : (saved ?? '');
+  const key = draft?.accountId === accountId ? draft.text : (saved ?? "");
   const submit = useAction(
     async (value: string) => {
-      if (!accountId) throw new Error('No account is active yet.');
+      if (!accountId) throw new Error("No account is active yet.");
       await save(accountId, value);
       setVersion((v) => v + 1);
-      toast.success(value.trim() ? savedMessage : 'Key removed');
+      toast.success(value.trim() ? savedMessage : "Key removed");
     },
-    { failure: 'Could not save that key' }
+    { failure: "Could not save that key" },
   );
 
   return (
@@ -61,7 +59,7 @@ export function ApiKeyScreen({
               placeholder={placeholder}
               autoCorrect={false}
               autoCapitalize="none"
-              hint={saved ? 'A key is saved for this account.' : 'No key yet.'}
+              hint={saved ? "A key is saved for this account." : "No key yet."}
             />
             <View className="flex-row gap-2">
               <View className="flex-1">
@@ -70,7 +68,7 @@ export function ApiKeyScreen({
                   label="Save"
                   fullWidth
                   loading={submit.busy}
-                  disabled={submit.busy || key.trim() === (saved ?? '')}
+                  disabled={submit.busy || key.trim() === (saved ?? "")}
                   onPress={() => submit.run(key)}
                 />
               </View>
@@ -83,8 +81,8 @@ export function ApiKeyScreen({
                     fullWidth
                     disabled={submit.busy}
                     onPress={() => {
-                      setDraft({ accountId, text: '' });
-                      return submit.run('');
+                      setDraft({ accountId, text: "" });
+                      return submit.run("");
                     }}
                   />
                 </View>
@@ -100,11 +98,7 @@ export function ApiKeyScreen({
             {note}
           </Text>
         ))}
-        <Button
-          label={link.label}
-          tone="neutral"
-          onPress={() => openExternal(link.url).catch(() => {})}
-        />
+        <Button label={link.label} tone="neutral" onPress={() => openExternal(link.url).catch(() => {})} />
       </Note>
     </SettingsScreen>
   );

@@ -1,15 +1,15 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from "@tauri-apps/api/core";
 
-import { appFocused, type MessageNotification } from '@/core/notifications';
-import { toHex } from '@/lib/bytes';
-import { randomBytes } from '@/lib/random';
-import { VaultKey, vaultDelete, vaultGet, vaultSet } from '@/storage/vault';
+import { appFocused, type MessageNotification } from "@/core/notifications";
+import { toHex } from "@/lib/bytes";
+import { randomBytes } from "@/lib/random";
+import { VaultKey, vaultDelete, vaultGet, vaultSet } from "@/storage/vault";
 
-import { forgetNoteKey, noteKeyInUse, rememberNoteKey, storedNoteKey } from './account-key';
-import { saveNotes, signInURL, SignInRequired, type SealedNote } from './cloudkit';
-import { icloudContainer, type IcloudSetup } from './container';
-import { sealNote, type Note, type NoteKey } from './note';
-import type { RelayState } from './relay';
+import { forgetNoteKey, noteKeyInUse, rememberNoteKey, storedNoteKey } from "./account-key";
+import { type SealedNote, SignInRequired, saveNotes, signInURL } from "./cloudkit";
+import { type IcloudSetup, icloudContainer } from "./container";
+import { type Note, type NoteKey, sealNote } from "./note";
+import type { RelayState } from "./relay";
 
 interface Item {
   accountId: string;
@@ -17,23 +17,23 @@ interface Item {
 }
 
 const HELLO: Note = {
-  id: 'hello',
-  title: 'Statim',
-  body: 'This computer now tells your iPhone about new messages.',
+  id: "hello",
+  title: "Statim",
+  body: "This computer now tells your iPhone about new messages.",
 };
 
 let chain: Promise<unknown> = Promise.resolve();
 const pending: Item[] = [];
 
 export async function relayState(accountId: string): Promise<RelayState> {
-  if (!icloudContainer()) return 'unavailable';
-  if (!(await storedNoteKey(accountId))) return 'off';
-  return (await vaultGet(VaultKey.icloudSession)) ? 'on' : 'signed-out';
+  if (!icloudContainer()) return "unavailable";
+  if (!(await storedNoteKey(accountId))) return "off";
+  return (await vaultGet(VaultKey.icloudSession)) ? "on" : "signed-out";
 }
 
 export async function turnOnRelay(accountId: string): Promise<void> {
   const container = icloudContainer();
-  if (!container) throw new Error('This build of Statim has no iCloud API token.');
+  if (!container) throw new Error("This build of Statim has no iCloud API token.");
   await rememberNoteKey(accountId);
   const token = (await vaultGet(VaultKey.icloudSession)) ? null : await signIn(container);
   await serial(async () => {
@@ -62,7 +62,7 @@ export function relayToPhone(accountId: string, notification: MessageNotificatio
   };
   if (pending.push({ accountId, note }) > 1) return;
   serial(() => deliver(pending.splice(0))).catch((error: unknown) =>
-    console.warn('[icloud] could not notify the iPhone', error)
+    console.warn("[icloud] could not notify the iPhone", error),
   );
 }
 
@@ -97,11 +97,11 @@ async function deliver(items: Item[]): Promise<void> {
 
 /** Signs in on Apple's page in the browser, which hands the token back to this computer. */
 async function signIn(container: IcloudSetup): Promise<string> {
-  const target = await invoke<string>('browser_sign_in', {
+  const target = await invoke<string>("browser_sign_in", {
     url: await signInURL(container),
     callback: container.callback,
   });
   const token = /[?&]ckWebAuthToken=([^&#]+)/.exec(target)?.[1];
-  if (!token) throw new Error('iCloud did not hand back a sign-in.');
+  if (!token) throw new Error("iCloud did not hand back a sign-in.");
   return decodeURIComponent(token);
 }

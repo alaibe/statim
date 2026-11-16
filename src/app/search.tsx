@@ -1,25 +1,24 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { FlatList, View } from 'react-native';
-
-import { EmptyState, ErrorText, ListItem, ModalHeader, Screen, SearchField, Text } from '@/design';
-import { useChatStore } from '@/core/messaging/chat-store';
-import { parseChatId } from '@/core/messaging/namespace';
-import type { ChatMessage } from '@/core/messaging/types';
-import { contentPreview, formatTimestamp } from '@/core/messaging/preview';
-import { useJumpStore } from '@/features/chat/jump-store';
-import { openChatFromSheet } from '@/features/navigation/open';
-import { errorMessage } from '@/core/errors';
-import { useChatTitles } from '@/features/chat/use-display-names';
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { FlatList, View } from "react-native";
+import { errorMessage } from "@/core/errors";
+import { useChatStore } from "@/core/messaging/chat-store";
+import { parseChatId } from "@/core/messaging/namespace";
+import { contentPreview, formatTimestamp } from "@/core/messaging/preview";
+import type { ChatMessage } from "@/core/messaging/types";
+import { EmptyState, ErrorText, ListItem, ModalHeader, Screen, SearchField, Text } from "@/design";
+import { useJumpStore } from "@/features/chat/jump-store";
+import { useChatTitles } from "@/features/chat/use-display-names";
+import { openChatFromSheet } from "@/features/navigation/open";
 
 export default function SearchScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ chatId?: string; q?: string }>();
-  const chatId = parseChatId(params.chatId ?? '') ?? undefined;
+  const chatId = parseChatId(params.chatId ?? "") ?? undefined;
   const searchMessages = useChatStore((s) => s.searchMessages);
   const chats = useChatStore((s) => s.chats);
   const jumpTo = useJumpStore((s) => s.jumpTo);
-  const [query, setQuery] = useState(params.q ?? '');
+  const [query, setQuery] = useState(params.q ?? "");
   const [found, setFound] = useState<{ query: string; messages: ChatMessage[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +32,7 @@ export default function SearchScreen() {
           if (!cancelled) setFound({ query: trimmed, messages });
         })
         .catch((reason) => {
-          if (!cancelled) setError(errorMessage(reason, 'Search failed'));
+          if (!cancelled) setError(errorMessage(reason, "Search failed"));
         });
     }, 250);
     return () => {
@@ -48,9 +47,9 @@ export default function SearchScreen() {
   const searching = Boolean(trimmed) && found?.query !== trimmed && !error;
 
   return (
-    <Screen className="px-0" edges={['top']}>
+    <Screen className="px-0" edges={["top"]}>
       <ModalHeader
-        title={chatId ? `Search ${titles.get(chatId) ?? 'chat'}` : 'Search messages'}
+        title={chatId ? `Search ${titles.get(chatId) ?? "chat"}` : "Search messages"}
         onClose={router.back}
         className="px-gutter"
       />
@@ -64,7 +63,7 @@ export default function SearchScreen() {
             setError(null);
           }}
           onClear={() => {
-            setQuery('');
+            setQuery("");
             setError(null);
           }}
         />
@@ -76,13 +75,11 @@ export default function SearchScreen() {
         keyExtractor={(message) => `${message.chatId}:${message.id}`}
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
-          trimmed && !searching && !error ? (
-            <EmptyState icon="search-outline" title="No messages found" />
-          ) : null
+          trimmed && !searching && !error ? <EmptyState icon="search-outline" title="No messages found" /> : null
         }
         renderItem={({ item }) => (
           <ListItem
-            title={titles.get(item.chatId) ?? 'Chat'}
+            title={titles.get(item.chatId) ?? "Chat"}
             meta={formatTimestamp(item.sentAt)}
             subtitle={contentPreview(item.content)}
             numberOfLinesSubtitle={3}

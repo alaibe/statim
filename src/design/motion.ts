@@ -1,15 +1,15 @@
 import {
   Easing,
   FadeIn,
-  LinearTransition,
   FadeInDown,
   FadeInUp,
   FadeOut,
+  LinearTransition,
   ReduceMotion,
   SlideInLeft,
   SlideInRight,
   type WithSpringConfig,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 
 const R = ReduceMotion.System;
 

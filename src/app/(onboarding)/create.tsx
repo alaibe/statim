@@ -1,28 +1,16 @@
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
-import Animated from 'react-native-reanimated';
-
-import {
-  Avatar,
-  Button,
-  copyText,
-  Enter,
-  Field,
-  IconButton,
-  Screen,
-  stagger,
-  Text,
-  toast,
-} from '@/design';
-import { useAccountStore } from '@/core/account/account-store';
-import { createMnemonic, keyringFromMnemonic, shortAddress } from '@/core/account/keyring';
-import { RevealablePhrase } from '@/features/account/recovery-phrase';
-import { errorMessage } from '@/core/errors';
-import { useBack } from '@/features/navigation/use-back';
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import { ScrollView, View } from "react-native";
+import Animated from "react-native-reanimated";
+import { useAccountStore } from "@/core/account/account-store";
+import { createMnemonic, keyringFromMnemonic, shortAddress } from "@/core/account/keyring";
+import { errorMessage } from "@/core/errors";
+import { Avatar, Button, copyText, Enter, Field, IconButton, Screen, stagger, Text, toast } from "@/design";
+import { RevealablePhrase } from "@/features/account/recovery-phrase";
+import { useBack } from "@/features/navigation/use-back";
 
 export default function CreateAccount() {
-  const goBack = useBack('/(onboarding)/welcome');
+  const goBack = useBack("/(onboarding)/welcome");
   const router = useRouter();
   const adoptAccount = useAccountStore((s) => s.adoptAccount);
 
@@ -33,15 +21,15 @@ export default function CreateAccount() {
 
   const [revealed, setRevealed] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [label, setLabel] = useState('');
+  const [label, setLabel] = useState("");
 
   async function confirm() {
     setSaving(true);
     try {
       await adoptAccount(phrase, label);
-      router.replace('/chats');
+      router.replace("/chats");
     } catch (error) {
-      toast.error(errorMessage(error, 'Could not save your account'));
+      toast.error(errorMessage(error, "Could not save your account"));
       setSaving(false);
     }
   }
@@ -78,9 +66,8 @@ export default function CreateAccount() {
 
         <Animated.View entering={Enter.content(stagger(2, 70))}>
           <Text variant="bodyMuted">
-            These twelve words <Text className="font-semibold text-content">are</Text> your account.
-            Anyone who has them controls your messages and your funds. Write them down offline:
-            there is no reset link.
+            These twelve words <Text className="font-semibold text-content">are</Text> your account. Anyone who has them
+            controls your messages and your funds. Write them down offline: there is no reset link.
           </Text>
         </Animated.View>
 
@@ -90,9 +77,7 @@ export default function CreateAccount() {
               label="Copy phrase"
               tone="neutral"
               size="sm"
-              onPress={() =>
-                copyText(phrase, 'Copied. Paste it somewhere safe, then clear your clipboard.')
-              }
+              onPress={() => copyText(phrase, "Copied. Paste it somewhere safe, then clear your clipboard.")}
             />
           </RevealablePhrase>
         </Animated.View>
@@ -108,9 +93,7 @@ export default function CreateAccount() {
           onPress={confirm}
         />
         <Text variant="caption" className="text-center">
-          {revealed
-            ? 'Continuing stores the phrase in this device’s keychain.'
-            : 'Reveal the phrase to continue.'}
+          {revealed ? "Continuing stores the phrase in this device’s keychain." : "Reveal the phrase to continue."}
         </Text>
       </View>
     </Screen>

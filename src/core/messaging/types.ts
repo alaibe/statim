@@ -1,7 +1,7 @@
-import type { Widget } from '@/design/widgets';
+import type { Widget } from "@/design/widgets";
 
-import type { ProtocolId } from './namespace';
-import type { BridgedNetwork } from './networks';
+import type { ProtocolId } from "./namespace";
+import type { BridgedNetwork } from "./networks";
 
 declare const chatIdBrand: unique symbol;
 export type ChatId = string & { readonly [chatIdBrand]: true };
@@ -18,16 +18,16 @@ export interface LiveView {
 }
 
 export type WidgetContent = {
-  readonly kind: 'widget';
+  readonly kind: "widget";
   readonly widget: Widget;
   readonly fallback: string;
   readonly live?: LiveView;
 };
 
-export type CallOutcome = 'started' | 'ended' | 'missed' | 'cancelled' | 'declined';
+export type CallOutcome = "started" | "ended" | "missed" | "cancelled" | "declined";
 
 export interface CallContent {
-  readonly kind: 'call';
+  readonly kind: "call";
   readonly outcome: CallOutcome;
   readonly video?: boolean;
   readonly durationMs?: number;
@@ -36,17 +36,17 @@ export interface CallContent {
 }
 
 export type MessageContent =
-  | { readonly kind: 'text'; readonly text: string }
+  | { readonly kind: "text"; readonly text: string }
   | WidgetContent
   | CallContent
   | {
-      readonly kind: 'custom';
+      readonly kind: "custom";
       readonly typeId: string;
       readonly data: unknown;
       readonly fallback?: string;
     }
   | {
-      readonly kind: 'image';
+      readonly kind: "image";
       readonly uri: string;
       readonly width?: number;
       readonly height?: number;
@@ -56,14 +56,14 @@ export type MessageContent =
       readonly mimeType?: string;
     }
   | {
-      readonly kind: 'file';
+      readonly kind: "file";
       readonly uri: string;
       readonly name: string;
       readonly mimeType?: string;
       readonly size?: number;
     }
   | {
-      readonly kind: 'voice';
+      readonly kind: "voice";
       readonly uri: string;
       readonly durationMs: number;
       readonly size?: number;
@@ -71,7 +71,7 @@ export type MessageContent =
       readonly mimeType?: string;
     }
   | {
-      readonly kind: 'video';
+      readonly kind: "video";
       readonly uri: string;
       readonly width?: number;
       readonly height?: number;
@@ -84,7 +84,7 @@ export type MessageContent =
       readonly gif?: boolean;
     }
   | {
-      readonly kind: 'sticker';
+      readonly kind: "sticker";
       readonly uri: string;
       /** `application/x-tgsticker` is a gzipped Lottie animation, `video/webm` a looping video. */
       readonly mimeType?: string;
@@ -94,7 +94,7 @@ export type MessageContent =
       readonly emoji?: string;
     }
   | {
-      readonly kind: 'poll';
+      readonly kind: "poll";
       readonly question: string;
       readonly options: readonly {
         readonly text: string;
@@ -106,15 +106,15 @@ export type MessageContent =
       readonly closed: boolean;
     }
   | {
-      readonly kind: 'reaction';
+      readonly kind: "reaction";
       readonly targetId: MessageId;
       readonly emoji: string;
-      readonly action: 'added' | 'removed';
+      readonly action: "added" | "removed";
     }
-  | { readonly kind: 'system'; readonly text: string }
-  | { readonly kind: 'unsupported'; readonly typeId: string; readonly fallback: string };
+  | { readonly kind: "system"; readonly text: string }
+  | { readonly kind: "unsupported"; readonly typeId: string; readonly fallback: string };
 
-export type DeliveryStatus = 'sending' | 'sent' | 'failed';
+export type DeliveryStatus = "sending" | "sent" | "failed";
 
 export interface ChatMessage<Id extends AnyChatId = ChatId> {
   readonly id: MessageId;
@@ -138,28 +138,28 @@ export interface ChatMessage<Id extends AnyChatId = ChatId> {
 
 export type ProtocolMessage = ChatMessage<ProtocolChatId>;
 
-export type ChatKind = 'dm' | 'group' | 'channel';
+export type ChatKind = "dm" | "group" | "channel";
 
-export type Consent = 'accepted' | 'declined' | 'request';
+export type Consent = "accepted" | "declined" | "request";
 
-export type ConsentDecision = Exclude<Consent, 'request'>;
+export type ConsentDecision = Exclude<Consent, "request">;
 
-export type GroupRole = 'member' | 'admin' | 'owner';
+export type GroupRole = "member" | "admin" | "owner";
 
 /** What a chat can carry that the network at the far end of a bridge may not. */
 export type ChatFeature =
-  | 'edit'
-  | 'delete'
-  | 'pin'
-  | 'poll'
-  | 'thread'
-  | 'reply'
-  | 'react'
-  | 'images'
-  | 'video'
-  | 'ban'
-  | 'remove'
-  | 'invite';
+  | "edit"
+  | "delete"
+  | "pin"
+  | "poll"
+  | "thread"
+  | "reply"
+  | "react"
+  | "images"
+  | "video"
+  | "ban"
+  | "remove"
+  | "invite";
 
 export interface GroupMember {
   readonly id: ParticipantId;

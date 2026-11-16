@@ -1,5 +1,5 @@
-import { TdRequestError, type TdApi, type TdObject } from '../api';
-import type { TdAuthorizationState, TdChat, TdChatPosition, TdMessage, TdUser } from '../types';
+import { type TdApi, type TdObject, TdRequestError } from "../api";
+import type { TdAuthorizationState, TdChat, TdChatPosition, TdMessage, TdUser } from "../types";
 
 type Handler = (request: TdObject) => TdObject;
 
@@ -16,12 +16,10 @@ export class FakeTdlib implements TdApi {
 
   send<T extends TdObject = TdObject>(request: TdObject): Promise<T> {
     this.sent.push(request);
-    const handler = this.handlers.get(request['@type']);
-    const response = handler ? handler(request) : { '@type': 'ok' };
-    if (response['@type'] === 'error') {
-      return Promise.reject(
-        new TdRequestError(response.code as number, response.message as string)
-      );
+    const handler = this.handlers.get(request["@type"]);
+    const response = handler ? handler(request) : { "@type": "ok" };
+    if (response["@type"] === "error") {
+      return Promise.reject(new TdRequestError(response.code as number, response.message as string));
     }
     return Promise.resolve(response as T);
   }
@@ -44,60 +42,53 @@ export class FakeTdlib implements TdApi {
   }
 
   answer(type: string, handler: Handler | TdObject): void {
-    this.handlers.set(type, typeof handler === 'function' ? handler : () => handler);
+    this.handlers.set(type, typeof handler === "function" ? handler : () => handler);
   }
 
   requests(type: string): TdObject[] {
-    return this.sent.filter((request) => request['@type'] === type);
+    return this.sent.filter((request) => request["@type"] === type);
   }
 }
 
 export function tdError(code: number, message: string): TdObject {
-  return { '@type': 'error', code, message };
+  return { "@type": "error", code, message };
 }
 
-export function authState(
-  type: TdAuthorizationState['@type'],
-  extra: Record<string, unknown> = {}
-): TdObject {
-  return { '@type': 'updateAuthorizationState', authorization_state: { '@type': type, ...extra } };
+export function authState(type: TdAuthorizationState["@type"], extra: Record<string, unknown> = {}): TdObject {
+  return { "@type": "updateAuthorizationState", authorization_state: { "@type": type, ...extra } };
 }
 
-export function user(id: number, first: string, last = '', username?: string): TdUser {
+export function user(id: number, first: string, last = "", username?: string): TdUser {
   return {
-    '@type': 'user',
+    "@type": "user",
     id,
     first_name: first,
     last_name: last,
     ...(username ? { usernames: { active_usernames: [username] } } : {}),
-    phone_number: '',
-    status: { '@type': 'userStatusEmpty' },
-    type: { '@type': 'userTypeRegular' },
+    phone_number: "",
+    status: { "@type": "userStatusEmpty" },
+    type: { "@type": "userTypeRegular" },
   };
 }
 
-export const MAIN_POSITION: TdChatPosition = { list: { '@type': 'chatListMain' }, order: '1' };
+export const MAIN_POSITION: TdChatPosition = { list: { "@type": "chatListMain" }, order: "1" };
 
 export function privateChat(userId: number, title: string, positions = [MAIN_POSITION]): TdChat {
   return {
-    '@type': 'chat',
+    "@type": "chat",
     id: userId,
-    type: { '@type': 'chatTypePrivate', user_id: userId },
+    type: { "@type": "chatTypePrivate", user_id: userId },
     title,
     positions,
     last_read_outbox_message_id: 0,
   };
 }
 
-export function groupChat(
-  basicGroupId: number,
-  title: string,
-  positions = [MAIN_POSITION]
-): TdChat {
+export function groupChat(basicGroupId: number, title: string, positions = [MAIN_POSITION]): TdChat {
   return {
-    '@type': 'chat',
+    "@type": "chat",
     id: -basicGroupId,
-    type: { '@type': 'chatTypeBasicGroup', basic_group_id: basicGroupId },
+    type: { "@type": "chatTypeBasicGroup", basic_group_id: basicGroupId },
     title,
     positions,
     last_read_outbox_message_id: 0,
@@ -106,9 +97,9 @@ export function groupChat(
 
 export function channelChat(supergroupId: number, title: string): TdChat {
   return {
-    '@type': 'chat',
+    "@type": "chat",
     id: -1_000_000_000_000 - supergroupId,
-    type: { '@type': 'chatTypeSupergroup', supergroup_id: supergroupId, is_channel: true },
+    type: { "@type": "chatTypeSupergroup", supergroup_id: supergroupId, is_channel: true },
     title,
     positions: [MAIN_POSITION],
     last_read_outbox_message_id: 0,
@@ -120,22 +111,22 @@ export function textMessage(
   id: number,
   senderUserId: number,
   text: string,
-  opts: { outgoing?: boolean; date?: number; pending?: boolean; replyTo?: number } = {}
+  opts: { outgoing?: boolean; date?: number; pending?: boolean; replyTo?: number } = {},
 ): TdMessage {
   return {
-    '@type': 'message',
+    "@type": "message",
     id,
     chat_id: chatId,
-    sender_id: { '@type': 'messageSenderUser', user_id: senderUserId },
+    sender_id: { "@type": "messageSenderUser", user_id: senderUserId },
     date: opts.date ?? 1_700_000_000 + id,
     is_outgoing: opts.outgoing ?? false,
-    ...(opts.pending ? { sending_state: { '@type': 'messageSendingStatePending' } } : {}),
+    ...(opts.pending ? { sending_state: { "@type": "messageSendingStatePending" } } : {}),
     ...(opts.replyTo
       ? {
-          reply_to: { '@type': 'messageReplyToMessage', chat_id: chatId, message_id: opts.replyTo },
+          reply_to: { "@type": "messageReplyToMessage", chat_id: chatId, message_id: opts.replyTo },
         }
       : {}),
-    content: { '@type': 'messageText', text: { '@type': 'formattedText', text, entities: [] } },
+    content: { "@type": "messageText", text: { "@type": "formattedText", text, entities: [] } },
   };
 }
 
@@ -144,24 +135,24 @@ export function photoMessage(
   id: number,
   senderUserId: number,
   file: { id: number; path: string; downloaded: boolean },
-  caption = ''
+  caption = "",
 ): TdMessage {
   return {
-    ...textMessage(chatId, id, senderUserId, ''),
+    ...textMessage(chatId, id, senderUserId, ""),
     content: {
-      '@type': 'messagePhoto',
+      "@type": "messagePhoto",
       photo: {
         sizes: [
           {
-            type: 'y',
+            type: "y",
             width: 800,
             height: 600,
             photo: {
-              '@type': 'file',
+              "@type": "file",
               id: file.id,
               size: 1234,
               local: {
-                path: file.downloaded ? file.path : '',
+                path: file.downloaded ? file.path : "",
                 is_downloading_completed: file.downloaded,
                 is_downloading_active: false,
               },
@@ -169,7 +160,7 @@ export function photoMessage(
           },
         ],
       },
-      caption: { '@type': 'formattedText', text: caption, entities: [] },
+      caption: { "@type": "formattedText", text: caption, entities: [] },
     },
   };
 }

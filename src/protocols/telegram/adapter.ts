@@ -1,3 +1,4 @@
+import { UnsupportedError } from "@/core/errors";
 import type {
   ChatSession,
   GroupInfo,
@@ -5,53 +6,36 @@ import type {
   LoginState,
   MentionCandidate,
   PublicChatPreview,
-} from '@/core/messaging/protocol';
-import type { StickerChoice, StickerContent, StickerPack } from '@/core/messaging/stickers';
+} from "@/core/messaging/protocol";
+import type { StickerChoice, StickerContent, StickerPack } from "@/core/messaging/stickers";
 import type {
-  ProtocolChatId,
   GroupMember,
   MessageContent,
   MessageId,
   ParticipantId,
+  ProtocolChat,
+  ProtocolChatId,
+  ProtocolMessage,
   SelfParticipant,
   Unsubscribe,
-  ProtocolMessage,
-  ProtocolChat,
-} from '@/core/messaging/types';
-import { TdRequestError, type TdApi, type TdObject } from './api';
-import { describeAuthError, describeCodeDelivery } from './auth-copy';
-import { inMainList } from './chats';
-import {
-  chatIdOf,
-  chatSenderId,
-  messageIdOf,
-  supergroupChatId,
-  tdMessageId,
-  userSender,
-} from './ids';
-import { TdDirectory } from './directory';
-import { draftMessage, draftText } from './drafts';
-import { TelegramGroups } from './groups';
-import type { TelegramHost } from './service-host';
-import { TelegramJoining } from './joining';
-import { TelegramMessages } from './messages';
-import { TelegramStickers } from './stickers';
-import { download, localUriOf } from './files';
-import { patchChat, TypingTracker } from './updates';
-import { Outbox } from './outbox';
-import { type MappingContext, toMessage } from './mapping';
-import { addressOf, nameOf } from './users';
-import { UnsupportedError } from '@/core/errors';
-import type {
-  TdAuthorizationState,
-  TdChat,
-  TdChats,
-  TdFile,
-  TdMessage,
-  TdMessages,
-  TdUpdate,
-  TdUser,
-} from './types';
+} from "@/core/messaging/types";
+import { type TdApi, type TdObject, TdRequestError } from "./api";
+import { describeAuthError, describeCodeDelivery } from "./auth-copy";
+import { inMainList } from "./chats";
+import { TdDirectory } from "./directory";
+import { draftMessage, draftText } from "./drafts";
+import { download, localUriOf } from "./files";
+import { TelegramGroups } from "./groups";
+import { chatIdOf, chatSenderId, messageIdOf, supergroupChatId, tdMessageId, userSender } from "./ids";
+import { TelegramJoining } from "./joining";
+import { type MappingContext, toMessage } from "./mapping";
+import { TelegramMessages } from "./messages";
+import { Outbox } from "./outbox";
+import type { TelegramHost } from "./service-host";
+import { TelegramStickers } from "./stickers";
+import type { TdAuthorizationState, TdChat, TdChats, TdFile, TdMessage, TdMessages, TdUpdate, TdUser } from "./types";
+import { patchChat, TypingTracker } from "./updates";
+import { addressOf, nameOf } from "./users";
 
 interface TdParameters {
   databaseDirectory: string;
@@ -69,7 +53,7 @@ interface TelegramConnectOptions {
   parameters: TdParameters;
 }
 
-const MAIN_LIST = { '@type': 'chatListMain' } as const;
+const MAIN_LIST = { "@type": "chatListMain" } as const;
 const CHAT_PAGE = 100;
 const MAX_CHAT_PAGES = 20;
 
@@ -78,7 +62,7 @@ interface FileWaiter {
   chatId: number;
   messageId?: number;
 }
-const PHONE_HINT = 'The number your Telegram account uses, with the country code.';
+const PHONE_HINT = "The number your Telegram account uses, with the country code.";
 
 /**
  * A Telegram user client over TDLib, which owns history, contacts and files
@@ -95,14 +79,12 @@ export class TelegramSession implements ChatSession {
   private loginErrorAfterRestart: string | undefined;
   private readonly loginListeners = new Set<(login: LoginState | null) => void>();
   private readonly messageListeners = new Set<(message: ProtocolMessage) => void>();
-  private readonly deletedListeners = new Set<
-    (id: ProtocolChatId, messageIds: MessageId[]) => void
-  >();
+  private readonly deletedListeners = new Set<(id: ProtocolChatId, messageIds: MessageId[]) => void>();
   private readonly chatListeners = new Set<(chat: ProtocolChat) => void>();
   private readonly outbox = new Outbox();
   private readonly td = new TdDirectory(
     () => this.api,
-    () => this.self.participantId
+    () => this.self.participantId,
   );
   private readonly host: TelegramHost = {
     api: () => this.api,
@@ -144,7 +126,7 @@ export class TelegramSession implements ChatSession {
   get self(): SelfParticipant {
     return this.me
       ? { participantId: String(this.me.id), address: addressOf(this.me) }
-      : { participantId: '', address: '' };
+      : { participantId: "", address: "" };
   }
 
   private async start(): Promise<void> {
@@ -154,7 +136,7 @@ export class TelegramSession implements ChatSession {
     });
     const p = this.options.parameters;
     await this.api.send({
-      '@type': 'setTdlibParameters',
+      "@type": "setTdlibParameters",
       database_directory: p.databaseDirectory,
       use_file_database: true,
       use_chat_info_database: true,
@@ -162,7 +144,7 @@ export class TelegramSession implements ChatSession {
       use_secret_chats: false,
       api_id: p.apiId,
       api_hash: p.apiHash,
-      system_language_code: 'en',
+      system_language_code: "en",
       device_model: p.deviceModel,
       system_version: p.systemVersion,
       application_version: p.applicationVersion,
@@ -178,14 +160,14 @@ export class TelegramSession implements ChatSession {
 
   async submitLogin(value: string): Promise<void> {
     const current = this.login;
-    if (!current) throw new Error('Telegram is not asking for anything right now.');
+    if (!current) throw new Error("Telegram is not asking for anything right now.");
 
     const request: TdObject =
-      current.step === 'phone'
-        ? { '@type': 'setAuthenticationPhoneNumber', phone_number: value.trim() }
-        : current.step === 'code'
-          ? { '@type': 'checkAuthenticationCode', code: value.trim() }
-          : { '@type': 'checkAuthenticationPassword', password: value };
+      current.step === "phone"
+        ? { "@type": "setAuthenticationPhoneNumber", phone_number: value.trim() }
+        : current.step === "code"
+          ? { "@type": "checkAuthenticationCode", code: value.trim() }
+          : { "@type": "checkAuthenticationPassword", password: value };
 
     this.setLogin({ ...current, error: undefined });
     try {
@@ -199,7 +181,7 @@ export class TelegramSession implements ChatSession {
 
   /** Ends the session on Telegram's side too; TDLib then wipes its database. */
   async signOut(): Promise<void> {
-    await this.api.send({ '@type': 'logOut' });
+    await this.api.send({ "@type": "logOut" });
   }
 
   private setLogin(login: LoginState | null): void {
@@ -208,51 +190,47 @@ export class TelegramSession implements ChatSession {
   }
 
   private async onAuthorizationState(state: TdAuthorizationState): Promise<void> {
-    switch (state['@type']) {
-      case 'authorizationStateWaitPhoneNumber': {
+    switch (state["@type"]) {
+      case "authorizationStateWaitPhoneNumber": {
         this.me = null;
         const error = this.loginErrorAfterRestart;
         this.loginErrorAfterRestart = undefined;
-        this.setLogin({ step: 'phone', hint: PHONE_HINT, error });
+        this.setLogin({ step: "phone", hint: PHONE_HINT, error });
         return;
       }
-      case 'authorizationStateWaitCode':
+      case "authorizationStateWaitCode":
         this.setLogin({
-          step: 'code',
-          title: 'Enter the code',
-          hint: describeCodeDelivery(state.code_info.type['@type']),
+          step: "code",
+          title: "Enter the code",
+          hint: describeCodeDelivery(state.code_info.type["@type"]),
         });
         return;
-      case 'authorizationStateWaitPassword':
+      case "authorizationStateWaitPassword":
         this.setLogin({
-          step: 'password',
-          title: 'Two-step verification',
+          step: "password",
+          title: "Two-step verification",
           hint: state.password_hint
             ? `Your two-step verification password. Hint: ${state.password_hint}`
-            : 'Your two-step verification password.',
+            : "Your two-step verification password.",
         });
         return;
-      case 'authorizationStateReady':
+      case "authorizationStateReady":
         await this.onReady();
         return;
-      case 'authorizationStateClosed':
+      case "authorizationStateClosed":
         await this.onClosed();
         return;
-      case 'authorizationStateWaitRegistration':
+      case "authorizationStateWaitRegistration":
+        await this.abandonLogin("There is no Telegram account for that number. Create one in the Telegram app first.");
+        return;
+      case "authorizationStateWaitEmailAddress":
+      case "authorizationStateWaitEmailCode":
         await this.abandonLogin(
-          'There is no Telegram account for that number. Create one in the Telegram app first.'
+          "Telegram wants to verify this sign-in by email. Sign in once with the official app, then try again here.",
         );
         return;
-      case 'authorizationStateWaitEmailAddress':
-      case 'authorizationStateWaitEmailCode':
-        await this.abandonLogin(
-          'Telegram wants to verify this sign-in by email. Sign in once with the official app, then try again here.'
-        );
-        return;
-      case 'authorizationStateWaitOtherDeviceConfirmation':
-        await this.abandonLogin(
-          'Telegram asked for a QR sign-in, which this app does not do. Try again.'
-        );
+      case "authorizationStateWaitOtherDeviceConfirmation":
+        await this.abandonLogin("Telegram asked for a QR sign-in, which this app does not do. Try again.");
         return;
       default:
         return;
@@ -262,18 +240,18 @@ export class TelegramSession implements ChatSession {
   /** Nothing is stored before sign-in completes, so a bare destroy loses nothing. */
   private async abandonLogin(message: string): Promise<void> {
     this.loginErrorAfterRestart = message;
-    await this.api.send({ '@type': 'destroy' }).catch(() => {});
+    await this.api.send({ "@type": "destroy" }).catch(() => {});
   }
 
   private async onReady(): Promise<void> {
-    this.me = await this.api.send<TdUser>({ '@type': 'getMe' });
+    this.me = await this.api.send<TdUser>({ "@type": "getMe" });
     this.td.users.set(this.me.id, this.me);
     this.setLogin(null);
     this.api
       .send({
-        '@type': 'setOption',
-        name: 'online',
-        value: { '@type': 'optionValueBoolean', value: true },
+        "@type": "setOption",
+        name: "online",
+        value: { "@type": "optionValueBoolean", value: true },
       })
       .catch(() => {});
     this.chatsLoaded = null;
@@ -284,7 +262,7 @@ export class TelegramSession implements ChatSession {
 
   /** TDLib closed on its own (sign-out); start over so the next sign-in can happen. */
   private async onClosed(): Promise<void> {
-    this.outbox.rejectAll(new Error('Signed out of Telegram'));
+    this.outbox.rejectAll(new Error("Signed out of Telegram"));
     this.awaitedFiles.clear();
     this.typing.clear();
     this.td.clear();
@@ -298,96 +276,96 @@ export class TelegramSession implements ChatSession {
 
   private async handleUpdate(raw: TdObject): Promise<void> {
     const update = raw as TdUpdate;
-    switch (update['@type']) {
-      case 'updateChatPosition':
-      case 'updateChatTitle':
-      case 'updateChatPhoto':
-      case 'updateChatLastMessage':
-      case 'updateChatReadInbox':
-      case 'updateChatReadOutbox':
-      case 'updateChatUnreadMentionCount':
-      case 'updateChatPendingJoinRequests':
-      case 'updateChatDraftMessage':
-      case 'updateChatIsMarkedAsUnread':
-      case 'updateChatPermissions':
-      case 'updateChatBlockList': {
+    switch (update["@type"]) {
+      case "updateChatPosition":
+      case "updateChatTitle":
+      case "updateChatPhoto":
+      case "updateChatLastMessage":
+      case "updateChatReadInbox":
+      case "updateChatReadOutbox":
+      case "updateChatUnreadMentionCount":
+      case "updateChatPendingJoinRequests":
+      case "updateChatDraftMessage":
+      case "updateChatIsMarkedAsUnread":
+      case "updateChatPermissions":
+      case "updateChatBlockList": {
         const chat = this.td.chats.get(update.chat_id);
         if (!chat) return;
         patchChat(chat, update);
-        if (update['@type'] === 'updateChatReadOutbox') this.learnReadMark(chat);
+        if (update["@type"] === "updateChatReadOutbox") this.learnReadMark(chat);
         return this.announce(chat);
       }
-      case 'updateAuthorizationState':
+      case "updateAuthorizationState":
         return this.onAuthorizationState(update.authorization_state);
-      case 'updateUser': {
+      case "updateUser": {
         const { user } = update;
         this.td.users.set(user.id, user);
         return this.announceUserChats(user.id);
       }
-      case 'updateUserStatus': {
+      case "updateUserStatus": {
         const user = this.td.users.get(update.user_id);
         if (!user) return;
         user.status = update.status;
         return this.announceUserChats(update.user_id);
       }
-      case 'updateChatAction': {
+      case "updateChatAction": {
         const sender = update.sender_id;
-        if (sender['@type'] === 'messageSenderUser' && sender.user_id === this.me?.id) return;
-        this.typing.set(update.chat_id, update.action['@type'] === 'chatActionTyping');
+        if (sender["@type"] === "messageSenderUser" && sender.user_id === this.me?.id) return;
+        this.typing.set(update.chat_id, update.action["@type"] === "chatActionTyping");
         const chat = this.td.chats.get(update.chat_id);
         if (chat) this.announce(chat);
         return;
       }
-      case 'updateBasicGroup': {
+      case "updateBasicGroup": {
         const group = update.basic_group;
         this.td.basicGroups.set(group.id, group);
         const chat = this.td.chats.get(-group.id);
         if (chat) return this.announce(chat);
         return;
       }
-      case 'updateSupergroup': {
+      case "updateSupergroup": {
         const group = update.supergroup;
         this.td.supergroups.set(group.id, group);
         const chat = this.td.chats.get(supergroupChatId(group.id));
         if (chat) return this.announce(chat);
         return;
       }
-      case 'updateNewChat': {
+      case "updateNewChat": {
         const { chat } = update;
         this.td.chats.set(chat.id, chat);
         return this.announce(chat);
       }
-      case 'updateBasicGroupFullInfo':
+      case "updateBasicGroupFullInfo":
         this.td.members.delete(-update.basic_group_id);
         return;
-      case 'updateSupergroupFullInfo':
+      case "updateSupergroupFullInfo":
         this.td.members.delete(supergroupChatId(update.supergroup_id));
         return;
-      case 'updateNewMessage': {
+      case "updateNewMessage": {
         const { message } = update;
         // Our own sends surface through updateMessageSendSucceeded instead.
         if (message.sending_state) return;
         return this.emitMessage(message);
       }
-      case 'updateMessageSendSucceeded':
+      case "updateMessageSendSucceeded":
         this.outbox.resolve(update.old_message_id, update.message);
         return this.emitMessage(update.message);
-      case 'updateMessageSendFailed':
+      case "updateMessageSendFailed":
         this.outbox.reject(update.old_message_id, new Error(update.error.message));
         return;
-      case 'updateMessageContent':
-      case 'updateMessageEdited':
-      case 'updateMessageInteractionInfo':
-      case 'updateMessageIsPinned':
+      case "updateMessageContent":
+      case "updateMessageEdited":
+      case "updateMessageInteractionInfo":
+      case "updateMessageIsPinned":
         return this.refetch(update.chat_id, update.message_id);
-      case 'updateDeleteMessages': {
+      case "updateDeleteMessages": {
         if (!update.is_permanent || update.from_cache) return;
         const chatId = update.chat_id;
         const ids = update.message_ids.map((id) => messageIdOf(chatId, id));
         for (const listener of this.deletedListeners) listener(chatIdOf(chatId), ids);
         return;
       }
-      case 'updateFile': {
+      case "updateFile": {
         const { file } = update;
         if (!file.local.is_downloading_completed) return;
         return this.downloaded(file);
@@ -417,8 +395,7 @@ export class TelegramSession implements ChatSession {
   /** A private chat's id is its user's id. */
   private announceUserChats(userId: number): void {
     const chat = this.td.chats.get(userId);
-    if (chat?.type['@type'] === 'chatTypePrivate' && chat.type.user_id === userId)
-      this.announce(chat);
+    if (chat?.type["@type"] === "chatTypePrivate" && chat.type.user_id === userId) this.announce(chat);
   }
 
   private async emitMessage(raw: TdMessage): Promise<void> {
@@ -436,7 +413,7 @@ export class TelegramSession implements ChatSession {
     let pending = this.refetching.get(key);
     if (!pending) {
       pending = this.api
-        .send<TdMessage>({ '@type': 'getMessage', chat_id: chatId, message_id: messageId })
+        .send<TdMessage>({ "@type": "getMessage", chat_id: chatId, message_id: messageId })
         .then((message) => this.emitMessage(message))
         .catch(() => {})
         .finally(() => this.refetching.delete(key));
@@ -454,7 +431,7 @@ export class TelegramSession implements ChatSession {
     if (!this.me) return [];
     await this.ensureChatsLoaded();
     const { chat_ids } = await this.api.send<TdChats>({
-      '@type': 'getChats',
+      "@type": "getChats",
       chat_list: MAIN_LIST,
       limit: CHAT_PAGE * MAX_CHAT_PAGES,
     });
@@ -466,7 +443,7 @@ export class TelegramSession implements ChatSession {
 
   async getMessages(
     id: ProtocolChatId,
-    opts?: { limit?: number; before?: { sentAt: number; id: MessageId } }
+    opts?: { limit?: number; before?: { sentAt: number; id: MessageId } },
   ): Promise<ProtocolMessage[]> {
     if (!this.me) return [];
     const chatId = Number(id);
@@ -480,16 +457,14 @@ export class TelegramSession implements ChatSession {
     // TDLib may answer with fewer messages than asked for, one at a time from the server.
     while (collected.length < limit) {
       const { messages } = await this.api.send<TdMessages>({
-        '@type': 'getChatHistory',
+        "@type": "getChatHistory",
         chat_id: chatId,
         from_message_id: from,
         offset: 0,
         limit: Math.min(100, limit - collected.length),
         only_local: false,
       });
-      const page = messages.filter(
-        (m): m is TdMessage => m !== null && (boundary === 0 || m.id < boundary)
-      );
+      const page = messages.filter((m): m is TdMessage => m !== null && (boundary === 0 || m.id < boundary));
       if (page.length === 0) break;
       collected.push(...page);
       from = page[page.length - 1].id;
@@ -512,11 +487,11 @@ export class TelegramSession implements ChatSession {
 
   async fetchMedia(id: ProtocolChatId, messageId: MessageId): Promise<void> {
     const raw = await this.api.send<TdMessage>({
-      '@type': 'getMessage',
+      "@type": "getMessage",
       chat_id: Number(id),
       message_id: tdMessageId(messageId),
     });
-    if (this.toMessage(raw, true).content.kind !== 'unsupported') await this.emitMessage(raw);
+    if (this.toMessage(raw, true).content.kind !== "unsupported") await this.emitMessage(raw);
   }
 
   async resolveParticipant(addressOrId: string): Promise<ParticipantId | null> {
@@ -524,24 +499,22 @@ export class TelegramSession implements ChatSession {
     const link = value.match(/^(?:https?:\/\/)?t\.me\/([A-Za-z0-9_]+)\/?$/);
     if (link) value = `@${link[1]}`;
 
-    if (value.startsWith('@') || /^[A-Za-z][A-Za-z0-9_]{3,31}$/.test(value)) {
+    if (value.startsWith("@") || /^[A-Za-z][A-Za-z0-9_]{3,31}$/.test(value)) {
       const chat = await this.api
-        .send<TdChat>({ '@type': 'searchPublicChat', username: value.replace(/^@/, '') })
+        .send<TdChat>({ "@type": "searchPublicChat", username: value.replace(/^@/, "") })
         .catch(() => null);
       if (!chat) return null;
       this.td.chats.set(chat.id, chat);
-      return chat.type['@type'] === 'chatTypePrivate' ? String(chat.type.user_id) : null;
+      return chat.type["@type"] === "chatTypePrivate" ? String(chat.type.user_id) : null;
     }
 
     if (/^\+?\d{5,}$/.test(value)) {
-      if (!value.startsWith('+')) {
-        const user = await this.api
-          .send<TdUser>({ '@type': 'getUser', user_id: Number(value) })
-          .catch(() => null);
+      if (!value.startsWith("+")) {
+        const user = await this.api.send<TdUser>({ "@type": "getUser", user_id: Number(value) }).catch(() => null);
         if (user) return String(user.id);
       }
       const user = await this.api
-        .send<TdUser>({ '@type': 'searchUserByPhoneNumber', phone_number: value })
+        .send<TdUser>({ "@type": "searchUserByPhoneNumber", phone_number: value })
         .catch(() => null);
       return user ? String(user.id) : null;
     }
@@ -555,7 +528,7 @@ export class TelegramSession implements ChatSession {
       ids.flatMap((id, i) => {
         const user = users[i];
         return user ? [[id, addressOf(user)]] : [];
-      })
+      }),
     );
   }
 
@@ -567,19 +540,19 @@ export class TelegramSession implements ChatSession {
         const chatId = chatSenderId(id);
         if (chatId === null) return undefined;
         return (await this.td.requireChat(chatId).catch(() => null))?.title;
-      })
+      }),
     );
     return Object.fromEntries(
       ids.flatMap((id, i) => {
         const name = names[i];
         return name ? [[id, name]] : [];
-      })
+      }),
     );
   }
 
   async createDm(participant: ParticipantId): Promise<ProtocolChat> {
     const chat = await this.api.send<TdChat>({
-      '@type': 'createPrivateChat',
+      "@type": "createPrivateChat",
       user_id: Number(participant),
       force: false,
     });
@@ -687,21 +660,18 @@ export class TelegramSession implements ChatSession {
     return this.messages.setMessagePinned(id, messageId, pinned);
   }
 
-  async streamDeletedMessages(
-    listener: (id: ProtocolChatId, messageIds: MessageId[]) => void
-  ): Promise<Unsubscribe> {
+  async streamDeletedMessages(listener: (id: ProtocolChatId, messageIds: MessageId[]) => void): Promise<Unsubscribe> {
     this.deletedListeners.add(listener);
     return () => this.deletedListeners.delete(listener);
   }
 
   async setBlocked(id: ProtocolChatId, blocked: boolean): Promise<void> {
     const chat = await this.td.requireChat(Number(id));
-    if (chat.type['@type'] !== 'chatTypePrivate')
-      throw new UnsupportedError('On Telegram only a DM can be blocked.');
+    if (chat.type["@type"] !== "chatTypePrivate") throw new UnsupportedError("On Telegram only a DM can be blocked.");
     await this.api.send({
-      '@type': 'setMessageSenderBlockList',
+      "@type": "setMessageSenderBlockList",
       sender_id: userSender(String(chat.type.user_id)),
-      block_list: blocked ? { '@type': 'blockListMain' } : null,
+      block_list: blocked ? { "@type": "blockListMain" } : null,
     });
   }
 
@@ -709,7 +679,7 @@ export class TelegramSession implements ChatSession {
     const chat = this.td.chats.get(Number(id));
     if (!chat?.last_message) return;
     await this.api.send({
-      '@type': 'viewMessages',
+      "@type": "viewMessages",
       chat_id: chat.id,
       message_ids: [chat.last_message.id],
       force_read: true,
@@ -718,7 +688,7 @@ export class TelegramSession implements ChatSession {
 
   async saveDraft(id: ProtocolChatId, text: string): Promise<void> {
     await this.api.send({
-      '@type': 'setChatDraftMessage',
+      "@type": "setChatDraftMessage",
       chat_id: Number(id),
       topic_id: null,
       draft_message: text ? draftMessage(text) : null,
@@ -727,7 +697,7 @@ export class TelegramSession implements ChatSession {
 
   async setMarkedUnread(id: ProtocolChatId, unread: boolean): Promise<void> {
     await this.api.send({
-      '@type': 'toggleChatIsMarkedAsUnread',
+      "@type": "toggleChatIsMarkedAsUnread",
       chat_id: Number(id),
       is_marked_as_unread: unread,
     });
@@ -735,11 +705,11 @@ export class TelegramSession implements ChatSession {
 
   async setTyping(id: ProtocolChatId, typing: boolean): Promise<void> {
     await this.api.send({
-      '@type': 'sendChatAction',
+      "@type": "sendChatAction",
       chat_id: Number(id),
       topic_id: null,
-      business_connection_id: '',
-      action: { '@type': typing ? 'chatActionTyping' : 'chatActionCancel' },
+      business_connection_id: "",
+      action: { "@type": typing ? "chatActionTyping" : "chatActionCancel" },
     });
   }
 
@@ -781,7 +751,7 @@ export class TelegramSession implements ChatSession {
   }
 
   private included(chat: TdChat): boolean {
-    return chat.type['@type'] !== 'chatTypeSecret';
+    return chat.type["@type"] !== "chatTypeSecret";
   }
 
   private ensureChatsLoaded(): Promise<void> {
@@ -795,7 +765,7 @@ export class TelegramSession implements ChatSession {
   private async loadAllChats(): Promise<void> {
     for (let page = 0; page < MAX_CHAT_PAGES; page++) {
       try {
-        await this.api.send({ '@type': 'loadChats', chat_list: MAIN_LIST, limit: CHAT_PAGE });
+        await this.api.send({ "@type": "loadChats", chat_list: MAIN_LIST, limit: CHAT_PAGE });
       } catch (error) {
         // 404 is TDLib for "nothing left to load".
         if (error instanceof TdRequestError && error.code === 404) return;
@@ -806,19 +776,18 @@ export class TelegramSession implements ChatSession {
 
   private toChat(chat: TdChat): ProtocolChat {
     const selfId = this.self.participantId;
-    const isDm = chat.type['@type'] === 'chatTypePrivate';
-    const isChannel = chat.type['@type'] === 'chatTypeSupergroup' && chat.type.is_channel;
+    const isDm = chat.type["@type"] === "chatTypePrivate";
+    const isChannel = chat.type["@type"] === "chatTypeSupergroup" && chat.type.is_channel;
     const memberIds = isChannel
       ? [selfId]
       : isDm
         ? [...new Set([String((chat.type as { user_id: number }).user_id), selfId])]
         : (this.td.knownMembers(chat)?.map((member) => member.id) ?? [selfId]);
-    const participant =
-      chat.type['@type'] === 'chatTypePrivate' ? this.td.users.get(chat.type.user_id) : undefined;
+    const participant = chat.type["@type"] === "chatTypePrivate" ? this.td.users.get(chat.type.user_id) : undefined;
 
     return {
       id: chatIdOf(chat.id),
-      kind: isDm ? 'dm' : isChannel ? 'channel' : 'group',
+      kind: isDm ? "dm" : isChannel ? "channel" : "group",
       title: chat.title,
       avatarUri: this.photoUri(chat),
       memberIds,
@@ -835,13 +804,13 @@ export class TelegramSession implements ChatSession {
         : {}),
       canSend: this.td.canSend(chat),
       typing: this.typing.isTyping(chat.id),
-      online: participant?.status['@type'] === 'userStatusOnline',
+      online: participant?.status["@type"] === "userStatusOnline",
       lastSeenAt:
-        participant?.status['@type'] === 'userStatusOffline' && participant.status.was_online
+        participant?.status["@type"] === "userStatusOffline" && participant.status.was_online
           ? participant.status.was_online * 1000
           : undefined,
-      consent: 'accepted',
-      ...(isDm && chat.block_list?.['@type'] === 'blockListMain' ? { blocked: true } : {}),
+      consent: "accepted",
+      ...(isDm && chat.block_list?.["@type"] === "blockListMain" ? { blocked: true } : {}),
       selfRole: isDm ? undefined : this.td.roleIn(chat),
       ...this.td.rightsIn(chat),
     };
@@ -861,7 +830,7 @@ export class TelegramSession implements ChatSession {
     if (this.readDates.get(chat.id)?.messageId === upTo) return;
     this.readDates.set(chat.id, { messageId: upTo });
     this.api
-      .send<TdMessage>({ '@type': 'getMessage', chat_id: chat.id, message_id: upTo })
+      .send<TdMessage>({ "@type": "getMessage", chat_id: chat.id, message_id: upTo })
       .then((message) => {
         this.readDates.set(chat.id, { messageId: upTo, at: message.date * 1000 });
         this.announce(chat);
@@ -898,17 +867,13 @@ export class TelegramSession implements ChatSession {
   private download(file: TdFile, awaited: FileWaiter, priority: number) {
     const waiting = this.awaitedFiles.get(file.id);
     if (waiting) {
-      const known = waiting.some(
-        (other) => other.chatId === awaited.chatId && other.messageId === awaited.messageId
-      );
+      const known = waiting.some((other) => other.chatId === awaited.chatId && other.messageId === awaited.messageId);
       if (!known) waiting.push(awaited);
       return;
     }
     this.awaitedFiles.set(file.id, [awaited]);
     download(this.api, file, priority, false)
-      .then((started) =>
-        started.local.is_downloading_completed ? this.downloaded(started) : undefined
-      )
+      .then((started) => (started.local.is_downloading_completed ? this.downloaded(started) : undefined))
       .catch(() => this.awaitedFiles.delete(file.id));
   }
 

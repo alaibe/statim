@@ -1,4 +1,4 @@
-import { router, type Href } from 'expo-router';
+import { type Href, router } from "expo-router";
 
 /** Opens a chat from a list; see open.web.ts for the desktop. */
 export function openChat(id: string): void {
@@ -20,5 +20,5 @@ export function openTab(href: Href): void {
 
 /** Back to the settings list, even when the page was opened from a chat. */
 export function leaveSettingsPage(): void {
-  router.dismissTo('/settings');
+  router.dismissTo("/settings");
 }

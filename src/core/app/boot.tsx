@@ -1,13 +1,12 @@
-import * as Linking from 'expo-linking';
-import { useEffect } from 'react';
-
-import { useAccountStore } from '../account/account-store';
-import { registerHardwareVendors } from '../account/vendors';
-import { handleTrezorCallback, isTrezorCallback } from '../account/vendors/trezor';
-import { useLockStore } from '../account/lock-store';
-import { usePluginHost } from '../plugins/host';
-import { reportError } from './report-error';
-import { accountRuntime } from '@/runtime';
+import * as Linking from "expo-linking";
+import { useEffect } from "react";
+import { accountRuntime } from "@/runtime";
+import { useAccountStore } from "../account/account-store";
+import { useLockStore } from "../account/lock-store";
+import { registerHardwareVendors } from "../account/vendors";
+import { handleTrezorCallback, isTrezorCallback } from "../account/vendors/trezor";
+import { usePluginHost } from "../plugins/host";
+import { reportError } from "./report-error";
 
 registerHardwareVendors();
 
@@ -19,12 +18,12 @@ export function useAppBoot(): void {
   const { registry, defaultEnabled, makeContext, onPluginsChanged } = usePluginHost();
 
   useEffect(() => {
-    if (status === 'loading') void restore();
+    if (status === "loading") void restore();
   }, [status, restore]);
 
   useEffect(() => {
     void accountRuntime.synchronize(
-      status === 'ready' && keyring && activeAccountId
+      status === "ready" && keyring && activeAccountId
         ? {
             accountId: activeAccountId,
             keyring,
@@ -33,7 +32,7 @@ export function useAppBoot(): void {
             makeContext,
             onPluginsChanged,
           }
-        : null
+        : null,
     );
   }, [status, keyring, activeAccountId, registry, defaultEnabled, makeContext, onPluginsChanged]);
 }
@@ -49,14 +48,14 @@ export function useDeepLinkRouter() {
         return;
       }
       const parsed = Linking.parse(url);
-      const wrapped = typeof parsed.queryParams?.uri === 'string' ? parsed.queryParams.uri : null;
+      const wrapped = typeof parsed.queryParams?.uri === "string" ? parsed.queryParams.uri : null;
       handleUri(wrapped ?? url).catch((error) => {
-        console.warn('[deeplink] no handler for', url, error);
+        console.warn("[deeplink] no handler for", url, error);
       });
     };
 
     Linking.getInitialURL().then(consume).catch(reportError);
-    const sub = Linking.addEventListener('url', ({ url }) => consume(url));
+    const sub = Linking.addEventListener("url", ({ url }) => consume(url));
     return () => sub.remove();
   }, [handleUri]);
 }
@@ -66,7 +65,7 @@ export function useAppLock() {
   const evaluate = useLockStore((s) => s.evaluate);
 
   useEffect(() => {
-    if (status === 'checking') evaluate().catch(reportError);
+    if (status === "checking") evaluate().catch(reportError);
   }, [status, evaluate]);
 
   return status;

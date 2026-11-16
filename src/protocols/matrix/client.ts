@@ -1,8 +1,8 @@
-import * as sdk from '@unomed/react-native-matrix-sdk';
-import * as Crypto from 'expo-crypto';
-import { Directory, File } from 'expo-file-system';
-import { fromHex } from '@/lib/bytes';
-
+import * as sdk from "@unomed/react-native-matrix-sdk";
+import * as Crypto from "expo-crypto";
+import { Directory, File } from "expo-file-system";
+import { fromHex } from "@/lib/bytes";
+import { sameValue } from "@/lib/same-value";
 import type {
   MatrixApi,
   MxEvent,
@@ -18,19 +18,10 @@ import type {
   MxStartParams,
   MxTextOutgoing,
   MxUpdate,
-} from './api';
-import { sameValue } from '@/lib/same-value';
-import { applyDiff, valuesOf, type VectorDiff } from './native/diff';
-import {
-  extensionOf,
-  mapContent,
-  mapMembership,
-  mapRole,
-  nameOf,
-  receiptsOf,
-  sendState,
-} from './native/map';
-import { fromSdkSession, latestOf, timelineConfiguration, toSdkSession } from './native/session';
+} from "./api";
+import { applyDiff, type VectorDiff, valuesOf } from "./native/diff";
+import { extensionOf, mapContent, mapMembership, mapRole, nameOf, receiptsOf, sendState } from "./native/map";
+import { fromSdkSession, latestOf, timelineConfiguration, toSdkSession } from "./native/session";
 
 const ROOM_PAGE = 500;
 const HISTORY_PAGE = 40;
@@ -72,10 +63,9 @@ class RnMatrixClient implements MatrixApi {
     this.params = params;
     const dir = new Directory(`file://${params.dataDirectory}`);
     if (!params.session && dir.exists) dir.delete();
-    const store = new sdk.SqliteStoreBuilder(
-      `${params.dataDirectory}/store`,
-      `${params.dataDirectory}/cache`
-    ).key(fromHex(params.storeKey).buffer);
+    const store = new sdk.SqliteStoreBuilder(`${params.dataDirectory}/store`, `${params.dataDirectory}/cache`).key(
+      fromHex(params.storeKey).buffer,
+    );
     this.client = await new sdk.ClientBuilder()
       .sqliteStore(store)
       .homeserverUrl(params.homeserverUrl)
@@ -83,7 +73,7 @@ class RnMatrixClient implements MatrixApi {
       .autoEnableCrossSigning(true)
       .build();
     this.delegateHandle = this.client.setDelegate({
-      didReceiveAuthError: () => this.emit({ type: 'signedOut' }),
+      didReceiveAuthError: () => this.emit({ type: "signedOut" }),
       onBackgroundTaskErrorReport: () => {},
     });
     if (!params.session) return null;
@@ -105,9 +95,7 @@ class RnMatrixClient implements MatrixApi {
 
   private async startSync(): Promise<void> {
     if (this.client.slidingSyncVersion() === sdk.SlidingSyncVersion.None) {
-      throw new Error(
-        'This homeserver does not support sliding sync (MSC4186), which the app needs.'
-      );
+      throw new Error("This homeserver does not support sliding sync (MSC4186), which the app needs.");
     }
     const syncService = await this.client.syncService().finish();
     this.syncService = syncService;
@@ -121,7 +109,7 @@ class RnMatrixClient implements MatrixApi {
           new sdk.RoomListEntriesDynamicFilterKind.NonLeft(),
           new sdk.RoomListEntriesDynamicFilterKind.NonSpace(),
         ],
-      })
+      }),
     );
     await syncService.start();
   }
@@ -147,14 +135,13 @@ class RnMatrixClient implements MatrixApi {
     for (const update of updates) {
       const { changed, removed } = applyDiff(this.entries, update as VectorDiff<sdk.RoomLike>);
       grew ||=
-        update.tag === sdk.RoomListEntriesUpdate_Tags.Append ||
-        update.tag === sdk.RoomListEntriesUpdate_Tags.Reset;
+        update.tag === sdk.RoomListEntriesUpdate_Tags.Append || update.tag === sdk.RoomListEntriesUpdate_Tags.Reset;
       const kept = new Set(changed.map((room) => room.id()));
       // A `Set` brings a fresh handle for the same room; only rooms that left the list are gone.
       for (const room of removed) {
         if (kept.has(room.id())) continue;
         touched.delete(room.id());
-        this.emit({ type: 'roomGone', roomId: room.id() });
+        this.emit({ type: "roomGone", roomId: room.id() });
       }
       for (const room of changed) touched.set(room.id(), room);
     }
@@ -174,7 +161,7 @@ class RnMatrixClient implements MatrixApi {
 
   private async announce(room: sdk.RoomLike): Promise<void> {
     const mapped = await this.toMxRoom(room);
-    if (mapped) this.emit({ type: 'room', room: mapped });
+    if (mapped) this.emit({ type: "room", room: mapped });
   }
 
   async room(id: string): Promise<MxRoom | null> {
@@ -192,14 +179,14 @@ class RnMatrixClient implements MatrixApi {
     const info = await room.roomInfo();
     if (info.isSpace) return null;
     const membership = mapMembership(info.membership);
-    const joined = membership === 'joined';
+    const joined = membership === "joined";
     const [selfRole, latest] = await Promise.all([
       joined
         ? room
             .suggestedRoleForUser(room.ownUserId())
             .then(mapRole)
-            .catch((): MxRole => 'member')
-        : ('member' as MxRole),
+            .catch((): MxRole => "member")
+        : ("member" as MxRole),
       joined ? latestOf(room).catch(() => undefined) : undefined,
     ]);
     const heroes = info.heroes.map((hero) => hero.userId);
@@ -209,12 +196,12 @@ class RnMatrixClient implements MatrixApi {
       ? ([...power.events()].find(
           ([type]) =>
             type.tag === sdk.TimelineEventType_Tags.MessageLike &&
-            type.inner.value.tag === sdk.MessageLikeEventType_Tags.RoomMessage
+            type.inner.value.tag === sdk.MessageLikeEventType_Tags.RoomMessage,
         )?.[1] ?? power.values().eventsDefault)
       : 0n;
     return {
       id: info.id,
-      name: info.displayName ?? info.rawName ?? '',
+      name: info.displayName ?? info.rawName ?? "",
       topic: info.topic,
       avatarUrl: info.avatarUrl,
       canonicalAlias: info.canonicalAlias,
@@ -222,9 +209,7 @@ class RnMatrixClient implements MatrixApi {
       isDm: info.isDm,
       broadcast: !info.isDm && !!power && requiredToSend > power.values().usersDefault,
       canSend: joined && (power ? power.canOwnUserSendMessage(messageType) : true),
-      peer: info.isDm
-        ? heroes.find((id) => id !== room.ownUserId() && !info.serviceMembers.includes(id))
-        : undefined,
+      peer: info.isDm ? heroes.find((id) => id !== room.ownUserId() && !info.serviceMembers.includes(id)) : undefined,
       membership,
       heroes,
       elevated: [...(power ? power.userPowerLevels().keys() : []), ...(info.creators ?? [])],
@@ -260,11 +245,11 @@ class RnMatrixClient implements MatrixApi {
           const { changed, removed } = applyDiff(items, diff, true);
           for (const item of changed) this.emitItem(roomId, item, removed[0]);
         }
-        if (receipts.length > 0) this.emit({ type: 'receipts', roomId, receipts });
+        if (receipts.length > 0) this.emit({ type: "receipts", roomId, receipts });
       },
     });
     const typingHandle = room.subscribeToTypingNotifications({
-      call: (userIds) => this.emit({ type: 'typing', roomId, userIds }),
+      call: (userIds) => this.emit({ type: "typing", roomId, userIds }),
     });
     const live = { timeline, handle, typingHandle, items };
     this.live.set(roomId, live);
@@ -277,35 +262,23 @@ class RnMatrixClient implements MatrixApi {
     return live;
   }
 
-  private emitItem(
-    roomId: string,
-    item: sdk.TimelineItemLike,
-    replaced: sdk.TimelineItemLike | undefined
-  ): void {
+  private emitItem(roomId: string, item: sdk.TimelineItemLike, replaced: sdk.TimelineItemLike | undefined): void {
     const event = this.toMxEvent(roomId, item);
     if (!event) return;
     // A receipt moving brings the same event again.
     if (replaced && sameValue(this.toMxEvent(roomId, replaced), event)) return;
-    this.emit({ type: 'event', event });
+    this.emit({ type: "event", event });
   }
 
   async messages(roomId: string, opts: { limit: number; before?: string }): Promise<MxEvent[]> {
     const live = await this.liveTimeline(roomId);
     for (;;) {
-      const events = live.items
-        .map((item) => this.toMxEvent(roomId, item))
-        .filter((e): e is MxEvent => e !== null);
-      const end = opts.before
-        ? events.findIndex((event) => event.id === opts.before)
-        : events.length;
+      const events = live.items.map((item) => this.toMxEvent(roomId, item)).filter((e): e is MxEvent => e !== null);
+      const end = opts.before ? events.findIndex((event) => event.id === opts.before) : events.length;
       if (end >= opts.limit) return events.slice(end - opts.limit, end);
-      const hitStart = await live.timeline.paginateBackwards(
-        Math.max(HISTORY_PAGE, opts.limit - Math.max(end, 0))
-      );
+      const hitStart = await live.timeline.paginateBackwards(Math.max(HISTORY_PAGE, opts.limit - Math.max(end, 0)));
       if (hitStart) {
-        const all = live.items
-          .map((item) => this.toMxEvent(roomId, item))
-          .filter((e): e is MxEvent => e !== null);
+        const all = live.items.map((item) => this.toMxEvent(roomId, item)).filter((e): e is MxEvent => e !== null);
         const stop = opts.before ? all.findIndex((event) => event.id === opts.before) : all.length;
         return stop < 0 ? [] : all.slice(Math.max(0, stop - opts.limit), stop);
       }
@@ -334,10 +307,7 @@ class RnMatrixClient implements MatrixApi {
     if (event.eventOrTransactionId.tag !== sdk.EventOrTransactionId_Tags.EventId) return null;
     const content = mapContent(event.content);
     if (!content) return null;
-    const msgLike =
-      event.content.tag === sdk.TimelineItemContent_Tags.MsgLike
-        ? event.content.inner.content
-        : null;
+    const msgLike = event.content.tag === sdk.TimelineItemContent_Tags.MsgLike ? event.content.inner.content : null;
     const reactions = msgLike?.reactions.map((reaction) => ({
       key: reaction.key,
       senders: reaction.senders.map((sender) => sender.senderId),
@@ -354,8 +324,7 @@ class RnMatrixClient implements MatrixApi {
       replyTo: msgLike?.threadRoot && fallsBack(event) ? undefined : msgLike?.inReplyTo?.eventId(),
       threadRoot: msgLike?.threadRoot,
       reactions: reactions && reactions.length > 0 ? reactions : undefined,
-      edited:
-        msgLike?.kind.tag === sdk.MsgLikeKind_Tags.Message && msgLike.kind.inner.content.isEdited,
+      edited: msgLike?.kind.tag === sdk.MsgLikeKind_Tags.Message && msgLike.kind.inner.content.isEdited,
     };
   }
 
@@ -372,9 +341,7 @@ class RnMatrixClient implements MatrixApi {
           displayName: member.displayName,
           role: mapRole(member.suggestedRoleForPowerLevel),
           powerLevel:
-            member.powerLevel.tag === sdk.PowerLevel_Tags.Value
-              ? Number(member.powerLevel.inner.value)
-              : undefined,
+            member.powerLevel.tag === sdk.PowerLevel_Tags.Value ? Number(member.powerLevel.inner.value) : undefined,
         });
       }
     }
@@ -387,7 +354,7 @@ class RnMatrixClient implements MatrixApi {
   }
 
   async previewPublicRoom(idOrAlias: string, via: string[]): Promise<MxPublicRoom> {
-    const preview = idOrAlias.startsWith('#')
+    const preview = idOrAlias.startsWith("#")
       ? await this.client.getRoomPreviewFromRoomAlias(idOrAlias)
       : await this.client.getRoomPreviewFromRoomId(idOrAlias, via);
     const info = preview.info();
@@ -400,8 +367,7 @@ class RnMatrixClient implements MatrixApi {
       joined: info.membership === sdk.Membership.Joined,
       canJoin: info.joinRule?.tag === sdk.JoinRule_Tags.Public,
       canRequestJoin:
-        info.joinRule?.tag === sdk.JoinRule_Tags.Knock ||
-        info.joinRule?.tag === sdk.JoinRule_Tags.KnockRestricted,
+        info.joinRule?.tag === sdk.JoinRule_Tags.Knock || info.joinRule?.tag === sdk.JoinRule_Tags.KnockRestricted,
     };
   }
 
@@ -459,9 +425,7 @@ class RnMatrixClient implements MatrixApi {
   }
 
   async setPowerLevel(roomId: string, userId: string, level: number): Promise<void> {
-    await this.requireRoom(roomId).updatePowerLevelsForUsers([
-      { userId, powerLevel: BigInt(level) },
-    ]);
+    await this.requireRoom(roomId).updatePowerLevelsForUsers([{ userId, powerLevel: BigInt(level) }]);
   }
 
   async setName(roomId: string, name: string): Promise<void> {
@@ -490,35 +454,26 @@ class RnMatrixClient implements MatrixApi {
    * Text and stickers go straight to the homeserver, so a rejection rejects here.
    * Attachments go through the SDK's send queue, which resolves once queued.
    */
-  async send(
-    roomId: string,
-    content: MxOutgoing,
-    replyTo?: string,
-    threadRoot?: string
-  ): Promise<undefined> {
+  async send(roomId: string, content: MxOutgoing, replyTo?: string, threadRoot?: string): Promise<undefined> {
     const room = this.requireRoom(roomId);
-    if (content.kind === 'text') {
+    if (content.kind === "text") {
       const relates = relation(replyTo, threadRoot);
       const repliedTo = replyTo ? await this.senderOf(room, replyTo) : undefined;
-      const mentions = [
-        ...new Set([...(content.mentions ?? []), ...(repliedTo ? [repliedTo] : [])]),
-      ];
+      const mentions = [...new Set([...(content.mentions ?? []), ...(repliedTo ? [repliedTo] : [])])];
       await room.sendRaw(
-        'm.room.message',
+        "m.room.message",
         JSON.stringify({
-          msgtype: 'm.text',
+          msgtype: "m.text",
           body: content.body,
-          ...(content.html
-            ? { format: 'org.matrix.custom.html', formatted_body: content.html }
-            : {}),
-          ...(mentions.length ? { 'm.mentions': { user_ids: mentions } } : {}),
-          ...(relates ? { 'm.relates_to': relates } : {}),
-        })
+          ...(content.html ? { format: "org.matrix.custom.html", formatted_body: content.html } : {}),
+          ...(mentions.length ? { "m.mentions": { user_ids: mentions } } : {}),
+          ...(relates ? { "m.relates_to": relates } : {}),
+        }),
       );
       return;
     }
-    if (content.kind === 'sticker') {
-      const { path, body, mimeType = 'image/webp', width, height, size } = content;
+    if (content.kind === "sticker") {
+      const { path, body, mimeType = "image/webp", width, height, size } = content;
       let url = this.uploads.get(path);
       if (!url) {
         const data = await new File(`file://${path}`).arrayBuffer();
@@ -526,13 +481,13 @@ class RnMatrixClient implements MatrixApi {
         this.uploads.set(path, url);
       }
       await room.sendRaw(
-        'm.sticker',
+        "m.sticker",
         JSON.stringify({
           body,
           info: { mimetype: mimeType, w: width, h: height, size },
           url,
-          'm.relates_to': relation(replyTo, threadRoot),
-        })
+          "m.relates_to": relation(replyTo, threadRoot),
+        }),
       );
       return;
     }
@@ -569,9 +524,7 @@ class RnMatrixClient implements MatrixApi {
     });
     try {
       const ids = (await room.roomInfo()).pinnedEventIds;
-      const items = await Promise.all(
-        ids.map((id) => timeline.getEventTimelineItemByEventId(id).catch(() => null))
-      );
+      const items = await Promise.all(ids.map((id) => timeline.getEventTimelineItemByEventId(id).catch(() => null)));
       return items
         .map((item) => item && this.toMxEventItem(roomId, item))
         .filter((event): event is MxEvent => event !== null)
@@ -593,10 +546,9 @@ class RnMatrixClient implements MatrixApi {
       : sdk.messageEventContentNew(
           new sdk.MessageType.Text({
             content: sdk.TextMessageContent.create({ body: content.body }),
-          })
+          }),
         );
-    if (content.mentions?.length)
-      replacement = replacement.withMentions({ userIds: content.mentions, room: false });
+    if (content.mentions?.length) replacement = replacement.withMentions({ userIds: content.mentions, room: false });
     await this.requireRoom(roomId).edit(eventId, replacement);
   }
 
@@ -613,12 +565,7 @@ class RnMatrixClient implements MatrixApi {
   }
 
   async createPoll(roomId: string, question: string, options: string[]): Promise<void> {
-    await (await this.liveTimeline(roomId)).timeline.createPoll(
-      question,
-      options,
-      1,
-      sdk.PollKind.Disclosed
-    );
+    await (await this.liveTimeline(roomId)).timeline.createPoll(question, options, 1, sdk.PollKind.Disclosed);
   }
 
   async votePoll(roomId: string, eventId: string, answerIds: string[]): Promise<void> {
@@ -626,19 +573,14 @@ class RnMatrixClient implements MatrixApi {
   }
 
   async media(media: MxMedia): Promise<string> {
-    const digest = await Crypto.digestStringAsync(
-      Crypto.CryptoDigestAlgorithm.SHA256,
-      media.source
-    );
-    const file = new File(
-      `file://${this.params.dataDirectory}/media/${digest.slice(0, 32)}${extensionOf(media.name)}`
-    );
+    const digest = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, media.source);
+    const file = new File(`file://${this.params.dataDirectory}/media/${digest.slice(0, 32)}${extensionOf(media.name)}`);
     if (!file.exists) {
       const bytes = await this.client.getMediaContent(sdk.MediaSource.fromJson(media.source));
       file.create({ intermediates: true });
       file.write(new Uint8Array(bytes));
     }
-    return file.uri.replace(/^file:\/\//, '');
+    return file.uri.replace(/^file:\/\//, "");
   }
 
   onUpdate(listener: (update: MxUpdate) => void): () => void {
@@ -665,12 +607,12 @@ class RnMatrixClient implements MatrixApi {
 
 /** In a thread, a message that replies to nothing still points at the root, for clients without threads. */
 function relation(replyTo?: string, threadRoot?: string) {
-  if (!threadRoot) return replyTo ? { 'm.in_reply_to': { event_id: replyTo } } : undefined;
+  if (!threadRoot) return replyTo ? { "m.in_reply_to": { event_id: replyTo } } : undefined;
   return {
-    rel_type: 'm.thread',
+    rel_type: "m.thread",
     event_id: threadRoot,
     is_falling_back: !replyTo,
-    'm.in_reply_to': { event_id: replyTo ?? threadRoot },
+    "m.in_reply_to": { event_id: replyTo ?? threadRoot },
   };
 }
 
@@ -679,7 +621,7 @@ function fallsBack(event: sdk.EventTimelineItem): boolean {
   const json = event.lazyProvider.debugInfo().originalJson;
   if (!json) return false;
   try {
-    return JSON.parse(json).content?.['m.relates_to']?.is_falling_back === true;
+    return JSON.parse(json).content?.["m.relates_to"]?.is_falling_back === true;
   } catch {
     return false;
   }
@@ -687,13 +629,13 @@ function fallsBack(event: sdk.EventTimelineItem): boolean {
 
 async function sendMedia(
   timeline: sdk.TimelineLike,
-  content: Exclude<MxOutgoing, { kind: 'text' | 'sticker' }>,
-  replyTo: string | undefined
+  content: Exclude<MxOutgoing, { kind: "text" | "sticker" }>,
+  replyTo: string | undefined,
 ): Promise<void> {
   const source = new sdk.UploadSource.File({ filename: content.path });
   const size = content.size === undefined ? undefined : BigInt(content.size);
   switch (content.kind) {
-    case 'image':
+    case "image":
       await timeline
         .sendImage({ source, caption: content.caption, inReplyTo: replyTo }, undefined, {
           width: content.width === undefined ? undefined : BigInt(content.width),
@@ -703,12 +645,10 @@ async function sendMedia(
         })
         .join();
       return;
-    case 'file':
-      await timeline
-        .sendFile({ source, inReplyTo: replyTo }, { mimetype: content.mimeType, size })
-        .join();
+    case "file":
+      await timeline.sendFile({ source, inReplyTo: replyTo }, { mimetype: content.mimeType, size }).join();
       return;
-    case 'video':
+    case "video":
       await timeline
         .sendVideo({ source, caption: content.caption, inReplyTo: replyTo }, undefined, {
           width: content.width === undefined ? undefined : BigInt(content.width),
@@ -718,12 +658,12 @@ async function sendMedia(
         })
         .join();
       return;
-    case 'voice':
+    case "voice":
       await timeline
         .sendVoiceMessage(
           { source, inReplyTo: replyTo },
           { duration: content.durationMs, mimetype: content.mimeType, size },
-          []
+          [],
         )
         .join();
       return;
@@ -735,13 +675,11 @@ function unwrapped(target: RnMatrixClient): MatrixApi {
   const api = {} as Record<string, unknown>;
   for (const key of Object.getOwnPropertyNames(RnMatrixClient.prototype)) {
     const method = (target as unknown as Record<string, unknown>)[key];
-    if (key === 'constructor' || typeof method !== 'function') continue;
+    if (key === "constructor" || typeof method !== "function") continue;
     api[key] = (...args: unknown[]) => {
       try {
         const result = (method as (...a: unknown[]) => unknown).apply(target, args);
-        return result instanceof Promise
-          ? result.catch((error) => Promise.reject(toError(error)))
-          : result;
+        return result instanceof Promise ? result.catch((error) => Promise.reject(toError(error))) : result;
       } catch (error) {
         throw toError(error);
       }
@@ -753,13 +691,8 @@ function unwrapped(target: RnMatrixClient): MatrixApi {
 function toError(error: unknown): Error {
   const inner = (error as { inner?: { msg?: unknown; code?: unknown } } | null)?.inner;
   if (!inner) return error instanceof Error ? error : new Error(String(error));
-  const msg =
-    typeof inner.msg === 'string'
-      ? inner.msg
-      : error instanceof Error
-        ? error.message
-        : String(error);
-  return new Error(typeof inner.code === 'string' ? `${inner.code}: ${msg}` : msg);
+  const msg = typeof inner.msg === "string" ? inner.msg : error instanceof Error ? error.message : String(error);
+  return new Error(typeof inner.code === "string" ? `${inner.code}: ${msg}` : msg);
 }
 
 export const MatrixClient = {

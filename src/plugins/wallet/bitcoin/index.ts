@@ -1,27 +1,24 @@
-import type { PluginContext } from '@/core/plugins/types';
-import { W } from '@/design/widgets';
+import { errorMessage } from "@/core/errors";
+import type { PluginContext } from "@/core/plugins/types";
+import { W } from "@/design/widgets";
+import { toHex } from "@/lib/bytes";
+import { CoinType, looksLikeEnsName, resolveNameForCoin } from "@/lib/evm/ens";
+import { type ChainStrategy, derivationUnavailable } from "../chains/strategy";
+import { BIP84_ACCOUNT_PATH, isBitcoinAddress, p2wpkhAddress } from "./address";
+import { broadcast, fetchAddressStats, fetchFeeRates, fetchUtxos, formatBtc } from "./api";
+import { planSpend } from "./coins";
+import { apiBase, isDefaultApiBase, saveApiBase } from "./config";
+import { buildTransaction, scriptPubKey } from "./transaction";
 
-import { CoinType, looksLikeEnsName, resolveNameForCoin } from '@/lib/evm/ens';
-
-import { BIP84_ACCOUNT_PATH, isBitcoinAddress, p2wpkhAddress } from './address';
-import { broadcast, fetchAddressStats, fetchFeeRates, fetchUtxos, formatBtc } from './api';
-import { apiBase, isDefaultApiBase, saveApiBase } from './config';
-import { derivationUnavailable, type ChainStrategy } from '../chains/strategy';
-import { planSpend } from './coins';
-import { toHex } from '@/lib/bytes';
-
-import { buildTransaction, scriptPubKey } from './transaction';
-import { errorMessage } from '@/core/errors';
-
-const EXPLORER = 'https://mempool.space';
+const EXPLORER = "https://mempool.space";
 
 const RECIPIENT_HINT =
-  'Ask the recipient for their full Bitcoin mainnet address starting with bc1q; addresses starting with 1, 3, bc1p or tb1 are not supported for sending here.';
+  "Ask the recipient for their full Bitcoin mainnet address starting with bc1q; addresses starting with 1, 3, bc1p or tb1 are not supported for sending here.";
 
 async function planTransfer(
   context: PluginContext,
   amount: string,
-  to: string
+  to: string,
 ): Promise<
   | { error: string }
   | {
@@ -41,10 +38,9 @@ async function planTransfer(
     };
   }
 
-  const [whole, fraction = ''] = amount.split('.');
-  const sats = BigInt(whole) * 100_000_000n + BigInt(fraction.padEnd(8, '0'));
-  if (sats === 0n)
-    return { error: 'Enter a BTC amount greater than 0, using up to 8 decimal places.' };
+  const [whole, fraction = ""] = amount.split(".");
+  const sats = BigInt(whole) * 100_000_000n + BigInt(fraction.padEnd(8, "0"));
+  if (sats === 0n) return { error: "Enter a BTC amount greater than 0, using up to 8 decimal places." };
 
   try {
     scriptPubKey(to);
@@ -62,7 +58,7 @@ async function planTransfer(
     if (fees.medium <= 0) {
       return {
         error:
-          'The Bitcoin fee provider returned an invalid fee rate. Check your Bitcoin indexer setting or try reviewing again later.',
+          "The Bitcoin fee provider returned an invalid fee rate. Check your Bitcoin indexer setting or try reviewing again later.",
       };
     }
     const available = utxos.reduce((total, utxo) => total + utxo.value, 0n);
@@ -82,31 +78,30 @@ async function planTransfer(
 
 export function bitcoinStrategy(context: PluginContext): ChainStrategy {
   return {
-    id: 'bitcoin',
-    name: 'Bitcoin',
-    icon: 'logo-bitcoin',
+    id: "bitcoin",
+    name: "Bitcoin",
+    icon: "logo-bitcoin",
     selfAddress: (ctx) => p2wpkhAddress(ctx.account.derive(BIP84_ACCOUNT_PATH).publicKey),
     isAddress: isBitcoinAddress,
-    addressHint: 'bc1…',
+    addressHint: "bc1…",
     // The name's Bitcoin record per ENSIP-9, never its Ethereum one.
-    resolve: (input) =>
-      looksLikeEnsName(input) ? resolveNameForCoin(input, CoinType.bitcoin) : Promise.resolve(null),
-    unavailable: derivationUnavailable('Bitcoin'),
+    resolve: (input) => (looksLikeEnsName(input) ? resolveNameForCoin(input, CoinType.bitcoin) : Promise.resolve(null)),
+    unavailable: derivationUnavailable("Bitcoin"),
 
     async fees() {
       const rates = await fetchFeeRates(apiBase());
       return {
         headline: `${rates.medium} sat/vB`,
-        label: 'Half-hour fee',
+        label: "Half-hour fee",
         caption: `≈ ${formatBtc(BigInt(rates.medium * 141))} BTC for a plain spend`,
         rows: [
-          { label: 'Next block', value: `${rates.fast} sat/vB` },
-          { label: 'Half an hour', value: `${rates.medium} sat/vB` },
-          { label: 'An hour', value: `${rates.slow} sat/vB` },
+          { label: "Next block", value: `${rates.fast} sat/vB` },
+          { label: "Half an hour", value: `${rates.medium} sat/vB` },
+          { label: "An hour", value: `${rates.slow} sat/vB` },
         ],
         note:
-          'Bitcoin charges for size, not computation, so what a spend costs depends on how ' +
-          'many coins it has to gather.',
+          "Bitcoin charges for size, not computation, so what a spend costs depends on how " +
+          "many coins it has to gather.",
       };
     },
 
@@ -121,50 +116,50 @@ export function bitcoinStrategy(context: PluginContext): ChainStrategy {
           ...(stats.pending !== 0n
             ? [
                 {
-                  label: 'Pending',
+                  label: "Pending",
                   value: `${formatBtc(stats.pending)} BTC in the mempool`,
-                  tone: 'warning' as const,
+                  tone: "warning" as const,
                 },
               ]
             : [
                 {
-                  label: 'Transactions',
+                  label: "Transactions",
                   value: String(stats.txCount),
                 },
               ]),
-          { label: 'Derivation', value: BIP84_ACCOUNT_PATH },
+          { label: "Derivation", value: BIP84_ACCOUNT_PATH },
         ]),
-        W.code(address, { label: 'Full address' }),
+        W.code(address, { label: "Full address" }),
       ];
     },
 
     explorer: {
-      name: 'mempool.space',
+      name: "mempool.space",
       addressUrl: (address) => `${EXPLORER}/address/${address}`,
     },
     transfer: {
-      symbol: 'BTC',
+      symbol: "BTC",
       async quote(ctx, { amount, to }) {
         const plan = await planTransfer(ctx, amount, to);
-        if ('error' in plan) return plan;
+        if ("error" in plan) return plan;
         const { sending, fee, change, feeRate, inputs } = plan;
         return {
-          symbol: 'BTC',
+          symbol: "BTC",
           rows: [
-            { label: 'Chain', value: 'Bitcoin' },
-            { label: 'Amount', value: `${formatBtc(sending)} BTC` },
-            { label: 'Fee', value: `${formatBtc(fee)} BTC (${feeRate} sat/vB)` },
+            { label: "Chain", value: "Bitcoin" },
+            { label: "Amount", value: `${formatBtc(sending)} BTC` },
+            { label: "Fee", value: `${formatBtc(fee)} BTC (${feeRate} sat/vB)` },
             {
-              label: 'Change back',
-              value: change === null ? 'none (it would be dust)' : `${formatBtc(change)} BTC`,
+              label: "Change back",
+              value: change === null ? "none (it would be dust)" : `${formatBtc(change)} BTC`,
             },
-            { label: 'Coins spent', value: String(inputs.length) },
+            { label: "Coins spent", value: String(inputs.length) },
           ],
         };
       },
       async commit(ctx, { amount, to }) {
         const plan = await planTransfer(ctx, amount, to);
-        if ('error' in plan) throw new Error(plan.error);
+        if ("error" in plan) throw new Error(plan.error);
 
         const key = ctx.account.derive(BIP84_ACCOUNT_PATH);
         const from = p2wpkhAddress(key.publicKey);
@@ -183,16 +178,16 @@ export function bitcoinStrategy(context: PluginContext): ChainStrategy {
       set: (_ctx, url) => saveApiBase(context, url),
       check: async (url) => {
         try {
-          await fetchAddressStats('bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4', url);
+          await fetchAddressStats("bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4", url);
           return { ok: true as const };
         } catch (error) {
           return {
             ok: false as const,
-            reason: errorMessage(error, 'That indexer did not answer.'),
+            reason: errorMessage(error, "That indexer did not answer."),
           };
         }
       },
-      noun: 'indexer',
+      noun: "indexer",
     },
   };
 }

@@ -1,32 +1,22 @@
-import { View } from 'react-native';
-
-import {
-  ChatBackground,
-  Checkmark,
-  type ChatPatternName,
-  Icon,
-  ListItem,
-  Pressable,
-  Section,
-  Text,
-} from '@/design';
-import { useAppearanceStore, type ThemeChoice } from '@/core/app/appearance';
-import { MenuBarSetting } from '@/features/settings/menu-bar-setting';
-import { SettingsScreen } from '@/features/settings/settings-screen';
+import { View } from "react-native";
+import { type ThemeChoice, useAppearanceStore } from "@/core/app/appearance";
+import { ChatBackground, type ChatPatternName, Checkmark, Icon, ListItem, Pressable, Section, Text } from "@/design";
+import { MenuBarSetting } from "@/features/settings/menu-bar-setting";
+import { SettingsScreen } from "@/features/settings/settings-screen";
 
 const THEMES: { id: ThemeChoice; label: string; hint: string }[] = [
   {
-    id: 'system',
-    label: 'Match device',
-    hint: `Follows your ${process.env.EXPO_OS === 'ios' ? 'iOS' : process.env.EXPO_OS === 'android' ? 'Android' : 'system'} appearance setting`,
+    id: "system",
+    label: "Match device",
+    hint: `Follows your ${process.env.EXPO_OS === "ios" ? "iOS" : process.env.EXPO_OS === "android" ? "Android" : "system"} appearance setting`,
   },
-  { id: 'light', label: 'Light', hint: '' },
-  { id: 'dark', label: 'Dark', hint: '' },
+  { id: "light", label: "Light", hint: "" },
+  { id: "dark", label: "Dark", hint: "" },
 ];
 
 const WALLPAPERS: { id: ChatPatternName; label: string }[] = [
-  { id: 'doodles', label: 'Doodles' },
-  { id: 'bubbles', label: 'Bubbles' },
+  { id: "doodles", label: "Doodles" },
+  { id: "bubbles", label: "Bubbles" },
 ];
 
 export default function AppearanceScreen() {
@@ -61,17 +51,19 @@ export default function AppearanceScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={entry.label}
                 onPress={() => void setWallpaper(entry.id)}
-                className="flex-1 gap-1.5">
+                className="flex-1 gap-1.5"
+              >
                 <View
                   className={
                     active
-                      ? 'h-28 overflow-hidden rounded-card border-2 border-brand'
-                      : 'h-28 overflow-hidden rounded-card border border-line'
-                  }>
+                      ? "h-28 overflow-hidden rounded-card border-2 border-brand"
+                      : "h-28 overflow-hidden rounded-card border border-line"
+                  }
+                >
                   <ChatBackground pattern={entry.id} />
                 </View>
                 <View className="flex-row items-center gap-1.5">
-                  <Text variant="caption" className={active ? 'font-semibold' : undefined}>
+                  <Text variant="caption" className={active ? "font-semibold" : undefined}>
                     {entry.label}
                   </Text>
                   {active ? <Icon name="checkmark-circle" size={14} tone="brand" /> : null}

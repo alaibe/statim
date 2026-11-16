@@ -1,22 +1,19 @@
-import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
-import { protocolKeys } from '@/core/messaging/namespace';
-import type { Chat } from '@/core/messaging/types';
+import { selfIdFor, useChatStore } from "@/core/messaging/chat-store";
+import { protocolKeys } from "@/core/messaging/namespace";
+import type { Chat } from "@/core/messaging/types";
 
-import { displayNames, readyChat, whenAccountReady, type CliHandler } from '../context';
-import { CliError } from '../errors';
-import { resolveAllOn, resolveOn } from './people';
-import { requireProtocol } from './protocols';
+import { type CliHandler, displayNames, readyChat, whenAccountReady } from "../context";
+import { CliError } from "../errors";
+import { resolveAllOn, resolveOn } from "./people";
+import { requireProtocol } from "./protocols";
 
 async function group(ref: string) {
   const chat = await readyChat(ref);
-  if (chat.kind === 'dm') throw new CliError(`${chat.label} is a DM, not a group.`, 'usage');
+  if (chat.kind === "dm") throw new CliError(`${chat.label} is a DM, not a group.`, "usage");
   return chat;
 }
 
-function memberAction(
-  run: (chat: Chat, member: string) => Promise<void>,
-  done: string
-): CliHandler {
+function memberAction(run: (chat: Chat, member: string) => Promise<void>, done: string): CliHandler {
   return async ({ args }) => {
     const chat = await group(args.chat!);
     await run(chat, args.member!);
@@ -30,15 +27,15 @@ function joinRequestAction(approve: boolean): CliHandler {
     await useChatStore.getState().processJoinRequest(chat.id, args.participant!, approve);
     return {
       data: { chat: chat.id, participant: args.participant, approved: approve },
-      text: approve ? 'Approved.' : 'Declined.',
+      text: approve ? "Approved." : "Declined.",
     };
   };
 }
 
 export const groupHandlers = {
-  async 'group create'({ args, rest, flags }) {
+  async "group create"({ args, rest, flags }) {
     await whenAccountReady();
-    if (rest.length === 0) throw new CliError('Name at least one member.', 'usage');
+    if (rest.length === 0) throw new CliError("Name at least one member.", "usage");
     const { protocol } = await resolveOn(flags.protocol, rest[0]);
     const members = await resolveAllOn(protocol, rest);
     const chat = await useChatStore.getState().startGroup(protocol, members, args.title!);
@@ -48,101 +45,92 @@ export const groupHandlers = {
     };
   },
 
-  async 'group members'({ args }) {
+  async "group members"({ args }) {
     const chat = await group(args.chat!);
     const members = await useChatStore.getState().getMembers(chat.id);
     const names = await displayNames(
       chat.protocol,
-      members.map((m) => m.id)
+      members.map((m) => m.id),
     );
     const self = selfIdFor(useChatStore.getState(), chat.protocol);
     const data = members.map((m) => ({
       ...m,
-      name: m.id === self ? 'You' : (names[m.id] ?? m.id),
+      name: m.id === self ? "You" : (names[m.id] ?? m.id),
     }));
     return {
       data,
-      text: data.map((m) => `${m.name}  ${m.role}${m.muted ? ', muted' : ''}  ${m.id}`),
+      text: data.map((m) => `${m.name}  ${m.role}${m.muted ? ", muted" : ""}  ${m.id}`),
     };
   },
 
-  async 'group add'({ args, rest }) {
+  async "group add"({ args, rest }) {
     const chat = await group(args.chat!);
     const members = await resolveAllOn(chat.protocol, rest);
     await useChatStore.getState().addMembers(chat.id, members);
     return { data: { chat: chat.id, added: members }, text: `Added ${members.length}.` };
   },
 
-  async 'group remove'({ args, rest }) {
+  async "group remove"({ args, rest }) {
     const chat = await group(args.chat!);
     await useChatStore.getState().removeMembers(chat.id, rest);
     return { data: { chat: chat.id, removed: rest }, text: `Removed ${rest.length}.` };
   },
 
-  'group ban': memberAction(
-    (chat, member) => useChatStore.getState().banMember(chat.id, member),
-    'Banned'
-  ),
-  'group mute': memberAction(
-    (chat, member) => useChatStore.getState().setMemberMuted(chat.id, member, true),
-    'Muted'
-  ),
-  'group unmute': memberAction(
+  "group ban": memberAction((chat, member) => useChatStore.getState().banMember(chat.id, member), "Banned"),
+  "group mute": memberAction((chat, member) => useChatStore.getState().setMemberMuted(chat.id, member, true), "Muted"),
+  "group unmute": memberAction(
     (chat, member) => useChatStore.getState().setMemberMuted(chat.id, member, false),
-    'Unmuted'
+    "Unmuted",
   ),
 
-  async 'group rename'({ args }) {
+  async "group rename"({ args }) {
     const chat = await group(args.chat!);
     await useChatStore.getState().renameGroup(chat.id, args.title!);
     return { data: { chat: chat.id, title: args.title }, text: `Renamed to ${args.title}.` };
   },
 
-  async 'group leave'({ args }) {
+  async "group leave"({ args }) {
     const chat = await group(args.chat!);
     await useChatStore.getState().leaveGroup(chat.id);
     return { data: { chat: chat.id, left: true }, text: `Left ${chat.label}.` };
   },
 
-  async 'group slowmode'({ args }) {
+  async "group slowmode"({ args }) {
     const chat = await group(args.chat!);
     const seconds = Number(args.seconds);
-    if (!Number.isInteger(seconds) || seconds < 0)
-      throw new CliError('Give whole seconds, 0 or more.', 'usage');
+    if (!Number.isInteger(seconds) || seconds < 0) throw new CliError("Give whole seconds, 0 or more.", "usage");
     await useChatStore.getState().setSlowModeDelay(chat.id, seconds);
     return {
       data: { chat: chat.id, seconds },
-      text: seconds ? `Slow mode: ${seconds}s.` : 'Slow mode off.',
+      text: seconds ? `Slow mode: ${seconds}s.` : "Slow mode off.",
     };
   },
 
-  async 'group invite-link'({ args, flags }) {
+  async "group invite-link"({ args, flags }) {
     const chat = await group(args.chat!);
     const link = await useChatStore.getState().createInviteLink(chat.id, Boolean(flags.approval));
     return { data: { chat: chat.id, link }, text: link };
   },
 
-  async 'group requests'({ args }) {
+  async "group requests"({ args }) {
     const chat = await group(args.chat!);
     const requests = await useChatStore.getState().getJoinRequests(chat.id);
     return {
       data: requests.map((r) => ({ ...r, requestedAt: new Date(r.requestedAt).toISOString() })),
       text: requests.length
-        ? requests.map((r) => `${r.name}  ${r.participantId}${r.bio ? `  ${r.bio}` : ''}`)
-        : 'No requests.',
+        ? requests.map((r) => `${r.name}  ${r.participantId}${r.bio ? `  ${r.bio}` : ""}`)
+        : "No requests.",
     };
   },
 
-  'group approve': joinRequestAction(true),
-  'group decline': joinRequestAction(false),
+  "group approve": joinRequestAction(true),
+  "group decline": joinRequestAction(false),
 
   async join({ args, flags }) {
     await whenAccountReady();
     const store = useChatStore.getState();
     const protocols =
-      typeof flags.protocol === 'string'
-        ? [requireProtocol(flags.protocol).id]
-        : protocolKeys(store.sessions);
+      typeof flags.protocol === "string" ? [requireProtocol(flags.protocol).id] : protocolKeys(store.sessions);
     let lastError: unknown;
     for (const protocol of protocols) {
       const session = store.sessions[protocol];
@@ -155,7 +143,7 @@ export const groupHandlers = {
         continue;
       }
       const data = { protocol, ...preview };
-      const summary = `${preview.title} (${preview.kind}${preview.memberCount ? `, ${preview.memberCount} members` : ''})`;
+      const summary = `${preview.title} (${preview.kind}${preview.memberCount ? `, ${preview.memberCount} members` : ""})`;
       if (flags.preview || preview.joined) {
         return { data, text: preview.joined ? `Already in ${summary}.` : summary };
       }
@@ -168,7 +156,7 @@ export const groupHandlers = {
     }
     throw new CliError(
       lastError instanceof Error ? lastError.message : `Nothing public matches "${args.link}".`,
-      'notFound'
+      "notFound",
     );
   },
 } satisfies Record<string, CliHandler>;

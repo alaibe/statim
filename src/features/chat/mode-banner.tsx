@@ -1,9 +1,9 @@
-import { View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import { View } from "react-native";
+import Animated from "react-native-reanimated";
 
-import { Enter, Exit, IconButton, Text } from '@/design';
+import { Enter, Exit, IconButton, Text } from "@/design";
 
-import type { ComposerBanner } from './composer-mode';
+import type { ComposerBanner } from "./composer-mode";
 
 export function ModeBanner({
   banner,
@@ -18,10 +18,11 @@ export function ModeBanner({
     <Animated.View
       entering={Enter.fade()}
       exiting={Exit.fade()}
-      className="flex-row items-center gap-2 border-t border-line bg-surface-sunken px-gutter py-2">
+      className="flex-row items-center gap-2 border-t border-line bg-surface-sunken px-gutter py-2"
+    >
       <View className="h-8 w-0.5 rounded-full bg-brand" />
       <View className="min-w-0 flex-1">
-        <Text variant={banner.detail ? 'micro' : 'caption'} className="font-semibold text-brand">
+        <Text variant={banner.detail ? "micro" : "caption"} className="font-semibold text-brand">
           {banner.label}
         </Text>
         {banner.detail ? (
@@ -32,7 +33,7 @@ export function ModeBanner({
       </View>
       <IconButton
         icon="close"
-        label={editing ? 'Cancel edit' : 'Cancel reply'}
+        label={editing ? "Cancel edit" : "Cancel reply"}
         tone="subtle"
         size={18}
         onPress={onCancel}

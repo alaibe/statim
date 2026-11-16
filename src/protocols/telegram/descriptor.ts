@@ -1,84 +1,79 @@
-import Constants from 'expo-constants';
+import Constants from "expo-constants";
 
-import type { ProtocolDescriptor } from '@/core/messaging/registry';
-import { guideUrl } from '@/lib/guide';
-import { accountTdlibDatabaseKey } from '@/storage/vault';
+import type { ProtocolDescriptor } from "@/core/messaging/registry";
+import { guideUrl } from "@/lib/guide";
+import { accountTdlibDatabaseKey } from "@/storage/vault";
 
-import { DEVICE, databaseDirectory, eraseDatabase } from './host';
+import { DEVICE, databaseDirectory, eraseDatabase } from "./host";
 
 export const TELEGRAM_PROTOCOL = {
-  id: 'telegram',
-  docsUrl: guideUrl('networks', 'telegram'),
-  label: 'Telegram',
+  id: "telegram",
+  docsUrl: guideUrl("networks", "telegram"),
+  label: "Telegram",
   folded: true,
   publicChats: {
-    title: 'Join a Telegram group or channel',
-    hint: 'Enter a @username, public link, or invite link to preview it.',
-    placeholder: '@username or t.me/+invite',
+    title: "Join a Telegram group or channel",
+    hint: "Enter a @username, public link, or invite link to preview it.",
+    placeholder: "@username or t.me/+invite",
   },
-  description:
-    'Your Telegram account: private chats, groups and channels, signed in with your phone number.',
+  description: "Your Telegram account: private chats, groups and channels, signed in with your phone number.",
   address: {
-    label: 'Username or phone number',
-    placeholder: '@username or +44…',
-    noun: 'a username',
-    hint: 'Add a Telegram @username, a t.me link, or a phone number with its country code.',
+    label: "Username or phone number",
+    placeholder: "@username or +44…",
+    noun: "a username",
+    hint: "Add a Telegram @username, a t.me link, or a phone number with its country code.",
     unreachable: (input) =>
       `${input} did not match anyone on Telegram. ` +
-      'Usernames are public; a phone number only resolves if it is in your contacts or allows lookup.',
+      "Usernames are public; a phone number only resolves if it is in your contacts or allows lookup.",
   },
   meta: {
     trustModel:
-      'Telegram stores every chat on its servers and can read them. Only Secret Chats are ' +
-      'end-to-end encrypted, and this app does not open those.',
+      "Telegram stores every chat on its servers and can read them. Only Secret Chats are " +
+      "end-to-end encrypted, and this app does not open those.",
     properties: {
       endToEndEncrypted: false,
       forwardSecrecy: false,
-      metadataPrivacy: 'low',
+      metadataPrivacy: "low",
       maxGroupSize: 200_000,
-      groupModel: 'enforced',
+      groupModel: "enforced",
       durableHistory: true,
     },
   },
   configSchema: {
     fields: [
       {
-        key: 'apiId',
-        label: 'API ID',
-        kind: 'text',
-        placeholder: '12345678',
-        help: 'From my.telegram.org → API development tools. Each user registers their own; nothing is shared.',
+        key: "apiId",
+        label: "API ID",
+        kind: "text",
+        placeholder: "12345678",
+        help: "From my.telegram.org → API development tools. Each user registers their own; nothing is shared.",
         required: true,
       },
       {
-        key: 'apiHash',
-        label: 'API hash',
-        kind: 'secret',
-        placeholder: '32 hex characters',
-        help: 'From the same page. Stored in the keychain with your other keys.',
+        key: "apiHash",
+        label: "API hash",
+        kind: "secret",
+        placeholder: "32 hex characters",
+        help: "From the same page. Stored in the keychain with your other keys.",
         required: true,
       },
     ],
   },
   async connect({ accountId, config }) {
-    const [{ TelegramSession }, { TdClient }] = await Promise.all([
-      import('./adapter'),
-      import('./td-client'),
-    ]);
+    const [{ TelegramSession }, { TdClient }] = await Promise.all([import("./adapter"), import("./td-client")]);
     const apiId = Number(config.apiId?.trim());
-    if (!Number.isInteger(apiId) || apiId <= 0)
-      throw new Error('The API ID must be a whole number.');
+    if (!Number.isInteger(apiId) || apiId <= 0) throw new Error("The API ID must be a whole number.");
 
     return TelegramSession.connect({
       createApi: () => TdClient.create(),
       parameters: {
         databaseDirectory: await databaseDirectory(accountId),
         apiId,
-        apiHash: config.apiHash?.trim() ?? '',
+        apiHash: config.apiHash?.trim() ?? "",
         databaseEncryptionKey: await accountTdlibDatabaseKey(accountId),
         deviceModel: DEVICE.model,
         systemVersion: DEVICE.systemVersion,
-        applicationVersion: Constants.expoConfig?.version ?? '1.0',
+        applicationVersion: Constants.expoConfig?.version ?? "1.0",
       },
     });
   },

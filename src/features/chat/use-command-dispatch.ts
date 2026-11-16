@@ -1,39 +1,39 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
-import { buttonCommand } from '@/core/commands/button';
-import { parseCommand } from '@/core/commands/parser';
-import { toast } from '@/design';
-import { isLocalChat, toContent } from '@/core/messaging/bots';
-import { inScope, type ChatScope } from '@/core/messaging/chat-scope';
-import { useChatStore } from '@/core/messaging/chat-store';
-import type { ChatSession } from '@/core/messaging/protocol';
-import type { ChatId, MessageContent } from '@/core/messaging/types';
-import { usePluginHost } from '@/core/plugins/host';
-import { type PluginRegistry, worksOn } from '@/core/plugins/registry';
-import type { SlashCommand } from '@/core/plugins/types';
-import { errorMessage } from '@/core/errors';
+import { buttonCommand } from "@/core/commands/button";
+import { parseCommand } from "@/core/commands/parser";
+import { errorMessage } from "@/core/errors";
+import { isLocalChat, toContent } from "@/core/messaging/bots";
+import { type ChatScope, inScope } from "@/core/messaging/chat-scope";
+import { useChatStore } from "@/core/messaging/chat-store";
+import type { ChatSession } from "@/core/messaging/protocol";
+import type { ChatId, MessageContent } from "@/core/messaging/types";
+import { usePluginHost } from "@/core/plugins/host";
+import { type PluginRegistry, worksOn } from "@/core/plugins/registry";
+import type { SlashCommand } from "@/core/plugins/types";
+import { toast } from "@/design";
 
-import { useChatSession } from './use-chat-permissions';
+import { useChatSession } from "./use-chat-permissions";
 
 async function respondIn(chatId: ChatId, content: MessageContent | string) {
   const body = toContent(content);
   const chat = useChatStore.getState();
-  if (isLocalChat(chatId)) await chat.postLocalMessage(chatId, body, 'bot');
+  if (isLocalChat(chatId)) await chat.postLocalMessage(chatId, body, "bot");
   else await chat.postPrivateMessage(chatId, body);
 }
 
-const CONVERSATIONS: Record<Exclude<ChatScope, 'channel'>, string> = { dm: 'DMs', group: 'groups' };
+const CONVERSATIONS: Record<Exclude<ChatScope, "channel">, string> = { dm: "DMs", group: "groups" };
 
 /** Why a command that `home` contributes does not run in this chat. */
 export function elsewhereMessage(
   name: string,
   showIn: readonly ChatScope[] | undefined,
   scope: ChatScope,
-  home: string
+  home: string,
 ): string {
-  const places = (showIn ?? []).flatMap((s) => (s === 'channel' ? [] : [CONVERSATIONS[s]]));
+  const places = (showIn ?? []).flatMap((s) => (s === "channel" ? [] : [CONVERSATIONS[s]]));
   return !inScope(showIn, scope) && places.length > 0
-    ? `/${name} works in ${places.join(' and ')}.`
+    ? `/${name} works in ${places.join(" and ")}.`
     : `/${name} belongs to ${home}. Open that chat to use it.`;
 }
 
@@ -42,7 +42,7 @@ function refusalFor(
   command: SlashCommand | undefined,
   registry: PluginRegistry,
   scope: ChatScope,
-  session: ChatSession | undefined
+  session: ChatSession | undefined,
 ): string | null {
   if (command) return worksOn(command, session) ? null : `/${name} does not work on this protocol.`;
   const elsewhere = registry.commands().get(name);
@@ -79,30 +79,28 @@ export function useCommandDispatch({
   const commands = useSyncExternalStore(
     registry.subscribe,
     () => registry.commandListFor(chatId, scope),
-    () => registry.commandListFor(chatId, scope)
+    () => registry.commandListFor(chatId, scope),
   ).filter(({ command }) => worksOn(command, session));
 
   const dispatch = useCallback(
-    async (raw: string, from: 'typed' | 'action' = 'typed') => {
+    async (raw: string, from: "typed" | "action" = "typed") => {
       const text = raw.trim();
       if (!text) return;
       const respond = (content: MessageContent | string) => respondIn(chatId, content);
       setError(null);
 
-      if (from === 'action') {
+      if (from === "action") {
         const button = buttonCommand(raw);
-        if (button.kind === 'draft') return setDraft(button.text);
-        if (button.kind === 'reply') {
-          await onSendText(button.text).catch((e) => setError(errorMessage(e, 'Could not send')));
+        if (button.kind === "draft") return setDraft(button.text);
+        if (button.kind === "reply") {
+          await onSendText(button.text).catch((e) => setError(errorMessage(e, "Could not send")));
           return;
         }
       }
 
       const parsed = commands.length > 0 ? parseCommand(text) : null;
       const entry = parsed ? registry.commandsFor(chatId, scope).get(parsed.name) : undefined;
-      const refusal = parsed
-        ? refusalFor(parsed.name, entry?.command, registry, scope, session)
-        : null;
+      const refusal = parsed ? refusalFor(parsed.name, entry?.command, registry, scope, session) : null;
       if (refusal) {
         setError(refusal);
         return;
@@ -119,23 +117,23 @@ export function useCommandDispatch({
             context: entry.context,
             respond,
           });
-          if (result.type === 'error') await respond(result.message);
-          if (result.type === 'notice') toast[result.tone ?? 'info'](result.message);
+          if (result.type === "error") await respond(result.message);
+          if (result.type === "notice") toast[result.tone ?? "info"](result.message);
           // A chip runs beside the draft rather than from it, so only a typed command clears it.
-          if (result.type === 'setComposer') setDraft(result.text);
-          else if (from === 'typed') setDraft('');
+          if (result.type === "setComposer") setDraft(result.text);
+          else if (from === "typed") setDraft("");
         } else {
           setDraft(await onSendText(text));
         }
       } catch (e) {
-        const message = errorMessage(e, 'Could not send');
+        const message = errorMessage(e, "Could not send");
         if (entry) await respond(message).catch(() => setError(message));
         else setError(message);
       }
       setBusy(false);
       onRunningChange(null);
     },
-    [registry, chatId, scope, session, commands.length, onSendText, onRunningChange, setDraft]
+    [registry, chatId, scope, session, commands.length, onSendText, onRunningChange, setDraft],
   );
 
   const dispatched = useRef<string | null>(null);
@@ -151,7 +149,7 @@ export function useCommandDispatch({
       return;
     }
     void Promise.resolve()
-      .then(() => dispatch(pendingCommand, 'action'))
+      .then(() => dispatch(pendingCommand, "action"))
       .finally(onPendingCommandHandled);
   }, [pendingCommand, busy, dispatch, onPendingCommandHandled]);
 

@@ -1,12 +1,11 @@
-import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { useState } from "react";
+import { Pressable, View } from "react-native";
+import type { MessageContent } from "@/core/messaging/types";
+import { Button, cn, Text } from "@/design";
 
-import { Button, cn, Text } from '@/design';
-import type { MessageContent } from '@/core/messaging/types';
+import { useAction } from "@/features/use-action";
 
-import { useAction } from '@/features/use-action';
-
-type Poll = Extract<MessageContent, { kind: 'poll' }>;
+type Poll = Extract<MessageContent, { kind: "poll" }>;
 
 export function PollBubble({
   poll,
@@ -25,11 +24,11 @@ export function PollBubble({
       await onVote?.(ids);
       setSelected(null);
     },
-    { failure: 'Could not vote' }
+    { failure: "Could not vote" },
   );
   const voted = chosen.length > 0;
   const canVote = !!onVote && !poll.closed && !vote.busy;
-  const textColor = fromMe ? 'text-bubble-out-on' : 'text-bubble-in-on';
+  const textColor = fromMe ? "text-bubble-out-on" : "text-bubble-in-on";
 
   const submit = (ids: number[]) => {
     if (canVote) void vote.run(ids);
@@ -37,9 +36,9 @@ export function PollBubble({
 
   return (
     <View className="min-w-52 gap-2 py-1">
-      <Text className={cn('font-semibold', textColor)}>{poll.question}</Text>
-      <Text variant="micro" className={fromMe ? 'text-bubble-out-on/70' : undefined}>
-        {poll.multiple ? 'Choose one or more' : 'Choose one'}
+      <Text className={cn("font-semibold", textColor)}>{poll.question}</Text>
+      <Text variant="micro" className={fromMe ? "text-bubble-out-on/70" : undefined}>
+        {poll.multiple ? "Choose one or more" : "Choose one"}
       </Text>
       {poll.options.map((option, index) => {
         const active = currentSelection.includes(index);
@@ -47,7 +46,7 @@ export function PollBubble({
           <Pressable
             key={index}
             accessibilityRole="button"
-            accessibilityLabel={`${option.text}${option.chosen ? ', selected' : ''}`}
+            accessibilityLabel={`${option.text}${option.chosen ? ", selected" : ""}`}
             disabled={!canVote || (!poll.multiple && option.chosen)}
             onPress={() =>
               poll.multiple
@@ -58,13 +57,12 @@ export function PollBubble({
                 : submit([index])
             }
             className={cn(
-              'min-h-10 flex-row items-center gap-2 rounded-lg px-2 py-1.5',
-              fromMe ? 'bg-bubble-out-on/10' : 'bg-content/5'
-            )}>
-            <Text className={textColor}>
-              {poll.multiple ? (active ? '☑' : '□') : active ? '◉' : '○'}
-            </Text>
-            <Text className={cn('min-w-0 flex-1', textColor)}>{option.text}</Text>
+              "min-h-10 flex-row items-center gap-2 rounded-lg px-2 py-1.5",
+              fromMe ? "bg-bubble-out-on/10" : "bg-content/5",
+            )}
+          >
+            <Text className={textColor}>{poll.multiple ? (active ? "☑" : "□") : active ? "◉" : "○"}</Text>
+            <Text className={cn("min-w-0 flex-1", textColor)}>{option.text}</Text>
             {voted || poll.closed ? (
               <Text variant="caption" className={textColor}>
                 {option.percentage}%
@@ -80,9 +78,9 @@ export function PollBubble({
       (selected.length !== chosen.length || selected.some((id) => !chosen.includes(id))) ? (
         <Button label="Vote" size="sm" onPress={() => submit(selected)} />
       ) : null}
-      <Text variant="micro" className={fromMe ? 'text-bubble-out-on/70' : undefined}>
-        {poll.totalVoters} {poll.totalVoters === 1 ? 'vote' : 'votes'}
-        {poll.closed ? ' · Closed' : ''}
+      <Text variant="micro" className={fromMe ? "text-bubble-out-on/70" : undefined}>
+        {poll.totalVoters} {poll.totalVoters === 1 ? "vote" : "votes"}
+        {poll.closed ? " · Closed" : ""}
       </Text>
     </View>
   );

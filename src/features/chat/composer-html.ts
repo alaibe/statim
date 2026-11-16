@@ -8,9 +8,9 @@ export function htmlWithBreaks(el: HTMLElement): string {
   const texts: Text[] = [];
   while (walker.nextNode()) texts.push(walker.currentNode as Text);
   for (const text of texts) {
-    if (!text.data.includes('\n') || text.parentElement?.closest('pre')) continue;
-    const [first, ...rest] = text.data.split('\n');
-    text.replaceWith(first, ...rest.flatMap((part) => [document.createElement('br'), part]));
+    if (!text.data.includes("\n") || text.parentElement?.closest("pre")) continue;
+    const [first, ...rest] = text.data.split("\n");
+    text.replaceWith(first, ...rest.flatMap((part) => [document.createElement("br"), part]));
   }
-  return copy.innerHTML.replace(/​/g, '');
+  return copy.innerHTML.replace(/​/g, "");
 }

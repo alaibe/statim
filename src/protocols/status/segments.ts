@@ -3,10 +3,10 @@
  * sealed on its own, and puts them back together before decrypting. Parity
  * segments only help when a data segment is lost, so this side ignores them.
  */
-import { concat, timingSafeEqual, toHex } from '@/lib/bytes';
+import { concat, timingSafeEqual, toHex } from "@/lib/bytes";
 
-import { keccak256 } from './crypto';
-import { ProtoFields, ProtoWriter } from './proto';
+import { keccak256 } from "./crypto";
+import { ProtoFields, ProtoWriter } from "./proto";
 
 /** Small enough that a sealed segment fits nwaku's default 150 KiB limit. */
 const SEGMENT_SIZE = 100_000;
@@ -32,7 +32,7 @@ export function segment(data: Uint8Array, size = SEGMENT_SIZE): Uint8Array[] {
       .uint(3, count)
       .bytes(4, data.subarray(index * size, (index + 1) * size))
       .uint(7, data.length)
-      .finish()
+      .finish(),
   );
 }
 

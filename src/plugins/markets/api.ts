@@ -1,8 +1,8 @@
-export const DEFAULT_API_BASE = 'https://api.binance.com/api/v3';
+export const DEFAULT_API_BASE = "https://api.binance.com/api/v3";
 
-const DEFAULT_QUOTE = 'USDT';
+const DEFAULT_QUOTE = "USDT";
 
-const QUOTE_ASSETS = ['USDT', 'USDC', 'FDUSD', 'BUSD', 'TUSD', 'BTC', 'ETH', 'BNB', 'EUR', 'TRY'];
+const QUOTE_ASSETS = ["USDT", "USDC", "FDUSD", "BUSD", "TUSD", "BTC", "ETH", "BNB", "EUR", "TRY"];
 
 interface Ticker {
   symbol: string;
@@ -13,12 +13,10 @@ interface Ticker {
 }
 
 export function normaliseSymbol(input: string): string {
-  const cleaned = input.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (!cleaned) return '';
+  const cleaned = input.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!cleaned) return "";
 
-  const isPair = QUOTE_ASSETS.some(
-    (quote) => cleaned.endsWith(quote) && cleaned.length - quote.length >= 2
-  );
+  const isPair = QUOTE_ASSETS.some((quote) => cleaned.endsWith(quote) && cleaned.length - quote.length >= 2);
 
   return isPair ? cleaned : `${cleaned}${DEFAULT_QUOTE}`;
 }
@@ -37,7 +35,7 @@ export function formatPrice(value: number): string {
 }
 
 export function formatPercent(value: number): string {
-  return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+  return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
 }
 
 interface TickerResponse {
@@ -48,10 +46,7 @@ interface TickerResponse {
   lowPrice: string;
 }
 
-export async function fetchTicker(
-  symbol: string,
-  apiBase: string = DEFAULT_API_BASE
-): Promise<Ticker> {
+export async function fetchTicker(symbol: string, apiBase: string = DEFAULT_API_BASE): Promise<Ticker> {
   const response = await fetch(`${apiBase}/ticker/24hr?symbol=${encodeURIComponent(symbol)}`);
 
   if (!response.ok) {
@@ -59,8 +54,8 @@ export async function fetchTicker(
       response.status === 400
         ? `${displaySymbol(symbol)} is not a market on this venue.`
         : response.status === 451
-          ? 'That venue does not serve your region. Point /marketapi somewhere else.'
-          : `Market data returned ${response.status}.`
+          ? "That venue does not serve your region. Point /marketapi somewhere else."
+          : `Market data returned ${response.status}.`,
     );
   }
 
@@ -76,7 +71,7 @@ export async function fetchTicker(
 
 export async function fetchPrices(
   symbols: string[],
-  apiBase: string = DEFAULT_API_BASE
+  apiBase: string = DEFAULT_API_BASE,
 ): Promise<Record<string, number>> {
   const results = await Promise.all(
     symbols.map(async (symbol) => {
@@ -85,10 +80,8 @@ export async function fetchPrices(
       } catch {
         return null;
       }
-    })
+    }),
   );
 
-  return Object.fromEntries(
-    results.filter((r): r is readonly [string, number] => r !== null && Number.isFinite(r[1]))
-  );
+  return Object.fromEntries(results.filter((r): r is readonly [string, number] => r !== null && Number.isFinite(r[1])));
 }

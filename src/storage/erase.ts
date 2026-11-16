@@ -1,7 +1,7 @@
-import { deleteAccountDatabase } from './database';
-import type { Medium } from './inventory';
-import { eraseMedia } from './media';
-import { accountScopedKeys, vaultDelete, vaultDeleteProtected, accountMnemonicKey } from './vault';
+import { deleteAccountDatabase } from "./database";
+import type { Medium } from "./inventory";
+import { eraseMedia } from "./media";
+import { accountMnemonicKey, accountScopedKeys, vaultDelete, vaultDeleteProtected } from "./vault";
 
 interface EraseReport {
   erased: string[];
@@ -10,8 +10,8 @@ interface EraseReport {
 
 class AccountEraseError extends Error {
   constructor(readonly report: EraseReport) {
-    super(`Could not erase: ${report.failures.map((failure) => failure.medium).join(', ')}`);
-    this.name = 'AccountEraseError';
+    super(`Could not erase: ${report.failures.map((failure) => failure.medium).join(", ")}`);
+    this.name = "AccountEraseError";
   }
 }
 
@@ -35,13 +35,13 @@ export async function eraseAccountStorage(accountId: string): Promise<EraseRepor
     }
   };
 
-  for (const medium of ['files', 'database'] as const) {
+  for (const medium of ["files", "database"] as const) {
     await step(medium, () => ACCOUNT_ERASE_DISPATCH[medium](accountId));
   }
 
   if (report.failures.length === 0) {
     // Keep recovery material until every non-secret medium is gone and retryable.
-    await step('vault', () => ACCOUNT_ERASE_DISPATCH.vault(accountId));
+    await step("vault", () => ACCOUNT_ERASE_DISPATCH.vault(accountId));
   }
 
   if (report.failures.length > 0) throw new AccountEraseError(report);
@@ -58,7 +58,7 @@ async function eraseAccountVault(accountId: string): Promise<void> {
       failures.push(error);
     }
   }
-  if (failures.length > 0) throw new AggregateError(failures, 'Could not erase account keys.');
+  if (failures.length > 0) throw new AggregateError(failures, "Could not erase account keys.");
   await vaultDelete(mnemonic);
   await vaultDeleteProtected(mnemonic);
 }

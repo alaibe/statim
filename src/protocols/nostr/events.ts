@@ -1,6 +1,6 @@
-import { schnorr } from '@noble/curves/secp256k1';
-import { sha256 } from '@noble/hashes/sha2';
-import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils';
+import { schnorr } from "@noble/curves/secp256k1";
+import { sha256 } from "@noble/hashes/sha2";
+import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils";
 
 export type Tag = string[];
 

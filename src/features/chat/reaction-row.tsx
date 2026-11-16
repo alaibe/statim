@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { useState } from "react";
+import { Pressable, View } from "react-native";
 
-import { cn, Text } from '@/design';
+import { cn, Text } from "@/design";
 
 export function ReactionRow({
   reactions,
@@ -19,12 +19,7 @@ export function ReactionRow({
   onReact?: (emoji: string) => void;
 }) {
   return (
-    <View
-      className={cn(
-        'flex-row flex-wrap gap-1',
-        !inBubble && 'mt-1',
-        fromMe && !inBubble && 'justify-end'
-      )}>
+    <View className={cn("flex-row flex-wrap gap-1", !inBubble && "mt-1", fromMe && !inBubble && "justify-end")}>
       {Object.entries(reactions).map(([emoji, people]) => (
         <Reaction
           key={emoji}
@@ -33,7 +28,7 @@ export function ReactionRow({
           mine={people.includes(selfId)}
           fromMe={fromMe}
           inBubble={inBubble}
-          names={people.map((id) => (id === selfId ? 'You' : nameFor(id)))}
+          names={people.map((id) => (id === selfId ? "You" : nameFor(id)))}
           onPress={onReact && (() => onReact(emoji))}
         />
       ))}
@@ -59,7 +54,7 @@ function Reaction({
   onPress?: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
-  const who = names.join(', ');
+  const who = names.join(", ");
   return (
     <Pressable
       accessibilityRole="button"
@@ -68,29 +63,27 @@ function Reaction({
       onHoverIn={() => setHovered(true)}
       onHoverOut={() => setHovered(false)}
       className={cn(
-        'relative flex-row items-center gap-1 rounded-pill px-2 py-0.5',
+        "relative flex-row items-center gap-1 rounded-pill px-2 py-0.5",
         !inBubble
-          ? 'bg-surface-sunken'
+          ? "bg-surface-sunken"
           : mine
             ? fromMe
-              ? 'bg-bubble-out-on/25'
-              : 'bg-brand'
+              ? "bg-bubble-out-on/25"
+              : "bg-brand"
             : fromMe
-              ? 'bg-bubble-out-on/10'
-              : 'bg-brand/10'
-      )}>
+              ? "bg-bubble-out-on/10"
+              : "bg-brand/10",
+      )}
+    >
       <Text variant="caption">{emoji}</Text>
       {people.length > 1 ? (
         <Text
           variant="micro"
           className={cn(
-            'font-semibold tabular-nums',
-            inBubble && mine && !fromMe
-              ? 'text-brand-on'
-              : fromMe
-                ? 'text-bubble-out-on'
-                : 'text-brand'
-          )}>
+            "font-semibold tabular-nums",
+            inBubble && mine && !fromMe ? "text-brand-on" : fromMe ? "text-bubble-out-on" : "text-brand",
+          )}
+        >
           {people.length}
         </Text>
       ) : null}

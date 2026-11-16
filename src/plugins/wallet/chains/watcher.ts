@@ -1,25 +1,21 @@
-import { formatEther, type Address } from 'viem';
+import { type Address, formatEther } from "viem";
 
-import { shortAddress } from '@/core/account/keyring';
-import type { MessageContent } from '@/core/messaging/types';
-import type { PluginContext } from '@/core/plugins/types';
-import { publicClientFor } from '@/lib/evm/chains';
+import { shortAddress } from "@/core/account/keyring";
+import type { MessageContent } from "@/core/messaging/types";
+import type { PluginContext } from "@/core/plugins/types";
+import { publicClientFor } from "@/lib/evm/chains";
 
-import { balanceChangeCard } from './balance-change';
-import type { ChainSpec } from './evm';
-import type { Say } from './strategy';
-import { readSeenBalances, readWatched, writeSeenBalances } from './watch-storage';
+import { balanceChangeCard } from "./balance-change";
+import type { ChainSpec } from "./evm";
+import type { Say } from "./strategy";
+import { readSeenBalances, readWatched, writeSeenBalances } from "./watch-storage";
 
 interface Target {
   address: Address;
   label: string;
 }
 
-export async function checkBalances(
-  spec: ChainSpec,
-  context: PluginContext,
-  say: Say
-): Promise<void> {
+export async function checkBalances(spec: ChainSpec, context: PluginContext, say: Say): Promise<void> {
   const { chain } = spec;
   const targets = watchTargetsOf(context, await readWatched(context, chain.id));
   if (targets.length === 0) return;
@@ -27,7 +23,7 @@ export async function checkBalances(
   const seen = await readSeenBalances(context);
   const client = publicClientFor(chain.id);
   const balances = await Promise.all(
-    targets.map((target) => client.getBalance({ address: target.address }).catch(() => null))
+    targets.map((target) => client.getBalance({ address: target.address }).catch(() => null)),
   );
 
   const next: Record<string, string> = {};
@@ -54,14 +50,11 @@ export async function checkBalances(
   for (const change of changes) await say(balanceChangeMessage({ spec, ...change }));
 }
 
-function watchTargetsOf(
-  context: PluginContext,
-  watched: { address: Address; label: string }[]
-): Target[] {
+function watchTargetsOf(context: PluginContext, watched: { address: Address; label: string }[]): Target[] {
   const targets: Target[] = [];
 
   try {
-    targets.push({ address: context.account.address, label: 'You' });
+    targets.push({ address: context.account.address, label: "You" });
   } catch {}
 
   const seen = new Set(targets.map((t) => t.address.toLowerCase()));
@@ -94,16 +87,16 @@ export function balanceChangeMessage({
   const delta = current - previous;
   const received = delta > 0n;
   const symbol = chain.nativeCurrency.symbol;
-  const headline = `${received ? '+' : '−'}${formatAmount(delta < 0n ? -delta : delta)} ${symbol}`;
+  const headline = `${received ? "+" : "−"}${formatAmount(delta < 0n ? -delta : delta)} ${symbol}`;
 
   return balanceChangeCard({
     fallback: `${target.label}: ${headline} (now ${formatAmount(current)} ${symbol})`,
-    title: received ? 'Funds received' : 'Balance went down',
-    icon: 'diamond-outline',
+    title: received ? "Funds received" : "Balance went down",
+    icon: "diamond-outline",
     headline,
     label: target.label,
     caption: `Now ${formatAmount(current)} ${symbol} on ${chain.name}`,
-    tone: received ? 'success' : 'warning',
+    tone: received ? "success" : "warning",
     address: target.address,
     chain: spec.id,
     short: (address) => shortAddress(address),
@@ -112,7 +105,7 @@ export function balanceChangeMessage({
 
 function formatAmount(wei: bigint): string {
   const value = Number(formatEther(wei));
-  if (value === 0) return '0';
-  if (value < 0.0001) return '<0.0001';
+  if (value === 0) return "0";
+  if (value < 0.0001) return "<0.0001";
   return value.toLocaleString(undefined, { maximumFractionDigits: 5 });
 }

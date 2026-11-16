@@ -1,5 +1,5 @@
-import { UnsupportedError } from '../errors';
-import type { ChatSession } from './protocol';
+import { UnsupportedError } from "../errors";
+import type { ChatSession } from "./protocol";
 
 export type Capability = {
   [K in keyof ChatSession]-?: undefined extends ChatSession[K]
@@ -12,14 +12,11 @@ export type Capability = {
 export type CapabilityMethod<K extends Capability> = NonNullable<ChatSession[K]>;
 
 export function supports(session: ChatSession | undefined, key: Capability): boolean {
-  return typeof session?.[key] === 'function';
+  return typeof session?.[key] === "function";
 }
 
-export function capability<K extends Capability>(
-  session: ChatSession,
-  key: K
-): CapabilityMethod<K> {
+export function capability<K extends Capability>(session: ChatSession, key: K): CapabilityMethod<K> {
   const method = session[key];
-  if (typeof method !== 'function') throw new UnsupportedError();
+  if (typeof method !== "function") throw new UnsupportedError();
   return (method as (...args: unknown[]) => unknown).bind(session) as CapabilityMethod<K>;
 }

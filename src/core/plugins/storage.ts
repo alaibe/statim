@@ -1,7 +1,7 @@
-import type { AccountStorage } from '@/storage/account';
-import type { PluginId } from './types';
+import type { AccountStorage } from "@/storage/account";
+import type { PluginId } from "./types";
 
-const PREFS_KEY = 'plugins.prefs';
+const PREFS_KEY = "plugins.prefs";
 
 interface PluginPrefs {
   enabled: PluginId[];

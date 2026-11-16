@@ -1,9 +1,9 @@
-import type { PhoneLink } from '@/core/homeserver';
-import { isString, oneOf, shape } from '@/lib/guards';
+import type { PhoneLink } from "@/core/homeserver";
+import { isString, oneOf, shape } from "@/lib/guards";
 
-const KIND = 'statim-matrix';
+const KIND = "statim-matrix";
 
-type LinkCode = Pick<PhoneLink, 'homeserver' | 'loginToken'>;
+type LinkCode = Pick<PhoneLink, "homeserver" | "loginToken">;
 
 const isCode = shape<LinkCode & { kind: typeof KIND }>({
   kind: oneOf(KIND),

@@ -1,25 +1,25 @@
-import { useAccountStore } from '@/core/account/account-store';
-import { useLockStore } from '@/core/account/lock-store';
-import { useChatStore } from '@/core/messaging/chat-store';
-import { InMemoryChatSession } from '@/core/messaging/in-memory-session';
-import type { LoginState } from '@/core/messaging/protocol';
-import { connectFake, disconnectFake, ns, resetChatStore } from '@/core/messaging/testing/store';
-import type { PluginHostValue } from '@/core/plugins/host';
-import { PluginRegistry } from '@/core/plugins/registry';
-import type { Plugin } from '@/core/plugins/types';
-import { W } from '@/design/widgets';
+import { useAccountStore } from "@/core/account/account-store";
+import { useLockStore } from "@/core/account/lock-store";
+import { useChatStore } from "@/core/messaging/chat-store";
+import { InMemoryChatSession } from "@/core/messaging/in-memory-session";
+import type { LoginState } from "@/core/messaging/protocol";
+import { connectFake, disconnectFake, ns, resetChatStore } from "@/core/messaging/testing/store";
+import type { PluginHostValue } from "@/core/plugins/host";
+import { PluginRegistry } from "@/core/plugins/registry";
+import type { Plugin } from "@/core/plugins/types";
+import { W } from "@/design/widgets";
 
-import { setCliAllowed } from './access';
-import type { CliIo } from './context';
-import { COMMANDS } from './commands';
-import { runCli } from './run';
+import { setCliAllowed } from "./access";
+import { COMMANDS } from "./commands";
+import type { CliIo } from "./context";
+import { runCli } from "./run";
 
-jest.mock('@/core/account/keyring', () => ({
-  ...jest.requireActual('@/core/account/keyring'),
+jest.mock("@/core/account/keyring", () => ({
+  ...jest.requireActual("@/core/account/keyring"),
   loadOrCreateDbEncryptionKey: async () => new Uint8Array(32),
 }));
 
-jest.mock('@/features/navigation/open', () => ({ openChat: jest.fn() }));
+jest.mock("@/features/navigation/open", () => ({ openChat: jest.fn() }));
 
 interface FakeIo extends CliIo {
   out: string[];
@@ -28,11 +28,11 @@ interface FakeIo extends CliIo {
   answer: boolean;
 }
 
-function fakeIo(stdin = ''): FakeIo {
+function fakeIo(stdin = ""): FakeIo {
   const io: FakeIo = {
     json: false,
     tty: false,
-    stdinTty: stdin === '',
+    stdinTty: stdin === "",
     mcp: false,
     out: [],
     err: [],
@@ -41,7 +41,7 @@ function fakeIo(stdin = ''): FakeIo {
     print: (text) => void io.out.push(text),
     warn: (text) => void io.err.push(text),
     prompt: async () => {
-      throw new Error('no terminal');
+      throw new Error("no terminal");
     },
     stdin: async () => new TextEncoder().encode(stdin),
     readFile: async (path) => new TextEncoder().encode(`contents of ${path}`),
@@ -56,7 +56,7 @@ function fakeIo(stdin = ''): FakeIo {
   return io;
 }
 
-const PARTICIPANT = 'b'.repeat(64);
+const PARTICIPANT = "b".repeat(64);
 
 function host(plugins: Plugin[] = []): PluginHostValue {
   const registry = new PluginRegistry(plugins);
@@ -69,7 +69,7 @@ async function run(argv: string[], io = fakeIo(), plugins?: PluginRegistry) {
     host: plugins ? ({ registry: plugins } as unknown as PluginHostValue) : host(),
   };
   const code = await runCli(argv, env);
-  return { code, io, out: io.out.join('\n'), err: io.err.join('\n') };
+  return { code, io, out: io.out.join("\n"), err: io.err.join("\n") };
 }
 
 let session: InMemoryChatSession;
@@ -77,28 +77,28 @@ let session: InMemoryChatSession;
 beforeEach(async () => {
   resetChatStore();
   session = new InMemoryChatSession();
-  session.seedChat({ id: 'alice', title: 'Alice' });
-  session.seedAddress(PARTICIPANT, '0x2222222222222222222222222222222222222222');
-  session.seedChat({ id: 'team', title: 'Team chat', kind: 'group', selfRole: 'owner' });
+  session.seedChat({ id: "alice", title: "Alice" });
+  session.seedAddress(PARTICIPANT, "0x2222222222222222222222222222222222222222");
+  session.seedChat({ id: "team", title: "Team chat", kind: "group", selfRole: "owner" });
   session.seedChat({
-    id: 'teammate',
-    title: 'Team lead',
-    memberIds: [session.self.participantId, 'c'.repeat(64)],
+    id: "teammate",
+    title: "Team lead",
+    memberIds: [session.self.participantId, "c".repeat(64)],
   });
-  session.deliver('alice', { id: 'm1', content: { kind: 'text', text: 'lunch?' }, sentAt: 3_000 });
+  session.deliver("alice", { id: "m1", content: { kind: "text", text: "lunch?" }, sentAt: 3_000 });
   await connectFake(session);
-  useLockStore.setState({ status: 'open' });
+  useLockStore.setState({ status: "open" });
   await setCliAllowed(true);
   useAccountStore.setState({
-    status: 'ready',
-    activeAccountId: 'test-account',
+    status: "ready",
+    activeAccountId: "test-account",
     accounts: [
       {
-        id: 'test-account',
-        label: 'Main',
-        address: '0x1111111111111111111111111111111111111111',
+        id: "test-account",
+        label: "Main",
+        address: "0x1111111111111111111111111111111111111111",
         createdAt: 1,
-        kind: 'phrase',
+        kind: "phrase",
       },
     ],
   });
@@ -106,176 +106,172 @@ beforeEach(async () => {
 
 afterEach(() => disconnectFake());
 
-describe('reading', () => {
-  it('lists chats as JSON', async () => {
-    const { code, out } = await run(['chats', '--json']);
+describe("reading", () => {
+  it("lists chats as JSON", async () => {
+    const { code, out } = await run(["chats", "--json"]);
 
     expect(code).toBe(0);
     const chats = JSON.parse(out);
-    expect(chats.map((c: { id: string }) => c.id)).toEqual(
-      expect.arrayContaining([ns('alice'), ns('team')])
-    );
-    expect(chats.find((c: { id: string }) => c.id === ns('alice'))).toMatchObject({
-      title: '0x2222…2222',
+    expect(chats.map((c: { id: string }) => c.id)).toEqual(expect.arrayContaining([ns("alice"), ns("team")]));
+    expect(chats.find((c: { id: string }) => c.id === ns("alice"))).toMatchObject({
+      title: "0x2222…2222",
       participant: PARTICIPANT,
-      kind: 'dm',
-      lastMessage: 'lunch?',
+      kind: "dm",
+      lastMessage: "lunch?",
     });
   });
 
-  it('finds a DM by the other person’s address', async () => {
-    const { code, out } = await run(['read', '0x2222222222222222222222222222222222222222']);
+  it("finds a DM by the other person’s address", async () => {
+    const { code, out } = await run(["read", "0x2222222222222222222222222222222222222222"]);
 
     expect(code).toBe(0);
-    expect(out).toContain('lunch?');
+    expect(out).toContain("lunch?");
   });
 
-  it('prints a chat’s messages with their ids', async () => {
-    const { code, out } = await run(['read', 'alice']);
+  it("prints a chat’s messages with their ids", async () => {
+    const { code, out } = await run(["read", "alice"]);
 
     expect(code).toBe(0);
-    expect(out).toContain('lunch?');
-    expect(out).toContain('[m1]');
+    expect(out).toContain("lunch?");
+    expect(out).toContain("[m1]");
   });
 
-  it('refuses an ambiguous title and lists the candidates', async () => {
-    const { code, err } = await run(['read', 'team']);
+  it("refuses an ambiguous title and lists the candidates", async () => {
+    const { code, err } = await run(["read", "team"]);
 
     expect(code).toBe(3);
-    expect(err).toContain(ns('team'));
-    expect(err).toContain(ns('teammate'));
+    expect(err).toContain(ns("team"));
+    expect(err).toContain(ns("teammate"));
   });
 
-  it('prefers the chat whose whole title matches', async () => {
-    const { code } = await run(['read', 'team chat']);
+  it("prefers the chat whose whole title matches", async () => {
+    const { code } = await run(["read", "team chat"]);
 
     expect(code).toBe(0);
   });
 });
 
-describe('network and protocol', () => {
+describe("network and protocol", () => {
   const ids = async (argv: string[]) =>
-    JSON.parse((await run([...argv, '--json'])).out).map((row: { id: string }) => row.id);
+    JSON.parse((await run([...argv, "--json"])).out).map((row: { id: string }) => row.id);
 
-  it('lists the chats on a network, a bridged chat under the network at the far end', async () => {
+  it("lists the chats on a network, a bridged chat under the network at the far end", async () => {
     session.seedChat({
-      id: 'bridged',
-      title: 'Slack chat',
-      kind: 'group',
-      network: 'slack',
+      id: "bridged",
+      title: "Slack chat",
+      kind: "group",
+      network: "slack",
     });
     await useChatStore.getState().refreshChats();
 
-    expect(await ids(['chats', '--network', 'slack'])).toEqual([ns('bridged')]);
-    expect(await ids(['chats', '--network', 'Slack'])).toEqual([ns('bridged')]);
-    const xmtp = await ids(['chats', '--network', 'XMTP']);
-    expect(xmtp).toEqual(expect.arrayContaining([ns('alice'), ns('team')]));
-    expect(xmtp).not.toContain(ns('bridged'));
+    expect(await ids(["chats", "--network", "slack"])).toEqual([ns("bridged")]);
+    expect(await ids(["chats", "--network", "Slack"])).toEqual([ns("bridged")]);
+    const xmtp = await ids(["chats", "--network", "XMTP"]);
+    expect(xmtp).toEqual(expect.arrayContaining([ns("alice"), ns("team")]));
+    expect(xmtp).not.toContain(ns("bridged"));
   });
 
-  it('names the known networks when --network matches none', async () => {
-    const { code, err } = await run(['chats', '--network', 'icq']);
+  it("names the known networks when --network matches none", async () => {
+    const { code, err } = await run(["chats", "--network", "icq"]);
 
     expect(code).not.toBe(0);
     expect(err).toContain('No network "icq". Known:');
   });
 
-  it('takes a protocol id with --protocol', async () => {
-    expect(await ids(['contacts', '--protocol', 'xmtp'])).toContain(PARTICIPANT);
-    expect((await run(['contacts', '--network', 'xmtp'])).err).toContain('Unknown option');
+  it("takes a protocol id with --protocol", async () => {
+    expect(await ids(["contacts", "--protocol", "xmtp"])).toContain(PARTICIPANT);
+    expect((await run(["contacts", "--network", "xmtp"])).err).toContain("Unknown option");
   });
 
-  it('names the known protocols when --protocol matches none', async () => {
-    const { code, err } = await run(['join', 'somegroup', '--protocol', 'icq']);
+  it("names the known protocols when --protocol matches none", async () => {
+    const { code, err } = await run(["join", "somegroup", "--protocol", "icq"]);
 
     expect(code).not.toBe(0);
     expect(err).toContain('No protocol "icq". Known:');
   });
 });
 
-it('declines a request and reports it as declined', async () => {
-  session.seedChat({ id: 'stranger', title: 'Stranger', consent: 'request' });
+it("declines a request and reports it as declined", async () => {
+  session.seedChat({ id: "stranger", title: "Stranger", consent: "request" });
   await useChatStore.getState().refreshChats();
 
-  const declined = await run(['decline', 'stranger']);
+  const declined = await run(["decline", "stranger"]);
   expect(declined.code).toBe(0);
   expect(declined.out).toMatch(/^Declined /);
 
-  const { out } = await run(['chat', 'stranger', '--json']);
-  expect(JSON.parse(out)).toMatchObject({ id: ns('stranger'), declined: true, request: false });
+  const { out } = await run(["chat", "stranger", "--json"]);
+  expect(JSON.parse(out)).toMatchObject({ id: ns("stranger"), declined: true, request: false });
 });
 
-it('declines nothing but a request', async () => {
-  const { code, err } = await run(['decline', 'alice']);
+it("declines nothing but a request", async () => {
+  const { code, err } = await run(["decline", "alice"]);
 
   expect(code).not.toBe(0);
-  expect(err).toContain('Only an unblocked request can be accepted or declined.');
+  expect(err).toContain("Only an unblocked request can be accepted or declined.");
 });
 
-describe('sending', () => {
-  it('sends the text given', async () => {
-    const { code } = await run(['send', 'alice', 'on', 'my', 'way']);
+describe("sending", () => {
+  it("sends the text given", async () => {
+    const { code } = await run(["send", "alice", "on", "my", "way"]);
 
     expect(code).toBe(0);
-    expect(session.sent).toEqual([
-      { chatId: 'alice', content: { kind: 'text', text: 'on my way' } },
-    ]);
+    expect(session.sent).toEqual([{ chatId: "alice", content: { kind: "text", text: "on my way" } }]);
   });
 
-  it('reads the text from stdin when it is piped', async () => {
-    const { code } = await run(['send', 'alice', '-'], fakeIo('from a pipe\n'));
+  it("reads the text from stdin when it is piped", async () => {
+    const { code } = await run(["send", "alice", "-"], fakeIo("from a pipe\n"));
 
     expect(code).toBe(0);
-    expect(session.sent[0].content).toEqual({ kind: 'text', text: 'from a pipe' });
+    expect(session.sent[0].content).toEqual({ kind: "text", text: "from a pipe" });
   });
 
-  it('says what is missing instead of sending nothing', async () => {
-    const { code, err } = await run(['send', 'alice']);
+  it("says what is missing instead of sending nothing", async () => {
+    const { code, err } = await run(["send", "alice"]);
 
     expect(code).toBe(2);
-    expect(err).toContain('Nothing to send');
+    expect(err).toContain("Nothing to send");
     expect(session.sent).toEqual([]);
   });
 
-  it('reports errors as JSON on stderr under --json', async () => {
-    const { code, err, out } = await run(['send', 'nobody', 'hi', '--json']);
+  it("reports errors as JSON on stderr under --json", async () => {
+    const { code, err, out } = await run(["send", "nobody", "hi", "--json"]);
 
     expect(code).toBe(3);
-    expect(out).toBe('');
+    expect(out).toBe("");
     expect(JSON.parse(err)).toEqual({ error: 'No chat matches "nobody".', code: 3 });
   });
 });
 
-describe('approval', () => {
+describe("approval", () => {
   const wallet: Plugin = {
     manifest: {
-      id: 'pay',
-      name: 'Pay',
-      description: '',
-      version: '1',
-      icon: 'wallet-outline',
+      id: "pay",
+      name: "Pay",
+      description: "",
+      version: "1",
+      icon: "wallet-outline",
       permissions: [],
     },
     setup: () => ({
-      bots: [{ id: 'pay', name: 'Pay', tagline: '', greeting: () => [] }],
+      bots: [{ id: "pay", name: "Pay", tagline: "", greeting: () => [] }],
       commands: [
         {
-          name: 'pay',
-          description: 'Pay someone',
-          usage: '/pay <amount>',
+          name: "pay",
+          description: "Pay someone",
+          usage: "/pay <amount>",
           async run({ args, respond }) {
-            if (!args.includes('--confirm')) {
+            if (!args.includes("--confirm")) {
               await respond({
-                kind: 'widget',
+                kind: "widget",
                 widget: W.actions([
-                  { label: 'Confirm', command: `/pay ${args[0]} --confirm` },
-                  { label: 'Other amount', command: '/draft /pay ' },
+                  { label: "Confirm", command: `/pay ${args[0]} --confirm` },
+                  { label: "Other amount", command: "/draft /pay " },
                 ]),
-                fallback: 'Review',
+                fallback: "Review",
               });
-              return { type: 'handled' };
+              return { type: "handled" };
             }
-            return { type: 'notice', message: 'Paid' };
+            return { type: "notice", message: "Paid" };
           },
         },
       ],
@@ -288,83 +284,75 @@ describe('approval', () => {
     return registry;
   }
 
-  it('turns buttons into the commands they would run', async () => {
-    const { code, out, io } = await run(['run', '/pay', '5'], fakeIo(), await registryWith(wallet));
+  it("turns buttons into the commands they would run", async () => {
+    const { code, out, io } = await run(["run", "/pay", "5"], fakeIo(), await registryWith(wallet));
 
     expect(code).toBe(0);
-    expect(out).toContain('Confirm: statim run /pay 5 --confirm');
-    expect(out).toContain('Other amount: statim run /pay  (fill in the rest)');
+    expect(out).toContain("Confirm: statim run /pay 5 --confirm");
+    expect(out).toContain("Other amount: statim run /pay  (fill in the rest)");
     expect(io.approvals).toEqual([]);
   });
 
-  it('asks the person at the app before anything confirms', async () => {
-    const { code, out, io } = await run(
-      ['run', '/pay', '5', '--confirm'],
-      fakeIo(),
-      await registryWith(wallet)
-    );
+  it("asks the person at the app before anything confirms", async () => {
+    const { code, out, io } = await run(["run", "/pay", "5", "--confirm"], fakeIo(), await registryWith(wallet));
 
     expect(code).toBe(0);
     expect(io.approvals).toHaveLength(1);
-    expect(io.approvals[0]).toContain('/pay 5 --confirm');
-    expect(out).toContain('Paid');
+    expect(io.approvals[0]).toContain("/pay 5 --confirm");
+    expect(out).toContain("Paid");
   });
 
-  it('stops with exit 5 when the person declines', async () => {
+  it("stops with exit 5 when the person declines", async () => {
     const io = fakeIo();
     io.answer = false;
-    const { code, out } = await run(
-      ['run', '/pay', '5', '--confirm'],
-      io,
-      await registryWith(wallet)
-    );
+    const { code, out } = await run(["run", "/pay", "5", "--confirm"], io, await registryWith(wallet));
 
     expect(code).toBe(5);
-    expect(out).not.toContain('Paid');
+    expect(out).not.toContain("Paid");
   });
 });
 
-describe('accounts erase', () => {
-  it('takes one account or --all', async () => {
-    expect((await run(['accounts', 'erase'])).code).toBe(2);
-    expect((await run(['accounts', 'erase', 'Main', '--all'])).code).toBe(2);
+describe("accounts erase", () => {
+  it("takes one account or --all", async () => {
+    expect((await run(["accounts", "erase"])).code).toBe(2);
+    expect((await run(["accounts", "erase", "Main", "--all"])).code).toBe(2);
     expect(useAccountStore.getState().accounts).toHaveLength(1);
   });
 
-  it('asks once about every account with --all', async () => {
+  it("asks once about every account with --all", async () => {
     const [main] = useAccountStore.getState().accounts;
     useAccountStore.setState({
       accounts: [
         main,
         {
           ...main,
-          id: 'work',
-          label: 'Work',
-          address: '0x3333333333333333333333333333333333333333',
+          id: "work",
+          label: "Work",
+          address: "0x3333333333333333333333333333333333333333",
         },
       ],
     });
     const io = fakeIo();
     io.answer = false;
 
-    const { code } = await run(['accounts', 'erase', '--all'], io);
+    const { code } = await run(["accounts", "erase", "--all"], io);
 
     expect(code).toBe(5);
     expect(io.approvals).toHaveLength(1);
-    expect(io.approvals[0]).toContain('Main');
-    expect(io.approvals[0]).toContain('Work');
+    expect(io.approvals[0]).toContain("Main");
+    expect(io.approvals[0]).toContain("Work");
     expect(useAccountStore.getState().accounts).toHaveLength(2);
   });
 });
 
-describe('every command that asks first', () => {
+describe("every command that asks first", () => {
   const plugin: Plugin = {
     manifest: {
-      id: 'pay',
-      name: 'Pay',
-      description: '',
-      version: '1',
-      icon: 'wallet-outline',
+      id: "pay",
+      name: "Pay",
+      description: "",
+      version: "1",
+      icon: "wallet-outline",
       permissions: [],
     },
     setup: () => ({}),
@@ -373,31 +361,31 @@ describe('every command that asks first', () => {
   const signOut = jest.fn();
   const revokeInstallations = jest.fn();
 
-  type Asking = Extract<(typeof COMMANDS)[number], { approval: true }>['path'];
+  type Asking = Extract<(typeof COMMANDS)[number], { approval: true }>["path"];
   const cases: Record<Asking, { argv: string[]; untouched: () => void }> = {
-    'accounts erase': {
-      argv: ['accounts', 'erase', 'Main'],
+    "accounts erase": {
+      argv: ["accounts", "erase", "Main"],
       untouched: () => expect(useAccountStore.getState().accounts).toHaveLength(1),
     },
-    'protocols logout': {
-      argv: ['protocols', 'logout', 'xmtp'],
+    "protocols logout": {
+      argv: ["protocols", "logout", "xmtp"],
       untouched: () => expect(signOut).not.toHaveBeenCalled(),
     },
-    'devices revoke': {
-      argv: ['devices', 'revoke', 'old'],
+    "devices revoke": {
+      argv: ["devices", "revoke", "old"],
       untouched: () => expect(revokeInstallations).not.toHaveBeenCalled(),
     },
-    'plugins enable': {
-      argv: ['plugins', 'enable', 'pay'],
+    "plugins enable": {
+      argv: ["plugins", "enable", "pay"],
       untouched: () => expect(setEnabled).not.toHaveBeenCalled(),
     },
   };
 
-  it.each(Object.entries(cases))('%s stops with exit 5 when declined', async (_, c) => {
+  it.each(Object.entries(cases))("%s stops with exit 5 when declined", async (_, c) => {
     Object.assign(session, {
       signOut,
       revokeInstallations,
-      listInstallations: async () => [{ id: 'here', current: true }],
+      listInstallations: async () => [{ id: "here", current: true }],
     });
     const io = fakeIo();
     io.answer = false;
@@ -414,111 +402,111 @@ describe('every command that asks first', () => {
   });
 });
 
-it('names people the way your plugins do', async () => {
+it("names people the way your plugins do", async () => {
   const naming: Plugin = {
     manifest: {
-      id: 'namer',
-      name: 'Namer',
-      description: '',
-      version: '1',
-      icon: 'people-outline',
+      id: "namer",
+      name: "Namer",
+      description: "",
+      version: "1",
+      icon: "people-outline",
       permissions: [],
     },
-    setup: () => ({ names: async () => ({ [PARTICIPANT]: 'Weather bot' }) }),
+    setup: () => ({ names: async () => ({ [PARTICIPANT]: "Weather bot" }) }),
   };
   const registry = new PluginRegistry([naming]);
-  await registry.activate('namer', () => ({}) as never);
+  await registry.activate("namer", () => ({}) as never);
 
-  const { code, out } = await run(['read', 'weather bot'], fakeIo(), registry);
+  const { code, out } = await run(["read", "weather bot"], fakeIo(), registry);
 
   expect(code).toBe(0);
-  expect(out).toContain('lunch?');
+  expect(out).toContain("lunch?");
 });
 
-it('does nothing until the command line is turned on in the app', async () => {
+it("does nothing until the command line is turned on in the app", async () => {
   await setCliAllowed(false);
 
-  const { code, err } = await run(['send', 'alice', 'hi']);
+  const { code, err } = await run(["send", "alice", "hi"]);
 
   expect(code).toBe(4);
-  expect(err).toContain('Settings › Command line');
+  expect(err).toContain("Settings › Command line");
   expect(session.sent).toEqual([]);
 });
 
-describe('an AI app over MCP', () => {
+describe("an AI app over MCP", () => {
   const mcpIo = () => Object.assign(fakeIo(), { mcp: true });
 
-  it('never takes a sign-in password', async () => {
+  it("never takes a sign-in password", async () => {
     await disconnectFake();
     const submitLogin = jest.fn();
     Object.assign(session, {
       subscribeLogin: (listener: (login: LoginState | null) => void) => {
-        listener({ step: 'password' });
+        listener({ step: "password" });
         return () => {};
       },
       submitLogin,
     });
     await connectFake(session);
 
-    const { code, err } = await run(['protocols', 'login', 'xmtp', 'hunter2'], mcpIo());
+    const { code, err } = await run(["protocols", "login", "xmtp", "hunter2"], mcpIo());
 
     expect(code).toBe(1);
-    expect(err).toContain('does not go through an AI app');
+    expect(err).toContain("does not go through an AI app");
     expect(submitLogin).not.toHaveBeenCalled();
   });
 
-  it('never sets a secret protocol setting', async () => {
-    const { code, err } = await run(['protocols', 'config', 'telegram', 'apiHash=abc'], mcpIo());
+  it("never sets a secret protocol setting", async () => {
+    const { code, err } = await run(["protocols", "config", "telegram", "apiHash=abc"], mcpIo());
 
     expect(code).toBe(1);
-    expect(err).toContain('Your Telegram API hash does not go through an AI app');
+    expect(err).toContain("Your Telegram API hash does not go through an AI app");
   });
 });
 
-describe('locked app', () => {
-  it('exits 4 without touching the account', async () => {
-    useLockStore.setState({ status: 'locked' });
+describe("locked app", () => {
+  it("exits 4 without touching the account", async () => {
+    useLockStore.setState({ status: "locked" });
 
-    const { code, err } = await run(['chats']);
+    const { code, err } = await run(["chats"]);
 
     expect(code).toBe(4);
-    expect(err).toContain('locked');
+    expect(err).toContain("locked");
   });
 });
 
-it('keeps chat state readable after a mark-read', async () => {
-  const { code } = await run(['mark-read', 'alice']);
+it("keeps chat state readable after a mark-read", async () => {
+  const { code } = await run(["mark-read", "alice"]);
 
   expect(code).toBe(0);
-  expect(useChatStore.getState().readAt[ns('alice')]).toBeGreaterThan(0);
+  expect(useChatStore.getState().readAt[ns("alice")]).toBeGreaterThan(0);
 });
 
-it('streams each new message once, however many places it lands in', async () => {
+it("streams each new message once, however many places it lands in", async () => {
   let stop!: () => void;
   const io = fakeIo();
   io.closed = new Promise((resolve) => {
     stop = resolve;
   });
-  const watching = run(['watch', '--json'], io);
+  const watching = run(["watch", "--json"], io);
   await new Promise((resolve) => setTimeout(resolve, 0));
 
   const message = {
-    id: 'm2',
-    chatId: ns('alice'),
+    id: "m2",
+    chatId: ns("alice"),
     senderId: PARTICIPANT,
     sentAt: Date.now(),
-    content: { kind: 'text' as const, text: 'are you there?' },
+    content: { kind: "text" as const, text: "are you there?" },
     fromMe: false,
-    status: 'sent' as const,
+    status: "sent" as const,
   };
   useChatStore.setState((s) => ({
-    messages: { ...s.messages, [ns('alice')]: [...(s.messages[ns('alice')] ?? []), message] },
+    messages: { ...s.messages, [ns("alice")]: [...(s.messages[ns("alice")] ?? []), message] },
     chats: s.chats.map((c) =>
-      c.id === ns('alice')
-        ? { ...c, lastMessage: { ...message, id: 'preview:m2', preview: true } }
-        : c.id === ns('team')
-          ? { ...c, lastMessage: { ...message, id: 'm3', chatId: ns('team') } }
-          : c
+      c.id === ns("alice")
+        ? { ...c, lastMessage: { ...message, id: "preview:m2", preview: true } }
+        : c.id === ns("team")
+          ? { ...c, lastMessage: { ...message, id: "m3", chatId: ns("team") } }
+          : c,
     ),
   }));
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -526,5 +514,5 @@ it('streams each new message once, however many places it lands in', async () =>
   const { code } = await watching;
 
   expect(code).toBe(0);
-  expect(io.out.map((line) => JSON.parse(line).id)).toEqual(['m2', 'm3']);
+  expect(io.out.map((line) => JSON.parse(line).id)).toEqual(["m2", "m3"]);
 });

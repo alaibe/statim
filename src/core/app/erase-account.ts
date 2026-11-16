@@ -1,9 +1,9 @@
-import { useAccountStore } from '../account/account-store';
-import { useLockStore } from '../account/lock-store';
-import { stopListening } from '../icloud/phone';
-import { turnOffRelay } from '../icloud/relay';
-import { vaultWipe } from '@/storage/vault';
-import { accountRuntime } from '@/runtime';
+import { accountRuntime } from "@/runtime";
+import { vaultWipe } from "@/storage/vault";
+import { useAccountStore } from "../account/account-store";
+import { useLockStore } from "../account/lock-store";
+import { stopListening } from "../icloud/phone";
+import { turnOffRelay } from "../icloud/relay";
 
 export async function eraseAccount(accountId?: string): Promise<void> {
   const accountState = useAccountStore.getState();

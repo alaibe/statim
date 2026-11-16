@@ -1,16 +1,16 @@
-import type { DerivedKey } from '@/core/account/keyring';
-import { InMemoryMessageStore } from '@/core/messaging/message-store';
-import { protocolChatId } from '@/core/messaging/namespace';
-import type { ProtocolChatId, ProtocolMessage, ProtocolChat } from '@/core/messaging/types';
-import { NostrSession } from './adapter';
-import { encodeNpub } from '@/lib/bech32';
-import { verifyEvent, type NostrEvent } from './events';
-import type { HistoryState } from '@/core/messaging/history';
-import { keysFromSecretKey, NOSTR_DERIVATION_PATH } from './keys';
-import * as nip17 from './nip17';
-import { chatIdFor, wrapForRecipients } from './nip17';
-import { createAccountStorage } from '@/storage/account';
-import { fakeRelayFactory, type FakeRelay } from './testing/fake-relay';
+import type { DerivedKey } from "@/core/account/keyring";
+import type { HistoryState } from "@/core/messaging/history";
+import { InMemoryMessageStore } from "@/core/messaging/message-store";
+import { protocolChatId } from "@/core/messaging/namespace";
+import type { ProtocolChat, ProtocolChatId, ProtocolMessage } from "@/core/messaging/types";
+import { encodeNpub } from "@/lib/bech32";
+import { createAccountStorage } from "@/storage/account";
+import { NostrSession } from "./adapter";
+import { type NostrEvent, verifyEvent } from "./events";
+import { keysFromSecretKey, NOSTR_DERIVATION_PATH } from "./keys";
+import * as nip17 from "./nip17";
+import { chatIdFor, wrapForRecipients } from "./nip17";
+import { type FakeRelay, fakeRelayFactory } from "./testing/fake-relay";
 
 const ALICE_SECRET = new Uint8Array(32).fill(1);
 const alice = keysFromSecretKey(ALICE_SECRET);
@@ -25,7 +25,7 @@ function deriveFor(secret: Uint8Array) {
   };
 }
 
-async function connect(relayUrls = ['wss://a.example'], store = new InMemoryMessageStore()) {
+async function connect(relayUrls = ["wss://a.example"], store = new InMemoryMessageStore()) {
   const factory = fakeRelayFactory();
   const session = await NostrSession.connect({
     derive: deriveFor(ALICE_SECRET),
@@ -43,7 +43,7 @@ function deliverFrom(
   recipients: string[],
   content: string,
   subject?: string,
-  more: { kind?: number; tags?: string[][] } = {}
+  more: { kind?: number; tags?: string[][] } = {},
 ) {
   const { rumor, wraps } = wrapForRecipients(sender, { recipients, content, subject, ...more });
   for (const wrap of wraps) {
@@ -54,69 +54,69 @@ function deliverFrom(
 
 const settleDeliveries = () => new Promise<void>((resolve) => setImmediate(resolve));
 
-describe('the self participant', () => {
-  it('derives at the NIP-06 path and exposes the npub as the address', async () => {
+describe("the self participant", () => {
+  it("derives at the NIP-06 path and exposes the npub as the address", async () => {
     const { session } = await connect();
 
     expect(session.self.participantId).toBe(alice.publicKey);
     // There is no Ethereum address on this protocol; the npub is the
     // human-facing identifier, so the UI has something to render.
     expect(session.self.address).toBe(encodeNpub(Uint8Array.from(hexBytes(alice.publicKey))));
-    expect(session.self.address.startsWith('npub1')).toBe(true);
+    expect(session.self.address.startsWith("npub1")).toBe(true);
   });
 });
 
-describe('subscribing', () => {
-  it('authenticates private history and reopens the request only after relay acceptance', async () => {
-    const { session, factory } = await connect(['wss://a.example', 'wss://b.example']);
+describe("subscribing", () => {
+  it("authenticates private history and reopens the request only after relay acceptance", async () => {
+    const { session, factory } = await connect(["wss://a.example", "wss://b.example"]);
     const relay = factory.relays[0];
-    relay.onmessage?.({ data: JSON.stringify(['AUTH', 'private-inbox-challenge']) });
-    const auth = relay.sent.find((m) => m[0] === 'AUTH')![1] as NostrEvent;
+    relay.onmessage?.({ data: JSON.stringify(["AUTH", "private-inbox-challenge"]) });
+    const auth = relay.sent.find((m) => m[0] === "AUTH")![1] as NostrEvent;
     expect(verifyEvent(auth)).toBe(true);
     expect(auth.pubkey).toBe(alice.publicKey);
     expect(auth.kind).toBe(22242);
     expect(auth.tags).toEqual([
-      ['relay', relay.url],
-      ['challenge', 'private-inbox-challenge'],
+      ["relay", relay.url],
+      ["challenge", "private-inbox-challenge"],
     ]);
-    expect(factory.relays[1].sent.some((m) => m[0] === 'AUTH')).toBe(false);
+    expect(factory.relays[1].sent.some((m) => m[0] === "AUTH")).toBe(false);
     expect(relay.published).toEqual([]);
-    expect(relay.sent.filter((m) => m[0] === 'REQ')).toHaveLength(1);
+    expect(relay.sent.filter((m) => m[0] === "REQ")).toHaveLength(1);
 
-    relay.onmessage?.({ data: JSON.stringify(['OK', auth.id, true, '']) });
-    expect(relay.sent.filter((m) => m[0] === 'REQ')).toHaveLength(2);
-    const subscription = String(relay.sent.find((m) => m[0] === 'REQ')![1]);
+    relay.onmessage?.({ data: JSON.stringify(["OK", auth.id, true, ""]) });
+    expect(relay.sent.filter((m) => m[0] === "REQ")).toHaveLength(2);
+    const subscription = String(relay.sent.find((m) => m[0] === "REQ")![1]);
     for (const socket of factory.relays) socket.eose(subscription);
     await expect(session.sync()).resolves.toBeUndefined();
     await session.disconnect();
   });
 
-  it('reports partial history when one relay finishes and another never responds', async () => {
+  it("reports partial history when one relay finishes and another never responds", async () => {
     jest.useFakeTimers();
     try {
-      const { session, factory } = await connect(['wss://a.example', 'wss://b.example']);
-      let latest: HistoryState = { status: 'idle' };
+      const { session, factory } = await connect(["wss://a.example", "wss://b.example"]);
+      let latest: HistoryState = { status: "idle" };
       session.subscribeHistory((state) => {
         latest = state;
       });
       const syncing = session.sync();
-      const rejected = expect(syncing).rejects.toThrow('1 of 2 relays');
-      const subscription = String(factory.relays[0].sent.find((m) => m[0] === 'REQ')![1]);
+      const rejected = expect(syncing).rejects.toThrow("1 of 2 relays");
+      const subscription = String(factory.relays[0].sent.find((m) => m[0] === "REQ")![1]);
       factory.relays[0].eose(subscription);
       await jest.advanceTimersByTimeAsync(15_000);
       await rejected;
-      expect(latest.status).toBe('partial');
+      expect(latest.status).toBe("partial");
       await session.disconnect();
     } finally {
       jest.useRealTimers();
     }
   });
 
-  it('waits for every relay to finish history, including sockets still connecting', async () => {
+  it("waits for every relay to finish history, including sockets still connecting", async () => {
     const factory = fakeRelayFactory();
     const session = await NostrSession.connect({
       derive: deriveFor(ALICE_SECRET),
-      relays: ['wss://a.example', 'wss://b.example'],
+      relays: ["wss://a.example", "wss://b.example"],
       createSocket: factory.create,
       store: new InMemoryMessageStore(),
     });
@@ -127,7 +127,7 @@ describe('subscribing', () => {
     await Promise.resolve();
     expect(finished).toBe(false);
     for (const relay of factory.relays) relay.open();
-    const subscription = String(factory.relays[0].sent.find((m) => m[0] === 'REQ')![1]);
+    const subscription = String(factory.relays[0].sent.find((m) => m[0] === "REQ")![1]);
     factory.relays[0].eose(subscription);
     await Promise.resolve();
     expect(finished).toBe(false);
@@ -137,17 +137,17 @@ describe('subscribing', () => {
     await session.disconnect();
   });
 
-  it('times out silent relays, then retries with a fresh history request', async () => {
+  it("times out silent relays, then retries with a fresh history request", async () => {
     jest.useFakeTimers();
     try {
       const { session, factory } = await connect();
       const syncing = session.sync();
-      const rejected = expect(syncing).rejects.toThrow('timed out');
+      const rejected = expect(syncing).rejects.toThrow("timed out");
       await jest.advanceTimersByTimeAsync(15_000);
       await rejected;
       const retry = session.sync();
       for (let i = 0; i < 10; i++) await Promise.resolve();
-      const requests = factory.relays[0].sent.filter((m) => m[0] === 'REQ');
+      const requests = factory.relays[0].sent.filter((m) => m[0] === "REQ");
       expect(requests).toHaveLength(2);
       factory.relays[0].eose(String(requests[1][1]));
       await retry;
@@ -157,29 +157,29 @@ describe('subscribing', () => {
     }
   });
 
-  it('settles a pending history fetch on disconnect', async () => {
+  it("settles a pending history fetch on disconnect", async () => {
     const { session } = await connect();
     const syncing = session.sync();
-    const rejected = expect(syncing).rejects.toThrow('disconnected');
+    const rejected = expect(syncing).rejects.toThrow("disconnected");
     await session.disconnect();
     await rejected;
   });
 
-  it('asks every relay for gift wraps addressed to us, and nothing else', async () => {
-    const { factory } = await connect(['wss://a.example', 'wss://b.example']);
+  it("asks every relay for gift wraps addressed to us, and nothing else", async () => {
+    const { factory } = await connect(["wss://a.example", "wss://b.example"]);
 
     for (const relay of factory.relays) {
-      const req = relay.sent.find((m) => m[0] === 'REQ');
+      const req = relay.sent.find((m) => m[0] === "REQ");
       expect(req).toBeDefined();
       const filter = (req as [string, string, Record<string, unknown>])[2];
       expect(filter.kinds).toEqual([1059]);
-      expect(filter['#p']).toEqual([alice.publicKey]);
+      expect(filter["#p"]).toEqual([alice.publicKey]);
     }
   });
 });
 
-describe('receiving', () => {
-  it('unwraps an incoming DM into a chat and a message', async () => {
+describe("receiving", () => {
+  it("unwraps an incoming DM into a chat and a message", async () => {
     const { session, factory } = await connect();
 
     const messages: ProtocolMessage[] = [];
@@ -187,34 +187,34 @@ describe('receiving', () => {
     await session.streamMessages((m) => messages.push(m));
     await session.streamChats((c) => chats.push(c));
 
-    deliverFrom(factory.relays[0], bob, [alice.publicKey], 'hello alice');
+    deliverFrom(factory.relays[0], bob, [alice.publicKey], "hello alice");
     await settleDeliveries();
 
     expect(messages).toHaveLength(1);
-    expect(messages[0].content).toEqual({ kind: 'text', text: 'hello alice' });
+    expect(messages[0].content).toEqual({ kind: "text", text: "hello alice" });
     expect(messages[0].senderId).toBe(bob.publicKey);
     expect(messages[0].fromMe).toBe(false);
 
     expect(chats).toHaveLength(1);
-    expect(chats[0].kind).toBe('dm');
+    expect(chats[0].kind).toBe("dm");
     expect([...chats[0].memberIds].sort()).toEqual([alice.publicKey, bob.publicKey].sort());
   });
 
-  it('files a multi-recipient message as a group under its participant set', async () => {
+  it("files a multi-recipient message as a group under its participant set", async () => {
     const { session, factory } = await connect();
-    deliverFrom(factory.relays[0], bob, [alice.publicKey, carol.publicKey], 'hi both', 'Weekend');
+    deliverFrom(factory.relays[0], bob, [alice.publicKey, carol.publicKey], "hi both", "Weekend");
     await settleDeliveries();
 
     const [chat] = await session.listChats();
-    expect(chat.kind).toBe('group');
+    expect(chat.kind).toBe("group");
     // NIP-17 has no thread id; a chat *is* its participant set.
     expect(chat.id).toBe(chatIdFor([alice.publicKey, bob.publicKey, carol.publicKey]));
-    expect(chat.title).toBe('Weekend');
+    expect(chat.title).toBe("Weekend");
   });
 
-  it('produces an id that is a legal chat id', async () => {
+  it("produces an id that is a legal chat id", async () => {
     const { session, factory } = await connect();
-    deliverFrom(factory.relays[0], bob, [alice.publicKey], 'hi');
+    deliverFrom(factory.relays[0], bob, [alice.publicKey], "hi");
     await settleDeliveries();
 
     const [chat] = await session.listChats();
@@ -222,28 +222,28 @@ describe('receiving', () => {
     expect(chat.id).toMatch(/^[A-Za-z0-9_-]+$/);
   });
 
-  it('ignores a wrap it cannot open, rather than failing the batch', async () => {
+  it("ignores a wrap it cannot open, rather than failing the batch", async () => {
     const { session, factory } = await connect();
 
-    const { wraps } = wrapForRecipients(bob, { recipients: [carol.publicKey], content: 'private' });
+    const { wraps } = wrapForRecipients(bob, { recipients: [carol.publicKey], content: "private" });
     factory.relays[0].broadcast(wraps[0]);
-    deliverFrom(factory.relays[0], bob, [alice.publicKey], 'for me');
+    deliverFrom(factory.relays[0], bob, [alice.publicKey], "for me");
     await settleDeliveries();
 
     const chats = await session.listChats();
     expect(chats).toHaveLength(1);
     expect((await session.getMessages(chats[0].id))[0].content).toEqual({
-      kind: 'text',
-      text: 'for me',
+      kind: "text",
+      text: "for me",
     });
   });
 
-  it('does not duplicate the same message arriving from two relays', async () => {
-    const { session, factory } = await connect(['wss://a.example', 'wss://b.example']);
+  it("does not duplicate the same message arriving from two relays", async () => {
+    const { session, factory } = await connect(["wss://a.example", "wss://b.example"]);
 
     const { wraps } = wrapForRecipients(bob, {
       recipients: [alice.publicKey],
-      content: 'once please',
+      content: "once please",
     });
     const forAlice = wraps.find((w) => w.tags[0][1] === alice.publicKey)!;
     factory.relays[0].broadcast(forAlice);
@@ -254,17 +254,17 @@ describe('receiving', () => {
     expect(await session.getMessages(chat.id)).toHaveLength(1);
   });
 
-  it('orders by the rumor timestamp, not the jittered wrap timestamp', async () => {
+  it("orders by the rumor timestamp, not the jittered wrap timestamp", async () => {
     const { session, factory } = await connect();
 
     const older = wrapForRecipients(bob, {
       recipients: [alice.publicKey],
-      content: 'first',
+      content: "first",
       createdAt: 1_000,
     });
     const newer = wrapForRecipients(bob, {
       recipients: [alice.publicKey],
-      content: 'second',
+      content: "second",
       createdAt: 2_000,
     });
 
@@ -275,19 +275,19 @@ describe('receiving', () => {
 
     const [chat] = await session.listChats();
     const messages = await session.getMessages(chat.id);
-    expect(messages.map((m) => textOf(m))).toEqual(['first', 'second']);
+    expect(messages.map((m) => textOf(m))).toEqual(["first", "second"]);
   });
 });
 
-describe('sending', () => {
-  it('publishes one wrap per participant and records the message locally', async () => {
+describe("sending", () => {
+  it("publishes one wrap per participant and records the message locally", async () => {
     const { session, factory } = await connect();
     const chat = await session.createDm(bob.publicKey);
 
     const messages: ProtocolMessage[] = [];
     await session.streamMessages((m) => messages.push(m));
 
-    await session.send(chat.id, { kind: 'text', text: 'hi bob' });
+    await session.send(chat.id, { kind: "text", text: "hi bob" });
 
     // Alice and Bob: without the self-addressed copy she cannot read her own
     // outbox on another device.
@@ -297,93 +297,85 @@ describe('sending', () => {
     // Recorded immediately rather than waiting for the relay to echo it back.
     expect(messages).toHaveLength(1);
     expect(messages[0].fromMe).toBe(true);
-    expect(textOf(messages[0])).toBe('hi bob');
+    expect(textOf(messages[0])).toBe("hi bob");
   });
 
-  it('fails loudly when no relay accepted it', async () => {
+  it("fails loudly when no relay accepted it", async () => {
     const factory = fakeRelayFactory();
     const session = await NostrSession.connect({
       derive: deriveFor(ALICE_SECRET),
-      relays: ['wss://a.example'],
+      relays: ["wss://a.example"],
       createSocket: factory.create,
       store: new InMemoryMessageStore(),
     });
     // Never opened: nothing is connected.
     const chat = await session.createDm(bob.publicKey);
 
-    await expect(session.send(chat.id, { kind: 'text', text: 'lost' })).rejects.toThrow(
-      /No relay accepted/
-    );
+    await expect(session.send(chat.id, { kind: "text", text: "lost" })).rejects.toThrow(/No relay accepted/);
   });
 
-  it('retries only the unresolved wrap with stable rumor and wrap ids', async () => {
+  it("retries only the unresolved wrap with stable rumor and wrap ids", async () => {
     const { session, factory } = await connect();
     const relay = factory.relays[0];
     relay.autoAcceptPublications = false;
     const chat = await session.createDm(bob.publicKey);
 
-    const first = session.send(chat.id, { kind: 'text', text: 'once' });
+    const first = session.send(chat.id, { kind: "text", text: "once" });
     await settleDeliveries();
     const accepted = relay.published[0];
     relay.acknowledge(accepted.id, true);
     await settleDeliveries();
     const rejected = relay.published[1];
-    relay.acknowledge(rejected.id, false, 'offline');
-    await expect(first).rejects.toThrow('offline');
+    relay.acknowledge(rejected.id, false, "offline");
+    await expect(first).rejects.toThrow("offline");
 
-    const retry = session.send(chat.id, { kind: 'text', text: 'once' });
+    const retry = session.send(chat.id, { kind: "text", text: "once" });
     await settleDeliveries();
-    expect(relay.published.map((event) => event.id)).toEqual([
-      accepted.id,
-      rejected.id,
-      rejected.id,
-    ]);
+    expect(relay.published.map((event) => event.id)).toEqual([accepted.id, rejected.id, rejected.id]);
     relay.acknowledge(rejected.id, true);
     await retry;
 
     expect(await session.getMessages(chat.id)).toHaveLength(1);
   });
 
-  it('retries failed local persistence without publishing a second logical message', async () => {
+  it("retries failed local persistence without publishing a second logical message", async () => {
     class FlakyStore extends InMemoryMessageStore {
       attempts = 0;
-      override async insertMessage(...args: Parameters<InMemoryMessageStore['insertMessage']>) {
+      override async insertMessage(...args: Parameters<InMemoryMessageStore["insertMessage"]>) {
         this.attempts += 1;
-        if (this.attempts === 1) throw new Error('disk full');
+        if (this.attempts === 1) throw new Error("disk full");
         return super.insertMessage(...args);
       }
     }
-    const { session, factory } = await connect(['wss://a.example'], new FlakyStore());
+    const { session, factory } = await connect(["wss://a.example"], new FlakyStore());
     const chat = await session.createDm(bob.publicKey);
 
-    await expect(session.send(chat.id, { kind: 'text', text: 'persist me' })).rejects.toThrow(
-      'disk full'
-    );
+    await expect(session.send(chat.id, { kind: "text", text: "persist me" })).rejects.toThrow("disk full");
     const publishedIds = factory.relays[0].published.map((event) => event.id);
 
-    await expect(session.send(chat.id, { kind: 'text', text: 'persist me' })).resolves.toBeTruthy();
+    await expect(session.send(chat.id, { kind: "text", text: "persist me" })).resolves.toBeTruthy();
     expect(factory.relays[0].published.map((event) => event.id)).toEqual(publishedIds);
     expect(await session.getMessages(chat.id)).toHaveLength(1);
   });
 
-  it('refuses content types it cannot carry, rather than sending a stub', async () => {
+  it("refuses content types it cannot carry, rather than sending a stub", async () => {
     const { session } = await connect();
     const chat = await session.createDm(bob.publicKey);
 
-    await expect(
-      session.send(chat.id, { kind: 'custom', typeId: 'eth.tx', data: {} })
-    ).rejects.toThrow(/can only send text/);
+    await expect(session.send(chat.id, { kind: "custom", typeId: "eth.tx", data: {} })).rejects.toThrow(
+      /can only send text/,
+    );
   });
 
-  it('round-trips to the recipient', async () => {
+  it("round-trips to the recipient", async () => {
     const { session, factory } = await connect();
     const chat = await session.createDm(bob.publicKey);
-    await session.send(chat.id, { kind: 'text', text: 'end to end' });
+    await session.send(chat.id, { kind: "text", text: "end to end" });
 
     const bobFactory = fakeRelayFactory();
     const bobSession = await NostrSession.connect({
       derive: deriveFor(new Uint8Array(32).fill(2)),
-      relays: ['wss://a.example'],
+      relays: ["wss://a.example"],
       createSocket: bobFactory.create,
       store: new InMemoryMessageStore(),
     });
@@ -395,16 +387,16 @@ describe('sending', () => {
     await settleDeliveries();
 
     const [received] = await bobSession.listChats();
-    expect(textOf((await bobSession.getMessages(received.id))[0])).toBe('end to end');
+    expect(textOf((await bobSession.getMessages(received.id))[0])).toBe("end to end");
   });
 });
 
-describe('replies and reactions', () => {
+describe("replies and reactions", () => {
   async function bobReceives(published: NostrEvent[]) {
     const bobFactory = fakeRelayFactory();
     const bobSession = await NostrSession.connect({
       derive: deriveFor(new Uint8Array(32).fill(2)),
-      relays: ['wss://a.example'],
+      relays: ["wss://a.example"],
       createSocket: bobFactory.create,
       store: new InMemoryMessageStore(),
     });
@@ -418,108 +410,106 @@ describe('replies and reactions', () => {
   }
 
   const openedByBob = (published: NostrEvent[]) =>
-    published
-      .filter((event) => event.tags[0][1] === bob.publicKey)
-      .map((event) => nip17.unwrapGiftWrap(event, bob)!);
+    published.filter((event) => event.tags[0][1] === bob.publicKey).map((event) => nip17.unwrapGiftWrap(event, bob)!);
 
-  it('sends a reply as an e tag on the message, which the recipient reads back', async () => {
+  it("sends a reply as an e tag on the message, which the recipient reads back", async () => {
     const { session, factory } = await connect();
     const chat = await session.createDm(bob.publicKey);
-    const first = await session.send(chat.id, { kind: 'text', text: 'first' });
-    await session.send(chat.id, { kind: 'text', text: 'answer' }, first);
+    const first = await session.send(chat.id, { kind: "text", text: "first" });
+    await session.send(chat.id, { kind: "text", text: "answer" }, first);
 
-    expect(openedByBob(factory.relays[0].published)[1].tags).toContainEqual(['e', first]);
-    const answer = (m: ProtocolMessage) => textOf(m) === 'answer';
+    expect(openedByBob(factory.relays[0].published)[1].tags).toContainEqual(["e", first]);
+    const answer = (m: ProtocolMessage) => textOf(m) === "answer";
     expect((await session.getMessages(chat.id)).find(answer)?.replyTo).toBe(first);
     expect((await bobReceives(factory.relays[0].published)).find(answer)?.replyTo).toBe(first);
   });
 
-  it('reacts with a kind 7 and takes it back with a kind 5 addressed to the chat', async () => {
+  it("reacts with a kind 7 and takes it back with a kind 5 addressed to the chat", async () => {
     const { session, factory } = await connect();
     const chat = await session.createDm(bob.publicKey);
-    const targetId = await session.send(chat.id, { kind: 'text', text: 'react to me' });
-    const reaction = { kind: 'reaction', targetId, emoji: '👍' } as const;
-    const added = await session.send(chat.id, { ...reaction, action: 'added' });
-    await session.send(chat.id, { ...reaction, action: 'removed' });
+    const targetId = await session.send(chat.id, { kind: "text", text: "react to me" });
+    const reaction = { kind: "reaction", targetId, emoji: "👍" } as const;
+    const added = await session.send(chat.id, { ...reaction, action: "added" });
+    await session.send(chat.id, { ...reaction, action: "removed" });
 
     const [, like, undo] = openedByBob(factory.relays[0].published);
-    expect(like).toMatchObject({ id: added, kind: 7, content: '👍' });
+    expect(like).toMatchObject({ id: added, kind: 7, content: "👍" });
     expect(like.tags).toEqual(
       expect.arrayContaining([
-        ['p', bob.publicKey],
-        ['e', targetId],
-      ])
+        ["p", bob.publicKey],
+        ["e", targetId],
+      ]),
     );
     expect(undo.kind).toBe(5);
     expect(undo.tags).toEqual(
       expect.arrayContaining([
-        ['p', bob.publicKey],
-        ['e', added],
-      ])
+        ["p", bob.publicKey],
+        ["e", added],
+      ]),
     );
 
     const reactions = (messages: ProtocolMessage[]) =>
-      messages.filter((m) => m.content.kind === 'reaction').map((m) => m.content);
+      messages.filter((m) => m.content.kind === "reaction").map((m) => m.content);
     const expected = [
-      { ...reaction, action: 'added' },
-      { ...reaction, action: 'removed' },
+      { ...reaction, action: "added" },
+      { ...reaction, action: "removed" },
     ];
     expect(reactions(await session.getMessages(chat.id))).toEqual(expected);
     expect(reactions(await bobReceives(factory.relays[0].published))).toEqual(expected);
   });
 
-  it('reads a NIP-25 like from another app as 👍 on its last e tag', async () => {
+  it("reads a NIP-25 like from another app as 👍 on its last e tag", async () => {
     const { session, factory } = await connect();
-    const hello = deliverFrom(factory.relays[0], bob, [alice.publicKey], 'hello alice');
-    deliverFrom(factory.relays[0], bob, [alice.publicKey], '+', undefined, {
+    const hello = deliverFrom(factory.relays[0], bob, [alice.publicKey], "hello alice");
+    deliverFrom(factory.relays[0], bob, [alice.publicKey], "+", undefined, {
       kind: 7,
       tags: [
-        ['e', 'root'],
-        ['e', hello],
-        ['k', '14'],
+        ["e", "root"],
+        ["e", hello],
+        ["k", "14"],
       ],
     });
     await settleDeliveries();
 
     const [chat] = await session.listChats();
     const messages = await session.getMessages(chat.id);
-    expect(messages.filter((m) => m.content.kind === 'reaction').map((m) => m.content)).toEqual([
-      { kind: 'reaction', targetId: hello, emoji: '👍', action: 'added' },
+    expect(messages.filter((m) => m.content.kind === "reaction").map((m) => m.content)).toEqual([
+      { kind: "reaction", targetId: hello, emoji: "👍", action: "added" },
     ]);
   });
 
-  it('lets a deletion take back only its sender’s own reaction', async () => {
+  it("lets a deletion take back only its sender’s own reaction", async () => {
     const { session, factory } = await connect();
-    const hello = deliverFrom(factory.relays[0], bob, [alice.publicKey], 'hello alice');
+    const hello = deliverFrom(factory.relays[0], bob, [alice.publicKey], "hello alice");
     await settleDeliveries();
     const [chat] = await session.listChats();
     const mine = await session.send(chat.id, {
-      kind: 'reaction',
+      kind: "reaction",
       targetId: hello,
-      emoji: '❤️',
-      action: 'added',
+      emoji: "❤️",
+      action: "added",
     });
     for (const undoes of [mine, hello]) {
-      deliverFrom(factory.relays[0], bob, [alice.publicKey], '', undefined, {
+      deliverFrom(factory.relays[0], bob, [alice.publicKey], "", undefined, {
         kind: 5,
-        tags: [['e', undoes]],
+        tags: [["e", undoes]],
       });
     }
     await settleDeliveries();
 
     const messages = await session.getMessages(chat.id);
-    expect(messages.filter((m) => m.content.kind === 'reaction').map((m) => m.id)).toEqual([mine]);
-    expect(messages.find((m) => m.id === hello)?.content.kind).toBe('text');
+    expect(messages.filter((m) => m.content.kind === "reaction").map((m) => m.id)).toEqual([mine]);
+    expect(messages.find((m) => m.id === hello)?.content.kind).toBe("text");
   });
 });
 
-describe('catch-up cursor', () => {
-  it('advances from the outer gift-wrap clock, not the rumor clock', async () => {
+describe("catch-up cursor", () => {
+  it("advances from the outer gift-wrap clock, not the rumor clock", async () => {
     const store = new InMemoryMessageStore();
-    const { session, factory } = await connect(['wss://a.example'], store);
+    const { session, factory } = await connect(["wss://a.example"], store);
     const wrapped = wrapForRecipients(bob, {
       recipients: [alice.publicKey],
-      content: 'future sender clock',
+      content: "future sender clock",
       createdAt: Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60,
     });
     const giftWrap = wrapped.wraps.find((event) => event.tags[0][1] === alice.publicKey)!;
@@ -528,12 +518,10 @@ describe('catch-up cursor', () => {
 
     const [chat] = await session.listChats();
     expect((await session.getMessages(chat.id))[0].sentAt).toBe(wrapped.rumor.created_at * 1000);
-    await expect(store.newestTransportTimestamp('nostr', Date.now())).resolves.toBe(
-      giftWrap.created_at * 1000
-    );
+    await expect(store.newestTransportTimestamp("nostr", Date.now())).resolves.toBe(giftWrap.created_at * 1000);
   });
 
-  it('ignores a persisted sender timestamp beyond the trusted local clock', async () => {
+  it("ignores a persisted sender timestamp beyond the trusted local clock", async () => {
     const now = Date.now();
     const old = now - 10 * 24 * 60 * 60 * 1_000;
     const participants = [alice.publicKey, bob.publicKey].sort();
@@ -541,33 +529,33 @@ describe('catch-up cursor', () => {
     const store = new InMemoryMessageStore();
     await store.upsertChat({
       id: chatId,
-      protocolId: 'nostr',
+      protocolId: "nostr",
       participants,
       createdAt: old,
       hidden: false,
     });
     await store.insertMessage(
-      storedMessage(chatId, 'old', old),
+      storedMessage(chatId, "old", old),
       {
         id: chatId,
-        protocolId: 'nostr',
+        protocolId: "nostr",
         participants,
         createdAt: old,
         hidden: false,
       },
-      old
+      old,
     );
-    await store.insertMessage(storedMessage(chatId, 'poison', now + 365 * 24 * 60 * 60 * 1_000));
+    await store.insertMessage(storedMessage(chatId, "poison", now + 365 * 24 * 60 * 60 * 1_000));
 
     const factory = fakeRelayFactory();
     const session = await NostrSession.connect({
       derive: deriveFor(ALICE_SECRET),
-      relays: ['wss://a.example'],
+      relays: ["wss://a.example"],
       createSocket: factory.create,
       store,
     });
     factory.relays[0].open();
-    const filter = factory.relays[0].sent.find((message) => message[0] === 'REQ')![2] as {
+    const filter = factory.relays[0].sent.find((message) => message[0] === "REQ")![2] as {
       since: number;
     };
 
@@ -576,99 +564,93 @@ describe('catch-up cursor', () => {
   });
 });
 
-describe('groups, honestly', () => {
-  it('reports every participant as a plain member, because there are no roles', async () => {
+describe("groups, honestly", () => {
+  it("reports every participant as a plain member, because there are no roles", async () => {
     const { session } = await connect();
-    const group = await session.createGroup([bob.publicKey, carol.publicKey], 'Trip');
+    const group = await session.createGroup([bob.publicKey, carol.publicKey], "Trip");
 
     const members = await session.getMembers(group.id);
-    expect(members.map((m) => m.role)).toEqual(['member', 'member', 'member']);
+    expect(members.map((m) => m.role)).toEqual(["member", "member", "member"]);
     // Claiming an owner would make the UI offer destructive actions that do
     // nothing.
     expect(group.selfRole).toBeUndefined();
   });
 
-  it('refuses addMembers instead of silently forking the chat', async () => {
+  it("refuses addMembers instead of silently forking the chat", async () => {
     const { session } = await connect();
-    const group = await session.createGroup([bob.publicKey], 'Duo');
+    const group = await session.createGroup([bob.publicKey], "Duo");
 
-    await expect(session.addMembers(group.id, [carol.publicKey])).rejects.toThrow(
-      /no roster to add to/
-    );
+    await expect(session.addMembers(group.id, [carol.publicKey])).rejects.toThrow(/no roster to add to/);
   });
 
-  it('refuses removeMembers, because nothing revokes access', async () => {
+  it("refuses removeMembers, because nothing revokes access", async () => {
     const { session } = await connect();
-    const group = await session.createGroup([bob.publicKey], 'Duo');
+    const group = await session.createGroup([bob.publicKey], "Duo");
 
-    await expect(session.removeMembers(group.id, [bob.publicKey])).rejects.toThrow(
-      /cannot remove anyone/
-    );
+    await expect(session.removeMembers(group.id, [bob.publicKey])).rejects.toThrow(/cannot remove anyone/);
   });
 
-  it('leaves locally, and un-hides when someone replies', async () => {
+  it("leaves locally, and un-hides when someone replies", async () => {
     // Nobody is told you left, so anyone's next message to the group brings it back.
     const { session, factory } = await connect();
-    const group = await session.createGroup([bob.publicKey], 'Duo');
+    const group = await session.createGroup([bob.publicKey], "Duo");
 
     await session.leaveGroup(group.id);
     expect(await session.listChats()).toHaveLength(0);
 
-    deliverFrom(factory.relays[0], bob, [alice.publicKey], 'still here');
+    deliverFrom(factory.relays[0], bob, [alice.publicKey], "still here");
     await settleDeliveries();
     expect(await session.listChats()).toHaveLength(1);
   });
 
-  it('blocks a DM here: what they send is dropped until you unblock them', async () => {
+  it("blocks a DM here: what they send is dropped until you unblock them", async () => {
     const store = new InMemoryMessageStore();
-    const { session, factory } = await connect(['wss://a.example'], store);
+    const { session, factory } = await connect(["wss://a.example"], store);
     const dm = await session.createDm(bob.publicKey);
-    const group = await session.createGroup([bob.publicKey, carol.publicKey], 'Trio');
+    const group = await session.createGroup([bob.publicKey, carol.publicKey], "Trio");
     const messages: ProtocolMessage[] = [];
     await session.streamMessages((m) => messages.push(m));
 
     await session.setBlocked(dm.id, true);
-    await expect(session.setBlocked(group.id, true)).rejects.toThrow('Only a DM');
-    deliverFrom(factory.relays[0], bob, [alice.publicKey], 'let me in');
+    await expect(session.setBlocked(group.id, true)).rejects.toThrow("Only a DM");
+    deliverFrom(factory.relays[0], bob, [alice.publicKey], "let me in");
     await settleDeliveries();
     expect(messages).toEqual([]);
     expect((await session.listChats()).find((c) => c.id === dm.id)?.blocked).toBe(true);
-    const stored = await store.loadChats('nostr');
+    const stored = await store.loadChats("nostr");
     expect(stored.find((c) => c.id === dm.id)?.blocked).toBe(true);
 
     await session.setBlocked(dm.id, false);
-    deliverFrom(factory.relays[0], bob, [alice.publicKey], 'thanks');
+    deliverFrom(factory.relays[0], bob, [alice.publicKey], "thanks");
     await settleDeliveries();
-    expect(messages.map((m) => m.content)).toEqual([{ kind: 'text', text: 'thanks' }]);
+    expect(messages.map((m) => m.content)).toEqual([{ kind: "text", text: "thanks" }]);
   });
 
-  it('renames locally; the name travels on the next message', async () => {
+  it("renames locally; the name travels on the next message", async () => {
     const { session, factory } = await connect();
-    const group = await session.createGroup([bob.publicKey, carol.publicKey], 'Old');
+    const group = await session.createGroup([bob.publicKey, carol.publicKey], "Old");
 
-    await session.renameGroup(group.id, 'New');
-    await session.send(group.id, { kind: 'text', text: 'renamed' });
+    await session.renameGroup(group.id, "New");
+    await session.send(group.id, { kind: "text", text: "renamed" });
 
     // The rename travels as a `subject` tag on the next message; there is no
     // rename event in NIP-17.
     expect(factory.relays[0].published[0].kind).toBe(1059);
     const [chat] = await session.listChats();
-    expect(chat.title).toBe('New');
+    expect(chat.title).toBe("New");
   });
 });
 
-describe('resolving participants', () => {
-  it('accepts an npub or hex, and rejects an Ethereum address', async () => {
+describe("resolving participants", () => {
+  it("accepts an npub or hex, and rejects an Ethereum address", async () => {
     const { session } = await connect();
 
     expect(await session.resolveParticipant(bob.npub)).toBe(bob.publicKey);
     expect(await session.resolveParticipant(bob.publicKey)).toBe(bob.publicKey);
-    expect(
-      await session.resolveParticipant('0x1111111111111111111111111111111111111111')
-    ).toBeNull();
+    expect(await session.resolveParticipant("0x1111111111111111111111111111111111111111")).toBeNull();
   });
 
-  it('labels participants with their npub, the only honest name available', async () => {
+  it("labels participants with their npub, the only honest name available", async () => {
     const { session } = await connect();
     expect(await session.resolveAddresses([bob.publicKey])).toEqual({
       [bob.publicKey]: bob.npub,
@@ -676,16 +658,16 @@ describe('resolving participants', () => {
   });
 });
 
-describe('teardown', () => {
-  it('closes every relay socket', async () => {
-    const { session, factory } = await connect(['wss://a.example', 'wss://b.example']);
+describe("teardown", () => {
+  it("closes every relay socket", async () => {
+    const { session, factory } = await connect(["wss://a.example", "wss://b.example"]);
     await session.disconnect();
     expect(factory.relays.every((r) => r.closed)).toBe(true);
   });
 });
 
 function textOf(message: ProtocolMessage): string {
-  return message.content.kind === 'text' ? message.content.text : '';
+  return message.content.kind === "text" ? message.content.text : "";
 }
 
 function hexBytes(hex: string): number[] {
@@ -701,24 +683,24 @@ function storedMessage(chatId: ProtocolChatId, id: string, sentAt: number): Prot
     senderId: bob.publicKey,
     sentAt,
     fromMe: false,
-    status: 'sent',
-    content: { kind: 'text', text: id },
+    status: "sent",
+    content: { kind: "text", text: id },
   };
 }
 
-describe('gift wraps from an earlier run', () => {
-  it('are not opened again when the relays send them on the next start', async () => {
-    const storage = createAccountStorage('nostr-handled');
+describe("gift wraps from an earlier run", () => {
+  it("are not opened again when the relays send them on the next start", async () => {
+    const storage = createAccountStorage("nostr-handled");
     const store = new InMemoryMessageStore();
-    const { wraps } = wrapForRecipients(bob, { recipients: [alice.publicKey], content: 'hi' });
+    const { wraps } = wrapForRecipients(bob, { recipients: [alice.publicKey], content: "hi" });
     const toAlice = wraps.filter((wrap) => wrap.tags[0][1] === alice.publicKey);
-    const unwrap = jest.spyOn(nip17, 'unwrapGiftWrap');
+    const unwrap = jest.spyOn(nip17, "unwrapGiftWrap");
 
     const run = async () => {
       const factory = fakeRelayFactory();
       const session = await NostrSession.connect({
         derive: deriveFor(ALICE_SECRET),
-        relays: ['wss://a.example'],
+        relays: ["wss://a.example"],
         createSocket: factory.create,
         store,
         storage,

@@ -2,11 +2,7 @@ function flagIndex(args: string[], flag: string, aliases: string[]): number {
   return args.findIndex((a) => a === flag || aliases.includes(a));
 }
 
-export function flagValue(
-  args: string[],
-  flag: string,
-  aliases: string[] = []
-): string | undefined {
+export function flagValue(args: string[], flag: string, aliases: string[] = []): string | undefined {
   const at = flagIndex(args, flag, aliases);
   return at === -1 ? undefined : args[at + 1];
 }

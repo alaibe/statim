@@ -1,6 +1,6 @@
-import { sessionFor, useChatStore } from '@/core/messaging/chat-store';
-import { chatPermissions, NO_PERMISSIONS } from '@/core/messaging/permissions';
-import type { ChatId } from '@/core/messaging/types';
+import { sessionFor, useChatStore } from "@/core/messaging/chat-store";
+import { chatPermissions, NO_PERMISSIONS } from "@/core/messaging/permissions";
+import type { ChatId } from "@/core/messaging/types";
 
 export function useChatSession(chatId: ChatId) {
   return useChatStore((s) => sessionFor(s, chatId));

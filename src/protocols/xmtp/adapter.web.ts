@@ -3,19 +3,16 @@ import {
   ConsentEntityType,
   ConsentState,
   ContentType,
+  createBackend,
+  type DecodedMessage,
   DeliveryStatus,
   Dm,
-  Group,
-  IdentifierKind,
-  ListConversationsOrderBy,
-  Opfs,
-  PermissionLevel,
-  createBackend,
-  getInboxIdForIdentifier,
-  ReactionAction,
-  ReactionSchema,
-  SortDirection,
   encodeText,
+  Group,
+  type GroupUpdated,
+  getInboxIdForIdentifier,
+  type Identifier,
+  IdentifierKind,
   isAttachment,
   isGroupUpdated,
   isReaction,
@@ -23,50 +20,53 @@ import {
   isReply,
   isText,
   isTextReply,
-  type DecodedMessage,
-  type GroupUpdated,
-  type Identifier,
+  ListConversationsOrderBy,
+  Opfs,
+  PermissionLevel,
+  ReactionAction,
+  ReactionSchema,
   type Signer,
+  SortDirection,
   type XmtpEnv,
-} from '@xmtp/browser-sdk';
-import type { ContentCodec } from '@xmtp/content-type-primitives';
-import { hexToBytes, isAddress, type LocalAccount } from 'viem';
+} from "@xmtp/browser-sdk";
+import type { ContentCodec } from "@xmtp/content-type-primitives";
+import { hexToBytes, isAddress, type LocalAccount } from "viem";
 
 import {
   classifyAttachment,
   fallbackMimeType,
   readInlineAttachment,
   writeInlineAttachment,
-} from '@/core/messaging/attachments';
-import { protocolChatId } from '@/core/messaging/namespace';
-import { showsInPreview } from '@/core/messaging/message-rules';
-import type { ChatSession, GroupInfo, XmtpInstallation } from '@/core/messaging/protocol';
+} from "@/core/messaging/attachments";
+import { isParticipantId } from "@/core/messaging/bots";
+import { showsInPreview } from "@/core/messaging/message-rules";
+import { protocolChatId } from "@/core/messaging/namespace";
+import type { ChatSession, GroupInfo, XmtpInstallation } from "@/core/messaging/protocol";
 import type {
   Chat,
-  ProtocolChatId,
+  ConsentDecision,
   GroupMember,
   GroupRole,
   MessageContent,
   MessageId,
   ParticipantId,
+  ProtocolChat,
+  ProtocolChatId,
+  ProtocolMessage,
   SelfParticipant,
   Unsubscribe,
-  ConsentDecision,
-  ProtocolMessage,
-  ProtocolChat,
-} from '@/core/messaging/types';
-import { isParticipantId } from '@/core/messaging/bots';
-import { base64ToBytes, bytesToBase64, fromHex } from '@/lib/bytes';
-import { PLUGIN_AUTHORITY } from './codec';
+} from "@/core/messaging/types";
+import { base64ToBytes, bytesToBase64, fromHex } from "@/lib/bytes";
+import { PLUGIN_AUTHORITY } from "./codec";
 import {
   fallbackFilename,
   INSTALLATION_LIMIT,
   newestReadByOthers,
-  ReadMarks,
   REVOKED_AND_FULL,
-  xmtpEnvironment,
+  ReadMarks,
   type XmtpEnvironment,
-} from './shared';
+  xmtpEnvironment,
+} from "./shared";
 
 const VISIBLE = [ConsentState.Allowed, ConsentState.Unknown];
 
@@ -76,7 +76,7 @@ function identifierFor(address: string): Identifier {
 
 function signerForAccount(account: LocalAccount): Signer {
   return {
-    type: 'EOA',
+    type: "EOA",
     getIdentifier: () => identifierFor(account.address),
     signMessage: async (message: string) => hexToBytes(await account.signMessage({ message })),
   };
@@ -113,7 +113,7 @@ export async function eraseXmtpLocalDatabase(options: XmtpEraseOptions): Promise
 async function inboxOf(account: LocalAccount, env: XmtpEnv) {
   const backend = await createBackend({ env });
   const inboxId = await getInboxIdForIdentifier(backend, identifierFor(account.address));
-  if (!inboxId) throw new Error('This account has no XMTP inbox.');
+  if (!inboxId) throw new Error("This account has no XMTP inbox.");
   return { backend, inboxId };
 }
 
@@ -130,16 +130,14 @@ async function installationsIfRevoked(client: Client<any>) {
 /** Read from the network, so it works while this device cannot register, as when the inbox is full. */
 export async function inboxInstallations(
   account: LocalAccount,
-  env: XmtpEnv = xmtpEnvironment()
+  env: XmtpEnv = xmtpEnvironment(),
 ): Promise<XmtpInstallation[]> {
   const { backend, inboxId } = await inboxOf(account, env);
   const [state] = await Client.fetchInboxStates([inboxId], backend);
   return (state?.installations ?? []).map((installation) => ({
     id: installation.id,
     createdAt:
-      installation.clientTimestampNs === undefined
-        ? undefined
-        : Number(installation.clientTimestampNs / 1_000_000n),
+      installation.clientTimestampNs === undefined ? undefined : Number(installation.clientTimestampNs / 1_000_000n),
     current: false,
   }));
 }
@@ -147,7 +145,7 @@ export async function inboxInstallations(
 export async function revokeInboxInstallations(
   account: LocalAccount,
   ids: string[],
-  env: XmtpEnv = xmtpEnvironment()
+  env: XmtpEnv = xmtpEnvironment(),
 ): Promise<void> {
   const { backend, inboxId } = await inboxOf(account, env);
   await Client.revokeInstallations(signerForAccount(account), inboxId, ids.map(fromHex), backend);
@@ -170,11 +168,11 @@ export class XmtpSession implements ChatSession {
     private readonly client: Client<any>,
     private readonly codecsByTypeId: Map<string, ContentCodec<any>>,
     private readonly account: LocalAccount,
-    private readonly accountId: string
+    private readonly accountId: string,
   ) {
     this.self = {
-      participantId: requireValue(client.inboxId, 'inbox id'),
-      address: requireValue(client.accountIdentifier, 'account identifier').identifier,
+      participantId: requireValue(client.inboxId, "inbox id"),
+      address: requireValue(client.accountIdentifier, "account identifier").identifier,
     };
   }
 
@@ -190,11 +188,8 @@ export class XmtpSession implements ChatSession {
 
     // `build` needs no signature, so a registered account never touches its
     // key. Anything else registers through `create`.
-    let client = await Client.build(identifierFor(opts.account.address), options).catch(
-      () => undefined
-    );
-    const others =
-      client && (await client.isRegistered()) && (await installationsIfRevoked(client));
+    let client = await Client.build(identifierFor(opts.account.address), options).catch(() => undefined);
+    const others = client && (await client.isRegistered()) && (await installationsIfRevoked(client));
     if (client && others) {
       client.close();
       if (others.length >= INSTALLATION_LIMIT) throw new Error(REVOKED_AND_FULL);
@@ -233,10 +228,8 @@ export class XmtpSession implements ChatSession {
     ]);
     return Promise.all(
       lists.flatMap(({ consent, conversations }) =>
-        conversations.map((c) =>
-          this.toChat(c, undefined, consent, consent === ConsentState.Denied || undefined)
-        )
-      )
+        conversations.map((c) => this.toChat(c, undefined, consent, consent === ConsentState.Denied || undefined)),
+      ),
     );
   }
 
@@ -245,9 +238,7 @@ export class XmtpSession implements ChatSession {
     const denied = await this.client.conversations.listDms({
       consentStates: [ConsentState.Denied],
     });
-    const blocked = await Promise.all(
-      denied.map(async (dm) => this.inboxBlocked(await dm.peerInboxId()))
-    );
+    const blocked = await Promise.all(denied.map(async (dm) => this.inboxBlocked(await dm.peerInboxId())));
     return denied.filter((_, i) => blocked[i]);
   }
 
@@ -279,11 +270,7 @@ export class XmtpSession implements ChatSession {
     const count = await conversation.countMessages({
       ...(since > 0 ? { sentAfterNs: BigInt(since) * 1_000_000n } : {}),
       excludeSenderInboxIds: [this.self.participantId],
-      excludeContentTypes: [
-        ContentType.Reaction,
-        ContentType.ReadReceipt,
-        ContentType.GroupUpdated,
-      ],
+      excludeContentTypes: [ContentType.Reaction, ContentType.ReadReceipt, ContentType.GroupUpdated],
     });
     return Number(count);
   }
@@ -316,14 +303,14 @@ export class XmtpSession implements ChatSession {
         const states = await this.client.preferences.fetchInboxStates(missing);
         for (const state of states) {
           const address = state.accountIdentifiers.find(
-            (i) => i.identifierKind === IdentifierKind.Ethereum
+            (i) => i.identifierKind === IdentifierKind.Ethereum,
           )?.identifier;
           if (!address) continue;
           this.addressCache.set(state.inboxId, address);
           out[state.inboxId] = address;
         }
       } catch (error) {
-        console.warn('[xmtp] could not resolve addresses', error);
+        console.warn("[xmtp] could not resolve addresses", error);
       }
     }
 
@@ -342,7 +329,7 @@ export class XmtpSession implements ChatSession {
 
   private async requireDm(id: ProtocolChatId): Promise<Dm<any>> {
     const conversation = await this.requireConversation(id);
-    if (conversation instanceof Group) throw new Error('That only works in a DM.');
+    if (conversation instanceof Group) throw new Error("That only works in a DM.");
     return conversation as Dm<any>;
   }
 
@@ -355,7 +342,7 @@ export class XmtpSession implements ChatSession {
   private async requireGroup(id: ProtocolChatId): Promise<Group<any>> {
     const conversation = await this.requireConversation(id);
     if (!(conversation instanceof Group)) {
-      throw new Error('That only works in a group.');
+      throw new Error("That only works in a group.");
     }
     return conversation;
   }
@@ -397,43 +384,35 @@ export class XmtpSession implements ChatSession {
     return sent;
   }
 
-  private async sendContent(
-    id: ProtocolChatId,
-    content: MessageContent,
-    replyTo?: MessageId
-  ): Promise<MessageId> {
+  private async sendContent(id: ProtocolChatId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
     const conversation = await this.requireConversation(id);
 
-    if (replyTo && content.kind === 'text') {
+    if (replyTo && content.kind === "text") {
       return conversation.sendReply({
         reference: replyTo,
         content: await encodeText(content.text),
       });
     }
 
-    if (content.kind === 'text') {
+    if (content.kind === "text") {
       return conversation.sendText(content.text);
     }
 
-    if (content.kind === 'custom') {
+    if (content.kind === "custom") {
       const codec = this.codecsByTypeId.get(content.typeId);
       if (!codec) {
-        throw new Error(
-          `No codec registered for "${content.typeId}". Is the owning plugin enabled?`
-        );
+        throw new Error(`No codec registered for "${content.typeId}". Is the owning plugin enabled?`);
       }
       const encoded = codec.encode(content.data);
       return conversation.send(
         { ...encoded, fallback: codec.fallback(content.data) },
-        { shouldPush: codec.shouldPush(content.data) }
+        { shouldPush: codec.shouldPush(content.data) },
       );
     }
 
-    if (content.kind === 'image' || content.kind === 'file' || content.kind === 'voice') {
+    if (content.kind === "image" || content.kind === "file" || content.kind === "voice") {
       const filename =
-        content.kind === 'file'
-          ? content.name
-          : (content.name ?? fallbackFilename(content.uri, content.kind));
+        content.kind === "file" ? content.name : (content.name ?? fallbackFilename(content.uri, content.kind));
       const mimeType = content.mimeType ?? fallbackMimeType(filename);
 
       const attachment = await readInlineAttachment(content.uri, filename, mimeType);
@@ -444,12 +423,12 @@ export class XmtpSession implements ChatSession {
       });
     }
 
-    if (content.kind === 'reaction') {
+    if (content.kind === "reaction") {
       const target = await this.client.conversations.getMessageById(content.targetId);
       return conversation.sendReaction({
         reference: content.targetId,
-        referenceInboxId: target?.senderInboxId ?? '',
-        action: content.action === 'removed' ? ReactionAction.Removed : ReactionAction.Added,
+        referenceInboxId: target?.senderInboxId ?? "",
+        action: content.action === "removed" ? ReactionAction.Removed : ReactionAction.Added,
         schema: ReactionSchema.Unicode,
         content: content.emoji,
       });
@@ -460,9 +439,7 @@ export class XmtpSession implements ChatSession {
 
   async setConsent(id: ProtocolChatId, consent: ConsentDecision): Promise<void> {
     const conversation = await this.requireConversation(id);
-    await conversation.updateConsentState(
-      consent === 'accepted' ? ConsentState.Allowed : ConsentState.Denied
-    );
+    await conversation.updateConsentState(consent === "accepted" ? ConsentState.Allowed : ConsentState.Denied);
   }
 
   async setBlocked(id: ProtocolChatId, blocked: boolean): Promise<void> {
@@ -489,9 +466,7 @@ export class XmtpSession implements ChatSession {
     return state.installations.map((installation) => ({
       id: installation.id,
       createdAt:
-        installation.clientTimestampNs === undefined
-          ? undefined
-          : Number(installation.clientTimestampNs / 1_000_000n),
+        installation.clientTimestampNs === undefined ? undefined : Number(installation.clientTimestampNs / 1_000_000n),
       current: installation.id === current,
     }));
   }
@@ -501,7 +476,7 @@ export class XmtpSession implements ChatSession {
       signerForAccount(this.account),
       this.self.participantId,
       ids.map(fromHex),
-      xmtpEnvironment()
+      xmtpEnvironment(),
     );
   }
 
@@ -512,18 +487,15 @@ export class XmtpSession implements ChatSession {
   async streamMessages(onMessage: (m: ProtocolMessage) => void): Promise<Unsubscribe> {
     const stream = await this.client.conversations.streamAllMessages({
       consentStates: VISIBLE,
-      onError: (error) => console.warn('[xmtp] message stream error', error),
+      onError: (error) => console.warn("[xmtp] message stream error", error),
     });
     return this.consume(stream, async (message) => {
       const fromSelf = message.senderInboxId === this.self.participantId;
       if (isReadReceipt(message)) {
-        if (
-          !fromSelf &&
-          this.marks.raise(message.conversationId, Number(message.sentAtNs / 1_000_000n))
-        ) {
+        if (!fromSelf && this.marks.raise(message.conversationId, Number(message.sentAtNs / 1_000_000n))) {
           this.announce(message.conversationId).catch((error) => {
             this.marks.forget(message.conversationId);
-            console.warn('[xmtp] could not announce a chat', error);
+            console.warn("[xmtp] could not announce a chat", error);
           });
         }
         return;
@@ -540,21 +512,17 @@ export class XmtpSession implements ChatSession {
     });
   }
 
-  async streamDeletedMessages(
-    listener: (id: ProtocolChatId, messageIds: MessageId[]) => void
-  ): Promise<Unsubscribe> {
+  async streamDeletedMessages(listener: (id: ProtocolChatId, messageIds: MessageId[]) => void): Promise<Unsubscribe> {
     const stream = await this.client.conversations.streamDeletedMessages({
-      onError: (error) => console.warn('[xmtp] deletion stream error', error),
+      onError: (error) => console.warn("[xmtp] deletion stream error", error),
     });
-    return this.consume(stream, (message) =>
-      listener(protocolChatId(message.conversationId), [message.id])
-    );
+    return this.consume(stream, (message) => listener(protocolChatId(message.conversationId), [message.id]));
   }
 
   async streamChats(onChat: (c: ProtocolChat) => void): Promise<Unsubscribe> {
     this.chatListeners.add(onChat);
     const stream = await this.client.conversations.stream({
-      onError: (error) => console.warn('[xmtp] conversation stream error', error),
+      onError: (error) => console.warn("[xmtp] conversation stream error", error),
     });
     const stop = this.consume(stream, (conversation) => this.emitChat(conversation));
     return () => {
@@ -569,7 +537,7 @@ export class XmtpSession implements ChatSession {
    */
   private consume<T>(
     stream: AsyncIterable<T> & { end(): Promise<unknown> },
-    handle: (value: T) => void | Promise<void>
+    handle: (value: T) => void | Promise<void>,
   ): Unsubscribe {
     this.streams.add(stream);
     void (async () => {
@@ -577,11 +545,11 @@ export class XmtpSession implements ChatSession {
         for await (const value of stream) {
           if (this.closed) break;
           await Promise.resolve(handle(value)).catch((error) =>
-            console.warn('[xmtp] could not handle a streamed value', error)
+            console.warn("[xmtp] could not handle a streamed value", error),
           );
         }
       } catch (error) {
-        console.warn('[xmtp] stream ended with an error', error);
+        console.warn("[xmtp] stream ended with an error", error);
       } finally {
         this.streams.delete(stream);
       }
@@ -613,7 +581,7 @@ export class XmtpSession implements ChatSession {
     raw: Group<any> | Dm<any>,
     current: () => boolean = () => true,
     consent?: ConsentState,
-    blocked?: boolean
+    blocked?: boolean,
   ): Promise<ProtocolChat> {
     const isGroup = raw instanceof Group;
 
@@ -624,17 +592,14 @@ export class XmtpSession implements ChatSession {
 
     if (isGroup) {
       const members = await raw.members();
-      title = raw.name?.trim() || 'Untitled group';
+      title = raw.name?.trim() || "Untitled group";
       memberIds = members.map((m) => m.inboxId);
-      selfRole = mapRole(
-        members.find((m) => m.inboxId === this.self.participantId)?.permissionLevel
-      );
+      selfRole = mapRole(members.find((m) => m.inboxId === this.self.participantId)?.permissionLevel);
     } else {
       const participant = await (raw as Dm<any>).peerInboxId();
       title = participant;
       memberIds = [participant, this.self.participantId];
-      peerBlocked =
-        blocked === undefined ? this.inboxBlocked(participant) : Promise.resolve(blocked);
+      peerBlocked = blocked === undefined ? this.inboxBlocked(participant) : Promise.resolve(blocked);
     }
 
     const [state, recent, isBlocked, readUpTo] = await Promise.all([
@@ -651,7 +616,7 @@ export class XmtpSession implements ChatSession {
 
     return {
       id: protocolChatId(raw.id),
-      kind: isGroup ? 'group' : 'dm',
+      kind: isGroup ? "group" : "dm",
       title,
       memberIds,
       createdAt: raw.createdAt?.getTime() ?? Date.now(),
@@ -667,7 +632,7 @@ export class XmtpSession implements ChatSession {
     id: string,
     recent: DecodedMessage<any>[],
     isGroup: boolean,
-    current: () => boolean
+    current: () => boolean,
   ): Promise<ProtocolMessage | undefined> {
     for (const candidate of recent) {
       if (!current()) return undefined;
@@ -695,17 +660,14 @@ export class XmtpSession implements ChatSession {
     for (const listener of this.chatListeners) listener(chat);
   }
 
-  private async toMessage(
-    raw: DecodedMessage<any>,
-    chatId: ProtocolChatId
-  ): Promise<ProtocolMessage> {
+  private async toMessage(raw: DecodedMessage<any>, chatId: ProtocolChatId): Promise<ProtocolMessage> {
     return {
       id: raw.id,
       chatId,
       senderId: raw.senderInboxId,
       sentAt: Number(raw.sentAtNs / 1_000_000n),
       fromMe: raw.senderInboxId === this.self.participantId,
-      status: raw.deliveryStatus === DeliveryStatus.Failed ? 'failed' : 'sent',
+      status: raw.deliveryStatus === DeliveryStatus.Failed ? "failed" : "sent",
       content: await this.toContent(raw),
       replyTo: isReply(raw) ? raw.content?.referenceId : undefined,
     };
@@ -714,61 +676,61 @@ export class XmtpSession implements ChatSession {
   private async toContent(raw: DecodedMessage<any>): Promise<MessageContent> {
     const typeId = raw.contentType.typeId;
     const unsupported = (fallback?: string): MessageContent => ({
-      kind: 'unsupported',
+      kind: "unsupported",
       typeId,
-      fallback: raw.fallback ?? fallback ?? 'Unsupported message',
+      fallback: raw.fallback ?? fallback ?? "Unsupported message",
     });
 
     if (isText(raw)) {
-      return raw.content === undefined ? unsupported() : { kind: 'text', text: raw.content };
+      return raw.content === undefined ? unsupported() : { kind: "text", text: raw.content };
     }
 
     if (isGroupUpdated(raw)) {
       return raw.content === undefined
-        ? unsupported('Group updated')
-        : { kind: 'system', text: describeGroupUpdate(raw.content) };
+        ? unsupported("Group updated")
+        : { kind: "system", text: describeGroupUpdate(raw.content) };
     }
 
     if (isAttachment(raw)) {
       const attachment = raw.content;
-      if (attachment === undefined) return unsupported('Attachment');
-      const filename = attachment.filename ?? 'attachment';
+      if (attachment === undefined) return unsupported("Attachment");
+      const filename = attachment.filename ?? "attachment";
       const { mimeType } = attachment;
       const uri = await writeInlineAttachment(
         raw.id,
         { filename, mimeType, data: bytesToBase64(attachment.content) },
-        this.accountId
+        this.accountId,
       );
       const kind = classifyAttachment(mimeType, filename);
 
-      if (kind === 'image') return { kind: 'image', uri, name: filename, mimeType };
-      if (kind === 'voice') {
-        return { kind: 'voice', uri, durationMs: 0, name: filename, mimeType };
+      if (kind === "image") return { kind: "image", uri, name: filename, mimeType };
+      if (kind === "voice") {
+        return { kind: "voice", uri, durationMs: 0, name: filename, mimeType };
       }
-      return { kind: 'file', uri, name: filename, mimeType };
+      return { kind: "file", uri, name: filename, mimeType };
     }
 
     if (isTextReply(raw) && raw.content !== undefined) {
-      return { kind: 'text', text: raw.content.content };
+      return { kind: "text", text: raw.content.content };
     }
 
     if (isReply(raw)) {
-      return { kind: 'unsupported', typeId: 'reply', fallback: raw.fallback ?? 'Reply' };
+      return { kind: "unsupported", typeId: "reply", fallback: raw.fallback ?? "Reply" };
     }
 
     if (isReaction(raw)) {
       const reaction = raw.content;
-      if (reaction === undefined) return unsupported('Reaction');
+      if (reaction === undefined) return unsupported("Reaction");
       return {
-        kind: 'reaction',
+        kind: "reaction",
         targetId: reaction.reference,
         emoji: reaction.content,
-        action: reaction.action === ReactionAction.Removed ? 'removed' : 'added',
+        action: reaction.action === ReactionAction.Removed ? "removed" : "added",
       };
     }
 
     if (raw.contentType.authorityId === PLUGIN_AUTHORITY && raw.content !== undefined) {
-      return { kind: 'custom', typeId, data: raw.content, fallback: raw.fallback };
+      return { kind: "custom", typeId, data: raw.content, fallback: raw.fallback };
     }
 
     return unsupported();
@@ -781,15 +743,15 @@ function requireValue<T>(value: T | undefined, what: string): T {
 }
 
 function mapRole(level: PermissionLevel | undefined): GroupRole {
-  if (level === PermissionLevel.SuperAdmin) return 'owner';
-  if (level === PermissionLevel.Admin) return 'admin';
-  return 'member';
+  if (level === PermissionLevel.SuperAdmin) return "owner";
+  if (level === PermissionLevel.Admin) return "admin";
+  return "member";
 }
 
-function mapConsent(state: ConsentState): Chat['consent'] {
-  if (state === ConsentState.Allowed) return 'accepted';
-  if (state === ConsentState.Denied) return 'declined';
-  return 'request';
+function mapConsent(state: ConsentState): Chat["consent"] {
+  if (state === ConsentState.Allowed) return "accepted";
+  if (state === ConsentState.Denied) return "declined";
+  return "request";
 }
 
 function describeGroupUpdate(update: GroupUpdated): string {
@@ -798,7 +760,7 @@ function describeGroupUpdate(update: GroupUpdated): string {
   const left = update.removedInboxes.length + update.leftInboxes.length;
   if (left) parts.push(`${left} left`);
   for (const field of update.metadataFieldChanges) {
-    if (field.fieldName === 'group_name') parts.push(`Renamed to "${field.newValue}"`);
+    if (field.fieldName === "group_name") parts.push(`Renamed to "${field.newValue}"`);
   }
-  return parts.join(' · ') || 'Group updated';
+  return parts.join(" · ") || "Group updated";
 }

@@ -3,16 +3,16 @@
  * removed and what it is called. Every member replays the log with these
  * rules, so an event a member could not have made is rejected everywhere.
  */
-import { utf8ToBytes } from '@noble/hashes/utils';
+import { utf8ToBytes } from "@noble/hashes/utils";
 
-import type { GroupRole, ParticipantId } from '@/core/messaging/types';
-import { concat, toHex } from '@/lib/bytes';
-import { randomBytes } from '@/lib/random';
+import type { GroupRole, ParticipantId } from "@/core/messaging/types";
+import { concat, toHex } from "@/lib/bytes";
+import { randomBytes } from "@/lib/random";
 
-import { keccak256, recoverPublicKey, sign } from './crypto';
-import type { Keys } from './envelope';
-import { participantIdOf } from './keys';
-import { decodeGroupEvent, encodeGroupEvent, EventType, type WireGroupEvent } from './messages';
+import { keccak256, recoverPublicKey, sign } from "./crypto";
+import type { Keys } from "./envelope";
+import { participantIdOf } from "./keys";
+import { decodeGroupEvent, EventType, encodeGroupEvent, type WireGroupEvent } from "./messages";
 
 const SIGNATURE_LENGTH = 65;
 
@@ -30,17 +30,17 @@ export function newGroupChatId(creator: ParticipantId): string {
   return `${uuid}-${creator}`;
 }
 
-export type GroupChange = Pick<WireGroupEvent, 'type'> & Partial<Omit<WireGroupEvent, 'clock'>>;
+export type GroupChange = Pick<WireGroupEvent, "type"> & Partial<Omit<WireGroupEvent, "clock">>;
 
 export function signGroupEvent(
   chatId: string,
-  event: GroupChange & Pick<WireGroupEvent, 'clock'>,
-  signer: Keys
+  event: GroupChange & Pick<WireGroupEvent, "clock">,
+  signer: Keys,
 ): GroupEvent {
   const wire: WireGroupEvent = {
     members: [],
-    name: '',
-    color: '',
+    name: "",
+    color: "",
     ...event,
   };
   const raw = encodeGroupEvent(wire);
@@ -49,24 +49,14 @@ export function signGroupEvent(
 }
 
 /** Changes signed with consecutive clocks from `start`, the order every member replays them in. */
-export function signGroupEvents(
-  chatId: string,
-  start: number,
-  changes: GroupChange[],
-  signer: Keys
-): GroupEvent[] {
-  return changes.map((change, index) =>
-    signGroupEvent(chatId, { ...change, clock: start + index }, signer)
-  );
+export function signGroupEvents(chatId: string, start: number, changes: GroupChange[], signer: Keys): GroupEvent[] {
+  return changes.map((change, index) => signGroupEvent(chatId, { ...change, clock: start + index }, signer));
 }
 
 export function readGroupEvent(chatId: string, bytes: Uint8Array): GroupEvent | null {
   if (bytes.length <= SIGNATURE_LENGTH) return null;
   const raw = bytes.subarray(SIGNATURE_LENGTH);
-  const signer = recoverPublicKey(
-    keccak256(utf8ToBytes(chatId), raw),
-    bytes.subarray(0, SIGNATURE_LENGTH)
-  );
+  const signer = recoverPublicKey(keccak256(utf8ToBytes(chatId), raw), bytes.subarray(0, SIGNATURE_LENGTH));
   if (!signer) return null;
   try {
     return { ...decodeGroupEvent(raw), from: participantIdOf(signer), bytes };
@@ -80,7 +70,7 @@ function signatureOf(bytes: Uint8Array): string {
 }
 
 export class GroupState {
-  name = '';
+  name = "";
   image?: Uint8Array;
   readonly members = new Set<ParticipantId>();
   readonly admins = new Set<ParticipantId>();
@@ -88,7 +78,7 @@ export class GroupState {
 
   private constructor(
     readonly chatId: string,
-    readonly events: GroupEvent[]
+    readonly events: GroupEvent[],
   ) {}
 
   /** status-go's `NewGroupWithEvents`: null when any event breaks the rules. */
@@ -114,8 +104,8 @@ export class GroupState {
   }
 
   roleOf(id: ParticipantId): GroupRole {
-    if (this.creator === id) return 'owner';
-    return this.admins.has(id) ? 'admin' : 'member';
+    if (this.creator === id) return "owner";
+    return this.admins.has(id) ? "admin" : "member";
   }
 
   /** Whether the log holds this signed event already, so its signature needs no checking again. */
@@ -127,9 +117,7 @@ export class GroupState {
   wasEverMember(id: ParticipantId): boolean {
     return (
       this.creator === id ||
-      this.events.some(
-        (event) => event.type === EventType.MEMBERS_ADDED && event.members.includes(id)
-      )
+      this.events.some((event) => event.type === EventType.MEMBERS_ADDED && event.members.includes(id))
     );
   }
 
@@ -156,19 +144,12 @@ export class GroupState {
       case EventType.MEMBER_REMOVED:
         return (
           event.members.length === 1 &&
-          (event.from === event.members[0] ||
-            (this.admins.has(event.from) && !this.admins.has(event.members[0])))
+          (event.from === event.members[0] || (this.admins.has(event.from) && !this.admins.has(event.members[0])))
         );
       case EventType.ADMINS_ADDED:
-        return (
-          this.admins.has(event.from) && [...this.members].some((m) => event.members.includes(m))
-        );
+        return this.admins.has(event.from) && [...this.members].some((m) => event.members.includes(m));
       case EventType.ADMIN_REMOVED:
-        return (
-          event.members.length === 1 &&
-          this.admins.has(event.from) &&
-          event.from === event.members[0]
-        );
+        return event.members.length === 1 && this.admins.has(event.from) && event.from === event.members[0];
       default:
         return false;
     }

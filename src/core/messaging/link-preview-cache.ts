@@ -1,9 +1,9 @@
-import { persistedCache } from '@/lib/persisted-cache';
-import type { AccountStorage } from '@/storage/account';
-import { fetchLinkPreview, type LinkPreview } from './link-preview';
+import { persistedCache } from "@/lib/persisted-cache";
+import type { AccountStorage } from "@/storage/account";
+import { fetchLinkPreview, type LinkPreview } from "./link-preview";
 
 const previews = persistedCache<LinkPreview | null>({
-  name: 'link-previews',
+  name: "link-previews",
   limit: 300,
   ttlMs: 7 * 24 * 60 * 60 * 1000,
   // A miss may only mean the device was offline or the site slow to answer.

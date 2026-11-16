@@ -1,12 +1,5 @@
-import {
-  COMMANDS,
-  GLOBAL_FLAGS,
-  type CliArg,
-  type CliCommandSpec,
-  type CliFlag,
-  type CommandPath,
-} from './commands';
-import { CliError } from './errors';
+import { type CliArg, type CliCommandSpec, type CliFlag, COMMANDS, type CommandPath, GLOBAL_FLAGS } from "./commands";
+import { CliError } from "./errors";
 
 export interface ParsedArgs {
   spec: Spec;
@@ -21,9 +14,9 @@ type Spec = CliCommandSpec & { path: CommandPath };
 export function findCommand(argv: readonly string[]): Spec | undefined {
   let best: Spec | undefined;
   for (const spec of COMMANDS) {
-    const words = spec.path.split(' ');
+    const words = spec.path.split(" ");
     const matches = words.every((word, i) => argv[i] === word);
-    if (matches && (!best || words.length > best.path.split(' ').length)) best = spec;
+    if (matches && (!best || words.length > best.path.split(" ").length)) best = spec;
   }
   return best;
 }
@@ -31,19 +24,16 @@ export function findCommand(argv: readonly string[]): Spec | undefined {
 export function parseArgs(argv: readonly string[]): ParsedArgs {
   const spec = findCommand(argv);
   if (!spec) {
-    throw new CliError(
-      argv.length ? `Unknown command "${argv[0]}". Run statim help.` : 'No command given.',
-      'usage'
-    );
+    throw new CliError(argv.length ? `Unknown command "${argv[0]}". Run statim help.` : "No command given.", "usage");
   }
-  const { positionals, flags } = splitTokens(spec, argv.slice(spec.path.split(' ').length));
+  const { positionals, flags } = splitTokens(spec, argv.slice(spec.path.split(" ").length));
   const declared = spec.args ?? [];
   const { args, rest, extra } = bindArgs(declared, positionals);
   const help = flags.help === true;
   if (!help) {
     const missing = declared.find((a) => !a.optional && args[a.name] === undefined);
-    if (missing) throw new CliError(`Missing <${missing.name}>. ${usage(spec)}`, 'usage');
-    if (extra !== undefined) throw new CliError(`Unexpected "${extra}". ${usage(spec)}`, 'usage');
+    if (missing) throw new CliError(`Missing <${missing.name}>. ${usage(spec)}`, "usage");
+    if (extra !== undefined) throw new CliError(`Unexpected "${extra}". ${usage(spec)}`, "usage");
   }
 
   return { spec, args, rest, flags, help };
@@ -56,11 +46,11 @@ function splitTokens(spec: Spec, tail: readonly string[]) {
   let literal = false;
   for (let i = 0; i < tail.length; i++) {
     const token = tail[i];
-    if (token === '--' && !literal) {
+    if (token === "--" && !literal) {
       literal = true;
       continue;
     }
-    if (literal || !token.startsWith('--')) {
+    if (literal || !token.startsWith("--")) {
       positionals.push(token);
       continue;
     }
@@ -70,13 +60,13 @@ function splitTokens(spec: Spec, tail: readonly string[]) {
       positionals.push(token);
       continue;
     }
-    if (!flag) throw new CliError(`Unknown option --${name} for "${spec.path}".`, 'usage');
+    if (!flag) throw new CliError(`Unknown option --${name} for "${spec.path}".`, "usage");
     if (!flag.value) {
       flags[name] = true;
       continue;
     }
     const value = inline ?? tail[++i];
-    if (value === undefined) throw new CliError(`--${name} needs a ${flag.value}.`, 'usage');
+    if (value === undefined) throw new CliError(`--${name} needs a ${flag.value}.`, "usage");
     flags[name] = value;
   }
   return { positionals, flags };
@@ -92,7 +82,7 @@ function bindArgs(declared: readonly CliArg[], positionals: readonly string[]) {
   for (const arg of declared) {
     if (arg.variadic) {
       rest = positionals.slice(at);
-      args[arg.name] = rest.length ? rest.join(' ') : undefined;
+      args[arg.name] = rest.length ? rest.join(" ") : undefined;
       at = positionals.length;
       break;
     }
@@ -106,7 +96,7 @@ function bindArgs(declared: readonly CliArg[], positionals: readonly string[]) {
 }
 
 function splitFlag(body: string): [string, string | undefined] {
-  const eq = body.indexOf('=');
+  const eq = body.indexOf("=");
   return eq === -1 ? [body, undefined] : [body.slice(0, eq), body.slice(eq + 1)];
 }
 
@@ -116,7 +106,7 @@ export function usage(spec: CliCommandSpec): string {
     return a.optional ? `[${name}]` : `<${name}>`;
   });
   const flags = (spec.flags ?? []).map((f) => `[${flagSyntax(f)}]`);
-  return `Usage: statim ${[spec.path, ...args, ...flags].join(' ')}`;
+  return `Usage: statim ${[spec.path, ...args, ...flags].join(" ")}`;
 }
 
 export function flagSyntax(flag: CliFlag): string {

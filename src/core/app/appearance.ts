@@ -1,11 +1,10 @@
-import { create } from 'zustand';
+import { create } from "zustand";
+import type { ChatPatternName } from "@/design";
+import type { AccountStorage } from "@/storage/account";
 
-import type { AccountStorage } from '@/storage/account';
-import type { ChatPatternName } from '@/design';
+export type ThemeChoice = "system" | "light" | "dark";
 
-export type ThemeChoice = 'system' | 'light' | 'dark';
-
-const KEY = 'appearance';
+const KEY = "appearance";
 
 export interface AppearanceState {
   accountId: string | null;
@@ -28,12 +27,12 @@ export interface AppearanceState {
 
 type Settings = Pick<
   AppearanceState,
-  'theme' | 'wallpaper' | 'readReceipts' | 'typingIndicators' | 'linkPreviews' | 'aiInChats'
+  "theme" | "wallpaper" | "readReceipts" | "typingIndicators" | "linkPreviews" | "aiInChats"
 >;
 
 const DEFAULTS: Settings = {
-  theme: 'system',
-  wallpaper: 'doodles',
+  theme: "system",
+  wallpaper: "doodles",
   readReceipts: false,
   typingIndicators: false,
   linkPreviews: true,
@@ -107,6 +106,6 @@ async function persist(state: AppearanceState): Promise<void> {
       aiInChats: state.aiInChats,
     } satisfies Settings);
   } catch (error) {
-    console.warn('[appearance] could not persist settings', error);
+    console.warn("[appearance] could not persist settings", error);
   }
 }

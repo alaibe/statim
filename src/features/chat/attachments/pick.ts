@@ -1,13 +1,12 @@
-import { getDocumentAsync } from 'expo-document-picker';
-import * as ImagePicker from 'expo-image-picker';
+import { getDocumentAsync } from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
 
-import { INLINE_LIMIT_BYTES } from '@/core/messaging/attachments';
-import type { ChatPermissions } from '@/core/messaging/permissions';
+import { INLINE_LIMIT_BYTES } from "@/core/messaging/attachments";
+import type { ChatPermissions } from "@/core/messaging/permissions";
+import type { MessageContent } from "@/core/messaging/types";
+import { compressPickedImage } from "./compress-image";
 
-import { compressPickedImage } from './compress-image';
-import type { MessageContent } from '@/core/messaging/types';
-
-export type AttachLimits = Pick<ChatPermissions, 'sendVideo' | 'largeFiles'>;
+export type AttachLimits = Pick<ChatPermissions, "sendVideo" | "largeFiles">;
 
 class AttachmentRejected extends Error {}
 
@@ -16,18 +15,15 @@ export function assertFits(size: number | undefined, what: string, largeFiles: b
     throw new AttachmentRejected(
       `${what} is ${Math.round(size / 1024)}KB. The limit is ` +
         `${Math.round(INLINE_LIMIT_BYTES / 1024)}KB, because attachments are sent ` +
-        `inside the encrypted message rather than uploaded anywhere.`
+        `inside the encrypted message rather than uploaded anywhere.`,
     );
   }
 }
 
-export function imageFrom(
-  asset: ImagePicker.ImagePickerAsset,
-  largeFiles: boolean
-): MessageContent {
-  assertFits(asset.fileSize, 'That photo', largeFiles);
+export function imageFrom(asset: ImagePicker.ImagePickerAsset, largeFiles: boolean): MessageContent {
+  assertFits(asset.fileSize, "That photo", largeFiles);
   return {
-    kind: 'image',
+    kind: "image",
     uri: asset.uri,
     width: asset.width || undefined,
     height: asset.height || undefined,
@@ -60,11 +56,8 @@ async function imageFromBrowserFile(file: File, largeFiles: boolean): Promise<Me
   }
 }
 
-export async function contentFromBrowserFile(
-  file: File,
-  can: AttachLimits
-): Promise<MessageContent> {
-  if (file.type.startsWith('image/') && file.type !== 'image/svg+xml')
+export async function contentFromBrowserFile(file: File, can: AttachLimits): Promise<MessageContent> {
+  if (file.type.startsWith("image/") && file.type !== "image/svg+xml")
     return imageFromBrowserFile(file, can.largeFiles);
   const base = {
     uri: URL.createObjectURL(file),
@@ -72,14 +65,14 @@ export async function contentFromBrowserFile(
     mimeType: file.type || undefined,
     size: file.size,
   };
-  if (can.sendVideo && file.type.startsWith('video/')) return { kind: 'video', ...base };
-  assertFits(file.size, 'That file', can.largeFiles);
-  return { kind: 'file', ...base };
+  if (can.sendVideo && file.type.startsWith("video/")) return { kind: "video", ...base };
+  assertFits(file.size, "That file", can.largeFiles);
+  return { kind: "file", ...base };
 }
 
 async function fromLibrary(
   options: ImagePicker.ImagePickerOptions,
-  denied: string
+  denied: string,
 ): Promise<ImagePicker.ImagePickerAsset | null> {
   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted) throw new AttachmentRejected(denied);
@@ -88,18 +81,15 @@ async function fromLibrary(
 }
 
 export async function pickImage({ largeFiles }: AttachLimits): Promise<MessageContent | null> {
-  const asset = await fromLibrary(
-    { mediaTypes: ['images'], exif: false },
-    'Photo access is off for this app.'
-  );
+  const asset = await fromLibrary({ mediaTypes: ["images"], exif: false }, "Photo access is off for this app.");
   return asset ? imageFrom(await compressPickedImage(asset), largeFiles) : null;
 }
 
 export async function pickVideo(): Promise<MessageContent | null> {
-  const asset = await fromLibrary({ mediaTypes: ['videos'] }, 'Video access is off for this app.');
+  const asset = await fromLibrary({ mediaTypes: ["videos"] }, "Video access is off for this app.");
   if (!asset) return null;
   return {
-    kind: 'video',
+    kind: "video",
     uri: asset.uri,
     width: asset.width || undefined,
     height: asset.height || undefined,
@@ -112,7 +102,7 @@ export async function pickVideo(): Promise<MessageContent | null> {
 
 export async function takePhoto({ largeFiles }: AttachLimits): Promise<MessageContent | null> {
   const permission = await ImagePicker.requestCameraPermissionsAsync();
-  if (!permission.granted) throw new AttachmentRejected('Camera access is off for this app.');
+  if (!permission.granted) throw new AttachmentRejected("Camera access is off for this app.");
 
   const result = await ImagePicker.launchCameraAsync({ exif: false });
   if (result.canceled || !result.assets[0]) return null;
@@ -124,10 +114,10 @@ export async function pickFile({ largeFiles }: AttachLimits): Promise<MessageCon
   if (result.canceled || !result.assets?.[0]) return null;
 
   const asset = result.assets[0];
-  assertFits(asset.size, 'That file', largeFiles);
+  assertFits(asset.size, "That file", largeFiles);
 
   return {
-    kind: 'file',
+    kind: "file",
     uri: asset.uri,
     name: asset.name,
     mimeType: asset.mimeType,

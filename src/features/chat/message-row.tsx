@@ -1,21 +1,21 @@
-import { View } from 'react-native';
+import { View } from "react-native";
 
-import { isLine } from '@/core/messaging/message-rules';
-import { contentPreview, isNewDay } from '@/core/messaging/preview';
-import type { ChatMessage, MessageId } from '@/core/messaging/types';
+import { isLine } from "@/core/messaging/message-rules";
+import { contentPreview, isNewDay } from "@/core/messaging/preview";
+import type { ChatMessage, MessageId } from "@/core/messaging/types";
 
-import { DateSeparator, SectionDivider } from './date-separator';
-import type { MessageAction } from './message-actions';
-import { MessageBubble, type ReplyPreview } from './message-bubble';
+import { DateSeparator, SectionDivider } from "./date-separator";
+import type { MessageAction } from "./message-actions";
+import { MessageBubble, type ReplyPreview } from "./message-bubble";
 
 const GROUP_WINDOW_MS = 60_000;
 
-const MISSING_REPLY = { author: '', preview: 'Original message' };
+const MISSING_REPLY = { author: "", preview: "Original message" };
 
 export function replyPreview(target: ChatMessage, nameFor: (id: string) => string): ReplyPreview {
   return {
-    author: target.fromMe ? 'You' : nameFor(target.senderId),
-    preview: contentPreview(target.content) || 'Message',
+    author: target.fromMe ? "You" : nameFor(target.senderId),
+    preview: contentPreview(target.content) || "Message",
   };
 }
 
@@ -69,7 +69,7 @@ export function MessageRow({
     <>
       {startsNewDay ? <DateSeparator at={message.sentAt} /> : null}
       {divider ? <SectionDivider label={divider} /> : null}
-      <View className={highlighted ? 'bg-brand/15' : undefined}>
+      <View className={highlighted ? "bg-brand/15" : undefined}>
         <MessageBubble
           message={message}
           grouped={grouped}
@@ -82,18 +82,12 @@ export function MessageRow({
           onCommand={onCommand}
           actions={() => actionsFor(message)}
           replyPreview={
-            message.replyTo
-              ? replyTarget
-                ? replyPreview(replyTarget, nameFor)
-                : MISSING_REPLY
-              : undefined
+            message.replyTo ? (replyTarget ? replyPreview(replyTarget, nameFor) : MISSING_REPLY) : undefined
           }
           onReact={onReact && ((emoji) => onReact(message.id, emoji))}
           onVote={onVote && ((optionIds) => onVote(message.id, optionIds))}
           thread={
-            replies > 0 && onOpenThread
-              ? { replies, newReplies, onOpen: () => onOpenThread(message.id) }
-              : undefined
+            replies > 0 && onOpenThread ? { replies, newReplies, onOpen: () => onOpenThread(message.id) } : undefined
           }
         />
       </View>

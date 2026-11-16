@@ -1,10 +1,10 @@
-import { DrizzleQueryError } from 'drizzle-orm/errors';
-import { drizzle, type SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy';
+import { DrizzleQueryError } from "drizzle-orm/errors";
+import { drizzle, type SqliteRemoteDatabase } from "drizzle-orm/sqlite-proxy";
 
-import { migrate } from './migrate';
-import type { SqliteConnection } from './sqlite-connection';
-import { deleteDatabase, openConnection } from './sqlite-engine';
-import { accountDatabaseKey } from './vault';
+import { migrate } from "./migrate";
+import type { SqliteConnection } from "./sqlite-connection";
+import { deleteDatabase, openConnection } from "./sqlite-engine";
+import { accountDatabaseKey } from "./vault";
 
 export type Database = SqliteRemoteDatabase;
 
@@ -14,10 +14,7 @@ interface AccountDatabase {
 }
 
 const databases = new Map<string, Promise<AccountDatabase>>();
-const operations = new Map<
-  string,
-  { tail: Promise<void>; deleting: boolean; generation: number }
->();
+const operations = new Map<string, { tail: Promise<void>; deleting: boolean; generation: number }>();
 
 function operationState(accountId: string) {
   let state = operations.get(accountId);
@@ -35,19 +32,17 @@ export function accountDatabaseGeneration(accountId: string): number {
 export function runAccountDatabaseOperation<T>(
   accountId: string,
   generation: number,
-  work: (db: Database) => Promise<T>
+  work: (db: Database) => Promise<T>,
 ): Promise<T> {
   const state = operationState(accountId);
   if (state.deleting || state.generation !== generation) {
-    return Promise.reject(new Error('Account database is being deleted or has been deleted.'));
+    return Promise.reject(new Error("Account database is being deleted or has been deleted."));
   }
 
-  const result = state.tail.then(() =>
-    openAccountDatabase(accountId).then(({ db }) => work(db).catch(withoutQuery))
-  );
+  const result = state.tail.then(() => openAccountDatabase(accountId).then(({ db }) => work(db).catch(withoutQuery)));
   state.tail = result.then(
     () => {},
-    () => {}
+    () => {},
   );
   return result;
 }
@@ -63,12 +58,12 @@ function databaseNameFor(accountId: string): string {
 
 function drizzleOver(connection: SqliteConnection): Database {
   return drizzle(async (sql, params, method) => {
-    if (method === 'run') {
+    if (method === "run") {
       await connection.run(sql, params);
       return { rows: [] };
     }
     const rows = await connection.rows(sql, params);
-    return { rows: method === 'get' ? rows[0] : rows };
+    return { rows: method === "get" ? rows[0] : rows };
   });
 }
 
@@ -80,11 +75,9 @@ export function openAccountDatabase(accountId: string): Promise<AccountDatabase>
     const connection = await openConnection(databaseNameFor(accountId));
     try {
       const key = await accountDatabaseKey(accountId);
-      await connection.exec(
-        `PRAGMA key = "x'${key}'"; PRAGMA synchronous = NORMAL; PRAGMA journal_mode = WAL;`
-      );
-      const [cipher] = await connection.rows('PRAGMA cipher_version', []);
-      if (!cipher?.[0]) throw new Error('SQLCipher is unavailable in this app build.');
+      await connection.exec(`PRAGMA key = "x'${key}'"; PRAGMA synchronous = NORMAL; PRAGMA journal_mode = WAL;`);
+      const [cipher] = await connection.rows("PRAGMA cipher_version", []);
+      if (!cipher?.[0]) throw new Error("SQLCipher is unavailable in this app build.");
 
       const db = drizzleOver(connection);
       await migrate(db).catch(withoutQuery);
@@ -132,5 +125,5 @@ export async function deleteAccountDatabase(accountId: string): Promise<void> {
     failures.push(error);
   }
   state.deleting = false;
-  if (failures.length > 0) throw new AggregateError(failures, 'Could not delete account database.');
+  if (failures.length > 0) throw new AggregateError(failures, "Could not delete account database.");
 }

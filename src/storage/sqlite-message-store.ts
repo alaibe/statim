@@ -1,30 +1,22 @@
-import { and, desc, eq, gt, inArray, lt, lte, notInArray, or, sql } from 'drizzle-orm';
-import type { SQLiteColumn } from 'drizzle-orm/sqlite-core';
-
+import { and, desc, eq, gt, inArray, lt, lte, notInArray, or, sql } from "drizzle-orm";
+import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
+import { NON_PREVIEW_KINDS, NON_UNREAD_KINDS } from "@/core/messaging/message-rules";
 import {
   HYDRATE_LIMIT,
-  searchHit,
-  storedChatId,
   type MessageStore,
   type StoredChat,
   type StoredSearchHit,
-} from '@/core/messaging/message-store';
-import { parseChatId, type ProtocolId } from '@/core/messaging/namespace';
-import { matchesSearch, SEARCH_LIMIT } from '@/core/messaging/search';
-import { NON_PREVIEW_KINDS, NON_UNREAD_KINDS } from '@/core/messaging/message-rules';
-import type {
-  AnyChatId,
-  ChatMessage,
-  Chat,
-  ChatId,
-  MessageContent,
-  MessageId,
-} from '@/core/messaging/types';
-import { isRecord, isString } from '@/lib/guards';
-import { accountDatabaseGeneration, runAccountDatabaseOperation, type Database } from './database';
-import { chatCache, chats, messages, transportCursors } from './schema';
+  searchHit,
+  storedChatId,
+} from "@/core/messaging/message-store";
+import { type ProtocolId, parseChatId } from "@/core/messaging/namespace";
+import { matchesSearch, SEARCH_LIMIT } from "@/core/messaging/search";
+import type { AnyChatId, Chat, ChatId, ChatMessage, MessageContent, MessageId } from "@/core/messaging/types";
+import { isRecord, isString } from "@/lib/guards";
+import { accountDatabaseGeneration, type Database, runAccountDatabaseOperation } from "./database";
+import { chatCache, chats, messages, transportCursors } from "./schema";
 
-type Queries = Pick<Database, 'insert'>;
+type Queries = Pick<Database, "insert">;
 
 const contentKind = sql`json_extract(${messages.content}, '$.kind')`;
 
@@ -36,16 +28,14 @@ export class SqliteMessageStore implements MessageStore {
   }
 
   async loadChats<Id extends AnyChatId>(protocolId: ProtocolId): Promise<StoredChat<Id>[]> {
-    const rows = await this.operation((db) =>
-      db.select().from(chats).where(eq(chats.protocolId, protocolId))
-    );
+    const rows = await this.operation((db) => db.select().from(chats).where(eq(chats.protocolId, protocolId)));
     return rows.map((row) => toChat<Id>(row));
   }
 
   async loadMessages<Id extends AnyChatId>(
     chatId: Id,
     limit = HYDRATE_LIMIT,
-    before?: { sentAt: number; id: MessageId }
+    before?: { sentAt: number; id: MessageId },
   ): Promise<ChatMessage<Id>[]> {
     const rows = await this.operation((db) =>
       db
@@ -57,22 +47,18 @@ export class SqliteMessageStore implements MessageStore {
             before
               ? or(
                   lt(messages.sentAt, before.sentAt),
-                  and(eq(messages.sentAt, before.sentAt), lt(messages.id, before.id))
+                  and(eq(messages.sentAt, before.sentAt), lt(messages.id, before.id)),
                 )
-              : undefined
-          )
+              : undefined,
+          ),
         )
         .orderBy(desc(messages.sentAt), desc(messages.id))
-        .limit(limit)
+        .limit(limit),
     );
     return rows.map((row) => toMessage(row, chatId)).reverse();
   }
 
-  async searchMessages(
-    query: string,
-    chatId?: AnyChatId,
-    protocolId?: ProtocolId
-  ): Promise<StoredSearchHit[]> {
+  async searchMessages(query: string, chatId?: AnyChatId, protocolId?: ProtocolId): Promise<StoredSearchHit[]> {
     const rows = await this.operation((db) =>
       db
         .select({ message: messages, protocolId: chats.protocolId })
@@ -82,15 +68,15 @@ export class SqliteMessageStore implements MessageStore {
           and(
             sql`instr(lower(${messages.content}), lower(${query})) > 0`,
             chatId ? eq(messages.chatId, chatId) : undefined,
-            protocolId ? eq(chats.protocolId, protocolId) : undefined
-          )
+            protocolId ? eq(chats.protocolId, protocolId) : undefined,
+          ),
         )
-        .orderBy(desc(messages.sentAt))
+        .orderBy(desc(messages.sentAt)),
     );
     const needle = query.toLowerCase();
     return rows
       .map(({ message, protocolId }) =>
-        searchHit(message.chatId, protocolId ?? undefined, (id) => toMessage(message, id))
+        searchHit(message.chatId, protocolId ?? undefined, (id) => toMessage(message, id)),
       )
       .filter(({ message }) => matchesSearch(message, needle))
       .slice(0, SEARCH_LIMIT);
@@ -104,22 +90,19 @@ export class SqliteMessageStore implements MessageStore {
           eq(messages.chatId, chatId),
           gt(messages.sentAt, since),
           eq(messages.fromMe, false),
-          notInArray(contentKind, [...NON_UNREAD_KINDS])
-        )
-      )
+          notInArray(contentKind, [...NON_UNREAD_KINDS]),
+        ),
+      ),
     );
   }
 
-  async getMessage<Id extends AnyChatId>(
-    chatId: Id,
-    id: MessageId
-  ): Promise<ChatMessage<Id> | null> {
+  async getMessage<Id extends AnyChatId>(chatId: Id, id: MessageId): Promise<ChatMessage<Id> | null> {
     const row = await this.operation((db) =>
       db
         .select()
         .from(messages)
         .where(and(eq(messages.chatId, chatId), eq(messages.id, id)))
-        .get()
+        .get(),
     );
     return row ? toMessage(row, chatId) : null;
   }
@@ -129,14 +112,14 @@ export class SqliteMessageStore implements MessageStore {
       db
         .update(messages)
         .set({ content: JSON.stringify(message.content), edited: message.edited ?? false })
-        .where(and(eq(messages.chatId, message.chatId), eq(messages.id, message.id)))
+        .where(and(eq(messages.chatId, message.chatId), eq(messages.id, message.id))),
     );
   }
 
   async deleteMessages(chatId: AnyChatId, ids: MessageId[]): Promise<void> {
     if (ids.length === 0) return;
     await this.operation((db) =>
-      db.delete(messages).where(and(eq(messages.chatId, chatId), inArray(messages.id, ids)))
+      db.delete(messages).where(and(eq(messages.chatId, chatId), inArray(messages.id, ids))),
     );
   }
 
@@ -147,7 +130,7 @@ export class SqliteMessageStore implements MessageStore {
   insertMessage<Id extends AnyChatId>(
     message: ChatMessage<Id>,
     chat?: StoredChat<Id>,
-    transportTimestamp?: number
+    transportTimestamp?: number,
   ): Promise<boolean> {
     if (!chat) return this.operation((db) => insertMessage(db, message));
     return this.operation((db) =>
@@ -166,14 +149,11 @@ export class SqliteMessageStore implements MessageStore {
             });
         }
         return inserted;
-      })
+      }),
     );
   }
 
-  async latestMessages<Id extends AnyChatId>(
-    protocolId: ProtocolId,
-    chatId?: Id
-  ): Promise<Map<Id, ChatMessage<Id>>> {
+  async latestMessages<Id extends AnyChatId>(protocolId: ProtocolId, chatId?: Id): Promise<Map<Id, ChatMessage<Id>>> {
     const rows = await this.operation((db) => {
       const newest = db
         .select({ rowid: sql`rowid` })
@@ -191,14 +171,14 @@ export class SqliteMessageStore implements MessageStore {
       rows.map(({ message }) => {
         const chatId = storedChatId<Id>(message.chatId, protocolId);
         return [chatId, toMessage(message, chatId)] as const;
-      })
+      }),
     );
   }
 
   async newestTransportTimestamp(
     protocolId: ProtocolId,
     notAfter: number,
-    chatId?: AnyChatId
+    chatId?: AnyChatId,
   ): Promise<number | undefined> {
     const upperBound = Number.isFinite(notAfter) ? notAfter : Number.MAX_SAFE_INTEGER;
     const row = await this.operation((db) =>
@@ -209,12 +189,12 @@ export class SqliteMessageStore implements MessageStore {
           and(
             eq(transportCursors.protocolId, protocolId),
             lte(transportCursors.timestamp, upperBound),
-            chatId ? eq(transportCursors.chatId, chatId) : undefined
-          )
+            chatId ? eq(transportCursors.chatId, chatId) : undefined,
+          ),
         )
         .orderBy(desc(transportCursors.timestamp))
         .limit(1)
-        .get()
+        .get(),
     );
     return row?.timestamp;
   }
@@ -222,14 +202,11 @@ export class SqliteMessageStore implements MessageStore {
   async clear(protocolId: ProtocolId): Promise<void> {
     await this.operation((db) =>
       db.transaction(async (tx) => {
-        const protocolChats = tx
-          .select({ id: chats.id })
-          .from(chats)
-          .where(eq(chats.protocolId, protocolId));
+        const protocolChats = tx.select({ id: chats.id }).from(chats).where(eq(chats.protocolId, protocolId));
         await tx.delete(messages).where(inArray(messages.chatId, protocolChats));
         await tx.delete(transportCursors).where(eq(transportCursors.protocolId, protocolId));
         await tx.delete(chats).where(eq(chats.protocolId, protocolId));
-      })
+      }),
     );
   }
 
@@ -257,7 +234,7 @@ export class SqliteMessageStore implements MessageStore {
         for (const ids of chunks(drop, CACHE_ROWS_PER_STATEMENT)) {
           await tx.delete(chatCache).where(inArray(chatCache.id, ids));
         }
-      })
+      }),
     );
   }
 
@@ -320,10 +297,7 @@ function isCachedChat(value: unknown): value is Chat {
   return isRecord(value) && isString(value.id) && parseChatId(value.id) !== null;
 }
 
-function toMessage<Id extends AnyChatId>(
-  row: typeof messages.$inferSelect,
-  chatId: Id
-): ChatMessage<Id> {
+function toMessage<Id extends AnyChatId>(row: typeof messages.$inferSelect, chatId: Id): ChatMessage<Id> {
   return {
     id: row.id,
     chatId,
@@ -333,7 +307,7 @@ function toMessage<Id extends AnyChatId>(
     fromMe: row.fromMe,
     status: row.status,
     replyTo: row.replyTo ?? undefined,
-    privateToMe: (row.senderId === 'local' && row.id.startsWith('private:')) || undefined,
+    privateToMe: (row.senderId === "local" && row.id.startsWith("private:")) || undefined,
     edited: row.edited || undefined,
   };
 }
@@ -341,14 +315,14 @@ function toMessage<Id extends AnyChatId>(
 function parseContent(raw: string): MessageContent {
   try {
     const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object' && typeof parsed.kind === 'string') {
+    if (parsed && typeof parsed === "object" && typeof parsed.kind === "string") {
       return parsed as MessageContent;
     }
   } catch {}
   return {
-    kind: 'unsupported',
-    typeId: 'unknown',
-    fallback: 'This message could not be read.',
+    kind: "unsupported",
+    typeId: "unknown",
+    fallback: "This message could not be read.",
   };
 }
 

@@ -1,7 +1,7 @@
-const path = require('node:path');
+const path = require("node:path");
 
-const { getDefaultConfig } = require('expo/metro-config');
-const { withNativeWind } = require('nativewind/metro');
+const { getDefaultConfig } = require("expo/metro-config");
+const { withNativeWind } = require("nativewind/metro");
 
 const config = getDefaultConfig(__dirname);
 
@@ -10,8 +10,8 @@ const config = getDefaultConfig(__dirname);
 // registry, which needs it through bs58check and create-hash.
 config.resolver.extraNodeModules = {
   ...config.resolver.extraNodeModules,
-  crypto: require.resolve('expo-crypto'),
-  stream: require.resolve('readable-stream'),
+  crypto: require.resolve("expo-crypto"),
+  stream: require.resolve("readable-stream"),
 };
 
 /**
@@ -20,8 +20,8 @@ config.resolver.extraNodeModules = {
  * for `stream`), and those need the resolver itself.
  */
 const NODE_SHIMS = {
-  stream: require.resolve('readable-stream'),
-  crypto: require.resolve('expo-crypto'),
+  stream: require.resolve("readable-stream"),
+  crypto: require.resolve("expo-crypto"),
 };
 
 /**
@@ -42,33 +42,22 @@ const BROWSER_FIELD_OVER_EXPORTS = /^(uint8arrays|multiformats|@noble\/hashes)(\
 const INTEROP_JSX_ON_WEB = /\/node_modules\/react-native-reanimated\//;
 
 /** See src/desktop/xmtp-wasm-bindings.ts. */
-config.resolver.assetExts.push('wasm');
+config.resolver.assetExts.push("wasm");
 const XMTP_SDK = /\/node_modules\/@xmtp\/browser-sdk\//;
-const XMTP_WASM_BINDINGS_ON_WEB = require.resolve('./src/desktop/xmtp-wasm-bindings.ts');
-const XMTP_WASM = '@xmtp/wasm-bindings/dist/bindings_wasm_bg.wasm';
-const XMTP_WASM_FILE = path.join(
-  path.dirname(require.resolve('@xmtp/wasm-bindings')),
-  'bindings_wasm_bg.wasm'
-);
+const XMTP_WASM_BINDINGS_ON_WEB = require.resolve("./src/desktop/xmtp-wasm-bindings.ts");
+const XMTP_WASM = "@xmtp/wasm-bindings/dist/bindings_wasm_bg.wasm";
+const XMTP_WASM_FILE = path.join(path.dirname(require.resolve("@xmtp/wasm-bindings")), "bindings_wasm_bg.wasm");
 
 const upstream = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   const shim = NODE_SHIMS[moduleName];
-  if (shim) return { type: 'sourceFile', filePath: shim };
-  if (moduleName === XMTP_WASM) return { type: 'assetFiles', filePaths: [XMTP_WASM_FILE] };
-  if (
-    platform === 'web' &&
-    moduleName === '@xmtp/wasm-bindings' &&
-    XMTP_SDK.test(context.originModulePath)
-  ) {
-    return { type: 'sourceFile', filePath: XMTP_WASM_BINDINGS_ON_WEB };
+  if (shim) return { type: "sourceFile", filePath: shim };
+  if (moduleName === XMTP_WASM) return { type: "assetFiles", filePaths: [XMTP_WASM_FILE] };
+  if (platform === "web" && moduleName === "@xmtp/wasm-bindings" && XMTP_SDK.test(context.originModulePath)) {
+    return { type: "sourceFile", filePath: XMTP_WASM_BINDINGS_ON_WEB };
   }
-  if (
-    platform === 'web' &&
-    moduleName === 'react/jsx-runtime' &&
-    INTEROP_JSX_ON_WEB.test(context.originModulePath)
-  ) {
-    moduleName = 'react-native-css-interop/jsx-runtime';
+  if (platform === "web" && moduleName === "react/jsx-runtime" && INTEROP_JSX_ON_WEB.test(context.originModulePath)) {
+    moduleName = "react-native-css-interop/jsx-runtime";
   }
   const resolve = (ctx) =>
     upstream ? upstream(ctx, moduleName, platform) : ctx.resolveRequest(ctx, moduleName, platform);
@@ -80,4 +69,4 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return resolve(context);
 };
 
-module.exports = withNativeWind(config, { input: './src/global.css' });
+module.exports = withNativeWind(config, { input: "./src/global.css" });

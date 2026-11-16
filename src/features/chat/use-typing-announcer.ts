@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 
-import { useChatStore } from '@/core/messaging/chat-store';
-import type { ChatId } from '@/core/messaging/types';
+import { useChatStore } from "@/core/messaging/chat-store";
+import type { ChatId } from "@/core/messaging/types";
 
 const TYPING_TIMEOUT_MS = 5000;
 const REANNOUNCE_MS = 3000;
@@ -17,7 +17,7 @@ export function useTypingAnnouncer(chatId: ChatId, enabled: boolean) {
       clearTimeout(timer.current);
       void setTyping(chatId, false).catch(() => {});
     },
-    [chatId, setTyping]
+    [chatId, setTyping],
   );
 
   const stop = () => {

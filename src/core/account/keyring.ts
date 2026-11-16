@@ -1,15 +1,12 @@
-import { mnemonicToSeedSync, validateMnemonic } from '@scure/bip39';
-
-import type { LocalAccount, Address } from 'viem';
-
-import type { AccountKind } from './account-kind';
-import { deriveEd25519, type Ed25519Key } from './slip10';
-import * as Crypto from 'expo-crypto';
-import { english, generateMnemonic, HDKey, hdKeyToAccount } from 'viem/accounts';
-
-import { writeAccountSecret } from './key-protection';
-import { base64ToBytes, bytesToBase64 } from '@/lib/bytes';
-import { accountDbKeyName, vaultGet, vaultSet } from '@/storage/vault';
+import { mnemonicToSeedSync, validateMnemonic } from "@scure/bip39";
+import * as Crypto from "expo-crypto";
+import type { Address, LocalAccount } from "viem";
+import { english, generateMnemonic, HDKey, hdKeyToAccount } from "viem/accounts";
+import { base64ToBytes, bytesToBase64 } from "@/lib/bytes";
+import { accountDbKeyName, vaultGet, vaultSet } from "@/storage/vault";
+import type { AccountKind } from "./account-kind";
+import { writeAccountSecret } from "./key-protection";
+import { deriveEd25519, type Ed25519Key } from "./slip10";
 
 export interface DerivedKey {
   path: string;
@@ -34,11 +31,11 @@ export interface Keyring {
 }
 
 /** The chat key derivation a protocol connects with, which says what is missing when it is. */
-export function chatKeys(keyring: Pick<Keyring, 'chatKey'>): (path: string) => DerivedKey {
+export function chatKeys(keyring: Pick<Keyring, "chatKey">): (path: string) => DerivedKey {
   return (
     keyring.chatKey ??
     (() => {
-      throw new Error('Set up chat keys for this account in Settings › Accounts.');
+      throw new Error("Set up chat keys for this account in Settings › Accounts.");
     })
   );
 }
@@ -64,7 +61,7 @@ export function isValidMnemonic(phrase: string): boolean {
 }
 
 export function normalizeMnemonic(phrase: string): string {
-  return phrase.trim().toLowerCase().split(/\s+/).join(' ');
+  return phrase.trim().toLowerCase().split(/\s+/).join(" ");
 }
 
 export function keyringFromMnemonic(phrase: string, addressIndex = 0): Keyring {
@@ -74,7 +71,7 @@ export function keyringFromMnemonic(phrase: string, addressIndex = 0): Keyring {
   const account = hdKeyToAccount(root, { addressIndex });
 
   return {
-    kind: 'phrase',
+    kind: "phrase",
     mnemonic,
     account,
     address: account.address,
@@ -87,7 +84,7 @@ export function keyringFromMnemonic(phrase: string, addressIndex = 0): Keyring {
 }
 
 export async function persistAccountMnemonic(accountId: string, phrase: string): Promise<void> {
-  await writeAccountSecret(accountId, { kind: 'phrase', phrase: normalizeMnemonic(phrase) });
+  await writeAccountSecret(accountId, { kind: "phrase", phrase: normalizeMnemonic(phrase) });
 }
 
 export async function loadOrCreateDbEncryptionKey(accountId: string): Promise<Uint8Array> {

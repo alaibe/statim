@@ -1,10 +1,9 @@
-import { View } from 'react-native';
+import { View } from "react-native";
+import type { MessageRendererProps } from "@/core/plugins/types";
+import { Badge } from "@/design";
+import { WidgetView } from "@/design/widgets/widget-view";
 
-import { Badge } from '@/design';
-import type { MessageRendererProps } from '@/core/plugins/types';
-import { WidgetView } from '@/design/widgets/widget-view';
-
-import type { UiMessage } from './types';
+import type { UiMessage } from "./types";
 
 export function BotWidgetMessage({ data, fromMe, onCommand }: MessageRendererProps<UiMessage>) {
   return (

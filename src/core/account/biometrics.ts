@@ -1,4 +1,4 @@
-import * as LocalAuthentication from 'expo-local-authentication';
+import * as LocalAuthentication from "expo-local-authentication";
 
 import {
   type PromptFallback,
@@ -6,7 +6,7 @@ import {
   type PromptPurpose,
   promptOptions,
   promptOutcome,
-} from './biometric-prompt';
+} from "./biometric-prompt";
 
 export interface BiometricCapability {
   available: boolean;
@@ -28,26 +28,21 @@ function describe(types: LocalAuthentication.AuthenticationType[]): string {
   const has = (t: LocalAuthentication.AuthenticationType) => types.includes(t);
 
   if (has(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
-    return process.env.EXPO_OS === 'ios' ? 'Face ID' : 'Face unlock';
+    return process.env.EXPO_OS === "ios" ? "Face ID" : "Face unlock";
   }
   if (has(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
-    return process.env.EXPO_OS === 'ios' ? 'Touch ID' : 'Fingerprint';
+    return process.env.EXPO_OS === "ios" ? "Touch ID" : "Fingerprint";
   }
-  if (has(LocalAuthentication.AuthenticationType.IRIS)) return 'Iris';
-  return 'Biometrics';
+  if (has(LocalAuthentication.AuthenticationType.IRIS)) return "Iris";
+  return "Biometrics";
 }
 
 const REASON: Record<PromptPurpose, string> = {
-  unlock: 'Unlock Statim',
-  'turn-on': 'Confirm to lock Statim',
+  unlock: "Unlock Statim",
+  "turn-on": "Confirm to lock Statim",
 };
 
-export async function promptBiometrics(
-  purpose: PromptPurpose,
-  fallback: PromptFallback
-): Promise<PromptOutcome> {
-  const result = await LocalAuthentication.authenticateAsync(
-    promptOptions(REASON[purpose], fallback)
-  );
+export async function promptBiometrics(purpose: PromptPurpose, fallback: PromptFallback): Promise<PromptOutcome> {
+  const result = await LocalAuthentication.authenticateAsync(promptOptions(REASON[purpose], fallback));
   return promptOutcome(result, fallback);
 }

@@ -1,10 +1,10 @@
-import { createPublicClient, http } from 'viem';
+import { createPublicClient, http } from "viem";
 
-import type { PluginContext } from '@/core/plugins/types';
+import type { PluginContext } from "@/core/plugins/types";
 
-import { chainById, setRpcOverride } from '@/lib/evm/chains';
-import { readRpcOverrides, writeRpcOverrides } from './rpc-storage';
-import type { RpcCheck } from './strategy';
+import { chainById, setRpcOverride } from "@/lib/evm/chains";
+import { readRpcOverrides, writeRpcOverrides } from "./rpc-storage";
+import type { RpcCheck } from "./strategy";
 
 export async function hydrateRpcOverrides(context: PluginContext): Promise<void> {
   const saved = await readRpcOverrides(context);
@@ -18,7 +18,7 @@ export async function checkRpcUrl(chainId: number, url: string): Promise<RpcChec
   if (!chain) return { ok: false, reason: `Unsupported chain ${chainId}.` };
 
   if (!/^https?:\/\//i.test(url) && !/^wss?:\/\//i.test(url)) {
-    return { ok: false, reason: 'The endpoint must start with https:// or wss://.' };
+    return { ok: false, reason: "The endpoint must start with https:// or wss://." };
   }
 
   try {
@@ -30,9 +30,9 @@ export async function checkRpcUrl(chainId: number, url: string): Promise<RpcChec
       return {
         ok: false,
         reason:
-          `That endpoint serves chain ${reported}${actual ? ` (${actual.name})` : ''}, ` +
+          `That endpoint serves chain ${reported}${actual ? ` (${actual.name})` : ""}, ` +
           `not ${chain.name}, so it was not saved. The wrong chain would give you ` +
-          'wrong balances and could broadcast transactions to the wrong chain.',
+          "wrong balances and could broadcast transactions to the wrong chain.",
       };
     }
 
@@ -40,17 +40,12 @@ export async function checkRpcUrl(chainId: number, url: string): Promise<RpcChec
   } catch (error) {
     return {
       ok: false,
-      reason:
-        error instanceof Error ? `Could not reach it: ${error.message}` : 'Could not reach it.',
+      reason: error instanceof Error ? `Could not reach it: ${error.message}` : "Could not reach it.",
     };
   }
 }
 
-export async function saveRpcOverride(
-  context: PluginContext,
-  chainId: number,
-  url: string | null
-): Promise<void> {
+export async function saveRpcOverride(context: PluginContext, chainId: number, url: string | null): Promise<void> {
   const saved = await readRpcOverrides(context);
   if (url) saved[String(chainId)] = url;
   else delete saved[String(chainId)];

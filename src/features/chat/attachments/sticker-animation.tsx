@@ -1,4 +1,4 @@
-import LottieView, { type AnimationObject } from 'lottie-react-native';
+import LottieView, { type AnimationObject } from "lottie-react-native";
 
 export interface StickerAnimationProps {
   animation: AnimationObject;

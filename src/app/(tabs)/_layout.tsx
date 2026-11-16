@@ -1,7 +1,7 @@
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { NativeTabs } from "expo-router/unstable-native-tabs";
 
-import { useChatStore } from '@/core/messaging/chat-store';
-import { protocolsNeedAttention } from '@/features/protocols/presentation';
+import { useChatStore } from "@/core/messaging/chat-store";
+import { protocolsNeedAttention } from "@/features/protocols/presentation";
 
 export default function TabsLayout() {
   const attention = useChatStore((s) => protocolsNeedAttention(s.protocols));

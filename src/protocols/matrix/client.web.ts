@@ -1,5 +1,5 @@
-import { invoke } from '@tauri-apps/api/core';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import type {
   MatrixApi,
@@ -14,9 +14,9 @@ import type {
   MxStartParams,
   MxTextOutgoing,
   MxUpdate,
-} from './api';
+} from "./api";
 
-const UPDATE_EVENT = 'matrix://update';
+const UPDATE_EVENT = "matrix://update";
 
 /** The same crate as the phone, driven through `src-tauri/src/matrix.rs`. */
 class TauriMatrixClient implements MatrixApi {
@@ -28,140 +28,135 @@ class TauriMatrixClient implements MatrixApi {
       for (const listener of this.listeners) listener(event.payload);
     });
     await this.unlisten;
-    return invoke<MxSession | null>('mx_start', { params });
+    return invoke<MxSession | null>("mx_start", { params });
   }
 
   login(password: string): Promise<MxSession> {
-    return invoke('mx_login', { password });
+    return invoke("mx_login", { password });
   }
 
   logout(): Promise<void> {
-    return invoke('mx_logout');
+    return invoke("mx_logout");
   }
 
   room(id: string): Promise<MxRoom | null> {
-    return invoke('mx_room', { id });
+    return invoke("mx_room", { id });
   }
 
   messages(roomId: string, opts: { limit: number; before?: string }): Promise<MxEvent[]> {
-    return invoke('mx_messages', { roomId, limit: opts.limit, before: opts.before });
+    return invoke("mx_messages", { roomId, limit: opts.limit, before: opts.before });
   }
 
   members(roomId: string): Promise<MxMember[]> {
-    return invoke('mx_members', { roomId });
+    return invoke("mx_members", { roomId });
   }
 
   profile(userId: string): Promise<MxProfile | null> {
-    return invoke('mx_profile', { userId });
+    return invoke("mx_profile", { userId });
   }
 
   previewPublicRoom(idOrAlias: string, via: string[]): Promise<MxPublicRoom> {
-    return invoke('mx_preview_public_room', { idOrAlias, via });
+    return invoke("mx_preview_public_room", { idOrAlias, via });
   }
 
   joinPublicRoom(idOrAlias: string, via: string[]): Promise<string> {
-    return invoke('mx_join_public_room', { idOrAlias, via });
+    return invoke("mx_join_public_room", { idOrAlias, via });
   }
 
   knockPublicRoom(idOrAlias: string, via: string[]): Promise<void> {
-    return invoke('mx_knock_public_room', { idOrAlias, via });
+    return invoke("mx_knock_public_room", { idOrAlias, via });
   }
 
   createDm(userId: string): Promise<string> {
-    return invoke('mx_create_dm', { userId });
+    return invoke("mx_create_dm", { userId });
   }
 
   createRoom(userIds: string[], name: string): Promise<string> {
-    return invoke('mx_create_room', { userIds, name });
+    return invoke("mx_create_room", { userIds, name });
   }
 
   invite(roomId: string, userId: string): Promise<void> {
-    return invoke('mx_invite', { roomId, userId });
+    return invoke("mx_invite", { roomId, userId });
   }
 
   kick(roomId: string, userId: string): Promise<void> {
-    return invoke('mx_kick', { roomId, userId });
+    return invoke("mx_kick", { roomId, userId });
   }
 
   ban(roomId: string, userId: string): Promise<void> {
-    return invoke('mx_ban', { roomId, userId });
+    return invoke("mx_ban", { roomId, userId });
   }
 
   ignoredUsers(): Promise<string[]> {
-    return invoke('mx_ignored_users');
+    return invoke("mx_ignored_users");
   }
 
   setIgnored(userId: string, ignored: boolean): Promise<void> {
-    return invoke('mx_set_ignored', { userId, ignored });
+    return invoke("mx_set_ignored", { userId, ignored });
   }
 
   setPowerLevel(roomId: string, userId: string, level: number): Promise<void> {
-    return invoke('mx_set_power_level', { roomId, userId, level });
+    return invoke("mx_set_power_level", { roomId, userId, level });
   }
 
   setName(roomId: string, name: string): Promise<void> {
-    return invoke('mx_set_name', { roomId, name });
+    return invoke("mx_set_name", { roomId, name });
   }
 
   join(roomId: string): Promise<void> {
-    return invoke('mx_join', { roomId });
+    return invoke("mx_join", { roomId });
   }
 
   leave(roomId: string): Promise<void> {
-    return invoke('mx_leave', { roomId });
+    return invoke("mx_leave", { roomId });
   }
 
-  send(
-    roomId: string,
-    content: MxOutgoing,
-    replyTo?: string,
-    threadRoot?: string
-  ): Promise<string> {
-    return invoke('mx_send', { roomId, content, replyTo, threadRoot });
+  send(roomId: string, content: MxOutgoing, replyTo?: string, threadRoot?: string): Promise<string> {
+    return invoke("mx_send", { roomId, content, replyTo, threadRoot });
   }
 
   toggleReaction(roomId: string, eventId: string, key: string): Promise<void> {
-    return invoke('mx_toggle_reaction', { roomId, eventId, key });
+    return invoke("mx_toggle_reaction", { roomId, eventId, key });
   }
 
   redact(roomId: string, eventId: string): Promise<void> {
-    return invoke('mx_redact', { roomId, eventId });
+    return invoke("mx_redact", { roomId, eventId });
   }
 
   pinnedMessages(roomId: string): Promise<MxEvent[]> {
-    return invoke('mx_pinned_messages', { roomId });
+    return invoke("mx_pinned_messages", { roomId });
   }
 
   setPinned(roomId: string, eventId: string, pinned: boolean): Promise<void> {
-    return invoke('mx_set_pinned', { roomId, eventId, pinned });
+    return invoke("mx_set_pinned", { roomId, eventId, pinned });
   }
 
   edit(roomId: string, eventId: string, content: MxTextOutgoing): Promise<void> {
-    return invoke('mx_edit', { roomId, eventId, content });
+    return invoke("mx_edit", { roomId, eventId, content });
   }
 
   markRead(roomId: string): Promise<void> {
-    return invoke('mx_mark_read', { roomId });
+    return invoke("mx_mark_read", { roomId });
   }
 
   setMarkedUnread(roomId: string, unread: boolean): Promise<void> {
-    return invoke('mx_set_marked_unread', { roomId, unread });
+    return invoke("mx_set_marked_unread", { roomId, unread });
   }
 
   setTyping(roomId: string, typing: boolean): Promise<void> {
-    return invoke('mx_set_typing', { roomId, typing });
+    return invoke("mx_set_typing", { roomId, typing });
   }
 
   createPoll(roomId: string, question: string, options: string[]): Promise<void> {
-    return invoke('mx_create_poll', { roomId, question, options });
+    return invoke("mx_create_poll", { roomId, question, options });
   }
 
   votePoll(roomId: string, eventId: string, answerIds: string[]): Promise<void> {
-    return invoke('mx_vote_poll', { roomId, eventId, answerIds });
+    return invoke("mx_vote_poll", { roomId, eventId, answerIds });
   }
 
   media(media: MxMedia): Promise<string> {
-    return invoke('mx_media', { media });
+    return invoke("mx_media", { media });
   }
 
   onUpdate(listener: (update: MxUpdate) => void): () => void {
@@ -170,12 +165,12 @@ class TauriMatrixClient implements MatrixApi {
   }
 
   async close(): Promise<void> {
-    await invoke('mx_close');
+    await invoke("mx_close");
     await this.release();
   }
 
   async erase(): Promise<void> {
-    await invoke('mx_erase');
+    await invoke("mx_erase");
     await this.release();
   }
 

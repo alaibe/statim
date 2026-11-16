@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
 /** Milliseconds left until `until`, ticking each second; 0 once it has passed or when there is none. */
 export function useWaitLeft(until: number | null): number {
@@ -22,10 +22,8 @@ export function describeWait(ms: number): string {
   const total = Math.ceil(ms / 1000);
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);
-  const seconds = String(total % 60).padStart(2, '0');
-  return hours > 0
-    ? `${hours}:${String(minutes).padStart(2, '0')}:${seconds}`
-    : `${minutes}:${seconds}`;
+  const seconds = String(total % 60).padStart(2, "0");
+  return hours > 0 ? `${hours}:${String(minutes).padStart(2, "0")}:${seconds}` : `${minutes}:${seconds}`;
 }
 
 export function waitMessage(ms: number): string {

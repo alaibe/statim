@@ -1,6 +1,6 @@
-import { Icon, ListItem, Section, Text, Toggle } from '@/design';
-import { useAppearanceStore } from '@/core/app/appearance';
-import { SettingsScreen } from '@/features/settings/settings-screen';
+import { useAppearanceStore } from "@/core/app/appearance";
+import { Icon, ListItem, Section, Text, Toggle } from "@/design";
+import { SettingsScreen } from "@/features/settings/settings-screen";
 
 export default function PrivacyScreen() {
   const readReceipts = useAppearanceStore((s) => s.readReceipts);
@@ -18,13 +18,7 @@ export default function PrivacyScreen() {
           subtitle="Tells the other person when you have opened their message. Off by default, and it works both ways: with it off, you do not see theirs either."
           numberOfLinesSubtitle={4}
           leading={<Icon name="checkmark-done-outline" size={20} tone="muted" />}
-          trailing={
-            <Toggle
-              label="Send read receipts"
-              value={readReceipts}
-              onValueChange={setReadReceipts}
-            />
-          }
+          trailing={<Toggle label="Send read receipts" value={readReceipts} onValueChange={setReadReceipts} />}
         />
         <ListItem
           title="Send typing indicators"
@@ -32,18 +26,14 @@ export default function PrivacyScreen() {
           numberOfLinesSubtitle={4}
           leading={<Icon name="ellipsis-horizontal" size={20} tone="muted" />}
           trailing={
-            <Toggle
-              label="Send typing indicators"
-              value={typingIndicators}
-              onValueChange={setTypingIndicators}
-            />
+            <Toggle label="Send typing indicators" value={typingIndicators} onValueChange={setTypingIndicators} />
           }
         />
       </Section>
 
       <Text variant="footnote" className="px-gutter pb-6">
-        Unread state is otherwise kept on this device only. Nothing tells anyone which chats you
-        have open, which you have pinned, or which you have muted.
+        Unread state is otherwise kept on this device only. Nothing tells anyone which chats you have open, which you
+        have pinned, or which you have muted.
       </Text>
 
       <Section title="Links" surface="card" className="mb-4">
@@ -52,13 +42,7 @@ export default function PrivacyScreen() {
           subtitle="Fetches a title, description and picture for links, straight from the linked site. With no server in between, the site sees this device's address as soon as a link arrives, not only when you tap it. Turn this off to keep that to yourself."
           numberOfLinesSubtitle={6}
           leading={<Icon name="link-outline" size={20} tone="muted" />}
-          trailing={
-            <Toggle
-              label="Show link previews"
-              value={linkPreviews}
-              onValueChange={setLinkPreviews}
-            />
-          }
+          trailing={<Toggle label="Show link previews" value={linkPreviews} onValueChange={setLinkPreviews} />}
         />
       </Section>
 

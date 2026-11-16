@@ -1,5 +1,5 @@
-import { TabStack } from '@/features/navigation/tab-stack';
+import { TabStack } from "@/features/navigation/tab-stack";
 
-export const unstable_settings = { anchor: 'chats' };
+export const unstable_settings = { anchor: "chats" };
 
 export default TabStack;

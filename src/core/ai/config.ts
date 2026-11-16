@@ -1,8 +1,8 @@
-import { readCredential, writeCredential } from '@/core/account/credentials';
-import { isBoolean, isString, oneOf, optional, shape } from '@/lib/guards';
-import { accountAiConfigKey, vaultGet, vaultSet } from '@/storage/vault';
+import { readCredential, writeCredential } from "@/core/account/credentials";
+import { isBoolean, isString, oneOf, optional, shape } from "@/lib/guards";
+import { accountAiConfigKey, vaultGet, vaultSet } from "@/storage/vault";
 
-const AI_SOURCES = ['auto', 'openai', 'anthropic'] as const;
+const AI_SOURCES = ["auto", "openai", "anthropic"] as const;
 
 /**
  * `auto` is the model on this device, or on a computer an Ollama server on
@@ -21,7 +21,7 @@ export interface AiConfig {
   readonly suggestActions?: boolean;
 }
 
-export const DEFAULT_AI_CONFIG: AiConfig = { source: 'auto', url: '', model: '' };
+export const DEFAULT_AI_CONFIG: AiConfig = { source: "auto", url: "", model: "" };
 
 const isAiConfig = shape<AiConfig>({
   source: oneOf(...AI_SOURCES),
@@ -54,7 +54,7 @@ export async function saveAiConfig(accountId: string, config: AiConfig): Promise
       replyBadges: config.replyBadges === true,
       followUps: config.followUps === true,
       suggestActions: config.suggestActions === true,
-    })
+    }),
   );
   revision += 1;
   for (const listener of listeners) listener();
@@ -70,9 +70,8 @@ export function subscribeAiConfig(listener: () => void) {
   };
 }
 
-export const loadAiKey = (accountId: string) => readCredential(accountId, 'ai');
-export const saveAiKey = (accountId: string, key: string) => writeCredential(accountId, 'ai', key);
+export const loadAiKey = (accountId: string) => readCredential(accountId, "ai");
+export const saveAiKey = (accountId: string, key: string) => writeCredential(accountId, "ai", key);
 
-export const loadTypesafeKey = (accountId: string) => readCredential(accountId, 'typesafe');
-export const saveTypesafeKey = (accountId: string, key: string) =>
-  writeCredential(accountId, 'typesafe', key);
+export const loadTypesafeKey = (accountId: string) => readCredential(accountId, "typesafe");
+export const saveTypesafeKey = (accountId: string, key: string) => writeCredential(accountId, "typesafe", key);

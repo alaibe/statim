@@ -1,7 +1,7 @@
-import { useState, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { type ReactNode, useState } from "react";
+import { View } from "react-native";
 
-import { Icon, Pressable } from '@/design';
+import { Icon, Pressable } from "@/design";
 
 export function SaveButton({ onPress, size = 18 }: { onPress: () => void; size?: number }) {
   return (
@@ -10,7 +10,8 @@ export function SaveButton({ onPress, size = 18 }: { onPress: () => void; size?:
       accessibilityLabel="Save as…"
       onPress={onPress}
       hitSlop={8}
-      className="items-center justify-center rounded-pill bg-black/45 p-1.5">
+      className="items-center justify-center rounded-pill bg-black/45 p-1.5"
+    >
       <Icon name="download-outline" size={size} color="#fff" />
     </Pressable>
   );

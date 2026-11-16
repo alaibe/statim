@@ -1,8 +1,8 @@
-import { View } from 'react-native';
+import { View } from "react-native";
 
-import { cn } from '../lib/cn';
-import { IconButton } from './icon-button';
-import { Text } from './text';
+import { cn } from "../lib/cn";
+import { IconButton } from "./icon-button";
+import { Text } from "./text";
 
 interface ModalHeaderProps {
   title: string;
@@ -12,15 +12,9 @@ interface ModalHeaderProps {
   className?: string;
 }
 
-export function ModalHeader({
-  title,
-  onClose,
-  closeLabel = 'Close',
-  action,
-  className,
-}: ModalHeaderProps) {
+export function ModalHeader({ title, onClose, closeLabel = "Close", action, className }: ModalHeaderProps) {
   return (
-    <View className={cn('flex-row items-center py-3', className)}>
+    <View className={cn("flex-row items-center py-3", className)}>
       <View className="flex-1 items-start">
         <IconButton icon="close" label={closeLabel} surface="sunken" size={18} onPress={onClose} />
       </View>

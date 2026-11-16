@@ -1,6 +1,6 @@
-import { isAddress } from 'viem';
+import { isAddress } from "viem";
 
-import { looksLikeEnsName, resolveName } from '@/lib/evm/ens';
+import { looksLikeEnsName, resolveName } from "@/lib/evm/ens";
 
 interface ResolvedBot {
   address: string;
@@ -19,16 +19,14 @@ export async function resolveBot(input: string): Promise<ResolvedBot | null> {
   if (handle) {
     const [, id, domain] = handle;
     try {
-      const response = await fetch(
-        `https://${domain}/.well-known/status-bot/${id.toLowerCase()}.json`
-      );
+      const response = await fetch(`https://${domain}/.well-known/status-bot/${id.toLowerCase()}.json`);
       if (!response.ok) return null;
       const card = (await response.json()) as Partial<ResolvedBot>;
-      if (typeof card.address !== 'string' || !isAddress(card.address)) return null;
+      if (typeof card.address !== "string" || !isAddress(card.address)) return null;
       return {
         address: card.address,
-        name: typeof card.name === 'string' ? card.name : undefined,
-        description: typeof card.description === 'string' ? card.description : undefined,
+        name: typeof card.name === "string" ? card.name : undefined,
+        description: typeof card.description === "string" ? card.description : undefined,
       };
     } catch {
       return null;

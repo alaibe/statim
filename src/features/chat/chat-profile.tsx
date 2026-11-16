@@ -1,53 +1,36 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
-import { type ReactNode, useState } from 'react';
-import { ScrollView, View } from 'react-native';
-
-import {
-  Avatar,
-  BackHeader,
-  Badge,
-  Card,
-  Icon,
-  Pressable,
-  Screen,
-  Text,
-  copyText,
-  type IconName,
-} from '@/design';
-import { shortAddress } from '@/core/account/keyring';
-import { reportError } from '@/core/app/report-error';
-import { prefsFor } from '@/core/messaging/chat-prefs';
-import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
-import { errorMessage } from '@/core/errors';
-import { chatParticipants, chatTitle } from '@/core/messaging/display-names';
-import type { Chat, ParticipantId } from '@/core/messaging/types';
-import { useDisplayNames } from '@/features/chat/use-display-names';
-import { useChatPermissions } from '@/features/chat/use-chat-permissions';
-import { useBack } from '@/features/navigation/use-back';
-import { openChatFromProfile } from '@/features/navigation/open';
-import { type EnsProfile, resolveEnsProfile } from '@/lib/evm/ens-profile';
-import { protocolSubtitle } from '@/features/protocols/presentation';
-import { JoinRequests } from '@/features/chat/join-requests';
-import {
-  GroupAbout,
-  InviteLinks,
-  MemberModeration,
-  SlowModeSection,
-} from '@/features/chat/group-sections';
-import { useKeyedLoad } from '@/lib/use-keyed-load';
-import { BlockSheet, setBlocked } from './block';
-import { SharedMedia } from './shared-media';
+import { Stack, useLocalSearchParams } from "expo-router";
+import { type ReactNode, useState } from "react";
+import { ScrollView, View } from "react-native";
+import { shortAddress } from "@/core/account/keyring";
+import { reportError } from "@/core/app/report-error";
+import { errorMessage } from "@/core/errors";
+import { prefsFor } from "@/core/messaging/chat-prefs";
+import { selfIdFor, useChatStore } from "@/core/messaging/chat-store";
+import { chatParticipants, chatTitle } from "@/core/messaging/display-names";
+import type { Chat, ParticipantId } from "@/core/messaging/types";
+import { Avatar, BackHeader, Badge, Card, copyText, Icon, type IconName, Pressable, Screen, Text } from "@/design";
+import { GroupAbout, InviteLinks, MemberModeration, SlowModeSection } from "@/features/chat/group-sections";
+import { JoinRequests } from "@/features/chat/join-requests";
+import { useChatPermissions } from "@/features/chat/use-chat-permissions";
+import { useDisplayNames } from "@/features/chat/use-display-names";
+import { openChatFromProfile } from "@/features/navigation/open";
+import { useBack } from "@/features/navigation/use-back";
+import { protocolSubtitle } from "@/features/protocols/presentation";
+import { type EnsProfile, resolveEnsProfile } from "@/lib/evm/ens-profile";
+import { useKeyedLoad } from "@/lib/use-keyed-load";
+import { BlockSheet, setBlocked } from "./block";
+import { SharedMedia } from "./shared-media";
 
 const ensOf = (address: string) => resolveEnsProfile(address as `0x${string}`);
 
 export function ChatProfile() {
   const { id, member } = useLocalSearchParams<{ id: string; member?: string }>();
-  const goBack = useBack('/chats');
+  const goBack = useBack("/chats");
   const chat = useChatStore((s) => s.chats.find((c) => c.id === id));
 
   if (!chat) {
     return (
-      <Screen className="px-0" edges={['top']}>
+      <Screen className="px-0" edges={["top"]}>
         <Stack.Screen options={{ headerShown: false }} />
         <BackHeader label="Back" onPress={goBack} />
         <Text variant="footnote" className="px-gutter">
@@ -72,18 +55,10 @@ function useChatPeople(chat: Chat) {
 }
 
 function useEns(address: string | undefined) {
-  return useKeyedLoad(address?.startsWith('0x') ? address : null, ensOf).value;
+  return useKeyedLoad(address?.startsWith("0x") ? address : null, ensOf).value;
 }
 
-function MemberProfile({
-  chat,
-  member,
-  goBack,
-}: {
-  chat: Chat;
-  member: ParticipantId;
-  goBack: () => void;
-}) {
+function MemberProfile({ chat, member, goBack }: { chat: Chat; member: ParticipantId; goBack: () => void }) {
   const { removeMembers } = useChatPermissions(chat.id);
   const { selfId, nameFor, addressFor } = useChatPeople(chat);
   const address = addressFor(member);
@@ -96,7 +71,8 @@ function MemberProfile({
       title={title}
       ens={ens}
       avatar={<Avatar seed={member} size="xl" image={ens?.avatar ?? undefined} />}
-      actions={<CopyAction value={address || member} />}>
+      actions={<CopyAction value={address || member} />}
+    >
       {address ? <AddressCard address={address} ens={ens} /> : null}
       {member !== selfId && removeMembers ? (
         <MemberModeration
@@ -116,7 +92,7 @@ function WholeChatProfile({ chat, goBack }: { chat: Chat; goBack: () => void }) 
   const setChatPref = useChatStore((s) => s.setChatPref);
   const getGroupInfo = useChatStore((s) => s.getGroupInfo);
   const { selfId, participants, nameFor, addressFor } = useChatPeople(chat);
-  const focusId = chat.kind === 'dm' ? participants[0]?.id : undefined;
+  const focusId = chat.kind === "dm" ? participants[0]?.id : undefined;
   const address = focusId ? addressFor(focusId) : undefined;
   const ens = useEns(address);
   const permissions = useChatPermissions(chat.id);
@@ -136,15 +112,15 @@ function WholeChatProfile({ chat, goBack }: { chat: Chat; goBack: () => void }) 
         <Avatar
           seed={focusId ?? chat.id}
           size="xl"
-          label={chat.kind !== 'dm' ? chat.title : undefined}
+          label={chat.kind !== "dm" ? chat.title : undefined}
           image={groupInfo?.avatarUri ?? ens?.avatar ?? chat.avatarUri}
         />
       }
       actions={
         <>
           <Action
-            icon={muted ? 'volume-high-outline' : 'volume-mute-outline'}
-            label={muted ? 'Unmute' : 'Mute'}
+            icon={muted ? "volume-high-outline" : "volume-mute-outline"}
+            label={muted ? "Unmute" : "Mute"}
             onPress={() => void setChatPref(chat.id, { muted: !muted }).catch(reportError)}
           />
           <CopyAction value={groupInfo?.link || address || focusId} />
@@ -154,30 +130,27 @@ function WholeChatProfile({ chat, goBack }: { chat: Chat; goBack: () => void }) 
           {permissions.block ? (
             <Action
               icon="ban-outline"
-              label={chat.blocked ? 'Unblock' : 'Block'}
+              label={chat.blocked ? "Unblock" : "Block"}
               onPress={() => (chat.blocked ? void setBlocked(chat.id, false) : setBlocking(true))}
             />
           ) : null}
         </>
-      }>
-      {blocking ? (
-        <BlockSheet chatId={chat.id} name={title} onClose={() => setBlocking(false)} />
-      ) : null}
+      }
+    >
+      {blocking ? <BlockSheet chatId={chat.id} name={title} onClose={() => setBlocking(false)} /> : null}
 
       {address ? <AddressCard address={address} ens={ens} /> : null}
 
-      {chat.kind === 'group' || chat.kind === 'channel' ? (
+      {chat.kind === "group" || chat.kind === "channel" ? (
         <GroupAbout
           info={groupInfo}
-          error={details.error ? errorMessage(details.error, 'Could not load details') : undefined}
+          error={details.error ? errorMessage(details.error, "Could not load details") : undefined}
         />
       ) : null}
       {permissions.invite ? (
         <>
           <InviteLinks chatId={chat.id} visible={inviting} onClose={() => setInviting(false)} />
-          {permissions.answerJoinRequests ? (
-            <JoinRequests chatId={chat.id} pending={chat.pendingJoinRequests} />
-          ) : null}
+          {permissions.answerJoinRequests ? <JoinRequests chatId={chat.id} pending={chat.pendingJoinRequests} /> : null}
         </>
       ) : null}
       {groupInfo?.canSetSlowMode ? (
@@ -212,7 +185,7 @@ function ProfileScreen({
   children: ReactNode;
 }) {
   return (
-    <Screen className="px-0" edges={['top']}>
+    <Screen className="px-0" edges={["top"]}>
       <Stack.Screen options={{ headerShown: false }} />
       <BackHeader label="Back" onPress={goBack} />
       <ScrollView contentContainerStyle={{ paddingBottom: 48 }}>
@@ -221,11 +194,7 @@ function ProfileScreen({
           <ProfileTitle chat={chat} title={title} ens={ens} memberCount={memberCount} />
         </View>
         <View className="flex-row justify-center gap-2 px-gutter pb-5">
-          <Action
-            icon="chatbubble-outline"
-            label="Message"
-            onPress={() => openChatFromProfile(chat.id)}
-          />
+          <Action icon="chatbubble-outline" label="Message" onPress={() => openChatFromProfile(chat.id)} />
           {actions}
         </View>
         {children}
@@ -250,14 +219,14 @@ function ProfileTitle({
       <Text variant="headline">{title}</Text>
       {ens?.name ? (
         <Badge
-          label={ens.paidUntil ? `ENS · held through ${ens.paidUntil.getFullYear()}` : 'ENS name'}
+          label={ens.paidUntil ? `ENS · held through ${ens.paidUntil.getFullYear()}` : "ENS name"}
           tone="success"
         />
       ) : null}
       <Text variant="micro">{protocolSubtitle(chat.protocol)}</Text>
       {memberCount ? (
         <Text variant="caption">
-          {memberCount} {chat.kind === 'channel' ? 'subscribers' : 'members'}
+          {memberCount} {chat.kind === "channel" ? "subscribers" : "members"}
         </Text>
       ) : null}
     </View>
@@ -278,11 +247,11 @@ function AddressCard({ address, ens }: { address: string; ens: EnsProfile | null
       ) : null}
       {ens?.paidUntil ? (
         <Text variant="micro" className="pt-1">
-          {ens.name} is registered until{' '}
+          {ens.name} is registered until{" "}
           {ens.paidUntil.toLocaleDateString(undefined, {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
+            year: "numeric",
+            month: "long",
+            day: "numeric",
           })}
           . Anyone can pick a display name; only the holder can renew this one.
         </Text>
@@ -302,7 +271,8 @@ function Action({ icon, label, onPress }: { icon: IconName; label: string; onPre
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      className="min-w-[84px] items-center gap-1 rounded-card bg-surface-sunken px-3 py-2.5">
+      className="min-w-[84px] items-center gap-1 rounded-card bg-surface-sunken px-3 py-2.5"
+    >
       <Icon name={icon} size={20} tone="brand" />
       <Text variant="micro" className="font-medium text-content">
         {label}

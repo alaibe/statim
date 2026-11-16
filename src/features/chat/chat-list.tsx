@@ -1,10 +1,26 @@
-import { useIsFocused, useRouter } from 'expo-router';
-import { useObserve } from 'expo-observe';
-import { useDeferredValue, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
-import { FlashList, type FlashListRef, type ListRenderItemInfo } from '@shopify/flash-list';
-import { RefreshControl, View } from 'react-native';
-import Animated from 'react-native-reanimated';
-
+import { FlashList, type FlashListRef, type ListRenderItemInfo } from "@shopify/flash-list";
+import { useObserve } from "expo-observe";
+import { useIsFocused, useRouter } from "expo-router";
+import { useDeferredValue, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { RefreshControl, View } from "react-native";
+import Animated from "react-native-reanimated";
+import { useAiConfig } from "@/core/ai/use-config";
+import { reportError } from "@/core/app/report-error";
+import { type ChatPrefs, type ChatPrefsMap, prefsFor } from "@/core/messaging/chat-prefs";
+import { useChatStore } from "@/core/messaging/chat-store";
+import {
+  type ChatFilter,
+  type ChatListRow,
+  type FilterContext,
+  type Folder,
+  folderProtocol,
+  homeFolder,
+  isUnreadHere,
+  networkOf,
+} from "@/core/messaging/folders";
+import { messagePreview, nameList } from "@/core/messaging/preview";
+import type { Chat, ChatId } from "@/core/messaging/types";
+import { isUnread } from "@/core/messaging/unread";
 import {
   Chevron,
   CountBadge,
@@ -17,33 +33,16 @@ import {
   Text,
   useEscapeKey,
   useThemeColors,
-} from '@/design';
-import { useAiConfig } from '@/core/ai/use-config';
-import { reportError } from '@/core/app/report-error';
-import { useChatStore } from '@/core/messaging/chat-store';
-import type { Chat, ChatId } from '@/core/messaging/types';
-import { messagePreview, nameList } from '@/core/messaging/preview';
-import { type ChatPrefs, type ChatPrefsMap, prefsFor } from '@/core/messaging/chat-prefs';
-import {
-  type ChatFilter,
-  type FilterContext,
-  type Folder,
-  type ChatListRow,
-  folderProtocol,
-  homeFolder,
-  isUnreadHere,
-  networkOf,
-} from '@/core/messaging/folders';
-import { isUnread } from '@/core/messaging/unread';
-import { useChatTitles } from '@/features/chat/use-display-names';
-import { HistoryStatus } from '@/features/chat/history-status';
-import { FilterBar } from '@/features/chat/filter-bar';
-import { useChatListStore } from '@/features/chat/chat-list-store';
-import { useUnreadCounts } from '@/features/chat/use-unread-counts';
-import { BlockSheet } from './block';
-import { ChatMenu, type ChatMenuTarget } from './chat-menu';
-import { ConnectingState, ChatRow, FolderRow, Separator } from './chat-list-rows';
-import { chatListContents, isFolded } from './chat-list-contents';
+} from "@/design";
+import { useChatListStore } from "@/features/chat/chat-list-store";
+import { FilterBar } from "@/features/chat/filter-bar";
+import { HistoryStatus } from "@/features/chat/history-status";
+import { useChatTitles } from "@/features/chat/use-display-names";
+import { useUnreadCounts } from "@/features/chat/use-unread-counts";
+import { BlockSheet } from "./block";
+import { chatListContents, isFolded } from "./chat-list-contents";
+import { ChatRow, ConnectingState, FolderRow, Separator } from "./chat-list-rows";
+import { ChatMenu, type ChatMenuTarget } from "./chat-menu";
 
 const NO_IDS: ReadonlySet<string> = new Set();
 
@@ -58,8 +57,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   const colors = useThemeColors();
   const focused = useIsFocused();
   const aiConfig = useAiConfig();
-  const badgeConfig =
-    focused && (aiConfig?.replyBadges || aiConfig?.followUps) ? aiConfig : undefined;
+  const badgeConfig = focused && (aiConfig?.replyBadges || aiConfig?.followUps) ? aiConfig : undefined;
   const badgesOn = badgeConfig !== undefined;
   const [visibleIds, setVisibleIds] = useState<ReadonlySet<string>>(NO_IDS);
 
@@ -68,7 +66,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
 
   const { markInteractive } = useObserve();
   useEffect(() => {
-    if (baseChats.length > 0 || status === 'ready' || status === 'error') {
+    if (baseChats.length > 0 || status === "ready" || status === "error") {
       markInteractive();
     }
   }, [baseChats.length, status, markInteractive]);
@@ -81,9 +79,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   const chatPrefs = useChatStore((s) => s.chatPrefs);
   const setChatPref = useChatStore((s) => s.setChatPref);
   const toggle = (id: ChatId, key: keyof ChatPrefs) => {
-    setChatPref(id, { [key]: !prefsFor(useChatStore.getState().chatPrefs, id)[key] }).catch(
-      reportError
-    );
+    setChatPref(id, { [key]: !prefsFor(useChatStore.getState().chatPrefs, id)[key] }).catch(reportError);
   };
 
   const [menu, setMenu] = useState<ChatMenuTarget | null>(null);
@@ -100,21 +96,20 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   const [kept, setKept] = useState({ view, ids: NO_IDS });
   const held = kept.view === view ? kept.ids : NO_IDS;
   const deferredQuery = useDeferredValue(query);
-  const { listed, requests, rows, filtering, unseen, unreadHere, mentionsHere, showNetwork } =
-    useMemo(
-      () =>
-        chatListContents({
-          chats,
-          chatPrefs,
-          readAt,
-          folder,
-          filter,
-          query: deferredQuery,
-          held,
-          titleOf,
-        }),
-      [chats, chatPrefs, readAt, folder, filter, deferredQuery, held, titleOf]
-    );
+  const { listed, requests, rows, filtering, unseen, unreadHere, mentionsHere, showNetwork } = useMemo(
+    () =>
+      chatListContents({
+        chats,
+        chatPrefs,
+        readAt,
+        folder,
+        filter,
+        query: deferredQuery,
+        held,
+        titleOf,
+      }),
+    [chats, chatPrefs, readAt, folder, filter, deferredQuery, held, titleOf],
+  );
   if (unseen.length > 0) setKept({ view, ids: new Set([...held, ...unseen]) });
 
   const trimmed = query.trim();
@@ -129,7 +124,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
     selectedId,
     folder,
     chatPrefs,
-    searching: trimmed !== '',
+    searching: trimmed !== "",
     setFolder,
   });
   useEffect(() => {
@@ -139,7 +134,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   const filterContext = { prefs: chatPrefs, readAt };
   const protocol = folderProtocol(folder);
   const renderItem = ({ item: row }: ListRenderItemInfo<ChatListRow>) => {
-    if (row.kind === 'chat') {
+    if (row.kind === "chat") {
       return (
         <ChatRow
           chat={row.chat}
@@ -162,50 +157,36 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   return (
     <>
       {chats.length > 0 && filtering ? (
-        <FilterBar
-          active={filter}
-          onSelect={setFilter}
-          unread={unreadHere}
-          mentions={mentionsHere}
-        />
+        <FilterBar active={filter} onSelect={setFilter} unread={unreadHere} mentions={mentionsHere} />
       ) : null}
       <HistoryStatus compact protocol={protocol} showPartial={protocol !== undefined} />
       {chats.length === 0 ? (
         <NoChats />
       ) : (
         <Animated.View
-          key={folder ?? 'all'}
+          key={folder ?? "all"}
           entering={navigated ? (folder ? Enter.fromRight() : Enter.fromLeft()) : undefined}
-          className="flex-1">
+          className="flex-1"
+        >
           <FlashList
             ref={list}
             data={rows}
             extraData={visibleIds}
             onViewableItemsChanged={({ viewableItems }) => {
               if (!badgesOn) return;
-              setVisibleIds(
-                new Set(
-                  viewableItems.flatMap(({ item }) => (item.kind === 'chat' ? [item.chat.id] : []))
-                )
-              );
+              setVisibleIds(new Set(viewableItems.flatMap(({ item }) => (item.kind === "chat" ? [item.chat.id] : []))));
             }}
-            keyExtractor={(row) => (row.kind === 'chat' ? row.chat.id : row.folder)}
+            keyExtractor={(row) => (row.kind === "chat" ? row.chat.id : row.folder)}
             getItemType={(row) => row.kind}
-            drawDistance={process.env.EXPO_OS === 'web' ? 2000 : undefined}
+            drawDistance={process.env.EXPO_OS === "web" ? 2000 : undefined}
             ItemSeparatorComponent={Separator}
             contentInsetAdjustmentBehavior="automatic"
             ListEmptyComponent={<NothingListed query={trimmed} filter={filter} />}
             refreshControl={
-              <RefreshControl
-                refreshing={syncing}
-                onRefresh={() => void sync()}
-                tintColor={colors.brand}
-              />
+              <RefreshControl refreshing={syncing} onRefresh={() => void sync()} tintColor={colors.brand} />
             }
             ListHeaderComponent={
-              <>
-                {requests.length > 0 && !folder ? <RequestsLink count={requests.length} /> : null}
-              </>
+              <>{requests.length > 0 && !folder ? <RequestsLink count={requests.length} /> : null}</>
             }
             ListFooterComponent={trimmed ? <SearchMessagesLink query={trimmed} /> : null}
             renderItem={renderItem}
@@ -222,13 +203,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
           onBlock={setBlocking}
         />
       ) : null}
-      {blocking ? (
-        <BlockSheet
-          chatId={blocking.id}
-          name={titleOf(blocking)}
-          onClose={() => setBlocking(null)}
-        />
-      ) : null}
+      {blocking ? <BlockSheet chatId={blocking.id} name={titleOf(blocking)} onClose={() => setBlocking(null)} /> : null}
     </>
   );
 }
@@ -251,7 +226,7 @@ function useSelectedInView({
   setFolder: (folder: Folder | null) => void;
 }) {
   const list = useRef<FlashListRef<ChatListRow>>(null);
-  const selectedIndex = rows.findIndex((row) => row.kind === 'chat' && row.chat.id === selectedId);
+  const selectedIndex = rows.findIndex((row) => row.kind === "chat" && row.chat.id === selectedId);
   const selectedListed = selectedIndex >= 0;
   const revealSelected = useEffectEvent(() => {
     const view = list.current;
@@ -277,9 +252,9 @@ function useSelectedInView({
 }
 
 function folderSummary(
-  row: Extract<ChatListRow, { kind: 'folder' }>,
+  row: Extract<ChatListRow, { kind: "folder" }>,
   context: FilterContext,
-  titleOf: (chat: Chat) => string
+  titleOf: (chat: Chat) => string,
 ) {
   const unread = row.chats.filter((c) => isUnreadHere(c, context));
   return {
@@ -295,10 +270,8 @@ function NoChats() {
   const router = useRouter();
   const connecting = useChatStore(
     (s) =>
-      s.status === 'connecting' ||
-      Object.values(s.protocols).some(
-        (p) => p.status === 'connecting' || p.history.status === 'fetching'
-      )
+      s.status === "connecting" ||
+      Object.values(s.protocols).some((p) => p.status === "connecting" || p.history.status === "fetching"),
   );
   if (connecting) return <ConnectingState />;
   return (
@@ -307,29 +280,19 @@ function NoChats() {
       title="No chats yet"
       description="Start one with an Ethereum address on XMTP, a public key on Nostr, or a chat key on Status."
       actionLabel="New chat"
-      onAction={() => router.push('/new-chat')}
+      onAction={() => router.push("/new-chat")}
     />
   );
 }
 
 function NothingListed({ query, filter }: { query: string; filter: ChatFilter }) {
   if (query) {
-    return (
-      <EmptyState
-        icon="search-outline"
-        title="No matching chats"
-        description={`No chats match “${query}”.`}
-      />
-    );
+    return <EmptyState icon="search-outline" title="No matching chats" description={`No chats match “${query}”.`} />;
   }
-  if (filter === 'unread') {
-    return (
-      <EmptyState icon="search-outline" title="All caught up" description="Nothing unread here." />
-    );
+  if (filter === "unread") {
+    return <EmptyState icon="search-outline" title="All caught up" description="Nothing unread here." />;
   }
-  return (
-    <EmptyState icon="search-outline" title="Nothing here" description="Try another filter." />
-  );
+  return <EmptyState icon="search-outline" title="Nothing here" description="Try another filter." />;
 }
 
 function RequestsLink({ count }: { count: number }) {
@@ -338,8 +301,9 @@ function RequestsLink({ count }: { count: number }) {
     <Pressable
       testID="open-requests"
       accessibilityRole="button"
-      onPress={() => router.push('/requests')}
-      className="mx-gutter mb-2 min-h-tap flex-row items-center gap-3 rounded-card border border-line bg-surface px-3 py-3">
+      onPress={() => router.push("/requests")}
+      className="mx-gutter mb-2 min-h-tap flex-row items-center gap-3 rounded-card border border-line bg-surface px-3 py-3"
+    >
       <Icon name="mail-unread-outline" size={20} tone="brand" />
       <View className="min-w-0 flex-1">
         <Text className="font-semibold">Requests</Text>

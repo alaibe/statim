@@ -1,7 +1,7 @@
-import { invoke } from '@tauri-apps/api/core';
-import { useEffect, useState } from 'react';
+import { invoke } from "@tauri-apps/api/core";
+import { useEffect, useState } from "react";
 
-import { Icon, ListItem, Section, Toggle } from '@/design';
+import { Icon, ListItem, Section, Toggle } from "@/design";
 
 const MAC = /Mac/.test(navigator.userAgent);
 
@@ -10,7 +10,7 @@ export function MenuBarSetting() {
 
   useEffect(() => {
     if (MAC) return;
-    invoke<boolean>('menu_bar_hidden')
+    invoke<boolean>("menu_bar_hidden")
       .then(setHidden)
       .catch(() => {});
   }, []);
@@ -19,7 +19,7 @@ export function MenuBarSetting() {
 
   async function toggle(next: boolean) {
     setHidden(next);
-    await invoke('menu_bar_set_hidden', { hidden: next }).catch(() => setHidden(!next));
+    await invoke("menu_bar_set_hidden", { hidden: next }).catch(() => setHidden(!next));
   }
 
   return (

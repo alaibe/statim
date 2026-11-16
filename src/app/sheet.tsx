@@ -1,11 +1,10 @@
-import { useEffect } from 'react';
-import { View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import { IconButton, Text } from '@/design';
-import { SHEET_DISMISS_MS, useSheetStore } from '@/design/components/sheet';
-import { cancelPrompt, useDevicePrompt } from '@/core/account/device-prompt';
-import { DevicePromptBody, devicePromptTitle } from '@/features/account/device-prompt';
+import { useEffect } from "react";
+import { View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { cancelPrompt, useDevicePrompt } from "@/core/account/device-prompt";
+import { IconButton, Text } from "@/design";
+import { SHEET_DISMISS_MS, useSheetStore } from "@/design/components/sheet";
+import { DevicePromptBody, devicePromptTitle } from "@/features/account/device-prompt";
 
 export default function SheetRoute() {
   const current = useSheetStore((s) => s.current);
@@ -29,7 +28,7 @@ export default function SheetRoute() {
       closing?.onClose();
       if (afterClose) setTimeout(afterClose, SHEET_DISMISS_MS);
     },
-    []
+    [],
   );
 
   return (

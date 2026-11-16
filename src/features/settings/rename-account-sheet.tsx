@@ -1,18 +1,11 @@
-import { useState } from 'react';
-import { View } from 'react-native';
+import { useState } from "react";
+import { View } from "react-native";
+import { useAccountStore } from "@/core/account/account-store";
+import type { AccountRecord } from "@/core/account/accounts";
+import { Button, Field, Sheet } from "@/design";
+import { useAction } from "@/features/use-action";
 
-import { Button, Field, Sheet } from '@/design';
-import { useAction } from '@/features/use-action';
-import type { AccountRecord } from '@/core/account/accounts';
-import { useAccountStore } from '@/core/account/account-store';
-
-export function RenameAccountSheet({
-  account,
-  onClose,
-}: {
-  account: AccountRecord;
-  onClose: () => void;
-}) {
+export function RenameAccountSheet({ account, onClose }: { account: AccountRecord; onClose: () => void }) {
   const renameAccount = useAccountStore((s) => s.renameAccount);
   const [label, setLabel] = useState(account.label);
   const save = useAction(
@@ -20,7 +13,7 @@ export function RenameAccountSheet({
       await renameAccount(account.id, label);
       onClose();
     },
-    { failure: 'Could not rename the account' }
+    { failure: "Could not rename the account" },
   );
 
   return (
@@ -34,12 +27,7 @@ export function RenameAccountSheet({
           maxLength={40}
           hint="Just for you, on this device. An ENS name is the one other people see."
         />
-        <Button
-          label="Save"
-          fullWidth
-          disabled={label.trim().length === 0}
-          onPress={() => save.run()}
-        />
+        <Button label="Save" fullWidth disabled={label.trim().length === 0} onPress={() => save.run()} />
       </View>
     </Sheet>
   );

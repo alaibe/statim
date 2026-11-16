@@ -1,18 +1,18 @@
-import type { CommandPath } from '../commands';
-import type { CliHandler } from '../context';
-import { accountHandlers } from './accounts';
-import { appHandlers } from './app';
-import { chatHandlers } from './chats';
-import { groupHandlers } from './groups';
-import { liveHandlers } from './live';
-import { messageHandlers } from './messages';
-import { protocolHandlers } from './protocols';
-import { peopleHandlers } from './people';
-import { pluginHandlers } from './plugins';
-import { settingsHandlers } from './settings';
+import type { CommandPath } from "../commands";
+import type { CliHandler } from "../context";
+import { accountHandlers } from "./accounts";
+import { appHandlers } from "./app";
+import { chatHandlers } from "./chats";
+import { groupHandlers } from "./groups";
+import { liveHandlers } from "./live";
+import { messageHandlers } from "./messages";
+import { peopleHandlers } from "./people";
+import { pluginHandlers } from "./plugins";
+import { protocolHandlers } from "./protocols";
+import { settingsHandlers } from "./settings";
 
 /** `quit` never reaches the page: the app answers it before the page could be stuck. */
-export const HANDLERS: Record<Exclude<CommandPath, 'quit'>, CliHandler> = {
+export const HANDLERS: Record<Exclude<CommandPath, "quit">, CliHandler> = {
   ...appHandlers,
   ...accountHandlers,
   ...protocolHandlers,

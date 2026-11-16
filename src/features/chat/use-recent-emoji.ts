@@ -1,7 +1,7 @@
-import { useChatStore } from '@/core/messaging/chat-store';
-import { useKeyedLoad } from '@/lib/use-keyed-load';
+import { useChatStore } from "@/core/messaging/chat-store";
+import { useKeyedLoad } from "@/lib/use-keyed-load";
 
-const KEY = 'chat.recentEmoji';
+const KEY = "chat.recentEmoji";
 const LIMIT = 32;
 const NONE: readonly string[] = Object.freeze([]);
 

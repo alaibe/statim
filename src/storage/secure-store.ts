@@ -1,6 +1,6 @@
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from "expo-secure-store";
 
-const PROTECTED_SERVICE = 'im.statim.protected';
+const PROTECTED_SERVICE = "im.statim.protected";
 
 function protectedOptions(prompt: string): SecureStore.SecureStoreOptions {
   return {

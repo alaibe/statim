@@ -1,13 +1,13 @@
-import { sha256 } from '@noble/hashes/sha2';
+import { sha256 } from "@noble/hashes/sha2";
 
-import { type DerivedKey, shortAddress } from '@/core/account/keyring';
-import { UnsupportedError } from '@/core/errors';
-import { HistoryTracker, PartialHistoryError, type HistoryState } from '@/core/messaging/history';
-import type { MessageStore, TransportChat } from '@/core/messaging/message-store';
-import { protocolChatId } from '@/core/messaging/namespace';
-import type { ChatSession, GroupInfo, MentionCandidate } from '@/core/messaging/protocol';
-import { emojiFromCodePoints } from '@/core/messaging/shortcodes';
-import { showsInPreview } from '@/core/messaging/message-rules';
+import { type DerivedKey, shortAddress } from "@/core/account/keyring";
+import { UnsupportedError } from "@/core/errors";
+import { type HistoryState, HistoryTracker, PartialHistoryError } from "@/core/messaging/history";
+import { showsInPreview } from "@/core/messaging/message-rules";
+import type { MessageStore, TransportChat } from "@/core/messaging/message-store";
+import { protocolChatId } from "@/core/messaging/namespace";
+import type { ChatSession, GroupInfo, MentionCandidate } from "@/core/messaging/protocol";
+import { emojiFromCodePoints } from "@/core/messaging/shortcodes";
 import type {
   Consent,
   ConsentDecision,
@@ -20,10 +20,10 @@ import type {
   ProtocolMessage,
   SelfParticipant,
   Unsubscribe,
-} from '@/core/messaging/types';
-import { fromHex, toHex } from '@/lib/bytes';
-import { randomBytes } from '@/lib/random';
-import type { ProtocolState } from '@/storage/protocol-state';
+} from "@/core/messaging/types";
+import { fromHex, toHex } from "@/lib/bytes";
+import { randomBytes } from "@/lib/random";
+import type { ProtocolState } from "@/storage/protocol-state";
 
 import {
   added,
@@ -39,7 +39,8 @@ import {
   requestDismissed,
   requestReceived,
   requestSent,
-} from './contacts';
+} from "./contacts";
+import { compressPublicKey, decryptNonceFirst, publicKeyOf, randomPrivateKey, sharedSecret } from "./crypto";
 import {
   type ApplicationMessage,
   openData,
@@ -48,7 +49,7 @@ import {
   syncMessageId,
   syncRecord,
   wrapApplication,
-} from './envelope';
+} from "./envelope";
 import {
   type GroupChange,
   type GroupEvent,
@@ -56,14 +57,7 @@ import {
   newGroupChatId,
   readGroupEvent,
   signGroupEvents,
-} from './group';
-import {
-  compressPublicKey,
-  decryptNonceFirst,
-  publicKeyOf,
-  randomPrivateKey,
-  sharedSecret,
-} from './crypto';
+} from "./group";
 import {
   chatKeyOf,
   identityFrom,
@@ -71,29 +65,30 @@ import {
   participantIdOf,
   publicKeyFromParticipant,
   type StatusIdentity,
-} from './keys';
+} from "./keys";
+import { fromStatusMentions, toStatusMentions } from "./mentions";
 import {
   AppType,
   AudioType,
   ContentType,
+  decodeChatIdentity,
   decodeChatMessage,
   decodeContactRequestDecision,
   decodeContactUpdate,
   decodeDelete,
-  decodeChatIdentity,
   decodeEdit,
   decodeMembershipUpdate,
   decodeReaction,
+  EventType,
+  encodeChatIdentity,
   encodeChatMessage,
   encodeContactRequestDecision,
   encodeContactUpdate,
   encodeDelete,
-  encodeChatIdentity,
   encodeEdit,
   encodeMembershipUpdate,
   encodeMvds,
   encodeReaction,
-  EventType,
   MessageType,
   type WireChatIdentity,
   type WireChatMessage,
@@ -101,16 +96,15 @@ import {
   type WireEdit,
   type WireIdentityImage,
   type WireReaction,
-} from './messages';
-import { fromStatusMentions, toStatusMentions } from './mentions';
-import { StatusNode, type WakuMessage, type WakuNode } from './node';
-import { decodePayload } from './payload';
-import { type RatchetSession, Ratchets, type SignedPreKey, signedBundle } from './ratchet';
-import { Reassembly, readSegment } from './segments';
-import { partitionedTopic, personalTopic } from './topics';
-import { statusAudio } from './voice';
+} from "./messages";
+import { StatusNode, type WakuMessage, type WakuNode } from "./node";
+import { decodePayload } from "./payload";
+import { type RatchetSession, Ratchets, type SignedPreKey, signedBundle } from "./ratchet";
+import { Reassembly, readSegment } from "./segments";
+import { partitionedTopic, personalTopic } from "./topics";
+import { statusAudio } from "./voice";
 
-const STATUS_PROTOCOL_ID = 'status';
+const STATUS_PROTOCOL_ID = "status";
 
 const POLL_INTERVAL_MS = 3_000;
 const REFRESH_EVERY = 20;
@@ -120,25 +114,25 @@ const HISTORY_OVERLAP_MS = 10 * 60 * 1_000;
 const MAX_CLOCK_DRIFT_MS = 120_000;
 const MAX_TEXT_LENGTH = 4096;
 const SEEN_LIMIT = 5_000;
-const REQUEST_TEXT = 'Please add me to your contacts';
-const VOICE_TEXT = 'Update to latest version to listen to an audio message here!';
-const GROUP_COLOR = '#887af9';
+const REQUEST_TEXT = "Please add me to your contacts";
+const VOICE_TEXT = "Update to latest version to listen to an audio message here!";
+const GROUP_COLOR = "#887af9";
 
 const IMAGE_FORMATS: Record<number, string> = {
-  1: 'image/png',
-  2: 'image/jpeg',
-  3: 'image/webp',
-  4: 'image/gif',
+  1: "image/png",
+  2: "image/jpeg",
+  3: "image/webp",
+  4: "image/gif",
 };
 
 /** The six reactions older Status clients send as a number instead of an emoji. */
 const LEGACY_REACTIONS: Record<number, string> = {
-  1: '2764',
-  2: '1f44d',
-  3: '1f44e',
-  4: '1f602',
-  5: '1f622',
-  6: '1f620',
+  1: "2764",
+  2: "1f44d",
+  3: "1f44e",
+  4: "1f602",
+  5: "1f622",
+  6: "1f620",
 };
 
 export interface StatusMedia {
@@ -173,7 +167,7 @@ interface Group {
 interface Outgoing {
   type: number;
   payload: Uint8Array;
-  message: Omit<ProtocolMessage, 'id'>;
+  message: Omit<ProtocolMessage, "id">;
 }
 
 interface PendingSend {
@@ -187,19 +181,19 @@ interface PendingEdit {
   text: string;
 }
 
-type Sendable = Extract<MessageContent, { kind: 'text' | 'image' | 'voice' }>;
+type Sendable = Extract<MessageContent, { kind: "text" | "image" | "voice" }>;
 
 /** Status's reactions are code points in hex, joined by dashes, without the emoji variation selector. */
 export function reactionCode(emoji: string): string {
   return [...emoji]
     .map((char) => char.codePointAt(0)!.toString(16))
-    .filter((code) => code !== 'fe0f')
-    .join('-');
+    .filter((code) => code !== "fe0f")
+    .join("-");
 }
 
 export function reactionEmoji(code: string): string {
   if (!/^[0-9a-f]+(-[0-9a-f]+)*$/i.test(code)) return code;
-  const points = code.split('-').map((part) => parseInt(part, 16));
+  const points = code.split("-").map((part) => parseInt(part, 16));
   if (points.some((point) => !Number.isFinite(point) || point > 0x10ffff)) return code;
   return emojiFromCodePoints(points);
 }
@@ -209,7 +203,7 @@ function freshEvents(
   chatId: string,
   events: readonly Uint8Array[],
   state: GroupState | undefined,
-  wakuMs: number
+  wakuMs: number,
 ): GroupEvent[] | null {
   const fresh: GroupEvent[] = [];
   for (const bytes of events) {
@@ -227,14 +221,10 @@ function validClock(clock: number, wakuMs: number): boolean {
 
 function validChatMessage(message: WireChatMessage, wakuMs: number): boolean {
   if (!validClock(message.clock, wakuMs) || !message.timestamp || !message.chatId) return false;
-  if (
-    message.messageType !== MessageType.ONE_TO_ONE &&
-    message.messageType !== MessageType.PRIVATE_GROUP
-  ) {
+  if (message.messageType !== MessageType.ONE_TO_ONE && message.messageType !== MessageType.PRIVATE_GROUP) {
     return false;
   }
-  const textless =
-    message.contentType === ContentType.IMAGE || message.contentType === ContentType.BRIDGE_MESSAGE;
+  const textless = message.contentType === ContentType.IMAGE || message.contentType === ContentType.BRIDGE_MESSAGE;
   return textless || validText(message.text);
 }
 
@@ -243,37 +233,31 @@ function validText(text: string): boolean {
 }
 
 function editedContent(content: MessageContent, text: string): MessageContent | null {
-  if (content.kind === 'text') return { kind: 'text', text };
-  if (content.kind === 'image') return { ...content, caption: text };
+  if (content.kind === "text") return { kind: "text", text };
+  if (content.kind === "image") return { ...content, caption: text };
   return null;
 }
 
 /** status-go drops a message, contact update or identity whose name breaks these rules. */
 function checkDisplayName(name: string): void {
   const length = [...name].length;
-  const valid =
-    length >= 5 &&
-    length <= 24 &&
-    /^[\p{L}\p{M}\p{N}_\-\s]+$/u.test(name) &&
-    !/[._-]eth$/.test(name);
+  const valid = length >= 5 && length <= 24 && /^[\p{L}\p{M}\p{N}_\-\s]+$/u.test(name) && !/[._-]eth$/.test(name);
   if (name && !valid) {
-    throw new Error(
-      'A Status display name has 5 to 24 letters, digits, spaces, _ or -, and does not end in "eth".'
-    );
+    throw new Error('A Status display name has 5 to 24 letters, digits, spaces, _ or -, and does not end in "eth".');
   }
 }
 
 function imageMime(bytes: Uint8Array): string {
-  if (bytes[0] === 0x89 && bytes[1] === 0x50) return 'image/png';
-  if (bytes[0] === 0x47 && bytes[1] === 0x49) return 'image/gif';
-  if (bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42) return 'image/webp';
-  return 'image/jpeg';
+  if (bytes[0] === 0x89 && bytes[1] === 0x50) return "image/png";
+  if (bytes[0] === 0x47 && bytes[1] === 0x49) return "image/gif";
+  if (bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42) return "image/webp";
+  return "image/jpeg";
 }
 
 function consentOf(contact: ContactState): Consent {
-  if (added(contact)) return 'accepted';
-  if (dismissed(contact)) return 'declined';
-  return contact.heardFrom || hasAddedUs(contact) ? 'request' : 'accepted';
+  if (added(contact)) return "accepted";
+  if (dismissed(contact)) return "declined";
+  return contact.heardFrom || hasAddedUs(contact) ? "request" : "accepted";
 }
 
 function membershipUpdate(group: GroupState, message?: WireChatMessage): Uint8Array {
@@ -307,9 +291,7 @@ export class StatusSession implements ChatSession {
   private readonly earlyEdits = new Map<string, PendingEdit>();
   private readonly messageListeners = new Set<(message: ProtocolMessage) => void>();
   private readonly chatListeners = new Set<(chat: ProtocolChat) => void>();
-  private readonly deletionListeners = new Set<
-    (id: ProtocolChatId, messageIds: MessageId[]) => void
-  >();
+  private readonly deletionListeners = new Set<(id: ProtocolChatId, messageIds: MessageId[]) => void>();
   private readonly history = new HistoryTracker();
   private readonly acks = new Map<ParticipantId, Uint8Array[]>();
   private readonly seen = new Set<string>();
@@ -329,7 +311,7 @@ export class StatusSession implements ChatSession {
     private readonly store: MessageStore,
     private readonly state: ProtocolState,
     private readonly media: StatusMedia,
-    private readonly displayName: string
+    private readonly displayName: string,
   ) {
     this.ratchets = new Ratchets(identity, signedPreKey, new Map());
     this.self = { participantId: identity.participantId, address: chatKeyOf(identity.publicKey) };
@@ -337,20 +319,16 @@ export class StatusSession implements ChatSession {
   }
 
   static async connect(options: StatusConnectOptions): Promise<StatusSession> {
-    const displayName = options.displayName?.trim() ?? '';
+    const displayName = options.displayName?.trim() ?? "";
     checkDisplayName(displayName);
     const identity = identityFrom(options.derive);
-    const installationId = await remembered(options.state, 'installation', () =>
-      toHex(randomBytes(16))
-    );
-    const preKey = fromHex(
-      await remembered(options.state, 'signedPreKey', () => toHex(randomPrivateKey()))
-    );
+    const installationId = await remembered(options.state, "installation", () => toHex(randomBytes(16)));
+    const preKey = fromHex(await remembered(options.state, "signedPreKey", () => toHex(randomPrivateKey())));
     const signedPreKey = { privateKey: preKey, publicKey: publicKeyOf(preKey) };
 
     const node: WakuNode = options.nodeUrl?.trim()
       ? new StatusNode({ nodeUrl: options.nodeUrl, fetchImpl: options.fetchImpl })
-      : await (await import('./fleet-node')).FleetNode.connect();
+      : await (await import("./fleet-node")).FleetNode.connect();
     try {
       await node.info();
       const session = new StatusSession(
@@ -361,7 +339,7 @@ export class StatusSession implements ChatSession {
         options.store,
         options.state,
         options.media,
-        displayName
+        displayName,
       );
       await session.hydrate();
       await node.subscribe(session.inbox);
@@ -374,35 +352,32 @@ export class StatusSession implements ChatSession {
   }
 
   private async hydrate(): Promise<void> {
-    for (const [id, contact] of await this.state.entries<ContactState>('contact:')) {
+    for (const [id, contact] of await this.state.entries<ContactState>("contact:")) {
       this.contacts.set(id, contact);
     }
-    for (const [id, session] of await this.state.entries<RatchetSession>('ratchet:')) {
+    for (const [id, session] of await this.state.entries<RatchetSession>("ratchet:")) {
       this.ratchets.sessions.set(id, session);
     }
-    for (const [id, clock] of await this.state.entries<number>('clock:')) {
+    for (const [id, clock] of await this.state.entries<number>("clock:")) {
       this.clocks.set(id, clock);
     }
-    for (const [id, by] of await this.state.entries<ParticipantId>('deleted:')) {
+    for (const [id, by] of await this.state.entries<ParticipantId>("deleted:")) {
       this.deleted.set(id, by);
     }
-    for (const [key, edit] of await this.state.entries<PendingEdit>('edit:')) {
+    for (const [key, edit] of await this.state.entries<PendingEdit>("edit:")) {
       this.earlyEdits.set(key, edit);
     }
-    for (const [chatId, record] of await this.state.entries<GroupRecord>('group:')) {
+    for (const [chatId, record] of await this.state.entries<GroupRecord>("group:")) {
       const events = record.events
         .map((bytes) => readGroupEvent(chatId, fromHex(bytes)))
         .filter((event): event is GroupEvent => event !== null);
       const state = GroupState.replay(chatId, events);
-      if (state)
-        this.groups.set(chatId, { state, consent: record.consent, picture: record.picture });
+      if (state) this.groups.set(chatId, { state, consent: record.consent, picture: record.picture });
     }
     for (const chat of await this.store.loadChats<ProtocolChatId>(STATUS_PROTOCOL_ID)) {
       this.chats.set(chat.id, chat);
     }
-    for (const [id, message] of await this.store.latestMessages<ProtocolChatId>(
-      STATUS_PROTOCOL_ID
-    )) {
+    for (const [id, message] of await this.store.latestMessages<ProtocolChatId>(STATUS_PROTOCOL_ID)) {
       this.latest.set(id, message);
     }
   }
@@ -423,7 +398,7 @@ export class StatusSession implements ChatSession {
       if (this.stopped) return;
       if (this.polls > 0 && this.polls % REFRESH_EVERY === 0) {
         await this.node.subscribe(this.inbox);
-        await this.catchUp().catch((error) => console.warn('[status] catch-up failed', error));
+        await this.catchUp().catch((error) => console.warn("[status] catch-up failed", error));
       }
       this.polls += 1;
       for (const message of await this.node.poll()) await this.ingest(message);
@@ -438,7 +413,7 @@ export class StatusSession implements ChatSession {
   }
 
   private async catchUp(): Promise<void> {
-    const since = (await this.state.get<number>('synced')) ?? Date.now() - HISTORY_WINDOW_MS;
+    const since = (await this.state.get<number>("synced")) ?? Date.now() - HISTORY_WINDOW_MS;
     const until = Date.now();
     const cursors = new Set<string>();
     let cursor: string | undefined;
@@ -451,12 +426,12 @@ export class StatusSession implements ChatSession {
       for (const message of page.messages) await this.ingest(message);
       if (!page.cursor) break;
       if (cursors.has(page.cursor)) {
-        throw new PartialHistoryError('The node kept returning the same history page; sync again');
+        throw new PartialHistoryError("The node kept returning the same history page; sync again");
       }
       cursors.add(page.cursor);
       cursor = page.cursor;
     }
-    await this.state.set('synced', until);
+    await this.state.set("synced", until);
   }
 
   private async ingest(message: WakuMessage): Promise<void> {
@@ -472,13 +447,7 @@ export class StatusSession implements ChatSession {
     if (part) data = this.segments.add(decoded.signer, part);
     if (!data) return;
 
-    const opened = openData(
-      this.identity,
-      this.installationId,
-      decoded.signer,
-      data,
-      this.ratchets
-    );
+    const opened = openData(this.identity, this.installationId, decoded.signer, data, this.ratchets);
     for (const [id, session] of this.ratchets.takeChanged()) {
       await this.state.set(`ratchet:${id}`, session);
     }
@@ -493,7 +462,7 @@ export class StatusSession implements ChatSession {
       try {
         await this.handle(application, wakuMs);
       } catch (error) {
-        console.warn('[status] could not handle a message', error);
+        console.warn("[status] could not handle a message", error);
       }
     }
   }
@@ -516,9 +485,7 @@ export class StatusSession implements ChatSession {
     this.acks.clear();
     if (batches.length === 0) return;
     const bundle = this.bundle();
-    await Promise.allSettled(
-      batches.map(([sender, ids]) => this.publishTo(sender, encodeMvds({ acks: ids }), bundle))
-    );
+    await Promise.allSettled(batches.map(([sender, ids]) => this.publishTo(sender, encodeMvds({ acks: ids }), bundle)));
   }
 
   private async handle(message: ApplicationMessage, wakuMs: number): Promise<void> {
@@ -563,7 +530,7 @@ export class StatusSession implements ChatSession {
 
   private async updateContact(
     id: ParticipantId,
-    change: (contact: ContactState) => ContactChange
+    change: (contact: ContactState) => ContactChange,
   ): Promise<ContactChange> {
     const before = this.contact(id);
     const result = change(before);
@@ -598,14 +565,9 @@ export class StatusSession implements ChatSession {
   }
 
   /** status-go sends a large picture and a thumbnail, encrypted for its contacts unless shown to everyone. */
-  private pictureOf(
-    author: ParticipantId,
-    images: WireIdentityImage[]
-  ): WireIdentityImage | undefined {
+  private pictureOf(author: ParticipantId, images: WireIdentityImage[]): WireIdentityImage | undefined {
     const shared = sharedSecret(this.identity.privateKey, publicKeyFromParticipant(author));
-    const largeFirst = [...images].sort(
-      (a, b) => Number(b.name === 'large') - Number(a.name === 'large')
-    );
+    const largeFirst = [...images].sort((a, b) => Number(b.name === "large") - Number(a.name === "large"));
     for (const image of largeFirst) {
       if (!image.encrypted) {
         if (image.payload.length) return image;
@@ -640,9 +602,7 @@ export class StatusSession implements ChatSession {
       displayName: update.displayName || contact.displayName,
       updatedAt: update.clock,
     });
-    await this.updateContact(author, (current) =>
-      requestReceived(current, update.contactRequestClock)
-    );
+    await this.updateContact(author, (current) => requestReceived(current, update.contactRequestClock));
     this.refreshDm(author);
   }
 
@@ -651,7 +611,7 @@ export class StatusSession implements ChatSession {
     chat: WireChatMessage,
     wakuMs: number,
     author: ParticipantId,
-    group?: GroupState
+    group?: GroupState,
   ): Promise<void> {
     if (!validChatMessage(chat, wakuMs)) return;
 
@@ -669,9 +629,7 @@ export class StatusSession implements ChatSession {
     }
     if (dismissed(this.contact(author))) return;
     if (chat.contentType === ContentType.CONTACT_REQUEST) {
-      const result = await this.updateContact(author, (contact) =>
-        requestReceived(contact, chat.clock)
-      );
+      const result = await this.updateContact(author, (contact) => requestReceived(contact, chat.clock));
       if (result.processed) {
         await this.saveContact(author, { ...this.contact(author), requestId: message.id });
       }
@@ -696,13 +654,12 @@ export class StatusSession implements ChatSession {
     chatId: ProtocolChatId,
     id: MessageId,
     author: ParticipantId,
-    chat: WireChatMessage
+    chat: WireChatMessage,
   ): Promise<void> {
     const deletedBy = this.deleted.get(id);
     if (
       deletedBy &&
-      (deletedBy === this.self.participantId ||
-        this.mayDelete(deletedBy, { chatId, senderId: author }))
+      (deletedBy === this.self.participantId || this.mayDelete(deletedBy, { chatId, senderId: author }))
     ) {
       return;
     }
@@ -716,7 +673,7 @@ export class StatusSession implements ChatSession {
       sentAt: chat.timestamp,
       content,
       fromMe: false,
-      status: 'sent',
+      status: "sent",
       replyTo: chat.responseTo || undefined,
     };
     await this.insert(message);
@@ -730,11 +687,7 @@ export class StatusSession implements ChatSession {
   }
 
   /** Edits and deletions name a message by id; it lives in the sender's DM or in the group. */
-  private chatOf(
-    messageType: number,
-    chatId: string,
-    sender: ParticipantId
-  ): ProtocolChatId | null {
+  private chatOf(messageType: number, chatId: string, sender: ParticipantId): ProtocolChatId | null {
     if (messageType === MessageType.ONE_TO_ONE) {
       return this.blocks(sender) ? null : protocolChatId(sender);
     }
@@ -785,10 +738,7 @@ export class StatusSession implements ChatSession {
     if (!this.deleted.has(deletion.messageId)) await this.tombstone(deletion.messageId, by);
   }
 
-  private mayDelete(
-    by: ParticipantId,
-    message: Pick<ProtocolMessage, 'chatId' | 'senderId'>
-  ): boolean {
+  private mayDelete(by: ParticipantId, message: Pick<ProtocolMessage, "chatId" | "senderId">): boolean {
     return by === message.senderId || !!this.groups.get(message.chatId)?.state.admins.has(by);
   }
 
@@ -828,16 +778,14 @@ export class StatusSession implements ChatSession {
       case ContentType.TEXT_PLAIN:
       case ContentType.EMOJI:
       case ContentType.CONTACT_REQUEST:
-        return { kind: 'text', text: this.readText(chat.text) };
+        return { kind: "text", text: this.readText(chat.text) };
       case ContentType.BRIDGE_MESSAGE:
-        return chat.bridge
-          ? { kind: 'text', text: `${chat.bridge.userName}: ${chat.bridge.content}` }
-          : null;
+        return chat.bridge ? { kind: "text", text: `${chat.bridge.userName}: ${chat.bridge.content}` } : null;
       case ContentType.IMAGE: {
         if (!chat.image?.payload.length) return null;
-        const mimeType = IMAGE_FORMATS[chat.image.format] ?? 'image/jpeg';
+        const mimeType = IMAGE_FORMATS[chat.image.format] ?? "image/jpeg";
         return {
-          kind: 'image',
+          kind: "image",
           uri: await this.media.save(id, chat.image.payload, mimeType),
           width: chat.image.width || undefined,
           height: chat.image.height || undefined,
@@ -848,19 +796,19 @@ export class StatusSession implements ChatSession {
       }
       case ContentType.AUDIO:
         if (chat.audio?.type !== AudioType.AAC || !chat.audio.payload.length) {
-          return { kind: 'unsupported', typeId: 'status/audio', fallback: 'Voice message' };
+          return { kind: "unsupported", typeId: "status/audio", fallback: "Voice message" };
         }
         return {
-          kind: 'voice',
-          uri: await this.media.save(id, chat.audio.payload, 'audio/aac'),
+          kind: "voice",
+          uri: await this.media.save(id, chat.audio.payload, "audio/aac"),
           durationMs: chat.audio.durationMs,
           size: chat.audio.payload.length,
-          mimeType: 'audio/aac',
+          mimeType: "audio/aac",
         };
       case ContentType.STICKER:
-        return { kind: 'unsupported', typeId: 'status/sticker', fallback: 'Sticker' };
+        return { kind: "unsupported", typeId: "status/sticker", fallback: "Sticker" };
       default:
-        return chat.text.trim() ? { kind: 'text', text: this.readText(chat.text) } : null;
+        return chat.text.trim() ? { kind: "text", text: this.readText(chat.text) } : null;
     }
   }
 
@@ -868,7 +816,7 @@ export class StatusSession implements ChatSession {
     message: ApplicationMessage,
     reaction: WireReaction,
     wakuMs: number,
-    author: ParticipantId
+    author: ParticipantId,
   ): Promise<void> {
     if (!validClock(reaction.clock, wakuMs) || !reaction.messageId || !reaction.chatId) return;
     const code = reaction.emoji || LEGACY_REACTIONS[reaction.legacyType];
@@ -883,21 +831,17 @@ export class StatusSession implements ChatSession {
       senderId: author,
       sentAt: reaction.clock,
       content: {
-        kind: 'reaction',
+        kind: "reaction",
         targetId: reaction.messageId,
         emoji: reactionEmoji(code),
-        action: reaction.retracted ? 'removed' : 'added',
+        action: reaction.retracted ? "removed" : "added",
       },
       fromMe: false,
-      status: 'sent',
+      status: "sent",
     });
   }
 
-  private async onMembershipUpdate(
-    message: ApplicationMessage,
-    wakuMs: number,
-    author: ParticipantId
-  ): Promise<void> {
+  private async onMembershipUpdate(message: ApplicationMessage, wakuMs: number, author: ParticipantId): Promise<void> {
     const update = decodeMembershipUpdate(message.payload);
     const known = this.groups.get(update.chatId);
     const fresh = freshEvents(update.chatId, update.events, known?.state, wakuMs);
@@ -909,7 +853,7 @@ export class StatusSession implements ChatSession {
 
     if (group !== known?.state || consent !== known?.consent) {
       await this.saveGroup(group, consent);
-      if (consent === 'accepted' && known?.consent !== 'accepted' && group.members.has(me)) {
+      if (consent === "accepted" && known?.consent !== "accepted" && group.members.has(me)) {
         await this.joinGroup(group).catch(() => {});
       }
     }
@@ -926,18 +870,18 @@ export class StatusSession implements ChatSession {
     chatId: string,
     known: Group | undefined,
     fresh: GroupEvent[],
-    author: ParticipantId
+    author: ParticipantId,
   ): { group: GroupState; consent: Consent } | null {
     const me = this.self.participantId;
     if (!known) {
       const group = GroupState.replay(chatId, fresh);
       if (!group?.wasEverMember(me)) return null;
-      return { group, consent: this.trusts(author, group) ? 'accepted' : 'request' };
+      return { group, consent: this.trusts(author, group) ? "accepted" : "request" };
     }
     const group = known.state.merged(fresh);
     if (!group) return null;
     const readded = !known.state.members.has(me) && group.members.has(me);
-    return { group, consent: readded && this.trusts(author, group) ? 'accepted' : known.consent };
+    return { group, consent: readded && this.trusts(author, group) ? "accepted" : known.consent };
   }
 
   /** status-go shows a group straight away when someone you added adds you, or its creator is a mutual contact. */
@@ -949,9 +893,7 @@ export class StatusSession implements ChatSession {
   private async saveGroup(group: GroupState, consent: Consent): Promise<void> {
     const known = this.groups.get(group.chatId);
     const picture =
-      known && known.state.image === group.image
-        ? known.picture
-        : group.image && (await this.savePicture(group.image));
+      known && known.state.image === group.image ? known.picture : group.image && (await this.savePicture(group.image));
     this.groups.set(group.chatId, { state: group, consent, picture });
     await this.state.set<GroupRecord>(`group:${group.chatId}`, {
       events: group.events.map((event) => toHex(event.bytes)),
@@ -965,7 +907,7 @@ export class StatusSession implements ChatSession {
       participants: [...group.members].sort(),
       title: group.name,
       createdAt: this.chats.get(id)?.createdAt ?? group.events[0]?.clock ?? Date.now(),
-      hidden: consent === 'declined',
+      hidden: consent === "declined",
     };
     await this.saveChat(chat);
     this.announce(chat);
@@ -1043,7 +985,7 @@ export class StatusSession implements ChatSession {
       const me = this.self.participantId;
       return {
         id: chat.id,
-        kind: 'group',
+        kind: "group",
         title: group.state.name,
         memberIds: [...group.state.members],
         createdAt: chat.createdAt,
@@ -1058,7 +1000,7 @@ export class StatusSession implements ChatSession {
     const contact = this.contact(chat.id);
     return {
       id: chat.id,
-      kind: 'dm',
+      kind: "dm",
       title: contact.displayName || chat.id,
       memberIds: chat.participants,
       createdAt: chat.createdAt,
@@ -1071,7 +1013,7 @@ export class StatusSession implements ChatSession {
 
   private requireGroup(id: ProtocolChatId): Group {
     const group = this.groups.get(id);
-    if (!group) throw new Error('That only works in a group.');
+    if (!group) throw new Error("That only works in a group.");
     return group;
   }
 
@@ -1085,15 +1027,11 @@ export class StatusSession implements ChatSession {
       this.identity,
       this.installationId,
       compressPublicKey(this.signedPreKey.publicKey),
-      BigInt(Date.now()) * 1_000_000n
+      BigInt(Date.now()) * 1_000_000n,
     );
   }
 
-  private async publishTo(
-    recipient: ParticipantId,
-    plaintext: Uint8Array,
-    bundle = this.bundle()
-  ): Promise<void> {
+  private async publishTo(recipient: ParticipantId, plaintext: Uint8Array, bundle = this.bundle()): Promise<void> {
     const publicKey = publicKeyFromParticipant(recipient);
     const topic = partitionedTopic(publicKey);
     const parts = sealEnvelope(this.identity, this.installationId, publicKey, plaintext, bundle);
@@ -1105,7 +1043,7 @@ export class StatusSession implements ChatSession {
       this.identity.publicKey,
       publicKeyFromParticipant(recipient),
       application,
-      Math.floor(Date.now() / 1_000)
+      Math.floor(Date.now() / 1_000),
     );
     return encodeMvds({ messages: [record] });
   }
@@ -1114,7 +1052,7 @@ export class StatusSession implements ChatSession {
     recipients: ParticipantId[],
     application: Uint8Array,
     synced: boolean,
-    onSent?: (recipient: ParticipantId) => void
+    onSent?: (recipient: ParticipantId) => void,
   ): Promise<void> {
     const bundle = this.bundle();
     const results = await Promise.allSettled(
@@ -1122,11 +1060,9 @@ export class StatusSession implements ChatSession {
         const plaintext = synced ? this.dataSync(recipient, application) : application;
         await this.publishTo(recipient, plaintext, bundle);
         onSent?.(recipient);
-      })
+      }),
     );
-    const failure = results.find(
-      (result): result is PromiseRejectedResult => result.status === 'rejected'
-    );
+    const failure = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
     if (failure) throw failure.reason;
   }
 
@@ -1134,7 +1070,7 @@ export class StatusSession implements ChatSession {
     recipients: Iterable<ParticipantId>,
     type: number,
     payload: Uint8Array,
-    synced = true
+    synced = true,
   ): Promise<void> {
     const { bytes } = wrapApplication(type, payload, this.identity);
     await this.publishAll(this.others(recipients), bytes, synced);
@@ -1149,7 +1085,7 @@ export class StatusSession implements ChatSession {
     key: string,
     build: () => Promise<Outgoing>,
     recipients: ParticipantId[],
-    synced = true
+    synced = true,
   ): Promise<ProtocolMessage> {
     let pending = this.pending.get(key);
     if (!pending) {
@@ -1163,9 +1099,7 @@ export class StatusSession implements ChatSession {
       this.pending.set(key, pending);
     }
     const { remaining } = pending;
-    await this.publishAll([...remaining], pending.payload, synced, (recipient) =>
-      remaining.delete(recipient)
-    );
+    await this.publishAll([...remaining], pending.payload, synced, (recipient) => remaining.delete(recipient));
     this.pending.delete(key);
     return pending.message;
   }
@@ -1179,25 +1113,18 @@ export class StatusSession implements ChatSession {
     await this.sendTo(recipients, AppType.MEMBERSHIP_UPDATE_MESSAGE, membershipUpdate(group));
   }
 
-  private async changeGroup(
-    id: ProtocolChatId,
-    changes: GroupChange[],
-    alsoTell: ParticipantId[] = []
-  ): Promise<void> {
+  private async changeGroup(id: ProtocolChatId, changes: GroupChange[], alsoTell: ParticipantId[] = []): Promise<void> {
     const group = this.requireGroup(id);
     const start = Math.max(group.state.lastClock + 1, (await this.nextClock(id)).clock);
-    const next = group.state.merged(
-      signGroupEvents(group.state.chatId, start, changes, this.identity)
-    );
-    if (!next)
-      throw new Error('Status would refuse that change: only admins remove other members.');
+    const next = group.state.merged(signGroupEvents(group.state.chatId, start, changes, this.identity));
+    if (!next) throw new Error("Status would refuse that change: only admins remove other members.");
     await this.saveGroup(next, group.consent);
     await this.groupUpdate(next, [...group.state.members, ...next.members, ...alsoTell]);
   }
 
   private async joinGroup(group: GroupState): Promise<void> {
     const joined = group.events.some(
-      (event) => event.type === EventType.MEMBER_JOINED && event.from === this.self.participantId
+      (event) => event.type === EventType.MEMBER_JOINED && event.from === this.self.participantId,
     );
     if (joined) return;
     await this.changeGroup(protocolChatId(group.chatId), [{ type: EventType.MEMBER_JOINED }]);
@@ -1221,15 +1148,15 @@ export class StatusSession implements ChatSession {
     chatId: ProtocolChatId,
     sentAt: number,
     content: MessageContent,
-    replyTo?: MessageId
-  ): Omit<ProtocolMessage, 'id'> {
+    replyTo?: MessageId,
+  ): Omit<ProtocolMessage, "id"> {
     return {
       chatId,
       senderId: this.self.participantId,
       sentAt,
       content,
       fromMe: true,
-      status: 'sent',
+      status: "sent",
       replyTo,
     };
   }
@@ -1238,7 +1165,7 @@ export class StatusSession implements ChatSession {
     chatId: ProtocolChatId,
     content: Sendable,
     replyTo?: MessageId,
-    contentType?: number
+    contentType?: number,
   ): Promise<Outgoing> {
     const group = this.groups.get(chatId);
     const { clock, timestamp } = await this.nextClock(chatId);
@@ -1247,7 +1174,7 @@ export class StatusSession implements ChatSession {
       ...body,
       clock,
       timestamp,
-      responseTo: replyTo ?? '',
+      responseTo: replyTo ?? "",
       chatId,
       messageType: group ? MessageType.PRIVATE_GROUP : MessageType.ONE_TO_ONE,
       contentType: contentType ?? body.contentType,
@@ -1265,18 +1192,18 @@ export class StatusSession implements ChatSession {
   }
 
   private async wireContent(
-    content: Sendable
-  ): Promise<Pick<WireChatMessage, 'contentType' | 'text' | 'image' | 'audio'>> {
+    content: Sendable,
+  ): Promise<Pick<WireChatMessage, "contentType" | "text" | "image" | "audio">> {
     switch (content.kind) {
-      case 'text':
+      case "text":
         return { contentType: ContentType.TEXT_PLAIN, text: toStatusMentions(content.text) };
-      case 'image':
+      case "image":
         return {
           contentType: ContentType.IMAGE,
-          text: toStatusMentions(content.caption ?? ''),
+          text: toStatusMentions(content.caption ?? ""),
           image: await this.imageOf(content),
         };
-      case 'voice':
+      case "voice":
         return {
           contentType: ContentType.AUDIO,
           text: VOICE_TEXT,
@@ -1285,33 +1212,27 @@ export class StatusSession implements ChatSession {
     }
   }
 
-  private async imageOf(content: Extract<MessageContent, { kind: 'image' }>) {
-    const mimeType = content.mimeType ?? 'image/jpeg';
-    const format = Number(
-      Object.entries(IMAGE_FORMATS).find(([, type]) => type === mimeType)?.[0] ?? 2
-    );
+  private async imageOf(content: Extract<MessageContent, { kind: "image" }>) {
+    const mimeType = content.mimeType ?? "image/jpeg";
+    const format = Number(Object.entries(IMAGE_FORMATS).find(([, type]) => type === mimeType)?.[0] ?? 2);
     return {
-      payload: await this.media.load(content.uri, content.name ?? 'image', mimeType),
+      payload: await this.media.load(content.uri, content.name ?? "image", mimeType),
       format,
       width: content.width ?? 0,
       height: content.height ?? 0,
     };
   }
 
-  private async audioOf(content: Extract<MessageContent, { kind: 'voice' }>) {
-    const recording = await this.media.load(
-      content.uri,
-      content.name ?? 'voice',
-      content.mimeType ?? 'audio/mp4'
-    );
+  private async audioOf(content: Extract<MessageContent, { kind: "voice" }>) {
+    const recording = await this.media.load(content.uri, content.name ?? "voice", content.mimeType ?? "audio/mp4");
     const audio = statusAudio(recording);
-    if (!audio) throw new Error('Status plays voice notes in AAC or AMR, and this one is neither.');
+    if (!audio) throw new Error("Status plays voice notes in AAC or AMR, and this one is neither.");
     return { ...audio, durationMs: content.durationMs };
   }
 
   private async reaction(
     chatId: ProtocolChatId,
-    content: Extract<MessageContent, { kind: 'reaction' }>
+    content: Extract<MessageContent, { kind: "reaction" }>,
   ): Promise<Outgoing> {
     const { clock } = await this.nextClock(chatId);
     const code = reactionCode(content.emoji);
@@ -1325,7 +1246,7 @@ export class StatusSession implements ChatSession {
         messageType: this.messageTypeOf(chatId),
         emoji: code,
         legacyType: legacy ? Number(legacy[0]) : 0,
-        retracted: content.action === 'removed',
+        retracted: content.action === "removed",
       }),
       message: this.outgoing(chatId, clock, content),
     };
@@ -1339,34 +1260,25 @@ export class StatusSession implements ChatSession {
   private async requestContact(peer: ProtocolChatId): Promise<Outgoing> {
     const { clock } = await this.nextClock(peer);
     await this.saveContact(peer, requestSent(this.contact(peer), clock).contact);
-    return this.chatMessage(
-      peer,
-      { kind: 'text', text: REQUEST_TEXT },
-      undefined,
-      ContentType.CONTACT_REQUEST
-    );
+    return this.chatMessage(peer, { kind: "text", text: REQUEST_TEXT }, undefined, ContentType.CONTACT_REQUEST);
   }
 
   async send(id: ProtocolChatId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
     if (!this.chats.has(id)) throw new Error(`Chat ${id} not found`);
     const group = this.groups.get(id);
     if (group && !group.state.members.has(this.self.participantId)) {
-      throw new Error('You are no longer a member of this group.');
+      throw new Error("You are no longer a member of this group.");
     }
     const recipients = this.recipientsOf(id);
-    const key = `${id}\n${JSON.stringify(content)}\n${replyTo ?? ''}`;
+    const key = `${id}\n${JSON.stringify(content)}\n${replyTo ?? ""}`;
     let message: ProtocolMessage;
-    if (content.kind === 'reaction') {
+    if (content.kind === "reaction") {
       message = await this.post(key, () => this.reaction(id, content), recipients, false);
-    } else if (content.kind === 'text' || content.kind === 'image' || content.kind === 'voice') {
+    } else if (content.kind === "text" || content.kind === "image" || content.kind === "voice") {
       if (!group && !added(this.contact(id))) {
         await this.post(`${key}\nrequest`, () => this.requestContact(id), recipients);
       }
-      message = await this.post(
-        `${key}\nmessage`,
-        () => this.chatMessage(id, content, replyTo),
-        recipients
-      );
+      message = await this.post(`${key}\nmessage`, () => this.chatMessage(id, content, replyTo), recipients);
     } else {
       throw new Error(`Status cannot send ${content.kind} messages yet.`);
     }
@@ -1376,7 +1288,7 @@ export class StatusSession implements ChatSession {
 
   /** Nothing goes out: they are not told, and what they send is dropped here. */
   async setBlocked(id: ProtocolChatId, blocked: boolean): Promise<void> {
-    if (this.groups.has(id)) throw new UnsupportedError('On Status only a DM can be blocked.');
+    if (this.groups.has(id)) throw new UnsupportedError("On Status only a DM can be blocked.");
     const chat = { ...(this.chats.get(id) ?? this.newDmChat(id)), blocked };
     await this.saveChat(chat);
     this.announce(chat);
@@ -1386,11 +1298,11 @@ export class StatusSession implements ChatSession {
     const group = this.groups.get(id);
     if (group) {
       await this.saveGroup(group.state, consent);
-      if (consent === 'accepted') await this.joinGroup(group.state);
+      if (consent === "accepted") await this.joinGroup(group.state);
       return;
     }
     const { clock } = await this.nextClock(id);
-    if (consent === 'declined') {
+    if (consent === "declined") {
       await this.updateContact(id, (contact) => requestDismissed(contact, clock));
       const chat = this.chats.get(id);
       if (chat) await this.saveChat({ ...chat, hidden: true });
@@ -1398,7 +1310,7 @@ export class StatusSession implements ChatSession {
     }
     const contact = this.contact(id);
     await this.updateContact(id, (current) => requestSent(current, clock));
-    const payload = encodeContactRequestDecision({ id: contact.requestId ?? '', clock });
+    const payload = encodeContactRequestDecision({ id: contact.requestId ?? "", clock });
     await this.sendTo([id], AppType.ACCEPT_CONTACT_REQUEST, payload);
     if (this.displayName) {
       const identity = encodeChatIdentity({ clock: Date.now(), displayName: this.displayName });
@@ -1409,10 +1321,10 @@ export class StatusSession implements ChatSession {
   async editMessage(id: ProtocolChatId, messageId: MessageId, text: string): Promise<void> {
     const original = await this.store.getMessage(id, messageId);
     if (!original?.fromMe || !editedContent(original.content, text)) {
-      throw new Error('Status only edits the text of your own messages.');
+      throw new Error("Status only edits the text of your own messages.");
     }
     const wireText = toStatusMentions(text);
-    if (!validText(wireText)) throw new Error('An edit needs text, up to 4096 characters.');
+    if (!validText(wireText)) throw new Error("An edit needs text, up to 4096 characters.");
     const { clock } = await this.nextClock(id);
     const payload = encodeEdit({
       clock,
@@ -1420,7 +1332,7 @@ export class StatusSession implements ChatSession {
       chatId: id,
       messageId,
       messageType: this.messageTypeOf(id),
-      contentType: original.content.kind === 'image' ? ContentType.IMAGE : ContentType.TEXT_PLAIN,
+      contentType: original.content.kind === "image" ? ContentType.IMAGE : ContentType.TEXT_PLAIN,
     });
     await this.sendTo(this.recipientsOf(id), AppType.EDIT_MESSAGE, payload);
     await this.applyEdit(original, clock, text);
@@ -1431,7 +1343,7 @@ export class StatusSession implements ChatSession {
     if (!message) return;
     const me = this.self.participantId;
     if (!this.mayDelete(me, message)) {
-      throw new Error('Only group admins can delete what others wrote.');
+      throw new Error("Only group admins can delete what others wrote.");
     }
     const { clock } = await this.nextClock(id);
     const payload = encodeDelete({
@@ -1439,7 +1351,7 @@ export class StatusSession implements ChatSession {
       chatId: id,
       messageId,
       messageType: this.messageTypeOf(id),
-      deletedBy: message.fromMe ? '' : me,
+      deletedBy: message.fromMe ? "" : me,
     });
     await this.sendTo(this.recipientsOf(id), AppType.DELETE_MESSAGE, payload);
     await this.removeMessage(message, me);
@@ -1460,7 +1372,7 @@ export class StatusSession implements ChatSession {
 
   async getMessages(
     id: ProtocolChatId,
-    opts?: { limit?: number; before?: { sentAt: number; id: MessageId } }
+    opts?: { limit?: number; before?: { sentAt: number; id: MessageId } },
   ): Promise<ProtocolMessage[]> {
     if (!this.chats.has(id)) return [];
     return this.store.loadMessages(id, opts?.limit, opts?.before);
@@ -1491,7 +1403,7 @@ export class StatusSession implements ChatSession {
       .map((member) => ({ id: member, name: this.nameOf(member) }))
       .filter(
         ({ id: member, name }) =>
-          name.toLowerCase().includes(needle) || chatKeyOf(member).toLowerCase().includes(needle)
+          name.toLowerCase().includes(needle) || chatKeyOf(member).toLowerCase().includes(needle),
       )
       .slice(0, 20);
   }
@@ -1507,7 +1419,7 @@ export class StatusSession implements ChatSession {
 
   async createDm(participant: ParticipantId): Promise<ProtocolChat> {
     publicKeyFromParticipant(participant);
-    if (participant === this.self.participantId) throw new Error('That is your own chat key.');
+    if (participant === this.self.participantId) throw new Error("That is your own chat key.");
     const id = protocolChatId(participant);
     const existing = this.chats.get(id);
     const chat = existing ? { ...existing, hidden: false } : this.newDmChat(id);
@@ -1521,19 +1433,19 @@ export class StatusSession implements ChatSession {
     const strangers = members.filter((member) => !mutual(this.contact(member)));
     if (strangers.length > 0) {
       throw new Error(
-        'Status only lets you add contacts who accepted your contact request. ' +
-          `Start a DM with ${strangers.map((id) => chatKeyOf(id)).join(', ')} first.`
+        "Status only lets you add contacts who accepted your contact request. " +
+          `Start a DM with ${strangers.map((id) => chatKeyOf(id)).join(", ")} first.`,
       );
     }
     const chatId = newGroupChatId(this.self.participantId);
     const { clock } = await this.nextClock(chatId);
     const changes: GroupChange[] = [
-      { type: EventType.CHAT_CREATED, name: title.trim() || 'Group', color: GROUP_COLOR },
+      { type: EventType.CHAT_CREATED, name: title.trim() || "Group", color: GROUP_COLOR },
     ];
     if (members.length > 0) changes.push({ type: EventType.MEMBERS_ADDED, members });
     const group = GroupState.replay(chatId, signGroupEvents(chatId, clock, changes, this.identity));
-    if (!group) throw new Error('Could not create the group.');
-    await this.saveGroup(group, 'accepted');
+    if (!group) throw new Error("Could not create the group.");
+    await this.saveGroup(group, "accepted");
     await this.groupUpdate(group, group.members);
     return this.toChat(this.chats.get(protocolChatId(chatId))!);
   }
@@ -1563,24 +1475,22 @@ export class StatusSession implements ChatSession {
     await this.changeGroup(
       id,
       removed.map((member) => ({ type: EventType.MEMBER_REMOVED, members: [member] })),
-      removed
+      removed,
     );
   }
 
   async renameGroup(id: ProtocolChatId, title: string): Promise<void> {
     const name = title.trim();
-    if (!name) throw new Error('A group needs a name.');
+    if (!name) throw new Error("A group needs a name.");
     await this.changeGroup(id, [{ type: EventType.NAME_CHANGED, name }]);
   }
 
   async leaveGroup(id: ProtocolChatId): Promise<void> {
     const { state } = this.requireGroup(id);
     if (state.members.has(this.self.participantId)) {
-      await this.changeGroup(id, [
-        { type: EventType.MEMBER_REMOVED, members: [this.self.participantId] },
-      ]);
+      await this.changeGroup(id, [{ type: EventType.MEMBER_REMOVED, members: [this.self.participantId] }]);
     }
-    await this.saveGroup(this.requireGroup(id).state, 'declined');
+    await this.saveGroup(this.requireGroup(id).state, "declined");
   }
 
   async sync(): Promise<void> {
@@ -1588,7 +1498,7 @@ export class StatusSession implements ChatSession {
       this.serially(async () => {
         await this.catchUp();
         await this.flushAcks();
-      })
+      }),
     );
     await this.pollOnce();
   }
@@ -1607,9 +1517,7 @@ export class StatusSession implements ChatSession {
     return () => this.chatListeners.delete(onChat);
   }
 
-  async streamDeletedMessages(
-    listener: (id: ProtocolChatId, messageIds: MessageId[]) => void
-  ): Promise<Unsubscribe> {
+  async streamDeletedMessages(listener: (id: ProtocolChatId, messageIds: MessageId[]) => void): Promise<Unsubscribe> {
     this.deletionListeners.add(listener);
     return () => this.deletionListeners.delete(listener);
   }

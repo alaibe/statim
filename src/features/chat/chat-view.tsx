@@ -1,7 +1,16 @@
-import { type ReactNode, useState } from 'react';
-import { KeyboardAvoidingView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
+import { type ReactNode, useState } from "react";
+import { KeyboardAvoidingView, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAppearanceStore } from "@/core/app/appearance";
+import { errorMessage } from "@/core/errors";
+import { isLocalChat } from "@/core/messaging/bots";
+import { prefsFor } from "@/core/messaging/chat-prefs";
+import { connectionFor, type MessageHistoryState, selfIdFor, useChatStore } from "@/core/messaging/chat-store";
+import { chatParticipants, chatTitle, type DisplayParticipant } from "@/core/messaging/display-names";
+import { type ProtocolId, protocolOf } from "@/core/messaging/namespace";
+import type { ChatPermissions } from "@/core/messaging/permissions";
+import type { Chat, ChatId, ChatMessage, MessageContent, MessageId } from "@/core/messaging/types";
+import { readByPeer } from "@/core/messaging/unread";
 import {
   ChatBackground,
   EmptyState,
@@ -12,51 +21,27 @@ import {
   toast,
   useEscapeKey,
   useLayoutInsets,
-} from '@/design';
-import { isLocalChat } from '@/core/messaging/bots';
-import { prefsFor } from '@/core/messaging/chat-prefs';
-import {
-  connectionFor,
-  type MessageHistoryState,
-  selfIdFor,
-  useChatStore,
-} from '@/core/messaging/chat-store';
-import { readByPeer } from '@/core/messaging/unread';
-import { protocolOf, type ProtocolId } from '@/core/messaging/namespace';
-import type { ChatPermissions } from '@/core/messaging/permissions';
-import type { ChatMessage, Chat, ChatId, MessageContent, MessageId } from '@/core/messaging/types';
-import { useAppearanceStore } from '@/core/app/appearance';
-import { errorMessage } from '@/core/errors';
-import { Composer } from './composer';
-import { BarButton } from './bar-button';
-import { BlockedBar } from './block';
-import { RequestBar } from './request-bar';
-import { CommandPending } from './command-pending';
-import { useReadUpTo } from './delivery-icon';
-import { ForwardSheet } from './forward-sheet';
-import { MessageList } from './message-list';
-import {
-  chatParticipants,
-  chatTitle,
-  type DisplayParticipant,
-} from '@/core/messaging/display-names';
-import { useDisplayNames } from './use-display-names';
-import { useChatPermissions, useChatSession } from './use-chat-permissions';
-import { useComposerMode } from './composer-mode';
-import { usePinnedMessages } from './use-pinned-messages';
-import {
-  type ActionSupport,
-  type ChatActions,
-  lastEditableMessage,
-  messageActions,
-} from './message-commands';
-import { HistoryStatus } from './history-status';
-import { useChatTimeline } from './use-chat-timeline';
-import { PinnedMessages } from './pinned-messages';
-import { ChatHeader, PendingChatHeader } from './chat-header';
-import { DeleteMessageSheet, type DeleteTarget } from './delete-message-sheet';
-import { MessageRow, replyPreview } from './message-row';
-import { repliesLabel } from './bubble-shell';
+} from "@/design";
+import { BarButton } from "./bar-button";
+import { BlockedBar } from "./block";
+import { repliesLabel } from "./bubble-shell";
+import { ChatHeader, PendingChatHeader } from "./chat-header";
+import { CommandPending } from "./command-pending";
+import { Composer } from "./composer";
+import { useComposerMode } from "./composer-mode";
+import { DeleteMessageSheet, type DeleteTarget } from "./delete-message-sheet";
+import { useReadUpTo } from "./delivery-icon";
+import { ForwardSheet } from "./forward-sheet";
+import { HistoryStatus } from "./history-status";
+import { type ActionSupport, type ChatActions, lastEditableMessage, messageActions } from "./message-commands";
+import { MessageList } from "./message-list";
+import { MessageRow, replyPreview } from "./message-row";
+import { PinnedMessages } from "./pinned-messages";
+import { RequestBar } from "./request-bar";
+import { useChatPermissions, useChatSession } from "./use-chat-permissions";
+import { useChatTimeline } from "./use-chat-timeline";
+import { useDisplayNames } from "./use-display-names";
+import { usePinnedMessages } from "./use-pinned-messages";
 
 interface ChatViewProps {
   id: ChatId;
@@ -69,7 +54,7 @@ interface ChatViewProps {
 export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
   const wallpaper = useAppearanceStore((s) => s.wallpaper);
   // On desktop the frame draws the wallpaper and the sidebar does the navigating.
-  const desktop = process.env.EXPO_OS === 'web';
+  const desktop = process.env.EXPO_OS === "web";
   useEscapeKey(Boolean(thread), onBack);
   const insets = useSafeAreaInsets();
   const frame = useLayoutInsets();
@@ -120,10 +105,10 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
   const previewOf = (target: ChatMessage) => replyPreview(target, nameFor);
 
   const composer = useComposerMode(id, followNewest, thread);
-  useEscapeKey(composer.mode.kind !== 'compose', () => composer.cancel());
+  useEscapeKey(composer.mode.kind !== "compose", () => composer.cancel());
 
-  const isGroup = chat?.kind === 'group';
-  const botName = chat?.title ?? 'Bot';
+  const isGroup = chat?.kind === "group";
+  const botName = chat?.title ?? "Bot";
   const { retry, onReactTo, onVote, togglePin } = useMessageStore(id, permissions.vote);
   const handlers: ChatActions = {
     reply: (message) => composer.reply(message),
@@ -141,8 +126,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
   const actionsFor = (message: ChatMessage) => messageActions(message, handlers, can);
   const lastEditable = lastEditableMessage(messages, can);
 
-  const dividerAt = (index: number) =>
-    thread ? threadDivider(thread, messages, index, unseenReplies) : undefined;
+  const dividerAt = (index: number) => (thread ? threadDivider(thread, messages, index, unseenReplies) : undefined);
   const renderItem = (item: ChatMessage, index: number) => (
     <MessageRow
       message={item}
@@ -168,7 +152,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
   );
 
   return (
-    <View className={desktop ? 'flex-1' : 'flex-1 bg-canvas'}>
+    <View className={desktop ? "flex-1" : "flex-1 bg-canvas"}>
       {desktop ? null : <ChatBackground pattern={wallpaper} />}
 
       {chat ? (
@@ -207,10 +191,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
             header={
               <View>
                 {!thread && messageHistory?.hasOlder ? (
-                  <LoadEarlierButton
-                    history={messageHistory}
-                    onPress={() => void loadOlderMessages(id)}
-                  />
+                  <LoadEarlierButton history={messageHistory} onPress={() => void loadOlderMessages(id)} />
                 ) : null}
                 {!isBot ? <HistoryStatus protocol={protocol} /> : null}
               </View>
@@ -230,7 +211,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
                 thread={thread}
                 onSendText={(text) => composer.submit(text)}
                 onSendContent={onSendContent}
-                editing={composer.mode.kind === 'edit'}
+                editing={composer.mode.kind === "edit"}
                 onEditLast={lastEditable ? () => composer.edit(lastEditable) : undefined}
                 banner={composer.banner(previewOf)}
                 onCancelBanner={() => composer.cancel()}
@@ -247,16 +228,9 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
       </KeyboardAvoidingView>
 
       {forwarding ? (
-        <ForwardSheet
-          message={forwarding}
-          from={id}
-          nameFor={nameFor}
-          onClose={() => setForwarding(null)}
-        />
+        <ForwardSheet message={forwarding} from={id} nameFor={nameFor} onClose={() => setForwarding(null)} />
       ) : null}
-      {deleting ? (
-        <DeleteMessageSheet chatId={id} target={deleting} onClose={() => setDeleting(null)} />
-      ) : null}
+      {deleting ? <DeleteMessageSheet chatId={id} target={deleting} onClose={() => setDeleting(null)} /> : null}
     </View>
   );
 }
@@ -265,7 +239,7 @@ function threadDivider(
   root: MessageId,
   messages: readonly ChatMessage[],
   index: number,
-  unseen: readonly ChatMessage[]
+  unseen: readonly ChatMessage[],
 ): string | undefined {
   const message = messages[index];
   const fresh = message?.id === unseen[0]?.id ? unseen.length : 0;
@@ -274,18 +248,12 @@ function threadDivider(
 }
 
 /** Thread replies are kept out of the timeline, so their unread ones are announced here. */
-function NewRepliesBar({
-  counts,
-  onOpen,
-}: {
-  counts: ReadonlyMap<MessageId, number>;
-  onOpen(root: MessageId): void;
-}) {
+function NewRepliesBar({ counts, onOpen }: { counts: ReadonlyMap<MessageId, number>; onOpen(root: MessageId): void }) {
   const [oldest] = counts.keys();
   if (!oldest) return null;
   const replies = [...counts.values()].reduce((sum, count) => sum + count, 0);
-  const label = `${replies === 1 ? '1 new reply' : `${replies} new replies`}${
-    counts.size > 1 ? ` in ${counts.size} threads` : ' in a thread'
+  const label = `${replies === 1 ? "1 new reply" : `${replies} new replies`}${
+    counts.size > 1 ? ` in ${counts.size} threads` : " in a thread"
   }`;
   return (
     <View className="items-center pb-2">
@@ -293,7 +261,8 @@ function NewRepliesBar({
         accessibilityRole="button"
         accessibilityLabel={`${label}. Open thread`}
         onPress={() => onOpen(oldest)}
-        className="flex-row items-center gap-1.5 rounded-pill bg-brand px-3.5 py-2 shadow-md">
+        className="flex-row items-center gap-1.5 rounded-pill bg-brand px-3.5 py-2 shadow-md"
+      >
         <Icon name="chatbubbles-outline" size={15} tone="brand-on" />
         <Text variant="caption" className="font-semibold text-brand-on">
           {label}
@@ -312,37 +281,29 @@ function useMessageStore(id: ChatId, votes: boolean) {
   const ingestMessage = useChatStore((s) => s.ingestMessage);
   return {
     retry: (message: ChatMessage) => {
-      retryMessage(id, message.id).catch((e) => toast.error(errorMessage(e, 'Could not retry')));
+      retryMessage(id, message.id).catch((e) => toast.error(errorMessage(e, "Could not retry")));
     },
     onReactTo: (messageId: string, emoji: string) => {
-      react(id, messageId, emoji).catch((e) => toast.error(errorMessage(e, 'Could not react')));
+      react(id, messageId, emoji).catch((e) => toast.error(errorMessage(e, "Could not react")));
     },
-    onVote: votes
-      ? (messageId: MessageId, optionIds: number[]) => votePoll(id, messageId, optionIds)
-      : undefined,
+    onVote: votes ? (messageId: MessageId, optionIds: number[]) => votePoll(id, messageId, optionIds) : undefined,
     togglePin: async (message: ChatMessage) => {
       try {
         const isPinned = !message.isPinned;
         await setMessagePinned(id, message.id, isPinned);
         ingestMessage({ ...message, isPinned });
       } catch (error) {
-        toast.error(errorMessage(error, 'Could not change pinned message'));
+        toast.error(errorMessage(error, "Could not change pinned message"));
       }
     },
   };
 }
 
-function chatPeople(
-  chat: Chat,
-  selfId: string,
-  messages: readonly ChatMessage[]
-): DisplayParticipant[] {
+function chatPeople(chat: Chat, selfId: string, messages: readonly ChatMessage[]): DisplayParticipant[] {
   const members = chatParticipants(chat, selfId);
   const listed = new Set(members.map((member) => member.id));
   const writers = new Set(
-    messages
-      .filter((message) => !message.fromMe && !listed.has(message.senderId))
-      .map((message) => message.senderId)
+    messages.filter((message) => !message.fromMe && !listed.has(message.senderId)).map((message) => message.senderId),
   );
   return [...members, ...[...writers].map((id) => ({ id, protocol: chat.protocol }))];
 }
@@ -358,56 +319,42 @@ function EmptyTranscript({
   history: MessageHistoryState | undefined;
   onRetry(): void;
 }) {
-  const fetchingHistory = useChatStore(
-    (s) => connectionFor(s.protocols, protocol).history.status === 'fetching'
-  );
+  const fetchingHistory = useChatStore((s) => connectionFor(s.protocols, protocol).history.status === "fetching");
   if (history?.loading) return <Loading />;
   if (history?.error) {
     return (
-      <EmptyState
-        title="Could not load messages"
-        description={history.error}
-        actionLabel="Retry"
-        onAction={onRetry}
-      />
+      <EmptyState title="Could not load messages" description={history.error} actionLabel="Retry" onAction={onRetry} />
     );
   }
   if (!history && !isBot) return null;
   return (
     <EmptyState
-      icon={isBot ? 'sparkles-outline' : 'lock-closed-outline'}
-      title={fetchingHistory ? 'Fetching history…' : 'No messages yet'}
+      icon={isBot ? "sparkles-outline" : "lock-closed-outline"}
+      title={fetchingHistory ? "Fetching history…" : "No messages yet"}
       description={
         isBot
-          ? 'Type /commands to see what you can do in this chat.'
-          : 'Messages are end-to-end encrypted. Type /commands to see what you can do here.'
+          ? "Type /commands to see what you can do in this chat."
+          : "Messages are end-to-end encrypted. Type /commands to see what you can do here."
       }
     />
   );
 }
 
-function LoadEarlierButton({
-  history,
-  onPress,
-}: {
-  history: MessageHistoryState;
-  onPress: () => void;
-}) {
+function LoadEarlierButton({ history, onPress }: { history: MessageHistoryState; onPress: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={
-        history.error ? `Retry loading earlier messages. ${history.error}` : 'Load earlier messages'
-      }
+      accessibilityLabel={history.error ? `Retry loading earlier messages. ${history.error}` : "Load earlier messages"}
       disabled={history.loading}
       onPress={onPress}
-      className="items-center px-gutter py-3">
-      <Text variant="caption" className={history.error ? 'text-danger' : undefined}>
+      className="items-center px-gutter py-3"
+    >
+      <Text variant="caption" className={history.error ? "text-danger" : undefined}>
         {history.loading
-          ? 'Loading earlier messages…'
+          ? "Loading earlier messages…"
           : history.error
             ? `${history.error} · Retry`
-            : 'Load earlier messages'}
+            : "Load earlier messages"}
       </Text>
     </Pressable>
   );
@@ -425,11 +372,11 @@ function ChatBar({
   children: ReactNode;
 }) {
   if (chat.blocked) return <BlockedBar chatId={chat.id} />;
-  if (chat.consent === 'request') {
+  if (chat.consent === "request") {
     return <RequestBar chatId={chat.id} name={title} canBlock={permissions.block} />;
   }
   if (permissions.send) return children;
-  if (chat.kind === 'channel') return <ChannelMuteBar id={chat.id} />;
+  if (chat.kind === "channel") return <ChannelMuteBar id={chat.id} />;
   return (
     <View className="mx-gutter mb-2 min-h-tap items-center justify-center rounded-pill border border-line bg-surface-raised px-4">
       <Text variant="caption">You cannot send messages in this chat.</Text>
@@ -442,9 +389,9 @@ function ChannelMuteBar({ id }: { id: ChatId }) {
   const setChatPref = useChatStore((s) => s.setChatPref);
   return (
     <BarButton
-      icon={muted ? 'volume-high-outline' : 'volume-mute-outline'}
-      label={muted ? 'Unmute' : 'Mute'}
-      accessibilityLabel={muted ? 'Unmute channel' : 'Mute channel'}
+      icon={muted ? "volume-high-outline" : "volume-mute-outline"}
+      label={muted ? "Unmute" : "Mute"}
+      accessibilityLabel={muted ? "Unmute channel" : "Mute channel"}
       onPress={() => void setChatPref(id, { muted: !muted })}
       className="mx-gutter mb-2"
     />

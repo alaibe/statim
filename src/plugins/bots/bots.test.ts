@@ -1,27 +1,25 @@
-import type { PluginContext, SlashCommand } from '@/core/plugins/types';
+import { asChatId } from "@/core/messaging/testing/ids";
+import type { PluginContext, SlashCommand } from "@/core/plugins/types";
+import { botsPlugin } from "./index";
+import type { KnownBot } from "./types";
 
-import { botsPlugin } from './index';
-import type { KnownBot } from './types';
-import { asChatId } from '@/core/messaging/testing/ids';
+const PRICES = "0x1111111111111111111111111111111111111111";
+const NOBODY = "0x2222222222222222222222222222222222222222";
+const WEATHER = "0x3333333333333333333333333333333333333333";
 
-const PRICES = '0x1111111111111111111111111111111111111111';
-const NOBODY = '0x2222222222222222222222222222222222222222';
-const WEATHER = '0x3333333333333333333333333333333333333333';
-
-jest.mock('@/lib/evm/ens', () => ({
-  looksLikeEnsName: (v: string) => v.endsWith('.eth'),
-  resolveName: async (v: string) =>
-    ({ 'pricebot.eth': PRICES, 'nobody.eth': NOBODY })[v.toLowerCase()] ?? null,
+jest.mock("@/lib/evm/ens", () => ({
+  looksLikeEnsName: (v: string) => v.endsWith(".eth"),
+  resolveName: async (v: string) => ({ "pricebot.eth": PRICES, "nobody.eth": NOBODY })[v.toLowerCase()] ?? null,
 }));
 
-jest.mock('@/core/messaging/chat-store', () => ({
+jest.mock("@/core/messaging/chat-store", () => ({
   xmtpSessionFor: (state: { sessions: Record<string, unknown> }) => state.sessions.xmtp,
   useChatStore: {
     getState: () => ({
       sessions: {
         xmtp: {
           resolveParticipant: async (v: string) =>
-            v === '0x2222222222222222222222222222222222222222' ? null : 'inbox-1',
+            v === "0x2222222222222222222222222222222222222222" ? null : "inbox-1",
         },
       },
     }),
@@ -31,7 +29,7 @@ jest.mock('@/core/messaging/chat-store', () => ({
 function makeContext(store: Record<string, unknown> = {}) {
   const sent: { chatId: string; text: string }[] = [];
   const context = {
-    manifest: { id: 'bots' },
+    manifest: { id: "bots" },
     storage: {
       get: async (k: string) => store[k] ?? null,
       set: async (k: string, v: unknown) => {
@@ -42,7 +40,7 @@ function makeContext(store: Record<string, unknown> = {}) {
       },
     },
     chat: {
-      startDm: async (a: string) => (a === NOBODY ? null : 'conv-1'),
+      startDm: async (a: string) => (a === NOBODY ? null : "conv-1"),
       sendText: async (chatId: string, text: string) => {
         sent.push({ chatId, text });
       },
@@ -51,162 +49,146 @@ function makeContext(store: Record<string, unknown> = {}) {
   return { context, store, sent };
 }
 
-const commandsFor = (context: PluginContext) =>
-  botsPlugin.setup(context).commands as SlashCommand[];
+const commandsFor = (context: PluginContext) => botsPlugin.setup(context).commands as SlashCommand[];
 
-async function run(
-  name: string,
-  args: string[],
-  context: PluginContext,
-  chatId = asChatId('xmtp-conv-1')
-) {
+async function run(name: string, args: string[], context: PluginContext, chatId = asChatId("xmtp-conv-1")) {
   const command = commandsFor(context).find((c) => c.name === name || c.aliases?.includes(name))!;
   const said: string[] = [];
   const result = await command.run({
-    rest: args.join(' '),
+    rest: args.join(" "),
     args,
     chatId,
     context,
     respond: async (c) => {
-      said.push(typeof c === 'string' ? c : c.kind === 'widget' ? c.fallback : '');
+      said.push(typeof c === "string" ? c : c.kind === "widget" ? c.fallback : "");
     },
   });
-  return { result, said: said.join('\n') };
+  return { result, said: said.join("\n") };
 }
 
-describe('/addbot', () => {
-  it('stores a bot once its address resolves', async () => {
+describe("/addbot", () => {
+  it("stores a bot once its address resolves", async () => {
     const { context, store } = makeContext();
 
-    const { result, said } = await run('addbot', ['pricebot.eth', 'Prices'], context);
+    const { result, said } = await run("addbot", ["pricebot.eth", "Prices"], context);
 
-    expect(said).toBe('');
+    expect(said).toBe("");
     expect(result).toMatchObject({
-      type: 'notice',
-      message: expect.stringContaining('Prices added'),
+      type: "notice",
+      message: expect.stringContaining("Prices added"),
     });
-    expect(store['known-bots']).toEqual([
-      expect.objectContaining({ address: PRICES, name: 'Prices', participantId: 'inbox-1' }),
+    expect(store["known-bots"]).toEqual([
+      expect.objectContaining({ address: PRICES, name: "Prices", participantId: "inbox-1" }),
     ]);
   });
 
-  it('reads a name@domain handle from the domain', async () => {
+  it("reads a name@domain handle from the domain", async () => {
     const fetchMock = jest
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({ address: WEATHER, name: 'Weather', description: 'Forecasts' })
-        )
-      );
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response(JSON.stringify({ address: WEATHER, name: "Weather", description: "Forecasts" })));
     const { context, store } = makeContext();
 
-    await run('addbot', ['weather@bots.example.org'], context);
+    await run("addbot", ["weather@bots.example.org"], context);
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://bots.example.org/.well-known/status-bot/weather.json'
-    );
-    expect(store['known-bots']).toEqual([
-      expect.objectContaining({ address: WEATHER, name: 'Weather', description: 'Forecasts' }),
+    expect(fetchMock).toHaveBeenCalledWith("https://bots.example.org/.well-known/status-bot/weather.json");
+    expect(store["known-bots"]).toEqual([
+      expect.objectContaining({ address: WEATHER, name: "Weather", description: "Forecasts" }),
     ]);
     fetchMock.mockRestore();
   });
 
-  it('refuses a handle the domain does not know', async () => {
-    const fetchMock = jest
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(new Response('', { status: 404 }));
+  it("refuses a handle the domain does not know", async () => {
+    const fetchMock = jest.spyOn(globalThis, "fetch").mockResolvedValue(new Response("", { status: 404 }));
     const { context } = makeContext();
 
-    const { result } = await run('addbot', ['ghost@bots.example.org'], context);
+    const { result } = await run("addbot", ["ghost@bots.example.org"], context);
 
-    expect(result).toEqual({ type: 'error', message: 'Could not find ghost@bots.example.org.' });
+    expect(result).toEqual({ type: "error", message: "Could not find ghost@bots.example.org." });
     fetchMock.mockRestore();
   });
 
-  it('refuses an address with nothing listening', async () => {
+  it("refuses an address with nothing listening", async () => {
     const { context } = makeContext();
-    const { result } = await run('addbot', ['nobody.eth'], context);
+    const { result } = await run("addbot", ["nobody.eth"], context);
 
     expect(result).toEqual({
-      type: 'error',
-      message: expect.stringContaining('no XMTP inbox'),
+      type: "error",
+      message: expect.stringContaining("no XMTP inbox"),
     });
   });
 
-  it('will not add the same bot twice', async () => {
+  it("will not add the same bot twice", async () => {
     const { context } = makeContext();
-    await run('addbot', ['pricebot.eth'], context);
-    const { result } = await run('addbot', ['PriceBot.eth'], context);
+    await run("addbot", ["pricebot.eth"], context);
+    const { result } = await run("addbot", ["PriceBot.eth"], context);
 
     // Addresses and ENS names are not case sensitive.
-    expect(result).toMatchObject({ type: 'error' });
+    expect(result).toMatchObject({ type: "error" });
   });
 });
 
-describe('names', () => {
-  it('names each added bot after what /addbot saved', async () => {
+describe("names", () => {
+  it("names each added bot after what /addbot saved", async () => {
     const { context } = makeContext();
-    await run('addbot', ['pricebot.eth', 'Prices'], context);
+    await run("addbot", ["pricebot.eth", "Prices"], context);
 
-    expect(await botsPlugin.setup(context).names!()).toEqual({ 'inbox-1': 'Prices' });
+    expect(await botsPlugin.setup(context).names!()).toEqual({ "inbox-1": "Prices" });
   });
 });
 
-describe('/removebot', () => {
-  it('forgets a bot but says the chat stays', async () => {
-    const bot: KnownBot = { address: 'pricebot.eth', name: 'Prices', addedAt: 0 };
-    const { context, store } = makeContext({ 'known-bots': [bot] });
+describe("/removebot", () => {
+  it("forgets a bot but says the chat stays", async () => {
+    const bot: KnownBot = { address: "pricebot.eth", name: "Prices", addedAt: 0 };
+    const { context, store } = makeContext({ "known-bots": [bot] });
 
-    const { result, said } = await run('removebot', ['pricebot.eth'], context);
+    const { result, said } = await run("removebot", ["pricebot.eth"], context);
 
-    expect(store['known-bots']).toEqual([]);
-    expect(said).toBe('');
+    expect(store["known-bots"]).toEqual([]);
+    expect(said).toBe("");
     expect(result).toMatchObject({
-      type: 'notice',
-      message: expect.stringContaining('chat stays'),
+      type: "notice",
+      message: expect.stringContaining("chat stays"),
     });
   });
 
-  it('reports one that was never added', async () => {
+  it("reports one that was never added", async () => {
     const { context } = makeContext();
-    const { result } = await run('removebot', ['ghost.eth'], context);
-    expect(result).toMatchObject({ type: 'error' });
+    const { result } = await run("removebot", ["ghost.eth"], context);
+    expect(result).toMatchObject({ type: "error" });
   });
 });
-describe('/startbot', () => {
-  it('opens a chat and sends the /start convention', async () => {
+describe("/startbot", () => {
+  it("opens a chat and sends the /start convention", async () => {
     const { context, sent } = makeContext();
 
-    await run('startbot', ['pricebot.eth'], context);
+    await run("startbot", ["pricebot.eth"], context);
 
-    expect(sent).toEqual([{ chatId: 'conv-1', text: '/start' }]);
+    expect(sent).toEqual([{ chatId: "conv-1", text: "/start" }]);
   });
 
-  it('sends /start in place when already in a chat', async () => {
+  it("sends /start in place when already in a chat", async () => {
     const { context, sent } = makeContext();
-    await run('startbot', [], context, asChatId('xmtp-conv-9'));
-    expect(sent).toEqual([{ chatId: 'xmtp-conv-9', text: '/start' }]);
+    await run("startbot", [], context, asChatId("xmtp-conv-9"));
+    expect(sent).toEqual([{ chatId: "xmtp-conv-9", text: "/start" }]);
   });
 });
 
-describe('the ui.widget content type', () => {
-  it('falls back to readable text for clients that cannot render it', () => {
+describe("the ui.widget content type", () => {
+  it("falls back to readable text for clients that cannot render it", () => {
     const { context } = makeContext();
     const [spec] = botsPlugin.setup(context).contentTypes!;
 
-    expect(spec.typeId).toBe('ui.widget');
-    expect(spec.fallback({ fallback: 'Pick an option', widget: { kind: 'text', text: 'x' } })).toBe(
-      'Pick an option'
-    );
+    expect(spec.typeId).toBe("ui.widget");
+    expect(spec.fallback({ fallback: "Pick an option", widget: { kind: "text", text: "x" } })).toBe("Pick an option");
   });
 
-  it('refuses a malformed payload from an unknown bot, so the bubble shows its fallback', () => {
+  it("refuses a malformed payload from an unknown bot, so the bubble shows its fallback", () => {
     const { context } = makeContext();
     const [spec] = botsPlugin.setup(context).contentTypes!;
 
     expect(spec.is({})).toBe(false);
-    expect(spec.is({ fallback: 'Hi', widget: { kind: 'rows', rows: 'x' } })).toBe(false);
-    expect(spec.is({ fallback: 3, widget: { kind: 'text', text: 'x' } })).toBe(false);
-    expect(spec.is({ fallback: 'Hi', widget: { kind: 'text', text: 'x' } })).toBe(true);
+    expect(spec.is({ fallback: "Hi", widget: { kind: "rows", rows: "x" } })).toBe(false);
+    expect(spec.is({ fallback: 3, widget: { kind: "text", text: "x" } })).toBe(false);
+    expect(spec.is({ fallback: "Hi", widget: { kind: "text", text: "x" } })).toBe(true);
   });
 });

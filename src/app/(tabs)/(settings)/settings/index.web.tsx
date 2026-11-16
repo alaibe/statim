@@ -1,4 +1,4 @@
-import { EmptyPane } from '@/features/navigation/empty-pane';
+import { EmptyPane } from "@/features/navigation/empty-pane";
 
 /** The sections are in the sidebar; the pane shows whichever one is open. */
 export default function SettingsScreen() {

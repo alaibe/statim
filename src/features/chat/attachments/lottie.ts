@@ -1,7 +1,7 @@
-import { gunzipSync, strFromU8 } from 'fflate';
-import type { AnimationObject } from 'lottie-react-native';
+import { gunzipSync, strFromU8 } from "fflate";
+import type { AnimationObject } from "lottie-react-native";
 
-import { readMediaBytes } from '@/core/messaging/media-store';
+import { readMediaBytes } from "@/core/messaging/media-store";
 
 const KEPT = 12;
 const animations = new Map<string, Promise<AnimationObject>>();

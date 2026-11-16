@@ -1,26 +1,20 @@
-import { useRef, useState } from 'react';
-import type { TextInput } from 'react-native';
+import { useRef, useState } from "react";
+import type { TextInput } from "react-native";
 
-import { errorMessage } from '@/core/errors';
-import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
-import { nameList } from '@/core/messaging/preview';
-import { isBridgedNetwork, type NetworkId } from '@/core/messaging/networks';
-import type { ChatSession } from '@/core/messaging/protocol';
-import type { ProtocolDescriptor } from '@/core/messaging/registry';
-import { contactsOf, type Contact } from '@/features/contacts/contacts';
-import { openChatFromSheet } from '@/features/navigation/open';
-import { networkLabel } from '@/features/protocols/presentation';
-import { useKeyedLoad } from '@/lib/use-keyed-load';
-import { connectableProtocols } from '@/protocols';
-import type { MatrixCapabilities } from '@/protocols/matrix/provisioning';
-import {
-  bridgeLinks,
-  candidateOf,
-  type BridgeAddBy,
-  type BridgeLink,
-  type Candidate,
-} from './bridged-networks';
-import { useDisplayNames } from './use-display-names';
+import { errorMessage } from "@/core/errors";
+import { selfIdFor, useChatStore } from "@/core/messaging/chat-store";
+import { isBridgedNetwork, type NetworkId } from "@/core/messaging/networks";
+import { nameList } from "@/core/messaging/preview";
+import type { ChatSession } from "@/core/messaging/protocol";
+import type { ProtocolDescriptor } from "@/core/messaging/registry";
+import { type Contact, contactsOf } from "@/features/contacts/contacts";
+import { openChatFromSheet } from "@/features/navigation/open";
+import { networkLabel } from "@/features/protocols/presentation";
+import { useKeyedLoad } from "@/lib/use-keyed-load";
+import { connectableProtocols } from "@/protocols";
+import type { MatrixCapabilities } from "@/protocols/matrix/provisioning";
+import { type BridgeAddBy, type BridgeLink, bridgeLinks, type Candidate, candidateOf } from "./bridged-networks";
+import { useDisplayNames } from "./use-display-names";
 
 /** A chip on the screen: a protocol, or a network one of your Matrix bridges reaches. */
 export interface Destination {
@@ -30,12 +24,12 @@ export interface Destination {
   bridged: boolean;
   /** Absent for a bridged network you have chats on but are not signed in to on the bridge. */
   bridge?: BridgeLink;
-  adding: 'address' | BridgeAddBy;
+  adding: "address" | BridgeAddBy;
   /** Your own names on the network, lowercased. */
   selves: ReadonlySet<string>;
 }
 
-type KnownRow = { kind: 'header'; letter: string } | ({ kind: 'person' } & Candidate);
+type KnownRow = { kind: "header"; letter: string } | ({ kind: "person" } & Candidate);
 
 const NO_SELVES: ReadonlySet<string> = new Set();
 const NO_LINKS: BridgeLink[] = [];
@@ -45,14 +39,13 @@ export function useDestinations() {
   const chats = useChatStore((s) => s.chats);
   const matrix = sessions.matrix as (ChatSession & Partial<MatrixCapabilities>) | undefined;
   const provisioningFor = matrix?.bridgeProvisioning?.bind(matrix);
-  const { value: links = NO_LINKS } = useKeyedLoad(
-    provisioningFor && matrix ? matrix.self.address : null,
-    () => bridgeLinks(provisioningFor ?? (() => null))
+  const { value: links = NO_LINKS } = useKeyedLoad(provisioningFor && matrix ? matrix.self.address : null, () =>
+    bridgeLinks(provisioningFor ?? (() => null)),
   );
 
   const contacts = contactsOf(chats, (p) => selfIdFor({ sessions }, p));
   const protocols = connectableProtocols().filter((p) => sessions[p.id]);
-  const carrier = protocols.find((p) => p.id === 'matrix');
+  const carrier = protocols.find((p) => p.id === "matrix");
   const bridged = [
     ...new Set([
       ...links.map((link) => link.network),
@@ -65,7 +58,7 @@ export function useDestinations() {
       label: networkLabel(descriptor.id),
       descriptor,
       bridged: false,
-      adding: 'address' as const,
+      adding: "address" as const,
       selves: NO_SELVES,
     })),
     ...(carrier
@@ -93,20 +86,20 @@ export function useDestinations() {
 
 function groupByInitial(people: Candidate[]): KnownRow[] {
   const out: KnownRow[] = [];
-  let letter = '';
+  let letter = "";
   for (const person of people) {
     const initial = person.name.charAt(0).toUpperCase();
     if (initial !== letter) {
       letter = initial;
-      out.push({ kind: 'header', letter });
+      out.push({ kind: "header", letter });
     }
-    out.push({ kind: 'person', ...person });
+    out.push({ kind: "person", ...person });
   }
   return out;
 }
 
 function defaultGroupName(participants: Candidate[]): string {
-  return nameList(participants, (r) => r.name.split('.')[0].slice(0, 10));
+  return nameList(participants, (r) => r.name.split(".")[0].slice(0, 10));
 }
 
 export function useNewChat(destination: Destination, contacts: readonly Contact[]) {
@@ -117,11 +110,11 @@ export function useNewChat(destination: Destination, contacts: readonly Contact[
   const protocol = descriptor.id;
   const mine = (name: string) => destination.selves.has(name.toLowerCase());
 
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState("");
   const draftRef = useRef<TextInput>(null);
   const [participants, setParticipants] = useState<Candidate[]>([]);
   const [results, setResults] = useState<Candidate[]>([]);
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -134,7 +127,7 @@ export function useNewChat(destination: Destination, contacts: readonly Contact[
     here
       .map((contact) => ({ participantId: contact.id, name: nameFor(contact.id) }))
       .filter((person) => !mine(person.name))
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .sort((a, b) => a.name.localeCompare(b.name)),
   );
 
   function changeDraft(text: string) {
@@ -153,7 +146,7 @@ export function useNewChat(destination: Destination, contacts: readonly Contact[
     try {
       participantId = await resolveParticipant(protocol, input);
     } catch (e) {
-      setError(errorMessage(e, 'Could not check that address'));
+      setError(errorMessage(e, "Could not check that address"));
       setBusy(false);
       return;
     }
@@ -168,7 +161,7 @@ export function useNewChat(destination: Destination, contacts: readonly Contact[
       return;
     }
     setParticipants((current) => [...current, { participantId, name: input }]);
-    setDraft('');
+    setDraft("");
     draftRef.current?.clear();
   }
 
@@ -177,9 +170,7 @@ export function useNewChat(destination: Destination, contacts: readonly Contact[
     setError(null);
     try {
       const found =
-        link.addBy === 'search'
-          ? await link.provisioning.search(input)
-          : [await link.provisioning.resolve(input)];
+        link.addBy === "search" ? await link.provisioning.search(input) : [await link.provisioning.resolve(input)];
       const people = found.map(candidateOf).filter((person) => !mine(person.name));
       setResults(people);
       if (people.length === 0) setError(`Nobody on ${destination.label} matches ${input}.`);
@@ -198,7 +189,7 @@ export function useNewChat(destination: Destination, contacts: readonly Contact[
         ? current.filter((r) => r.participantId !== person.participantId)
         : destination.bridged
           ? [person]
-          : [...current, person]
+          : [...current, person],
     );
   }
 
@@ -207,9 +198,7 @@ export function useNewChat(destination: Destination, contacts: readonly Contact[
   }
 
   const only = participants.length === 1 ? participants[0] : null;
-  const existingDm = only
-    ? (here.find((contact) => contact.id === only.participantId)?.chatId ?? null)
-    : null;
+  const existingDm = only ? (here.find((contact) => contact.id === only.participantId)?.chatId ?? null) : null;
 
   async function startWith(person: Candidate) {
     if (bridge && person.remoteId) {
@@ -232,14 +221,14 @@ export function useNewChat(destination: Destination, contacts: readonly Contact[
       ? startGroup(
           protocol,
           participants.map((r) => r.participantId),
-          title.trim() || groupName
+          title.trim() || groupName,
         )
       : startWith(participants[0]);
     try {
       const chat = await starting;
       openChatFromSheet(chat.id);
     } catch (e) {
-      setError(errorMessage(e, 'Could not start that chat'));
+      setError(errorMessage(e, "Could not start that chat"));
     }
     setBusy(false);
   }

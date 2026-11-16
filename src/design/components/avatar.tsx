@@ -1,9 +1,9 @@
-import { Image } from 'expo-image';
+import { Image } from "expo-image";
 
-import { View } from 'react-native';
+import { View } from "react-native";
 
-import { cn } from '../lib/cn';
-import { Text } from './text';
+import { cn } from "../lib/cn";
+import { Text } from "./text";
 
 const SIZE = { sm: 32, md: 44, lg: 64, xl: 96 } as const;
 
@@ -43,18 +43,18 @@ export interface AvatarProps {
   className?: string;
 }
 
-export function Avatar({ seed, size = 'md', label, image, emoji, className }: AvatarProps) {
+export function Avatar({ seed, size = "md", label, image, emoji, className }: AvatarProps) {
   const px = SIZE[size];
-  const { bg, fg, cells } = identicon(seed || 'anon');
+  const { bg, fg, cells } = identicon(seed || "anon");
 
   // expo-image has no NativeWind interop here, so the circle is plain style.
   if (image !== undefined) {
     return (
       <Image
         accessibilityRole="image"
-        accessibilityLabel={label ? `Avatar for ${label}` : 'Avatar'}
-        source={typeof image === 'string' ? { uri: image } : image}
-        recyclingKey={typeof image === 'string' ? image : undefined}
+        accessibilityLabel={label ? `Avatar for ${label}` : "Avatar"}
+        source={typeof image === "string" ? { uri: image } : image}
+        recyclingKey={typeof image === "string" ? image : undefined}
         cachePolicy="memory-disk"
         contentFit="cover"
         style={{ width: px, height: px, borderRadius: px / 2 }}
@@ -66,10 +66,11 @@ export function Avatar({ seed, size = 'md', label, image, emoji, className }: Av
     return (
       <View
         accessibilityRole="image"
-        accessibilityLabel={label ? `Avatar for ${label}` : 'Avatar'}
+        accessibilityLabel={label ? `Avatar for ${label}` : "Avatar"}
         style={{ width: px, height: px }}
-        className={cn('items-center justify-center rounded-pill bg-brand-soft', className)}>
-        <Text style={{ fontSize: px * 0.52, lineHeight: px, textAlign: 'center' }}>{emoji}</Text>
+        className={cn("items-center justify-center rounded-pill bg-brand-soft", className)}
+      >
+        <Text style={{ fontSize: px * 0.52, lineHeight: px, textAlign: "center" }}>{emoji}</Text>
       </View>
     );
   }
@@ -81,7 +82,8 @@ export function Avatar({ seed, size = 'md', label, image, emoji, className }: Av
         accessibilityRole="image"
         accessibilityLabel={`Avatar for ${label}`}
         style={{ width: px, height: px, backgroundColor: bg }}
-        className={cn('items-center justify-center rounded-pill', className)}>
+        className={cn("items-center justify-center rounded-pill", className)}
+      >
         <Text className="font-semibold text-white" style={{ fontSize: px * 0.36 }}>
           {initials}
         </Text>
@@ -95,12 +97,10 @@ export function Avatar({ seed, size = 'md', label, image, emoji, className }: Av
       accessibilityRole="image"
       accessibilityLabel="Identicon"
       style={{ width: px, height: px, backgroundColor: bg }}
-      className={cn('flex-row flex-wrap overflow-hidden rounded-pill', className)}>
+      className={cn("flex-row flex-wrap overflow-hidden rounded-pill", className)}
+    >
       {cells.map((on, i) => (
-        <View
-          key={i}
-          style={{ width: cell, height: cell, backgroundColor: on ? fg : 'transparent' }}
-        />
+        <View key={i} style={{ width: cell, height: cell, backgroundColor: on ? fg : "transparent" }} />
       ))}
     </View>
   );

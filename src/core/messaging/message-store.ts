@@ -1,17 +1,17 @@
+import { showsInPreview } from "./message-rules";
+import { LOCAL_PROTOCOL, type ProtocolId, parseChatId, protocolChatId } from "./namespace";
+import { matchesSearch, SEARCH_LIMIT } from "./search";
 import type {
   AnyChatId,
-  ChatMessage,
   Chat,
   ChatId,
+  ChatMessage,
   MessageId,
   ParticipantId,
   ProtocolChatId,
   ProtocolMessage,
-} from './types';
-import { LOCAL_PROTOCOL, parseChatId, protocolChatId, type ProtocolId } from './namespace';
-import { matchesSearch, SEARCH_LIMIT } from './search';
-import { countsAsUnread } from './unread';
-import { showsInPreview } from './message-rules';
+} from "./types";
+import { countsAsUnread } from "./unread";
 
 export interface StoredChat<Id extends AnyChatId = AnyChatId> {
   id: Id;
@@ -44,7 +44,7 @@ export function storedChatId<Id extends AnyChatId>(raw: string, protocolId: Prot
 export function searchHit(
   raw: string,
   protocolId: ProtocolId | undefined,
-  message: <Id extends AnyChatId>(chatId: Id) => ChatMessage<Id>
+  message: <Id extends AnyChatId>(chatId: Id) => ChatMessage<Id>,
 ): StoredSearchHit {
   if (!protocolId || protocolId === LOCAL_PROTOCOL) return { message: message(appChatId(raw)) };
   return { message: message(protocolChatId(raw)), protocolId };
@@ -55,31 +55,20 @@ export interface MessageStore {
   loadMessages<Id extends AnyChatId>(
     chatId: Id,
     limit?: number,
-    before?: { sentAt: number; id: MessageId }
+    before?: { sentAt: number; id: MessageId },
   ): Promise<ChatMessage<Id>[]>;
-  searchMessages(
-    query: string,
-    chatId?: AnyChatId,
-    protocolId?: ProtocolId
-  ): Promise<StoredSearchHit[]>;
+  searchMessages(query: string, chatId?: AnyChatId, protocolId?: ProtocolId): Promise<StoredSearchHit[]>;
   countUnreadMessages(chatId: AnyChatId, since: number): Promise<number>;
 
   upsertChat(chat: StoredChat): Promise<void>;
   insertMessage<Id extends AnyChatId>(
     message: ChatMessage<Id>,
     chat?: StoredChat<Id>,
-    transportTimestamp?: number
+    transportTimestamp?: number,
   ): Promise<boolean>;
   /** Each chat's newest message that shows in its preview, or only `chatId`'s. */
-  latestMessages<Id extends AnyChatId>(
-    protocolId: ProtocolId,
-    chatId?: Id
-  ): Promise<Map<Id, ChatMessage<Id>>>;
-  newestTransportTimestamp(
-    protocolId: ProtocolId,
-    notAfter: number,
-    chatId?: AnyChatId
-  ): Promise<number | undefined>;
+  latestMessages<Id extends AnyChatId>(protocolId: ProtocolId, chatId?: Id): Promise<Map<Id, ChatMessage<Id>>>;
+  newestTransportTimestamp(protocolId: ProtocolId, notAfter: number, chatId?: AnyChatId): Promise<number | undefined>;
   clear(protocolId: ProtocolId): Promise<void>;
   cachedChats(): Promise<Chat[]>;
   cacheChats(keep: Chat[], drop: ChatId[]): Promise<void>;
@@ -108,7 +97,7 @@ export class InMemoryMessageStore implements MessageStore {
   async loadMessages<Id extends AnyChatId>(
     chatId: Id,
     limit = HYDRATE_LIMIT,
-    before?: { sentAt: number; id: MessageId }
+    before?: { sentAt: number; id: MessageId },
   ): Promise<ChatMessage<Id>[]> {
     const byId = this.messages.get(chatId);
     if (!byId) return [];
@@ -116,30 +105,20 @@ export class InMemoryMessageStore implements MessageStore {
       .filter(
         (message): message is ChatMessage<Id> =>
           message.chatId === chatId &&
-          (!before ||
-            message.sentAt < before.sentAt ||
-            (message.sentAt === before.sentAt && message.id < before.id))
+          (!before || message.sentAt < before.sentAt || (message.sentAt === before.sentAt && message.id < before.id)),
       )
       .sort((a, b) => a.sentAt - b.sentAt || a.id.localeCompare(b.id))
       .slice(-limit);
   }
 
-  async searchMessages(
-    query: string,
-    chatId?: AnyChatId,
-    protocolId?: ProtocolId
-  ): Promise<StoredSearchHit[]> {
+  async searchMessages(query: string, chatId?: AnyChatId, protocolId?: ProtocolId): Promise<StoredSearchHit[]> {
     const needle = query.toLowerCase();
     return [...this.messages.entries()]
-      .filter(
-        ([id]) =>
-          (!chatId || id === chatId) &&
-          (!protocolId || this.chats.get(id)?.protocolId === protocolId)
-      )
+      .filter(([id]) => (!chatId || id === chatId) && (!protocolId || this.chats.get(id)?.protocolId === protocolId))
       .flatMap(([id, messages]) =>
         [...messages.values()].map((message) =>
-          searchHit(id, this.chats.get(id)?.protocolId, (chatId) => ({ ...message, chatId }))
-        )
+          searchHit(id, this.chats.get(id)?.protocolId, (chatId) => ({ ...message, chatId })),
+        ),
       )
       .filter(({ message }) => matchesSearch(message, needle))
       .sort((a, b) => b.message.sentAt - a.message.sentAt)
@@ -147,9 +126,7 @@ export class InMemoryMessageStore implements MessageStore {
   }
 
   async countUnreadMessages(chatId: AnyChatId, since: number): Promise<number> {
-    return [...(this.messages.get(chatId)?.values() ?? [])].filter((message) =>
-      countsAsUnread(message, since)
-    ).length;
+    return [...(this.messages.get(chatId)?.values() ?? [])].filter((message) => countsAsUnread(message, since)).length;
   }
 
   async upsertChat(chat: StoredChat): Promise<void> {
@@ -162,7 +139,7 @@ export class InMemoryMessageStore implements MessageStore {
   async insertMessage<Id extends AnyChatId>(
     message: ChatMessage<Id>,
     chat?: StoredChat<Id>,
-    transportTimestamp?: number
+    transportTimestamp?: number,
   ): Promise<boolean> {
     let byId = this.messages.get(message.chatId);
     if (!byId) {
@@ -186,27 +163,20 @@ export class InMemoryMessageStore implements MessageStore {
   async newestTransportTimestamp(
     protocolId: ProtocolId,
     notAfter: number,
-    chatId?: AnyChatId
+    chatId?: AnyChatId,
   ): Promise<number | undefined> {
     let newest: number | undefined;
     for (const chat of this.chats.values()) {
       if (chat.protocolId !== protocolId || (chatId && chat.id !== chatId)) continue;
       const timestamp = this.transportTimestamps.get(chat.id);
-      if (
-        timestamp !== undefined &&
-        timestamp <= notAfter &&
-        (newest === undefined || timestamp > newest)
-      ) {
+      if (timestamp !== undefined && timestamp <= notAfter && (newest === undefined || timestamp > newest)) {
         newest = timestamp;
       }
     }
     return newest;
   }
 
-  async latestMessages<Id extends AnyChatId>(
-    protocolId: ProtocolId,
-    chatId?: Id
-  ): Promise<Map<Id, ChatMessage<Id>>> {
+  async latestMessages<Id extends AnyChatId>(protocolId: ProtocolId, chatId?: Id): Promise<Map<Id, ChatMessage<Id>>> {
     const latest = new Map<Id, ChatMessage<Id>>();
     for (const chat of this.chats.values()) {
       if (chat.protocolId !== protocolId || (chatId && chat.id !== chatId)) continue;
@@ -217,10 +187,7 @@ export class InMemoryMessageStore implements MessageStore {
     return latest;
   }
 
-  async getMessage<Id extends AnyChatId>(
-    chatId: Id,
-    id: MessageId
-  ): Promise<ChatMessage<Id> | null> {
+  async getMessage<Id extends AnyChatId>(chatId: Id, id: MessageId): Promise<ChatMessage<Id> | null> {
     return (this.messages.get(chatId)?.get(id) as ChatMessage<Id> | undefined) ?? null;
   }
 

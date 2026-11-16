@@ -1,6 +1,6 @@
-import { View } from 'react-native';
+import { View } from "react-native";
 
-import { Text } from '@/design';
+import { Text } from "@/design";
 
 /** What the desktop pane shows while nothing from the sidebar is open. */
 export function EmptyPane({ hint }: { hint: string }) {

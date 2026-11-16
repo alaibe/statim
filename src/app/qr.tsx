@@ -1,9 +1,8 @@
-import { useRouter } from 'expo-router';
-import { Share, View } from 'react-native';
-
-import { Button, Card, copyText, IconButton, QrCode, Screen, Text } from '@/design';
-import { activeAccount, useAccountStore } from '@/core/account/account-store';
-import { shortAddress } from '@/core/account/keyring';
+import { useRouter } from "expo-router";
+import { Share, View } from "react-native";
+import { activeAccount, useAccountStore } from "@/core/account/account-store";
+import { shortAddress } from "@/core/account/keyring";
+import { Button, Card, copyText, IconButton, QrCode, Screen, Text } from "@/design";
 
 export default function QrScreen() {
   const router = useRouter();
@@ -19,15 +18,9 @@ export default function QrScreen() {
   }
 
   return (
-    <Screen className="justify-between px-gutter py-4" edges={['top', 'bottom']}>
+    <Screen className="justify-between px-gutter py-4" edges={["top", "bottom"]}>
       <View className="flex-row justify-end">
-        <IconButton
-          icon="close"
-          label="Close"
-          surface="sunken"
-          size={18}
-          onPress={() => router.back()}
-        />
+        <IconButton icon="close" label="Close" surface="sunken" size={18} onPress={() => router.back()} />
       </View>
 
       <View className="items-center gap-6">
@@ -42,13 +35,13 @@ export default function QrScreen() {
         </Card>
 
         <Text variant="footnote" className="text-center">
-          Anyone who scans this can start a chat with you. It is your public address, so sharing it
-          reveals nothing that is not already public on-chain.
+          Anyone who scans this can start a chat with you. It is your public address, so sharing it reveals nothing that
+          is not already public on-chain.
         </Text>
       </View>
 
       <View className="gap-2">
-        {process.env.EXPO_OS === 'web' ? null : (
+        {process.env.EXPO_OS === "web" ? null : (
           <Button
             label="Share address"
             fullWidth
@@ -61,7 +54,7 @@ export default function QrScreen() {
           label="Copy address"
           tone="neutral"
           fullWidth
-          onPress={() => copyText(keyring.address, 'Address copied')}
+          onPress={() => copyText(keyring.address, "Address copied")}
         />
       </View>
     </Screen>

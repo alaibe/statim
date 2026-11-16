@@ -1,24 +1,23 @@
-import { router } from 'expo-router';
+import { router } from "expo-router";
+import { asChatId } from "@/core/messaging/testing/ids";
+import { groupCommands } from "./group";
 
-import { groupCommands } from './group';
-import { asChatId } from '@/core/messaging/testing/ids';
-
-describe('/profile', () => {
-  const profile = groupCommands.find((c) => c.name === 'profile')!;
+describe("/profile", () => {
+  const profile = groupCommands.find((c) => c.name === "profile")!;
 
   const run = (args: string[]) =>
     profile.run({
       args,
-      rest: args.join(' '),
-      chatId: asChatId('xmtp-abc'),
+      rest: args.join(" "),
+      chatId: asChatId("xmtp-abc"),
       // The same proxy the registry passes core commands: any access throws.
       context: new Proxy(
         {},
         {
           get() {
-            throw new Error('A core command reached for the plugin context.');
+            throw new Error("A core command reached for the plugin context.");
           },
-        }
+        },
       ) as never,
       respond: async () => {},
     });
@@ -27,19 +26,19 @@ describe('/profile', () => {
     (router.push as jest.Mock).mockClear();
   });
 
-  it('opens the profile without touching a plugin context', async () => {
-    await expect(run([])).resolves.toEqual({ type: 'handled' });
+  it("opens the profile without touching a plugin context", async () => {
+    await expect(run([])).resolves.toEqual({ type: "handled" });
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/profile/[id]',
-      params: { id: 'xmtp-abc' },
+      pathname: "/profile/[id]",
+      params: { id: "xmtp-abc" },
     });
   });
 
-  it('names the member when one was given', async () => {
-    await run(['0xabc']);
+  it("names the member when one was given", async () => {
+    await run(["0xabc"]);
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/profile/[id]',
-      params: { id: 'xmtp-abc', member: '0xabc' },
+      pathname: "/profile/[id]",
+      params: { id: "xmtp-abc", member: "0xabc" },
     });
   });
 });

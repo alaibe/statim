@@ -1,23 +1,22 @@
-import { useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { View } from 'react-native';
-
-import { Badge, Button, Card, Note, Text } from '@/design';
-import { useAccountStore } from '@/core/account/account-store';
-import { connectionFor, useChatStore } from '@/core/messaging/chat-store';
-import { protocolById } from '@/protocols';
-import { LoginStep, SignedIn } from '@/features/protocols/login';
-import { MatrixBridges } from '@/features/protocols/matrix-bridges';
-import { OwnAddress } from '@/features/protocols/own-address';
-import { MatrixOnComputer } from '@/features/protocols/matrix-on-computer';
-import type { ChatSession } from '@/core/messaging/protocol';
-import type { ProtocolDescriptor } from '@/core/messaging/registry';
-import type { MatrixCapabilities } from '@/protocols/matrix/provisioning';
-import { describeProtocol, toneFor } from '@/features/protocols/presentation';
-import { HistoryStatus } from '@/features/chat/history-status';
-import { openExternal } from '@/lib/open-url';
-import { SettingsScreen } from '@/features/settings/settings-screen';
-import { ProtocolConfigForm } from '@/features/protocols/protocol-config-form';
+import { useLocalSearchParams } from "expo-router";
+import { useState } from "react";
+import { View } from "react-native";
+import { useAccountStore } from "@/core/account/account-store";
+import { connectionFor, useChatStore } from "@/core/messaging/chat-store";
+import type { ChatSession } from "@/core/messaging/protocol";
+import type { ProtocolDescriptor } from "@/core/messaging/registry";
+import { Badge, Button, Card, Note, Text } from "@/design";
+import { HistoryStatus } from "@/features/chat/history-status";
+import { LoginStep, SignedIn } from "@/features/protocols/login";
+import { MatrixBridges } from "@/features/protocols/matrix-bridges";
+import { MatrixOnComputer } from "@/features/protocols/matrix-on-computer";
+import { OwnAddress } from "@/features/protocols/own-address";
+import { describeProtocol, toneFor } from "@/features/protocols/presentation";
+import { ProtocolConfigForm } from "@/features/protocols/protocol-config-form";
+import { SettingsScreen } from "@/features/settings/settings-screen";
+import { openExternal } from "@/lib/open-url";
+import { protocolById } from "@/protocols";
+import type { MatrixCapabilities } from "@/protocols/matrix/provisioning";
 
 export default function ProtocolConfigScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -47,7 +46,7 @@ function ProtocolSettings({ descriptor }: { descriptor: ProtocolDescriptor }) {
         <Card className="gap-2">
           <View className="flex-row items-start gap-2">
             <Badge
-              label={descriptor.meta.properties.endToEndEncrypted ? 'Encrypted' : 'Not E2EE'}
+              label={descriptor.meta.properties.endToEndEncrypted ? "Encrypted" : "Not E2EE"}
               tone={toneFor(descriptor.meta)}
             />
             <Text variant="caption" className="flex-1">
@@ -65,7 +64,7 @@ function ProtocolSettings({ descriptor }: { descriptor: ProtocolDescriptor }) {
           ) : null}
         </Card>
 
-        {descriptor.id === 'matrix' && accountId ? (
+        {descriptor.id === "matrix" && accountId ? (
           <MatrixOnComputer
             key={configSaved}
             accountId={accountId}
@@ -82,12 +81,7 @@ function ProtocolSettings({ descriptor }: { descriptor: ProtocolDescriptor }) {
         ) : null}
 
         {connection.login ? (
-          <LoginStep
-            key={connection.login.step}
-            login={connection.login}
-            session={session}
-            label={descriptor.label}
-          />
+          <LoginStep key={connection.login.step} login={connection.login} session={session} label={descriptor.label} />
         ) : session?.self.address ? (
           <>
             {session.subscribeLogin ? (
@@ -96,14 +90,11 @@ function ProtocolSettings({ descriptor }: { descriptor: ProtocolDescriptor }) {
               <OwnAddress
                 label={descriptor.label}
                 address={session.self.address}
-                inboxId={descriptor.id === 'xmtp' ? session.self.participantId : undefined}
+                inboxId={descriptor.id === "xmtp" ? session.self.participantId : undefined}
               />
             )}
-            {descriptor.id === 'matrix' ? (
-              <MatrixBridges
-                key={bridgesSeen}
-                session={session as ChatSession & Partial<MatrixCapabilities>}
-              />
+            {descriptor.id === "matrix" ? (
+              <MatrixBridges key={bridgesSeen} session={session as ChatSession & Partial<MatrixCapabilities>} />
             ) : null}
           </>
         ) : null}

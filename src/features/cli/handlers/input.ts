@@ -1,7 +1,7 @@
-import { errorMessage } from '@/core/errors';
+import { errorMessage } from "@/core/errors";
 
-import type { CliIo } from '../context';
-import { CliError } from '../errors';
+import type { CliIo } from "../context";
+import { CliError } from "../errors";
 
 /** What was piped in; nothing at a terminal, where reading would wait for Ctrl-D. */
 export async function stdinText(io: CliIo): Promise<string | undefined> {
@@ -18,12 +18,12 @@ export function basename(path: string): string {
 }
 
 export async function readFileArg(io: CliIo, path: string): Promise<Uint8Array> {
-  if (path === '-') return io.stdin();
+  if (path === "-") return io.stdin();
   try {
     return await io.readFile(path);
   } catch (error) {
     throw new CliError(
-      `Could not read ${path}: ${errorMessage(error)}. If this copy of the app is sandboxed, pipe the file instead: --file - < ${path}`
+      `Could not read ${path}: ${errorMessage(error)}. If this copy of the app is sandboxed, pipe the file instead: --file - < ${path}`,
     );
   }
 }

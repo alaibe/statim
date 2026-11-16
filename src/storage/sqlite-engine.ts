@@ -1,6 +1,6 @@
-import * as SQLite from 'expo-sqlite';
+import * as SQLite from "expo-sqlite";
 
-import type { SqliteConnection } from './sqlite-connection';
+import type { SqliteConnection } from "./sqlite-connection";
 
 export async function openConnection(name: string): Promise<SqliteConnection> {
   const db = await SQLite.openDatabaseAsync(name);

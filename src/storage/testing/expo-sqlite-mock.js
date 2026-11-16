@@ -6,14 +6,14 @@
  * key: every other statement on a connection that has not run `PRAGMA key`
  * fails, the way an encrypted file does on a device.
  */
-const { DatabaseSync } = require('node:sqlite');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
+const { DatabaseSync } = require("node:sqlite");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 
-const root = fs.mkdtempSync(path.join(os.tmpdir(), 'expo-sqlite-mock-'));
+const root = fs.mkdtempSync(path.join(os.tmpdir(), "expo-sqlite-mock-"));
 const open = new Map();
-let cipherVersion = '4.6.1';
+let cipherVersion = "4.6.1";
 
 /** Files, not `:memory:`, so closing and reopening is a real round trip. */
 function fileFor(name) {
@@ -24,7 +24,7 @@ function wrap(db) {
   let keyed = false;
   const unlocked = (sql) => {
     if (/^\s*PRAGMA\s+key\s*=/i.test(sql)) keyed = true;
-    else if (!keyed) throw new Error('file is not a database');
+    else if (!keyed) throw new Error("file is not a database");
   };
   const values = (params) => (params.length === 1 && Array.isArray(params[0]) ? params[0] : params);
 
@@ -47,11 +47,7 @@ function wrap(db) {
       statement?.setReturnArrays(true);
       return {
         async executeForRawResultAsync(...params) {
-          const rows = cipher
-            ? cipherVersion
-              ? [[cipherVersion]]
-              : []
-            : statement.all(...values(params));
+          const rows = cipher ? (cipherVersion ? [[cipherVersion]] : []) : statement.all(...values(params));
           return { getAllAsync: async () => rows };
         },
         async finalizeAsync() {},
@@ -83,7 +79,7 @@ async function deleteDatabaseAsync(name) {
     } catch {}
     open.delete(name);
   }
-  for (const suffix of ['', '-wal', '-shm']) {
+  for (const suffix of ["", "-wal", "-shm"]) {
     try {
       fs.rmSync(fileFor(name) + suffix);
     } catch {}
@@ -93,12 +89,12 @@ async function deleteDatabaseAsync(name) {
 module.exports = {
   openDatabaseAsync,
   openDatabaseSync: () => {
-    throw new Error('openDatabaseSync is not used by this app; use openDatabaseAsync.');
+    throw new Error("openDatabaseSync is not used by this app; use openDatabaseAsync.");
   },
   deleteDatabaseAsync,
   __reset: async () => {
     for (const name of [...open.keys()]) await deleteDatabaseAsync(name);
-    cipherVersion = '4.6.1';
+    cipherVersion = "4.6.1";
   },
   __setCipherVersion: (version) => {
     cipherVersion = version;

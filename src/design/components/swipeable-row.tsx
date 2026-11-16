@@ -1,17 +1,14 @@
-import * as Haptics from 'expo-haptics';
-import { useRef } from 'react';
-import { View } from 'react-native';
-import ReanimatedSwipeable, {
-  type SwipeableMethods,
-} from 'react-native-gesture-handler/ReanimatedSwipeable';
+import * as Haptics from "expo-haptics";
+import { useRef } from "react";
+import { View } from "react-native";
+import ReanimatedSwipeable, { type SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
+import { useThemeColors } from "../hooks/use-theme-colors";
+import { Icon, type IconName } from "../icon";
+import { type PressHandler, runPress } from "../lib/press";
+import { Pressable } from "./pressable";
+import { Text } from "./text";
 
-import { Pressable } from './pressable';
-import { Text } from './text';
-import { useThemeColors } from '../hooks/use-theme-colors';
-import { Icon, type IconName } from '../icon';
-import { type PressHandler, runPress } from '../lib/press';
-
-export type SwipeTone = 'neutral' | 'warning' | 'brand' | 'danger';
+export type SwipeTone = "neutral" | "warning" | "brand" | "danger";
 
 export interface SwipeAction {
   id: string;
@@ -36,15 +33,15 @@ export function SwipeableRow({ right, left, children }: SwipeableRowProps) {
 
   const run = (action: SwipeAction) => {
     ref.current?.close();
-    if (process.env.EXPO_OS === 'ios') {
+    if (process.env.EXPO_OS === "ios") {
       Haptics.impactAsync(
-        action.destructive ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light
+        action.destructive ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light,
       ).catch(() => {});
     }
     void runPress(action.onPress);
   };
 
-  const render = (actions: SwipeAction[], side: 'left' | 'right') =>
+  const render = (actions: SwipeAction[], side: "left" | "right") =>
     function SwipeActions() {
       return (
         <View className="flex-row items-stretch py-1 pl-1 pr-1">
@@ -72,8 +69,9 @@ export function SwipeableRow({ right, left, children }: SwipeableRowProps) {
       leftThreshold={ACTION_WIDTH / 2}
       overshootRight={false}
       overshootLeft={false}
-      renderRightActions={right?.length ? render(right, 'right') : undefined}
-      renderLeftActions={left?.length ? render(left, 'left') : undefined}>
+      renderRightActions={right?.length ? render(right, "right") : undefined}
+      renderLeftActions={left?.length ? render(left, "left") : undefined}
+    >
       {children}
     </ReanimatedSwipeable>
   );
@@ -90,19 +88,19 @@ function ActionButton({
   onRun(action: SwipeAction): void;
   first: boolean;
   last: boolean;
-  side: 'left' | 'right';
+  side: "left" | "right";
 }) {
   const colors = useThemeColors();
-  const tone: SwipeTone = action.tone ?? (action.destructive ? 'danger' : 'neutral');
+  const tone: SwipeTone = action.tone ?? (action.destructive ? "danger" : "neutral");
 
   const fill = {
-    neutral: colors['content-muted'],
+    neutral: colors["content-muted"],
     warning: colors.warning,
     brand: colors.brand,
     danger: colors.danger,
   }[tone];
 
-  const content = colors['brand-on'];
+  const content = colors["brand-on"];
 
   const leftRadius = first ? ACTION_RADIUS : 0;
   const rightRadius = last ? ACTION_RADIUS : 0;
@@ -116,15 +114,16 @@ function ActionButton({
       style={{
         width: ACTION_WIDTH,
         backgroundColor: fill,
-        borderCurve: 'continuous',
+        borderCurve: "continuous",
         borderTopLeftRadius: leftRadius,
         borderBottomLeftRadius: leftRadius,
         borderTopRightRadius: rightRadius,
         borderBottomRightRadius: rightRadius,
-        marginLeft: side === 'right' && !first ? 2 : 0,
-        marginRight: side === 'left' && !last ? 2 : 0,
+        marginLeft: side === "right" && !first ? 2 : 0,
+        marginRight: side === "left" && !last ? 2 : 0,
       }}
-      className="items-center justify-center gap-1">
+      className="items-center justify-center gap-1"
+    >
       <Icon name={action.icon} size={21} color={content} />
       <Text variant="micro" style={{ color: content }} numberOfLines={1}>
         {action.label}

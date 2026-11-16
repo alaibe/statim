@@ -1,14 +1,13 @@
-import { useSegments } from 'expo-router';
-import type { PropsWithChildren } from 'react';
-import { View } from 'react-native';
+import { useSegments } from "expo-router";
+import type { PropsWithChildren } from "react";
+import { View } from "react-native";
+import { useAppearanceStore } from "@/core/app/appearance";
+import { ChatBackground, DRAG_REGION, LayoutInsetsContext } from "@/design";
 
-import { ChatBackground, DRAG_REGION, LayoutInsetsContext } from '@/design';
-import { useAppearanceStore } from '@/core/app/appearance';
-
-import { DesktopSidebar } from './desktop-sidebar';
-import { HistoryMenu } from './history-menu';
-import { QuickSwitcher } from './quick-switcher';
-import { FULL_WINDOW_ROUTES } from './routes';
+import { DesktopSidebar } from "./desktop-sidebar";
+import { HistoryMenu } from "./history-menu";
+import { QuickSwitcher } from "./quick-switcher";
+import { FULL_WINDOW_ROUTES } from "./routes";
 
 /**
  * The window has no title bar, so its top edge moves it instead. Header
@@ -23,7 +22,7 @@ function DragStrip() {
     <View
       {...DRAG_REGION}
       style={{
-        position: 'absolute',
+        position: "absolute",
         top: 0,
         left: 0,
         right: 0,
@@ -48,8 +47,9 @@ export function AppFrame({ children }: PropsWithChildren) {
       <View className="flex-1 items-center justify-center bg-canvas p-6">
         <ChatBackground pattern={wallpaper} intensity="vivid" />
         <View
-          style={{ borderCurve: 'continuous' }}
-          className="h-[720px] max-h-full w-[520px] max-w-full overflow-hidden rounded-card bg-canvas shadow-xl">
+          style={{ borderCurve: "continuous" }}
+          className="h-[720px] max-h-full w-[520px] max-w-full overflow-hidden rounded-card bg-canvas shadow-xl"
+        >
           {children}
         </View>
         <DragStrip />

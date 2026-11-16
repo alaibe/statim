@@ -1,30 +1,24 @@
-import { useState } from 'react';
-import { ScrollView, View, useWindowDimensions } from 'react-native';
-import { Image } from 'expo-image';
-
-import { Icon, ListItem, Pressable, Text, type IconName } from '@/design';
-import { isLocalChat } from '@/core/messaging/bots';
-import { useChatStore } from '@/core/messaging/chat-store';
-import type { ChatId } from '@/core/messaging/types';
-import {
-  countsFor,
-  entriesOf,
-  type MediaCategory,
-  type MediaEntry,
-} from '@/core/messaging/media-index';
-import { formatDayLabel } from '@/core/messaging/preview';
-import { openUrlQuietly } from './link-actions';
+import { Image } from "expo-image";
+import { useState } from "react";
+import { ScrollView, useWindowDimensions, View } from "react-native";
+import { isLocalChat } from "@/core/messaging/bots";
+import { useChatStore } from "@/core/messaging/chat-store";
+import { countsFor, entriesOf, type MediaCategory, type MediaEntry } from "@/core/messaging/media-index";
+import { formatDayLabel } from "@/core/messaging/preview";
+import type { ChatId } from "@/core/messaging/types";
+import { Icon, type IconName, ListItem, Pressable, Text } from "@/design";
+import { openUrlQuietly } from "./link-actions";
 
 const TABS: { id: MediaCategory; label: string }[] = [
-  { id: 'media', label: 'Media' },
-  { id: 'files', label: 'Files' },
-  { id: 'voice', label: 'Voice' },
-  { id: 'links', label: 'Links' },
-  { id: 'gifs', label: 'GIFs' },
+  { id: "media", label: "Media" },
+  { id: "files", label: "Files" },
+  { id: "voice", label: "Voice" },
+  { id: "links", label: "Links" },
+  { id: "gifs", label: "GIFs" },
 ];
 
 export function SharedMedia({ chatId }: { chatId: ChatId }) {
-  const [tab, setTab] = useState<MediaCategory>('media');
+  const [tab, setTab] = useState<MediaCategory>("media");
   const { width } = useWindowDimensions();
   const mediaIndex = useChatStore((s) => s.mediaIndex);
   const counts = countsFor(mediaIndex, chatId);
@@ -33,10 +27,7 @@ export function SharedMedia({ chatId }: { chatId: ChatId }) {
 
   return (
     <>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerClassName="gap-2 px-gutter pb-3">
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 px-gutter pb-3">
         {TABS.map((entry) => {
           const active = entry.id === tab;
           return (
@@ -47,15 +38,14 @@ export function SharedMedia({ chatId }: { chatId: ChatId }) {
               onPress={() => setTab(entry.id)}
               className={
                 active
-                  ? 'flex-row items-center gap-1.5 rounded-pill bg-brand px-3 py-1.5'
-                  : 'flex-row items-center gap-1.5 rounded-pill bg-surface-sunken px-3 py-1.5'
-              }>
-              <Text
-                variant="caption"
-                className={active ? 'font-semibold text-brand-on' : 'font-medium text-content'}>
+                  ? "flex-row items-center gap-1.5 rounded-pill bg-brand px-3 py-1.5"
+                  : "flex-row items-center gap-1.5 rounded-pill bg-surface-sunken px-3 py-1.5"
+              }
+            >
+              <Text variant="caption" className={active ? "font-semibold text-brand-on" : "font-medium text-content"}>
                 {entry.label}
               </Text>
-              <Text variant="micro" className={active ? 'text-brand-on/80' : 'text-content-subtle'}>
+              <Text variant="micro" className={active ? "text-brand-on/80" : "text-content-subtle"}>
                 {counts[entry.id]}
               </Text>
             </Pressable>
@@ -65,11 +55,9 @@ export function SharedMedia({ chatId }: { chatId: ChatId }) {
 
       {entries.length === 0 ? (
         <Text variant="footnote" className="px-gutter py-6">
-          {isLocalChat(chatId)
-            ? 'Bot chats do not share files.'
-            : `Nothing shared in this chat yet.`}
+          {isLocalChat(chatId) ? "Bot chats do not share files." : `Nothing shared in this chat yet.`}
         </Text>
-      ) : tab === 'media' || tab === 'gifs' ? (
+      ) : tab === "media" || tab === "gifs" ? (
         <View className="flex-row flex-wrap gap-0.5 px-1">
           {entries.map((entry) => (
             <Image
@@ -81,9 +69,7 @@ export function SharedMedia({ chatId }: { chatId: ChatId }) {
           ))}
         </View>
       ) : (
-        entries.map((entry) => (
-          <MediaRow key={`${entry.messageId}-${entry.uri}`} entry={entry} category={tab} />
-        ))
+        entries.map((entry) => <MediaRow key={`${entry.messageId}-${entry.uri}`} entry={entry} category={tab} />)
       )}
     </>
   );
@@ -91,11 +77,7 @@ export function SharedMedia({ chatId }: { chatId: ChatId }) {
 
 function MediaRow({ entry, category }: { entry: MediaEntry; category: MediaCategory }) {
   const icon: IconName =
-    category === 'voice'
-      ? 'mic-outline'
-      : category === 'links'
-        ? 'link-outline'
-        : 'document-outline';
+    category === "voice" ? "mic-outline" : category === "links" ? "link-outline" : "document-outline";
 
   return (
     <ListItem

@@ -1,9 +1,9 @@
-import { scryptAsync } from '@noble/hashes/scrypt';
+import { scryptAsync } from "@noble/hashes/scrypt";
 
-import { fromHex, timingSafeEqual, toHex } from '@/lib/bytes';
-import { isNumber, isString, oneOf, shape } from '@/lib/guards';
-import { randomBytes } from '@/lib/random';
-import { VaultKey, vaultDelete, vaultGet, vaultSet } from '@/storage/vault';
+import { fromHex, timingSafeEqual, toHex } from "@/lib/bytes";
+import { isNumber, isString, oneOf, shape } from "@/lib/guards";
+import { randomBytes } from "@/lib/random";
+import { VaultKey, vaultDelete, vaultGet, vaultSet } from "@/storage/vault";
 
 export const PIN_LENGTH = 6;
 
@@ -12,7 +12,7 @@ const FIRST_WAIT_MS = 30_000;
 const LONGEST_WAIT_MS = 24 * 60 * 60_000;
 
 export interface PinKdf {
-  name: 'scrypt';
+  name: "scrypt";
   N: number;
   r: number;
   p: number;
@@ -24,9 +24,9 @@ export interface PinKdf {
  * desktop to keep one check well under a second.
  */
 export const PIN_KDF: PinKdf =
-  process.env.EXPO_OS === 'web'
-    ? { name: 'scrypt', N: 2 ** 15, r: 8, p: 1, dkLen: 32 }
-    : { name: 'scrypt', N: 2 ** 9, r: 8, p: 1, dkLen: 32 };
+  process.env.EXPO_OS === "web"
+    ? { name: "scrypt", N: 2 ** 15, r: 8, p: 1, dkLen: 32 }
+    : { name: "scrypt", N: 2 ** 9, r: 8, p: 1, dkLen: 32 };
 
 interface SealedPin {
   kdf: PinKdf;
@@ -40,13 +40,13 @@ interface Attempts {
 }
 
 export type PinCheck =
-  | { result: 'correct' }
-  | { result: 'wrong'; lockedUntil: number | null }
-  | { result: 'waiting'; lockedUntil: number };
+  | { result: "correct" }
+  | { result: "wrong"; lockedUntil: number | null }
+  | { result: "waiting"; lockedUntil: number };
 
 const isSealedPin = shape<SealedPin>({
   kdf: shape<PinKdf>({
-    name: oneOf('scrypt'),
+    name: oneOf("scrypt"),
     N: isNumber,
     r: isNumber,
     p: isNumber,
@@ -104,7 +104,7 @@ export async function deletePin(): Promise<void> {
 export async function checkPin(pin: string, now = Date.now()): Promise<PinCheck> {
   const sealed = await readSealed();
   const attempts = await readAttempts();
-  if (now < attempts.lockedUntil) return { result: 'waiting', lockedUntil: attempts.lockedUntil };
+  if (now < attempts.lockedUntil) return { result: "waiting", lockedUntil: attempts.lockedUntil };
 
   const failures = attempts.failures + 1;
   const lockedUntil = lockedUntilAfter(failures, now);
@@ -112,9 +112,9 @@ export async function checkPin(pin: string, now = Date.now()): Promise<PinCheck>
 
   if (await pinMatches(pin, sealed)) {
     await vaultDelete(VaultKey.pinAttempts);
-    return { result: 'correct' };
+    return { result: "correct" };
   }
-  return { result: 'wrong', lockedUntil };
+  return { result: "wrong", lockedUntil };
 }
 
 export async function pinLockedUntil(now = Date.now()): Promise<number | null> {
@@ -124,9 +124,9 @@ export async function pinLockedUntil(now = Date.now()): Promise<number | null> {
 
 async function readSealed(): Promise<SealedPin> {
   const stored = await vaultGet(VaultKey.pin);
-  if (stored === null) throw new Error('No PIN is set.');
+  if (stored === null) throw new Error("No PIN is set.");
   const sealed: unknown = JSON.parse(stored);
-  if (!isSealedPin(sealed)) throw new Error('The PIN record is unreadable.');
+  if (!isSealedPin(sealed)) throw new Error("The PIN record is unreadable.");
   return sealed;
 }
 
@@ -134,6 +134,6 @@ async function readAttempts(): Promise<Attempts> {
   const stored = await vaultGet(VaultKey.pinAttempts);
   if (stored === null) return { failures: 0, lockedUntil: 0 };
   const attempts: unknown = JSON.parse(stored);
-  if (!isAttempts(attempts)) throw new Error('The PIN attempt count is unreadable.');
+  if (!isAttempts(attempts)) throw new Error("The PIN attempt count is unreadable.");
   return attempts;
 }

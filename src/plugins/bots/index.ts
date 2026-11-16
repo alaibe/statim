@@ -1,46 +1,40 @@
-import { isLocalChat } from '@/core/messaging/bots';
-import { useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
-import { liveViews } from '@/core/plugins/live';
-import {
-  contentType,
-  type Plugin,
-  type PluginContext,
-  type SlashCommand,
-} from '@/core/plugins/types';
-import { W } from '@/design/widgets';
+import { isLocalChat } from "@/core/messaging/bots";
+import { useChatStore, xmtpSessionFor } from "@/core/messaging/chat-store";
+import { liveViews } from "@/core/plugins/live";
+import { contentType, type Plugin, type PluginContext, type SlashCommand } from "@/core/plugins/types";
+import { W } from "@/design/widgets";
 
-import { makeBotsBot } from './bot';
-import { BotWidgetMessage } from './renderer';
-import { resolveBot } from './resolve';
-import { CONTENT_TYPE_UI, isUiMessage, readBots, writeBots, type KnownBot } from './types';
+import { makeBotsBot } from "./bot";
+import { BotWidgetMessage } from "./renderer";
+import { resolveBot } from "./resolve";
+import { CONTENT_TYPE_UI, isUiMessage, type KnownBot, readBots, writeBots } from "./types";
 
 async function botsCard(context: PluginContext) {
   const bots = await readBots(context);
 
   if (bots.length === 0) {
     return {
-      kind: 'widget' as const,
-      fallback: 'No bots yet',
+      kind: "widget" as const,
+      fallback: "No bots yet",
       widget: W.card(
         [
           W.text(
-            'A bot is just an address that answers. Add one and it appears in your ' +
-              'chat list like any other chat.'
+            "A bot is just an address that answers. Add one and it appears in your " + "chat list like any other chat.",
           ),
-          W.actions([{ label: 'Add a bot', command: '/addbot' }]),
+          W.actions([{ label: "Add a bot", command: "/addbot" }]),
           W.text(
-            'Anyone can run a bot, and nobody vets them. A bot sees everything you send ' +
-              'it, exactly like a person would.'
+            "Anyone can run a bot, and nobody vets them. A bot sees everything you send " +
+              "it, exactly like a person would.",
           ),
         ],
-        { title: 'No bots yet', icon: 'hardware-chip-outline' }
+        { title: "No bots yet", icon: "hardware-chip-outline" },
       ),
     };
   }
 
   return {
-    kind: 'widget' as const,
-    fallback: `${bots.length} bot${bots.length === 1 ? '' : 's'}`,
+    kind: "widget" as const,
+    fallback: `${bots.length} bot${bots.length === 1 ? "" : "s"}`,
     widget: W.card(
       [
         W.rows(
@@ -51,26 +45,26 @@ async function botsCard(context: PluginContext) {
               {
                 label: `Say hello to ${bot.name}`,
                 command: `/startbot ${bot.address}`,
-                icon: 'chatbubble-outline' as const,
+                icon: "chatbubble-outline" as const,
               },
             ],
-          }))
+          })),
         ),
-        W.actions([{ label: 'Add another', command: '/addbot' }]),
+        W.actions([{ label: "Add another", command: "/addbot" }]),
       ],
-      { title: 'Your bots', icon: 'hardware-chip-outline' }
+      { title: "Your bots", icon: "hardware-chip-outline" },
     ),
   };
 }
 
 export const botsPlugin: Plugin = {
   manifest: {
-    id: 'bots',
-    name: 'Bots',
-    description: 'Add bots by address and talk to them. Bots can reply with cards and buttons.',
-    version: '1.0.0',
-    icon: 'hardware-chip-outline',
-    permissions: ['account.read', 'chat.read', 'chat.send', 'network', 'storage'],
+    id: "bots",
+    name: "Bots",
+    description: "Add bots by address and talk to them. Bots can reply with cards and buttons.",
+    version: "1.0.0",
+    icon: "hardware-chip-outline",
+    permissions: ["account.read", "chat.read", "chat.send", "network", "storage"],
     requiresSessionRestart: true,
   },
 
@@ -78,117 +72,117 @@ export const botsPlugin: Plugin = {
     const views = liveViews(context, { bots: () => botsCard(context) });
     const commands: SlashCommand[] = [
       {
-        name: 'bots',
-        showIn: ['channel'],
-        description: 'Bots you have added',
-        usage: '/bots',
+        name: "bots",
+        showIn: ["channel"],
+        description: "Bots you have added",
+        usage: "/bots",
         async run({ respond }) {
           await respond(await views.bots());
-          return { type: 'handled' };
+          return { type: "handled" };
         },
       },
 
       {
-        name: 'addbot',
-        showIn: ['channel'],
-        description: 'Add a bot by address, ENS name or name@domain',
-        usage: '/addbot <address | name.eth | name@domain> [name]',
+        name: "addbot",
+        showIn: ["channel"],
+        description: "Add a bot by address, ENS name or name@domain",
+        usage: "/addbot <address | name.eth | name@domain> [name]",
         async run({ args }) {
-          if (args.length === 0) return { type: 'setComposer', text: '/addbot ' };
+          if (args.length === 0) return { type: "setComposer", text: "/addbot " };
           const [input, ...nameParts] = args;
           if (!input) {
-            return { type: 'error', message: 'Which bot? /addbot pricebot.eth Prices' };
+            return { type: "error", message: "Which bot? /addbot pricebot.eth Prices" };
           }
 
           const session = xmtpSessionFor(useChatStore.getState());
-          if (!session) return { type: 'error', message: 'Not connected to XMTP yet.' };
+          if (!session) return { type: "error", message: "Not connected to XMTP yet." };
 
           const resolved = await resolveBot(input);
-          if (!resolved) return { type: 'error', message: `Could not find ${input}.` };
+          if (!resolved) return { type: "error", message: `Could not find ${input}.` };
           const { address } = resolved;
 
           const participantId = await session.resolveParticipant(address);
           if (!participantId) {
             return {
-              type: 'error',
+              type: "error",
               message:
                 `${input} has no XMTP inbox, so nothing is listening there. ` +
-                'A bot has to have opened an XMTP client at least once.',
+                "A bot has to have opened an XMTP client at least once.",
             };
           }
 
           const bots = await readBots(context);
           if (bots.some((b) => b.address.toLowerCase() === address.toLowerCase())) {
-            return { type: 'error', message: 'That bot is already on your list.' };
+            return { type: "error", message: "That bot is already on your list." };
           }
 
           const bot: KnownBot = {
             address,
-            name: nameParts.join(' ') || resolved.name || input.split(/[.@]/)[0],
+            name: nameParts.join(" ") || resolved.name || input.split(/[.@]/)[0],
             description: resolved.description,
             participantId,
             addedAt: Date.now(),
           };
           await writeBots(context, [...bots, bot]);
           return {
-            type: 'notice',
-            tone: 'success',
+            type: "notice",
+            tone: "success",
             message: `${bot.name} added. Nobody vetted it: it sees everything you send it.`,
           };
         },
       },
 
       {
-        name: 'removebot',
-        showIn: ['channel'],
-        description: 'Forget a bot',
-        usage: '/removebot <address | name.eth | name@domain>',
+        name: "removebot",
+        showIn: ["channel"],
+        description: "Forget a bot",
+        usage: "/removebot <address | name.eth | name@domain>",
         async run({ args }) {
           const [input] = args;
-          if (!input) return { type: 'error', message: 'Which one? /removebot pricebot.eth' };
+          if (!input) return { type: "error", message: "Which one? /removebot pricebot.eth" };
 
           const resolved = await resolveBot(input);
           const names = [input, resolved?.address].flatMap((n) => (n ? [n.toLowerCase()] : []));
           const bots = await readBots(context);
           const next = bots.filter((b) => !names.includes(b.address.toLowerCase()));
           if (next.length === bots.length) {
-            return { type: 'error', message: 'That bot is not on your list.' };
+            return { type: "error", message: "That bot is not on your list." };
           }
 
           await writeBots(context, next);
           return {
-            type: 'notice',
-            tone: 'success',
-            message: 'Removed. The chat stays; only the shortcut is gone.',
+            type: "notice",
+            tone: "success",
+            message: "Removed. The chat stays; only the shortcut is gone.",
           };
         },
       },
 
       {
-        name: 'startbot',
-        showIn: ['channel'],
-        aliases: ['start'],
-        description: 'Send /start to a bot, the usual way to begin',
-        usage: '/startbot <address | name.eth | name@domain>',
+        name: "startbot",
+        showIn: ["channel"],
+        aliases: ["start"],
+        description: "Send /start to a bot, the usual way to begin",
+        usage: "/startbot <address | name.eth | name@domain>",
         async run({ args, chatId }) {
           const [input] = args;
 
           if (!input && !isLocalChat(chatId)) {
-            await context.chat.sendText(chatId, '/start');
-            return { type: 'handled' };
+            await context.chat.sendText(chatId, "/start");
+            return { type: "handled" };
           }
-          if (!input) return { type: 'error', message: 'Which bot? /startbot pricebot.eth' };
+          if (!input) return { type: "error", message: "Which bot? /startbot pricebot.eth" };
 
           const resolved = await resolveBot(input);
           const target = resolved && (await context.chat.startDm(resolved.address));
           if (!target) {
-            return { type: 'error', message: `${input} has no XMTP inbox.` };
+            return { type: "error", message: `${input} has no XMTP inbox.` };
           }
 
-          await context.chat.sendText(target, '/start');
+          await context.chat.sendText(target, "/start");
           return {
-            type: 'notice',
-            tone: 'success',
+            type: "notice",
+            tone: "success",
             message: `Sent /start to ${input}. Its reply lands in that chat.`,
           };
         },
@@ -203,18 +197,16 @@ export const botsPlugin: Plugin = {
 
       async names() {
         const bots = await readBots(context);
-        return Object.fromEntries(
-          bots.flatMap((b) => (b.participantId ? [[b.participantId, b.name]] : []))
-        );
+        return Object.fromEntries(bots.flatMap((b) => (b.participantId ? [[b.participantId, b.name]] : [])));
       },
 
       composerActions: [
         {
-          id: 'addbot',
-          label: 'Add bot',
-          icon: 'add-circle-outline',
-          command: '/addbot',
-          showIn: ['channel'],
+          id: "addbot",
+          label: "Add bot",
+          icon: "add-circle-outline",
+          command: "/addbot",
+          showIn: ["channel"],
         },
       ],
 

@@ -1,9 +1,9 @@
-import { Directory, File, Paths } from 'expo-file-system';
+import { Directory, File, Paths } from "expo-file-system";
 
-import { pathOfFileUri } from './file-uri';
-import { OWNED_DIRECTORIES, type FileArea } from './inventory';
+import { pathOfFileUri } from "./file-uri";
+import { type FileArea, OWNED_DIRECTORIES } from "./inventory";
 
-export { pathOfFileUri } from './file-uri';
+export { pathOfFileUri } from "./file-uri";
 
 export function mediaDirectory(area: FileArea, accountId: string): Directory {
   const dir = new Directory(Paths.document, area, accountId);
@@ -40,5 +40,5 @@ export function eraseMedia(accountId: string): void {
       failures.push(error);
     }
   }
-  if (failures.length > 0) throw new AggregateError(failures, 'Could not erase account media.');
+  if (failures.length > 0) throw new AggregateError(failures, "Could not erase account media.");
 }

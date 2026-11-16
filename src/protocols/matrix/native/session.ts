@@ -1,7 +1,7 @@
-import * as sdk from '@unomed/react-native-matrix-sdk';
+import * as sdk from "@unomed/react-native-matrix-sdk";
 
-import type { MxPreview, MxSession } from '../api';
-import { mapContent, nameOf } from './map';
+import type { MxPreview, MxSession } from "../api";
+import { mapContent, nameOf } from "./map";
 
 export function timelineConfiguration(): sdk.TimelineConfiguration {
   return {
@@ -15,11 +15,7 @@ export function timelineConfiguration(): sdk.TimelineConfiguration {
 
 export async function latestOf(room: sdk.RoomLike): Promise<MxPreview | undefined> {
   const value = await room.latestEvent();
-  if (
-    value.tag !== sdk.LatestEventValue_Tags.Remote &&
-    value.tag !== sdk.LatestEventValue_Tags.Local
-  )
-    return undefined;
+  if (value.tag !== sdk.LatestEventValue_Tags.Remote && value.tag !== sdk.LatestEventValue_Tags.Local) return undefined;
   const content = mapContent(value.inner.content);
   if (!content) return undefined;
   return {

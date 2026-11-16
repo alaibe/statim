@@ -1,10 +1,10 @@
-import { Stack, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ScrollView } from 'react-native';
+import { Stack, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
+import { ScrollView } from "react-native";
 
-import { Screen } from '@/design';
-import { SettingsAccount, useEnsName } from '@/features/settings/settings-account';
-import { SettingsSections, useSettingsKeys } from '@/features/settings/settings-sections';
+import { Screen } from "@/design";
+import { SettingsAccount, useEnsName } from "@/features/settings/settings-account";
+import { SettingsSections, useSettingsKeys } from "@/features/settings/settings-sections";
 
 export default function SettingsScreen() {
   // Bumped on every focus, so keys added on a sub-page show up on the way back.
@@ -12,14 +12,14 @@ export default function SettingsScreen() {
   useFocusEffect(
     useCallback(() => {
       setFocusCount((n) => n + 1);
-    }, [])
+    }, []),
   );
   const keys = useSettingsKeys(focusCount);
   const ensName = useEnsName(focusCount);
 
   return (
     <Screen className="bg-surface px-0" edges={[]}>
-      <Stack.Screen options={{ title: 'Settings', headerTransparent: false }} />
+      <Stack.Screen options={{ title: "Settings", headerTransparent: false }} />
 
       <ScrollView contentInsetAdjustmentBehavior="automatic">
         <SettingsAccount ensName={ensName} />

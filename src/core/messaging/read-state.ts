@@ -1,9 +1,9 @@
-import type { AccountStorage } from '@/storage/account';
-import type { ChatId } from './types';
+import type { AccountStorage } from "@/storage/account";
+import type { ChatId } from "./types";
 
 type ReadState = Record<ChatId, number>;
 
-const KEY = 'chat.readAt';
+const KEY = "chat.readAt";
 
 export async function readReadState(storage: AccountStorage): Promise<ReadState> {
   return (await storage.get<ReadState>(KEY)) ?? {};
@@ -13,6 +13,6 @@ export async function writeReadState(storage: AccountStorage, readAt: ReadState)
   try {
     await storage.set(KEY, readAt);
   } catch (error) {
-    console.warn('[chat] could not save read state', error);
+    console.warn("[chat] could not save read state", error);
   }
 }

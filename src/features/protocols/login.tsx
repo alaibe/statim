@@ -1,40 +1,39 @@
-import { useState } from 'react';
-import type { TextInputProps } from 'react-native';
-
-import { Button, Card, Field, Text } from '@/design';
-import type { ChatSession, LoginState } from '@/core/messaging/protocol';
-import { useAction } from '@/features/use-action';
+import { useState } from "react";
+import type { TextInputProps } from "react-native";
+import type { ChatSession, LoginState } from "@/core/messaging/protocol";
+import { Button, Card, Field, Text } from "@/design";
+import { useAction } from "@/features/use-action";
 
 const COPY: Record<
-  LoginState['step'],
+  LoginState["step"],
   { label: string; placeholder: string; action: string } & Pick<
     TextInputProps,
-    'keyboardType' | 'autoComplete' | 'textContentType'
+    "keyboardType" | "autoComplete" | "textContentType"
   >
 > = {
   phone: {
-    label: 'Phone number',
-    placeholder: '+44 7700 900123',
-    action: 'Send code',
-    keyboardType: 'phone-pad',
-    autoComplete: 'tel',
-    textContentType: 'telephoneNumber',
+    label: "Phone number",
+    placeholder: "+44 7700 900123",
+    action: "Send code",
+    keyboardType: "phone-pad",
+    autoComplete: "tel",
+    textContentType: "telephoneNumber",
   },
   code: {
-    label: 'Code',
-    placeholder: '12345',
-    action: 'Continue',
-    keyboardType: 'number-pad',
-    autoComplete: 'one-time-code',
-    textContentType: 'oneTimeCode',
+    label: "Code",
+    placeholder: "12345",
+    action: "Continue",
+    keyboardType: "number-pad",
+    autoComplete: "one-time-code",
+    textContentType: "oneTimeCode",
   },
   password: {
-    label: 'Password',
-    placeholder: 'Your password',
-    action: 'Sign in',
-    keyboardType: 'default',
-    autoComplete: 'password',
-    textContentType: 'password',
+    label: "Password",
+    placeholder: "Your password",
+    action: "Sign in",
+    keyboardType: "default",
+    autoComplete: "password",
+    textContentType: "password",
   },
 };
 
@@ -51,7 +50,7 @@ export function LoginStep({
   session: ChatSession | undefined;
   label: string;
 }) {
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState("");
   const copy = COPY[login.step];
   const submitLogin = useAction(async () => session?.submitLogin?.(value), {
     failure: `${label} did not accept that`,
@@ -79,7 +78,7 @@ export function LoginStep({
         autoCorrect={false}
         autoFocus
         keyboardType={copy.keyboardType}
-        secureTextEntry={login.step === 'password'}
+        secureTextEntry={login.step === "password"}
         autoComplete={copy.autoComplete}
         textContentType={copy.textContentType}
       />
@@ -99,7 +98,7 @@ export function LoginStep({
 export function SignedIn({ session, label }: { session: ChatSession; label: string }) {
   const signOut = useAction(async () => session.signOut?.(), {
     success: `Signed out of ${label}`,
-    failure: 'Could not sign out',
+    failure: "Could not sign out",
   });
 
   return (
@@ -110,9 +109,7 @@ export function SignedIn({ session, label }: { session: ChatSession; label: stri
       <Text variant="caption">
         Signing out ends this session on {label} as well and removes its data from this device.
       </Text>
-      {session.signOut ? (
-        <Button label="Sign out" tone="neutral" size="sm" onPress={() => signOut.run()} />
-      ) : null}
+      {session.signOut ? <Button label="Sign out" tone="neutral" size="sm" onPress={() => signOut.run()} /> : null}
     </Card>
   );
 }

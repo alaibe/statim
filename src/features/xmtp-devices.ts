@@ -1,16 +1,16 @@
-import { useAccountStore } from '@/core/account/account-store';
-import { useChatStore, xmtpSessionFor } from '@/core/messaging/chat-store';
-import { loadProtocolConfig } from '@/core/messaging/config';
-import type { XmtpInstallation } from '@/core/messaging/protocol';
-import { protocolById } from '@/protocols';
+import { useAccountStore } from "@/core/account/account-store";
+import { useChatStore, xmtpSessionFor } from "@/core/messaging/chat-store";
+import { loadProtocolConfig } from "@/core/messaging/config";
+import type { XmtpInstallation } from "@/core/messaging/protocol";
+import { protocolById } from "@/protocols";
 
 async function offline() {
   const { activeAccountId, keyring } = useAccountStore.getState();
-  const installations = protocolById('xmtp')?.installations;
-  if (!activeAccountId || !keyring || !installations) throw new Error('No account is active.');
+  const installations = protocolById("xmtp")?.installations;
+  if (!activeAccountId || !keyring || !installations) throw new Error("No account is active.");
   const params = {
     account: keyring.account,
-    config: await loadProtocolConfig(activeAccountId, 'xmtp'),
+    config: await loadProtocolConfig(activeAccountId, "xmtp"),
   };
   return { installations, params };
 }

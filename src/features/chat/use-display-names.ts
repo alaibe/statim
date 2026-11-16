@@ -1,20 +1,20 @@
-import { useEffect } from 'react';
-import { create } from 'zustand';
+import { useEffect } from "react";
+import { create } from "zustand";
 
-import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
+import { selfIdFor, useChatStore } from "@/core/messaging/chat-store";
 import {
   chatParticipants,
   chatTitle,
-  nameFrom,
-  resolveParticipants,
   type DisplayParticipant,
+  nameFrom,
   type ResolvedParticipants,
-} from '@/core/messaging/display-names';
-import { isProtocolId, type ProtocolId } from '@/core/messaging/namespace';
-import type { Chat, ParticipantId } from '@/core/messaging/types';
-import { usePluginRegistry } from '@/core/plugins/host';
-import { useLiveViews } from '@/core/plugins/live';
-import { sameValue } from '@/lib/same-value';
+  resolveParticipants,
+} from "@/core/messaging/display-names";
+import { isProtocolId, type ProtocolId } from "@/core/messaging/namespace";
+import type { Chat, ParticipantId } from "@/core/messaging/types";
+import { usePluginRegistry } from "@/core/plugins/host";
+import { useLiveViews } from "@/core/plugins/live";
+import { sameValue } from "@/lib/same-value";
 
 interface KnownNames extends ResolvedParticipants {
   accountId: string | null;
@@ -30,22 +30,18 @@ const NONE: Readonly<KnownNames> = Object.freeze({
 
 const useKnownNames = create<KnownNames>(() => NONE);
 
-function remember(accountId: string, found: Partial<Omit<KnownNames, 'accountId'>>): void {
+function remember(accountId: string, found: Partial<Omit<KnownNames, "accountId">>): void {
   useKnownNames.setState((known) => {
     const base = known.accountId === accountId ? known : { ...NONE, accountId };
     const merge = (next: Record<string, string> | undefined, previous: Record<string, string>) =>
-      next && Object.entries(next).some(([id, value]) => previous[id] !== value)
-        ? { ...previous, ...next }
-        : previous;
+      next && Object.entries(next).some(([id, value]) => previous[id] !== value) ? { ...previous, ...next } : previous;
     const next = {
       accountId,
       names: merge(found.names, base.names),
       addresses: merge(found.addresses, base.addresses),
       own: found.own && !sameValue(found.own, base.own) ? found.own : base.own,
     };
-    return next.names === base.names && next.addresses === base.addresses && next.own === base.own
-      ? base
-      : next;
+    return next.names === base.names && next.addresses === base.addresses && next.own === base.own ? base : next;
   });
 }
 
@@ -70,15 +66,15 @@ export function useDisplayNames(participants: DisplayParticipant[]) {
     };
   }, [registry, accountId, pluginVersions]);
 
-  const key = [...new Set(participants.map((p) => `${p.protocol}:${p.id}`))].sort().join(',');
+  const key = [...new Set(participants.map((p) => `${p.protocol}:${p.id}`))].sort().join(",");
 
   useEffect(() => {
     if (!key || !accountId) return;
     let cancelled = false;
 
     const byProtocol = new Map<ProtocolId, ParticipantId[]>();
-    for (const entry of key.split(',')) {
-      const at = entry.indexOf(':');
+    for (const entry of key.split(",")) {
+      const at = entry.indexOf(":");
       const protocol = entry.slice(0, at);
       const id = entry.slice(at + 1);
       if (!isProtocolId(protocol) || !id) continue;
@@ -108,9 +104,7 @@ export function useDisplayNames(participants: DisplayParticipant[]) {
 export function useChatTitles(chats: readonly Chat[]) {
   const sessions = useChatStore((s) => s.sessions);
   const selfIdOf = (c: Chat) => selfIdFor({ sessions }, c.protocol);
-  const { nameFor } = useDisplayNames(
-    chats.flatMap((c) => (c.kind === 'dm' ? chatParticipants(c, selfIdOf(c)) : []))
-  );
+  const { nameFor } = useDisplayNames(chats.flatMap((c) => (c.kind === "dm" ? chatParticipants(c, selfIdOf(c)) : [])));
   return {
     nameFor,
     selfIdOf,

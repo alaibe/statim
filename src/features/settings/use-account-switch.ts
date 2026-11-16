@@ -1,15 +1,15 @@
-import { useState } from 'react';
+import { useState } from "react";
 
-import { useAccountStore } from '@/core/account/account-store';
-import { useAction } from '@/features/use-action';
-import { useKeyedLoad } from '@/lib/use-keyed-load';
+import { useAccountStore } from "@/core/account/account-store";
+import { useAction } from "@/features/use-action";
+import { useKeyedLoad } from "@/lib/use-keyed-load";
 
 /** An on/off setting of the active account, reloaded after each change. */
 export function useAccountSwitch<State>(
   load: (accountId: string) => Promise<State>,
   turnOn: (accountId: string) => Promise<void>,
   turnOff: (accountId: string) => Promise<void>,
-  failure: string
+  failure: string,
 ) {
   const accountId = useAccountStore((s) => s.activeAccountId);
   const [version, setVersion] = useState(0);
@@ -23,7 +23,7 @@ export function useAccountSwitch<State>(
         setVersion((v) => v + 1);
       }
     },
-    { failure }
+    { failure },
   );
   return { state, change };
 }

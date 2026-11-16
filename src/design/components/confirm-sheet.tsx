@@ -1,18 +1,18 @@
-import { View } from 'react-native';
+import { View } from "react-native";
 
-import { type PressHandler, usePress } from '../lib/press';
-import { Button } from './button';
-import { Sheet, type SheetProps } from './sheet';
-import { Text } from './text';
+import { type PressHandler, usePress } from "../lib/press";
+import { Button } from "./button";
+import { Sheet, type SheetProps } from "./sheet";
+import { Text } from "./text";
 
-export interface ConfirmSheetProps extends Omit<SheetProps, 'children'> {
+export interface ConfirmSheetProps extends Omit<SheetProps, "children"> {
   /** One paragraph, or several. Each becomes its own line of body copy. */
   body?: string | (string | undefined)[];
   confirm: {
     label: string;
     busyLabel?: string;
     /** `danger` for anything that destroys something. */
-    tone?: 'brand' | 'danger';
+    tone?: "brand" | "danger";
     testID?: string;
     onPress: PressHandler;
   };
@@ -28,7 +28,7 @@ export interface ConfirmSheetProps extends Omit<SheetProps, 'children'> {
 export function ConfirmSheet({
   body,
   confirm,
-  cancelLabel = 'Cancel',
+  cancelLabel = "Cancel",
   busy: working = false,
   ...sheet
 }: ConfirmSheetProps) {
@@ -51,19 +51,13 @@ export function ConfirmSheet({
         <Button
           testID={confirm.testID}
           label={busy ? (confirm.busyLabel ?? confirm.label) : confirm.label}
-          tone={confirm.tone ?? 'brand'}
+          tone={confirm.tone ?? "brand"}
           fullWidth
           loading={busy}
           disabled={busy}
           onPress={press}
         />
-        <Button
-          label={cancelLabel}
-          tone="neutral"
-          fullWidth
-          disabled={busy}
-          onPress={sheet.onClose}
-        />
+        <Button label={cancelLabel} tone="neutral" fullWidth disabled={busy} onPress={sheet.onClose} />
       </View>
     </Sheet>
   );

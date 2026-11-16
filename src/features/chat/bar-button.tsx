@@ -1,4 +1,4 @@
-import { cn, Icon, type IconName, Pressable, Text } from '@/design';
+import { cn, Icon, type IconName, Pressable, Text } from "@/design";
 
 /** The wide button that stands where the composer would. */
 export function BarButton({
@@ -23,9 +23,10 @@ export function BarButton({
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
       className={cn(
-        'min-h-tap flex-row items-center justify-center gap-2 rounded-pill border border-line bg-surface-raised',
-        className
-      )}>
+        "min-h-tap flex-row items-center justify-center gap-2 rounded-pill border border-line bg-surface-raised",
+        className,
+      )}
+    >
       <Icon name={icon} size={18} tone="brand" />
       <Text className="font-semibold text-brand">{label}</Text>
     </Pressable>

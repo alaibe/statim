@@ -1,15 +1,14 @@
-import { useObserve } from 'expo-observe';
-import { useEffect, useMemo, useRef, useState } from 'react';
-
-import { toast } from '@/design';
-import { reportError } from '@/core/app/report-error';
-import { useChatStore } from '@/core/messaging/chat-store';
-import type { ChatSession } from '@/core/messaging/protocol';
-import type { ChatMessage, ChatId, MessageId } from '@/core/messaging/types';
-import { isNewReply, newReplyCounts, threadReadAt } from '@/core/messaging/thread-reads';
-import { unreadState } from '@/core/messaging/unread';
-import { useJumpStore } from './jump-store';
-import type { MessageListHandle } from './message-list';
+import { useObserve } from "expo-observe";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { reportError } from "@/core/app/report-error";
+import { useChatStore } from "@/core/messaging/chat-store";
+import type { ChatSession } from "@/core/messaging/protocol";
+import { isNewReply, newReplyCounts, threadReadAt } from "@/core/messaging/thread-reads";
+import type { ChatId, ChatMessage, MessageId } from "@/core/messaging/types";
+import { unreadState } from "@/core/messaging/unread";
+import { toast } from "@/design";
+import { useJumpStore } from "./jump-store";
+import type { MessageListHandle } from "./message-list";
 
 const NO_MESSAGES: readonly ChatMessage[] = Object.freeze([]);
 const NO_COUNTS: ReadonlyMap<MessageId, number> = new Map();
@@ -18,7 +17,7 @@ export function useChatTimeline(
   id: ChatId,
   thread: MessageId | undefined,
   session: ChatSession | undefined,
-  countReplies: boolean
+  countReplies: boolean,
 ) {
   const accountId = useChatStore((s) => s.accountId);
   const chat = useChatStore((s) => s.chats.find((c) => c.id === id));
@@ -36,10 +35,7 @@ export function useChatTimeline(
   const messages = useMemo(() => {
     if (!thread) return allMessages.filter((message) => !message.threadRoot);
     const root = allMessages.find((message) => message.id === thread);
-    return [
-      ...(root ? [root] : []),
-      ...allMessages.filter((message) => message.threadRoot === thread),
-    ];
+    return [...(root ? [root] : []), ...allMessages.filter((message) => message.threadRoot === thread)];
   }, [allMessages, thread]);
   const byId = new Map(allMessages.map((message) => [message.id, message]));
   const replyCounts = new Map<MessageId, number>();
@@ -71,10 +67,7 @@ export function useChatTimeline(
     if (id && accountId && !thread) void loadMessages(id);
   }, [id, thread, accountId, session, loadMessages]);
 
-  useEffect(
-    () => (session && !thread ? watchPresence(id) : undefined),
-    [id, thread, session, watchPresence]
-  );
+  useEffect(() => (session && !thread ? watchPresence(id) : undefined), [id, thread, session, watchPresence]);
 
   const newest = allMessages[allMessages.length - 1];
   const newestFromParticipant = newest && !newest.fromMe ? newest.id : null;
@@ -86,13 +79,11 @@ export function useChatTimeline(
   const list = useRef<MessageListHandle>(null);
   const firstUnseenReply = unseenReplies[0]?.id;
   useEffect(() => {
-    if (firstUnseenReply)
-      requestAnimationFrame(() => list.current?.scrollToMessage(firstUnseenReply));
+    if (firstUnseenReply) requestAnimationFrame(() => list.current?.scrollToMessage(firstUnseenReply));
   }, [firstUnseenReply]);
   const followNewest = () => list.current?.scrollToEnd();
   const loadEarlier = () => {
-    if (thread || !messageHistory?.hasOlder || messageHistory.loading || messageHistory.error)
-      return;
+    if (thread || !messageHistory?.hasOlder || messageHistory.loading || messageHistory.error) return;
     void loadOlderMessages(id);
   };
 
@@ -108,16 +99,11 @@ export function useChatTimeline(
     }
     if (!messageHistory || messageHistory.loading) return;
     const oldest = messages[0];
-    if (
-      oldest &&
-      oldest.sentAt >= jump.sentAt &&
-      messageHistory.hasOlder &&
-      !messageHistory.error
-    ) {
+    if (oldest && oldest.sentAt >= jump.sentAt && messageHistory.hasOlder && !messageHistory.error) {
       void loadOlderMessages(id);
     } else {
       land(null);
-      toast.error('Could not find that message in this chat');
+      toast.error("Could not find that message in this chat");
     }
   }, [id, jump, messages, messageHistory, loadOlderMessages, land]);
   useEffect(() => {

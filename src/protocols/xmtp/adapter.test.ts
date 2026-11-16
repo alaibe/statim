@@ -1,63 +1,57 @@
-import type { LocalAccount } from 'viem';
-
-import { createAccountStorage } from '@/storage/account';
-import { XmtpSession } from './adapter';
-import { protocolChatId } from '@/core/messaging/namespace';
+import type { LocalAccount } from "viem";
+import { protocolChatId } from "@/core/messaging/namespace";
+import { createAccountStorage } from "@/storage/account";
+import { XmtpSession } from "./adapter";
 
 const mockBuild = jest.fn();
 const mockCreate = jest.fn();
 
-jest.mock('@xmtp/react-native-sdk', () => ({
+jest.mock("@xmtp/react-native-sdk", () => ({
   Client: {
     build: (...args: unknown[]) => mockBuild(...args),
     create: (...args: unknown[]) => mockCreate(...args),
   },
   PublicIdentity: function PublicIdentity() {},
-  ConsentRecord: function ConsentRecord(
-    this: Record<string, string>,
-    value: string,
-    entryType: string,
-    state: string
-  ) {
+  ConsentRecord: function ConsentRecord(this: Record<string, string>, value: string, entryType: string, state: string) {
     Object.assign(this, { value, entryType, state });
   },
   ConsentState: {},
-  ConversationVersion: { GROUP: 'group', DM: 'dm' },
+  ConversationVersion: { GROUP: "group", DM: "dm" },
   Dm: class {},
   Group: class {},
 }));
 
 const mockLastReadTimes = jest.fn();
 
-jest.mock('./native', () => ({
+jest.mock("./native", () => ({
   xmtpNative: { getLastReadTimes: (...args: unknown[]) => mockLastReadTimes(...args) },
 }));
 
-const client = (inboxId: string, installations = ['this-device']) => ({
+const client = (inboxId: string, installations = ["this-device"]) => ({
   inboxId,
-  installationId: 'this-device',
-  publicIdentity: { identifier: '0xabc' },
+  installationId: "this-device",
+  publicIdentity: { identifier: "0xabc" },
   inboxState: async () => ({ installations: installations.map((id) => ({ id })) }),
   deleteLocalDatabase: jest.fn(),
   conversations: {},
 });
 
-it('remembers the inbox id, so the next launch builds the client without the network', async () => {
-  const storage = createAccountStorage('xmtp-inbox');
+it("remembers the inbox id, so the next launch builds the client without the network", async () => {
+  const storage = createAccountStorage("xmtp-inbox");
   const options = {
-    accountId: 'xmtp-inbox',
-    account: { address: '0xabc' } as unknown as LocalAccount,
+    accountId: "xmtp-inbox",
+    account: { address: "0xabc" } as unknown as LocalAccount,
     dbEncryptionKey: new Uint8Array(32),
-    env: 'dev' as const,
+    env: "dev" as const,
     storage,
   };
-  mockBuild.mockResolvedValue(client('inbox-1'));
+  mockBuild.mockResolvedValue(client("inbox-1"));
 
   await XmtpSession.connect(options);
   await XmtpSession.connect(options);
 
   expect(mockBuild.mock.calls[0][2]).toBeUndefined();
-  expect(mockBuild.mock.calls[1][2]).toBe('inbox-1');
+  expect(mockBuild.mock.calls[1][2]).toBe("inbox-1");
   expect(mockCreate).not.toHaveBeenCalled();
 });
 
@@ -68,76 +62,77 @@ const connectAs = (address: string) =>
     dbEncryptionKey: new Uint8Array(32),
   });
 
-it('starts a new installation when another device revoked this one', async () => {
-  const revoked = client('inbox-1', ['other-device']);
+it("starts a new installation when another device revoked this one", async () => {
+  const revoked = client("inbox-1", ["other-device"]);
   mockBuild.mockResolvedValue(revoked);
-  mockCreate.mockReset().mockResolvedValue(client('inbox-1'));
+  mockCreate.mockReset().mockResolvedValue(client("inbox-1"));
 
-  await connectAs('0xrevoked');
+  await connectAs("0xrevoked");
 
   expect(revoked.deleteLocalDatabase).toHaveBeenCalled();
   expect(mockCreate).toHaveBeenCalled();
 });
 
-it('keeps the local database when there is no room to register again', async () => {
+it("keeps the local database when there is no room to register again", async () => {
   const full = client(
-    'inbox-1',
-    Array.from({ length: 10 }, (_, i) => `other-${i}`)
+    "inbox-1",
+    Array.from({ length: 10 }, (_, i) => `other-${i}`),
   );
   mockBuild.mockResolvedValue(full);
   mockCreate.mockReset();
 
-  await expect(connectAs('0xfull')).rejects.toThrow('inbox is full');
+  await expect(connectAs("0xfull")).rejects.toThrow("inbox is full");
 
   expect(full.deleteLocalDatabase).not.toHaveBeenCalled();
   expect(mockCreate).not.toHaveBeenCalled();
 });
 
-it('keeps this installation when the network cannot say whether it was revoked', async () => {
-  const offline = { ...client('inbox-1'), inboxState: () => Promise.reject(new Error('offline')) };
+it("keeps this installation when the network cannot say whether it was revoked", async () => {
+  const offline = { ...client("inbox-1"), inboxState: () => Promise.reject(new Error("offline")) };
   mockBuild.mockResolvedValue(offline);
   mockCreate.mockReset();
 
-  await connectAs('0xoffline');
+  await connectAs("0xoffline");
 
   expect(offline.deleteLocalDatabase).not.toHaveBeenCalled();
   expect(mockCreate).not.toHaveBeenCalled();
 });
 
-const DM_TOPIC = '/xmtp/mls/1/g-dm/proto';
+const DM_TOPIC = "/xmtp/mls/1/g-dm/proto";
 
 const text = (id: string, sentMs: number) => ({
   id,
   topic: DM_TOPIC,
-  senderInboxId: 'peer',
+  senderInboxId: "peer",
   sentNs: sentMs * 1_000_000,
-  deliveryStatus: 'PUBLISHED',
-  contentTypeId: 'xmtp.org/text:1.0',
+  deliveryStatus: "PUBLISHED",
+  contentTypeId: "xmtp.org/text:1.0",
   nativeContent: { text: id },
 });
 const receipt = (id: string, sentMs: number) => ({
   ...text(id, sentMs),
-  contentTypeId: 'xmtp.org/readReceipt:1.0',
+  contentTypeId: "xmtp.org/readReceipt:1.0",
   nativeContent: { readReceipt: {} },
 });
 
-it('keeps reactions in history without letting them replace the preview', async () => {
+it("keeps reactions in history without letting them replace the preview", async () => {
   const reaction = {
-    ...text('reaction', 2_000),
-    contentTypeId: 'xmtp.org/reaction:1.0',
-    nativeContent: { reaction: { reference: 'hello', content: '👍', action: 'added' } },
+    ...text("reaction", 2_000),
+    contentTypeId: "xmtp.org/reaction:1.0",
+    nativeContent: { reaction: { reference: "hello", content: "👍", action: "added" } },
   };
   const session = await sessionWith([
     {
       ...dm,
       lastMessage: reaction,
-      messages: async () => [reaction, text('hello', 1_000)],
+      messages: async () => [reaction, text("hello", 1_000)],
     },
   ]);
-  expect((await session.listChats())[0].lastMessage?.id).toBe('hello');
-  expect((await session.getMessages('dm' as never)).map((message) => message.content.kind)).toEqual(
-    ['text', 'reaction']
-  );
+  expect((await session.listChats())[0].lastMessage?.id).toBe("hello");
+  expect((await session.getMessages("dm" as never)).map((message) => message.content.kind)).toEqual([
+    "text",
+    "reaction",
+  ]);
 });
 
 type Stored = { id: string; topic: string; messages: () => Promise<StoredMessage[]> };
@@ -154,7 +149,7 @@ function lastReadTimes(conversations: unknown[], streamedSoFar: StoredMessage[])
     const times: Record<string, number> = {};
     const arrived = streamedSoFar.filter((m) => m.topic === conversation.topic);
     for (const m of [...(await conversation.messages()), ...arrived]) {
-      if (!m.contentTypeId.startsWith('xmtp.org/readReceipt:')) continue;
+      if (!m.contentTypeId.startsWith("xmtp.org/readReceipt:")) continue;
       times[m.senderInboxId] = Math.max(times[m.senderInboxId] ?? 0, m.sentNs);
     }
     return times;
@@ -164,23 +159,21 @@ function lastReadTimes(conversations: unknown[], streamedSoFar: StoredMessage[])
 async function sessionWith(
   conversations: unknown[],
   streamed: unknown[] = [],
-  { denied = [], deniedInboxes = [] }: { denied?: unknown[]; deniedInboxes?: string[] } = {}
+  { denied = [], deniedInboxes = [] }: { denied?: unknown[]; deniedInboxes?: string[] } = {},
 ) {
-  const found = (conversation: unknown) =>
-    conversation && { ...(conversation as object), lastMessage: undefined };
+  const found = (conversation: unknown) => conversation && { ...(conversation as object), lastMessage: undefined };
   findConversationByTopic.mockReset();
   findConversationByTopic.mockImplementation(async (topic: string) =>
-    found(conversations.find((c) => (c as { topic: string }).topic === topic))
+    found(conversations.find((c) => (c as { topic: string }).topic === topic)),
   );
   setConsentState.mockReset();
   const streamedSoFar: StoredMessage[] = [];
   mockLastReadTimes.mockReset();
   mockLastReadTimes.mockImplementation(lastReadTimes([...conversations, ...denied], streamedSoFar));
   mockBuild.mockResolvedValue({
-    ...client('me'),
+    ...client("me"),
     preferences: {
-      inboxIdConsentState: async (inboxId: string) =>
-        deniedInboxes.includes(inboxId) ? 'denied' : 'unknown',
+      inboxIdConsentState: async (inboxId: string) => (deniedInboxes.includes(inboxId) ? "denied" : "unknown"),
       setConsentState,
     },
     conversations: {
@@ -201,114 +194,114 @@ async function sessionWith(
     },
   });
   return XmtpSession.connect({
-    accountId: 'xmtp-receipts',
-    account: { address: '0xabc' } as unknown as LocalAccount,
+    accountId: "xmtp-receipts",
+    account: { address: "0xabc" } as unknown as LocalAccount,
     dbEncryptionKey: new Uint8Array(32),
   });
 }
 
-it('rejects accepting or declining an unknown chat', async () => {
+it("rejects accepting or declining an unknown chat", async () => {
   const session = await sessionWith([]);
-  const id = protocolChatId('missing');
-  await expect(session.setConsent(id, 'accepted')).rejects.toThrow('Chat missing not found');
-  await expect(session.setConsent(id, 'declined')).rejects.toThrow('Chat missing not found');
+  const id = protocolChatId("missing");
+  await expect(session.setConsent(id, "accepted")).rejects.toThrow("Chat missing not found");
+  await expect(session.setConsent(id, "declined")).rejects.toThrow("Chat missing not found");
 });
 
 const dm = {
-  id: 'dm',
+  id: "dm",
   topic: DM_TOPIC,
-  version: 'dm',
+  version: "dm",
   createdAt: 1,
-  state: 'allowed',
-  peerInboxId: async () => 'peer',
-  lastMessage: receipt('seen', 3_000),
-  messages: async () => [receipt('seen', 3_000), text('hello', 2_000)],
+  state: "allowed",
+  peerInboxId: async () => "peer",
+  lastMessage: receipt("seen", 3_000),
+  messages: async () => [receipt("seen", 3_000), text("hello", 2_000)],
 };
 
-it('previews a chat by its newest message, not a read receipt', async () => {
+it("previews a chat by its newest message, not a read receipt", async () => {
   const [listed] = await (await sessionWith([dm])).listChats();
-  expect(listed.lastMessage).toMatchObject({ id: 'hello', content: { text: 'hello' } });
+  expect(listed.lastMessage).toMatchObject({ id: "hello", content: { text: "hello" } });
 });
 
-it('does not stream read receipts as messages', async () => {
+it("does not stream read receipts as messages", async () => {
   const received: string[] = [];
-  const session = await sessionWith([dm], [receipt('seen', 3_000), text('hello', 2_000)]);
+  const session = await sessionWith([dm], [receipt("seen", 3_000), text("hello", 2_000)]);
   await session.streamMessages((message) => received.push(message.id));
-  expect(received).toEqual(['hello']);
+  expect(received).toEqual(["hello"]);
 });
 
-it('marks your messages read up to the newest receipt someone else sent', async () => {
+it("marks your messages read up to the newest receipt someone else sent", async () => {
   const [listed] = await (await sessionWith([dm])).listChats();
   expect(listed.readUpTo).toBe(3_000);
 });
 
-it('does not count a receipt from another device of your own', async () => {
-  const own = { ...receipt('mine', 3_000), senderInboxId: 'me' };
-  const mine = { ...dm, lastMessage: own, messages: async () => [own, text('hello', 2_000)] };
+it("does not count a receipt from another device of your own", async () => {
+  const own = { ...receipt("mine", 3_000), senderInboxId: "me" };
+  const mine = { ...dm, lastMessage: own, messages: async () => [own, text("hello", 2_000)] };
   const [listed] = await (await sessionWith([mine])).listChats();
   expect(listed.readUpTo).toBeUndefined();
 });
 
-it('knows how far a chat was read when no receipt is among its newest messages', async () => {
+it("knows how far a chat was read when no receipt is among its newest messages", async () => {
   const answered = {
     ...dm,
-    lastMessage: text('reply', 4_000),
-    messages: async () => [text('reply', 4_000), receipt('seen', 3_000), text('hello', 2_000)],
+    lastMessage: text("reply", 4_000),
+    messages: async () => [text("reply", 4_000), receipt("seen", 3_000), text("hello", 2_000)],
   };
   const [listed] = await (await sessionWith([answered])).listChats();
   expect(listed.readUpTo).toBe(3_000);
 });
 
-it('lists a chat without a read mark when the SDK cannot say', async () => {
+it("lists a chat without a read mark when the SDK cannot say", async () => {
   const session = await sessionWith([dm]);
-  mockLastReadTimes.mockRejectedValue(new Error('database is locked'));
+  mockLastReadTimes.mockRejectedValue(new Error("database is locked"));
   const [listed] = await session.listChats();
-  expect(listed).toMatchObject({ id: 'dm', readUpTo: undefined });
+  expect(listed).toMatchObject({ id: "dm", readUpTo: undefined });
 });
 
-it('does not announce a chat again when you open it', async () => {
+it("does not announce a chat again when you open it", async () => {
   const session = await sessionWith([dm]);
   const announced: unknown[] = [];
   await session.streamChats((chat) => announced.push(chat));
-  await session.getMessages('dm' as never);
+  await session.getMessages("dm" as never);
   await new Promise((resolve) => setTimeout(resolve, 0));
   expect(announced).toEqual([]);
 });
 
-it('announces the chat again when a receipt streams in', async () => {
+it("announces the chat again when a receipt streams in", async () => {
   const unread = {
     ...dm,
-    lastMessage: text('hello', 2_000),
-    messages: async () => [text('hello', 2_000)],
+    lastMessage: text("hello", 2_000),
+    messages: async () => [text("hello", 2_000)],
   };
-  const session = await sessionWith([unread], [receipt('seen', 3_000)]);
+  const session = await sessionWith([unread], [receipt("seen", 3_000)]);
   const announced: (number | undefined)[] = [];
   await session.streamChats((chat) => announced.push(chat.readUpTo));
   await session.streamMessages(() => {});
   expect(announced).toEqual([3_000]);
 });
 
-it('announces a group once per message of yours, not once per member who read it', async () => {
-  const topic = '/xmtp/mls/1/g-group/proto';
+it("announces a group once per message of yours, not once per member who read it", async () => {
+  const topic = "/xmtp/mls/1/g-group/proto";
   const from = (senderInboxId: string, message: object) => ({ ...message, topic, senderInboxId });
   const group = {
     ...dm,
-    id: 'group',
+    id: "group",
     topic,
-    version: 'group',
+    version: "group",
     members: async () => [],
     messages: async () => [],
   };
   const session = await sessionWith(
     [group],
     [
-      from('me', text('first', 2_000)),
-      from('ann', receipt('ann read', 3_000)),
-      from('bob', receipt('bob read', 3_100)),
-      from('me', text('second', 4_000)),
-      from('cat', receipt('cat read', 5_000)),
-      from('ann', receipt('ann read again', 5_100)),
-    ]
+      from("me", text("first", 2_000)),
+      from("ann", receipt("ann read", 3_000)),
+      from("bob", receipt("bob read", 3_100)),
+      from("me", text("second", 4_000)),
+      from("cat", receipt("cat read", 5_000)),
+      from("ann", receipt("ann read again", 5_100)),
+    ],
   );
   const announced: (number | undefined)[] = [];
   await session.streamChats((chat) => announced.push(chat.readUpTo));
@@ -316,150 +309,147 @@ it('announces a group once per message of yours, not once per member who read it
   expect(announced).toEqual([3_000, 5_000]);
 });
 
-it('announces a receipt for what you just sent from this device', async () => {
+it("announces a receipt for what you just sent from this device", async () => {
   const later = Date.now() + 60_000;
   const session = await sessionWith(
-    [{ ...dm, lastMessage: text('hello', 2_000), send: async () => 'sent' }],
-    [receipt('seen again', later)]
+    [{ ...dm, lastMessage: text("hello", 2_000), send: async () => "sent" }],
+    [receipt("seen again", later)],
   );
   await session.listChats();
-  await session.send('dm' as never, { kind: 'text', text: 'hi' });
+  await session.send("dm" as never, { kind: "text", text: "hi" });
   const announced: (number | undefined)[] = [];
   await session.streamChats((chat) => announced.push(chat.readUpTo));
   await session.streamMessages(() => {});
   expect(announced).toEqual([later]);
 });
 
-it('keeps the preview of a chat a receipt announces again', async () => {
+it("keeps the preview of a chat a receipt announces again", async () => {
   const unread = {
     ...dm,
-    lastMessage: text('hello', 2_000),
-    messages: async () => [receipt('seen', 3_000), text('hello', 2_000)],
+    lastMessage: text("hello", 2_000),
+    messages: async () => [receipt("seen", 3_000), text("hello", 2_000)],
   };
-  const session = await sessionWith([unread], [receipt('seen', 3_000)]);
+  const session = await sessionWith([unread], [receipt("seen", 3_000)]);
   const previews: (string | undefined)[] = [];
   await session.streamChats((chat) => previews.push(chat.lastMessage?.id));
   await session.streamMessages(() => {});
-  expect(previews).toEqual(['hello']);
+  expect(previews).toEqual(["hello"]);
 });
 
-it('leaves read receipts out of the history of a DM and of a group', async () => {
-  const group = { ...dm, id: 'group', version: 'group' };
+it("leaves read receipts out of the history of a DM and of a group", async () => {
+  const group = { ...dm, id: "group", version: "group" };
   const session = await sessionWith([dm, group]);
-  for (const id of ['dm', 'group']) {
+  for (const id of ["dm", "group"]) {
     const history = await session.getMessages(id as never);
-    expect(history.map((message) => message.id)).toEqual(['hello']);
+    expect(history.map((message) => message.id)).toEqual(["hello"]);
   }
 });
 
-it('streams a message into the chat its topic names, without asking the client', async () => {
+it("streams a message into the chat its topic names, without asking the client", async () => {
   const received: { id: string; chatId: string }[] = [];
-  const session = await sessionWith([dm], [text('hello', 2_000)]);
+  const session = await sessionWith([dm], [text("hello", 2_000)]);
   await session.streamMessages(({ id, chatId }) => received.push({ id, chatId }));
-  expect(received).toEqual([{ id: 'hello', chatId: 'dm' }]);
+  expect(received).toEqual([{ id: "hello", chatId: "dm" }]);
   expect(findConversationByTopic).not.toHaveBeenCalled();
 });
 
-it('asks the client for the chat of a topic that names none', async () => {
-  const OTHER_TOPIC = '/xmtp/other/dm';
+it("asks the client for the chat of a topic that names none", async () => {
+  const OTHER_TOPIC = "/xmtp/other/dm";
   const received: { id: string; chatId: string }[] = [];
-  const session = await sessionWith(
-    [{ ...dm, topic: OTHER_TOPIC }],
-    [{ ...text('hello', 2_000), topic: OTHER_TOPIC }]
-  );
+  const session = await sessionWith([{ ...dm, topic: OTHER_TOPIC }], [{ ...text("hello", 2_000), topic: OTHER_TOPIC }]);
   await session.streamMessages(({ id, chatId }) => received.push({ id, chatId }));
-  expect(received).toEqual([{ id: 'hello', chatId: 'dm' }]);
+  expect(received).toEqual([{ id: "hello", chatId: "dm" }]);
   expect(findConversationByTopic).toHaveBeenCalledWith(OTHER_TOPIC);
 });
 
-it('lists a DM blocked by denying its peer, and leaves a declined one out', async () => {
-  const blocked = { ...dm, id: 'blocked', state: 'denied', peerInboxId: async () => 'spammer' };
-  const declined = { ...dm, id: 'declined', state: 'denied', peerInboxId: async () => 'stranger' };
+it("lists a DM blocked by denying its peer, and leaves a declined one out", async () => {
+  const blocked = { ...dm, id: "blocked", state: "denied", peerInboxId: async () => "spammer" };
+  const declined = { ...dm, id: "declined", state: "denied", peerInboxId: async () => "stranger" };
   const session = await sessionWith([dm], [], {
     denied: [blocked, declined],
-    deniedInboxes: ['spammer'],
+    deniedInboxes: ["spammer"],
   });
 
   const listed = await session.listChats();
   expect(listed.map((chat) => [chat.id, chat.blocked])).toEqual([
-    ['dm', undefined],
-    ['blocked', true],
+    ["dm", undefined],
+    ["blocked", true],
   ]);
 });
 
-it('blocks by denying the peer inbox as well as the DM, and allows both to unblock', async () => {
+it("blocks by denying the peer inbox as well as the DM, and allows both to unblock", async () => {
   const updateConsent = jest.fn();
   const session = await sessionWith([{ ...dm, updateConsent }]);
 
-  await session.setBlocked('dm' as never, true);
-  await session.setBlocked('dm' as never, false);
+  await session.setBlocked("dm" as never, true);
+  await session.setBlocked("dm" as never, false);
 
   expect(setConsentState.mock.calls.map(([record]) => ({ ...record }))).toEqual([
-    { value: 'peer', entryType: 'inbox_id', state: 'denied' },
-    { value: 'peer', entryType: 'inbox_id', state: 'allowed' },
+    { value: "peer", entryType: "inbox_id", state: "denied" },
+    { value: "peer", entryType: "inbox_id", state: "allowed" },
   ]);
-  expect(updateConsent.mock.calls).toEqual([['denied'], ['allowed']]);
+  expect(updateConsent.mock.calls).toEqual([["denied"], ["allowed"]]);
 });
 
-it('drops what a blocked DM streams, even before the stream hears of the block', async () => {
+it("drops what a blocked DM streams, even before the stream hears of the block", async () => {
   const received: string[] = [];
-  const session = await sessionWith([{ ...dm, updateConsent: jest.fn() }], [text('hello', 2_000)]);
-  await session.setBlocked('dm' as never, true);
+  const session = await sessionWith([{ ...dm, updateConsent: jest.fn() }], [text("hello", 2_000)]);
+  await session.setBlocked("dm" as never, true);
   await session.streamMessages((message) => received.push(message.id));
   expect(received).toEqual([]);
 });
 
 const joined = (id: string, sentMs: number) => ({
   ...text(id, sentMs),
-  contentTypeId: 'xmtp.org/group_updated:1.0',
+  contentTypeId: "xmtp.org/group_updated:1.0",
   nativeContent: {
     groupUpdated: {
-      membersAdded: [{ inboxId: 'peer' }],
+      membersAdded: [{ inboxId: "peer" }],
       membersRemoved: [],
       metadataFieldsChanged: [],
     },
   },
 });
 
-it('leaves who joined out of a DM, in its history, preview and stream', async () => {
+it("leaves who joined out of a DM, in its history, preview and stream", async () => {
   const fresh = {
     ...dm,
-    lastMessage: joined('created', 1_000),
-    messages: async () => [joined('created', 1_000)],
+    lastMessage: joined("created", 1_000),
+    messages: async () => [joined("created", 1_000)],
   };
-  const session = await sessionWith([fresh], [joined('created', 1_000), text('hello', 2_000)]);
+  const session = await sessionWith([fresh], [joined("created", 1_000), text("hello", 2_000)]);
   const received: string[] = [];
 
   const [listed] = await session.listChats();
-  const history = await session.getMessages('dm' as never);
+  const history = await session.getMessages("dm" as never);
   await session.streamMessages((message) => received.push(message.id));
 
   expect(listed.lastMessage).toBeUndefined();
   expect(history).toEqual([]);
-  expect(received).toEqual(['hello']);
+  expect(received).toEqual(["hello"]);
 });
 
-it('keeps who joined in a group', async () => {
+it("keeps who joined in a group", async () => {
   const group = {
-    id: 'group',
-    topic: '/xmtp/mls/1/g-group/proto',
-    version: 'group',
+    id: "group",
+    topic: "/xmtp/mls/1/g-group/proto",
+    version: "group",
     createdAt: 1,
-    state: 'allowed',
-    groupName: 'Crew',
+    state: "allowed",
+    groupName: "Crew",
     members: async () => [],
-    lastMessage: joined('created', 1_000),
-    messages: async () => [joined('created', 1_000)],
+    lastMessage: joined("created", 1_000),
+    messages: async () => [joined("created", 1_000)],
   };
-  const session = await sessionWith([group], [joined('created', 1_000)]);
+  const session = await sessionWith([group], [joined("created", 1_000)]);
   const received: string[] = [];
 
   const [listed] = await session.listChats();
-  const history = await session.getMessages('group' as never);
+  const history = await session.getMessages("group" as never);
   await session.streamMessages((message) => received.push(message.id));
 
-  const system = { kind: 'system', text: '1 joined' };
+  const system = { kind: "system", text: "1 joined" };
   expect(listed.lastMessage?.content).toEqual(system);
   expect(history.map((message) => message.content)).toEqual([system]);
-  expect(received).toEqual(['created']);
+  expect(received).toEqual(["created"]);
 });

@@ -1,15 +1,15 @@
-import { act, createElement } from 'react';
-import { create, type ReactTestRenderer } from 'react-test-renderer';
+import { act, createElement } from "react";
+import { create, type ReactTestRenderer } from "react-test-renderer";
 
-import { useChatStore } from '@/core/messaging/chat-store';
-import { useTypingAnnouncer } from './use-typing-announcer';
-import { asChatId } from '@/core/messaging/testing/ids';
+import { useChatStore } from "@/core/messaging/chat-store";
+import { asChatId } from "@/core/messaging/testing/ids";
+import { useTypingAnnouncer } from "./use-typing-announcer";
 
 function Probe() {
-  return createElement('probe', { announce: useTypingAnnouncer(asChatId('xmtp-chat'), true) });
+  return createElement("probe", { announce: useTypingAnnouncer(asChatId("xmtp-chat"), true) });
 }
 
-it('tells the protocol once per few seconds of typing, not on every keystroke', () => {
+it("tells the protocol once per few seconds of typing, not on every keystroke", () => {
   jest.useFakeTimers();
   const setTyping = jest.fn(async () => {});
   useChatStore.setState({ setTyping });
@@ -17,21 +17,21 @@ it('tells the protocol once per few seconds of typing, not on every keystroke', 
   act(() => {
     tree = create(createElement(Probe));
   });
-  const announce: (text: string) => void = tree.root.findByType('probe' as never).props.announce;
+  const announce: (text: string) => void = tree.root.findByType("probe" as never).props.announce;
 
-  for (const text of ['h', 'he', 'hel', 'hell', 'hello']) announce(text);
-  expect(setTyping.mock.calls).toEqual([['xmtp-chat', true]]);
+  for (const text of ["h", "he", "hel", "hell", "hello"]) announce(text);
+  expect(setTyping.mock.calls).toEqual([["xmtp-chat", true]]);
 
   jest.advanceTimersByTime(3_000);
-  announce('hello!');
+  announce("hello!");
   expect(setTyping.mock.calls).toEqual([
-    ['xmtp-chat', true],
-    ['xmtp-chat', true],
+    ["xmtp-chat", true],
+    ["xmtp-chat", true],
   ]);
 
-  announce('');
-  expect(setTyping.mock.calls.at(-1)).toEqual(['xmtp-chat', false]);
-  announce('');
+  announce("");
+  expect(setTyping.mock.calls.at(-1)).toEqual(["xmtp-chat", false]);
+  announce("");
   expect(setTyping).toHaveBeenCalledTimes(3);
 
   act(() => tree.unmount());

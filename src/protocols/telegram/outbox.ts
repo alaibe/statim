@@ -1,4 +1,4 @@
-import type { TdMessage } from './types';
+import type { TdMessage } from "./types";
 
 const SEND_TIMEOUT_MS = 30_000;
 

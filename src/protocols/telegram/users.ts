@@ -1,4 +1,4 @@
-import type { TdUser } from './types';
+import type { TdUser } from "./types";
 
 export function addressOf(user: TdUser): string {
   const username = user.usernames?.active_usernames[0];
@@ -8,6 +8,6 @@ export function addressOf(user: TdUser): string {
 }
 
 export function nameOf(user: TdUser): string {
-  if (user.type['@type'] === 'userTypeDeleted') return 'Deleted account';
-  return [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || addressOf(user);
+  if (user.type["@type"] === "userTypeDeleted") return "Deleted account";
+  return [user.first_name, user.last_name].filter(Boolean).join(" ").trim() || addressOf(user);
 }

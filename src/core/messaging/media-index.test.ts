@@ -1,148 +1,138 @@
-import { createAccountStorage } from '@/storage/account';
-import { deleteAccountDatabase } from '@/storage/database';
+import { createAccountStorage } from "@/storage/account";
+import { deleteAccountDatabase } from "@/storage/database";
 import {
   countsFor,
   entriesFor,
   entriesOf,
   extractLinks,
-  indexMessages,
   flushMediaIndex,
+  indexMessages,
   loadMediaIndex,
   saveMediaIndexSoon,
-} from './media-index';
-import { asChatId } from './testing/ids';
-import type { ChatMessage, MessageContent } from './types';
+} from "./media-index";
+import { asChatId } from "./testing/ids";
+import type { ChatMessage, MessageContent } from "./types";
 
-const C1 = asChatId('xmtp-c1');
-const C2 = asChatId('xmtp-c2');
+const C1 = asChatId("xmtp-c1");
+const C2 = asChatId("xmtp-c2");
 
 function message(id: string, content: MessageContent, sentAt = 1): ChatMessage {
   return {
     id,
     chatId: C1,
-    senderId: 'a',
+    senderId: "a",
     sentAt,
     content,
     fromMe: false,
-    status: 'sent',
+    status: "sent",
   };
 }
 
 beforeEach(async () => {
-  for (const id of ['media-test', 'acct-a', 'acct-b']) await deleteAccountDatabase(id);
+  for (const id of ["media-test", "acct-a", "acct-b"]) await deleteAccountDatabase(id);
 });
 
-describe('extractLinks', () => {
-  it('finds a url in a sentence', () => {
-    expect(extractLinks('look at https://example.com now')).toEqual(['https://example.com']);
+describe("extractLinks", () => {
+  it("finds a url in a sentence", () => {
+    expect(extractLinks("look at https://example.com now")).toEqual(["https://example.com"]);
   });
 
-  it('strips sentence punctuation from the end', () => {
-    expect(extractLinks('see https://example.com/a.')).toEqual(['https://example.com/a']);
-    expect(extractLinks('(https://example.com)')).toEqual(['https://example.com']);
+  it("strips sentence punctuation from the end", () => {
+    expect(extractLinks("see https://example.com/a.")).toEqual(["https://example.com/a"]);
+    expect(extractLinks("(https://example.com)")).toEqual(["https://example.com"]);
   });
 
-  it('finds several', () => {
-    expect(extractLinks('https://a.com and https://b.com')).toHaveLength(2);
+  it("finds several", () => {
+    expect(extractLinks("https://a.com and https://b.com")).toHaveLength(2);
   });
 
-  it('ignores text that merely looks like a domain', () => {
-    expect(extractLinks('email me at bob@example.com, e.g. tomorrow')).toEqual([]);
-  });
-});
-
-describe('entriesFor', () => {
-  it('classifies a photo as media', () => {
-    const [entry] = entriesFor(message('m1', { kind: 'image', uri: 'file://a.jpg' }));
-    expect(entry.category).toBe('media');
-  });
-
-  it('separates gifs from photos', () => {
-    const [byMime] = entriesFor(
-      message('m1', { kind: 'image', uri: 'file://a', mimeType: 'image/gif' })
-    );
-    const [byName] = entriesFor(
-      message('m2', { kind: 'image', uri: 'file://b.GIF', name: 'b.GIF' })
-    );
-
-    expect(byMime.category).toBe('gifs');
-    expect(byName.category).toBe('gifs');
-  });
-
-  it('classifies files and voice notes', () => {
-    expect(entriesFor(message('m1', { kind: 'file', uri: 'f', name: 'a.pdf' }))[0].category).toBe(
-      'files'
-    );
-    expect(
-      entriesFor(message('m2', { kind: 'voice', uri: 'v', durationMs: 1000 }))[0].category
-    ).toBe('voice');
-  });
-
-  it('contributes nothing for an ordinary message', () => {
-    expect(entriesFor(message('m1', { kind: 'text', text: 'hello' }))).toEqual([]);
+  it("ignores text that merely looks like a domain", () => {
+    expect(extractLinks("email me at bob@example.com, e.g. tomorrow")).toEqual([]);
   });
 });
 
-describe('indexMessages', () => {
-  it('adds entries under their chat', () => {
-    const index = indexMessages({}, C1, [message('m1', { kind: 'image', uri: 'file://a.jpg' })]);
-    expect(entriesOf(index, C1, 'media')).toHaveLength(1);
+describe("entriesFor", () => {
+  it("classifies a photo as media", () => {
+    const [entry] = entriesFor(message("m1", { kind: "image", uri: "file://a.jpg" }));
+    expect(entry.category).toBe("media");
   });
 
-  it('is idempotent, because a sync redelivers messages', () => {
-    const one = message('m1', { kind: 'image', uri: 'file://a.jpg' });
+  it("separates gifs from photos", () => {
+    const [byMime] = entriesFor(message("m1", { kind: "image", uri: "file://a", mimeType: "image/gif" }));
+    const [byName] = entriesFor(message("m2", { kind: "image", uri: "file://b.GIF", name: "b.GIF" }));
+
+    expect(byMime.category).toBe("gifs");
+    expect(byName.category).toBe("gifs");
+  });
+
+  it("classifies files and voice notes", () => {
+    expect(entriesFor(message("m1", { kind: "file", uri: "f", name: "a.pdf" }))[0].category).toBe("files");
+    expect(entriesFor(message("m2", { kind: "voice", uri: "v", durationMs: 1000 }))[0].category).toBe("voice");
+  });
+
+  it("contributes nothing for an ordinary message", () => {
+    expect(entriesFor(message("m1", { kind: "text", text: "hello" }))).toEqual([]);
+  });
+});
+
+describe("indexMessages", () => {
+  it("adds entries under their chat", () => {
+    const index = indexMessages({}, C1, [message("m1", { kind: "image", uri: "file://a.jpg" })]);
+    expect(entriesOf(index, C1, "media")).toHaveLength(1);
+  });
+
+  it("is idempotent, because a sync redelivers messages", () => {
+    const one = message("m1", { kind: "image", uri: "file://a.jpg" });
     let index = indexMessages({}, C1, [one]);
     index = indexMessages(index, C1, [one]);
 
-    expect(entriesOf(index, C1, 'media')).toHaveLength(1);
+    expect(entriesOf(index, C1, "media")).toHaveLength(1);
   });
 
-  it('returns the same object when nothing was added', () => {
+  it("returns the same object when nothing was added", () => {
     // Cheap identity check keeps React from re-rendering the profile screen.
-    const index = indexMessages({}, C1, [message('m1', { kind: 'text', text: 'hi' })]);
+    const index = indexMessages({}, C1, [message("m1", { kind: "text", text: "hi" })]);
     expect(index).toEqual({});
   });
 
-  it('orders newest first', () => {
+  it("orders newest first", () => {
     const index = indexMessages({}, C1, [
-      message('m1', { kind: 'image', uri: 'a' }, 1),
-      message('m2', { kind: 'image', uri: 'b' }, 9),
+      message("m1", { kind: "image", uri: "a" }, 1),
+      message("m2", { kind: "image", uri: "b" }, 9),
     ]);
-    expect(entriesOf(index, C1, 'media').map((e) => e.messageId)).toEqual(['m2', 'm1']);
+    expect(entriesOf(index, C1, "media").map((e) => e.messageId)).toEqual(["m2", "m1"]);
   });
 
-  it('keeps chats apart', () => {
-    let index = indexMessages({}, C1, [message('m1', { kind: 'image', uri: 'a' })]);
-    index = indexMessages(index, C2, [message('m2', { kind: 'image', uri: 'b' })]);
+  it("keeps chats apart", () => {
+    let index = indexMessages({}, C1, [message("m1", { kind: "image", uri: "a" })]);
+    index = indexMessages(index, C2, [message("m2", { kind: "image", uri: "b" })]);
 
-    expect(entriesOf(index, C1, 'media')).toHaveLength(1);
-    expect(entriesOf(index, C2, 'media')).toHaveLength(1);
+    expect(entriesOf(index, C1, "media")).toHaveLength(1);
+    expect(entriesOf(index, C2, "media")).toHaveLength(1);
   });
 
-  it('records every link in one message', () => {
-    const index = indexMessages({}, C1, [
-      message('m1', { kind: 'text', text: 'https://a.com and https://b.com' }),
-    ]);
-    expect(entriesOf(index, C1, 'links')).toHaveLength(2);
+  it("records every link in one message", () => {
+    const index = indexMessages({}, C1, [message("m1", { kind: "text", text: "https://a.com and https://b.com" })]);
+    expect(entriesOf(index, C1, "links")).toHaveLength(2);
   });
 });
 
-describe('countsFor', () => {
-  it('counts each category', () => {
+describe("countsFor", () => {
+  it("counts each category", () => {
     let index = indexMessages({}, C1, [
-      message('m1', { kind: 'image', uri: 'a' }),
-      message('m2', { kind: 'file', uri: 'f', name: 'a.pdf' }),
-      message('m3', { kind: 'text', text: 'https://a.com' }),
+      message("m1", { kind: "image", uri: "a" }),
+      message("m2", { kind: "file", uri: "f", name: "a.pdf" }),
+      message("m3", { kind: "text", text: "https://a.com" }),
     ]);
     expect(countsFor(index, C1)).toEqual({ media: 1, files: 1, voice: 0, links: 1, gifs: 0 });
   });
 });
 
-describe('persistence', () => {
-  it('round-trips and is scoped per account', async () => {
-    const a = createAccountStorage('acct-a');
-    const b = createAccountStorage('acct-b');
-    saveMediaIndexSoon(a, { [C1]: [{ messageId: 'm1', category: 'media', sentAt: 1, uri: 'a' }] });
+describe("persistence", () => {
+  it("round-trips and is scoped per account", async () => {
+    const a = createAccountStorage("acct-a");
+    const b = createAccountStorage("acct-b");
+    saveMediaIndexSoon(a, { [C1]: [{ messageId: "m1", category: "media", sentAt: 1, uri: "a" }] });
     await flushMediaIndex();
     expect((await loadMediaIndex(a))[C1]).toHaveLength(1);
 

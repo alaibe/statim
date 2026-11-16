@@ -1,17 +1,17 @@
-import { bech32 } from '@scure/base';
-import { ripemd160 } from '@noble/hashes/legacy.js';
-import { sha256 } from '@noble/hashes/sha2.js';
+import { ripemd160 } from "@noble/hashes/legacy.js";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bech32 } from "@scure/base";
 
 export const BIP84_ACCOUNT_PATH = "m/84'/0'/0'/0/0";
 
-export const CHAIN_PREFIX = { mainnet: 'bc', testnet: 'tb' } as const;
+export const CHAIN_PREFIX = { mainnet: "bc", testnet: "tb" } as const;
 export type BitcoinChain = keyof typeof CHAIN_PREFIX;
 
 export function hash160(bytes: Uint8Array): Uint8Array {
   return ripemd160(sha256(bytes));
 }
 
-export function p2wpkhAddress(publicKey: Uint8Array, chain: BitcoinChain = 'mainnet'): string {
+export function p2wpkhAddress(publicKey: Uint8Array, chain: BitcoinChain = "mainnet"): string {
   if (publicKey.length !== 33) {
     throw new Error(`Expected a 33-byte compressed public key, got ${publicKey.length} bytes.`);
   }

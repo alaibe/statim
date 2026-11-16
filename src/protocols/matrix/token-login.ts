@@ -1,6 +1,6 @@
-import { isRecord, isString, shape } from '@/lib/guards';
+import { isRecord, isString, shape } from "@/lib/guards";
 
-import type { MxSession } from './api';
+import type { MxSession } from "./api";
 
 const isLoggedIn = shape<{ access_token: string; user_id: string; device_id: string }>({
   access_token: isString,
@@ -9,16 +9,12 @@ const isLoggedIn = shape<{ access_token: string; user_id: string; device_id: str
 });
 
 /** Trades a one-time login token, minted by another device of the user, for a session of this one. */
-export async function loginWithToken(
-  homeserver: string,
-  token: string,
-  deviceName: string
-): Promise<MxSession> {
+export async function loginWithToken(homeserver: string, token: string, deviceName: string): Promise<MxSession> {
   const response = await fetch(`${homeserver}/_matrix/client/v3/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      type: 'm.login.token',
+      type: "m.login.token",
       token,
       initial_device_display_name: deviceName,
     }),
@@ -35,6 +31,6 @@ export async function loginWithToken(
   throw new Error(
     isRecord(body) && isString(body.error)
       ? `The homeserver did not accept the code: ${body.error}`
-      : 'The homeserver did not accept the code.'
+      : "The homeserver did not accept the code.",
   );
 }

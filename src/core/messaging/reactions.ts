@@ -1,6 +1,6 @@
-import { sameValue } from '@/lib/same-value';
+import { sameValue } from "@/lib/same-value";
 
-import type { ChatMessage, ParticipantId } from './types';
+import type { ChatMessage, ParticipantId } from "./types";
 
 const folded = new WeakMap<ChatMessage, ChatMessage>();
 
@@ -17,19 +17,19 @@ export function foldReactions(messages: readonly ChatMessage[]): ChatMessage[] {
   }
 
   for (const message of messages) {
-    if (message.content.kind !== 'reaction') continue;
+    if (message.content.kind !== "reaction") continue;
     const { targetId, emoji, action } = message.content;
 
     if (!byTarget.has(targetId)) byTarget.set(targetId, new Map());
     const emojis = byTarget.get(targetId)!;
     if (!emojis.has(emoji)) emojis.set(emoji, new Set());
 
-    if (action === 'removed') emojis.get(emoji)!.delete(message.senderId);
+    if (action === "removed") emojis.get(emoji)!.delete(message.senderId);
     else emojis.get(emoji)!.add(message.senderId);
   }
 
   return messages
-    .filter((m) => m.content.kind !== 'reaction')
+    .filter((m) => m.content.kind !== "reaction")
     .map((message) => {
       const emojis = byTarget.get(message.id);
       if (!emojis) return message;
@@ -53,17 +53,13 @@ export function foldReactions(messages: readonly ChatMessage[]): ChatMessage[] {
 }
 
 export function hasReactions(
-  message: ChatMessage
-): message is ChatMessage & { reactions: NonNullable<ChatMessage['reactions']> } {
+  message: ChatMessage,
+): message is ChatMessage & { reactions: NonNullable<ChatMessage["reactions"]> } {
   return !!message.reactions && Object.keys(message.reactions).length > 0;
 }
 
-export function hasReacted(
-  message: ChatMessage,
-  emoji: string,
-  participantId: ParticipantId
-): boolean {
+export function hasReacted(message: ChatMessage, emoji: string, participantId: ParticipantId): boolean {
   return message.reactions?.[emoji]?.includes(participantId) ?? false;
 }
 
-export const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'] as const;
+export const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"] as const;

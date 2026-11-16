@@ -1,7 +1,7 @@
-import { Stack } from 'expo-router';
-import { KeyboardAvoidingView, ScrollView } from 'react-native';
+import { Stack } from "expo-router";
+import { KeyboardAvoidingView, ScrollView } from "react-native";
 
-import { Screen, Text } from '@/design';
+import { Screen, Text } from "@/design";
 
 export function SettingsScreen({
   title,
@@ -19,7 +19,8 @@ export function SettingsScreen({
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingTop: 16, paddingBottom: 48 }}>
+          contentContainerStyle={{ paddingTop: 16, paddingBottom: 48 }}
+        >
           {intro ? (
             <Text variant="bodyMuted" className="px-gutter pb-4">
               {intro}

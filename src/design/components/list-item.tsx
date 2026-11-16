@@ -1,10 +1,10 @@
-import { View } from 'react-native';
+import { View } from "react-native";
 
-import { cn } from '../lib/cn';
-import { contextMenu, type MenuAnchor } from '../lib/context-menu';
-import { type PressHandler, usePress } from '../lib/press';
-import { Pressable } from './pressable';
-import { Text } from './text';
+import { cn } from "../lib/cn";
+import { contextMenu, type MenuAnchor } from "../lib/context-menu";
+import { type PressHandler, usePress } from "../lib/press";
+import { Pressable } from "./pressable";
+import { Text } from "./text";
 
 export interface ListItemProps {
   testID?: string;
@@ -48,23 +48,19 @@ export function ListItem({
   const pressable = Boolean(onPress || onLongPress);
 
   const body = (
-    <View
-      className={cn(
-        'min-h-tap flex-row items-center gap-3 px-gutter py-2.5',
-        !pressable && 'mx-1',
-        className
-      )}>
+    <View className={cn("min-h-tap flex-row items-center gap-3 px-gutter py-2.5", !pressable && "mx-1", className)}>
       {leading}
       <View className="min-w-0 flex-1 gap-0.5">
         <View className="flex-row items-center gap-2">
           <Text
             variant="title"
             numberOfLines={1}
-            className={cn('min-w-0 flex-1 text-body font-semibold', unread && 'text-content')}>
+            className={cn("min-w-0 flex-1 text-body font-semibold", unread && "text-content")}
+          >
             {title}
           </Text>
-          {typeof meta === 'string' ? (
-            <Text variant="caption" className={cn(unread && 'font-semibold text-brand')}>
+          {typeof meta === "string" ? (
+            <Text variant="caption" className={cn(unread && "font-semibold text-brand")}>
               {meta}
             </Text>
           ) : (
@@ -76,7 +72,8 @@ export function ListItem({
             <Text
               variant="footnote"
               numberOfLines={numberOfLinesSubtitle}
-              className={cn('min-w-0 flex-1', unread && 'font-medium text-content-muted')}>
+              className={cn("min-w-0 flex-1", unread && "font-medium text-content-muted")}
+            >
               {subtitle}
             </Text>
             {subtitleTrailing}
@@ -95,8 +92,7 @@ export function ListItem({
    * read out, so it gets only the caller's label.
    */
   const label =
-    accessibilityLabel ??
-    (typeof title === 'string' ? [title, subtitle].filter(Boolean).join(', ') : undefined);
+    accessibilityLabel ?? (typeof title === "string" ? [title, subtitle].filter(Boolean).join(", ") : undefined);
 
   return (
     <Pressable
@@ -108,8 +104,9 @@ export function ListItem({
       onLongPress={onLongPress}
       {...(onContextMenu ? contextMenu(onContextMenu) : undefined)}
       pressScale={0.99}
-      className={cn('mx-1 rounded-card active:bg-surface', selected && 'bg-brand-soft')}
-      style={{ borderCurve: 'continuous' }}>
+      className={cn("mx-1 rounded-card active:bg-surface", selected && "bg-brand-soft")}
+      style={{ borderCurve: "continuous" }}
+    >
       {body}
     </Pressable>
   );

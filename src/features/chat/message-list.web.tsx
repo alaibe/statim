@@ -1,9 +1,9 @@
-import { type RefObject, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
-import { type NativeScrollEvent, type NativeSyntheticEvent, ScrollView, View } from 'react-native';
+import { type RefObject, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
+import { type NativeScrollEvent, type NativeSyntheticEvent, ScrollView, View } from "react-native";
 
-import type { MessageListProps } from './message-list';
+import type { MessageListProps } from "./message-list";
 
-export type { MessageListHandle, MessageListProps } from './message-list';
+export type { MessageListHandle, MessageListProps } from "./message-list";
 
 const PAGE = 60;
 const NEAR_TOP_PX = 1200;
@@ -31,7 +31,7 @@ export function MessageList({
   const start = found < 0 ? newestPage : found;
   const showFrom = (index: number) => setOldestShown(messages[Math.max(0, index)]?.id);
 
-  const reveal = (id: string) => row(id)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  const reveal = (id: string) => row(id)?.scrollIntoView({ block: "center", behavior: "smooth" });
   const revealDrawn = useRef<string | null>(null);
   useLayoutEffect(() => {
     if (revealDrawn.current) reveal(revealDrawn.current);
@@ -39,7 +39,7 @@ export function MessageList({
   });
   useImperativeHandle(ref, () => ({
     scrollToEnd() {
-      node()?.scrollTo({ top: 0, behavior: 'smooth' });
+      node()?.scrollTo({ top: 0, behavior: "smooth" });
     },
     scrollToMessage(id) {
       const index = indexOf(id);
@@ -62,10 +62,11 @@ export function MessageList({
   return (
     <ScrollView
       ref={scroller}
-      style={{ flexDirection: 'column-reverse', overflowAnchor: 'none' } as object}
+      style={{ flexDirection: "column-reverse", overflowAnchor: "none" } as object}
       contentContainerStyle={{ paddingTop: topInset, paddingBottom: 8 }}
       onScroll={onScroll}
-      scrollEventThrottle={50}>
+      scrollEventThrottle={50}
+    >
       {start === 0 ? header : null}
       {messages.slice(start).map((message, index) => (
         <View key={message.id} nativeID={rowId(message.id)}>

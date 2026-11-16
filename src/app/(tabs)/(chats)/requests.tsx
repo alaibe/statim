@@ -1,15 +1,13 @@
-import { Stack } from 'expo-router';
-
-import { FlashList } from '@shopify/flash-list';
-
-import { EmptyState, ListItem, Screen, SwipeableRow } from '@/design';
-import { useChatStore } from '@/core/messaging/chat-store';
-import { splitRequests } from '@/core/messaging/folders';
-import { formatTimestamp, messagePreview } from '@/core/messaging/preview';
-import { answerRequest } from '@/features/chat/requests';
-import { ChatAvatar } from '@/features/chat/chat-avatar';
-import { useChatTitles } from '@/features/chat/use-display-names';
-import { openChat } from '@/features/navigation/open';
+import { FlashList } from "@shopify/flash-list";
+import { Stack } from "expo-router";
+import { useChatStore } from "@/core/messaging/chat-store";
+import { splitRequests } from "@/core/messaging/folders";
+import { formatTimestamp, messagePreview } from "@/core/messaging/preview";
+import { EmptyState, ListItem, Screen, SwipeableRow } from "@/design";
+import { ChatAvatar } from "@/features/chat/chat-avatar";
+import { answerRequest } from "@/features/chat/requests";
+import { useChatTitles } from "@/features/chat/use-display-names";
+import { openChat } from "@/features/navigation/open";
 
 export default function RequestsScreen() {
   const chats = useChatStore((s) => s.chats);
@@ -19,7 +17,7 @@ export default function RequestsScreen() {
 
   return (
     <Screen className="px-0" edges={[]}>
-      <Stack.Screen options={{ title: 'Requests' }} />
+      <Stack.Screen options={{ title: "Requests" }} />
 
       {requests.length === 0 ? (
         <EmptyState title="Nothing waiting" description="New chats will show up here." />
@@ -32,22 +30,23 @@ export default function RequestsScreen() {
             <SwipeableRow
               left={[
                 {
-                  id: 'accept',
-                  label: 'Accept',
-                  icon: 'checkmark-circle-outline',
-                  tone: 'brand',
-                  onPress: () => answerRequest(item.id, 'accepted'),
+                  id: "accept",
+                  label: "Accept",
+                  icon: "checkmark-circle-outline",
+                  tone: "brand",
+                  onPress: () => answerRequest(item.id, "accepted"),
                 },
               ]}
               right={[
                 {
-                  id: 'decline',
-                  label: 'Decline',
-                  icon: 'close-circle-outline',
+                  id: "decline",
+                  label: "Decline",
+                  icon: "close-circle-outline",
                   destructive: true,
-                  onPress: () => answerRequest(item.id, 'declined'),
+                  onPress: () => answerRequest(item.id, "declined"),
                 },
-              ]}>
+              ]}
+            >
               <ListItem
                 testID={`request-${item.id}`}
                 title={titleOf(item)}

@@ -1,29 +1,29 @@
-import { saveAccounts } from '../account/accounts';
-import { useChatStore } from '../messaging/chat-store';
-import { InMemoryChatSession } from '../messaging/in-memory-session';
-import { connectFake } from '../messaging/testing/store';
-import { useAccountStore } from '../account/account-store';
-import { eraseAccount, eraseAllAccounts } from './erase-account';
-import { accountRuntime } from '@/runtime';
-import { createAccountStorage } from '@/storage/account';
-import { VaultKey, vaultGet, vaultSet } from '@/storage/vault';
+import { accountRuntime } from "@/runtime";
+import { createAccountStorage } from "@/storage/account";
+import { VaultKey, vaultGet, vaultSet } from "@/storage/vault";
+import { useAccountStore } from "../account/account-store";
+import { saveAccounts } from "../account/accounts";
+import { useChatStore } from "../messaging/chat-store";
+import { InMemoryChatSession } from "../messaging/in-memory-session";
+import { connectFake } from "../messaging/testing/store";
+import { eraseAccount, eraseAllAccounts } from "./erase-account";
 
-jest.mock('../account/keyring', () => ({
-  ...jest.requireActual('../account/keyring'),
+jest.mock("../account/keyring", () => ({
+  ...jest.requireActual("../account/keyring"),
   loadOrCreateDbEncryptionKey: async () => new Uint8Array(32),
 }));
 
 beforeEach(async () => {
   await accountRuntime.synchronize(null);
   useAccountStore.setState({
-    status: 'absent',
+    status: "absent",
     accounts: [],
     activeAccountId: null,
     keyring: null,
     error: null,
   });
   useChatStore.setState({
-    status: 'idle',
+    status: "idle",
     error: null,
     sessions: {},
     protocols: {},
@@ -42,46 +42,46 @@ beforeEach(async () => {
 
 async function connected() {
   const session = new InMemoryChatSession();
-  session.seedChat({ id: 'c1' });
+  session.seedChat({ id: "c1" });
   useAccountStore.setState({
-    status: 'ready',
+    status: "ready",
     accounts: [
       {
-        id: 'test-account',
-        label: 'Test',
-        address: '0x0000000000000000000000000000000000000001',
+        id: "test-account",
+        label: "Test",
+        address: "0x0000000000000000000000000000000000000001",
         createdAt: 1,
-        kind: 'phrase',
+        kind: "phrase",
       },
     ],
-    activeAccountId: 'test-account',
+    activeAccountId: "test-account",
   });
-  await connectFake(session, { accountId: 'test-account' });
+  await connectFake(session, { accountId: "test-account" });
   return session;
 }
 
-describe('eraseAllAccounts', () => {
-  it('erases every account and leaves the device settings', async () => {
+describe("eraseAllAccounts", () => {
+  it("erases every account and leaves the device settings", async () => {
     await connected();
     const [active] = useAccountStore.getState().accounts;
     const inactive = {
       ...active,
-      id: 'inactive-account',
-      address: '0x0000000000000000000000000000000000000002' as const,
+      id: "inactive-account",
+      address: "0x0000000000000000000000000000000000000002" as const,
     };
     await saveAccounts([active, inactive]);
     useAccountStore.setState({ accounts: [active, inactive] });
-    await vaultSet(VaultKey.commandLine, '1');
+    await vaultSet(VaultKey.commandLine, "1");
 
     await eraseAllAccounts();
 
     expect(useAccountStore.getState().accounts).toEqual([]);
-    expect(await vaultGet(VaultKey.commandLine)).toBe('1');
+    expect(await vaultGet(VaultKey.commandLine)).toBe("1");
   });
 });
 
-describe('signOut', () => {
-  it('erases the protocol’s local database', async () => {
+describe("signOut", () => {
+  it("erases the protocol’s local database", async () => {
     const session = await connected();
     await eraseAccount();
 
@@ -89,36 +89,36 @@ describe('signOut', () => {
     expect(session.disconnected).toBe(true);
   });
 
-  it('clears the account settings', async () => {
-    await createAccountStorage('test-account').set('chat.readAt', {});
-    await createAccountStorage('test-account').plugin('ethereum').set('watched', []);
+  it("clears the account settings", async () => {
+    await createAccountStorage("test-account").set("chat.readAt", {});
+    await createAccountStorage("test-account").plugin("ethereum").set("watched", []);
     await connected();
 
     await eraseAccount();
 
-    const storage = createAccountStorage('test-account');
-    expect(await storage.get('chat.readAt')).toBeNull();
-    expect(await storage.plugin('ethereum').get('watched')).toBeNull();
+    const storage = createAccountStorage("test-account");
+    expect(await storage.get("chat.readAt")).toBeNull();
+    expect(await storage.plugin("ethereum").get("watched")).toBeNull();
   });
 
-  it('resets in-memory state and the account', async () => {
+  it("resets in-memory state and the account", async () => {
     await connected();
     await eraseAccount();
 
     expect(useChatStore.getState().chats).toEqual([]);
     expect(useChatStore.getState().sessions).toEqual({});
-    expect(useAccountStore.getState().status).toBe('absent');
+    expect(useAccountStore.getState().status).toBe("absent");
     expect(useAccountStore.getState().keyring).toBeNull();
   });
 
-  it('erases an inactive account without disconnecting the active session', async () => {
+  it("erases an inactive account without disconnecting the active session", async () => {
     const session = await connected();
     const active = useAccountStore.getState().accounts[0];
     const inactive = {
       ...active,
-      id: 'inactive-account',
-      label: 'Inactive',
-      address: '0x0000000000000000000000000000000000000002' as const,
+      id: "inactive-account",
+      label: "Inactive",
+      address: "0x0000000000000000000000000000000000000002" as const,
     };
     await saveAccounts([active, inactive]);
     useAccountStore.setState({ accounts: [active, inactive] });
@@ -130,27 +130,27 @@ describe('signOut', () => {
     expect(useAccountStore.getState().accounts).toEqual([active]);
   });
 
-  it('keeps the account and allows retry when erasing a database fails', async () => {
+  it("keeps the account and allows retry when erasing a database fails", async () => {
     const session = await connected();
     useAccountStore.setState({
-      status: 'ready',
+      status: "ready",
       accounts: [
         {
-          id: 'test-account',
-          label: 'Test',
-          address: '0x0000000000000000000000000000000000000001',
+          id: "test-account",
+          label: "Test",
+          address: "0x0000000000000000000000000000000000000001",
           createdAt: 1,
-          kind: 'phrase',
+          kind: "phrase",
         },
       ],
-      activeAccountId: 'test-account',
+      activeAccountId: "test-account",
     });
-    const disconnect = jest.spyOn(session, 'disconnect');
-    jest.spyOn(session, 'eraseLocalDatabase').mockRejectedValueOnce(new Error('locked'));
+    const disconnect = jest.spyOn(session, "disconnect");
+    jest.spyOn(session, "eraseLocalDatabase").mockRejectedValueOnce(new Error("locked"));
 
-    await expect(eraseAccount()).rejects.toThrow('locked');
-    expect(useChatStore.getState().status).toBe('erasing');
-    expect(useAccountStore.getState().activeAccountId).toBe('test-account');
+    await expect(eraseAccount()).rejects.toThrow("locked");
+    expect(useChatStore.getState().status).toBe("erasing");
+    expect(useAccountStore.getState().activeAccountId).toBe("test-account");
     expect(disconnect).toHaveBeenCalledTimes(1);
 
     await expect(eraseAccount()).resolves.toBeUndefined();
@@ -158,8 +158,8 @@ describe('signOut', () => {
     expect(useAccountStore.getState().keyring).toBeNull();
   });
 });
-describe('while an account is being erased', () => {
-  it('never reports the idle state boot connects from', async () => {
+describe("while an account is being erased", () => {
+  it("never reports the idle state boot connects from", async () => {
     await connected();
 
     const seen: string[] = [];
@@ -168,8 +168,8 @@ describe('while an account is being erased', () => {
     await eraseAccount();
     stop();
 
-    expect(seen.filter((s) => s === 'idle')).toHaveLength(1);
-    expect(seen[seen.length - 1]).toBe('idle');
-    expect(seen.slice(0, -1).every((s) => s === 'erasing')).toBe(true);
+    expect(seen.filter((s) => s === "idle")).toHaveLength(1);
+    expect(seen[seen.length - 1]).toBe("idle");
+    expect(seen.slice(0, -1).every((s) => s === "erasing")).toBe(true);
   });
 });

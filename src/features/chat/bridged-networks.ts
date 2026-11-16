@@ -1,13 +1,9 @@
-import type { BridgedNetwork } from '@/core/messaging/networks';
-import { KNOWN_BRIDGES, provisioningName } from '@/protocols/matrix/bridges';
-import type {
-  BridgeProvisioning,
-  ProvisioningCapabilities,
-  RemotePerson,
-} from '@/protocols/matrix/provisioning';
+import type { BridgedNetwork } from "@/core/messaging/networks";
+import { KNOWN_BRIDGES, provisioningName } from "@/protocols/matrix/bridges";
+import type { BridgeProvisioning, ProvisioningCapabilities, RemotePerson } from "@/protocols/matrix/provisioning";
 
 /** How someone new is found on a bridge; null when it only opens chats that already exist. */
-export type BridgeAddBy = 'search' | 'lookup' | null;
+export type BridgeAddBy = "search" | "lookup" | null;
 
 export interface BridgeLink {
   network: BridgedNetwork;
@@ -18,7 +14,7 @@ export interface BridgeLink {
 }
 
 export async function bridgeLinks(
-  provisioningFor: (bridge: string) => BridgeProvisioning | null
+  provisioningFor: (bridge: string) => BridgeProvisioning | null,
 ): Promise<BridgeLink[]> {
   const links = await Promise.all(
     KNOWN_BRIDGES.map(async (bridge): Promise<BridgeLink[]> => {
@@ -30,9 +26,7 @@ export async function bridgeLinks(
       ]);
       if (!whoami || whoami.logins.length === 0) return [];
       const selves = whoami.logins.flatMap((login) =>
-        [login.name, login.profile?.name, login.profile?.username].filter(
-          (name): name is string => !!name
-        )
+        [login.name, login.profile?.name, login.profile?.username].filter((name): name is string => !!name),
       );
       return [
         {
@@ -42,7 +36,7 @@ export async function bridgeLinks(
           selves: new Set(selves.map((name) => name.toLowerCase())),
         },
       ];
-    })
+    }),
   );
   return links.flat();
 }
@@ -50,8 +44,8 @@ export async function bridgeLinks(
 function addByOf(capabilities: ProvisioningCapabilities | null): BridgeAddBy {
   const can = capabilities?.resolve_identifier;
   if (!can?.create_dm) return null;
-  if (can.search) return 'search';
-  return can.lookup_username || can.lookup_phone || can.lookup_email ? 'lookup' : null;
+  if (can.search) return "search";
+  return can.lookup_username || can.lookup_phone || can.lookup_email ? "lookup" : null;
 }
 
 export interface Candidate {

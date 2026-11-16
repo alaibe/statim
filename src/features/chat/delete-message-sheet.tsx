@@ -1,8 +1,8 @@
-import { ConfirmSheet } from '@/design';
-import { useChatStore } from '@/core/messaging/chat-store';
-import type { ChatMessage, ChatId } from '@/core/messaging/types';
+import { useChatStore } from "@/core/messaging/chat-store";
+import type { ChatId, ChatMessage } from "@/core/messaging/types";
+import { ConfirmSheet } from "@/design";
 
-import { useAction } from '@/features/use-action';
+import { useAction } from "@/features/use-action";
 
 export interface DeleteTarget {
   message: ChatMessage;
@@ -11,14 +11,14 @@ export interface DeleteTarget {
 
 const COPY = {
   everyone: {
-    title: 'Delete message for everyone?',
-    body: 'This removes the message for everyone in the chat.',
-    label: 'Delete for everyone',
+    title: "Delete message for everyone?",
+    body: "This removes the message for everyone in the chat.",
+    label: "Delete for everyone",
   },
   me: {
-    title: 'Delete message for you?',
-    body: 'This removes the message from your account. The others in the chat keep it.',
-    label: 'Delete for me',
+    title: "Delete message for you?",
+    body: "This removes the message from your account. The others in the chat keep it.",
+    label: "Delete for me",
   },
 };
 
@@ -32,11 +32,10 @@ export function DeleteMessageSheet({
   onClose: () => void;
 }) {
   const deleteMessage = useChatStore((s) => s.deleteMessage);
-  const remove = useAction(
-    ({ message, forEveryone }: DeleteTarget) => deleteMessage(chatId, message.id, forEveryone),
-    { failure: 'Could not delete message' }
-  );
-  const copy = COPY[target.forEveryone ? 'everyone' : 'me'];
+  const remove = useAction(({ message, forEveryone }: DeleteTarget) => deleteMessage(chatId, message.id, forEveryone), {
+    failure: "Could not delete message",
+  });
+  const copy = COPY[target.forEveryone ? "everyone" : "me"];
 
   return (
     <ConfirmSheet
@@ -46,7 +45,7 @@ export function DeleteMessageSheet({
       body={copy.body}
       confirm={{
         label: copy.label,
-        tone: 'danger',
+        tone: "danger",
         onPress: async () => {
           if (await remove.run(target)) onClose();
         },

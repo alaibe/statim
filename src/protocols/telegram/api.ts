@@ -1,10 +1,10 @@
 export interface TdObject {
-  '@type': string;
+  "@type": string;
   [key: string]: unknown;
 }
 
 export interface TdError extends TdObject {
-  '@type': 'error';
+  "@type": "error";
   code: number;
   message: string;
 }
@@ -12,10 +12,10 @@ export interface TdError extends TdObject {
 export class TdRequestError extends Error {
   constructor(
     readonly code: number,
-    message: string
+    message: string,
   ) {
     super(message);
-    this.name = 'TdRequestError';
+    this.name = "TdRequestError";
   }
 }
 

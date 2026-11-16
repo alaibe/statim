@@ -1,7 +1,7 @@
-import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, View } from 'react-native';
-
+import { useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import { ScrollView, View } from "react-native";
+import { useAccountStore } from "@/core/account/account-store";
 import {
   Avatar,
   Button,
@@ -17,24 +17,22 @@ import {
   Section,
   Text,
   toast,
-} from '@/design';
-import { useAction } from '@/features/use-action';
-import { useAccountStore } from '@/core/account/account-store';
+} from "@/design";
+import { ContactName } from "@/features/contacts/contact-name";
 import {
   askForAccess,
+  type ContactAccess,
   contactSortKeyFor,
   currentAccess,
-  readDeviceContacts,
-  type ContactAccess,
   type DeviceContact,
-} from '@/features/contacts/device-contacts';
-import { ContactName } from '@/features/contacts/contact-name';
-import { shareText, shareWithNumbers, type ShareResult } from '@/lib/share';
+  readDeviceContacts,
+} from "@/features/contacts/device-contacts";
+import { useAction } from "@/features/use-action";
+import { type ShareResult, shareText, shareWithNumbers } from "@/lib/share";
 
 function inviteText(address: string): string {
   return (
-    `I'm on Statim, encrypted chat where your account is a key instead of a phone number.\n\n` +
-    `Add me: ${address}`
+    `I'm on Statim, encrypted chat where your account is a key instead of a phone number.\n\n` + `Add me: ${address}`
   );
 }
 
@@ -42,23 +40,19 @@ export default function InviteScreen() {
   const router = useRouter();
   const keyring = useAccountStore((s) => s.keyring);
 
-  const [access, setAccess] = useState<ContactAccess>('unknown');
+  const [access, setAccess] = useState<ContactAccess>("unknown");
   const [contacts, setContacts] = useState<DeviceContact[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async (privileges: ContactAccess) => {
-    if (privileges === 'none' || privileges === 'unknown') {
+    if (privileges === "none" || privileges === "unknown") {
       setContacts([]);
       return;
     }
     const rows = await readDeviceContacts();
-    setContacts(
-      [...rows].sort((a, b) =>
-        contactSortKeyFor(a, 'family').localeCompare(contactSortKeyFor(b, 'family'))
-      )
-    );
+    setContacts([...rows].sort((a, b) => contactSortKeyFor(a, "family").localeCompare(contactSortKeyFor(b, "family"))));
   }, []);
 
   useEffect(() => {
@@ -68,16 +62,14 @@ export default function InviteScreen() {
         setAccess(privileges);
         await load(privileges);
       } catch {
-        setAccess('none');
+        setAccess("none");
       }
       setLoading(false);
     })();
   }, [load]);
 
   const q = query.trim().toLowerCase();
-  const visible = q
-    ? contacts.filter((c) => `${c.given ?? ''} ${c.family ?? ''}`.toLowerCase().includes(q))
-    : contacts;
+  const visible = q ? contacts.filter((c) => `${c.given ?? ""} ${c.family ?? ""}`.toLowerCase().includes(q)) : contacts;
 
   const allVisibleSelected = visible.length > 0 && visible.every((c) => selected.has(c.id));
 
@@ -91,8 +83,8 @@ export default function InviteScreen() {
   }
 
   function report(result: ShareResult | null) {
-    if (result === 'copied') toast.success('Invite copied');
-    if (result === 'copied-for-messages') toast.success('Invite copied, paste it into Messages');
+    if (result === "copied") toast.success("Invite copied");
+    if (result === "copied-for-messages") toast.success("Invite copied, paste it into Messages");
   }
 
   const allowContacts = useAction(
@@ -101,7 +93,7 @@ export default function InviteScreen() {
       setAccess(privileges);
       await load(privileges).catch(() => {});
     },
-    { failure: 'Could not ask for your contacts' }
+    { failure: "Could not ask for your contacts" },
   );
 
   async function sendInvites() {
@@ -111,20 +103,16 @@ export default function InviteScreen() {
     const numbers = chosen.map((c) => c.phone).filter((p): p is string => Boolean(p));
     const body = inviteText(keyring.address);
 
-    report(
-      await (numbers.length > 0 ? shareWithNumbers(numbers, body) : shareText(body)).catch(
-        () => null
-      )
-    );
+    report(await (numbers.length > 0 ? shareWithNumbers(numbers, body) : shareText(body)).catch(() => null));
 
     const skipped = chosen.length - numbers.length;
     if (skipped > 0) {
-      toast.info(`${skipped} contact${skipped === 1 ? '' : 's'} had no phone number`);
+      toast.info(`${skipped} contact${skipped === 1 ? "" : "s"} had no phone number`);
     }
   }
 
   return (
-    <Screen className="px-0" edges={['top']}>
+    <Screen className="px-0" edges={["top"]}>
       <ModalHeader
         title="Invite contacts"
         onClose={() => router.back()}
@@ -132,23 +120,15 @@ export default function InviteScreen() {
         action={
           <Pressable
             accessibilityRole="button"
-            onPress={() =>
-              setSelected(allVisibleSelected ? new Set() : new Set(visible.map((c) => c.id)))
-            }>
-            <Text className="font-medium text-brand">
-              {allVisibleSelected ? 'Clear' : 'Select all'}
-            </Text>
+            onPress={() => setSelected(allVisibleSelected ? new Set() : new Set(visible.map((c) => c.id)))}
+          >
+            <Text className="font-medium text-brand">{allVisibleSelected ? "Clear" : "Select all"}</Text>
           </Pressable>
         }
       />
 
       <View className="px-gutter pb-4">
-        <Field
-          onChangeText={setQuery}
-          placeholder="Search"
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
+        <Field onChangeText={setQuery} placeholder="Search" autoCorrect={false} autoCapitalize="none" />
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
@@ -165,19 +145,18 @@ export default function InviteScreen() {
 
         {loading ? (
           <Loading />
-        ) : access === 'unavailable' ? (
+        ) : access === "unavailable" ? (
           <Note className="mx-gutter mt-6" icon="lock-closed-outline">
             <Text variant="footnote">
-              Suggestions from your address book are not available on this system. Share the link
-              above, or scan the QR code from a phone that has the app.
+              Suggestions from your address book are not available on this system. Share the link above, or scan the QR
+              code from a phone that has the app.
             </Text>
           </Note>
-        ) : access === 'none' || access === 'unknown' ? (
+        ) : access === "none" || access === "unknown" ? (
           <Note className="mx-gutter mt-6" icon="lock-closed-outline">
             <Text variant="footnote">
-              Your address book can suggest who to invite. It is read on this device only, never
-              uploaded and never matched against a server. That is why this list cannot tell you who
-              is already here.
+              Your address book can suggest who to invite. It is read on this device only, never uploaded and never
+              matched against a server. That is why this list cannot tell you who is already here.
             </Text>
             <Button label="Allow contacts" onPress={() => allowContacts.run()} />
           </Note>
@@ -189,10 +168,8 @@ export default function InviteScreen() {
                 <ListItem
                   key={contact.id}
                   title={<ContactName given={contact.given} family={contact.family} />}
-                  subtitle={contact.phone ?? 'No phone number'}
-                  leading={
-                    <Avatar seed={`${contact.given ?? ''}${contact.family ?? ''}`} size="md" />
-                  }
+                  subtitle={contact.phone ?? "No phone number"}
+                  leading={<Avatar seed={`${contact.given ?? ""}${contact.family ?? ""}`} size="md" />}
                   trailing={<Checkmark selected={isSelected} multiple />}
                   onPress={() => toggle(contact.id)}
                 />

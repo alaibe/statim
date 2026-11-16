@@ -1,8 +1,8 @@
-import { useChatStore } from './chat-store';
-import { nameFrom, resolveParticipants } from './display-names';
-import { plainText } from './markdown';
-import { contentPreview } from './preview';
-import type { ChatId, ChatMessage } from './types';
+import { useChatStore } from "./chat-store";
+import { nameFrom, resolveParticipants } from "./display-names";
+import { plainText } from "./markdown";
+import { contentPreview } from "./preview";
+import type { ChatId, ChatMessage } from "./types";
 
 export interface ChatLine {
   /** The sender's name as the app shows it, or "You". */
@@ -14,8 +14,7 @@ export interface ChatLine {
   described: boolean;
 }
 
-export const isChatLine = (m: ChatMessage) =>
-  !m.privateToMe && !m.preview && m.content.kind !== 'reaction';
+export const isChatLine = (m: ChatMessage) => !m.privateToMe && !m.preview && m.content.kind !== "reaction";
 
 export async function recentLines(chatId: ChatId, limit: number): Promise<ChatLine[]> {
   if (!useChatStore.getState().messages[chatId]) {
@@ -26,19 +25,14 @@ export async function recentLines(chatId: ChatId, limit: number): Promise<ChatLi
   return linesFromMessages(chatId, picked);
 }
 
-export async function linesFromMessages(
-  chatId: ChatId,
-  picked: readonly ChatMessage[]
-): Promise<ChatLine[]> {
+export async function linesFromMessages(chatId: ChatId, picked: readonly ChatMessage[]): Promise<ChatLine[]> {
   const chat = useChatStore.getState().chats.find((c) => c.id === chatId);
   const others = [...new Set(picked.filter((m) => !m.fromMe).map((m) => m.senderId))];
-  const resolved = chat
-    ? await resolveParticipants(chat.protocol, others)
-    : { names: {}, addresses: {} };
+  const resolved = chat ? await resolveParticipants(chat.protocol, others) : { names: {}, addresses: {} };
   return picked.map((m) => ({
-    from: m.fromMe ? 'You' : nameFrom(m.senderId, resolved),
+    from: m.fromMe ? "You" : nameFrom(m.senderId, resolved),
     fromMe: m.fromMe,
-    text: m.content.kind === 'text' ? plainText(m.content.text).trim() : contentPreview(m.content),
-    described: m.content.kind !== 'text',
+    text: m.content.kind === "text" ? plainText(m.content.text).trim() : contentPreview(m.content),
+    described: m.content.kind !== "text",
   }));
 }

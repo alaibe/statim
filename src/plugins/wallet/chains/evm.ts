@@ -1,5 +1,5 @@
-import type { Chain } from 'viem';
-import { formatEther, formatGwei } from 'viem';
+import type { Chain } from "viem";
+import { formatEther, formatGwei } from "viem";
 import {
   arbitrum,
   arbitrumSepolia,
@@ -10,24 +10,18 @@ import {
   optimismSepolia,
   polygon,
   sepolia,
-} from 'viem/chains';
+} from "viem/chains";
 
-import type { PluginContext } from '@/core/plugins/types';
-import type { IconName } from '@/design';
-import { publicClientFor, rpcOverrideFor, trimDecimals } from '@/lib/evm/chains';
-import { looksLikeEnsName, resolveName } from '@/lib/evm/ens';
-import {
-  encodeTransfer,
-  fetchTokens,
-  supportsTokens,
-  toTokenUnits,
-  type TokenBalance,
-} from '@/lib/evm/tokens';
-import { estimateTransfer, sendNative, walletClientFor } from '@/lib/evm/wallet';
+import type { PluginContext } from "@/core/plugins/types";
+import type { IconName } from "@/design";
+import { publicClientFor, rpcOverrideFor, trimDecimals } from "@/lib/evm/chains";
+import { looksLikeEnsName, resolveName } from "@/lib/evm/ens";
+import { encodeTransfer, fetchTokens, supportsTokens, type TokenBalance, toTokenUnits } from "@/lib/evm/tokens";
+import { estimateTransfer, sendNative, walletClientFor } from "@/lib/evm/wallet";
 
-import { checkRpcUrl, saveRpcOverride } from './rpc';
-import { readCustomTokens } from './token-storage';
-import type { ChainStrategy, EvmChainId } from './strategy';
+import { checkRpcUrl, saveRpcOverride } from "./rpc";
+import type { ChainStrategy, EvmChainId } from "./strategy";
+import { readCustomTokens } from "./token-storage";
 
 export interface ChainSpec {
   id: EvmChainId;
@@ -48,7 +42,7 @@ export function explorerUrl(chain: Chain, address: string): string | null {
 export async function tokensFor(
   chainId: number,
   address: `0x${string}`,
-  context: PluginContext
+  context: PluginContext,
 ): Promise<TokenBalance[]> {
   if (!supportsTokens(chainId)) return [];
   const extra = await readCustomTokens(context, chainId).catch(() => []);
@@ -58,9 +52,9 @@ export async function tokensFor(
 async function tokenById(
   chainId: number,
   context: PluginContext,
-  asset: string | undefined
+  asset: string | undefined,
 ): Promise<TokenBalance | undefined> {
-  if (!asset || asset === 'native') return undefined;
+  if (!asset || asset === "native") return undefined;
   const address = context.account.address as `0x${string}`;
   const tokens = await tokensFor(chainId, address, context);
   return tokens.find((t) => t.contract.toLowerCase() === asset.toLowerCase());
@@ -95,7 +89,7 @@ export function evmStrategy(spec: ChainSpec): ChainStrategy {
     evm: chain,
     selfAddress: (context) => context.account.address,
     isAddress: (value) => /^0x[0-9a-fA-F]{40}$/.test(value),
-    addressHint: 'vitalik.eth or 0x…',
+    addressHint: "vitalik.eth or 0x…",
     resolve: (input) => (looksLikeEnsName(input) ? resolveName(input) : Promise.resolve(null)),
 
     async fees() {
@@ -107,23 +101,23 @@ export function evmStrategy(spec: ChainSpec): ChainStrategy {
 
       return {
         headline: `${Number(formatGwei(perGas)).toFixed(4)} gwei`,
-        label: 'Max fee per gas',
+        label: "Max fee per gas",
         caption: `≈ ${Number(formatEther(transfer)).toFixed(8)} ${native} for a plain transfer`,
         rows: [
-          { label: 'Chain', value: chain.name },
-          { label: 'Block', value: block.number?.toString() ?? 'unknown' },
+          { label: "Chain", value: chain.name },
+          { label: "Block", value: block.number?.toString() ?? "unknown" },
           {
-            label: 'Priority fee',
+            label: "Priority fee",
             value: `${Number(formatGwei(estimate.maxPriorityFeePerGas ?? 0n)).toFixed(4)} gwei`,
           },
         ],
         ...(spec.rollup
           ? {
               note:
-                'On an OP Stack chain the total is this plus an L1 data fee for posting the ' +
-                'batch to Ethereum, which is usually the larger half and moves with L1 ' +
-                'congestion.',
-              link: { label: 'Bridge', url: spec.rollup.bridge },
+                "On an OP Stack chain the total is this plus an L1 data fee for posting the " +
+                "batch to Ethereum, which is usually the larger half and moves with L1 " +
+                "congestion.",
+              link: { label: "Bridge", url: spec.rollup.bridge },
             }
           : {}),
       };
@@ -146,18 +140,15 @@ export function evmStrategy(spec: ChainSpec): ChainStrategy {
     },
 
     explorer: {
-      name: chain.blockExplorers?.default.name ?? 'the explorer',
-      addressUrl: (address) => explorerUrl(chain, address) ?? '',
+      name: chain.blockExplorers?.default.name ?? "the explorer",
+      addressUrl: (address) => explorerUrl(chain, address) ?? "",
     },
     transfer: {
       symbol: native,
 
       async quote(context, { amount, to, asset }) {
-        const [token, recipient] = await Promise.all([
-          tokenById(chain.id, context, asset),
-          resolveName(to),
-        ]);
-        if (asset && asset !== 'native' && !token) return { error: tokenNotFound };
+        const [token, recipient] = await Promise.all([tokenById(chain.id, context, asset), resolveName(to)]);
+        if (asset && asset !== "native" && !token) return { error: tokenNotFound };
         const units = positiveUnits(amount, decimalsOf(token));
         if (units === null) return { error: badAmount(amount, token) };
 
@@ -171,10 +162,10 @@ export function evmStrategy(spec: ChainSpec): ChainStrategy {
           return {
             symbol: token.symbol,
             rows: [
-              { label: 'Chain', value: chain.name },
-              { label: 'Token', value: token.name },
-              { label: 'Fee paid in', value: native },
-              { label: 'To', value: recipient },
+              { label: "Chain", value: chain.name },
+              { label: "Token", value: token.name },
+              { label: "Fee paid in", value: native },
+              { label: "To", value: recipient },
             ],
           };
         }
@@ -200,21 +191,18 @@ export function evmStrategy(spec: ChainSpec): ChainStrategy {
         return {
           symbol: native,
           rows: [
-            { label: 'Chain', value: chain.name },
+            { label: "Chain", value: chain.name },
             {
-              label: 'Est. fee',
+              label: "Est. fee",
               value: `${trimDecimals(quoted.formatted.fee)} ${native}`,
             },
           ],
         };
       },
       async commit(context, { amount, to, asset }) {
-        const [recipient, token] = await Promise.all([
-          resolveName(to),
-          tokenById(chain.id, context, asset),
-        ]);
+        const [recipient, token] = await Promise.all([resolveName(to), tokenById(chain.id, context, asset)]);
         if (!recipient) throw new Error(badRecipient(to));
-        if (asset && asset !== 'native' && !token) throw new Error(tokenNotFound);
+        if (asset && asset !== "native" && !token) throw new Error(tokenNotFound);
         const units = positiveUnits(amount, decimalsOf(token));
         if (units === null) throw new Error(badAmount(amount, token));
         if (token) {
@@ -241,82 +229,82 @@ export function evmStrategy(spec: ChainSpec): ChainStrategy {
       isDefault: (url) => url === chain.rpcUrls.default.http[0],
       set: (context, url) => saveRpcOverride(context, chain.id, url),
       check: (url) => checkRpcUrl(chain.id, url),
-      noun: 'endpoint',
+      noun: "endpoint",
     },
   };
 }
 
 export const EVM_CHAINS: ChainSpec[] = [
   {
-    id: 'ethereum',
-    name: 'Ethereum',
+    id: "ethereum",
+    name: "Ethereum",
     chain: mainnet,
-    icon: 'diamond-outline',
-    description: 'Ethereum mainnet.',
+    icon: "diamond-outline",
+    description: "Ethereum mainnet.",
   },
   {
-    id: 'base',
-    name: 'Base',
+    id: "base",
+    name: "Base",
     chain: base,
-    icon: 'ellipse-outline',
-    description: 'Coinbase’s L2. Cheap, fast, EVM-identical.',
+    icon: "ellipse-outline",
+    description: "Coinbase’s L2. Cheap, fast, EVM-identical.",
   },
   {
-    id: 'optimism',
-    name: 'Optimism',
+    id: "optimism",
+    name: "Optimism",
     chain: optimism,
-    icon: 'flash-outline',
-    description: 'An optimistic rollup. Fees are L2 execution plus L1 data.',
-    rollup: { bridge: 'https://superbridge.app/op-mainnet' },
+    icon: "flash-outline",
+    description: "An optimistic rollup. Fees are L2 execution plus L1 data.",
+    rollup: { bridge: "https://superbridge.app/op-mainnet" },
   },
   {
-    id: 'arbitrum',
-    name: 'Arbitrum',
+    id: "arbitrum",
+    name: "Arbitrum",
     chain: arbitrum,
-    icon: 'triangle-outline',
-    description: 'The largest optimistic rollup.',
-    rollup: { bridge: 'https://bridge.arbitrum.io' },
+    icon: "triangle-outline",
+    description: "The largest optimistic rollup.",
+    rollup: { bridge: "https://bridge.arbitrum.io" },
   },
   {
-    id: 'polygon',
-    name: 'Polygon',
+    id: "polygon",
+    name: "Polygon",
     chain: polygon,
-    icon: 'shapes-outline',
-    description: 'A sidechain with its own coin for fees.',
+    icon: "shapes-outline",
+    description: "A sidechain with its own coin for fees.",
   },
 
   {
-    id: 'sepolia',
-    name: 'Sepolia',
+    id: "sepolia",
+    name: "Sepolia",
     chain: sepolia,
-    icon: 'diamond-outline',
-    description: 'Ethereum’s test chain. Free coins from a faucet.',
+    icon: "diamond-outline",
+    description: "Ethereum’s test chain. Free coins from a faucet.",
     testnet: true,
   },
   {
-    id: 'optimism-sepolia',
-    name: 'Optimism Sepolia',
+    id: "optimism-sepolia",
+    name: "Optimism Sepolia",
     chain: optimismSepolia,
-    icon: 'flash-outline',
-    description: 'Optimism, on test money.',
-    rollup: { bridge: 'https://app.optimism.io/bridge' },
+    icon: "flash-outline",
+    description: "Optimism, on test money.",
+    rollup: { bridge: "https://app.optimism.io/bridge" },
     testnet: true,
   },
   {
-    id: 'base-sepolia',
-    name: 'Base Sepolia',
+    id: "base-sepolia",
+    name: "Base Sepolia",
     chain: baseSepolia,
-    icon: 'ellipse-outline',
-    description: 'Base, on test money.',
+    icon: "ellipse-outline",
+    description: "Base, on test money.",
     testnet: true,
   },
   {
-    id: 'arbitrum-sepolia',
-    name: 'Arbitrum Sepolia',
+    id: "arbitrum-sepolia",
+    name: "Arbitrum Sepolia",
     chain: arbitrumSepolia,
-    icon: 'triangle-outline',
-    description: 'Arbitrum, on test money.',
-    rollup: { bridge: 'https://bridge.arbitrum.io' },
+    icon: "triangle-outline",
+    description: "Arbitrum, on test money.",
+    rollup: { bridge: "https://bridge.arbitrum.io" },
     testnet: true,
   },
 ];

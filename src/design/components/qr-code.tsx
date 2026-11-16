@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { View } from 'react-native';
-import QRCode from 'react-native-qrcode-svg';
+import { useEffect, useState } from "react";
+import { View } from "react-native";
+import QRCode from "react-native-qrcode-svg";
 
 export function QrCode({ value, size = 220 }: { value: string; size?: number }) {
   return (
@@ -31,4 +31,4 @@ export function AnimatedQrCode({ parts, size = 220 }: { parts: string[]; size?: 
   );
 }
 
-const HIDDEN = { position: 'absolute', opacity: 0 } as const;
+const HIDDEN = { position: "absolute", opacity: 0 } as const;

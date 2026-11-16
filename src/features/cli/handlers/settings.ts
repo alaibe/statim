@@ -1,33 +1,33 @@
-import { useAppearanceStore, type ThemeChoice } from '@/core/app/appearance';
-import { writeCredential, type CredentialId } from '@/core/account/credentials';
-import { useAccountStore } from '@/core/account/account-store';
-import { CHAT_PATTERNS, type ChatPatternName } from '@/design/components/chat-pattern-tile';
+import { useAccountStore } from "@/core/account/account-store";
+import { type CredentialId, writeCredential } from "@/core/account/credentials";
+import { type ThemeChoice, useAppearanceStore } from "@/core/app/appearance";
+import { CHAT_PATTERNS, type ChatPatternName } from "@/design/components/chat-pattern-tile";
 
-import { whenAccountReady, type CliHandler } from '../context';
-import { CliError } from '../errors';
-import { readText } from './input';
+import { type CliHandler, whenAccountReady } from "../context";
+import { CliError } from "../errors";
+import { readText } from "./input";
 
-const THEMES: ThemeChoice[] = ['system', 'light', 'dark'];
+const THEMES: ThemeChoice[] = ["system", "light", "dark"];
 const WALLPAPERS = Object.keys(CHAT_PATTERNS) as ChatPatternName[];
-const CREDENTIALS: CredentialId[] = ['gifs', 'trades', 'ai'];
+const CREDENTIALS: CredentialId[] = ["gifs", "trades", "ai"];
 
 function onOff(value: string): boolean {
-  if (['on', 'true', 'yes', '1'].includes(value)) return true;
-  if (['off', 'false', 'no', '0'].includes(value)) return false;
-  throw new CliError(`Use on or off, not "${value}".`, 'usage');
+  if (["on", "true", "yes", "1"].includes(value)) return true;
+  if (["off", "false", "no", "0"].includes(value)) return false;
+  throw new CliError(`Use on or off, not "${value}".`, "usage");
 }
 
 function oneOf<T extends string>(value: string, choices: readonly T[], what: string): T {
   if ((choices as readonly string[]).includes(value)) return value as T;
-  throw new CliError(`${what} is one of: ${choices.join(', ')}.`, 'usage');
+  throw new CliError(`${what} is one of: ${choices.join(", ")}.`, "usage");
 }
 
 const SETTERS: Record<string, (value: string) => Promise<void>> = {
-  theme: (v) => useAppearanceStore.getState().setTheme(oneOf(v, THEMES, 'theme')),
-  wallpaper: (v) => useAppearanceStore.getState().setWallpaper(oneOf(v, WALLPAPERS, 'wallpaper')),
-  'read-receipts': (v) => useAppearanceStore.getState().setReadReceipts(onOff(v)),
-  'typing-indicators': (v) => useAppearanceStore.getState().setTypingIndicators(onOff(v)),
-  'link-previews': (v) => useAppearanceStore.getState().setLinkPreviews(onOff(v)),
+  theme: (v) => useAppearanceStore.getState().setTheme(oneOf(v, THEMES, "theme")),
+  wallpaper: (v) => useAppearanceStore.getState().setWallpaper(oneOf(v, WALLPAPERS, "wallpaper")),
+  "read-receipts": (v) => useAppearanceStore.getState().setReadReceipts(onOff(v)),
+  "typing-indicators": (v) => useAppearanceStore.getState().setTypingIndicators(onOff(v)),
+  "link-previews": (v) => useAppearanceStore.getState().setLinkPreviews(onOff(v)),
   ai: (v) => useAppearanceStore.getState().setAiInChats(onOff(v)),
 };
 
@@ -36,9 +36,9 @@ function current() {
   return {
     theme: s.theme,
     wallpaper: s.wallpaper,
-    'read-receipts': s.readReceipts,
-    'typing-indicators': s.typingIndicators,
-    'link-previews': s.linkPreviews,
+    "read-receipts": s.readReceipts,
+    "typing-indicators": s.typingIndicators,
+    "link-previews": s.linkPreviews,
     ai: s.aiInChats,
   };
 }
@@ -50,19 +50,16 @@ export const settingsHandlers = {
     return {
       data,
       text: Object.entries(data).map(
-        ([key, value]) => `${key}: ${typeof value === 'boolean' ? (value ? 'on' : 'off') : value}`
+        ([key, value]) => `${key}: ${typeof value === "boolean" ? (value ? "on" : "off") : value}`,
       ),
     };
   },
 
-  async 'settings set'({ args }) {
+  async "settings set"({ args }) {
     await whenAccountReady();
     const setter = SETTERS[args.setting!];
     if (!setter) {
-      throw new CliError(
-        `No setting "${args.setting}". Settings: ${Object.keys(SETTERS).join(', ')}.`,
-        'usage'
-      );
+      throw new CliError(`No setting "${args.setting}". Settings: ${Object.keys(SETTERS).join(", ")}.`, "usage");
     }
     await setter(args.value!.toLowerCase());
     return { data: current(), text: `${args.setting} is now ${args.value}.` };
@@ -70,7 +67,7 @@ export const settingsHandlers = {
 
   async apikey({ args }, { io }) {
     await whenAccountReady();
-    const service = oneOf(args.service!, CREDENTIALS, 'service');
+    const service = oneOf(args.service!, CREDENTIALS, "service");
     const key = await readText(io, `${service} API key (empty removes it): `, true);
     await writeCredential(useAccountStore.getState().activeAccountId!, service, key);
     return {

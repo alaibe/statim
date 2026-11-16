@@ -1,22 +1,21 @@
-import type { MessageContent } from '@/core/messaging/types';
-import { pathOfFileUri } from '@/storage/media';
+import type { MessageContent } from "@/core/messaging/types";
+import { pathOfFileUri } from "@/storage/media";
 
-import type { TdObject } from './api';
-import { markdownToFormatted } from './formatting';
+import type { TdObject } from "./api";
+import { markdownToFormatted } from "./formatting";
 
 export function inputContent(content: MessageContent): TdObject {
-  const caption =
-    'caption' in content && content.caption ? markdownToFormatted(content.caption) : null;
+  const caption = "caption" in content && content.caption ? markdownToFormatted(content.caption) : null;
 
   switch (content.kind) {
-    case 'text':
-      return { '@type': 'inputMessageText', text: markdownToFormatted(content.text) };
-    case 'image':
-      if (content.mimeType === 'image/gif') {
+    case "text":
+      return { "@type": "inputMessageText", text: markdownToFormatted(content.text) };
+    case "image":
+      if (content.mimeType === "image/gif") {
         return {
-          '@type': 'inputMessageAnimation',
+          "@type": "inputMessageAnimation",
           animation: {
-            '@type': 'inputAnimation',
+            "@type": "inputAnimation",
             animation: localFile(content.uri),
             thumbnail: null,
             added_sticker_file_ids: [],
@@ -30,9 +29,9 @@ export function inputContent(content: MessageContent): TdObject {
         };
       }
       return {
-        '@type': 'inputMessagePhoto',
+        "@type": "inputMessagePhoto",
         photo: {
-          '@type': 'inputPhoto',
+          "@type": "inputPhoto",
           photo: localFile(content.uri),
           thumbnail: null,
           video: null,
@@ -45,34 +44,34 @@ export function inputContent(content: MessageContent): TdObject {
         self_destruct_type: null,
         has_spoiler: false,
       };
-    case 'file':
+    case "file":
       return {
-        '@type': 'inputMessageDocument',
+        "@type": "inputMessageDocument",
         document: {
-          '@type': 'inputDocument',
+          "@type": "inputDocument",
           document: localFile(content.uri),
           thumbnail: null,
           disable_content_type_detection: false,
         },
         caption: null,
       };
-    case 'voice':
+    case "voice":
       return {
-        '@type': 'inputMessageVoiceNote',
+        "@type": "inputMessageVoiceNote",
         voice_note: {
-          '@type': 'inputVoiceNote',
+          "@type": "inputVoiceNote",
           voice_note: localFile(content.uri),
           duration: Math.round(content.durationMs / 1000),
-          waveform: '',
+          waveform: "",
         },
         caption: null,
         self_destruct_type: null,
       };
-    case 'video':
+    case "video":
       return {
-        '@type': 'inputMessageVideo',
+        "@type": "inputMessageVideo",
         video: {
-          '@type': 'inputVideo',
+          "@type": "inputVideo",
           video: localFile(content.uri),
           thumbnail: null,
           cover: null,
@@ -88,17 +87,17 @@ export function inputContent(content: MessageContent): TdObject {
         self_destruct_type: null,
         has_spoiler: false,
       };
-    case 'sticker':
+    case "sticker":
       return {
-        '@type': 'inputMessageSticker',
+        "@type": "inputMessageSticker",
         sticker: {
-          '@type': 'inputSticker',
+          "@type": "inputSticker",
           sticker: localFile(content.uri),
           thumbnail: null,
           width: content.width ?? 0,
           height: content.height ?? 0,
         },
-        emoji: content.emoji ?? '',
+        emoji: content.emoji ?? "",
       };
     default:
       throw new Error(`Telegram cannot send "${content.kind}" content`);
@@ -106,5 +105,5 @@ export function inputContent(content: MessageContent): TdObject {
 }
 
 function localFile(uri: string): TdObject {
-  return { '@type': 'inputFileLocal', path: pathOfFileUri(uri) };
+  return { "@type": "inputFileLocal", path: pathOfFileUri(uri) };
 }

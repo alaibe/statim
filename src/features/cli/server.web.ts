@@ -1,16 +1,16 @@
-import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
-import { useEffect, useRef } from 'react';
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { useEffect, useRef } from "react";
 
-import { usePluginHost } from '@/core/plugins/host';
-import { base64ToBytes, bytesToBase64 } from '@/lib/bytes';
+import { usePluginHost } from "@/core/plugins/host";
+import { base64ToBytes, bytesToBase64 } from "@/lib/bytes";
 
-import { requestApproval } from './approvals';
-import type { CliIo } from './context';
-import { runCli } from './run';
+import { requestApproval } from "./approvals";
+import type { CliIo } from "./context";
+import { runCli } from "./run";
 
 interface Request {
-  type: 'request';
+  type: "request";
   argv: string[];
   tty: boolean;
   stdinTty: boolean;
@@ -23,7 +23,7 @@ interface Answer {
   data?: string;
 }
 
-type ClientMessage = Request | { type: 'reply'; seq: number; result: Answer };
+type ClientMessage = Request | { type: "reply"; seq: number; result: Answer };
 
 interface Payload {
   id: number;
@@ -44,9 +44,7 @@ class Connection {
 
   /** In order: each message waits for the one before it to reach the socket. */
   send(message: Record<string, unknown>): void {
-    this.chain = this.chain
-      .then(() => invoke('cli_send', { id: this.id, message }))
-      .catch(() => {});
+    this.chain = this.chain.then(() => invoke("cli_send", { id: this.id, message })).catch(() => {});
   }
 
   async ask(message: Record<string, unknown>): Promise<Answer> {
@@ -65,27 +63,25 @@ class Connection {
 
   close(): void {
     this.end();
-    for (const resolve of this.waiting.values()) resolve({ error: 'The terminal went away.' });
+    for (const resolve of this.waiting.values()) resolve({ error: "The terminal went away." });
     this.waiting.clear();
   }
 }
 
 function ioFor(connection: Connection, request: Request): CliIo {
-  const showWindow = () => invoke<void>('cli_show');
+  const showWindow = () => invoke<void>("cli_show");
   return {
     json: false,
     tty: request.tty,
     stdinTty: request.stdinTty,
     mcp: request.mcp === true,
-    print: (text) => connection.send({ type: 'out', text: `${text}\n` }),
-    warn: (text) => connection.send({ type: 'err', text: `${text}\n` }),
-    prompt: async (text, secret = false) =>
-      (await connection.ask({ type: 'prompt', text, secret })).text ?? '',
-    stdin: async () => base64ToBytes((await connection.ask({ type: 'stdin' })).data ?? ''),
-    readFile: async (path) =>
-      base64ToBytes((await connection.ask({ type: 'read', path })).data ?? ''),
+    print: (text) => connection.send({ type: "out", text: `${text}\n` }),
+    warn: (text) => connection.send({ type: "err", text: `${text}\n` }),
+    prompt: async (text, secret = false) => (await connection.ask({ type: "prompt", text, secret })).text ?? "",
+    stdin: async () => base64ToBytes((await connection.ask({ type: "stdin" })).data ?? ""),
+    readFile: async (path) => base64ToBytes((await connection.ask({ type: "read", path })).data ?? ""),
     writeFile: async (path, data) => {
-      await connection.ask({ type: 'write', path, data: bytesToBase64(data) });
+      await connection.ask({ type: "write", path, data: bytesToBase64(data) });
     },
     approve: async (text) => {
       await showWindow();
@@ -108,23 +104,23 @@ export function useCliServer(): void {
     let stop: (() => void) | undefined;
     let cancelled = false;
 
-    void listen<Payload>('cli://message', ({ payload: { id, message, closed } }) => {
+    void listen<Payload>("cli://message", ({ payload: { id, message, closed } }) => {
       if (closed) {
         connections.get(id)?.close();
         connections.delete(id);
-      } else if (message?.type === 'reply') {
+      } else if (message?.type === "reply") {
         connections.get(id)?.answered(message.seq, message.result);
-      } else if (message?.type === 'request') {
+      } else if (message?.type === "request") {
         const connection = new Connection(id);
         connections.set(id, connection);
-        void runCli(message.argv, { io: ioFor(connection, message), host: hostRef.current }).then(
-          (code) => connection.send({ type: 'exit', code })
+        void runCli(message.argv, { io: ioFor(connection, message), host: hostRef.current }).then((code) =>
+          connection.send({ type: "exit", code }),
         );
       }
     }).then((unlisten) => {
       if (cancelled) return unlisten();
       stop = unlisten;
-      void invoke('cli_ready');
+      void invoke("cli_ready");
     });
 
     return () => {

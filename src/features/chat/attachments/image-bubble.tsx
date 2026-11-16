@@ -1,10 +1,10 @@
-import { Image } from 'expo-image';
-import { useState } from 'react';
-import { View, useWindowDimensions } from 'react-native';
-import { Pressable } from '@/design';
-import { MessageText } from '../message-text';
-import { MediaViewer } from './media-viewer';
-import { HoverSave } from './save-button';
+import { Image } from "expo-image";
+import { useState } from "react";
+import { useWindowDimensions, View } from "react-native";
+import { Pressable } from "@/design";
+import { MessageText } from "../message-text";
+import { MediaViewer } from "./media-viewer";
+import { HoverSave } from "./save-button";
 
 interface ImageBubbleProps {
   uri: string;
@@ -31,9 +31,10 @@ export function ImageBubble({ uri, width, height, caption, fromMe, onSave }: Ima
       <HoverSave onSave={onSave}>
         <Pressable
           accessibilityRole="imagebutton"
-          accessibilityLabel={caption ?? 'Photo'}
+          accessibilityLabel={caption ?? "Photo"}
           onPress={() => setZoomed(true)}
-          pressScale={0.99}>
+          pressScale={0.99}
+        >
           <Image
             source={{ uri }}
             recyclingKey={uri}
@@ -46,11 +47,7 @@ export function ImageBubble({ uri, width, height, caption, fromMe, onSave }: Ima
       </HoverSave>
 
       {caption ? (
-        <MessageText
-          text={caption}
-          fromMe={fromMe}
-          className={fromMe ? 'text-bubble-out-on' : 'text-bubble-in-on'}
-        />
+        <MessageText text={caption} fromMe={fromMe} className={fromMe ? "text-bubble-out-on" : "text-bubble-in-on"} />
       ) : null}
 
       <MediaViewer visible={zoomed} onClose={() => setZoomed(false)} onSave={onSave}>

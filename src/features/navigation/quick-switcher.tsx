@@ -1,42 +1,33 @@
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import { useGlobalSearchParams, useRouter, useSegments } from 'expo-router';
-import { useEffect, useEffectEvent, useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, View } from 'react-native';
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { useGlobalSearchParams, useRouter, useSegments } from "expo-router";
+import { useEffect, useEffectEvent, useMemo, useState } from "react";
+import { Modal, Pressable, ScrollView, View } from "react-native";
+import { useLockStore } from "@/core/account/lock-store";
+import { orderChats } from "@/core/messaging/chat-prefs";
+import { useChatStore } from "@/core/messaging/chat-store";
+import { isUnreadHere, networkOf, splitRequests } from "@/core/messaging/folders";
+import type { Chat } from "@/core/messaging/types";
+import { Eyebrow, Icon, type IconName, SearchField, Text, useEscapeKey, useLayoutInsets } from "@/design";
+import { ChatAvatar } from "@/features/chat/chat-avatar";
+import { useChatTitles } from "@/features/chat/use-display-names";
+import { openChat, openTab } from "@/features/navigation/open";
+import { networkLabel } from "@/features/protocols/presentation";
 
-import { ChatAvatar } from '@/features/chat/chat-avatar';
-import {
-  Eyebrow,
-  Icon,
-  type IconName,
-  SearchField,
-  Text,
-  useEscapeKey,
-  useLayoutInsets,
-} from '@/design';
-import { useLockStore } from '@/core/account/lock-store';
-import { useChatStore } from '@/core/messaging/chat-store';
-import { orderChats } from '@/core/messaging/chat-prefs';
-import { isUnreadHere, networkOf, splitRequests } from '@/core/messaging/folders';
-import { networkLabel } from '@/features/protocols/presentation';
-import type { Chat } from '@/core/messaging/types';
-import { useChatTitles } from '@/features/chat/use-display-names';
-import { openChat, openTab } from '@/features/navigation/open';
-
-import { runCommand, SHORTCUTS } from './desktop-commands';
+import { runCommand, SHORTCUTS } from "./desktop-commands";
 
 type Entry = {
   id: string;
   title: string;
   subtitle?: string;
   run: () => void;
-} & ({ kind: 'chat'; chat: Chat; selfId: string } | { kind: 'command'; icon: IconName });
+} & ({ kind: "chat"; chat: Chat; selfId: string } | { kind: "command"; icon: IconName });
 
 const RECENT = 6;
-const MOD = /Mac/.test(navigator.userAgent) ? '⌘' : 'Ctrl+';
+const MOD = /Mac/.test(navigator.userAgent) ? "⌘" : "Ctrl+";
 
 // A shortcut the menu also shows can arrive twice: once as the page's keydown
 // and once as the menu item.
-let last = { command: '', at: 0 };
+let last = { command: "", at: 0 };
 
 /**
  * The desktop's keyboard shortcuts and app menu commands, ⌘K (Ctrl+K off the
@@ -46,15 +37,15 @@ let last = { command: '', at: 0 };
 export function QuickSwitcher() {
   const segments = useSegments() as string[];
   const { id } = useGlobalSearchParams<{ id?: string }>();
-  const chatId = segments[0] === 'chat' ? id : undefined;
+  const chatId = segments[0] === "chat" ? id : undefined;
   const [open, setOpen] = useState(false);
 
   const run = useEffectEvent((command: string) => {
-    if (useLockStore.getState().status !== 'open') return;
+    if (useLockStore.getState().status !== "open") return;
     const now = Date.now();
     if (command === last.command && now - last.at < 150) return;
     last = { command, at: now };
-    if (command === 'switcher') {
+    if (command === "switcher") {
       setOpen((value) => !value);
       return;
     }
@@ -71,17 +62,17 @@ export function QuickSwitcher() {
       run(command);
     };
     // Capture phase: react-native-web stops keydown from bubbling out of inputs.
-    window.addEventListener('keydown', onKey, true);
+    window.addEventListener("keydown", onKey, true);
     let stop: UnlistenFn | undefined;
     let cancelled = false;
-    void listen<string>('app-menu', ({ payload }) => run(payload)).then((unlisten) => {
+    void listen<string>("app-menu", ({ payload }) => run(payload)).then((unlisten) => {
       if (cancelled) unlisten();
       else stop = unlisten;
     });
     return () => {
       cancelled = true;
       stop?.();
-      window.removeEventListener('keydown', onKey, true);
+      window.removeEventListener("keydown", onKey, true);
     };
   }, []);
 
@@ -91,7 +82,7 @@ export function QuickSwitcher() {
 function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const insets = useLayoutInsets();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [index, setIndex] = useState(0);
   useEscapeKey(true, onClose);
 
@@ -108,7 +99,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
     const entry = (chat: Chat): Entry => {
       const network = networkOf(chat);
       return {
-        kind: 'chat',
+        kind: "chat",
         id: chat.id,
         title: titleOf(chat),
         subtitle: network ? networkLabel(network) : undefined,
@@ -120,51 +111,51 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
     const chatEntries = [...unread, ...ordered.filter((c) => !unread.includes(c))].map(entry);
     const commands: Entry[] = [
       {
-        kind: 'command',
-        id: 'new',
-        title: 'New message',
+        kind: "command",
+        id: "new",
+        title: "New message",
         subtitle: `${MOD}N`,
-        icon: 'create-outline',
-        run: () => router.push('/new-chat'),
+        icon: "create-outline",
+        run: () => router.push("/new-chat"),
       },
       {
-        kind: 'command',
-        id: 'search',
-        title: 'Search messages',
+        kind: "command",
+        id: "search",
+        title: "Search messages",
         subtitle: `${MOD}F`,
-        icon: 'search-outline',
-        run: () => router.push('/search'),
+        icon: "search-outline",
+        run: () => router.push("/search"),
       },
       {
-        kind: 'command',
-        id: 'contacts',
-        title: 'Contacts',
+        kind: "command",
+        id: "contacts",
+        title: "Contacts",
         subtitle: `${MOD}2`,
-        icon: 'people-outline',
-        run: () => openTab('/contacts'),
+        icon: "people-outline",
+        run: () => openTab("/contacts"),
       },
       {
-        kind: 'command',
-        id: 'settings',
-        title: 'Settings',
+        kind: "command",
+        id: "settings",
+        title: "Settings",
         subtitle: `${MOD},`,
-        icon: 'hardware-chip-outline',
-        run: () => openTab('/settings'),
+        icon: "hardware-chip-outline",
+        run: () => openTab("/settings"),
       },
     ];
 
     const q = query.trim().toLowerCase();
     if (!q) {
       return [
-        { heading: 'Unread', items: chatEntries.slice(0, unread.length) },
-        { heading: 'Recent', items: chatEntries.slice(unread.length, unread.length + RECENT) },
-        { heading: 'Commands', items: commands },
+        { heading: "Unread", items: chatEntries.slice(0, unread.length) },
+        { heading: "Recent", items: chatEntries.slice(unread.length, unread.length + RECENT) },
+        { heading: "Commands", items: commands },
       ].filter((section) => section.items.length > 0);
     }
     const matches = (entry: Entry) => entry.title.toLowerCase().includes(q);
     return [
-      { heading: 'Chats', items: chatEntries.filter(matches) },
-      { heading: 'Commands', items: commands.filter(matches) },
+      { heading: "Chats", items: chatEntries.filter(matches) },
+      { heading: "Commands", items: commands.filter(matches) },
     ].filter((section) => section.items.length > 0);
   }, [chats, chatPrefs, readAt, selfIdOf, titleOf, query, router]);
 
@@ -178,13 +169,13 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
 
   const onKeyPress = (event: { nativeEvent: unknown; preventDefault(): void }) => {
     const key = event.nativeEvent as KeyboardEvent;
-    if (key.key === 'ArrowDown' || (key.key === 'Tab' && !key.shiftKey)) {
+    if (key.key === "ArrowDown" || (key.key === "Tab" && !key.shiftKey)) {
       event.preventDefault();
       setIndex((value) => (flat.length ? (value + 1) % flat.length : 0));
-    } else if (key.key === 'ArrowUp' || (key.key === 'Tab' && key.shiftKey)) {
+    } else if (key.key === "ArrowUp" || (key.key === "Tab" && key.shiftKey)) {
       event.preventDefault();
       setIndex((value) => (flat.length ? (value - 1 + flat.length) % flat.length : 0));
-    } else if (key.key === 'Enter') {
+    } else if (key.key === "Enter") {
       event.preventDefault();
       const entry = flat[highlighted];
       if (entry) choose(entry);
@@ -197,11 +188,13 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
         accessibilityLabel="Close"
         onPress={onClose}
         style={{ paddingLeft: insets.left }}
-        className="flex-1 items-center bg-content/30 pt-[12vh]">
+        className="flex-1 items-center bg-content/30 pt-[12vh]"
+      >
         <View
           onStartShouldSetResponder={() => true}
-          style={{ borderCurve: 'continuous' }}
-          className="max-h-[70vh] w-[560px] max-w-full overflow-hidden rounded-card bg-surface-raised shadow-xl">
+          style={{ borderCurve: "continuous" }}
+          className="max-h-[70vh] w-[560px] max-w-full overflow-hidden rounded-card bg-surface-raised shadow-xl"
+        >
           <SearchField
             className="m-3 h-11 px-4"
             autoFocus
@@ -234,30 +227,31 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
                       onHoverIn={() => setIndex(flat.indexOf(entry))}
                       className={
                         active
-                          ? 'flex-row items-center gap-3 bg-brand px-5 py-2.5'
-                          : 'flex-row items-center gap-3 px-5 py-2.5'
-                      }>
-                      {entry.kind === 'chat' ? (
+                          ? "flex-row items-center gap-3 bg-brand px-5 py-2.5"
+                          : "flex-row items-center gap-3 px-5 py-2.5"
+                      }
+                    >
+                      {entry.kind === "chat" ? (
                         <ChatAvatar chat={entry.chat} selfId={entry.selfId} size="sm" />
                       ) : (
                         <View
                           className={
                             active
-                              ? 'h-8 w-8 items-center justify-center rounded-pill bg-brand-on/20'
-                              : 'h-8 w-8 items-center justify-center rounded-pill bg-surface-sunken'
-                          }>
-                          <Icon name={entry.icon} size={18} tone={active ? 'brand-on' : 'muted'} />
+                              ? "h-8 w-8 items-center justify-center rounded-pill bg-brand-on/20"
+                              : "h-8 w-8 items-center justify-center rounded-pill bg-surface-sunken"
+                          }
+                        >
+                          <Icon name={entry.icon} size={18} tone={active ? "brand-on" : "muted"} />
                         </View>
                       )}
                       <Text
                         numberOfLines={1}
-                        className={
-                          active ? 'flex-1 font-medium text-brand-on' : 'flex-1 font-medium'
-                        }>
+                        className={active ? "flex-1 font-medium text-brand-on" : "flex-1 font-medium"}
+                      >
                         {entry.title}
                       </Text>
                       {entry.subtitle ? (
-                        <Text variant="caption" className={active ? 'text-brand-on/80' : undefined}>
+                        <Text variant="caption" className={active ? "text-brand-on/80" : undefined}>
                           {entry.subtitle}
                         </Text>
                       ) : null}

@@ -1,13 +1,12 @@
-import { View } from 'react-native';
-
-import { cn } from '../lib/cn';
-import { Icon, type IconName } from '../icon';
-import { Text } from './text';
+import { View } from "react-native";
+import { Icon, type IconName } from "../icon";
+import { cn } from "../lib/cn";
+import { Text } from "./text";
 
 const TONE = {
-  brand: { box: 'border-brand/15 bg-brand-soft', title: 'text-brand', body: undefined },
-  warning: { box: 'border-warning/40 bg-warning/10', title: 'text-warning', body: 'text-warning' },
-  danger: { box: 'border-danger/40 bg-danger/10', title: 'text-danger', body: 'text-danger' },
+  brand: { box: "border-brand/15 bg-brand-soft", title: "text-brand", body: undefined },
+  warning: { box: "border-warning/40 bg-warning/10", title: "text-warning", body: "text-warning" },
+  danger: { box: "border-danger/40 bg-danger/10", title: "text-danger", body: "text-danger" },
 } as const;
 
 interface NoteProps {
@@ -18,9 +17,9 @@ interface NoteProps {
   className?: string;
 }
 
-export function Note({ title, icon, tone = 'brand', children, className }: NoteProps) {
+export function Note({ title, icon, tone = "brand", children, className }: NoteProps) {
   const body =
-    typeof children === 'string' ? (
+    typeof children === "string" ? (
       <Text variant="caption" className={TONE[tone].body}>
         {children}
       </Text>
@@ -29,14 +28,12 @@ export function Note({ title, icon, tone = 'brand', children, className }: NoteP
     );
 
   return (
-    <View
-      style={{ borderCurve: 'continuous' }}
-      className={cn('rounded-card border p-4', TONE[tone].box, className)}>
+    <View style={{ borderCurve: "continuous" }} className={cn("rounded-card border p-4", TONE[tone].box, className)}>
       {title ? (
         <View className="gap-2">
           <View className="flex-row items-center gap-2">
             {icon ? <Icon name={icon} size={16} tone={tone} /> : null}
-            <Text variant="caption" className={cn('font-semibold', TONE[tone].title)}>
+            <Text variant="caption" className={cn("font-semibold", TONE[tone].title)}>
               {title}
             </Text>
           </View>

@@ -1,6 +1,6 @@
-import { utf8ToBytes } from '@noble/hashes/utils';
+import { utf8ToBytes } from "@noble/hashes/utils";
 
-import { concat } from '@/lib/bytes';
+import { concat } from "@/lib/bytes";
 
 const VARINT = 0;
 const FIXED64 = 1;
@@ -87,14 +87,14 @@ export class ProtoFields {
     const readVarint = (): bigint => {
       let result = 0n;
       for (let shift = 0n; ; shift += 7n) {
-        if (at >= bytes.length || shift > 63n) throw new Error('Malformed protobuf varint');
+        if (at >= bytes.length || shift > 63n) throw new Error("Malformed protobuf varint");
         const byte = bytes[at++];
         result |= BigInt(byte & 0x7f) << shift;
         if (byte < 0x80) return BigInt.asUintN(64, result);
       }
     };
     const take = (length: number): Uint8Array => {
-      if (length < 0 || at + length > bytes.length) throw new Error('Truncated protobuf field');
+      if (length < 0 || at + length > bytes.length) throw new Error("Truncated protobuf field");
       const out = bytes.subarray(at, at + length);
       at += length;
       return out;
@@ -104,7 +104,7 @@ export class ProtoFields {
       const key = readVarint();
       const field = Number(key >> 3n);
       const wire = Number(key & 7n);
-      if (field === 0) throw new Error('Protobuf field number 0');
+      if (field === 0) throw new Error("Protobuf field number 0");
       let parsed: Field;
       switch (wire) {
         case VARINT:

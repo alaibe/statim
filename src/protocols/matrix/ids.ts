@@ -1,5 +1,5 @@
-import { protocolChatId } from '@/core/messaging/namespace';
-import type { ProtocolChatId } from '@/core/messaging/types';
+import { protocolChatId } from "@/core/messaging/namespace";
+import type { ProtocolChatId } from "@/core/messaging/types";
 
 export const USER_ID = /^@[^:\s]+:[^\s]+$/;
 
@@ -9,10 +9,10 @@ export function parseRoomReference(input: string): { idOrAlias: string; via: str
   let via: string[] = [];
   if (/^(?:https?:\/\/)?matrix\.to\/#\//i.test(value)) {
     try {
-      const url = new URL(value.startsWith('http') ? value : `https://${value}`);
-      const [encoded, query] = url.hash.slice(2).split('?');
+      const url = new URL(value.startsWith("http") ? value : `https://${value}`);
+      const [encoded, query] = url.hash.slice(2).split("?");
       idOrAlias = decodeURIComponent(encoded);
-      via = new URLSearchParams(query).getAll('via');
+      via = new URLSearchParams(query).getAll("via");
     } catch {
       return null;
     }
@@ -32,7 +32,7 @@ export function parseUserId(input: string): string | null {
 }
 
 export function serverName(userId: string): string {
-  return userId.slice(userId.indexOf(':') + 1);
+  return userId.slice(userId.indexOf(":") + 1);
 }
 
 export function permalink(idOrAlias: string, via?: string): string {
@@ -47,12 +47,10 @@ export function localpart(userId: string): string {
 
 /** Room ids carry `!` and `:`, which chat ids may not; base64url keeps them reversible. */
 export function chatIdOf(roomId: string): ProtocolChatId {
-  return protocolChatId(
-    globalThis.btoa(roomId).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-  );
+  return protocolChatId(globalThis.btoa(roomId).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""));
 }
 
 export function roomIdOf(id: ProtocolChatId): string {
-  const padded = id.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (id.length % 4)) % 4);
+  const padded = id.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (id.length % 4)) % 4);
   return globalThis.atob(padded);
 }

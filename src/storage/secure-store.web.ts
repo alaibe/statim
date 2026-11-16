@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from "@tauri-apps/api/core";
 
 /**
  * An encrypted file kept by the Rust side, whose key a release build holds in
@@ -6,15 +6,15 @@ import { invoke } from '@tauri-apps/api/core';
  * protected items are ordinary items.
  */
 export function get(key: string): Promise<string | null> {
-  return invoke<string | null>('vault_get', { key });
+  return invoke<string | null>("vault_get", { key });
 }
 
 export async function set(key: string, value: string): Promise<void> {
-  await invoke('vault_set', { key, value });
+  await invoke("vault_set", { key, value });
 }
 
 export async function remove(key: string): Promise<void> {
-  await invoke('vault_delete', { key });
+  await invoke("vault_delete", { key });
 }
 
 export function getProtected(key: string, _prompt: string): Promise<string | null> {

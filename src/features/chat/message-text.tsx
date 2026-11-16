@@ -1,15 +1,14 @@
-import { router } from 'expo-router';
-import { Fragment, use, useMemo, useState, type ReactNode } from 'react';
-import { TextInput, View } from 'react-native';
+import { router } from "expo-router";
+import { Fragment, type ReactNode, use, useMemo, useState } from "react";
+import { TextInput, View } from "react-native";
+import { type LinkSegment, segmentText } from "@/core/messaging/links";
+import { type Block, listMarker, parseMarkdown, type Span } from "@/core/messaging/markdown";
+import type { ChatId, ParticipantId } from "@/core/messaging/types";
+import { ActionSheet, cn, Text } from "@/design";
 
-import { ActionSheet, cn, Text } from '@/design';
-import { type LinkSegment, segmentText } from '@/core/messaging/links';
-import { type Block, listMarker, parseMarkdown, type Span } from '@/core/messaging/markdown';
-import type { ParticipantId, ChatId } from '@/core/messaging/types';
-
-import { HeldBubble } from './bubble-shell';
-import { linkActions, openLink } from './link-actions';
-import { useOffersSend } from './use-offers-send';
+import { HeldBubble } from "./bubble-shell";
+import { linkActions, openLink } from "./link-actions";
+import { useOffersSend } from "./use-offers-send";
 
 interface Look {
   fromMe: boolean;
@@ -44,7 +43,7 @@ export function MessageText({
     className,
     onHold: setHeld,
     onMention: chatId
-      ? (member) => router.push({ pathname: '/profile/[id]', params: { id: chatId, member } })
+      ? (member) => router.push({ pathname: "/profile/[id]", params: { id: chatId, member } })
       : undefined,
   };
   // The time's room at the end of the line is text, which a selection would take.
@@ -52,7 +51,7 @@ export function MessageText({
 
   return (
     <>
-      {only?.kind === 'paragraph' ? (
+      {only?.kind === "paragraph" ? (
         <View>
           <Text className={className}>
             <Spans spans={only.spans} look={look} />
@@ -87,46 +86,39 @@ export function MessageText({
 function Blocks({ blocks, look }: { blocks: readonly Block[]; look: Look }) {
   const { fromMe, className } = look;
   return blocks.map((block, i) => {
-    const gap = block.spaced ? 'mt-1.5' : undefined;
+    const gap = block.spaced ? "mt-1.5" : undefined;
     switch (block.kind) {
-      case 'paragraph':
-      case 'heading':
+      case "paragraph":
+      case "heading":
         return (
-          <Paragraph
-            key={i}
-            className={cn(className, block.kind === 'heading' && 'font-bold', gap)}>
+          <Paragraph key={i} className={cn(className, block.kind === "heading" && "font-bold", gap)}>
             <Spans spans={block.spans} look={look} />
           </Paragraph>
         );
-      case 'code':
+      case "code":
         return (
           <View
             key={i}
-            style={{ borderCurve: 'continuous' }}
-            className={cn(
-              'rounded-lg px-2.5 py-1.5',
-              fromMe ? 'bg-bubble-out-on/15' : 'bg-content/5',
-              gap
-            )}>
-            <Paragraph selectable className={cn(className, 'font-mono text-footnote')}>
+            style={{ borderCurve: "continuous" }}
+            className={cn("rounded-lg px-2.5 py-1.5", fromMe ? "bg-bubble-out-on/15" : "bg-content/5", gap)}
+          >
+            <Paragraph selectable className={cn(className, "font-mono text-footnote")}>
               {block.text}
             </Paragraph>
           </View>
         );
-      case 'quote':
+      case "quote":
         return (
-          <View key={i} className={cn('flex-row gap-2', gap)}>
-            <View
-              className={cn('w-0.5 rounded-full', fromMe ? 'bg-bubble-out-on/60' : 'bg-brand')}
-            />
+          <View key={i} className={cn("flex-row gap-2", gap)}>
+            <View className={cn("w-0.5 rounded-full", fromMe ? "bg-bubble-out-on/60" : "bg-brand")} />
             <View className="min-w-0 grow shrink gap-1">
               <Blocks blocks={block.blocks} look={look} />
             </View>
           </View>
         );
-      case 'list':
+      case "list":
         return (
-          <View key={i} className={cn('gap-0.5', gap)}>
+          <View key={i} className={cn("gap-0.5", gap)}>
             {block.items.map((item, n) => (
               <View key={n} className="flex-row gap-1.5">
                 <Text className={className}>{listMarker(block, n)}</Text>
@@ -137,13 +129,8 @@ function Blocks({ blocks, look }: { blocks: readonly Block[]; look: Look }) {
             ))}
           </View>
         );
-      case 'rule':
-        return (
-          <View
-            key={i}
-            className={cn('my-1 h-px', fromMe ? 'bg-bubble-out-on/30' : 'bg-line', gap)}
-          />
-        );
+      case "rule":
+        return <View key={i} className={cn("my-1 h-px", fromMe ? "bg-bubble-out-on/30" : "bg-line", gap)} />;
     }
   });
 }
@@ -159,9 +146,9 @@ function Paragraph({
   children: ReactNode;
 }) {
   const lifted = use(HeldBubble);
-  if (lifted && process.env.EXPO_OS === 'ios') {
+  if (lifted && process.env.EXPO_OS === "ios") {
     return (
-      <TextInput readOnly multiline scrollEnabled={false} className={cn(className, 'p-0')}>
+      <TextInput readOnly multiline scrollEnabled={false} className={cn(className, "p-0")}>
         <Text className={className}>{children}</Text>
       </TextInput>
     );
@@ -176,62 +163,49 @@ function Paragraph({
 function Spans({ spans, look }: { spans: readonly Span[]; look: Look }) {
   return spans.map((span, i) => {
     const style = cn(
-      span.style.bold && 'font-bold',
-      span.style.italic && 'italic',
-      span.style.strike && 'line-through'
+      span.style.bold && "font-bold",
+      span.style.italic && "italic",
+      span.style.strike && "line-through",
     );
     const mentioned = span.mention;
     if (mentioned) {
       return (
         <Text
           key={i}
-          accessibilityRole={look.onMention ? 'link' : undefined}
+          accessibilityRole={look.onMention ? "link" : undefined}
           suppressHighlighting
           onPress={look.onMention ? () => look.onMention?.(mentioned) : undefined}
-          className={cn(
-            look.className,
-            style,
-            'font-semibold',
-            look.fromMe ? 'text-bubble-out-on' : 'text-brand'
-          )}>
+          className={cn(look.className, style, "font-semibold", look.fromMe ? "text-bubble-out-on" : "text-brand")}
+        >
           {span.text}
         </Text>
       );
     }
     if (span.href) {
       return (
-        <LinkText
-          key={i}
-          link={{ kind: 'url', text: span.text, href: span.href }}
-          look={look}
-          className={style}
-        />
+        <LinkText key={i} link={{ kind: "url", text: span.text, href: span.href }} look={look} className={style} />
       );
     }
     if (span.style.code) {
       return (
         <Text
           key={i}
-          className={cn(
-            look.className,
-            style,
-            'font-mono',
-            look.fromMe ? 'bg-bubble-out-on/15' : 'bg-content/5'
-          )}>
+          className={cn(look.className, style, "font-mono", look.fromMe ? "bg-bubble-out-on/15" : "bg-content/5")}
+        >
           {span.text}
         </Text>
       );
     }
     const parts: ReactNode[] = segmentText(span.text).map((segment, n) =>
-      segment.kind === 'text' ? (
-        segment.text.includes('@') ? (
+      segment.kind === "text" ? (
+        segment.text.includes("@") ? (
           <Fragment key={n}>{mentionText(segment.text, look)}</Fragment>
         ) : (
           segment.text
         )
       ) : (
         <LinkText key={n} link={segment} look={look} className={style} />
-      )
+      ),
     );
     return style ? (
       <Text key={i} className={cn(look.className, style)}>
@@ -250,11 +224,9 @@ function mentionText(value: string, look: Look): ReactNode[] {
     const start = (match.index ?? 0) + match[1].length;
     parts.push(value.slice(cursor, start));
     parts.push(
-      <Text
-        key={start}
-        className={cn('font-semibold', look.fromMe ? 'text-bubble-out-on' : 'text-brand')}>
+      <Text key={start} className={cn("font-semibold", look.fromMe ? "text-bubble-out-on" : "text-brand")}>
         {match[2]}
-      </Text>
+      </Text>,
     );
     cursor = start + match[2].length;
   }
@@ -262,22 +234,15 @@ function mentionText(value: string, look: Look): ReactNode[] {
   return parts;
 }
 
-function LinkText({
-  link,
-  look,
-  className,
-}: {
-  link: LinkSegment;
-  look: Look;
-  className?: string;
-}) {
+function LinkText({ link, look, className }: { link: LinkSegment; look: Look; className?: string }) {
   return (
     <Text
       accessibilityRole="link"
       suppressHighlighting
       onPress={() => openLink(link)}
       onLongPress={() => look.onHold(link)}
-      className={cn(look.className, className, 'underline', !look.fromMe && 'text-brand')}>
+      className={cn(look.className, className, "underline", !look.fromMe && "text-brand")}
+    >
       {link.text}
     </Text>
   );

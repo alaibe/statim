@@ -1,24 +1,24 @@
-import type { Chain } from 'viem';
+import type { Chain } from "viem";
 
-import { errorMessage } from '@/core/errors';
-import type { BotContext } from '@/core/messaging/bots';
-import type { CommandResult, PluginContext } from '@/core/plugins/types';
-import type { IconName } from '@/design';
-import type { Widget, WidgetRow } from '@/design/widgets';
+import { errorMessage } from "@/core/errors";
+import type { BotContext } from "@/core/messaging/bots";
+import type { CommandResult, PluginContext } from "@/core/plugins/types";
+import type { IconName } from "@/design";
+import type { Widget, WidgetRow } from "@/design/widgets";
 
 export type EvmChainId =
-  | 'ethereum'
-  | 'base'
-  | 'optimism'
-  | 'arbitrum'
-  | 'polygon'
-  | 'sepolia'
-  | 'optimism-sepolia'
-  | 'base-sepolia'
-  | 'arbitrum-sepolia';
-export type ChainId = EvmChainId | 'bitcoin' | 'solana';
+  | "ethereum"
+  | "base"
+  | "optimism"
+  | "arbitrum"
+  | "polygon"
+  | "sepolia"
+  | "optimism-sepolia"
+  | "base-sepolia"
+  | "arbitrum-sepolia";
+export type ChainId = EvmChainId | "bitcoin" | "solana";
 
-export type Say = BotContext['say'];
+export type Say = BotContext["say"];
 
 export type RpcCheck = { ok: true } | { ok: false; reason: string };
 
@@ -36,9 +36,7 @@ export interface TransferParams {
   asset?: string;
 }
 
-export type TransferQuote =
-  | { symbol: string; rows: { label: string; value: string }[] }
-  | { error: string };
+export type TransferQuote = { symbol: string; rows: { label: string; value: string }[] } | { error: string };
 
 export interface ChainFees {
   headline: string;
@@ -111,9 +109,7 @@ export type AddressLookup = { address: string } | { error: string };
 
 export function holdingsOf(chain: ChainStrategy, context: PluginContext): Promise<Holding[]> {
   const mine = selfAddressOf(chain, context);
-  return 'error' in mine
-    ? Promise.resolve([])
-    : (chain.holdings?.(context, mine.address) ?? Promise.resolve([]));
+  return "error" in mine ? Promise.resolve([]) : (chain.holdings?.(context, mine.address) ?? Promise.resolve([]));
 }
 
 /** A token the chain cannot send carries no action rather than one that would fail. */
@@ -147,7 +143,7 @@ export async function targetAddress(
   chain: ChainStrategy,
   context: PluginContext,
   given: string | undefined,
-  { resolve }: { resolve: boolean }
+  { resolve }: { resolve: boolean },
 ): Promise<AddressLookup> {
   if (!given) return selfAddressOf(chain, context);
   if (chain.isAddress(given)) return { address: given };
@@ -161,14 +157,12 @@ export async function targetAddress(
       };
 }
 
-export function derivationUnavailable(
-  chainName: string
-): NonNullable<ChainStrategy['unavailable']> {
+export function derivationUnavailable(chainName: string): NonNullable<ChainStrategy["unavailable"]> {
   return (context) =>
     context.account.capabilities.otherChains
       ? null
       : {
-          type: 'error',
+          type: "error",
           message:
             `This account keeps its keys on a hardware wallet, and ${chainName} there needs the ` +
             `device’s own ${chainName} app, which this app does not speak yet. Switch to an account ` +

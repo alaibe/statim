@@ -1,19 +1,9 @@
-import { useState } from 'react';
-import { View } from 'react-native';
+import { useState } from "react";
+import { View } from "react-native";
 
-import {
-  ActionSheet,
-  Button,
-  Chip,
-  Field,
-  FieldShell,
-  FIELD_BOX,
-  MANY_OPTIONS,
-  Pressable,
-  Text,
-} from '../components';
-import { Icon } from '../icon';
-import { cn } from '../lib/cn';
+import { ActionSheet, Button, Chip, FIELD_BOX, Field, FieldShell, MANY_OPTIONS, Pressable, Text } from "../components";
+import { Icon } from "../icon";
+import { cn } from "../lib/cn";
 import {
   displayValues,
   fillCommand,
@@ -23,7 +13,7 @@ import {
   visibleOptions,
   type WidgetOf,
   type WidgetOption,
-} from './schema';
+} from "./schema";
 
 const DECIMAL_SEPARATOR = new Intl.NumberFormat().format(1.5).charAt(1);
 
@@ -49,16 +39,13 @@ function SelectField({
     <FieldShell label={label} hint={hint}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${label}, ${chosen?.label ?? 'none chosen'}`}
+        accessibilityLabel={`${label}, ${chosen?.label ?? "none chosen"}`}
         onPress={() => setPicking(true)}
-        style={{ borderCurve: 'continuous' }}
-        className={cn(FIELD_BOX, 'flex-row items-center gap-2 border-line')}>
-        <Text
-          className={cn(
-            'min-w-0 flex-1 text-body',
-            chosen ? 'text-content' : 'text-content-subtle'
-          )}>
-          {chosen?.label ?? placeholder ?? 'Choose'}
+        style={{ borderCurve: "continuous" }}
+        className={cn(FIELD_BOX, "flex-row items-center gap-2 border-line")}
+      >
+        <Text className={cn("min-w-0 flex-1 text-body", chosen ? "text-content" : "text-content-subtle")}>
+          {chosen?.label ?? placeholder ?? "Choose"}
         </Text>
         <Icon name="chevron-down" size={16} tone="subtle" />
       </Pressable>
@@ -82,15 +69,9 @@ function SelectField({
   );
 }
 
-export function FormWidget({
-  widget,
-  onCommand,
-}: {
-  widget: WidgetOf<'form'>;
-  onCommand?: (command: string) => void;
-}) {
+export function FormWidget({ widget, onCommand }: { widget: WidgetOf<"form">; onCommand?: (command: string) => void }) {
   const [values, setValues] = useState<Record<string, string>>(() =>
-    Object.fromEntries(widget.fields.map((f) => [f.id, f.value ?? '']))
+    Object.fromEntries(widget.fields.map((f) => [f.id, f.value ?? ""])),
   );
 
   const answers = resolveValues(widget.fields, values);
@@ -110,16 +91,13 @@ export function FormWidget({
               label={label}
               hint={fill(field.hint)}
               placeholder={fill(field.placeholder)}
-              defaultValue={field.value ?? ''}
+              defaultValue={field.value ?? ""}
               onChangeText={(text) =>
-                answer(
-                  field.id,
-                  field.keyboard === 'decimal' ? normaliseDecimal(text, DECIMAL_SEPARATOR) : text
-                )
+                answer(field.id, field.keyboard === "decimal" ? normaliseDecimal(text, DECIMAL_SEPARATOR) : text)
               }
               autoCorrect={false}
               autoCapitalize="none"
-              keyboardType={field.keyboard === 'decimal' ? 'decimal-pad' : 'default'}
+              keyboardType={field.keyboard === "decimal" ? "decimal-pad" : "default"}
             />
           );
         }

@@ -1,9 +1,9 @@
-import { createContext, useRef, useState } from 'react';
-import { Pressable as RNPressable, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import { createContext, useRef, useState } from "react";
+import { Pressable as RNPressable, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 
-import { cn, Icon, Text, useThemeColors } from '@/design';
-import { MessageActions, type MessageAction, type MessageAnchor } from './message-actions';
+import { cn, Icon, Text, useThemeColors } from "@/design";
+import { type MessageAction, MessageActions, type MessageAnchor } from "./message-actions";
 
 export interface ReplyPreview {
   author: string;
@@ -65,7 +65,7 @@ export function BubbleShell({
   };
 
   const pointed = tail && !bare;
-  const side = SIDE[fromMe ? 'out' : 'in'];
+  const side = SIDE[fromMe ? "out" : "in"];
 
   const body = (held: boolean) => (
     <RNPressable
@@ -75,7 +75,7 @@ export function BubbleShell({
       // The desktop counterpart of the long-press. Spelled out rather than
       // through `contextMenu()`: react-hooks/refs treats passing `open` to a
       // call made during render as a ref read during render.
-      {...(process.env.EXPO_OS === 'web' && !held
+      {...(process.env.EXPO_OS === "web" && !held
         ? {
             onContextMenu: (event: { preventDefault(): void }) => {
               event.preventDefault();
@@ -86,7 +86,8 @@ export function BubbleShell({
       delayLongPress={280}
       accessible={false}
       style={bare ? undefined : BUBBLE_SHADOW}
-      className={bubbleClass({ held, bare, side, pointed, grouped })}>
+      className={bubbleClass({ held, bare, side, pointed, grouped })}
+    >
       {replyPreview ? <ReplyQuote reply={replyPreview} side={side} /> : null}
       {children}
       {pointed ? <Tail side={side} /> : null}
@@ -95,7 +96,7 @@ export function BubbleShell({
 
   return (
     <>
-      <View className={cn('px-gutter', grouped ? 'pt-0.5' : 'pt-2', side.align)}>
+      <View className={cn("px-gutter", grouped ? "pt-0.5" : "pt-2", side.align)}>
         {showSender && !fromMe ? (
           <Text variant="micro" className="mb-0.5 ml-3 font-medium">
             {senderName}
@@ -131,42 +132,42 @@ export function BubbleShell({
 
 /** Telegram Web's tail (tweb `message-tail-filled`), drawn against the bubble's square corner. */
 const TAIL = {
-  in: 'M3 19H9V2C8.807 4.84 8.124 7.767 6.95 10.782C6.046 13.107 4.504 15.267 2.325 17.262A1 1 0 0 0 3 19Z',
-  out: 'M8 19H2V2C2.193 4.84 2.876 7.767 4.05 10.782C4.954 13.107 6.496 15.267 8.675 17.262A1 1 0 0 1 8 19Z',
+  in: "M3 19H9V2C8.807 4.84 8.124 7.767 6.95 10.782C6.046 13.107 4.504 15.267 2.325 17.262A1 1 0 0 0 3 19Z",
+  out: "M8 19H2V2C2.193 4.84 2.876 7.767 4.05 10.782C4.954 13.107 6.496 15.267 8.675 17.262A1 1 0 0 1 8 19Z",
 };
 
 const SIDE = {
   out: {
-    fill: 'bg-bubble-out',
-    color: 'bubble-out',
-    align: 'items-end',
-    edge: 'right',
+    fill: "bg-bubble-out",
+    color: "bubble-out",
+    align: "items-end",
+    edge: "right",
     tail: TAIL.out,
-    pointed: 'rounded-br-none',
-    corner: 'rounded-br-md',
-    grouped: 'rounded-tr-md',
-    quote: 'bg-bubble-out-on/15',
-    bar: 'bg-bubble-out-on',
-    author: 'text-bubble-out-on',
-    preview: 'text-bubble-out-on/80',
+    pointed: "rounded-br-none",
+    corner: "rounded-br-md",
+    grouped: "rounded-tr-md",
+    quote: "bg-bubble-out-on/15",
+    bar: "bg-bubble-out-on",
+    author: "text-bubble-out-on",
+    preview: "text-bubble-out-on/80",
   },
   in: {
-    fill: 'bg-bubble-in',
-    color: 'bubble-in',
-    align: 'items-start',
-    edge: 'left',
+    fill: "bg-bubble-in",
+    color: "bubble-in",
+    align: "items-start",
+    edge: "left",
     tail: TAIL.in,
-    pointed: 'rounded-bl-none',
-    corner: 'rounded-bl-md',
-    grouped: 'rounded-tl-md',
-    quote: 'bg-content/5',
-    bar: 'bg-brand',
-    author: 'text-brand',
+    pointed: "rounded-bl-none",
+    corner: "rounded-bl-md",
+    grouped: "rounded-tl-md",
+    quote: "bg-content/5",
+    bar: "bg-brand",
+    author: "text-brand",
     preview: undefined,
   },
 } as const;
 
-type Side = (typeof SIDE)['out' | 'in'];
+type Side = (typeof SIDE)["out" | "in"];
 
 function bubbleClass({
   held,
@@ -183,24 +184,19 @@ function bubbleClass({
 }): string {
   return cn(
     // A wide window would otherwise stretch a bubble across the pane.
-    !held && (process.env.EXPO_OS === 'web' ? 'max-w-[min(82%,560px)]' : 'max-w-[82%]'),
+    !held && (process.env.EXPO_OS === "web" ? "max-w-[min(82%,560px)]" : "max-w-[82%]"),
     !bare &&
-      cn(
-        'rounded-bubble px-2.5 py-1.5',
-        side.fill,
-        pointed ? side.pointed : side.corner,
-        grouped && side.grouped
-      )
+      cn("rounded-bubble px-2.5 py-1.5", side.fill, pointed ? side.pointed : side.corner, grouped && side.grouped),
   );
 }
 
 function ReplyQuote({ reply, side }: { reply: ReplyPreview; side: Side }) {
   return (
-    <View className={cn('mb-1.5 flex-row gap-2 rounded-md px-2 py-1', side.quote)}>
-      <View className={cn('w-0.5 rounded-full', side.bar)} />
+    <View className={cn("mb-1.5 flex-row gap-2 rounded-md px-2 py-1", side.quote)}>
+      <View className={cn("w-0.5 rounded-full", side.bar)} />
       <View className="min-w-0 flex-1">
         {reply.author ? (
-          <Text variant="micro" className={cn('font-semibold', side.author)}>
+          <Text variant="micro" className={cn("font-semibold", side.author)}>
             {reply.author}
           </Text>
         ) : null}
@@ -221,35 +217,30 @@ function ThreadButton({ thread }: { thread: ThreadChip }) {
       accessibilityLabel={`Open thread, ${label}`}
       onPress={thread.onOpen}
       className={cn(
-        'mt-1 flex-row items-center gap-1.5 rounded-pill px-2.5 py-1',
-        unread ? 'bg-brand' : 'bg-surface-sunken'
-      )}>
-      <Icon name="chatbubbles-outline" size={13} tone={unread ? 'brand-on' : 'brand'} />
-      <Text
-        variant="caption"
-        className={cn('font-semibold', unread ? 'text-brand-on' : 'text-brand')}>
+        "mt-1 flex-row items-center gap-1.5 rounded-pill px-2.5 py-1",
+        unread ? "bg-brand" : "bg-surface-sunken",
+      )}
+    >
+      <Icon name="chatbubbles-outline" size={13} tone={unread ? "brand-on" : "brand"} />
+      <Text variant="caption" className={cn("font-semibold", unread ? "text-brand-on" : "text-brand")}>
         {label}
       </Text>
-      <Icon name="chevron-forward" size={12} tone={unread ? 'brand-on' : 'brand'} />
+      <Icon name="chevron-forward" size={12} tone={unread ? "brand-on" : "brand"} />
     </RNPressable>
   );
 }
 
 export function repliesLabel(count: number, fresh = 0): string {
-  const replies = count === 1 ? '1 reply' : `${count} replies`;
+  const replies = count === 1 ? "1 reply" : `${count} replies`;
   return fresh > 0 ? `${replies} · ${fresh} new` : replies;
 }
 
-const BUBBLE_SHADOW = { boxShadow: '0 1px 2px rgba(16, 35, 47, 0.15)' };
+const BUBBLE_SHADOW = { boxShadow: "0 1px 2px rgba(16, 35, 47, 0.15)" };
 
 function Tail({ side }: { side: Side }) {
   const colors = useThemeColors();
   return (
-    <Svg
-      width={11}
-      height={20}
-      viewBox="0 0 11 20"
-      style={{ position: 'absolute', bottom: -1, [side.edge]: -8.4 }}>
+    <Svg width={11} height={20} viewBox="0 0 11 20" style={{ position: "absolute", bottom: -1, [side.edge]: -8.4 }}>
       <Path d={side.tail} fill={colors[side.color]} />
     </Svg>
   );

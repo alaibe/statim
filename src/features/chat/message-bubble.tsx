@@ -1,47 +1,40 @@
-import { useEffect, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { type ReactNode, useEffect } from "react";
+import { View } from "react-native";
+import { errorMessage } from "@/core/errors";
+import { sessionFor, useChatStore } from "@/core/messaging/chat-store";
+import { type LinkSegment, segmentText } from "@/core/messaging/links";
+import { parseLocation } from "@/core/messaging/locations";
+import { labelledLinks, plainText } from "@/core/messaging/markdown";
+import { BRIDGED_NETWORKS, NETWORK_APPS } from "@/core/messaging/networks";
+import { awaitsFile, callLabel, formatTimestamp } from "@/core/messaging/preview";
+import { hasReactions } from "@/core/messaging/reactions";
+import type { CallContent, ChatMessage, LiveView, MessageId, WidgetContent } from "@/core/messaging/types";
+import { usePluginHost } from "@/core/plugins/host";
+import { cn, Icon, type IconName, Pressable, Text, toast } from "@/design";
+import { WidgetView } from "@/design/widgets/widget-view";
+import { findTransactionHash } from "@/lib/evm/transactions";
+import { openExternal } from "@/lib/open-url";
+import { AddressPreview } from "./address-preview";
+import { FileBubble } from "./attachments/file-bubble";
+import { ImageBubble } from "./attachments/image-bubble";
+import { StickerBubble } from "./attachments/sticker-bubble";
+import { VideoBubble } from "./attachments/video-bubble";
+import { VoiceBubble } from "./attachments/voice-bubble";
+import { BubbleShell, type ReplyPreview, type ThreadChip } from "./bubble-shell";
+import { DeliveryIcon } from "./delivery-icon";
+import { openUrlQuietly } from "./link-actions";
+import { LinkPreviewCard } from "./link-preview-card";
+import { LocationCard } from "./location-card";
+import type { MessageAction } from "./message-actions";
+import { mediaSaver } from "./message-commands";
+import { MessageText } from "./message-text";
+import { PluginPreview } from "./plugin-preview";
+import { PollBubble } from "./poll-bubble";
+import { ReactionRow } from "./reaction-row";
+import { TransactionPreview } from "./transaction-preview";
+import { useLiveWidget } from "./use-live-widget";
 
-import { cn, Icon, type IconName, Pressable, Text, toast } from '@/design';
-import { errorMessage } from '@/core/errors';
-import { BRIDGED_NETWORKS, NETWORK_APPS } from '@/core/messaging/networks';
-import { usePluginHost } from '@/core/plugins/host';
-import { sessionFor, useChatStore } from '@/core/messaging/chat-store';
-import { hasReactions } from '@/core/messaging/reactions';
-import type {
-  CallContent,
-  ChatMessage,
-  LiveView,
-  MessageId,
-  WidgetContent,
-} from '@/core/messaging/types';
-import type { MessageAction } from './message-actions';
-import { BubbleShell, type ReplyPreview, type ThreadChip } from './bubble-shell';
-import { ReactionRow } from './reaction-row';
-import { findTransactionHash } from '@/lib/evm/transactions';
-import { segmentText, type LinkSegment } from '@/core/messaging/links';
-import { labelledLinks, plainText } from '@/core/messaging/markdown';
-import { parseLocation } from '@/core/messaging/locations';
-import { AddressPreview } from './address-preview';
-import { LinkPreviewCard } from './link-preview-card';
-import { LocationCard } from './location-card';
-import { MessageText } from './message-text';
-import { PluginPreview } from './plugin-preview';
-import { TransactionPreview } from './transaction-preview';
-import { WidgetView } from '@/design/widgets/widget-view';
-import { useLiveWidget } from './use-live-widget';
-import { FileBubble } from './attachments/file-bubble';
-import { ImageBubble } from './attachments/image-bubble';
-import { StickerBubble } from './attachments/sticker-bubble';
-import { VoiceBubble } from './attachments/voice-bubble';
-import { VideoBubble } from './attachments/video-bubble';
-import { PollBubble } from './poll-bubble';
-import { awaitsFile, callLabel, formatTimestamp } from '@/core/messaging/preview';
-import { DeliveryIcon } from './delivery-icon';
-import { openUrlQuietly } from './link-actions';
-import { openExternal } from '@/lib/open-url';
-import { mediaSaver } from './message-commands';
-
-export type { ReplyPreview } from './bubble-shell';
+export type { ReplyPreview } from "./bubble-shell";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -81,11 +74,11 @@ export function MessageBubble({
 
   const { fromMe, content } = message;
 
-  if (content.kind === 'system') return <NoticeLine text={content.text} />;
+  if (content.kind === "system") return <NoticeLine text={content.text} />;
 
-  if (content.kind === 'call') return <CallLine call={content} />;
+  if (content.kind === "call") return <CallLine call={content} />;
 
-  if (content.kind === 'reaction') return null;
+  if (content.kind === "reaction") return null;
 
   const reactionRow = (inBubble: boolean) =>
     hasReactions(message) ? (
@@ -117,7 +110,7 @@ export function MessageBubble({
   let children: React.ReactNode;
 
   switch (content.kind) {
-    case 'widget':
+    case "widget":
       bare = true;
       children = content.live ? (
         <LiveWidget content={content} onCommand={onCommand} />
@@ -126,7 +119,7 @@ export function MessageBubble({
       );
       break;
 
-    case 'custom': {
+    case "custom": {
       const custom = registry.customRenderer(content.typeId, content.data);
       if (custom) {
         const Renderer = custom.render;
@@ -141,18 +134,16 @@ export function MessageBubble({
           />
         );
       } else {
-        children = (
-          <TextBody footer={footer} text={content.fallback ?? 'Rich message'} unsupported />
-        );
+        children = <TextBody footer={footer} text={content.fallback ?? "Rich message"} unsupported />;
       }
       break;
     }
 
-    case 'image':
-    case 'video': {
+    case "image":
+    case "video": {
       const onSave = mediaSaver(message);
       const media =
-        content.kind === 'image' ? (
+        content.kind === "image" ? (
           <ImageBubble
             uri={content.uri}
             width={content.width}
@@ -178,12 +169,12 @@ export function MessageBubble({
       break;
     }
 
-    case 'sticker':
+    case "sticker":
       bare = !replyPreview;
       children = withFooter(<StickerBubble sticker={content} />, bare);
       break;
 
-    case 'file':
+    case "file":
       children = (
         <>
           <FileBubble
@@ -198,21 +189,16 @@ export function MessageBubble({
       );
       break;
 
-    case 'voice':
+    case "voice":
       children = (
         <>
-          <VoiceBubble
-            uri={content.uri}
-            durationMs={content.durationMs}
-            fromMe={fromMe}
-            seed={message.id}
-          />
+          <VoiceBubble uri={content.uri} durationMs={content.durationMs} fromMe={fromMe} seed={message.id} />
           <Footer {...footer} />
         </>
       );
       break;
 
-    case 'poll':
+    case "poll":
       children = (
         <>
           <PollBubble poll={content} fromMe={fromMe} onVote={onVote} />
@@ -221,7 +207,7 @@ export function MessageBubble({
       );
       break;
 
-    case 'text':
+    case "text":
       children = <TextBody footer={footer} text={content.text} onCommand={onCommand} />;
       break;
 
@@ -242,7 +228,8 @@ export function MessageBubble({
       actions={actions}
       replyPreview={replyPreview}
       thread={thread}
-      bare={bare}>
+      bare={bare}
+    >
       {children}
     </BubbleShell>
   );
@@ -266,10 +253,8 @@ function CallLine({ call }: { call: CallContent }) {
   return (
     <NoticeLine
       text={callLabel(call)}
-      icon={call.video ? 'videocam-outline' : 'call-outline'}
-      action={
-        openIn && url ? <OpenInButton name={BRIDGED_NETWORKS[openIn.network]} url={url} /> : null
-      }
+      icon={call.video ? "videocam-outline" : "call-outline"}
+      action={openIn && url ? <OpenInButton name={BRIDGED_NETWORKS[openIn.network]} url={url} /> : null}
     />
   );
 }
@@ -281,7 +266,8 @@ function OpenInButton({ name, url }: { name: string; url: string }) {
       onPress={() => {
         openExternal(url).catch((e) => toast.error(errorMessage(e, `Could not open ${name}`)));
       }}
-      className="flex-row items-center gap-1 rounded-pill border border-line px-3 py-1">
+      className="flex-row items-center gap-1 rounded-pill border border-line px-3 py-1"
+    >
       <Icon name="open-outline" size={13} tone="brand" />
       <Text variant="caption" className="font-semibold text-brand">
         Open in {name}
@@ -303,14 +289,14 @@ function TextBody({
 }) {
   const { message } = footer;
   const { fromMe } = message;
-  const className = cn('text-body', fromMe ? 'text-bubble-out-on' : 'text-bubble-in-on');
+  const className = cn("text-body", fromMe ? "text-bubble-out-on" : "text-bubble-in-on");
   const plain = plainText(text);
   const claimed = useTextPreview(plain);
 
   if (unsupported) {
     return (
       <>
-        <Text className={cn(className, 'italic opacity-80')}>{text}</Text>
+        <Text className={cn(className, "italic opacity-80")}>{text}</Text>
         <Footer {...footer} />
       </>
     );
@@ -319,20 +305,13 @@ function TextBody({
   const segments = claimed ? [] : segmentText(plain);
   const transactionHash = claimed ? null : findTransactionHash(plain);
   const link =
-    segments.find((s): s is LinkSegment => s.kind === 'url' || s.kind === 'location') ??
-    (claimed ? [] : labelledLinks(text)).map(
-      (href): LinkSegment => ({ kind: 'url', text: href, href })
-    )[0];
+    segments.find((s): s is LinkSegment => s.kind === "url" || s.kind === "location") ??
+    (claimed ? [] : labelledLinks(text)).map((href): LinkSegment => ({ kind: "url", text: href, href }))[0];
   const location = link ? parseLocation(link.href) : null;
-  const account = segments.find((s) => s.kind === 'address' || s.kind === 'ens');
+  const account = segments.find((s) => s.kind === "address" || s.kind === "ens");
   const pluginCard = fromMe ? null : claimed;
   const inline =
-    !transactionHash &&
-    !location &&
-    link?.kind !== 'url' &&
-    !account &&
-    !pluginCard &&
-    !hasReactions(message);
+    !transactionHash && !location && link?.kind !== "url" && !account && !pluginCard && !hasReactions(message);
 
   return (
     <>
@@ -342,22 +321,16 @@ function TextBody({
         className={className}
         chatId={message.chatId}
         onCommand={onCommand}
-        footer={
-          inline
-            ? { node: <Footer {...footer} place="inline" />, label: footerLabel(message) }
-            : undefined
-        }
+        footer={inline ? { node: <Footer {...footer} place="inline" />, label: footerLabel(message) } : undefined}
       />
 
       {transactionHash ? <TransactionPreview hash={transactionHash} fromMe={fromMe} /> : null}
       {location ? (
         <LocationCard location={location} fromMe={fromMe} />
-      ) : link?.kind === 'url' ? (
+      ) : link?.kind === "url" ? (
         <LinkPreviewCard url={link.href} fromMe={fromMe} />
       ) : null}
-      {account ? (
-        <AddressPreview value={account.text} chatId={message.chatId} onCommand={onCommand} />
-      ) : null}
+      {account ? <AddressPreview value={account.text} chatId={message.chatId} onCommand={onCommand} /> : null}
       {pluginCard ? <PluginPreview live={pluginCard} onCommand={onCommand} /> : null}
 
       {inline ? null : <Footer {...footer} />}
@@ -371,7 +344,7 @@ function useTextPreview(plain: string): LiveView | null {
 }
 
 function timeLabel(message: ChatMessage): string {
-  return `${message.edited ? 'edited ' : ''}${formatTimestamp(message.sentAt)}`;
+  return `${message.edited ? "edited " : ""}${formatTimestamp(message.sentAt)}`;
 }
 
 /** The time's text, with room for the ticks on your own messages. */
@@ -386,24 +359,19 @@ interface FooterProps {
 }
 
 /** `overlay` sits the time on a photo that has no bubble around it; `inline` at the end of the text's last line. */
-function Footer({
-  message,
-  read,
-  reactions,
-  place = 'row',
-}: FooterProps & { place?: 'row' | 'overlay' | 'inline' }) {
-  const overlay = place === 'overlay';
+function Footer({ message, read, reactions, place = "row" }: FooterProps & { place?: "row" | "overlay" | "inline" }) {
+  const overlay = place === "overlay";
   const time = (
     <View
       className={cn(
-        'flex-row items-center gap-1',
-        overlay && 'absolute bottom-1.5 right-1.5 rounded-pill bg-black/45 px-1.5 py-0.5'
-      )}>
+        "flex-row items-center gap-1",
+        overlay && "absolute bottom-1.5 right-1.5 rounded-pill bg-black/45 px-1.5 py-0.5",
+      )}
+    >
       <Text
         variant="micro"
-        className={
-          overlay ? 'text-white' : message.fromMe ? 'text-bubble-out-on/60' : 'text-content-subtle'
-        }>
+        className={overlay ? "text-white" : message.fromMe ? "text-bubble-out-on/60" : "text-content-subtle"}
+      >
         {timeLabel(message)}
       </Text>
       {message.fromMe ? (
@@ -412,12 +380,12 @@ function Footer({
           read={read}
           size={13}
           tone="bubble-out-on"
-          color={overlay ? '#fff' : undefined}
+          color={overlay ? "#fff" : undefined}
         />
       ) : null}
     </View>
   );
-  if (place !== 'row') return time;
+  if (place !== "row") return time;
   if (reactions) {
     return (
       <View className="mt-1 flex-row items-end gap-3">
@@ -429,16 +397,8 @@ function Footer({
   return <View className="-mt-0.5 flex-row justify-end">{time}</View>;
 }
 
-function LiveWidget({
-  content,
-  onCommand,
-}: {
-  content: WidgetContent;
-  onCommand?: (command: string) => void;
-}) {
-  return (
-    <WidgetView widget={useLiveWidget(content)} onCommand={onCommand} onOpenUrl={openUrlQuietly} />
-  );
+function LiveWidget({ content, onCommand }: { content: WidgetContent; onCommand?: (command: string) => void }) {
+  return <WidgetView widget={useLiveWidget(content)} onCommand={onCommand} onOpenUrl={openUrlQuietly} />;
 }
 
 const requestedMedia = new Set<MessageId>();

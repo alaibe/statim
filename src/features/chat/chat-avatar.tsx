@@ -1,11 +1,10 @@
-import { View } from 'react-native';
-
-import { Avatar, type AvatarProps, NetworkMark } from '@/design';
-import { isLocalChat } from '@/core/messaging/bots';
-import type { NetworkId } from '@/core/messaging/networks';
-import type { Chat, ParticipantId } from '@/core/messaging/types';
-import { networkLabel } from '@/features/protocols/presentation';
-import { useBotAvatar } from './use-bot-avatar';
+import { View } from "react-native";
+import { isLocalChat } from "@/core/messaging/bots";
+import type { NetworkId } from "@/core/messaging/networks";
+import type { Chat, ParticipantId } from "@/core/messaging/types";
+import { Avatar, type AvatarProps, NetworkMark } from "@/design";
+import { networkLabel } from "@/features/protocols/presentation";
+import { useBotAvatar } from "./use-bot-avatar";
 
 export function ChatAvatar({
   chat,
@@ -15,7 +14,7 @@ export function ChatAvatar({
 }: {
   chat: Chat;
   selfId: ParticipantId;
-  size?: AvatarProps['size'];
+  size?: AvatarProps["size"];
   network?: NetworkId;
 }) {
   const isBot = isLocalChat(chat.id);
@@ -26,7 +25,7 @@ export function ChatAvatar({
     <Avatar
       seed={isBot ? chat.id : participant}
       size={size}
-      label={chat.kind !== 'dm' || isBot ? chat.title.replace(/^#/, '') : undefined}
+      label={chat.kind !== "dm" || isBot ? chat.title.replace(/^#/, "") : undefined}
       image={bot.avatar ?? chat.avatarUri}
       emoji={bot.emoji}
     />

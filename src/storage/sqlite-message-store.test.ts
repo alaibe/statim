@@ -1,17 +1,17 @@
-import { deleteAccountDatabase, openAccountDatabase } from './database';
-import { SqliteMessageStore } from './sqlite-message-store';
-import { botChatId } from '@/core/messaging/bots';
-import { LOCAL_PROTOCOL, protocolChatId, type ProtocolId } from '@/core/messaging/namespace';
-import { testChat } from '@/core/messaging/testing/chats';
-import { asChatId } from '@/core/messaging/testing/ids';
-import type { ProtocolMessage } from '@/core/messaging/types';
-import { InMemoryMessageStore } from '@/core/messaging/message-store';
-import { countsAsUnread } from '@/core/messaging/unread';
+import { botChatId } from "@/core/messaging/bots";
+import { InMemoryMessageStore } from "@/core/messaging/message-store";
+import { LOCAL_PROTOCOL, type ProtocolId, protocolChatId } from "@/core/messaging/namespace";
+import { testChat } from "@/core/messaging/testing/chats";
+import { asChatId } from "@/core/messaging/testing/ids";
+import type { ProtocolMessage } from "@/core/messaging/types";
+import { countsAsUnread } from "@/core/messaging/unread";
+import { deleteAccountDatabase, openAccountDatabase } from "./database";
+import { SqliteMessageStore } from "./sqlite-message-store";
 
-const STATUS = 'status';
-const NOSTR = 'nostr';
-const C1 = protocolChatId('c1');
-const C2 = protocolChatId('c2');
+const STATUS = "status";
+const NOSTR = "nostr";
+const C1 = protocolChatId("c1");
+const C2 = protocolChatId("c2");
 
 let account = 0;
 const accounts = new Set<string>();
@@ -37,25 +37,23 @@ afterEach(async () => {
 async function beforeStatement(id: string, pattern: RegExp, before: () => Promise<void>) {
   const { connection } = await openAccountDatabase(id);
   const { run, rows } = connection;
-  jest.spyOn(connection, 'run').mockImplementation(async (sql, params) => {
+  jest.spyOn(connection, "run").mockImplementation(async (sql, params) => {
     if (pattern.test(sql)) await before();
     return run(sql, params);
   });
-  jest.spyOn(connection, 'rows').mockImplementation(async (sql, params) => {
+  jest.spyOn(connection, "rows").mockImplementation(async (sql, params) => {
     if (pattern.test(sql)) await before();
     return rows(sql, params);
   });
 }
 
-function message(
-  over: Omit<Partial<ProtocolMessage>, 'chatId'> & { id: string; chatId: string }
-): ProtocolMessage {
+function message(over: Omit<Partial<ProtocolMessage>, "chatId"> & { id: string; chatId: string }): ProtocolMessage {
   return {
-    senderId: 'them',
+    senderId: "them",
     sentAt: 1000,
-    content: { kind: 'text', text: 'hello' },
+    content: { kind: "text", text: "hello" },
     fromMe: false,
-    status: 'sent',
+    status: "sent",
     ...over,
     chatId: protocolChatId(over.chatId),
   };
@@ -65,210 +63,194 @@ function chat(id: string, protocolId: ProtocolId = STATUS, over: Record<string, 
   return {
     id: protocolChatId(id),
     protocolId,
-    participants: ['me', 'them'],
+    participants: ["me", "them"],
     createdAt: 5000,
     hidden: false,
     ...over,
   };
 }
 
-describe('the database', () => {
-  it('fails closed when SQLCipher is unavailable and can retry', async () => {
+describe("the database", () => {
+  it("fails closed when SQLCipher is unavailable and can retry", async () => {
     const id = freshAccount();
-    const sqlite = jest.requireMock('expo-sqlite') as {
+    const sqlite = jest.requireMock("expo-sqlite") as {
       __setCipherVersion(version: string): void;
     };
-    sqlite.__setCipherVersion('');
+    sqlite.__setCipherVersion("");
 
-    await expect(openAccountDatabase(id)).rejects.toThrow('SQLCipher is unavailable');
+    await expect(openAccountDatabase(id)).rejects.toThrow("SQLCipher is unavailable");
 
-    sqlite.__setCipherVersion('4.6.1');
+    sqlite.__setCipherVersion("4.6.1");
     await expect(openAccountDatabase(id)).resolves.toBeDefined();
   });
 
-  it('does not re-run the migration on a second open', async () => {
+  it("does not re-run the migration on a second open", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
-    await store.upsertChat(chat('c1'));
+    await store.upsertChat(chat("c1"));
 
     const reopened = new SqliteMessageStore(id);
     expect(await reopened.loadChats(STATUS)).toHaveLength(1);
   });
 });
 
-describe('the cached chat list', () => {
-  it('keeps chats per protocol, updates them in place and drops the ones asked', async () => {
+describe("the cached chat list", () => {
+  it("keeps chats per protocol, updates them in place and drops the ones asked", async () => {
     const store = new SqliteMessageStore(freshAccount());
     const chat = (id: string, title: string) =>
-      testChat({ id, protocol: 'xmtp', title, memberIds: ['a'], createdAt: 1 });
+      testChat({ id, protocol: "xmtp", title, memberIds: ["a"], createdAt: 1 });
 
-    await store.cacheChats([chat('xmtp-1', 'One'), chat('xmtp-2', 'Two')], []);
-    await store.cacheChats([chat('xmtp-1', 'Renamed')], [asChatId('xmtp-2')]);
+    await store.cacheChats([chat("xmtp-1", "One"), chat("xmtp-2", "Two")], []);
+    await store.cacheChats([chat("xmtp-1", "Renamed")], [asChatId("xmtp-2")]);
 
-    expect(await store.cachedChats()).toEqual([chat('xmtp-1', 'Renamed')]);
+    expect(await store.cachedChats()).toEqual([chat("xmtp-1", "Renamed")]);
   });
 });
 
-describe('chats', () => {
-  it('round-trips every field, including the ones that are easy to drop', async () => {
+describe("chats", () => {
+  it("round-trips every field, including the ones that are easy to drop", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
 
     await store.upsertChat(
-      chat('c1', STATUS, {
-        title: 'Duo',
-        participants: ['a', 'b', 'c'],
+      chat("c1", STATUS, {
+        title: "Duo",
+        participants: ["a", "b", "c"],
         hidden: true,
         blocked: true,
-      })
+      }),
     );
 
     const [loaded] = await store.loadChats(STATUS);
     expect(loaded).toEqual({
-      id: 'c1',
+      id: "c1",
       protocolId: STATUS,
-      participants: ['a', 'b', 'c'],
-      title: 'Duo',
+      participants: ["a", "b", "c"],
+      title: "Duo",
       createdAt: 5000,
       hidden: true,
       blocked: true,
     });
   });
 
-  it('updates in place rather than inserting a second row', async () => {
+  it("updates in place rather than inserting a second row", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
 
-    await store.upsertChat(chat('c1', STATUS, { title: 'First' }));
-    await store.upsertChat(chat('c1', STATUS, { title: 'Renamed', hidden: true }));
+    await store.upsertChat(chat("c1", STATUS, { title: "First" }));
+    await store.upsertChat(chat("c1", STATUS, { title: "Renamed", hidden: true }));
 
     const loaded = await store.loadChats(STATUS);
     expect(loaded).toHaveLength(1);
-    expect(loaded[0].title).toBe('Renamed');
+    expect(loaded[0].title).toBe("Renamed");
     expect(loaded[0].hidden).toBe(true);
   });
 
-  it('keeps protocols apart', async () => {
+  it("keeps protocols apart", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
 
-    await store.upsertChat(chat('c1', STATUS));
-    await store.upsertChat(chat('c2', NOSTR));
+    await store.upsertChat(chat("c1", STATUS));
+    await store.upsertChat(chat("c2", NOSTR));
 
-    expect((await store.loadChats(STATUS)).map((c) => c.id)).toEqual(['c1']);
-    expect((await store.loadChats(NOSTR)).map((c) => c.id)).toEqual(['c2']);
+    expect((await store.loadChats(STATUS)).map((c) => c.id)).toEqual(["c1"]);
+    expect((await store.loadChats(NOSTR)).map((c) => c.id)).toEqual(["c2"]);
   });
 });
 
-describe('messages', () => {
-  it.each(['sqlite', 'memory'] as const)(
-    '%s uses the same preview and unread rules after reload',
-    async (backend) => {
-      const store =
-        backend === 'sqlite' ? new SqliteMessageStore(freshAccount()) : new InMemoryMessageStore();
-      await store.upsertChat(chat('c1'));
-      const incoming = [
-        message({ id: 'bot-text', chatId: 'c1', senderId: 'helpful-bot', sentAt: 1000 }),
-        message({
-          id: 'system',
-          chatId: 'c1',
-          sentAt: 2000,
-          content: { kind: 'system', text: 'joined' },
-        }),
-        message({
-          id: 'reaction',
-          chatId: 'c1',
-          sentAt: 3000,
-          content: { kind: 'reaction', targetId: 'bot-text', emoji: '👍', action: 'added' },
-        }),
-        message({ id: 'mine', chatId: 'c1', sentAt: 4000, fromMe: true }),
-      ];
-      for (const item of incoming) await store.insertMessage(item);
-      expect(await store.countUnreadMessages(C1, 0)).toBe(
-        incoming.filter((item) => countsAsUnread(item, 0)).length
-      );
-      expect(await store.countUnreadMessages(C1, 1000)).toBe(0);
-      expect((await store.latestMessages(STATUS)).get(C1)?.id).toBe('mine');
-      await store.deleteMessages(C1, ['mine']);
-      expect((await store.latestMessages(STATUS)).get(C1)?.id).toBe('system');
-      await store.deleteMessages(C1, ['system']);
-      expect((await store.latestMessages(STATUS)).get(C1)?.id).toBe('bot-text');
-      expect((await store.loadMessages(C1)).map((item) => item.id)).toEqual([
-        'bot-text',
-        'reaction',
-      ]);
-    }
-  );
-
-  it('searches stored message text across chats and within one chat', async () => {
-    const store = new SqliteMessageStore(freshAccount());
-    await store.upsertChat(chat('c1', STATUS));
-    await store.upsertChat(chat('c2', NOSTR));
-    await store.insertMessage(
-      message({ id: 'm1', chatId: 'c1', content: { kind: 'text', text: 'Blue moon' } })
-    );
-    await store.insertMessage(
+describe("messages", () => {
+  it.each(["sqlite", "memory"] as const)("%s uses the same preview and unread rules after reload", async (backend) => {
+    const store = backend === "sqlite" ? new SqliteMessageStore(freshAccount()) : new InMemoryMessageStore();
+    await store.upsertChat(chat("c1"));
+    const incoming = [
+      message({ id: "bot-text", chatId: "c1", senderId: "helpful-bot", sentAt: 1000 }),
       message({
-        id: 'm2',
-        chatId: 'c2',
+        id: "system",
+        chatId: "c1",
         sentAt: 2000,
-        content: { kind: 'text', text: 'blue sky' },
-      })
-    );
-    expect((await store.searchMessages('blue')).map((item) => item.message.id)).toEqual([
-      'm2',
-      'm1',
-    ]);
-    expect((await store.searchMessages('blue', C2)).map((item) => item.message.id)).toEqual(['m2']);
+        content: { kind: "system", text: "joined" },
+      }),
+      message({
+        id: "reaction",
+        chatId: "c1",
+        sentAt: 3000,
+        content: { kind: "reaction", targetId: "bot-text", emoji: "👍", action: "added" },
+      }),
+      message({ id: "mine", chatId: "c1", sentAt: 4000, fromMe: true }),
+    ];
+    for (const item of incoming) await store.insertMessage(item);
+    expect(await store.countUnreadMessages(C1, 0)).toBe(incoming.filter((item) => countsAsUnread(item, 0)).length);
+    expect(await store.countUnreadMessages(C1, 1000)).toBe(0);
+    expect((await store.latestMessages(STATUS)).get(C1)?.id).toBe("mine");
+    await store.deleteMessages(C1, ["mine"]);
+    expect((await store.latestMessages(STATUS)).get(C1)?.id).toBe("system");
+    await store.deleteMessages(C1, ["system"]);
+    expect((await store.latestMessages(STATUS)).get(C1)?.id).toBe("bot-text");
+    expect((await store.loadMessages(C1)).map((item) => item.id)).toEqual(["bot-text", "reaction"]);
   });
 
-  it('returns a local chat under its app id and a transport chat under its protocol', async () => {
+  it("searches stored message text across chats and within one chat", async () => {
     const store = new SqliteMessageStore(freshAccount());
-    const saved = botChatId('saved');
-    await store.upsertChat({ ...chat('saved', LOCAL_PROTOCOL), id: saved });
-    await store.upsertChat(chat('c1', STATUS));
-    await store.insertMessage({ ...message({ id: 'note', chatId: 'saved' }), chatId: saved });
-    await store.insertMessage(message({ id: 'wire', chatId: 'c1', sentAt: 2000 }));
+    await store.upsertChat(chat("c1", STATUS));
+    await store.upsertChat(chat("c2", NOSTR));
+    await store.insertMessage(message({ id: "m1", chatId: "c1", content: { kind: "text", text: "Blue moon" } }));
+    await store.insertMessage(
+      message({
+        id: "m2",
+        chatId: "c2",
+        sentAt: 2000,
+        content: { kind: "text", text: "blue sky" },
+      }),
+    );
+    expect((await store.searchMessages("blue")).map((item) => item.message.id)).toEqual(["m2", "m1"]);
+    expect((await store.searchMessages("blue", C2)).map((item) => item.message.id)).toEqual(["m2"]);
+  });
 
-    const hits = await store.searchMessages('hello');
+  it("returns a local chat under its app id and a transport chat under its protocol", async () => {
+    const store = new SqliteMessageStore(freshAccount());
+    const saved = botChatId("saved");
+    await store.upsertChat({ ...chat("saved", LOCAL_PROTOCOL), id: saved });
+    await store.upsertChat(chat("c1", STATUS));
+    await store.insertMessage({ ...message({ id: "note", chatId: "saved" }), chatId: saved });
+    await store.insertMessage(message({ id: "wire", chatId: "c1", sentAt: 2000 }));
+
+    const hits = await store.searchMessages("hello");
     expect(hits.map(({ message, protocolId }) => [message.chatId, protocolId])).toEqual([
       [C1, STATUS],
       [saved, undefined],
     ]);
   });
 
-  it('counts incoming messages since the local read time', async () => {
+  it("counts incoming messages since the local read time", async () => {
     const store = new SqliteMessageStore(freshAccount());
-    await store.insertMessage(message({ id: 'old', chatId: 'c1', sentAt: 1000 }));
-    await store.insertMessage(message({ id: 'new', chatId: 'c1', sentAt: 2000 }));
-    await store.insertMessage(message({ id: 'mine', chatId: 'c1', sentAt: 3000, fromMe: true }));
+    await store.insertMessage(message({ id: "old", chatId: "c1", sentAt: 1000 }));
+    await store.insertMessage(message({ id: "new", chatId: "c1", sentAt: 2000 }));
+    await store.insertMessage(message({ id: "mine", chatId: "c1", sentAt: 3000, fromMe: true }));
     await store.insertMessage(
       message({
-        id: 'reaction',
-        chatId: 'c1',
+        id: "reaction",
+        chatId: "c1",
         sentAt: 4000,
-        content: { kind: 'reaction', targetId: 'new', emoji: '👍', action: 'added' },
-      })
+        content: { kind: "reaction", targetId: "new", emoji: "👍", action: "added" },
+      }),
     );
-    await store.insertMessage(message({ id: 'other-chat', chatId: 'c2', sentAt: 3000 }));
+    await store.insertMessage(message({ id: "other-chat", chatId: "c2", sentAt: 3000 }));
     expect(await store.countUnreadMessages(C1, 1500)).toBe(1);
   });
-  it('rolls back chat metadata when an atomic ingest fails', async () => {
+  it("rolls back chat metadata when an atomic ingest fails", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
     await beforeStatement(id, /insert into "messages"/i, async () => {
-      throw new Error('disk full');
+      throw new Error("disk full");
     });
 
-    await expect(
-      store.insertMessage(message({ id: 'm1', chatId: 'c1' }), chat('c1'))
-    ).rejects.toThrow('disk full');
+    await expect(store.insertMessage(message({ id: "m1", chatId: "c1" }), chat("c1"))).rejects.toThrow("disk full");
 
     expect(await store.loadChats(STATUS)).toEqual([]);
     expect(await store.loadMessages(C1)).toEqual([]);
   });
 
-  it('does not expose chat metadata before its message commits', async () => {
+  it("does not expose chat metadata before its message commits", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
     let release!: () => void;
@@ -283,7 +265,7 @@ describe('messages', () => {
       });
     });
 
-    const ingesting = store.insertMessage(message({ id: 'm1', chatId: 'c1' }), chat('c1'));
+    const ingesting = store.insertMessage(message({ id: "m1", chatId: "c1" }), chat("c1"));
     await paused;
     let readFinished = false;
     const reading = store.loadChats(STATUS).then((rows) => {
@@ -299,195 +281,189 @@ describe('messages', () => {
     await expect(store.loadMessages(C1)).resolves.toHaveLength(1);
   });
 
-  it('persists transport timestamps independently from sender timestamps', async () => {
+  it("persists transport timestamps independently from sender timestamps", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
-    await store.insertMessage(
-      message({ id: 'm1', chatId: 'c1', sentAt: 99_000 }),
-      chat('c1'),
-      2_000
-    );
+    await store.insertMessage(message({ id: "m1", chatId: "c1", sentAt: 99_000 }), chat("c1"), 2_000);
 
     expect((await store.latestMessages(STATUS)).get(C1)?.sentAt).toBe(99_000);
-    await expect(
-      store.newestTransportTimestamp(STATUS, Number.POSITIVE_INFINITY, C1)
-    ).resolves.toBe(2_000);
+    await expect(store.newestTransportTimestamp(STATUS, Number.POSITIVE_INFINITY, C1)).resolves.toBe(2_000);
   });
 
-  it('returns them oldest first, the order the transcript renders', async () => {
+  it("returns them oldest first, the order the transcript renders", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
-    await store.upsertChat(chat('c1'));
+    await store.upsertChat(chat("c1"));
 
-    await store.insertMessage(message({ id: 'm2', chatId: 'c1', sentAt: 2000 }));
-    await store.insertMessage(message({ id: 'm1', chatId: 'c1', sentAt: 1000 }));
-    await store.insertMessage(message({ id: 'm3', chatId: 'c1', sentAt: 3000 }));
+    await store.insertMessage(message({ id: "m2", chatId: "c1", sentAt: 2000 }));
+    await store.insertMessage(message({ id: "m1", chatId: "c1", sentAt: 1000 }));
+    await store.insertMessage(message({ id: "m3", chatId: "c1", sentAt: 3000 }));
 
-    expect((await store.loadMessages(C1)).map((m) => m.id)).toEqual(['m1', 'm2', 'm3']);
+    expect((await store.loadMessages(C1)).map((m) => m.id)).toEqual(["m1", "m2", "m3"]);
   });
 
-  it('takes the NEWEST n when limited, not the oldest', async () => {
+  it("takes the NEWEST n when limited, not the oldest", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
-    await store.upsertChat(chat('c1'));
+    await store.upsertChat(chat("c1"));
 
     for (let i = 1; i <= 10; i++) {
-      await store.insertMessage(message({ id: `m${i}`, chatId: 'c1', sentAt: i * 1000 }));
+      await store.insertMessage(message({ id: `m${i}`, chatId: "c1", sentAt: i * 1000 }));
     }
 
-    expect((await store.loadMessages(C1, 3)).map((m) => m.id)).toEqual(['m8', 'm9', 'm10']);
+    expect((await store.loadMessages(C1, 3)).map((m) => m.id)).toEqual(["m8", "m9", "m10"]);
   });
 
-  it('loads the page immediately before a message cursor', async () => {
+  it("loads the page immediately before a message cursor", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
-    await store.upsertChat(chat('c1'));
+    await store.upsertChat(chat("c1"));
     for (let i = 1; i <= 6; i++) {
-      await store.insertMessage(message({ id: `m${i}`, chatId: 'c1', sentAt: i * 1000 }));
+      await store.insertMessage(message({ id: `m${i}`, chatId: "c1", sentAt: i * 1000 }));
     }
 
-    const loaded = await store.loadMessages(C1, 2, { id: 'm5', sentAt: 5000 });
-    expect(loaded.map((entry) => entry.id)).toEqual(['m3', 'm4']);
+    const loaded = await store.loadMessages(C1, 2, { id: "m5", sentAt: 5000 });
+    expect(loaded.map((entry) => entry.id)).toEqual(["m3", "m4"]);
   });
 
-  it('ignores the same message saved twice', async () => {
+  it("ignores the same message saved twice", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
-    await store.upsertChat(chat('c1'));
+    await store.upsertChat(chat("c1"));
 
-    await expect(store.insertMessage(message({ id: 'm1', chatId: 'c1' }))).resolves.toBe(true);
-    await expect(store.insertMessage(message({ id: 'm1', chatId: 'c1' }))).resolves.toBe(false);
+    await expect(store.insertMessage(message({ id: "m1", chatId: "c1" }))).resolves.toBe(true);
+    await expect(store.insertMessage(message({ id: "m1", chatId: "c1" }))).resolves.toBe(false);
 
     expect(await store.loadMessages(C1)).toHaveLength(1);
   });
 
-  it('projects the latest message without loading a transcript window', async () => {
+  it("projects the latest message without loading a transcript window", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
-    await store.upsertChat(chat('c1'));
-    await store.insertMessage(message({ id: 'old', chatId: 'c1', sentAt: 1_000 }));
-    await store.insertMessage(message({ id: 'new', chatId: 'c1', sentAt: 2_000 }));
+    await store.upsertChat(chat("c1"));
+    await store.insertMessage(message({ id: "old", chatId: "c1", sentAt: 1_000 }));
+    await store.insertMessage(message({ id: "new", chatId: "c1", sentAt: 2_000 }));
 
-    expect((await store.loadMessages(C1, 1))[0]?.id).toBe('new');
+    expect((await store.loadMessages(C1, 1))[0]?.id).toBe("new");
   });
 
-  it('projects every chat’s latest message in one query', async () => {
+  it("projects every chat’s latest message in one query", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
-    await store.upsertChat(chat('c1'));
-    await store.upsertChat(chat('c2'));
-    await store.upsertChat(chat('empty'));
-    await store.upsertChat(chat('other', NOSTR));
-    await store.insertMessage(message({ id: 'one', chatId: 'c1', sentAt: 1_000 }));
-    await store.insertMessage(message({ id: 'a', chatId: 'c1', sentAt: 5_000 }));
-    await store.insertMessage(message({ id: 'b', chatId: 'c1', sentAt: 5_000 }));
-    await store.insertMessage(message({ id: 'two', chatId: 'c2', sentAt: 2_000 }));
-    await store.insertMessage(message({ id: 'n', chatId: 'other', sentAt: 9_000 }));
+    await store.upsertChat(chat("c1"));
+    await store.upsertChat(chat("c2"));
+    await store.upsertChat(chat("empty"));
+    await store.upsertChat(chat("other", NOSTR));
+    await store.insertMessage(message({ id: "one", chatId: "c1", sentAt: 1_000 }));
+    await store.insertMessage(message({ id: "a", chatId: "c1", sentAt: 5_000 }));
+    await store.insertMessage(message({ id: "b", chatId: "c1", sentAt: 5_000 }));
+    await store.insertMessage(message({ id: "two", chatId: "c2", sentAt: 2_000 }));
+    await store.insertMessage(message({ id: "n", chatId: "other", sentAt: 9_000 }));
 
     const latest = await store.latestMessages(STATUS);
 
-    expect([...latest.keys()].sort()).toEqual(['c1', 'c2']);
+    expect([...latest.keys()].sort()).toEqual(["c1", "c2"]);
     // The same tie-break as loadMessages, so the two agree on the newest row.
     expect(latest.get(C1)?.id).toBe((await store.loadMessages(C1, 1))[0].id);
-    expect(latest.get(C1)?.id).toBe('b');
-    expect(latest.get(C2)?.id).toBe('two');
-    expect([...(await store.latestMessages(STATUS, C2)).keys()]).toEqual(['c2']);
+    expect(latest.get(C1)?.id).toBe("b");
+    expect(latest.get(C2)?.id).toBe("two");
+    expect([...(await store.latestMessages(STATUS, C2)).keys()]).toEqual(["c2"]);
   });
 
-  it('does not let a duplicate overwrite the canonical event', async () => {
+  it("does not let a duplicate overwrite the canonical event", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
-    await store.upsertChat(chat('c1'));
-    await store.insertMessage(message({ id: 'm1', chatId: 'c1' }));
+    await store.upsertChat(chat("c1"));
+    await store.insertMessage(message({ id: "m1", chatId: "c1" }));
     await store.insertMessage(
       message({
-        id: 'm1',
-        chatId: 'c1',
-        content: { kind: 'text', text: 'tampered' },
-      })
+        id: "m1",
+        chatId: "c1",
+        content: { kind: "text", text: "tampered" },
+      }),
     );
 
-    expect((await store.loadMessages(C1))[0].content).toEqual({ kind: 'text', text: 'hello' });
+    expect((await store.loadMessages(C1))[0].content).toEqual({ kind: "text", text: "hello" });
   });
 
-  it('round-trips private command output', async () => {
+  it("round-trips private command output", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
     await store.insertMessage(
       message({
-        id: 'private:1',
-        chatId: 'xmtp-c1',
-        senderId: 'local',
+        id: "private:1",
+        chatId: "xmtp-c1",
+        senderId: "local",
         privateToMe: true,
-      })
+      }),
     );
 
-    expect((await store.loadMessages(asChatId('xmtp-c1')))[0].privateToMe).toBe(true);
+    expect((await store.loadMessages(asChatId("xmtp-c1")))[0].privateToMe).toBe(true);
   });
 
-  it('lets the same id exist in two chats', async () => {
+  it("lets the same id exist in two chats", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
-    await store.upsertChat(chat('c1'));
-    await store.upsertChat(chat('c2'));
+    await store.upsertChat(chat("c1"));
+    await store.upsertChat(chat("c2"));
 
-    await store.insertMessage(message({ id: 'same', chatId: 'c1' }));
-    await store.insertMessage(message({ id: 'same', chatId: 'c2' }));
+    await store.insertMessage(message({ id: "same", chatId: "c1" }));
+    await store.insertMessage(message({ id: "same", chatId: "c2" }));
 
     expect(await store.loadMessages(C1)).toHaveLength(1);
     expect(await store.loadMessages(C2)).toHaveLength(1);
   });
 
-  it('round-trips a non-text content type intact', async () => {
+  it("round-trips a non-text content type intact", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
-    await store.upsertChat(chat('c1'));
+    await store.upsertChat(chat("c1"));
 
     await store.insertMessage(
       message({
-        id: 'm1',
-        chatId: 'c1',
+        id: "m1",
+        chatId: "c1",
         fromMe: true,
-        replyTo: 'm0',
-        content: { kind: 'image', uri: 'file:///a.png', width: 10, height: 20, caption: 'hi' },
-      })
+        replyTo: "m0",
+        content: { kind: "image", uri: "file:///a.png", width: 10, height: 20, caption: "hi" },
+      }),
     );
 
     const [loaded] = await store.loadMessages(C1);
     expect(loaded.content).toEqual({
-      kind: 'image',
-      uri: 'file:///a.png',
+      kind: "image",
+      uri: "file:///a.png",
       width: 10,
       height: 20,
-      caption: 'hi',
+      caption: "hi",
     });
     expect(loaded.fromMe).toBe(true);
-    expect(loaded.replyTo).toBe('m0');
+    expect(loaded.replyTo).toBe("m0");
   });
 
-  it('renders a row it cannot parse rather than throwing', async () => {
+  it("renders a row it cannot parse rather than throwing", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
-    await store.upsertChat(chat('c1'));
-    await store.insertMessage(message({ id: 'm1', chatId: 'c1' }));
+    await store.upsertChat(chat("c1"));
+    await store.insertMessage(message({ id: "m1", chatId: "c1" }));
 
     const { connection } = await openAccountDatabase(id);
     await connection.run("UPDATE messages SET content = 'not json' WHERE id = 'm1'", []);
 
     const [loaded] = await store.loadMessages(C1);
-    expect(loaded.content.kind).toBe('unsupported');
+    expect(loaded.content.kind).toBe("unsupported");
   });
 });
 
-describe('clearing', () => {
-  it('erases one protocol and leaves the other alone', async () => {
+describe("clearing", () => {
+  it("erases one protocol and leaves the other alone", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
 
-    await store.upsertChat(chat('c1', STATUS));
-    await store.upsertChat(chat('c2', NOSTR));
-    await store.insertMessage(message({ id: 'm1', chatId: 'c1' }));
-    await store.insertMessage(message({ id: 'm2', chatId: 'c2' }));
+    await store.upsertChat(chat("c1", STATUS));
+    await store.upsertChat(chat("c2", NOSTR));
+    await store.insertMessage(message({ id: "m1", chatId: "c1" }));
+    await store.insertMessage(message({ id: "m2", chatId: "c2" }));
 
     await store.clear(STATUS);
 
@@ -497,11 +473,11 @@ describe('clearing', () => {
     expect(await store.loadMessages(C2)).toHaveLength(1);
   });
 
-  it('leaves nothing behind when the database is deleted', async () => {
+  it("leaves nothing behind when the database is deleted", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
-    await store.upsertChat(chat('c1'));
-    await store.insertMessage(message({ id: 'm1', chatId: 'c1' }));
+    await store.upsertChat(chat("c1"));
+    await store.insertMessage(message({ id: "m1", chatId: "c1" }));
 
     await deleteTestDatabase(id);
 
@@ -509,7 +485,7 @@ describe('clearing', () => {
     expect(await after.loadChats(STATUS)).toEqual([]);
   });
 
-  it('blocks new writes and waits for the account queue before deletion', async () => {
+  it("blocks new writes and waits for the account queue before deletion", async () => {
     const id = freshAccount();
     const store = new SqliteMessageStore(id);
     let release!: () => void;
@@ -524,10 +500,10 @@ describe('clearing', () => {
       });
     });
 
-    const writing = store.upsertChat(chat('c1'));
+    const writing = store.upsertChat(chat("c1"));
     await paused;
     const deleting = deleteAccountDatabase(id);
-    await expect(store.upsertChat(chat('c2'))).rejects.toThrow(/being deleted/);
+    await expect(store.upsertChat(chat("c2"))).rejects.toThrow(/being deleted/);
     let deleted = false;
     void deleting.then(() => {
       deleted = true;
@@ -537,45 +513,45 @@ describe('clearing', () => {
     release();
     await writing;
     await deleting;
-    await expect(store.upsertChat(chat('late'))).rejects.toThrow(/has been deleted/);
+    await expect(store.upsertChat(chat("late"))).rejects.toThrow(/has been deleted/);
     accounts.delete(id);
   });
 
-  it('keeps two accounts in separate databases', async () => {
+  it("keeps two accounts in separate databases", async () => {
     const a = freshAccount();
     const b = freshAccount();
 
-    await new SqliteMessageStore(a).upsertChat(chat('c1'));
-    await new SqliteMessageStore(b).upsertChat(chat('c2'));
+    await new SqliteMessageStore(a).upsertChat(chat("c1"));
+    await new SqliteMessageStore(b).upsertChat(chat("c2"));
 
     await deleteTestDatabase(a);
 
-    expect((await new SqliteMessageStore(b).loadChats(STATUS)).map((c) => c.id)).toEqual(['c2']);
+    expect((await new SqliteMessageStore(b).loadChats(STATUS)).map((c) => c.id)).toEqual(["c2"]);
   });
 });
 
-describe('editing and deleting', () => {
-  it('replaces the content, keeps the edited mark and forgets deleted messages', async () => {
+describe("editing and deleting", () => {
+  it("replaces the content, keeps the edited mark and forgets deleted messages", async () => {
     const store = new SqliteMessageStore(freshAccount());
-    await store.insertMessage(message({ id: 'm1', chatId: 'c1', sentAt: 10 }), chat('c1'));
-    await store.insertMessage(message({ id: 'm2', chatId: 'c1', sentAt: 20 }));
+    await store.insertMessage(message({ id: "m1", chatId: "c1", sentAt: 10 }), chat("c1"));
+    await store.insertMessage(message({ id: "m2", chatId: "c1", sentAt: 20 }));
 
-    const original = (await store.getMessage(C1, 'm1'))!;
+    const original = (await store.getMessage(C1, "m1"))!;
     expect(original.edited).toBeUndefined();
     await store.updateMessage({
       ...original,
-      content: { kind: 'text', text: 'fixed' },
+      content: { kind: "text", text: "fixed" },
       edited: true,
     });
-    expect(await store.getMessage(C1, 'm1')).toMatchObject({
-      content: { kind: 'text', text: 'fixed' },
+    expect(await store.getMessage(C1, "m1")).toMatchObject({
+      content: { kind: "text", text: "fixed" },
       edited: true,
       sentAt: 10,
     });
 
-    await store.deleteMessages(C1, ['m2', 'missing']);
-    expect((await store.loadMessages(C1)).map((m) => m.id)).toEqual(['m1']);
-    expect(await store.getMessage(C1, 'm2')).toBeNull();
-    expect(await store.getMessage(C2, 'm1')).toBeNull();
+    await store.deleteMessages(C1, ["m2", "missing"]);
+    expect((await store.loadMessages(C1)).map((m) => m.id)).toEqual(["m1"]);
+    expect(await store.getMessage(C1, "m2")).toBeNull();
+    expect(await store.getMessage(C2, "m1")).toBeNull();
   });
 });

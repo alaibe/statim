@@ -1,4 +1,4 @@
-import { requireNativeModule } from 'expo-modules-core';
+import { requireNativeModule } from "expo-modules-core";
 
 interface StayConnectedModule {
   isEnabled(): boolean;
@@ -6,4 +6,4 @@ interface StayConnectedModule {
   resume(): void;
 }
 
-export default requireNativeModule<StayConnectedModule>('StayConnected');
+export default requireNativeModule<StayConnectedModule>("StayConnected");

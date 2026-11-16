@@ -1,5 +1,5 @@
-import { LOCAL_PROTOCOL, namespacedId, protocolChatId } from './namespace';
-import type { ChatId, MessageContent } from './types';
+import { LOCAL_PROTOCOL, namespacedId, protocolChatId } from "./namespace";
+import type { ChatId, MessageContent } from "./types";
 
 const LOCAL_PREFIX = `${LOCAL_PROTOCOL}-`;
 
@@ -19,17 +19,17 @@ export function botIdFromChat(id: ChatId): string {
   return id.slice(LOCAL_PREFIX.length);
 }
 
-export const STATIM_LOCAL_ID = botChatId('statim');
-export const SAVED_LOCAL_ID = botChatId('saved');
+export const STATIM_LOCAL_ID = botChatId("statim");
+export const SAVED_LOCAL_ID = botChatId("saved");
 
 export function takesAttachments(id: ChatId): boolean {
   return !isLocalChat(id) || id === STATIM_LOCAL_ID || id === SAVED_LOCAL_ID;
 }
 
 export const SAVED_MESSAGES: Bot = {
-  id: 'saved',
-  name: 'Saved Messages',
-  tagline: 'Private notes · on-device',
+  id: "saved",
+  name: "Saved Messages",
+  tagline: "Private notes · on-device",
   greeting: () => [],
 };
 
@@ -54,7 +54,7 @@ export interface Bot {
 
 export function poll(
   everyMs: number,
-  tick: (context: BotContext) => Promise<void>
+  tick: (context: BotContext) => Promise<void>,
 ): (context: BotContext) => () => void {
   return (context) => {
     let stopped = false;
@@ -64,7 +64,7 @@ export function poll(
       try {
         await tick(context);
       } catch (error) {
-        console.warn('[bots] poll failed', error);
+        console.warn("[bots] poll failed", error);
       }
     };
 
@@ -79,5 +79,5 @@ export function poll(
 }
 
 export function toContent(value: MessageContent | string): MessageContent {
-  return typeof value === 'string' ? { kind: 'text', text: value } : value;
+  return typeof value === "string" ? { kind: "text", text: value } : value;
 }

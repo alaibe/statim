@@ -1,23 +1,22 @@
-import type { Address, Chain } from 'viem';
+import type { Address, Chain } from "viem";
+import { formatEther } from "viem";
+import { shortAddress } from "@/core/account/keyring";
+import type { PluginContext, PluginView, SlashCommand } from "@/core/plugins/types";
+import { W } from "@/design/widgets";
 
-import type { PluginContext, PluginView, SlashCommand } from '@/core/plugins/types';
-import { W } from '@/design/widgets';
-import { looksLikeEnsName, resolveName } from '@/lib/evm/ens';
-import { shortAddress } from '@/core/account/keyring';
+import { publicClientFor, trimDecimals } from "@/lib/evm/chains";
+import { looksLikeEnsName, resolveName } from "@/lib/evm/ens";
 
-import { publicClientFor, trimDecimals } from '@/lib/evm/chains';
-import { formatEther } from 'viem';
-
-import { readWatched, writeWatched, type WatchedAddress } from './watch-storage';
+import { readWatched, type WatchedAddress, writeWatched } from "./watch-storage";
 
 const formatAmount = (wei: bigint, symbol: string) => `${trimDecimals(formatEther(wei))} ${symbol}`;
 
 async function targetAddress(
   input: string,
-  self: () => Address
+  self: () => Address,
 ): Promise<{ address: Address; label: string } | { error: string }> {
   const value = input.trim();
-  if (!value || value === 'me') return { address: self(), label: 'You' };
+  if (!value || value === "me") return { address: self(), label: "You" };
 
   if (looksLikeEnsName(value)) {
     const resolved = await resolveName(value);
@@ -30,7 +29,7 @@ async function targetAddress(
 }
 
 export type ChainResolver = (
-  args: string[]
+  args: string[],
 ) => Promise<{ chain: Chain; chainKey: string; rest: string[] } | { error: string }>;
 
 export async function watchedCard(context: PluginContext, chain: Chain, chainKey: string) {
@@ -38,12 +37,12 @@ export async function watchedCard(context: PluginContext, chain: Chain, chainKey
 
   if (list.length === 0) {
     return {
-      kind: 'widget' as const,
+      kind: "widget" as const,
       fallback: `Nothing watched on ${chain.name}`,
-      widget: W.card(
-        [W.text(`Nothing on your ${chain.name} watch list. Add one with /watch vitalik.eth`)],
-        { title: 'Watch list', icon: 'eye-outline' }
-      ),
+      widget: W.card([W.text(`Nothing on your ${chain.name} watch list. Add one with /watch vitalik.eth`)], {
+        title: "Watch list",
+        icon: "eye-outline",
+      }),
     };
   }
 
@@ -53,14 +52,14 @@ export async function watchedCard(context: PluginContext, chain: Chain, chainKey
         const wei = await publicClientFor(chain.id).getBalance({ address: entry.address });
         return { entry, value: formatAmount(wei, chain.nativeCurrency.symbol) };
       } catch {
-        return { entry, value: 'unavailable' };
+        return { entry, value: "unavailable" };
       }
-    })
+    }),
   );
 
   return {
-    kind: 'widget' as const,
-    fallback: `Watching ${list.length} address${list.length === 1 ? '' : 'es'}`,
+    kind: "widget" as const,
+    fallback: `Watching ${list.length} address${list.length === 1 ? "" : "es"}`,
     widget: W.card(
       [
         W.rows(
@@ -71,100 +70,97 @@ export async function watchedCard(context: PluginContext, chain: Chain, chainKey
               {
                 label: `Stop watching ${b.entry.label}`,
                 command: `/unwatch ${b.entry.address} --chain ${chainKey}`,
-                icon: 'eye-off-outline' as const,
-                tone: 'danger' as const,
+                icon: "eye-off-outline" as const,
+                tone: "danger" as const,
               },
             ],
-          }))
+          })),
         ),
         W.text(`Balances on ${chain.name}. I say so here when one moves.`),
       ],
-      { title: 'Watch list', icon: 'eye-outline' }
+      { title: "Watch list", icon: "eye-outline" },
     ),
   };
 }
 
-export function watchCommands(
-  resolve: ChainResolver,
-  views: { watched: PluginView }
-): SlashCommand[] {
+export function watchCommands(resolve: ChainResolver, views: { watched: PluginView }): SlashCommand[] {
   return [
     {
-      name: 'watch',
-      showIn: ['channel'],
-      description: 'Track an address and hear when its balance moves',
-      usage: '/watch <address | name.eth> [label] [--chain base]',
+      name: "watch",
+      showIn: ["channel"],
+      description: "Track an address and hear when its balance moves",
+      usage: "/watch <address | name.eth> [label] [--chain base]",
       async run({ args, context }) {
         const picked = await resolve(args);
-        if ('error' in picked) return { type: 'error', message: picked.error };
+        if ("error" in picked) return { type: "error", message: picked.error };
         const { chain, rest } = picked;
 
         const [input, ...labelParts] = rest;
-        if (!input) return { type: 'error', message: 'Give me an address: /watch vitalik.eth' };
+        if (!input) return { type: "error", message: "Give me an address: /watch vitalik.eth" };
 
         const target = await targetAddress(input, () => context.account.address);
-        if ('error' in target) return { type: 'error', message: target.error };
+        if ("error" in target) return { type: "error", message: target.error };
 
         const list = await readWatched(context, chain.id);
         if (list.some((w) => w.address.toLowerCase() === target.address.toLowerCase())) {
-          return { type: 'error', message: 'Already watching that address.' };
+          return { type: "error", message: "Already watching that address." };
         }
 
         const entry: WatchedAddress = {
           address: target.address,
-          label: labelParts.join(' ') || target.label,
+          label: labelParts.join(" ") || target.label,
           addedAt: Date.now(),
         };
 
         await writeWatched(context, chain.id, [...list, entry]);
         return {
-          type: 'notice',
-          tone: 'success',
+          type: "notice",
+          tone: "success",
           message: `Watching ${entry.label} (${shortAddress(entry.address)}) on ${chain.name}`,
         };
       },
     },
 
     {
-      name: 'unwatch',
-      showIn: ['channel'],
-      description: 'Stop watching an address',
-      usage: '/unwatch <address> [--chain base]',
+      name: "unwatch",
+      showIn: ["channel"],
+      description: "Stop watching an address",
+      usage: "/unwatch <address> [--chain base]",
       async run({ args, context }) {
         const picked = await resolve(args);
-        if ('error' in picked) return { type: 'error', message: picked.error };
+        if ("error" in picked) return { type: "error", message: picked.error };
         const { chain, rest } = picked;
 
         const [address] = rest;
-        if (!address) return { type: 'error', message: 'Which address? /unwatch 0x…' };
+        if (!address) return { type: "error", message: "Which address? /unwatch 0x…" };
 
         const list = await readWatched(context, chain.id);
         const next = list.filter((w) => w.address.toLowerCase() !== address.toLowerCase());
 
         if (next.length === list.length) {
-          return { type: 'error', message: 'That address is not on your watch list.' };
+          return { type: "error", message: "That address is not on your watch list." };
         }
 
         await writeWatched(context, chain.id, next);
         return {
-          type: 'notice',
-          tone: 'success',
+          type: "notice",
+          tone: "success",
           message: `Stopped watching that address on ${chain.name}`,
         };
       },
     },
 
     {
-      name: 'watched',
-      showIn: ['channel'],
-      description: 'List the addresses you are tracking',
-      usage: '/watched [--chain base]',
+      name: "watched",
+      showIn: ["channel"],
+      description: "List the addresses you are tracking",
+      usage: "/watched [--chain base]",
       async run({ args, respond }) {
         const picked = await resolve(args);
-        if ('error' in picked) return { type: 'error', message: picked.error };
+        if ("error" in picked) return { type: "error", message: picked.error };
 
         await respond(await views.watched([picked.chainKey]));
-        return { type: 'handled' };
+        return { type: "handled" };
       },
     },
   ];

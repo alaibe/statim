@@ -1,11 +1,10 @@
-import { useState } from 'react';
-
-import { toast } from '@/design';
-import { errorMessage } from '@/core/errors';
+import { useState } from "react";
+import { errorMessage } from "@/core/errors";
+import { toast } from "@/design";
 
 export function useAction<A extends unknown[]>(
   action: (...args: A) => Promise<unknown>,
-  messages: { success?: string; failure: string }
+  messages: { success?: string; failure: string },
 ) {
   const [busy, setBusy] = useState(false);
   return {

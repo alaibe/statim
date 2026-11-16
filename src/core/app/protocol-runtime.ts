@@ -1,32 +1,21 @@
-import type { LocalAccount } from 'viem';
-
-import { errorMessage } from '../errors';
-import { chatKeys, type DerivedKey, type Keyring } from '../account/keyring';
-import {
-  connectionFor,
-  NO_CONNECTION,
-  useChatStore,
-  type ProtocolConnection,
-} from '../messaging/chat-store';
-import type { ChatCache } from '../messaging/chat-cache';
-import { loadProtocolConfigs } from '../messaging/config';
+import type { LocalAccount } from "viem";
+import type { AccountStorage } from "@/storage/account";
+import { chatKeys, type DerivedKey, type Keyring } from "../account/keyring";
+import { errorMessage } from "../errors";
+import type { ChatCache } from "../messaging/chat-cache";
+import { connectionFor, NO_CONNECTION, type ProtocolConnection, useChatStore } from "../messaging/chat-store";
+import { loadProtocolConfigs } from "../messaging/config";
 import {
   LOCAL_PROTOCOL,
-  namespacedId,
   namespaceChat,
+  namespacedId,
   namespaceMessage,
-  protocolOf,
   type ProtocolId,
-} from '../messaging/namespace';
-import type { ChatSession, CustomContentType } from '../messaging/protocol';
-import {
-  effectiveConfig,
-  isConfigured,
-  connectableProtocols,
-  type ProtocolDescriptor,
-} from '../messaging/registry';
-import type { Chat, Unsubscribe, ProtocolChat } from '../messaging/types';
-import type { AccountStorage } from '@/storage/account';
+  protocolOf,
+} from "../messaging/namespace";
+import type { ChatSession, CustomContentType } from "../messaging/protocol";
+import { connectableProtocols, effectiveConfig, isConfigured, type ProtocolDescriptor } from "../messaging/registry";
+import type { Chat, ProtocolChat, Unsubscribe } from "../messaging/types";
 
 export type SessionFactory = (params: {
   protocolId: ProtocolId;
@@ -37,7 +26,7 @@ export type SessionFactory = (params: {
 
 interface ProtocolAccount {
   accountId: string;
-  keyring: Pick<Keyring, 'account' | 'chatKey'>;
+  keyring: Pick<Keyring, "account" | "chatKey">;
   contentTypes(): CustomContentType[];
   createSession?: SessionFactory;
   only?: ProtocolId[];
@@ -57,15 +46,14 @@ export class ProtocolRuntime {
     input: ProtocolAccount,
     storage: AccountStorage,
     active: () => boolean,
-    only?: ProtocolId[]
+    only?: ProtocolId[],
   ): Promise<void> {
     if (!active()) return;
     this.cache = input.cache;
-    useChatStore.setState({ status: 'connecting', error: null });
-    const selected = input.only ?? (input.createSession ? ['xmtp' as const] : undefined);
+    useChatStore.setState({ status: "connecting", error: null });
+    const selected = input.only ?? (input.createSession ? ["xmtp" as const] : undefined);
     const descriptors = connectableProtocols(this.descriptors).filter(
-      (descriptor) =>
-        (!selected || selected.includes(descriptor.id)) && (!only || only.includes(descriptor.id))
+      (descriptor) => (!selected || selected.includes(descriptor.id)) && (!only || only.includes(descriptor.id)),
     );
 
     const configs = input.createSession ? undefined : loadProtocolConfigs(input.accountId);
@@ -75,7 +63,7 @@ export class ProtocolRuntime {
         const protocolId = descriptor.id;
         const subscriptions: Unsubscribe[] = [];
         this.subscriptions.set(protocolId, subscriptions);
-        this.setProtocol(protocolId, { ...NO_CONNECTION, status: 'connecting' });
+        this.setProtocol(protocolId, { ...NO_CONNECTION, status: "connecting" });
         try {
           const session = await this.open(descriptor, input, storage, configs, active);
           if (!session) return;
@@ -87,7 +75,7 @@ export class ProtocolRuntime {
           useChatStore.setState((state) => ({
             sessions: { ...state.sessions, [protocolId]: session },
           }));
-          this.setProtocol(protocolId, { ...NO_CONNECTION, status: 'ready' });
+          this.setProtocol(protocolId, { ...NO_CONNECTION, status: "ready" });
           const live = () => active() && this.sessions.get(protocolId) === session;
 
           subscriptions.push(...this.watch(protocolId, session, live));
@@ -105,12 +93,12 @@ export class ProtocolRuntime {
           if (active()) {
             this.setProtocol(protocolId, {
               ...NO_CONNECTION,
-              status: 'error',
+              status: "error",
               error: errorMessage(error),
             });
           }
         }
-      })
+      }),
     );
 
     if (active()) this.rollUpStatus();
@@ -122,7 +110,7 @@ export class ProtocolRuntime {
     input: ProtocolAccount,
     storage: AccountStorage,
     configs: ReturnType<typeof loadProtocolConfigs> | undefined,
-    active: () => boolean
+    active: () => boolean,
   ): Promise<ChatSession | null> {
     const protocolId = descriptor.id;
     if (descriptor.usesPluginContentTypes) await input.plugins;
@@ -163,7 +151,7 @@ export class ProtocolRuntime {
             ...connectionFor(useChatStore.getState().protocols, protocolId),
             history,
           });
-        })
+        }),
       );
     }
     if (session.subscribeLogin) {
@@ -175,7 +163,7 @@ export class ProtocolRuntime {
             ...connectionFor(useChatStore.getState().protocols, protocolId),
             login,
           });
-        })
+        }),
       );
     }
     return subscriptions;
@@ -188,8 +176,7 @@ export class ProtocolRuntime {
         if (live()) useChatStore.getState().ingestMessage(namespaceMessage(protocolId, message));
       }),
       session.streamDeletedMessages?.((id, messageIds) => {
-        if (live())
-          useChatStore.getState().removeMessages(namespacedId(protocolId, id), messageIds);
+        if (live()) useChatStore.getState().removeMessages(namespacedId(protocolId, id), messageIds);
       }),
       session.streamChats((chat) => {
         if (streamed.length === 0) {
@@ -203,15 +190,10 @@ export class ProtocolRuntime {
     ]);
   }
 
-  private async list(
-    protocolId: ProtocolId,
-    session: ChatSession,
-    live: () => boolean
-  ): Promise<void> {
+  private async list(protocolId: ProtocolId, session: ChatSession, live: () => boolean): Promise<void> {
     const first = await session.listChats();
     if (!live()) return;
-    const namespaced = (list: ProtocolChat[]) =>
-      list.map((chat) => namespaceChat(protocolId, chat));
+    const namespaced = (list: ProtocolChat[]) => list.map((chat) => namespaceChat(protocolId, chat));
     const chats = namespaced(first);
     useChatStore.getState().ingestChats(chats);
     if (session.whenListed && this.cache) {
@@ -232,18 +214,12 @@ export class ProtocolRuntime {
     for (const protocol of only ?? this.sessions.keys()) this.cache?.pause(protocol);
     await this.disconnect(only);
     const state = useChatStore.getState();
-    const dropped = (protocol: ProtocolId) =>
-      only ? only.includes(protocol) : protocol !== LOCAL_PROTOCOL;
-    const keep = <K extends string, T>(
-      record: Partial<Record<K, T>>,
-      ownerOf: (key: K) => ProtocolId
-    ) =>
-      Object.fromEntries(
-        (Object.entries(record) as [K, T][]).filter(([key]) => !dropped(ownerOf(key)))
-      );
+    const dropped = (protocol: ProtocolId) => (only ? only.includes(protocol) : protocol !== LOCAL_PROTOCOL);
+    const keep = <K extends string, T>(record: Partial<Record<K, T>>, ownerOf: (key: K) => ProtocolId) =>
+      Object.fromEntries((Object.entries(record) as [K, T][]).filter(([key]) => !dropped(ownerOf(key))));
     const ownProtocol = (key: ProtocolId) => key;
     useChatStore.setState({
-      status: only ? state.status : 'idle',
+      status: only ? state.status : "idle",
       error: only ? state.error : null,
       sessions: keep(state.sessions, ownProtocol),
       protocols: keep(state.protocols, ownProtocol),
@@ -279,13 +255,13 @@ export class ProtocolRuntime {
   private rollUpStatus(): void {
     const state = useChatStore.getState();
     const connections = Object.values(state.protocols);
-    const failures = connections.filter((connection) => connection.status === 'error');
+    const failures = connections.filter((connection) => connection.status === "error");
     if (this.sessions.size > 0) {
-      useChatStore.setState({ status: 'ready', error: failures[0]?.error ?? null });
+      useChatStore.setState({ status: "ready", error: failures[0]?.error ?? null });
     } else if (failures.length > 0) {
-      useChatStore.setState({ status: 'error', error: failures[0].error });
+      useChatStore.setState({ status: "error", error: failures[0].error });
     } else {
-      useChatStore.setState({ status: 'idle', error: null });
+      useChatStore.setState({ status: "idle", error: null });
     }
   }
 }

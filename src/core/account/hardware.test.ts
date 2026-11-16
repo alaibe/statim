@@ -4,46 +4,44 @@ import {
   recoverTransactionAddress,
   recoverTypedDataAddress,
   type TransactionSerializable,
-} from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
+} from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 
 import {
   DEFAULT_EVM_PATH,
   deviceSignature,
   hardwareAccount,
   parityOf,
-  typedDataForDevice,
   type TypedData,
-} from './hardware';
-import { FakeHardwareSigner } from './testing/fake-hardware';
+  typedDataForDevice,
+} from "./hardware";
+import { FakeHardwareSigner } from "./testing/fake-hardware";
 
-const KEY = `0x${'11'.repeat(32)}` as const;
+const KEY = `0x${"11".repeat(32)}` as const;
 const ADDRESS = privateKeyToAccount(KEY).address;
 const account = (device = new FakeHardwareSigner(KEY)) => hardwareAccount(device, ADDRESS);
 
 const TYPED: TypedData = {
   domain: {
-    name: 'Permit2',
+    name: "Permit2",
     chainId: 8453,
-    verifyingContract: '0x000000000022D473030F116dDEE9F6B43aC78BA3',
+    verifyingContract: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
   },
-  types: { Permit: [{ name: 'amount', type: 'uint256' }] },
-  primaryType: 'Permit',
+  types: { Permit: [{ name: "amount", type: "uint256" }] },
+  primaryType: "Permit",
   message: { amount: 10n ** 18n },
 };
 
-describe('hardwareAccount', () => {
-  it('signs text and raw bytes the address verifies', async () => {
-    const text = await account().signMessage({ message: 'hello' });
-    expect(await recoverMessageAddress({ message: 'hello', signature: text })).toBe(ADDRESS);
+describe("hardwareAccount", () => {
+  it("signs text and raw bytes the address verifies", async () => {
+    const text = await account().signMessage({ message: "hello" });
+    expect(await recoverMessageAddress({ message: "hello", signature: text })).toBe(ADDRESS);
 
-    const raw = await account().signMessage({ message: { raw: '0xdeadbeef' } });
-    expect(await recoverMessageAddress({ message: { raw: '0xdeadbeef' }, signature: raw })).toBe(
-      ADDRESS
-    );
+    const raw = await account().signMessage({ message: { raw: "0xdeadbeef" } });
+    expect(await recoverMessageAddress({ message: { raw: "0xdeadbeef" }, signature: raw })).toBe(ADDRESS);
   });
 
-  it('returns a signed transaction of every type that recovers to the address', async () => {
+  it("returns a signed transaction of every type that recovers to the address", async () => {
     const transactions: TransactionSerializable[] = [
       {
         chainId: 1,
@@ -61,35 +59,33 @@ describe('hardwareAccount', () => {
         nonce: 0,
         gas: 21000n,
         gasPrice: 5n,
-        type: 'legacy',
+        type: "legacy",
       },
     ];
     for (const transaction of transactions) {
       const signed = await account().signTransaction(transaction);
-      expect(await recoverTransactionAddress({ serializedTransaction: signed as never })).toBe(
-        ADDRESS
-      );
+      expect(await recoverTransactionAddress({ serializedTransaction: signed as never })).toBe(ADDRESS);
       expect(parseTransaction(signed).to?.toLowerCase()).toBe(ADDRESS.toLowerCase());
     }
   });
 
-  it('signs EIP-712 data the address verifies', async () => {
+  it("signs EIP-712 data the address verifies", async () => {
     const signature = await account().signTypedData(TYPED as never);
     expect(await recoverTypedDataAddress({ ...TYPED, signature } as never)).toBe(ADDRESS);
   });
 
-  it('asks the device every time and passes its refusal on', async () => {
+  it("asks the device every time and passes its refusal on", async () => {
     const device = new FakeHardwareSigner(KEY);
-    await account(device).signMessage({ message: 'x' });
+    await account(device).signMessage({ message: "x" });
     expect(device.calls).toEqual([`signMessage:${DEFAULT_EVM_PATH}`]);
 
     device.refuse = true;
-    await expect(account(device).signMessage({ message: 'x' })).rejects.toThrow(/Rejected/);
+    await expect(account(device).signMessage({ message: "x" })).rejects.toThrow(/Rejected/);
   });
 });
 
-describe('parityOf', () => {
-  it('reads every form a device gives v in', () => {
+describe("parityOf", () => {
+  it("reads every form a device gives v in", () => {
     expect(parityOf(0, {})).toBe(0);
     expect(parityOf(28, {})).toBe(1);
     expect(parityOf(38, { chainId: 1 })).toBe(1);
@@ -99,23 +95,23 @@ describe('parityOf', () => {
   });
 });
 
-it('pads r and s to 32 bytes whatever prefix a device writes', () => {
-  expect(deviceSignature('0x01', '2', '0x1c')).toEqual({
-    r: `0x${'0'.repeat(63)}1`,
-    s: `0x${'0'.repeat(63)}2`,
+it("pads r and s to 32 bytes whatever prefix a device writes", () => {
+  expect(deviceSignature("0x01", "2", "0x1c")).toEqual({
+    r: `0x${"0".repeat(63)}1`,
+    s: `0x${"0".repeat(63)}2`,
     v: 28n,
     yParity: 1,
   });
 });
 
-describe('typedDataForDevice', () => {
-  it('spells out the domain type and writes big numbers as text', () => {
+describe("typedDataForDevice", () => {
+  it("spells out the domain type and writes big numbers as text", () => {
     const parsed = typedDataForDevice(TYPED) as { types: any; message: any };
     expect(parsed.types.EIP712Domain.map((field: { name: string }) => field.name)).toEqual([
-      'name',
-      'chainId',
-      'verifyingContract',
+      "name",
+      "chainId",
+      "verifyingContract",
     ]);
-    expect(parsed.message.amount).toBe('1000000000000000000');
+    expect(parsed.message.amount).toBe("1000000000000000000");
   });
 });

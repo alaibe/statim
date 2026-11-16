@@ -1,7 +1,14 @@
-import { router } from 'expo-router';
-import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, KeyboardAvoidingView, ScrollView, View } from 'react-native';
-
+import { router } from "expo-router";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
+import { ActivityIndicator, AppState, KeyboardAvoidingView, ScrollView, View } from "react-native";
+import { useAccountStore } from "@/core/account/account-store";
+import { biometricCapability } from "@/core/account/biometrics";
+import { isKeyProtectionEnabled } from "@/core/account/key-protection";
+import { type LockSetup, unlockMethod } from "@/core/account/lock";
+import { useLockStore } from "@/core/account/lock-store";
+import { PIN_LENGTH, pinLockedUntil } from "@/core/account/pin";
+import { eraseEverything } from "@/core/app/erase-account";
+import { reportError } from "@/core/app/report-error";
 import {
   Button,
   cn,
@@ -15,20 +22,12 @@ import {
   Text,
   useInertOutside,
   useThemeColors,
-} from '@/design';
-import { reportError } from '@/core/app/report-error';
-import { eraseEverything } from '@/core/app/erase-account';
-import { useAccountStore } from '@/core/account/account-store';
-import { isKeyProtectionEnabled } from '@/core/account/key-protection';
-import { biometricCapability } from '@/core/account/biometrics';
-import { type LockSetup, unlockMethod } from '@/core/account/lock';
-import { useLockStore } from '@/core/account/lock-store';
-import { PIN_LENGTH, pinLockedUntil } from '@/core/account/pin';
-import { useAction } from '@/features/use-action';
-import { useKeyedLoad } from '@/lib/use-keyed-load';
+} from "@/design";
+import { useAction } from "@/features/use-action";
+import { useKeyedLoad } from "@/lib/use-keyed-load";
 
-import { advancePinFlow, type PinFlowEvent, startPinFlow } from './pin-flow';
-import { useWaitLeft, waitMessage } from './pin-wait';
+import { advancePinFlow, type PinFlowEvent, startPinFlow } from "./pin-flow";
+import { useWaitLeft, waitMessage } from "./pin-wait";
 
 const readProtection = () =>
   isKeyProtectionEnabled().catch((error: unknown) => {
@@ -51,9 +50,9 @@ function LockScreen() {
   const setup = useLockStore((s) => s.setup);
   const evaluate = useLockStore((s) => s.evaluate);
 
-  const [label, setLabel] = useState('Face ID');
+  const [label, setLabel] = useState("Face ID");
   const [checks, setChecks] = useState(0);
-  const protection = useKeyedLoad('key-protection', readProtection, checks);
+  const protection = useKeyedLoad("key-protection", readProtection, checks);
 
   useEffect(() => {
     biometricCapability()
@@ -63,10 +62,7 @@ function LockScreen() {
 
   if (!setup || protection.error !== undefined) {
     return (
-      <LockFrame
-        icon="lock-closed-outline"
-        tone="danger"
-        message="Could not check how this app is locked.">
+      <LockFrame icon="lock-closed-outline" tone="danger" message="Could not check how this app is locked.">
         <Button
           label="Try again"
           onPress={async () => {
@@ -90,15 +86,11 @@ function Unlock({ setup, label }: { setup: LockSetup; label: string }) {
     if (method === null) open();
   }, [method, open]);
 
-  if (method === 'pin') {
-    return (
-      <PinUnlock
-        backToBiometrics={setup.biometric ? { label, go: () => setMethod('biometric') } : null}
-      />
-    );
+  if (method === "pin") {
+    return <PinUnlock backToBiometrics={setup.biometric ? { label, go: () => setMethod("biometric") } : null} />;
   }
-  if (method === 'biometric') {
-    return <BiometricUnlock label={label} toPin={setup.pin ? () => setMethod('pin') : null} />;
+  if (method === "biometric") {
+    return <BiometricUnlock label={label} toPin={setup.pin ? () => setMethod("pin") : null} />;
   }
   return <LockFrame icon="lock-closed-outline" />;
 }
@@ -112,10 +104,10 @@ function useOnReturnFromBackground(onReturn: () => void) {
   const last = useRef(AppState.currentState);
 
   useEffect(() => {
-    const subscription = AppState.addEventListener('change', (next) => {
+    const subscription = AppState.addEventListener("change", (next) => {
       const previous = last.current;
       last.current = next;
-      if (next === 'active' && previous === 'background') handler();
+      if (next === "active" && previous === "background") handler();
     });
     return () => subscription.remove();
   }, []);
@@ -130,8 +122,8 @@ function BiometricUnlock({ label, toPin }: { label: string; toPin: (() => void) 
     setFailed(false);
     try {
       const outcome = await unlock();
-      if (outcome === 'use-pin' && toPin) toPin();
-      else if (outcome !== 'passed') setFailed(true);
+      if (outcome === "use-pin" && toPin) toPin();
+      else if (outcome !== "passed") setFailed(true);
     } catch (error) {
       reportError(error);
       setFailed(true);
@@ -155,9 +147,10 @@ function BiometricUnlock({ label, toPin }: { label: string; toPin: (() => void) 
 
   return (
     <LockFrame
-      icon={failed ? 'lock-closed-outline' : 'finger-print-outline'}
-      tone={failed ? 'danger' : 'muted'}
-      message={failed ? `${label} was not recognised.` : `Unlocking with ${label}…`}>
+      icon={failed ? "lock-closed-outline" : "finger-print-outline"}
+      tone={failed ? "danger" : "muted"}
+      message={failed ? `${label} was not recognised.` : `Unlocking with ${label}…`}
+    >
       {failed ? (
         <View className="w-full max-w-[280px] gap-2">
           <Button label="Try again" fullWidth disabled={prompting} onPress={attempt} />
@@ -192,8 +185,8 @@ function ProtectedKeysUnlock({ label }: { label: string }) {
     let cancelled = false;
     queueMicrotask(() => {
       if (cancelled) return;
-      if (accountStatus === 'ready' || accountStatus === 'invalidated') open();
-      else if (accountStatus === 'blocked') setFailed(true);
+      if (accountStatus === "ready" || accountStatus === "invalidated") open();
+      else if (accountStatus === "blocked") setFailed(true);
     });
     return () => {
       cancelled = true;
@@ -201,53 +194,48 @@ function ProtectedKeysUnlock({ label }: { label: string }) {
   }, [accountStatus, open]);
 
   useOnReturnFromBackground(() => {
-    if (useAccountStore.getState().status === 'blocked') void attempt();
+    if (useAccountStore.getState().status === "blocked") void attempt();
   });
 
   return (
     <LockFrame
-      icon={failed ? 'lock-closed-outline' : 'finger-print-outline'}
-      tone={failed ? 'danger' : 'muted'}
+      icon={failed ? "lock-closed-outline" : "finger-print-outline"}
+      tone={failed ? "danger" : "muted"}
       message={
-        failed
-          ? `${label} was not recognised. Your keys can only be read with ${label}.`
-          : `Unlocking with ${label}…`
-      }>
+        failed ? `${label} was not recognised. Your keys can only be read with ${label}.` : `Unlocking with ${label}…`
+      }
+    >
       {failed ? <Button label="Try again" disabled={prompting} onPress={attempt} /> : <Spinner />}
     </LockFrame>
   );
 }
 
-function PinUnlock({
-  backToBiometrics,
-}: {
-  backToBiometrics: { label: string; go: () => void } | null;
-}) {
+function PinUnlock({ backToBiometrics }: { backToBiometrics: { label: string; go: () => void } | null }) {
   const verifyPin = useLockStore((s) => s.verifyPin);
-  const [state, setState] = useState(() => startPinFlow('unlock'));
+  const [state, setState] = useState(() => startPinFlow("unlock"));
   const [forgotten, setForgotten] = useState(false);
   const send = (event: PinFlowEvent) => setState((current) => advancePinFlow(current, event));
-  const waitLeft = useWaitLeft(state.note?.kind === 'wait' ? state.note.until : null);
+  const waitLeft = useWaitLeft(state.note?.kind === "wait" ? state.note.until : null);
 
   useEffect(() => {
     pinLockedUntil()
       .then((until) => {
-        if (until !== null) setState((current) => advancePinFlow(current, { type: 'wait', until }));
+        if (until !== null) setState((current) => advancePinFlow(current, { type: "wait", until }));
       })
       .catch(reportError);
   }, []);
 
   const { task } = state;
   useEffect(() => {
-    if (task?.run !== 'check') return;
+    if (task?.run !== "check") return;
     let cancelled = false;
     void verifyPin(task.pin)
       .then(
-        (check): PinFlowEvent => ({ type: 'checked', check }),
+        (check): PinFlowEvent => ({ type: "checked", check }),
         (error: unknown): PinFlowEvent => {
           reportError(error);
-          return { type: 'failed', message: 'Could not check the PIN. Try again.' };
-        }
+          return { type: "failed", message: "Could not check the PIN. Try again." };
+        },
       )
       .then((event) => {
         if (!cancelled) setState((current) => advancePinFlow(current, event));
@@ -261,11 +249,11 @@ function PinUnlock({
 
   const { note } = state;
   const message =
-    note?.kind === 'wait' && waitLeft > 0
+    note?.kind === "wait" && waitLeft > 0
       ? waitMessage(waitLeft)
-      : note?.kind === 'wrong'
-        ? 'Wrong PIN. Try again.'
-        : note?.kind === 'failed'
+      : note?.kind === "wrong"
+        ? "Wrong PIN. Try again."
+        : note?.kind === "failed"
           ? note.message
           : null;
 
@@ -275,8 +263,8 @@ function PinUnlock({
         {task ? (
           <Spinner />
         ) : (
-          <Text variant="footnote" className={cn('text-center', message && 'text-danger')}>
-            {message ?? 'Statim is locked'}
+          <Text variant="footnote" className={cn("text-center", message && "text-danger")}>
+            {message ?? "Statim is locked"}
           </Text>
         )}
       </View>
@@ -285,13 +273,13 @@ function PinUnlock({
 
       <PinPad
         disabled={task !== null || waitLeft > 0}
-        onDigit={(digit) => send({ type: 'digit', digit })}
-        onDelete={() => send({ type: 'delete' })}
+        onDigit={(digit) => send({ type: "digit", digit })}
+        onDelete={() => send({ type: "delete" })}
         extra={
           backToBiometrics
             ? {
                 label: `Use ${backToBiometrics.label}`,
-                icon: 'finger-print-outline',
+                icon: "finger-print-outline",
                 onPress: backToBiometrics.go,
               }
             : undefined
@@ -303,16 +291,16 @@ function PinUnlock({
   );
 }
 
-const ERASE_WORD = 'erase';
+const ERASE_WORD = "erase";
 
 function ForgotPin({ onCancel }: { onCancel: () => void }) {
-  const [typed, setTyped] = useState('');
+  const [typed, setTyped] = useState("");
   const erase = useAction(
     async () => {
       await eraseEverything();
-      router.replace('/(onboarding)/welcome');
+      router.replace("/(onboarding)/welcome");
     },
-    { failure: 'Could not erase this device' }
+    { failure: "Could not erase this device" },
   );
   const armed = typed.trim().toLowerCase() === ERASE_WORD;
 
@@ -321,7 +309,8 @@ function ForgotPin({ onCancel }: { onCancel: () => void }) {
       <KeyboardAvoidingView behavior="padding" className="flex-1">
         <ScrollView
           keyboardShouldPersistTaps="handled"
-          contentContainerClassName="grow justify-center gap-5 px-gutter py-8">
+          contentContainerClassName="grow justify-center gap-5 px-gutter py-8"
+        >
           <View className="items-center gap-3">
             <IconBadge icon="trash-outline" tone="danger" />
             <Text variant="headline" className="text-center">
@@ -330,12 +319,12 @@ function ForgotPin({ onCancel }: { onCancel: () => void }) {
           </View>
 
           <Text variant="bodyMuted">
-            A forgotten PIN cannot be reset. To use Statim again, erase everything it keeps on this
-            device: every account’s keys, chats and settings.
+            A forgotten PIN cannot be reset. To use Statim again, erase everything it keeps on this device: every
+            account’s keys, chats and settings.
           </Text>
           <Text variant="bodyMuted">
-            Then restore each account from its recovery phrase. Notes and anything else kept only on
-            this device are gone for good.
+            Then restore each account from its recovery phrase. Notes and anything else kept only on this device are
+            gone for good.
           </Text>
 
           <Field
@@ -358,13 +347,7 @@ function ForgotPin({ onCancel }: { onCancel: () => void }) {
               loading={erase.busy}
               onPress={() => erase.run()}
             />
-            <Button
-              label="Cancel"
-              tone="neutral"
-              fullWidth
-              disabled={erase.busy}
-              onPress={onCancel}
-            />
+            <Button label="Cancel" tone="neutral" fullWidth disabled={erase.busy} onPress={onCancel} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -374,8 +357,8 @@ function ForgotPin({ onCancel }: { onCancel: () => void }) {
 
 function LockFrame({
   icon,
-  tone = 'muted',
-  title = 'Statim',
+  tone = "muted",
+  title = "Statim",
   message,
   children,
 }: {
@@ -413,5 +396,5 @@ function IconBadge({ icon, tone }: { icon: IconName; tone: IconTone }) {
 
 function Spinner() {
   const colors = useThemeColors();
-  return <ActivityIndicator color={colors['content-subtle']} />;
+  return <ActivityIndicator color={colors["content-subtle"]} />;
 }

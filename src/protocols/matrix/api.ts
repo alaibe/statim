@@ -25,9 +25,9 @@ export interface MxSession {
   homeserverUrl: string;
 }
 
-export type MxMembership = 'joined' | 'invited' | 'left' | 'banned' | 'knocked';
+export type MxMembership = "joined" | "invited" | "left" | "banned" | "knocked";
 
-export type MxRole = 'owner' | 'admin' | 'member';
+export type MxRole = "owner" | "admin" | "member";
 
 export interface MxRoom {
   id: string;
@@ -100,7 +100,7 @@ export interface MxPreview {
 export interface MxEvent extends MxPreview {
   id: string;
   roomId: string;
-  status: 'sending' | 'sent' | 'failed';
+  status: "sending" | "sent" | "failed";
   replyTo?: string;
   threadRoot?: string;
   reactions?: MxReaction[];
@@ -116,52 +116,52 @@ export interface MxMedia {
 }
 
 export type MxMembershipChange =
-  | 'joined'
-  | 'left'
-  | 'invited'
-  | 'kicked'
-  | 'banned'
-  | 'unbanned'
-  | 'invitationRejected'
-  | 'invitationRevoked';
+  | "joined"
+  | "left"
+  | "invited"
+  | "kicked"
+  | "banned"
+  | "unbanned"
+  | "invitationRejected"
+  | "invitationRevoked";
 
-export type MxStateChange = 'name' | 'topic' | 'avatar' | 'created' | 'encryption';
+export type MxStateChange = "name" | "topic" | "avatar" | "created" | "encryption";
 
 /** Only what the app renders; drivers drop the rest before it counts as a message. */
 export type MxContent =
-  | { kind: 'text'; body: string; html?: string; msgtype?: 'notice' | 'emote' }
-  | ({ kind: 'image'; width?: number; height?: number; caption?: string } & MxMedia)
-  | ({ kind: 'file'; caption?: string } & MxMedia)
-  | ({ kind: 'audio'; durationMs?: number; voice: boolean } & MxMedia)
+  | { kind: "text"; body: string; html?: string; msgtype?: "notice" | "emote" }
+  | ({ kind: "image"; width?: number; height?: number; caption?: string } & MxMedia)
+  | ({ kind: "file"; caption?: string } & MxMedia)
+  | ({ kind: "audio"; durationMs?: number; voice: boolean } & MxMedia)
   | ({
-      kind: 'video';
+      kind: "video";
       width?: number;
       height?: number;
       durationMs?: number;
       caption?: string;
     } & MxMedia)
-  | ({ kind: 'sticker'; width?: number; height?: number } & MxMedia)
+  | ({ kind: "sticker"; width?: number; height?: number } & MxMedia)
   | {
-      kind: 'poll';
+      kind: "poll";
       question: string;
       answers: { id: string; text: string }[];
       votes: Record<string, string[]>;
       maxSelections: number;
       closed: boolean;
     }
-  | { kind: 'location' }
-  | { kind: 'redacted' }
-  | { kind: 'undecryptable' }
-  | { kind: 'call'; video: boolean }
-  | { kind: 'membership'; change: MxMembershipChange; user: string; userName?: string }
-  | { kind: 'state'; change: MxStateChange; value?: string };
+  | { kind: "location" }
+  | { kind: "redacted" }
+  | { kind: "undecryptable" }
+  | { kind: "call"; video: boolean }
+  | { kind: "membership"; change: MxMembershipChange; user: string; userName?: string }
+  | { kind: "state"; change: MxStateChange; value?: string };
 
-export type MxTextOutgoing = { kind: 'text'; body: string; html?: string; mentions?: string[] };
+export type MxTextOutgoing = { kind: "text"; body: string; html?: string; mentions?: string[] };
 
 export type MxOutgoing =
   | MxTextOutgoing
   | {
-      kind: 'image';
+      kind: "image";
       path: string;
       mimeType?: string;
       width?: number;
@@ -169,9 +169,9 @@ export type MxOutgoing =
       size?: number;
       caption?: string;
     }
-  | { kind: 'file'; path: string; name: string; mimeType?: string; size?: number }
+  | { kind: "file"; path: string; name: string; mimeType?: string; size?: number }
   | {
-      kind: 'video';
+      kind: "video";
       path: string;
       mimeType?: string;
       width?: number;
@@ -180,9 +180,9 @@ export type MxOutgoing =
       size?: number;
       caption?: string;
     }
-  | { kind: 'voice'; path: string; durationMs: number; mimeType?: string; size?: number }
+  | { kind: "voice"; path: string; durationMs: number; mimeType?: string; size?: number }
   | {
-      kind: 'sticker';
+      kind: "sticker";
       path: string;
       body: string;
       mimeType?: string;
@@ -198,13 +198,13 @@ export interface MxReceipt {
 }
 
 export type MxUpdate =
-  | { type: 'room'; room: MxRoom }
-  | { type: 'roomGone'; roomId: string }
-  | { type: 'typing'; roomId: string; userIds: string[] }
-  | { type: 'receipts'; roomId: string; receipts: MxReceipt[] }
-  | { type: 'event'; event: MxEvent }
+  | { type: "room"; room: MxRoom }
+  | { type: "roomGone"; roomId: string }
+  | { type: "typing"; roomId: string; userIds: string[] }
+  | { type: "receipts"; roomId: string; receipts: MxReceipt[] }
+  | { type: "event"; event: MxEvent }
   /** The homeserver no longer accepts the session: signed out elsewhere, or the token expired. */
-  | { type: 'signedOut' };
+  | { type: "signedOut" };
 
 export interface MatrixApi {
   /** Restores the saved session when there is one; `null` means sign in first. Rooms arrive as updates. */
@@ -239,12 +239,7 @@ export interface MatrixApi {
    * the phone an attachment resolves once queued. Returns the new event's id where the SDK
    * gives it back, which the phone's does not.
    */
-  send(
-    roomId: string,
-    content: MxOutgoing,
-    replyTo?: string,
-    threadRoot?: string
-  ): Promise<string | undefined>;
+  send(roomId: string, content: MxOutgoing, replyTo?: string, threadRoot?: string): Promise<string | undefined>;
   edit(roomId: string, eventId: string, content: MxTextOutgoing): Promise<void>;
   redact(roomId: string, eventId: string): Promise<void>;
   pinnedMessages(roomId: string): Promise<MxEvent[]>;

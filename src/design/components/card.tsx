@@ -1,6 +1,6 @@
-import { View, type ViewProps } from 'react-native';
+import { View, type ViewProps } from "react-native";
 
-import { cn } from '../lib/cn';
+import { cn } from "../lib/cn";
 
 interface CardProps extends ViewProps {
   className?: string;
@@ -9,8 +9,8 @@ interface CardProps extends ViewProps {
 export function Card({ className, ...props }: CardProps) {
   return (
     <View
-      className={cn('rounded-card border border-line bg-surface-raised p-gutter', className)}
-      style={{ borderCurve: 'continuous' }}
+      className={cn("rounded-card border border-line bg-surface-raised p-gutter", className)}
+      style={{ borderCurve: "continuous" }}
       {...props}
     />
   );

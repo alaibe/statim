@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
 
-import { errorMessage } from '@/core/errors';
-import type { BridgeProvisioning, LoginStep, Whoami } from '@/protocols/matrix/provisioning';
+import { errorMessage } from "@/core/errors";
+import type { BridgeProvisioning, LoginStep, Whoami } from "@/protocols/matrix/provisioning";
 
-type BridgeLoginPhase = 'loading' | 'unavailable' | 'flows' | 'step' | 'done';
+type BridgeLoginPhase = "loading" | "unavailable" | "flows" | "step" | "done";
 
 /** A bridge's sign-in, one provisioning step at a time; an open step is cancelled on leaving or starting over. */
 export function useBridgeLogin(provisioning: BridgeProvisioning | null) {
@@ -34,7 +34,7 @@ export function useBridgeLogin(provisioning: BridgeProvisioning | null) {
     () => () => {
       if (live.current && provisioning) provisioning.cancel(live.current).catch(() => {});
     },
-    [provisioning]
+    [provisioning],
   );
 
   async function advance(next: Promise<LoginStep>) {
@@ -44,16 +44,16 @@ export function useBridgeLogin(provisioning: BridgeProvisioning | null) {
     try {
       result = await next;
     } catch (e) {
-      setError(errorMessage(e, 'The bridge did not accept that'));
+      setError(errorMessage(e, "The bridge did not accept that"));
     }
     setBusy(false);
     if (!result) return;
-    live.current = result.type === 'complete' ? null : result;
+    live.current = result.type === "complete" ? null : result;
     setStep(result);
   }
 
   useEffect(() => {
-    if (!provisioning || step?.type !== 'display_and_wait') return;
+    if (!provisioning || step?.type !== "display_and_wait") return;
     let cancelled = false;
     provisioning
       .wait(step)
@@ -61,7 +61,7 @@ export function useBridgeLogin(provisioning: BridgeProvisioning | null) {
         if (!cancelled) void advance(Promise.resolve(next));
       })
       .catch((e) => {
-        if (!cancelled) setError(errorMessage(e, 'The sign-in stopped'));
+        if (!cancelled) setError(errorMessage(e, "The sign-in stopped"));
       });
     return () => {
       cancelled = true;
@@ -70,14 +70,14 @@ export function useBridgeLogin(provisioning: BridgeProvisioning | null) {
 
   const phase: BridgeLoginPhase =
     !provisioning || unavailable
-      ? 'unavailable'
+      ? "unavailable"
       : !whoami
-        ? 'loading'
+        ? "loading"
         : !step
-          ? 'flows'
-          : step.type === 'complete'
-            ? 'done'
-            : 'step';
+          ? "flows"
+          : step.type === "complete"
+            ? "done"
+            : "step";
 
   return {
     phase,

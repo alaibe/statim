@@ -1,7 +1,7 @@
-import TdJson from '../../../modules/tdjson';
+import TdJson from "../../../modules/tdjson";
 
-import type { TdObject } from './api';
-import { TdJsonClient, type TdDriver } from './json-client';
+import type { TdObject } from "./api";
+import { type TdDriver, TdJsonClient } from "./json-client";
 
 // How long one receive may block natively; closing the client waits for it.
 const RECEIVE_TIMEOUT_S = 1;
@@ -14,13 +14,13 @@ const driver: TdDriver = {
     clientId = TdJson.create();
   },
   async send(request) {
-    if (clientId === null) throw new Error('No TDLib client');
+    if (clientId === null) throw new Error("No TDLib client");
     TdJson.send(clientId, JSON.stringify(request));
   },
   async receive() {
     const id = clientId;
     const batch = JSON.parse(await TdJson.receive(RECEIVE_TIMEOUT_S, RECEIVE_LIMIT)) as TdObject[];
-    return batch.filter((each) => each['@client_id'] === id);
+    return batch.filter((each) => each["@client_id"] === id);
   },
   async destroy() {
     if (clientId !== null) TdJson.destroy(clientId);

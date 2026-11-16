@@ -1,13 +1,10 @@
-import { formatUnits } from 'viem';
+import { formatUnits } from "viem";
 
-import { shortAddress } from '@/core/account/keyring';
-import { jsonRpc } from '@/lib/json-rpc';
+import { shortAddress } from "@/core/account/keyring";
+import { jsonRpc } from "@/lib/json-rpc";
 
 /** The original token program, and the 2022 one that newer mints use. */
-const PROGRAMS = [
-  'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
-  'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb',
-];
+const PROGRAMS = ["TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"];
 
 type Entry = [mint: string, symbol: string, name: string];
 
@@ -15,9 +12,7 @@ type Entry = [mint: string, symbol: string, name: string];
 let names: Map<string, Entry> | null = null;
 
 function named(): Map<string, Entry> {
-  names ??= new Map(
-    (require('./token-list.json') as { tokens: Entry[] }).tokens.map((entry) => [entry[0], entry])
-  );
+  names ??= new Map((require("./token-list.json") as { tokens: Entry[] }).tokens.map((entry) => [entry[0], entry]));
   return names;
 }
 
@@ -53,12 +48,12 @@ interface ParsedAccount {
 export async function fetchSplTokens(url: string, owner: string): Promise<SplBalance[]> {
   const answers = await Promise.all(
     PROGRAMS.map((programId) =>
-      jsonRpc<{ value: ParsedAccount[] }>(url, 'getTokenAccountsByOwner', [
+      jsonRpc<{ value: ParsedAccount[] }>(url, "getTokenAccountsByOwner", [
         owner,
         { programId },
-        { encoding: 'jsonParsed' },
-      ]).catch(() => ({ value: [] as ParsedAccount[] }))
-    )
+        { encoding: "jsonParsed" },
+      ]).catch(() => ({ value: [] as ParsedAccount[] })),
+    ),
   );
 
   // One mint can sit in several accounts, so raw amounts are summed before formatting.
@@ -83,7 +78,7 @@ export async function fetchSplTokens(url: string, owner: string): Promise<SplBal
       return {
         mint,
         symbol: entry?.[1] ?? shortAddress(mint, 4, 4),
-        name: entry?.[2] ?? 'Unknown token',
+        name: entry?.[2] ?? "Unknown token",
         decimals,
         amount: formatUnits(raw, decimals),
         raw,

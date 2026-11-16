@@ -1,30 +1,24 @@
-import { botChatId, isLocalChat, type Bot } from './bots';
-import { useChatStore } from './chat-store';
-import { InMemoryChatSession } from './in-memory-session';
-import {
-  connectFake,
-  disconnectFake,
-  ns,
-  projectTestAccount,
-  resetChatStore,
-} from './testing/store';
-import { deleteAccountDatabase } from '@/storage/database';
-import { asChatId } from './testing/ids';
+import { deleteAccountDatabase } from "@/storage/database";
+import { type Bot, botChatId, isLocalChat } from "./bots";
+import { useChatStore } from "./chat-store";
+import { InMemoryChatSession } from "./in-memory-session";
+import { asChatId } from "./testing/ids";
+import { connectFake, disconnectFake, ns, projectTestAccount, resetChatStore } from "./testing/store";
 
-jest.mock('../account/keyring', () => ({
-  ...jest.requireActual('../account/keyring'),
+jest.mock("../account/keyring", () => ({
+  ...jest.requireActual("../account/keyring"),
   loadOrCreateDbEncryptionKey: async () => new Uint8Array(32),
 }));
 
-const BOT_ID = 'statim';
+const BOT_ID = "statim";
 const CHAT = botChatId(BOT_ID);
 
 function makeBot(overrides: Partial<Bot> = {}): Bot {
   return {
     id: BOT_ID,
-    name: 'Statim',
-    tagline: 'on-device',
-    greeting: () => ['Welcome.'],
+    name: "Statim",
+    tagline: "on-device",
+    greeting: () => ["Welcome."],
     async onMessage(text, ctx) {
       await ctx.say(`echo: ${text}`);
     },
@@ -35,50 +29,46 @@ function makeBot(overrides: Partial<Bot> = {}): Bot {
 const reset = resetChatStore;
 
 beforeEach(async () => {
-  await deleteAccountDatabase('bots-test');
+  await deleteAccountDatabase("bots-test");
   reset();
-  projectTestAccount('bots-test');
+  projectTestAccount("bots-test");
 });
 
 afterEach(async () => {
-  await deleteAccountDatabase('bots-test');
+  await deleteAccountDatabase("bots-test");
 });
 
-describe('registering bots', () => {
-  it('creates a chat and posts the greeting on first run', async () => {
+describe("registering bots", () => {
+  it("creates a chat and posts the greeting on first run", async () => {
     await useChatStore.getState().registerBots([makeBot()]);
 
     const state = useChatStore.getState();
     expect(state.chats.map((c) => c.id)).toEqual([CHAT]);
-    expect(state.messages[CHAT].map((m) => m.content)).toEqual([
-      { kind: 'text', text: 'Welcome.' },
-    ]);
+    expect(state.messages[CHAT].map((m) => m.content)).toEqual([{ kind: "text", text: "Welcome." }]);
   });
 
-  it('works with no protocol session at all', async () => {
+  it("works with no protocol session at all", async () => {
     expect(useChatStore.getState().sessions).toEqual({});
     await useChatStore.getState().registerBots([makeBot()]);
     expect(useChatStore.getState().chats).toHaveLength(1);
   });
 
-  it('restores saved history instead of greeting again', async () => {
+  it("restores saved history instead of greeting again", async () => {
     await useChatStore.getState().registerBots([makeBot()]);
-    await useChatStore.getState().sendMessage(CHAT, { kind: 'text', text: 'hi' });
+    await useChatStore.getState().sendMessage(CHAT, { kind: "text", text: "hi" });
 
     // Simulate a relaunch: same storage, fresh store.
     reset();
-    projectTestAccount('bots-test');
+    projectTestAccount("bots-test");
     await useChatStore.getState().registerBots([makeBot()]);
 
-    const texts = useChatStore
-      .getState()
-      .messages[CHAT].map((m) => (m.content.kind === 'text' ? m.content.text : ''));
+    const texts = useChatStore.getState().messages[CHAT].map((m) => (m.content.kind === "text" ? m.content.text : ""));
 
-    expect(texts).toEqual(['Welcome.', 'hi', 'echo: hi']);
-    expect(texts.filter((t) => t === 'Welcome.')).toHaveLength(1);
+    expect(texts).toEqual(["Welcome.", "hi", "echo: hi"]);
+    expect(texts.filter((t) => t === "Welcome.")).toHaveLength(1);
   });
 
-  it('removes the chat when its plugin is disabled', async () => {
+  it("removes the chat when its plugin is disabled", async () => {
     await useChatStore.getState().registerBots([makeBot()]);
     await useChatStore.getState().registerBots([]);
 
@@ -86,57 +76,57 @@ describe('registering bots', () => {
   });
 });
 
-describe('talking to a bot', () => {
-  it('routes locally and never touches the protocol', async () => {
+describe("talking to a bot", () => {
+  it("routes locally and never touches the protocol", async () => {
     const session = new InMemoryChatSession();
     await connectFake(session);
     await useChatStore.getState().registerBots([makeBot()]);
 
-    await useChatStore.getState().sendMessage(CHAT, { kind: 'text', text: 'ping' });
+    await useChatStore.getState().sendMessage(CHAT, { kind: "text", text: "ping" });
 
     expect(session.sent).toHaveLength(0);
     const messages = useChatStore.getState().messages[CHAT];
     expect(messages.at(-2)).toMatchObject({ fromMe: true });
-    expect(messages.at(-1)?.content).toEqual({ kind: 'text', text: 'echo: ping' });
+    expect(messages.at(-1)?.content).toEqual({ kind: "text", text: "echo: ping" });
   });
 
-  it('handles a bot that chooses not to reply', async () => {
+  it("handles a bot that chooses not to reply", async () => {
     await useChatStore.getState().registerBots([makeBot({ onMessage: undefined })]);
-    await useChatStore.getState().sendMessage(CHAT, { kind: 'text', text: 'quiet' });
+    await useChatStore.getState().sendMessage(CHAT, { kind: "text", text: "quiet" });
 
     expect(useChatStore.getState().messages[CHAT]).toHaveLength(2);
   });
 
-  it('persists a widget reply as data, so it survives a relaunch', async () => {
+  it("persists a widget reply as data, so it survives a relaunch", async () => {
     const bot = makeBot({
       async onMessage(_text, ctx) {
         await ctx.say({
-          kind: 'widget',
-          fallback: '1.5 ETH',
-          widget: { kind: 'stat', value: '1.5 ETH', label: 'Balance' },
+          kind: "widget",
+          fallback: "1.5 ETH",
+          widget: { kind: "stat", value: "1.5 ETH", label: "Balance" },
         });
       },
     });
 
     await useChatStore.getState().registerBots([bot]);
-    await useChatStore.getState().sendMessage(CHAT, { kind: 'text', text: '/balance' });
+    await useChatStore.getState().sendMessage(CHAT, { kind: "text", text: "/balance" });
 
     reset();
-    projectTestAccount('bots-test');
+    projectTestAccount("bots-test");
     await useChatStore.getState().registerBots([bot]);
 
     expect(useChatStore.getState().messages[CHAT].at(-1)?.content).toEqual({
-      kind: 'widget',
-      fallback: '1.5 ETH',
-      widget: { kind: 'stat', value: '1.5 ETH', label: 'Balance' },
+      kind: "widget",
+      fallback: "1.5 ETH",
+      widget: { kind: "stat", value: "1.5 ETH", label: "Balance" },
     });
   });
 });
 
-describe('bot history and the protocol session', () => {
-  it('survives disconnecting from the protocol', async () => {
+describe("bot history and the protocol session", () => {
+  it("survives disconnecting from the protocol", async () => {
     const session = new InMemoryChatSession();
-    session.seedChat({ id: 'remote-1' });
+    session.seedChat({ id: "remote-1" });
 
     await connectFake(session);
     await useChatStore.getState().registerBots([makeBot()]);
@@ -148,9 +138,9 @@ describe('bot history and the protocol session', () => {
     expect(state.messages[CHAT]).toHaveLength(1);
   });
 
-  it('keeps bot chats when the protocol list refreshes', async () => {
+  it("keeps bot chats when the protocol list refreshes", async () => {
     const session = new InMemoryChatSession();
-    session.seedChat({ id: 'remote-1' });
+    session.seedChat({ id: "remote-1" });
 
     await connectFake(session);
     await useChatStore.getState().registerBots([makeBot()]);
@@ -158,30 +148,28 @@ describe('bot history and the protocol session', () => {
 
     const ids = useChatStore.getState().chats.map((c) => c.id);
     expect(ids).toContain(CHAT);
-    expect(ids).toContain(ns('remote-1'));
+    expect(ids).toContain(ns("remote-1"));
   });
 });
 
-describe('isLocalChat', () => {
-  it('is URL-safe, because ids become route segments', () => {
-    expect(CHAT).not.toContain(':');
+describe("isLocalChat", () => {
+  it("is URL-safe, because ids become route segments", () => {
+    expect(CHAT).not.toContain(":");
     expect(isLocalChat(CHAT)).toBe(true);
-    expect(isLocalChat(asChatId(`xmtp-${'a'.repeat(64)}`))).toBe(false);
+    expect(isLocalChat(asChatId(`xmtp-${"a".repeat(64)}`))).toBe(false);
   });
 });
 
-describe('registering several bots', () => {
+describe("registering several bots", () => {
   /**
    * One commit per chat re-sorts the list after each row, so a tap can open a chat that slid
    * under it. The final list is the same either way; only the commit count shows it.
    */
-  it('adds them in a single commit', async () => {
-    const session = new InMemoryChatSession({ participantId: 'a'.repeat(64) });
+  it("adds them in a single commit", async () => {
+    const session = new InMemoryChatSession({ participantId: "a".repeat(64) });
     await connectFake(session);
 
-    const bots = ['one', 'two', 'three', 'four'].map((id) =>
-      makeBot({ id, name: id, greeting: () => [] })
-    );
+    const bots = ["one", "two", "three", "four"].map((id) => makeBot({ id, name: id, greeting: () => [] }));
 
     let commits = 0;
     const unsubscribe = useChatStore.subscribe((state, previous) => {

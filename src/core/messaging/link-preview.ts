@@ -1,4 +1,4 @@
-import { appFetch } from '@/lib/http';
+import { appFetch } from "@/lib/http";
 
 export interface LinkPreview {
   url: string;
@@ -15,18 +15,18 @@ interface FetchOptions {
 }
 
 // Sites gate their Open Graph tags on a crawler user agent.
-const USER_AGENT = 'Mozilla/5.0 (compatible; Statim; like TwitterBot)';
+const USER_AGENT = "Mozilla/5.0 (compatible; Statim; like TwitterBot)";
 const MAX_BYTES = 512 * 1024;
 const TITLE_LIMIT = 200;
 const DESCRIPTION_LIMIT = 400;
 
 const ENTITIES: Record<string, string> = {
-  amp: '&',
-  lt: '<',
-  gt: '>',
+  amp: "&",
+  lt: "<",
+  gt: ">",
   quot: '"',
   apos: "'",
-  nbsp: ' ',
+  nbsp: " ",
 };
 
 /**
@@ -36,14 +36,14 @@ const ENTITIES: Record<string, string> = {
 export function isPreviewable(url: string): boolean {
   const host = hostOf(url);
   if (!host) return false;
-  if (!host.includes('.')) return false;
-  if (/^[\d.]+$/.test(host) || host.startsWith('[')) return false;
+  if (!host.includes(".")) return false;
+  if (/^[\d.]+$/.test(host) || host.startsWith("[")) return false;
   return !/\.(local|localhost|internal|home|lan|arpa)$/.test(host);
 }
 
 export async function fetchLinkPreview(
   url: string,
-  { fetchImpl = appFetch }: FetchOptions = {}
+  { fetchImpl = appFetch }: FetchOptions = {},
 ): Promise<LinkPreview | null> {
   if (!isPreviewable(url)) return null;
 
@@ -53,24 +53,24 @@ export async function fetchLinkPreview(
   const request = (target: string, accept: string) =>
     fetchImpl(target, {
       signal: controller.signal,
-      credentials: 'omit',
-      headers: { accept, 'user-agent': USER_AGENT, range: `bytes=0-${MAX_BYTES - 1}` },
+      credentials: "omit",
+      headers: { accept, "user-agent": USER_AGENT, range: `bytes=0-${MAX_BYTES - 1}` },
     });
 
   try {
     const video = youtubeId(url);
     if (video) {
-      const response = await request(youtubeOembedUrl(url), 'application/json');
+      const response = await request(youtubeOembedUrl(url), "application/json");
       return response.ok ? youtubePreview(url, video, await response.json()) : null;
     }
 
-    const response = await request(url, 'text/html,application/xhtml+xml,image/*');
+    const response = await request(url, "text/html,application/xhtml+xml,image/*");
     if (!response.ok) return null;
 
-    const type = response.headers.get('content-type') ?? '';
+    const type = response.headers.get("content-type") ?? "";
     const finalUrl = response.url || url;
 
-    if (type.startsWith('image/')) return { url, image: { url: finalUrl } };
+    if (type.startsWith("image/")) return { url, image: { url: finalUrl } };
     if (!/text\/html|application\/xhtml/.test(type)) return null;
 
     const html = (await response.text()).slice(0, MAX_BYTES);
@@ -86,7 +86,7 @@ export async function fetchLinkPreview(
 // answer is a few hundred bytes and carries the title, channel and poster.
 export function youtubeId(url: string): string | null {
   const match = url.match(
-    /^https?:\/\/(?:(?:www\.|m\.)?youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})(?![\w-])/i
+    /^https?:\/\/(?:(?:www\.|m\.)?youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})(?![\w-])/i,
   );
   return match ? match[1] : null;
 }
@@ -100,7 +100,7 @@ function youtubePreview(url: string, id: string, body: unknown): LinkPreview | n
   if (!data.title) return null;
   return {
     url,
-    siteName: 'YouTube',
+    siteName: "YouTube",
     title: clean(data.title),
     description: data.author_name ? clean(data.author_name) : undefined,
     // hqdefault always exists; it is 4:3 with letterbox bars that a 16:9 crop removes.
@@ -127,12 +127,10 @@ export function parseLinkPreview(html: string, pageUrl: string, url = pageUrl): 
     return undefined;
   };
 
-  const title =
-    pick('og:title', 'twitter:title') ??
-    clean(html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] ?? '');
-  const description = pick('og:description', 'twitter:description', 'description');
-  const imageUrl = pick('og:image:secure_url', 'og:image', 'twitter:image', 'twitter:image:src');
-  const siteName = pick('og:site_name') ?? hostOf(pageUrl)?.replace(/^www\./, '');
+  const title = pick("og:title", "twitter:title") ?? clean(html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] ?? "");
+  const description = pick("og:description", "twitter:description", "description");
+  const imageUrl = pick("og:image:secure_url", "og:image", "twitter:image", "twitter:image:src");
+  const siteName = pick("og:site_name") ?? hostOf(pageUrl)?.replace(/^www\./, "");
 
   const preview: LinkPreview = { url };
   if (siteName) preview.siteName = siteName;
@@ -144,8 +142,8 @@ export function parseLinkPreview(html: string, pageUrl: string, url = pageUrl): 
   const image = imageUrl ? resolveUrl(imageUrl, pageUrl) : null;
   if (image) {
     preview.image = { url: image };
-    const width = Number(meta.get('og:image:width'));
-    const height = Number(meta.get('og:image:height'));
+    const width = Number(meta.get("og:image:width"));
+    const height = Number(meta.get("og:image:height"));
     if (width > 0 && height > 0) Object.assign(preview.image, { width, height });
   }
 
@@ -160,11 +158,11 @@ export function resolveUrl(candidate: string, pageUrl: string): string | null {
   const origin = pageUrl.match(/^(https?:\/\/[^/?#]+)/i)?.[1];
   if (!origin) return null;
 
-  if (value.startsWith('//')) return `${origin.split('//')[0]}${value}`;
-  if (value.startsWith('/')) return `${origin}${value}`;
+  if (value.startsWith("//")) return `${origin.split("//")[0]}${value}`;
+  if (value.startsWith("/")) return `${origin}${value}`;
 
   const path = pageUrl.slice(origin.length).split(/[?#]/)[0];
-  const directory = path.slice(0, path.lastIndexOf('/') + 1) || '/';
+  const directory = path.slice(0, path.lastIndexOf("/") + 1) || "/";
   return `${origin}${directory}${value}`;
 }
 
@@ -178,22 +176,20 @@ function attributesOf(tag: string): Record<string, string> {
   const pattern = /([a-z][\w:-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/gi;
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(tag))) {
-    attrs[match[1].toLowerCase()] = match[2] ?? match[3] ?? match[4] ?? '';
+    attrs[match[1].toLowerCase()] = match[2] ?? match[3] ?? match[4] ?? "";
   }
   return attrs;
 }
 
 function clean(value: string): string {
-  return decodeEntities(value).replace(/\s+/g, ' ').trim();
+  return decodeEntities(value).replace(/\s+/g, " ").trim();
 }
 
 function decodeEntities(value: string): string {
   return value.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, entity: string) => {
-    if (entity[0] === '#') {
+    if (entity[0] === "#") {
       const code =
-        entity[1] === 'x' || entity[1] === 'X'
-          ? parseInt(entity.slice(2), 16)
-          : parseInt(entity.slice(1), 10);
+        entity[1] === "x" || entity[1] === "X" ? parseInt(entity.slice(2), 16) : parseInt(entity.slice(1), 10);
       return code >= 0 && code <= 0x10ffff ? String.fromCodePoint(code) : whole;
     }
     return ENTITIES[entity.toLowerCase()] ?? whole;

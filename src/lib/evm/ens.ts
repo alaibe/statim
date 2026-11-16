@@ -1,9 +1,9 @@
-import { isAddress, type Address } from 'viem';
-import { mainnet } from 'viem/chains';
+import { type Address, isAddress } from "viem";
+import { mainnet } from "viem/chains";
 
-import { publicClientFor } from './chains';
-import { ensNames } from './ens-cache';
-import { viemEns } from './viem-ens';
+import { publicClientFor } from "./chains";
+import { ensNames } from "./ens-cache";
+import { viemEns } from "./viem-ens";
 
 function ensClient() {
   return publicClientFor(mainnet.id);

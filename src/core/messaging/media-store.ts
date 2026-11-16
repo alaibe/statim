@@ -1,7 +1,7 @@
-import { File, Paths } from 'expo-file-system';
+import { File, Paths } from "expo-file-system";
 
-import type { FileArea } from '@/storage/inventory';
-import { mediaDirectory, mediaFile } from '@/storage/media';
+import type { FileArea } from "@/storage/inventory";
+import { mediaDirectory, mediaFile } from "@/storage/media";
 
 export interface StoredMedia {
   uri: string;
@@ -19,27 +19,17 @@ export function readMediaBytes(uri: string): Promise<Uint8Array> {
 }
 
 /** Keeps `base64` under the account's media unless that name is already there. */
-export async function storeMedia(
-  area: FileArea,
-  name: string,
-  accountId: string,
-  base64: string
-): Promise<string> {
+export async function storeMedia(area: FileArea, name: string, accountId: string, base64: string): Promise<string> {
   const file = mediaFile(area, name, accountId);
   if (!file.exists) {
     file.create({ intermediates: true });
-    file.write(base64, { encoding: 'base64' });
+    file.write(base64, { encoding: "base64" });
   }
   return file.uri;
 }
 
 /** Copies a file the system handed over (a picker, a recording) into the account's media. */
-export async function adoptMedia(
-  area: FileArea,
-  name: string,
-  accountId: string,
-  sourceUri: string
-): Promise<string> {
+export async function adoptMedia(area: FileArea, name: string, accountId: string, sourceUri: string): Promise<string> {
   const source = new File(sourceUri);
   const destination = mediaFile(area, name, accountId);
   if (!destination.exists) await source.copy(destination);
@@ -48,7 +38,7 @@ export async function adoptMedia(
 
 /** Whether a URI is something the system gave the app rather than media it already keeps. */
 export function isTransientUri(uri: string): boolean {
-  return uri.startsWith('file:') || uri.startsWith('content:');
+  return uri.startsWith("file:") || uri.startsWith("content:");
 }
 
 export function basenameOf(uri: string): string | undefined {
@@ -59,7 +49,7 @@ export async function downloadMedia(
   area: FileArea,
   name: string,
   accountId: string,
-  url: string
+  url: string,
 ): Promise<StoredMedia> {
   const file = new File(mediaDirectory(area, accountId), name);
   if (!file.exists) await File.downloadFileAsync(url, file);

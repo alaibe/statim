@@ -1,32 +1,32 @@
 import {
-  COMMANDS,
-  EXIT_CODES,
-  EXIT_MEANINGS,
   type CliArg,
   type CliCommandSpec,
   type CliFlag,
+  COMMANDS,
   type CommandPath,
-} from './commands';
-import { APPROVAL } from './docs';
+  EXIT_CODES,
+  EXIT_MEANINGS,
+} from "./commands";
+import { APPROVAL } from "./docs";
 
 const LEFT_OUT: Partial<Record<CommandPath, string>> = {
-  'accounts import': 'it reads a recovery phrase',
-  apikey: 'it reads an API key',
-  watch: 'it never finishes',
+  "accounts import": "it reads a recovery phrase",
+  apikey: "it reads an API key",
+  watch: "it never finishes",
 };
 
-const toolName = (path: string) => path.replace(/[ -]/g, '_');
+const toolName = (path: string) => path.replace(/[ -]/g, "_");
 
-const property = (name: string) => name.replace(/\W+/g, '_');
+const property = (name: string) => name.replace(/\W+/g, "_");
 
 function argSchema(arg: CliArg) {
-  return arg.variadic === 'list'
-    ? { type: 'array', items: { type: 'string' }, description: arg.description }
-    : { type: 'string', description: arg.description };
+  return arg.variadic === "list"
+    ? { type: "array", items: { type: "string" }, description: arg.description }
+    : { type: "string", description: arg.description };
 }
 
 function flagSchema(flag: CliFlag) {
-  return { type: flag.value ? 'string' : 'boolean', description: flag.description };
+  return { type: flag.value ? "string" : "boolean", description: flag.description };
 }
 
 function tool(spec: CliCommandSpec) {
@@ -36,7 +36,7 @@ function tool(spec: CliCommandSpec) {
     name: toolName(spec.path),
     description: spec.approval ? `${spec.summary}. ${APPROVAL}` : `${spec.summary}.`,
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: Object.fromEntries([
         ...args.map((a) => [property(a.name), argSchema(a)]),
         ...flags.map((f) => [property(f.name), flagSchema(f)]),
@@ -50,7 +50,7 @@ function tool(spec: CliCommandSpec) {
 /** How the binary turns a tool's arguments back into a command line. */
 function call(spec: CliCommandSpec) {
   return {
-    path: spec.path.split(' '),
+    path: spec.path.split(" "),
     args: (spec.args ?? []).map((a) => property(a.name)),
     flags: Object.fromEntries((spec.flags ?? []).map((f) => [property(f.name), f.name])),
   };
@@ -72,10 +72,10 @@ function instructions(): string {
 - Right after the app starts or the account changes, a protocol can still be catching up. If a chat or message you expect is missing, call \`protocols_sync\` and look again.
 - Plugins add their own slash commands. \`commands\` lists them with their usage; \`run\` runs one.
 - File paths must be absolute. Nothing comes in on stdin here, so pass text as an argument.
-- The recovery phrase is never available here. Only a terminal has ${leftOut.join(', ')}.
+- The recovery phrase is never available here. Only a terminal has ${leftOut.join(", ")}.
 
 A failure comes back as an error result holding {"error": "...", "code": n}:
-${exitRows.join('\n')}`;
+${exitRows.join("\n")}`;
 }
 
 /** Served by `statim mcp`, which compiles it in. */
@@ -88,6 +88,6 @@ export function renderMcp(): string {
       calls: Object.fromEntries(commands.map((c) => [toolName(c.path), call(c)])),
     },
     null,
-    2
+    2,
   )}\n`;
 }

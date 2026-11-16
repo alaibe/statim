@@ -1,10 +1,10 @@
-import { View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import { View } from "react-native";
+import Animated from "react-native-reanimated";
 
-import { Icon, type IconName } from '../icon';
-import { Enter } from '../motion';
-import { Button } from './button';
-import { Text } from './text';
+import { Icon, type IconName } from "../icon";
+import { Enter } from "../motion";
+import { Button } from "./button";
+import { Text } from "./text";
 
 interface EmptyStateProps {
   icon?: IconName;
@@ -16,9 +16,7 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon, title, description, actionLabel, onAction }: EmptyStateProps) {
   return (
-    <Animated.View
-      entering={Enter.content()}
-      className="flex-1 items-center justify-center gap-3 px-8">
+    <Animated.View entering={Enter.content()} className="flex-1 items-center justify-center gap-3 px-8">
       {icon ? (
         <View className="mb-1 opacity-60">
           <Icon name={icon} size={44} tone="subtle" />
@@ -32,9 +30,7 @@ export function EmptyState({ icon, title, description, actionLabel, onAction }: 
           {description}
         </Text>
       ) : null}
-      {actionLabel && onAction ? (
-        <Button label={actionLabel} tone="brand" onPress={onAction} className="mt-2" />
-      ) : null}
+      {actionLabel && onAction ? <Button label={actionLabel} tone="brand" onPress={onAction} className="mt-2" /> : null}
     </Animated.View>
   );
 }

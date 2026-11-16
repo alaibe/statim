@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from "react";
 
 interface Loaded<T> {
   key: string;
@@ -13,7 +13,7 @@ interface Loaded<T> {
 export function useKeyedLoad<T, K extends string = string>(
   key: K | null,
   load: (key: K, signal: AbortSignal) => Promise<T>,
-  version?: unknown
+  version?: unknown,
 ) {
   const [loaded, setLoaded] = useState<Loaded<T> | null>(null);
   const run = useEffectEvent(load);
@@ -23,7 +23,7 @@ export function useKeyedLoad<T, K extends string = string>(
     const controller = new AbortController();
     run(key, controller.signal).then(
       (value) => !controller.signal.aborted && setLoaded({ key, value }),
-      (error: unknown) => !controller.signal.aborted && setLoaded({ key, error })
+      (error: unknown) => !controller.signal.aborted && setLoaded({ key, error }),
     );
     return () => controller.abort();
   }, [key, version]);
@@ -35,9 +35,7 @@ export function useKeyedLoad<T, K extends string = string>(
     loading: key !== null && current === undefined,
     update(change: (value: T) => T) {
       setLoaded((state) =>
-        state && state.key === key && state.value !== undefined
-          ? { ...state, value: change(state.value) }
-          : state
+        state && state.key === key && state.value !== undefined ? { ...state, value: change(state.value) } : state,
       );
     },
   };

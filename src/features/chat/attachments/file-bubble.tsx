@@ -1,8 +1,7 @@
-import { View } from 'react-native';
-
-import { formatBytes } from './format';
-import { Icon, type IconName, Pressable, Text, useThemeColors } from '@/design';
-import { openUrlQuietly } from '../link-actions';
+import { View } from "react-native";
+import { Icon, type IconName, Pressable, Text, useThemeColors } from "@/design";
+import { openUrlQuietly } from "../link-actions";
+import { formatBytes } from "./format";
 
 interface FileBubbleProps {
   uri: string;
@@ -13,26 +12,27 @@ interface FileBubbleProps {
 }
 
 function iconFor(name: string, mimeType?: string): IconName {
-  const type = mimeType ?? '';
-  const ext = name.split('.').pop()?.toLowerCase() ?? '';
+  const type = mimeType ?? "";
+  const ext = name.split(".").pop()?.toLowerCase() ?? "";
 
-  if (type.startsWith('video/')) return 'videocam-outline';
-  if (type.startsWith('audio/')) return 'musical-notes-outline';
-  if (type === 'application/pdf' || ext === 'pdf') return 'document-text-outline';
-  if (['zip', 'gz', 'tar', 'rar', '7z'].includes(ext)) return 'file-tray-full-outline';
-  return 'document-outline';
+  if (type.startsWith("video/")) return "videocam-outline";
+  if (type.startsWith("audio/")) return "musical-notes-outline";
+  if (type === "application/pdf" || ext === "pdf") return "document-text-outline";
+  if (["zip", "gz", "tar", "rar", "7z"].includes(ext)) return "file-tray-full-outline";
+  return "document-outline";
 }
 
 export function FileBubble({ uri, name, mimeType, size, fromMe }: FileBubbleProps) {
   const colors = useThemeColors();
-  const tint = fromMe ? colors['bubble-out-on'] : colors.brand;
+  const tint = fromMe ? colors["bubble-out-on"] : colors.brand;
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Open ${name}`}
       onPress={() => openUrlQuietly(uri)}
-      pressScale={0.99}>
+      pressScale={0.99}
+    >
       <View className="min-w-[180px] flex-row items-center gap-3 py-0.5">
         <View className="h-10 w-10 items-center justify-center rounded-full bg-surface-sunken">
           <Icon name={iconFor(name, mimeType)} size={20} color={tint} />
@@ -40,11 +40,12 @@ export function FileBubble({ uri, name, mimeType, size, fromMe }: FileBubbleProp
         <View className="min-w-0 flex-1">
           <Text
             numberOfLines={1}
-            className={fromMe ? 'font-medium text-bubble-out-on' : 'font-medium text-bubble-in-on'}>
+            className={fromMe ? "font-medium text-bubble-out-on" : "font-medium text-bubble-in-on"}
+          >
             {name}
           </Text>
           {size !== undefined ? (
-            <Text variant="caption" className={fromMe ? 'text-bubble-out-on/70' : undefined}>
+            <Text variant="caption" className={fromMe ? "text-bubble-out-on/70" : undefined}>
               {formatBytes(size)}
             </Text>
           ) : null}

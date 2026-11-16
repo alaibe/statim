@@ -1,38 +1,33 @@
-import type { AccountRecord } from '../account/accounts';
-import { reportError } from './report-error';
-import type { Keyring } from '../account/keyring';
-import { useAppearanceStore } from './appearance';
-import { clearLinkPreviewCache, hydrateLinkPreviewCache } from '../messaging/link-preview-cache';
-import { clearEnsCache, hydrateEnsCache } from '@/lib/evm/ens-cache';
-import { clearDecisions } from '../ai/chat-assistance';
-import { loadProtocolConfig, saveProtocolConfig, type ProtocolConfig } from '../messaging/config';
-import {
-  clearChatProjection,
-  projectAccount,
-  showCachedChats,
-  useChatStore,
-} from '../messaging/chat-store';
-import { ChatCache } from '../messaging/chat-cache';
-import { SAVED_MESSAGES } from '../messaging/bots';
-import type { ProtocolId } from '../messaging/namespace';
-import type { ChatSession, XmtpCapabilities } from '../messaging/protocol';
-import type { ProtocolDescriptor } from '../messaging/registry';
-import { loadChatPrefs } from '../messaging/chat-prefs';
-import { draftSync, flushDrafts, loadDrafts } from '../messaging/drafts';
-import { flushMediaIndex, loadMediaIndex } from '../messaging/media-index';
-import { readReadState } from '../messaging/read-state';
-import { loadThreadReads } from '../messaging/thread-reads';
-import type { MessageId } from '../messaging/types';
-import type { PluginRegistry } from '../plugins/registry';
-import { loadPluginPrefs, resolveEnabledIds, savePluginPrefs } from '../plugins/storage';
-import type { Plugin, PluginContext, PluginId, PluginLease } from '../plugins/types';
-import { createAccountStorage, type AccountStorage } from '@/storage/account';
-import { eraseAccountStorage } from '@/storage/erase';
-import { eraseHomeserver } from '../homeserver';
-import { BotRuntime } from './bot-runtime';
-import { ProtocolRuntime, type SessionFactory } from './protocol-runtime';
+import { clearEnsCache, hydrateEnsCache } from "@/lib/evm/ens-cache";
+import { type AccountStorage, createAccountStorage } from "@/storage/account";
+import { eraseAccountStorage } from "@/storage/erase";
+import type { AccountRecord } from "../account/accounts";
+import type { Keyring } from "../account/keyring";
+import { clearDecisions } from "../ai/chat-assistance";
+import { eraseHomeserver } from "../homeserver";
+import { SAVED_MESSAGES } from "../messaging/bots";
+import { ChatCache } from "../messaging/chat-cache";
+import { loadChatPrefs } from "../messaging/chat-prefs";
+import { clearChatProjection, projectAccount, showCachedChats, useChatStore } from "../messaging/chat-store";
+import { loadProtocolConfig, type ProtocolConfig, saveProtocolConfig } from "../messaging/config";
+import { draftSync, flushDrafts, loadDrafts } from "../messaging/drafts";
+import { clearLinkPreviewCache, hydrateLinkPreviewCache } from "../messaging/link-preview-cache";
+import { flushMediaIndex, loadMediaIndex } from "../messaging/media-index";
+import type { ProtocolId } from "../messaging/namespace";
+import type { ChatSession, XmtpCapabilities } from "../messaging/protocol";
+import { readReadState } from "../messaging/read-state";
+import type { ProtocolDescriptor } from "../messaging/registry";
+import { loadThreadReads } from "../messaging/thread-reads";
+import type { MessageId } from "../messaging/types";
+import type { PluginRegistry } from "../plugins/registry";
+import { loadPluginPrefs, resolveEnabledIds, savePluginPrefs } from "../plugins/storage";
+import type { Plugin, PluginContext, PluginId, PluginLease } from "../plugins/types";
+import { useAppearanceStore } from "./appearance";
+import { BotRuntime } from "./bot-runtime";
+import { ProtocolRuntime, type SessionFactory } from "./protocol-runtime";
+import { reportError } from "./report-error";
 
-export type { SessionFactory } from './protocol-runtime';
+export type { SessionFactory } from "./protocol-runtime";
 
 const BOTS_WAIT_MS = 15_000;
 
@@ -46,7 +41,7 @@ export interface RuntimeAccount {
     accountId: string,
     keyring: Keyring,
     storage: AccountStorage,
-    lease: PluginLease
+    lease: PluginLease,
   ): PluginContext;
   onPluginsChanged?(ids: PluginId[]): void;
   createSession?: SessionFactory;
@@ -71,10 +66,7 @@ export class AccountRuntime {
   private leases = new Set<OwnedPluginLease>();
   private protocols: ProtocolRuntime;
   private bots = new BotRuntime();
-  private eraseSessions = new Map<
-    string,
-    Map<ProtocolId, ChatSession & Partial<XmtpCapabilities>>
-  >();
+  private eraseSessions = new Map<string, Map<ProtocolId, ChatSession & Partial<XmtpCapabilities>>>();
 
   constructor(private readonly descriptors: readonly ProtocolDescriptor[]) {
     this.protocols = new ProtocolRuntime(descriptors);
@@ -133,19 +125,13 @@ export class AccountRuntime {
     });
   }
 
-  updateProtocolConfig(
-    accountId: string,
-    protocolId: ProtocolId,
-    config: ProtocolConfig
-  ): Promise<void> {
+  updateProtocolConfig(accountId: string, protocolId: ProtocolId, config: ProtocolConfig): Promise<void> {
     return this.serialize(async () => {
       const generation = this.currentGeneration;
       await saveProtocolConfig(accountId, protocolId, config);
       const current = this.current;
       if (!current || !this.isCurrent(generation) || current.accountId !== accountId) return;
-      void this.serialize(() => this.reconnect(current, generation, [protocolId])).catch(
-        reportError
-      );
+      void this.serialize(() => this.reconnect(current, generation, [protocolId])).catch(reportError);
     });
   }
 
@@ -158,18 +144,16 @@ export class AccountRuntime {
     const retained = this.eraseSessions.get(account.id) ?? new Map();
     if (active) {
       for (const descriptor of this.descriptors.filter((entry) => entry.eraseLocalData)) {
-        const session = projected.sessions[descriptor.id] as
-          | (ChatSession & Partial<XmtpCapabilities>)
-          | undefined;
+        const session = projected.sessions[descriptor.id] as (ChatSession & Partial<XmtpCapabilities>) | undefined;
         if (session) retained.set(descriptor.id, session);
       }
       if (retained.size > 0) this.eraseSessions.set(account.id, retained);
-      this.advance(null, 'erasing');
+      this.advance(null, "erasing");
     }
 
     return this.serialize(async () => {
       if (active) {
-        await this.stopCurrent('erasing');
+        await this.stopCurrent("erasing");
       }
 
       try {
@@ -189,7 +173,7 @@ export class AccountRuntime {
         await eraseAccountStorage(account.id);
         this.eraseSessions.delete(account.id);
       } catch (error) {
-        if (active) useChatStore.setState({ status: 'erasing' });
+        if (active) useChatStore.setState({ status: "erasing" });
         throw error;
       }
 
@@ -216,19 +200,18 @@ export class AccountRuntime {
     projectAccount(storage);
     const cache = new ChatCache(storage.messages);
 
-    const [readAt, threadReads, chatPrefs, drafts, mediaIndex, prefs, , , , cached] =
-      await Promise.all([
-        readReadState(storage),
-        loadThreadReads(storage),
-        loadChatPrefs(storage),
-        loadDrafts(storage),
-        loadMediaIndex(storage),
-        loadPluginPrefs(storage),
-        useAppearanceStore.getState().hydrate(storage),
-        hydrateLinkPreviewCache(storage),
-        hydrateEnsCache(storage),
-        cache.restore(),
-      ]);
+    const [readAt, threadReads, chatPrefs, drafts, mediaIndex, prefs, , , , cached] = await Promise.all([
+      readReadState(storage),
+      loadThreadReads(storage),
+      loadChatPrefs(storage),
+      loadDrafts(storage),
+      loadMediaIndex(storage),
+      loadPluginPrefs(storage),
+      useAppearanceStore.getState().hydrate(storage),
+      hydrateLinkPreviewCache(storage),
+      hydrateEnsCache(storage),
+      cache.restore(),
+    ]);
     if (!this.isCurrent(generation)) return;
     useChatStore.setState({ readAt, threadReads, chatPrefs, drafts, mediaIndex });
     showCachedChats(cached);
@@ -248,7 +231,7 @@ export class AccountRuntime {
       input,
       generation,
       undefined,
-      plugins.catch(() => {})
+      plugins.catch(() => {}),
     );
     this.bots.holdUntil(
       new Promise<void>((resolve) => {
@@ -258,7 +241,7 @@ export class AccountRuntime {
           resolve();
         };
         connecting.then(done, done);
-      })
+      }),
     );
     await Promise.all([plugins, connecting]);
   }
@@ -267,7 +250,7 @@ export class AccountRuntime {
     input: RuntimeAccount,
     storage: AccountStorage,
     generation: number,
-    enabled: PluginId[]
+    enabled: PluginId[],
   ): Promise<void> {
     await Promise.all(enabled.map((id) => this.activatePlugin(input, storage, generation, id)));
     if (!this.isCurrent(generation)) return;
@@ -278,7 +261,7 @@ export class AccountRuntime {
     input: RuntimeAccount,
     storage: AccountStorage,
     generation: number,
-    id: PluginId
+    id: PluginId,
   ): Promise<void> {
     if (!this.isCurrent(generation)) return;
     if (input.registry.isActive(id)) return;
@@ -286,16 +269,12 @@ export class AccountRuntime {
     await input.registry.activate(
       id,
       (plugin) => input.makeContext(plugin, input.accountId, input.keyring, storage, lease),
-      lease.revoke
+      lease.revoke,
     );
     if (!input.registry.isActive(id)) lease.revoke();
   }
 
-  private async publishPlugins(
-    input: RuntimeAccount,
-    storage: AccountStorage,
-    generation: number
-  ): Promise<void> {
+  private async publishPlugins(input: RuntimeAccount, storage: AccountStorage, generation: number): Promise<void> {
     if (!this.isCurrent(generation)) return;
     const ids = input.registry.activeIds();
     await savePluginPrefs(storage, { enabled: ids });
@@ -304,10 +283,7 @@ export class AccountRuntime {
     const bots = [...input.registry.bots(), SAVED_MESSAGES];
     await useChatStore.getState().registerBots(bots);
     if (this.isCurrent(generation)) {
-      this.bots.sync(
-        bots,
-        () => this.isCurrent(generation) && this.current?.accountId === input.accountId
-      );
+      this.bots.sync(bots, () => this.isCurrent(generation) && this.current?.accountId === input.accountId);
     }
   }
 
@@ -315,7 +291,7 @@ export class AccountRuntime {
     input: RuntimeAccount,
     generation: number,
     only?: ProtocolId[],
-    plugins: Promise<void> = Promise.resolve()
+    plugins: Promise<void> = Promise.resolve(),
   ): Promise<void> {
     return this.protocols.connect(
       {
@@ -329,17 +305,17 @@ export class AccountRuntime {
       },
       this.storage!,
       () => this.isCurrent(generation),
-      only
+      only,
     );
   }
 
-  private async stopCurrent(status: 'idle' | 'erasing' = 'idle'): Promise<void> {
+  private async stopCurrent(status: "idle" | "erasing" = "idle"): Promise<void> {
     const current = this.current;
     this.current = null;
     this.currentGeneration = 0;
     this.stopCaching?.();
     this.stopCaching = null;
-    if (status !== 'erasing') void this.cache?.flush();
+    if (status !== "erasing") void this.cache?.flush();
     this.cache = null;
     this.revokeLeases();
     this.bots.stop();
@@ -364,7 +340,7 @@ export class AccountRuntime {
     if (current) await current.registry.deactivateAll();
     current?.onPluginsChanged?.([]);
     this.storage = null;
-    if (status !== 'erasing') {
+    if (status !== "erasing") {
       clearChatProjection();
       useAppearanceStore.getState().clear();
       clearLinkPreviewCache();
@@ -373,21 +349,17 @@ export class AccountRuntime {
     }
   }
 
-  private async reconnect(
-    current: RuntimeAccount,
-    generation: number,
-    only?: ProtocolId[]
-  ): Promise<void> {
+  private async reconnect(current: RuntimeAccount, generation: number, only?: ProtocolId[]): Promise<void> {
     await this.protocols.stop(only);
     if (this.isCurrent(generation)) await this.connectSessions(current, generation, only);
   }
 
-  private advance(next: RuntimeAccount | null, status: 'idle' | 'erasing' = 'idle'): number {
+  private advance(next: RuntimeAccount | null, status: "idle" | "erasing" = "idle"): number {
     this.generation += 1;
     this.desired = next;
     this.revokeLeases();
     const accountId = useChatStore.getState().accountId;
-    if (accountId !== (next?.accountId ?? null) || status === 'erasing') {
+    if (accountId !== (next?.accountId ?? null) || status === "erasing") {
       clearChatProjection(status);
       useAppearanceStore.getState().clear();
       clearLinkPreviewCache();
@@ -397,11 +369,7 @@ export class AccountRuntime {
     return this.generation;
   }
 
-  private createLease(
-    input: RuntimeAccount,
-    generation: number,
-    pluginId: PluginId
-  ): OwnedPluginLease {
+  private createLease(input: RuntimeAccount, generation: number, pluginId: PluginId): OwnedPluginLease {
     let revoked = false;
     const lease: OwnedPluginLease = {
       assertActive: () => {
@@ -431,11 +399,7 @@ export class AccountRuntime {
 
   private sameRuntime(left: RuntimeAccount | null, right: RuntimeAccount | null): boolean {
     if (!left || !right) return left === right;
-    return (
-      left.accountId === right.accountId &&
-      left.keyring === right.keyring &&
-      left.registry === right.registry
-    );
+    return left.accountId === right.accountId && left.keyring === right.keyring && left.registry === right.registry;
   }
 
   private isDesired(generation: number): boolean {
@@ -443,8 +407,6 @@ export class AccountRuntime {
   }
 
   private isCurrent(generation: number): boolean {
-    return (
-      this.current !== null && this.currentGeneration === generation && this.isDesired(generation)
-    );
+    return this.current !== null && this.currentGeneration === generation && this.isDesired(generation);
   }
 }

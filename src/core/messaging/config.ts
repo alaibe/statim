@@ -1,10 +1,10 @@
-import { accountProtocolConfigsKey, vaultDelete, vaultGet, vaultSet } from '@/storage/vault';
-import { isRecord } from '@/lib/guards';
-import { isProtocolId, type ProtocolId } from './namespace';
+import { isRecord } from "@/lib/guards";
+import { accountProtocolConfigsKey, vaultDelete, vaultGet, vaultSet } from "@/storage/vault";
+import { isProtocolId, type ProtocolId } from "./namespace";
 
 export type ProtocolConfig = Record<string, string>;
 
-type ConfigFieldKind = 'text' | 'secret' | 'lines';
+type ConfigFieldKind = "text" | "secret" | "lines";
 
 interface ProtocolConfigField {
   key: string;
@@ -21,40 +21,32 @@ export interface ProtocolConfigSchema {
 }
 
 export function configLines(value: string | undefined): string[] {
-  return (value ?? '')
+  return (value ?? "")
     .split(/[\n,]/)
     .map((line) => line.trim())
-    .filter((line) => line.length > 0 && !line.startsWith('#'));
+    .filter((line) => line.length > 0 && !line.startsWith("#"));
 }
 
 export function withDefaults(schema: ProtocolConfigSchema, config: ProtocolConfig): ProtocolConfig {
   const out: ProtocolConfig = { ...config };
   for (const field of schema.fields) {
-    if (field.default !== undefined && (out[field.key] ?? '') === '') {
+    if (field.default !== undefined && (out[field.key] ?? "") === "") {
       out[field.key] = field.default;
     }
   }
   return out;
 }
 
-export function missingFields(
-  schema: ProtocolConfigSchema,
-  config: ProtocolConfig
-): ProtocolConfigField[] {
+export function missingFields(schema: ProtocolConfigSchema, config: ProtocolConfig): ProtocolConfigField[] {
   const filled = withDefaults(schema, config);
-  return schema.fields.filter((f) => f.required && (filled[f.key] ?? '').trim() === '');
+  return schema.fields.filter((f) => f.required && (filled[f.key] ?? "").trim() === "");
 }
 
-export async function loadProtocolConfig(
-  accountId: string,
-  protocolId: ProtocolId
-): Promise<ProtocolConfig> {
+export async function loadProtocolConfig(accountId: string, protocolId: ProtocolId): Promise<ProtocolConfig> {
   return (await loadProtocolConfigs(accountId))[protocolId] ?? {};
 }
 
-export async function loadProtocolConfigs(
-  accountId: string
-): Promise<Partial<Record<ProtocolId, ProtocolConfig>>> {
+export async function loadProtocolConfigs(accountId: string): Promise<Partial<Record<ProtocolId, ProtocolConfig>>> {
   try {
     const raw = await vaultGet(accountProtocolConfigsKey(accountId));
     if (!raw) return {};
@@ -66,7 +58,7 @@ export async function loadProtocolConfigs(
       if (!isProtocolId(protocolId) || !isRecord(parsed)) continue;
       const config: ProtocolConfig = {};
       for (const [key, value] of Object.entries(parsed)) {
-        if (typeof value === 'string') config[key] = value;
+        if (typeof value === "string") config[key] = value;
       }
       out[protocolId] = config;
     }
@@ -79,12 +71,12 @@ export async function loadProtocolConfigs(
 export async function saveProtocolConfig(
   accountId: string,
   protocolId: ProtocolId,
-  config: ProtocolConfig
+  config: ProtocolConfig,
 ): Promise<void> {
   const trimmed = Object.fromEntries(
     Object.entries(config)
       .map(([key, value]) => [key, value.trim()] as const)
-      .filter(([, value]) => value.length > 0)
+      .filter(([, value]) => value.length > 0),
   );
 
   const key = accountProtocolConfigsKey(accountId);

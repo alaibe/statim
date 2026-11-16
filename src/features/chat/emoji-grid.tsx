@@ -1,26 +1,18 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   FlatList,
-  Pressable,
-  Text as NativeText,
-  View,
   type ListRenderItemInfo,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
-} from 'react-native';
+  Text as NativeText,
+  Pressable,
+  View,
+} from "react-native";
 
-import { Icon, SearchField, Text, type IconName } from '@/design';
+import { Icon, type IconName, SearchField, Text } from "@/design";
 
-import {
-  CATEGORIES,
-  CELL,
-  type EmojiRow,
-  emojiRows,
-  HEADER,
-  RECENT,
-  searchEmoji,
-} from './emoji-data';
-import { useRecentEmoji } from './use-recent-emoji';
+import { CATEGORIES, CELL, type EmojiRow, emojiRows, HEADER, RECENT, searchEmoji } from "./emoji-data";
+import { useRecentEmoji } from "./use-recent-emoji";
 
 const PAD = 8;
 const EMOJI_SIZE = 26;
@@ -34,7 +26,7 @@ interface EmojiGridProps {
 export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
   const list = useRef<FlatList<EmojiRow>>(null);
 
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [recent, remember] = useRecentEmoji();
   const [active, setActive] = useState<string>(CATEGORIES[0].id);
 
@@ -43,17 +35,14 @@ export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
 
   const trimmed = query.trim();
 
-  const { rows, offsets, sections } = useMemo(
-    () => emojiRows(trimmed, recent, columns),
-    [trimmed, recent, columns]
-  );
+  const { rows, offsets, sections } = useMemo(() => emojiRows(trimmed, recent, columns), [trimmed, recent, columns]);
 
   const pick = useCallback(
     (emoji: string) => {
       onEmoji(emoji);
       remember(emoji);
     },
-    [onEmoji, remember]
+    [onEmoji, remember],
   );
 
   const onScroll = useCallback(
@@ -66,7 +55,7 @@ export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
       }
       setActive((previous) => (previous === current ? previous : current));
     },
-    [sections]
+    [sections],
   );
 
   const jumpTo = (category: string) => {
@@ -77,7 +66,7 @@ export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
   };
 
   const renderItem = ({ item }: ListRenderItemInfo<EmojiRow>) => {
-    if (item.kind === 'header') {
+    if (item.kind === "header") {
       return (
         <View style={{ height: HEADER, paddingHorizontal: PAD + 4 }} className="justify-end pb-1">
           <Text variant="caption" className="font-semibold text-content-muted">
@@ -95,10 +84,9 @@ export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
             accessibilityLabel={emoji}
             onPress={() => pick(emoji)}
             style={{ width: cell, height: CELL }}
-            className="items-center justify-center rounded-md hover:bg-surface-sunken active:bg-surface-sunken">
-            <NativeText
-              allowFontScaling={false}
-              style={{ fontSize: EMOJI_SIZE, lineHeight: CELL - 4 }}>
+            className="items-center justify-center rounded-md hover:bg-surface-sunken active:bg-surface-sunken"
+          >
+            <NativeText allowFontScaling={false} style={{ fontSize: EMOJI_SIZE, lineHeight: CELL - 4 }}>
               {emoji}
             </NativeText>
           </Pressable>
@@ -109,7 +97,7 @@ export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
 
   const tabs =
     recent.length > 0 && !trimmed
-      ? [{ id: RECENT, title: 'Recently used', icon: 'time-outline' as IconName }, ...CATEGORIES]
+      ? [{ id: RECENT, title: "Recently used", icon: "time-outline" as IconName }, ...CATEGORIES]
       : CATEGORIES;
 
   return (
@@ -139,7 +127,7 @@ export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
           renderItem={renderItem}
           keyExtractor={(_, index) => String(index)}
           getItemLayout={(_, index) => ({
-            length: rows[index].kind === 'header' ? HEADER : CELL,
+            length: rows[index].kind === "header" ? HEADER : CELL,
             offset: offsets[index],
             index,
           })}
@@ -164,10 +152,11 @@ export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
               onPress={() => jumpTo(category.id)}
               className={
                 selected
-                  ? 'h-8 flex-1 items-center justify-center rounded-md bg-brand-soft'
-                  : 'h-8 flex-1 items-center justify-center rounded-md hover:bg-surface-sunken'
-              }>
-              <Icon name={category.icon} size={20} tone={selected ? 'brand' : 'muted'} />
+                  ? "h-8 flex-1 items-center justify-center rounded-md bg-brand-soft"
+                  : "h-8 flex-1 items-center justify-center rounded-md hover:bg-surface-sunken"
+              }
+            >
+              <Icon name={category.icon} size={20} tone={selected ? "brand" : "muted"} />
             </Pressable>
           );
         })}

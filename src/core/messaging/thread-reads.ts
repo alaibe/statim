@@ -1,7 +1,7 @@
-import type { AccountStorage } from '@/storage/account';
-import { canBeUnread } from './message-rules';
-import { MARKED_UNREAD } from './unread';
-import type { ChatId, ChatMessage, MessageId } from './types';
+import type { AccountStorage } from "@/storage/account";
+import { canBeUnread } from "./message-rules";
+import type { ChatId, ChatMessage, MessageId } from "./types";
+import { MARKED_UNREAD } from "./unread";
 
 /**
  * Opening a chat reads its timeline but not its threads, so a chat with threads
@@ -15,29 +15,22 @@ export interface ThreadReads {
 
 export type ThreadReadState = Readonly<Record<ChatId, ThreadReads>>;
 
-const KEY = 'chat.threadReads';
+const KEY = "chat.threadReads";
 
 export async function loadThreadReads(storage: AccountStorage): Promise<ThreadReadState> {
   return (await storage.get<ThreadReadState>(KEY)) ?? {};
 }
 
-export async function saveThreadReads(
-  storage: AccountStorage,
-  state: ThreadReadState
-): Promise<void> {
+export async function saveThreadReads(storage: AccountStorage, state: ThreadReadState): Promise<void> {
   try {
     await storage.set(KEY, state);
   } catch (error) {
-    console.warn('[chat] could not save thread read state', error);
+    console.warn("[chat] could not save thread read state", error);
   }
 }
 
 /** The thread reads to keep before a chat's read time moves from `previous`. */
-export function keepThreadReads(
-  state: ThreadReadState,
-  id: ChatId,
-  previous: number | undefined
-): ThreadReadState {
+export function keepThreadReads(state: ThreadReadState, id: ChatId, previous: number | undefined): ThreadReadState {
   if (state[id] || previous === undefined || previous === MARKED_UNREAD) return state;
   return { ...state, [id]: { since: previous, threads: {} } };
 }
@@ -47,17 +40,13 @@ export function withThreadRead(
   id: ChatId,
   root: MessageId,
   readAt: number | undefined,
-  now: number
+  now: number,
 ): ThreadReadState {
   const reads = state[id] ?? { since: Math.max(readAt ?? 0, 0), threads: {} };
   return { ...state, [id]: { ...reads, threads: { ...reads.threads, [root]: now } } };
 }
 
-export function threadReadAt(
-  reads: ThreadReads | undefined,
-  readAt: number | undefined,
-  root: MessageId
-): number {
+export function threadReadAt(reads: ThreadReads | undefined, readAt: number | undefined, root: MessageId): number {
   return reads?.threads[root] ?? reads?.since ?? Math.max(readAt ?? 0, 0);
 }
 
@@ -69,7 +58,7 @@ export function isNewReply(message: ChatMessage, since: number): boolean {
 export function newReplyCounts(
   messages: readonly ChatMessage[],
   reads: ThreadReads | undefined,
-  readAt: number | undefined
+  readAt: number | undefined,
 ): Map<MessageId, number> {
   const counts = new Map<MessageId, number>();
   for (const message of messages) {

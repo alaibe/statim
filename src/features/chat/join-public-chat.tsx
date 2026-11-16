@@ -1,24 +1,17 @@
-import { useState } from 'react';
-import { View } from 'react-native';
+import { useState } from "react";
+import { View } from "react-native";
+import { errorMessage } from "@/core/errors";
+import { useChatStore } from "@/core/messaging/chat-store";
+import type { ProtocolId } from "@/core/messaging/namespace";
+import type { PublicChatPreview } from "@/core/messaging/protocol";
+import type { PublicChatsCopy } from "@/core/messaging/registry";
+import { Avatar, Button, Card, ErrorText, Eyebrow, Field, Text } from "@/design";
+import { openChatFromSheet } from "@/features/navigation/open";
 
-import { Avatar, Button, Card, ErrorText, Eyebrow, Field, Text } from '@/design';
-import { errorMessage } from '@/core/errors';
-import { useChatStore } from '@/core/messaging/chat-store';
-import type { ProtocolId } from '@/core/messaging/namespace';
-import type { PublicChatPreview } from '@/core/messaging/protocol';
-import type { PublicChatsCopy } from '@/core/messaging/registry';
-import { openChatFromSheet } from '@/features/navigation/open';
-
-export function JoinPublicChat({
-  protocol,
-  copy,
-}: {
-  protocol: ProtocolId;
-  copy: PublicChatsCopy;
-}) {
+export function JoinPublicChat({ protocol, copy }: { protocol: ProtocolId; copy: PublicChatsCopy }) {
   const previewPublicChat = useChatStore((s) => s.previewPublicChat);
   const joinPublicChat = useChatStore((s) => s.joinPublicChat);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [preview, setPreview] = useState<PublicChatPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [requestSent, setRequestSent] = useState(false);
@@ -30,7 +23,7 @@ export function JoinPublicChat({
     try {
       setPreview(await previewPublicChat(protocol, input));
     } catch (failure) {
-      setError(errorMessage(failure, 'Could not preview that chat'));
+      setError(errorMessage(failure, "Could not preview that chat"));
     } finally {
       setBusy(false);
     }
@@ -48,7 +41,7 @@ export function JoinPublicChat({
         setPreview(null);
       }
     } catch (failure) {
-      setError(errorMessage(failure, 'Could not join that chat'));
+      setError(errorMessage(failure, "Could not join that chat"));
     } finally {
       setBusy(false);
     }
@@ -92,34 +85,24 @@ export function JoinPublicChat({
                 {preview.title}
               </Text>
               <Text variant="caption">
-                {preview.kind === 'channel' ? 'Channel' : 'Group'}
+                {preview.kind === "channel" ? "Channel" : "Group"}
                 {preview.memberCount
-                  ? ` · ${preview.memberCount} ${preview.kind === 'channel' ? 'subscribers' : 'members'}`
-                  : ''}
+                  ? ` · ${preview.memberCount} ${preview.kind === "channel" ? "subscribers" : "members"}`
+                  : ""}
               </Text>
             </View>
           </View>
           {preview.description ? <Text variant="footnote">{preview.description}</Text> : null}
           <Button
-            label={
-              preview.joined
-                ? 'Open chat'
-                : preview.requiresApproval
-                  ? 'Request to join'
-                  : 'Join chat'
-            }
+            label={preview.joined ? "Open chat" : preview.requiresApproval ? "Request to join" : "Join chat"}
             loading={busy}
             disabled={Boolean(preview.joinUnavailableReason)}
             onPress={join}
           />
-          {preview.joinUnavailableReason ? (
-            <Text variant="caption">{preview.joinUnavailableReason}</Text>
-          ) : null}
+          {preview.joinUnavailableReason ? <Text variant="caption">{preview.joinUnavailableReason}</Text> : null}
         </Card>
       ) : null}
-      {requestSent ? (
-        <Text variant="caption">Join request sent. An administrator needs to approve it.</Text>
-      ) : null}
+      {requestSent ? <Text variant="caption">Join request sent. An administrator needs to approve it.</Text> : null}
       <ErrorText>{error}</ErrorText>
     </View>
   );

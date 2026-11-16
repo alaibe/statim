@@ -1,11 +1,11 @@
 export {
-  W,
   isWidget,
   summariseWidget,
+  W,
   type Widget,
   type WidgetAction,
   type WidgetField,
   type WidgetOption,
   type WidgetRow,
   type WidgetTone,
-} from './schema';
+} from "./schema";

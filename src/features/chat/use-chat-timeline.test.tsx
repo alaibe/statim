@@ -1,41 +1,41 @@
-import { act, createElement } from 'react';
-import { create, type ReactTestRenderer } from 'react-test-renderer';
+import { act, createElement } from "react";
+import { create, type ReactTestRenderer } from "react-test-renderer";
 
-import { useChatStore } from '@/core/messaging/chat-store';
-import type { ChatMessage } from '@/core/messaging/types';
-import { useChatTimeline } from './use-chat-timeline';
-import { asChatId } from '@/core/messaging/testing/ids';
-import { testChat } from '@/core/messaging/testing/chats';
-import { MARKED_UNREAD } from '@/core/messaging/unread';
+import { useChatStore } from "@/core/messaging/chat-store";
+import { testChat } from "@/core/messaging/testing/chats";
+import { asChatId } from "@/core/messaging/testing/ids";
+import type { ChatMessage } from "@/core/messaging/types";
+import { MARKED_UNREAD } from "@/core/messaging/unread";
+import { useChatTimeline } from "./use-chat-timeline";
 
-jest.mock('expo-observe', () => ({ useObserve: () => ({ markInteractive: () => {} }) }));
+jest.mock("expo-observe", () => ({ useObserve: () => ({ markInteractive: () => {} }) }));
 
 beforeEach(() => useChatStore.setState(useChatStore.getInitialState(), true));
 
 const message = (id: string, threadRoot?: string): ChatMessage => ({
   id,
-  chatId: asChatId('xmtp-chat'),
-  senderId: 'me',
+  chatId: asChatId("xmtp-chat"),
+  senderId: "me",
   sentAt: 1,
-  content: { kind: 'text', text: id },
+  content: { kind: "text", text: id },
   fromMe: true,
-  status: 'sent',
+  status: "sent",
   threadRoot,
 });
 
 function Probe({ thread }: { thread?: string }) {
-  const timeline = useChatTimeline(asChatId('xmtp-chat'), thread, undefined, true);
-  return createElement('probe', {
+  const timeline = useChatTimeline(asChatId("xmtp-chat"), thread, undefined, true);
+  return createElement("probe", {
     ids: timeline.messages.map((item) => item.id),
-    replies: timeline.replyCounts.get('root'),
+    replies: timeline.replyCounts.get("root"),
   });
 }
 
-it('shows root messages in the chat and only that root with its replies in a thread', () => {
+it("shows root messages in the chat and only that root with its replies in a thread", () => {
   useChatStore.setState({
     accountId: null,
     messages: {
-      [asChatId('xmtp-chat')]: [message('root'), message('reply', 'root'), message('later')],
+      [asChatId("xmtp-chat")]: [message("root"), message("reply", "root"), message("later")],
     },
     messageHistory: {},
     readAt: {},
@@ -45,29 +45,29 @@ it('shows root messages in the chat and only that root with its replies in a thr
   act(() => {
     tree = create(createElement(Probe));
   });
-  expect(tree.root.findByType('probe' as never).props).toEqual({
-    ids: ['root', 'later'],
+  expect(tree.root.findByType("probe" as never).props).toEqual({
+    ids: ["root", "later"],
     replies: 1,
   });
 
-  act(() => tree.update(createElement(Probe, { thread: 'root' })));
-  expect(tree.root.findByType('probe' as never).props.ids).toEqual(['root', 'reply']);
+  act(() => tree.update(createElement(Probe, { thread: "root" })));
+  expect(tree.root.findByType("probe" as never).props.ids).toEqual(["root", "reply"]);
   act(() => tree.unmount());
 });
 
-it('marks the chat read only when something arrived since it was last read', () => {
+it("marks the chat read only when something arrived since it was last read", () => {
   const markRead = jest.fn(async () => {});
   const fromParticipant = (id: string, sentAt: number): ChatMessage => ({
     ...message(id),
-    senderId: 'other',
+    senderId: "other",
     fromMe: false,
     sentAt,
   });
   useChatStore.setState({
     accountId: null,
-    messages: { [asChatId('xmtp-chat')]: [fromParticipant('seen', 5)] },
+    messages: { [asChatId("xmtp-chat")]: [fromParticipant("seen", 5)] },
     messageHistory: {},
-    readAt: { [asChatId('xmtp-chat')]: 10 },
+    readAt: { [asChatId("xmtp-chat")]: 10 },
     markRead,
   });
 
@@ -80,31 +80,31 @@ it('marks the chat read only when something arrived since it was last read', () 
   act(() =>
     useChatStore.setState({
       messages: {
-        [asChatId('xmtp-chat')]: [
-          fromParticipant('seen', 5),
-          { ...fromParticipant('joined', 15), content: { kind: 'system', text: 'joined' } },
+        [asChatId("xmtp-chat")]: [
+          fromParticipant("seen", 5),
+          { ...fromParticipant("joined", 15), content: { kind: "system", text: "joined" } },
         ],
       },
-    })
+    }),
   );
   expect(markRead).not.toHaveBeenCalled();
 
   act(() =>
     useChatStore.setState({
       messages: {
-        [asChatId('xmtp-chat')]: [fromParticipant('seen', 5), fromParticipant('new', 20)],
+        [asChatId("xmtp-chat")]: [fromParticipant("seen", 5), fromParticipant("new", 20)],
       },
-    })
+    }),
   );
   expect(markRead).toHaveBeenCalledTimes(1);
   act(() => tree.unmount());
 });
 
-it('marks the chat read when its protocol reports unread messages', () => {
+it("marks the chat read when its protocol reports unread messages", () => {
   const markRead = jest.fn(async () => {});
   useChatStore.setState({
     accountId: null,
-    chats: [testChat({ id: 'xmtp-chat', unreadCount: 0 })],
+    chats: [testChat({ id: "xmtp-chat", unreadCount: 0 })],
     messages: {},
     messageHistory: {},
     readAt: {},
@@ -117,15 +117,15 @@ it('marks the chat read when its protocol reports unread messages', () => {
   });
   expect(markRead).not.toHaveBeenCalled();
 
-  act(() => useChatStore.setState({ chats: [testChat({ id: 'xmtp-chat', unreadCount: 3 })] }));
+  act(() => useChatStore.setState({ chats: [testChat({ id: "xmtp-chat", unreadCount: 3 })] }));
   expect(markRead).toHaveBeenCalledTimes(1);
   act(() => tree.unmount());
 });
 
-it('does not resend receipts for a stale protocol count or a media update', () => {
-  const id = asChatId('xmtp-chat');
+it("does not resend receipts for a stale protocol count or a media update", () => {
+  const id = asChatId("xmtp-chat");
   const markRead = jest.fn(async () => {});
-  const seen = { ...message('seen'), sentAt: 5, fromMe: false };
+  const seen = { ...message("seen"), sentAt: 5, fromMe: false };
   const chat = testChat({ id, lastMessage: seen, unreadCount: 3 });
   useChatStore.setState({
     chats: [chat],
@@ -140,8 +140,8 @@ it('does not resend receipts for a stale protocol count or a media update', () =
   act(() =>
     useChatStore.setState({
       chats: [{ ...chat, typing: true }],
-      messages: { [id]: [{ ...seen, content: { kind: 'image', uri: 'file:///downloaded.jpg' } }] },
-    })
+      messages: { [id]: [{ ...seen, content: { kind: "image", uri: "file:///downloaded.jpg" } }] },
+    }),
   );
   expect(markRead).not.toHaveBeenCalled();
   act(() => useChatStore.setState({ readAt: { [id]: MARKED_UNREAD } }));
@@ -149,10 +149,10 @@ it('does not resend receipts for a stale protocol count or a media update', () =
   act(() => tree.unmount());
 });
 
-it('reads a streamed message while the protocol count is still zero', () => {
-  const id = asChatId('xmtp-chat');
+it("reads a streamed message while the protocol count is still zero", () => {
+  const id = asChatId("xmtp-chat");
   const markRead = jest.fn(async () => {});
-  const incoming = { ...message('new'), sentAt: 20, fromMe: false };
+  const incoming = { ...message("new"), sentAt: 20, fromMe: false };
   useChatStore.setState({
     chats: [testChat({ id, lastMessage: incoming, unreadCount: 0 })],
     messages: { [id]: [incoming] },
@@ -167,14 +167,14 @@ it('reads a streamed message while the protocol count is still zero', () => {
   act(() => tree.unmount());
 });
 
-it('counts new thread replies in the chat and reads them when the thread opens', () => {
-  const id = asChatId('xmtp-chat');
+it("counts new thread replies in the chat and reads them when the thread opens", () => {
+  const id = asChatId("xmtp-chat");
   const markThreadRead = jest.fn(async () => {
     useChatStore.setState({ threadReads: { [id]: { since: 10, threads: { root: 50 } } } });
   });
-  const incoming = { ...message('new', 'root'), sentAt: 20, fromMe: false };
+  const incoming = { ...message("new", "root"), sentAt: 20, fromMe: false };
   useChatStore.setState({
-    messages: { [id]: [message('root'), incoming] },
+    messages: { [id]: [message("root"), incoming] },
     readAt: { [id]: 30 },
     threadReads: { [id]: { since: 10, threads: {} } },
     markRead: jest.fn(async () => {}),
@@ -183,8 +183,8 @@ it('counts new thread replies in the chat and reads them when the thread opens',
 
   function ThreadProbe({ thread }: { thread?: string }) {
     const timeline = useChatTimeline(id, thread, undefined, !thread);
-    return createElement('probe', {
-      fresh: timeline.newReplies.get('root'),
+    return createElement("probe", {
+      fresh: timeline.newReplies.get("root"),
       unseen: timeline.unseenReplies.map((item) => item.id),
     });
   }
@@ -193,15 +193,15 @@ it('counts new thread replies in the chat and reads them when the thread opens',
   act(() => {
     tree = create(createElement(ThreadProbe));
   });
-  expect(tree.root.findByType('probe' as never).props.fresh).toBe(1);
+  expect(tree.root.findByType("probe" as never).props.fresh).toBe(1);
   expect(markThreadRead).not.toHaveBeenCalled();
   act(() => tree.unmount());
 
   act(() => {
-    tree = create(createElement(ThreadProbe, { thread: 'root' }));
+    tree = create(createElement(ThreadProbe, { thread: "root" }));
   });
   expect(markThreadRead).toHaveBeenCalledTimes(1);
-  expect(markThreadRead).toHaveBeenCalledWith(id, 'root');
-  expect(tree.root.findByType('probe' as never).props.unseen).toEqual(['new']);
+  expect(markThreadRead).toHaveBeenCalledWith(id, "root");
+  expect(tree.root.findByType("probe" as never).props.unseen).toEqual(["new"]);
   act(() => tree.unmount());
 });

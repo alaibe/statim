@@ -1,7 +1,7 @@
-import { ed25519 } from '@noble/curves/ed25519.js';
-import { base58 } from '@scure/base';
+import { ed25519 } from "@noble/curves/ed25519.js";
+import { base58 } from "@scure/base";
 
-import { concat } from '@/lib/bytes';
+import { concat } from "@/lib/bytes";
 
 const SYSTEM_PROGRAM = new Uint8Array(32);
 
@@ -31,7 +31,7 @@ export interface TransferParams {
 
 export function transferData(lamports: bigint): Uint8Array {
   if (lamports < 0n || lamports > 0xffffffffffffffffn) {
-    throw new Error('Amount is out of range');
+    throw new Error("Amount is out of range");
   }
   const data = new Uint8Array(12);
   const view = new DataView(data.buffer);
@@ -40,16 +40,11 @@ export function transferData(lamports: bigint): Uint8Array {
   return data;
 }
 
-export function buildTransferMessage({
-  from,
-  to,
-  lamports,
-  blockhash,
-}: TransferParams): Uint8Array {
-  if (from.length !== 32 || to.length !== 32) throw new Error('Keys must be 32 bytes');
+export function buildTransferMessage({ from, to, lamports, blockhash }: TransferParams): Uint8Array {
+  if (from.length !== 32 || to.length !== 32) throw new Error("Keys must be 32 bytes");
 
   const recent = base58.decode(blockhash);
-  if (recent.length !== 32) throw new Error('Blockhash must decode to 32 bytes');
+  if (recent.length !== 32) throw new Error("Blockhash must decode to 32 bytes");
 
   const keys = [from, to, SYSTEM_PROGRAM];
 

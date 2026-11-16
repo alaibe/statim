@@ -1,15 +1,15 @@
-import { Pressable, type PressScaleProps } from './pressable';
-import { Icon, type IconName, type IconTone } from '../icon';
-import { cn } from '../lib/cn';
+import { Icon, type IconName, type IconTone } from "../icon";
+import { cn } from "../lib/cn";
+import { Pressable, type PressScaleProps } from "./pressable";
 
 const SURFACE = {
-  plain: '',
-  sunken: 'bg-surface-sunken',
-  outline: 'border border-line bg-surface-raised',
-  brand: 'bg-brand',
+  plain: "",
+  sunken: "bg-surface-sunken",
+  outline: "border border-line bg-surface-raised",
+  brand: "bg-brand",
 } as const;
 
-interface IconButtonProps extends Omit<PressScaleProps, 'children'> {
+interface IconButtonProps extends Omit<PressScaleProps, "children"> {
   icon: IconName;
   label: string;
   tone?: IconTone;
@@ -17,26 +17,15 @@ interface IconButtonProps extends Omit<PressScaleProps, 'children'> {
   size?: number;
 }
 
-export function IconButton({
-  icon,
-  label,
-  surface = 'plain',
-  tone,
-  size = 22,
-  className,
-  ...props
-}: IconButtonProps) {
+export function IconButton({ icon, label, surface = "plain", tone, size = 22, className, ...props }: IconButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      className={cn(
-        'size-tap items-center justify-center rounded-pill',
-        SURFACE[surface],
-        className
-      )}
-      {...props}>
-      <Icon name={icon} size={size} tone={tone ?? (surface === 'brand' ? 'brand-on' : 'muted')} />
+      className={cn("size-tap items-center justify-center rounded-pill", SURFACE[surface], className)}
+      {...props}
+    >
+      <Icon name={icon} size={size} tone={tone ?? (surface === "brand" ? "brand-on" : "muted")} />
     </Pressable>
   );
 }

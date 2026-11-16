@@ -1,25 +1,18 @@
-import { base58 } from '@scure/base';
-
-import {
-  formatSol,
-  LAMPORTS_PER_SOL,
-  looksLikeSolanaAddress,
-  solanaAddress,
-  SOLANA_ACCOUNT_PATH,
-} from './address';
+import { base58 } from "@scure/base";
+import { type ChainStrategy, derivationUnavailable } from "../chains/strategy";
+import { formatSol, LAMPORTS_PER_SOL, looksLikeSolanaAddress, SOLANA_ACCOUNT_PATH, solanaAddress } from "./address";
 import {
   checkRpcUrl,
   getBalance,
   getLatestBlockhash,
   isDefaultRpc,
   rpcUrl,
+  SIGNATURE_FEE,
   sendTransaction,
   setRpcUrl,
-  SIGNATURE_FEE,
-} from './rpc';
-import { fetchSplTokens } from './tokens';
-import { buildTransferMessage, signTransaction } from './transaction';
-import { derivationUnavailable, type ChainStrategy } from '../chains/strategy';
+} from "./rpc";
+import { fetchSplTokens } from "./tokens";
+import { buildTransferMessage, signTransaction } from "./transaction";
 
 const badAmount = (amount: string) =>
   `"${amount}" is not a valid SOL amount. Enter a number greater than 0 using up to 9 decimal places.`;
@@ -28,30 +21,30 @@ const badRecipient = (to: string) =>
 
 function toLamports(amount: string): bigint {
   if (!/^\d+(\.\d{1,9})?$/.test(amount.trim())) throw new Error(badAmount(amount));
-  const [whole, fraction = ''] = amount.trim().split('.');
-  return BigInt(whole) * LAMPORTS_PER_SOL + BigInt(fraction.padEnd(9, '0'));
+  const [whole, fraction = ""] = amount.trim().split(".");
+  return BigInt(whole) * LAMPORTS_PER_SOL + BigInt(fraction.padEnd(9, "0"));
 }
 
-const EXPLORER = 'https://solscan.io/account';
+const EXPLORER = "https://solscan.io/account";
 
 export const solanaStrategy: ChainStrategy = {
-  id: 'solana',
-  name: 'Solana',
-  icon: 'sunny-outline',
+  id: "solana",
+  name: "Solana",
+  icon: "sunny-outline",
   selfAddress: (context) => solanaAddress(context.account.deriveEd25519(SOLANA_ACCOUNT_PATH)),
   isAddress: looksLikeSolanaAddress,
-  addressHint: 'Solana address',
-  unavailable: derivationUnavailable('Solana'),
+  addressHint: "Solana address",
+  unavailable: derivationUnavailable("Solana"),
 
   async fees() {
     return {
       headline: `${formatSol(SIGNATURE_FEE)} SOL`,
-      label: 'Per signature',
-      caption: 'A plain transfer carries one signature',
-      rows: [{ label: 'Chain', value: 'Solana' }],
+      label: "Per signature",
+      caption: "A plain transfer carries one signature",
+      rows: [{ label: "Chain", value: "Solana" }],
       note:
-        'Fixed by the protocol, so it does not move with congestion. ' +
-        'A busy validator may still want a priority fee on top, which this app does not add.',
+        "Fixed by the protocol, so it does not move with congestion. " +
+        "A busy validator may still want a priority fee on top, which this app does not add.",
     };
   },
 
@@ -64,10 +57,10 @@ export const solanaStrategy: ChainStrategy = {
     return tokens.map((token) => ({ symbol: token.symbol, amount: token.amount }));
   },
 
-  explorer: { name: 'Solscan', addressUrl: (address) => `${EXPLORER}/${address}` },
+  explorer: { name: "Solscan", addressUrl: (address) => `${EXPLORER}/${address}` },
 
   transfer: {
-    symbol: 'SOL',
+    symbol: "SOL",
     async quote(context, { amount, to }) {
       if (!looksLikeSolanaAddress(to)) return { error: badRecipient(to) };
 
@@ -77,8 +70,7 @@ export const solanaStrategy: ChainStrategy = {
       } catch {
         return { error: badAmount(amount) };
       }
-      if (lamports === 0n)
-        return { error: 'Enter a SOL amount greater than 0, using up to 9 decimal places.' };
+      if (lamports === 0n) return { error: "Enter a SOL amount greater than 0, using up to 9 decimal places." };
 
       const from = solanaAddress(context.account.deriveEd25519(SOLANA_ACCOUNT_PATH));
       const balance = await getBalance(rpcUrl(), from);
@@ -92,11 +84,11 @@ export const solanaStrategy: ChainStrategy = {
       }
 
       return {
-        symbol: 'SOL',
+        symbol: "SOL",
         rows: [
-          { label: 'Chain', value: 'Solana' },
-          { label: 'Fee', value: `${formatSol(SIGNATURE_FEE)} SOL` },
-          { label: 'Balance after', value: `${formatSol(balance - lamports - SIGNATURE_FEE)} SOL` },
+          { label: "Chain", value: "Solana" },
+          { label: "Fee", value: `${formatSol(SIGNATURE_FEE)} SOL` },
+          { label: "Balance after", value: `${formatSol(balance - lamports - SIGNATURE_FEE)} SOL` },
         ],
       };
     },
@@ -118,6 +110,6 @@ export const solanaStrategy: ChainStrategy = {
     isDefault: isDefaultRpc,
     set: setRpcUrl,
     check: checkRpcUrl,
-    noun: 'endpoint',
+    noun: "endpoint",
   },
 };

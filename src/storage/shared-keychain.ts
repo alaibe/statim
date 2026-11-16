@@ -1,5 +1,5 @@
-import Constants from 'expo-constants';
-import * as SecureStore from 'expo-secure-store';
+import Constants from "expo-constants";
+import * as SecureStore from "expo-secure-store";
 
 /**
  * Shared with the notification service extension, which may run while the
@@ -8,7 +8,7 @@ import * as SecureStore from 'expo-secure-store';
 function options(): SecureStore.SecureStoreOptions {
   const ios = Constants.expoConfig?.ios;
   return {
-    keychainService: 'statim.notes',
+    keychainService: "statim.notes",
     accessGroup: `${ios?.appleTeamId}.${ios?.bundleIdentifier}.shared`,
     keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
   };

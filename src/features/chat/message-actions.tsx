@@ -1,25 +1,17 @@
-import { BlurView } from 'expo-blur';
-import * as Haptics from 'expo-haptics';
-import { useEffect } from 'react';
-import {
-  Modal,
-  Pressable as RNPressable,
-  ScrollView,
-  StyleSheet,
-  useWindowDimensions,
-  View,
-} from 'react-native';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import { cn, Icon, type IconName, PASS_THROUGH, Text, useThemeColors } from '@/design';
-import { QUICK_REACTIONS } from '@/core/messaging/reactions';
+import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
+import { useEffect } from "react";
+import { Modal, Pressable as RNPressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { QUICK_REACTIONS } from "@/core/messaging/reactions";
+import { cn, Icon, type IconName, PASS_THROUGH, Text, useThemeColors } from "@/design";
 
 export interface MessageAction {
   id: string;
   label: string;
   icon: IconName;
-  tone?: 'default' | 'danger';
+  tone?: "default" | "danger";
   onPress: () => void;
 }
 
@@ -33,7 +25,7 @@ export interface MessageAnchor {
 const REACTION_BAR_HEIGHT = 48;
 const MENU_ROW_HEIGHT = 46;
 const GAP = 8;
-const android = process.env.EXPO_OS === 'android';
+const android = process.env.EXPO_OS === "android";
 
 export function MessageActions({
   visible,
@@ -88,17 +80,19 @@ export function MessageActions({
         PASS_THROUGH,
         {
           gap: GAP,
-          alignItems: fromMe ? 'flex-end' : 'flex-start',
+          alignItems: fromMe ? "flex-end" : "flex-start",
           paddingLeft: fromMe ? GAP : anchor.x,
           paddingRight: fromMe ? Math.max(GAP, screenWidth - anchor.x - anchor.width) : GAP,
         },
-        !scrolls && { position: 'absolute', left: 0, right: 0, top: groupTop },
-      ]}>
+        !scrolls && { position: "absolute", left: 0, right: 0, top: groupTop },
+      ]}
+    >
       {onReact ? (
         <Animated.View entering={FadeIn.duration(140)} exiting={FadeOut.duration(100)}>
           <View
-            style={{ borderCurve: 'continuous', height: REACTION_BAR_HEIGHT }}
-            className="flex-row items-center gap-1 rounded-pill bg-surface-raised px-2 shadow-sm">
+            style={{ borderCurve: "continuous", height: REACTION_BAR_HEIGHT }}
+            className="flex-row items-center gap-1 rounded-pill bg-surface-raised px-2 shadow-sm"
+          >
             {QUICK_REACTIONS.map((emoji) => (
               <RNPressable
                 key={emoji}
@@ -108,7 +102,8 @@ export function MessageActions({
                   onReact(emoji);
                   onClose();
                 }}
-                className="h-9 w-9 items-center justify-center rounded-pill active:bg-surface-sunken">
+                className="h-9 w-9 items-center justify-center rounded-pill active:bg-surface-sunken"
+              >
                 <Text className="text-[24px]">{emoji}</Text>
               </RNPressable>
             ))}
@@ -120,8 +115,9 @@ export function MessageActions({
 
       <Animated.View entering={FadeIn.duration(140).delay(30)} exiting={FadeOut.duration(100)}>
         <View
-          style={{ borderCurve: 'continuous', minWidth: 200 }}
-          className="overflow-hidden rounded-card bg-surface-raised py-1 shadow-sm">
+          style={{ borderCurve: "continuous", minWidth: 200 }}
+          className="overflow-hidden rounded-card bg-surface-raised py-1 shadow-sm"
+        >
           {actions.map((action) => (
             <RNPressable
               key={action.id}
@@ -131,15 +127,10 @@ export function MessageActions({
                 onClose();
                 action.onPress();
               }}
-              className="min-h-[46px] flex-row items-center gap-3 px-4 py-2.5 active:bg-surface-sunken">
-              <Icon
-                name={action.icon}
-                size={20}
-                tone={action.tone === 'danger' ? 'danger' : 'content'}
-              />
-              <Text className={cn('font-medium', action.tone === 'danger' && 'text-danger')}>
-                {action.label}
-              </Text>
+              className="min-h-[46px] flex-row items-center gap-3 px-4 py-2.5 active:bg-surface-sunken"
+            >
+              <Icon name={action.icon} size={20} tone={action.tone === "danger" ? "danger" : "content"} />
+              <Text className={cn("font-medium", action.tone === "danger" && "text-danger")}>{action.label}</Text>
             </RNPressable>
           ))}
         </View>
@@ -149,19 +140,14 @@ export function MessageActions({
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <Animated.View
-        entering={FadeIn.duration(160)}
-        exiting={FadeOut.duration(120)}
-        style={{ flex: 1 }}>
-        <BlurView
-          intensity={40}
-          tint={colors.scheme === 'dark' ? 'dark' : 'light'}
-          style={{ flex: 1 }}>
+      <Animated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(120)} style={{ flex: 1 }}>
+        <BlurView intensity={40} tint={colors.scheme === "dark" ? "dark" : "light"} style={{ flex: 1 }}>
           {android ? <View className="absolute inset-0 bg-canvas/85" /> : null}
           {scrolls ? (
             <ScrollView
               contentContainerStyle={{ paddingTop: top, paddingBottom: screenHeight - bottom }}
-              showsVerticalScrollIndicator={false}>
+              showsVerticalScrollIndicator={false}
+            >
               {backdrop}
               {group}
             </ScrollView>

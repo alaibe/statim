@@ -1,11 +1,10 @@
-import { useState } from 'react';
-import { View } from 'react-native';
-
-import { Card, copyText, Icon, Note, Pressable, Text } from '@/design';
-import { useAccountStore } from '@/core/account/account-store';
-import { shortAddress } from '@/core/account/keyring';
-import { RevealablePhrase } from '@/features/account/recovery-phrase';
-import { SettingsScreen } from '@/features/settings/settings-screen';
+import { useState } from "react";
+import { View } from "react-native";
+import { useAccountStore } from "@/core/account/account-store";
+import { shortAddress } from "@/core/account/keyring";
+import { Card, copyText, Icon, Note, Pressable, Text } from "@/design";
+import { RevealablePhrase } from "@/features/account/recovery-phrase";
+import { SettingsScreen } from "@/features/settings/settings-screen";
 
 export default function RecoveryPhraseScreen() {
   const keyring = useAccountStore((s) => s.keyring);
@@ -17,8 +16,8 @@ export default function RecoveryPhraseScreen() {
       <SettingsScreen title="Recovery phrase">
         <Text variant="footnote" className="px-gutter">
           {keyring
-            ? 'This account’s key lives on its hardware wallet, so Statim has no recovery phrase for it.'
-            : 'No account is open.'}
+            ? "This account’s key lives on its hardware wallet, so Statim has no recovery phrase for it."
+            : "No account is open."}
         </Text>
       </SettingsScreen>
     );
@@ -32,28 +31,23 @@ export default function RecoveryPhraseScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Copy address"
-            onPress={() => void copyText(keyring.address, 'Address copied')}
+            onPress={() => void copyText(keyring.address, "Address copied")}
             pressScale={0.99}
-            className="flex-row items-center justify-between">
+            className="flex-row items-center justify-between"
+          >
             <Text variant="mono">{shortAddress(keyring.address, 12, 10)}</Text>
             <Icon name="copy-outline" size={16} tone="muted" />
           </Pressable>
         </Card>
 
         <Note tone="danger">
-          Anyone with these words controls your messages and any funds at this address. Never type
-          them into a website or share them with support.
+          Anyone with these words controls your messages and any funds at this address. Never type them into a website
+          or share them with support.
         </Note>
 
-        <RevealablePhrase
-          phrase={keyring.mnemonic}
-          revealed={revealed}
-          onReveal={() => setRevealed(true)}
-        />
+        <RevealablePhrase phrase={keyring.mnemonic} revealed={revealed} onReveal={() => setRevealed(true)} />
 
-        <Text variant="caption">
-          To remove this account from the device, use Erase this account in Settings.
-        </Text>
+        <Text variant="caption">To remove this account from the device, use Erase this account in Settings.</Text>
       </View>
     </SettingsScreen>
   );

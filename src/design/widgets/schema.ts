@@ -3,22 +3,13 @@
  * participant and drawn by an app that lacks the plugin that made it. Keep the union additive: an
  * older build must skip a node it does not recognise without losing the message.
  */
-import {
-  arrayOf,
-  isBoolean,
-  isRecord,
-  isString,
-  oneOf,
-  optional,
-  shape,
-  type Guard,
-} from '@/lib/guards';
+import { arrayOf, type Guard, isBoolean, isRecord, isString, oneOf, optional, shape } from "@/lib/guards";
 
-import type { IconName } from '../icon';
+import type { IconName } from "../icon";
 
-const WIDGET_TONES = ['neutral', 'brand', 'success', 'warning', 'danger'] as const;
-const WIDGET_STATES = ['on', 'off'] as const;
-const FIELD_KEYBOARDS = ['default', 'decimal'] as const;
+const WIDGET_TONES = ["neutral", "brand", "success", "warning", "danger"] as const;
+const WIDGET_STATES = ["on", "off"] as const;
+const FIELD_KEYBOARDS = ["default", "decimal"] as const;
 
 export type WidgetTone = (typeof WIDGET_TONES)[number];
 type WidgetState = (typeof WIDGET_STATES)[number];
@@ -69,55 +60,52 @@ export interface WidgetField {
 
 export type Widget =
   | {
-      kind: 'stat';
+      kind: "stat";
       value: string;
       label?: string;
       caption?: string;
       tone?: WidgetTone;
       actions?: WidgetAction[];
     }
-  | { kind: 'rows'; rows: WidgetRow[] }
-  | { kind: 'list'; items: WidgetListItem[] }
-  | { kind: 'text'; text: string }
-  | { kind: 'code'; value: string; label?: string; copyable?: boolean }
-  | { kind: 'card'; title?: string; icon?: IconName; tone?: WidgetTone; children: Widget[] }
-  | { kind: 'badges'; badges: { label: string; tone?: WidgetTone }[] }
-  | { kind: 'actions'; actions: WidgetAction[] }
-  | { kind: 'link'; label: string; url: string; icon?: IconName }
-  | { kind: 'form'; fields: WidgetField[]; submit: WidgetAction };
+  | { kind: "rows"; rows: WidgetRow[] }
+  | { kind: "list"; items: WidgetListItem[] }
+  | { kind: "text"; text: string }
+  | { kind: "code"; value: string; label?: string; copyable?: boolean }
+  | { kind: "card"; title?: string; icon?: IconName; tone?: WidgetTone; children: Widget[] }
+  | { kind: "badges"; badges: { label: string; tone?: WidgetTone }[] }
+  | { kind: "actions"; actions: WidgetAction[] }
+  | { kind: "link"; label: string; url: string; icon?: IconName }
+  | { kind: "form"; fields: WidgetField[]; submit: WidgetAction };
 
 export const W = {
-  stat: (value: string, opts: Omit<Extract<Widget, { kind: 'stat' }>, 'kind' | 'value'> = {}) =>
-    ({ kind: 'stat', value, ...opts }) satisfies Widget,
+  stat: (value: string, opts: Omit<Extract<Widget, { kind: "stat" }>, "kind" | "value"> = {}) =>
+    ({ kind: "stat", value, ...opts }) satisfies Widget,
 
-  rows: (rows: WidgetRow[]) => ({ kind: 'rows', rows }) satisfies Widget,
+  rows: (rows: WidgetRow[]) => ({ kind: "rows", rows }) satisfies Widget,
 
-  list: (items: WidgetListItem[]) => ({ kind: 'list', items }) satisfies Widget,
+  list: (items: WidgetListItem[]) => ({ kind: "list", items }) satisfies Widget,
 
-  text: (text: string) => ({ kind: 'text', text }) satisfies Widget,
+  text: (text: string) => ({ kind: "text", text }) satisfies Widget,
 
   code: (value: string, opts: { label?: string; copyable?: boolean } = {}) =>
-    ({ kind: 'code', value, copyable: true, ...opts }) satisfies Widget,
+    ({ kind: "code", value, copyable: true, ...opts }) satisfies Widget,
 
   card: (children: Widget[], opts: { title?: string; icon?: IconName; tone?: WidgetTone } = {}) =>
-    ({ kind: 'card', children, ...opts }) satisfies Widget,
+    ({ kind: "card", children, ...opts }) satisfies Widget,
 
-  badges: (badges: Extract<Widget, { kind: 'badges' }>['badges']) =>
-    ({ kind: 'badges', badges }) satisfies Widget,
+  badges: (badges: Extract<Widget, { kind: "badges" }>["badges"]) => ({ kind: "badges", badges }) satisfies Widget,
 
-  actions: (actions: WidgetAction[]) => ({ kind: 'actions', actions }) satisfies Widget,
+  actions: (actions: WidgetAction[]) => ({ kind: "actions", actions }) satisfies Widget,
 
-  link: (label: string, url: string, icon?: IconName) =>
-    ({ kind: 'link', label, url, icon }) satisfies Widget,
+  link: (label: string, url: string, icon?: IconName) => ({ kind: "link", label, url, icon }) satisfies Widget,
 
-  form: (fields: WidgetField[], submit: WidgetAction) =>
-    ({ kind: 'form', fields, submit }) satisfies Widget,
+  form: (fields: WidgetField[], submit: WidgetAction) => ({ kind: "form", fields, submit }) satisfies Widget,
 } as const;
 
 const isTone = oneOf(...WIDGET_TONES);
 const isState = oneOf(...WIDGET_STATES);
 /** Any name: an icon this build lacks renders as nothing rather than dropping the widget. */
-const isIcon = (value: unknown): value is IconName => typeof value === 'string';
+const isIcon = (value: unknown): value is IconName => typeof value === "string";
 const isStringRecord = (value: unknown): value is Record<string, string> =>
   isRecord(value) && Object.values(value).every(isString);
 
@@ -155,46 +143,42 @@ const isField = shape<WidgetField>({
   keyboard: optional(oneOf(...FIELD_KEYBOARDS)),
   hint: optional(isString),
   optional: optional(isBoolean),
-  options: optional(
-    arrayOf(
-      shape<WidgetOption>({ label: isString, value: isString, when: optional(isStringRecord) })
-    )
-  ),
+  options: optional(arrayOf(shape<WidgetOption>({ label: isString, value: isString, when: optional(isStringRecord) }))),
   select: optional(isBoolean),
 });
 
-export type WidgetOf<K extends Widget['kind']> = Extract<Widget, { kind: K }>;
+export type WidgetOf<K extends Widget["kind"]> = Extract<Widget, { kind: K }>;
 
-type WidgetFields<K extends Widget['kind']> = Omit<WidgetOf<K>, 'kind'>;
+type WidgetFields<K extends Widget["kind"]> = Omit<WidgetOf<K>, "kind">;
 
-const WIDGET_FIELDS: { [K in Widget['kind']]: Guard<WidgetFields<K>> } = {
-  stat: shape<WidgetFields<'stat'>>({
+const WIDGET_FIELDS: { [K in Widget["kind"]]: Guard<WidgetFields<K>> } = {
+  stat: shape<WidgetFields<"stat">>({
     value: isString,
     label: optional(isString),
     caption: optional(isString),
     tone: optional(isTone),
     actions: isActions,
   }),
-  rows: shape<WidgetFields<'rows'>>({ rows: arrayOf(isRow) }),
-  list: shape<WidgetFields<'list'>>({ items: arrayOf(isListItem) }),
-  text: shape<WidgetFields<'text'>>({ text: isString }),
-  code: shape<WidgetFields<'code'>>({
+  rows: shape<WidgetFields<"rows">>({ rows: arrayOf(isRow) }),
+  list: shape<WidgetFields<"list">>({ items: arrayOf(isListItem) }),
+  text: shape<WidgetFields<"text">>({ text: isString }),
+  code: shape<WidgetFields<"code">>({
     value: isString,
     label: optional(isString),
     copyable: optional(isBoolean),
   }),
-  card: shape<WidgetFields<'card'>>({
+  card: shape<WidgetFields<"card">>({
     title: optional(isString),
     icon: optional(isIcon),
     tone: optional(isTone),
     children: arrayOf((child): child is Widget => isWidget(child) || isNewerWidget(child)),
   }),
-  badges: shape<WidgetFields<'badges'>>({
+  badges: shape<WidgetFields<"badges">>({
     badges: arrayOf(shape({ label: isString, tone: optional(isTone) })),
   }),
-  actions: shape<WidgetFields<'actions'>>({ actions: arrayOf(isAction) }),
-  link: shape<WidgetFields<'link'>>({ label: isString, url: isString, icon: optional(isIcon) }),
-  form: shape<WidgetFields<'form'>>({ fields: arrayOf(isField), submit: isAction }),
+  actions: shape<WidgetFields<"actions">>({ actions: arrayOf(isAction) }),
+  link: shape<WidgetFields<"link">>({ label: isString, url: isString, icon: optional(isIcon) }),
+  form: shape<WidgetFields<"form">>({ fields: arrayOf(isField), submit: isAction }),
 };
 
 function isNewerWidget(value: unknown): boolean {
@@ -205,37 +189,37 @@ export function isWidget(value: unknown): value is Widget {
   if (!isRecord(value) || !isString(value.kind) || !Object.hasOwn(WIDGET_FIELDS, value.kind)) {
     return false;
   }
-  return WIDGET_FIELDS[value.kind as Widget['kind']](value);
+  return WIDGET_FIELDS[value.kind as Widget["kind"]](value);
 }
 
 export function summariseWidget(widget: Widget): string {
   switch (widget.kind) {
-    case 'stat':
-      return [widget.label, widget.value].filter(Boolean).join(': ');
-    case 'rows':
-      return widget.rows.map((r) => `${r.label}: ${r.value}`).join(' · ');
-    case 'list':
-      return widget.items.map((i) => i.title).join(' · ');
-    case 'text':
+    case "stat":
+      return [widget.label, widget.value].filter(Boolean).join(": ");
+    case "rows":
+      return widget.rows.map((r) => `${r.label}: ${r.value}`).join(" · ");
+    case "list":
+      return widget.items.map((i) => i.title).join(" · ");
+    case "text":
       return widget.text;
-    case 'code':
+    case "code":
       return widget.label ? `${widget.label}: ${widget.value}` : widget.value;
-    case 'card':
-      return [widget.title, ...widget.children.map(summariseWidget)].filter(Boolean).join(' · ');
-    case 'badges':
-      return widget.badges.map((b) => b.label).join(' · ');
-    case 'actions':
-      return widget.actions.map((a) => a.label).join(' · ');
-    case 'link':
+    case "card":
+      return [widget.title, ...widget.children.map(summariseWidget)].filter(Boolean).join(" · ");
+    case "badges":
+      return widget.badges.map((b) => b.label).join(" · ");
+    case "actions":
+      return widget.actions.map((a) => a.label).join(" · ");
+    case "link":
       return widget.label;
-    case 'form':
-      return [widget.submit.label, ...widget.fields.map((f) => f.label)].join(' · ');
+    case "form":
+      return [widget.submit.label, ...widget.fields.map((f) => f.label)].join(" · ");
   }
 }
 
 export function fillCommand(command: string, values: Record<string, string>): string {
   return command.replace(/\{(\w+)\}/g, (_, id: string) => {
-    const value = (values[id] ?? '').trim();
+    const value = (values[id] ?? "").trim();
     return /\s/.test(value) ? `"${value}"` : value;
   });
 }
@@ -248,32 +232,24 @@ export function visibleOptions(field: WidgetField, values: Record<string, string
   return (field.options ?? []).filter((option) => optionShown(option, values));
 }
 
-export function displayValues(
-  fields: WidgetField[],
-  values: Record<string, string>
-): Record<string, string> {
+export function displayValues(fields: WidgetField[], values: Record<string, string>): Record<string, string> {
   return Object.fromEntries(
     fields.map((field) => {
-      const chosen = field.options?.find(
-        (option) => option.value === values[field.id] && optionShown(option, values)
-      );
-      return [field.id, chosen?.label ?? values[field.id] ?? ''];
-    })
+      const chosen = field.options?.find((option) => option.value === values[field.id] && optionShown(option, values));
+      return [field.id, chosen?.label ?? values[field.id] ?? ""];
+    }),
   );
 }
 
 export function normaliseDecimal(text: string, separator: string): string {
-  return text.split(separator).join('.');
+  return text.split(separator).join(".");
 }
 
 export function fillText(text: string, display: Record<string, string>): string {
   return text.replace(/\{(\w+)\}/g, (whole, id: string) => display[id] || whole);
 }
 
-export function resolveValues(
-  fields: WidgetField[],
-  values: Record<string, string>
-): Record<string, string> {
+export function resolveValues(fields: WidgetField[], values: Record<string, string>): Record<string, string> {
   let out = values;
   for (const field of fields) {
     if (!field.options) continue;

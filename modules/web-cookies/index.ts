@@ -1,4 +1,4 @@
-import { requireNativeModule } from 'expo-modules-core';
+import { requireNativeModule } from "expo-modules-core";
 
 export interface WebCookie {
   name: string;
@@ -11,4 +11,4 @@ interface WebCookiesModule {
   clear(domains: string[]): Promise<void>;
 }
 
-export default requireNativeModule<WebCookiesModule>('WebCookies');
+export default requireNativeModule<WebCookiesModule>("WebCookies");

@@ -1,78 +1,62 @@
-import type { UR } from '@ngraveio/bc-ur';
-import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, View } from 'react-native';
-
+import type { UR } from "@ngraveio/bc-ur";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Platform, View } from "react-native";
+import { cancelPrompt, type DevicePrompt, type LinkedVendor, useDevicePrompt } from "@/core/account/device-prompt";
+import { connectTo } from "@/core/account/device-session";
+import type { HardwareConnection } from "@/core/account/hardware";
+import { urReader } from "@/core/account/vendors/keystone";
+import { errorMessage } from "@/core/errors";
 import {
   AnimatedQrCode,
   Button,
   ErrorText,
+  type IconName,
   ListItem,
   QrReader,
   RowIcon,
   Sheet,
   Text,
   useThemeColors,
-  type IconName,
-} from '@/design';
-import { SHEET_DISMISS_MS, useSheetStore } from '@/design/components/sheet';
-import { errorMessage } from '@/core/errors';
-import {
-  cancelPrompt,
-  useDevicePrompt,
-  type DevicePrompt,
-  type LinkedVendor,
-} from '@/core/account/device-prompt';
-import { connectTo } from '@/core/account/device-session';
-import type { HardwareConnection } from '@/core/account/hardware';
-import { urReader } from '@/core/account/vendors/keystone';
+} from "@/design";
+import { SHEET_DISMISS_MS, useSheetStore } from "@/design/components/sheet";
 
 export const CONNECTION: Record<HardwareConnection, { icon: IconName; how: string }> = {
   bluetooth: {
-    icon: 'bluetooth-outline',
-    how: 'Unlock it and open the Ethereum app, then keep it nearby.',
+    icon: "bluetooth-outline",
+    how: "Unlock it and open the Ethereum app, then keep it nearby.",
   },
   usb: {
-    icon: 'hardware-chip-outline',
-    how: 'Plug it in, unlock it and open the Ethereum app.',
+    icon: "hardware-chip-outline",
+    how: "Plug it in, unlock it and open the Ethereum app.",
   },
   qr: {
-    icon: 'qr-code-outline',
-    how: 'You scan a QR code from its screen, and it scans one from yours.',
+    icon: "qr-code-outline",
+    how: "You scan a QR code from its screen, and it scans one from yours.",
   },
-  'companion-app': {
-    icon: 'phone-portrait-outline',
+  "companion-app": {
+    icon: "phone-portrait-outline",
     how:
-      Platform.OS === 'ios'
-        ? 'Needs Trezor Suite and a Trezor Safe 7, which connects to it over Bluetooth.'
-        : 'Trezor Suite opens to confirm; you come back here when it is done.',
+      Platform.OS === "ios"
+        ? "Needs Trezor Suite and a Trezor Safe 7, which connects to it over Bluetooth."
+        : "Trezor Suite opens to confirm; you come back here when it is done.",
   },
 };
 
 const SEARCHING = {
-  bluetooth: 'Looking for nearby wallets…',
-  usb: 'Looking for a plugged-in wallet…',
+  bluetooth: "Looking for nearby wallets…",
+  usb: "Looking for a plugged-in wallet…",
 };
 
-export function DeviceList({
-  vendor,
-  onPick,
-}: {
-  vendor: LinkedVendor;
-  onPick(deviceId: string): void;
-}) {
+export function DeviceList({ vendor, onPick }: { vendor: LinkedVendor; onPick(deviceId: string): void }) {
   const [devices, setDevices] = useState<{ id: string; name: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let stop: (() => void) | undefined;
     let cancelled = false;
-    const failed = (e: unknown) => setError(errorMessage(e, 'Could not look for wallets'));
+    const failed = (e: unknown) => setError(errorMessage(e, "Could not look for wallets"));
     vendor
-      .scan(
-        (device) =>
-          setDevices((prev) => (prev.some((d) => d.id === device.id) ? prev : [...prev, device])),
-        failed
-      )
+      .scan((device) => setDevices((prev) => (prev.some((d) => d.id === device.id) ? prev : [...prev, device])), failed)
       .then((unsubscribe) => {
         if (cancelled) unsubscribe();
         else stop = unsubscribe;
@@ -93,7 +77,7 @@ export function DeviceList({
           <ListItem
             key={device.id}
             testID={`hardware-device-${device.id}`}
-            title={device.name || 'Unnamed wallet'}
+            title={device.name || "Unnamed wallet"}
             leading={<RowIcon name={CONNECTION[vendor.connection].icon} tone="blue" />}
             onPress={() => onPick(device.id)}
           />
@@ -104,7 +88,7 @@ export function DeviceList({
   );
 }
 
-function Reconnect({ prompt }: { prompt: Extract<DevicePrompt, { kind: 'connect' }> }) {
+function Reconnect({ prompt }: { prompt: Extract<DevicePrompt, { kind: "connect" }> }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -133,12 +117,12 @@ function Reconnect({ prompt }: { prompt: Extract<DevicePrompt, { kind: 'connect'
 }
 
 const PURPOSE = {
-  message: 'a message',
-  transaction: 'a transaction',
-  typedData: 'a signature request',
+  message: "a message",
+  transaction: "a transaction",
+  typedData: "a signature request",
 } as const;
 
-function QrExchange({ prompt }: { prompt: Extract<DevicePrompt, { kind: 'qr' }> }) {
+function QrExchange({ prompt }: { prompt: Extract<DevicePrompt, { kind: "qr" }> }) {
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState(0);
   const reader = useRef<ReturnType<typeof urReader> | null>(null);
@@ -153,7 +137,7 @@ function QrExchange({ prompt }: { prompt: Extract<DevicePrompt, { kind: 'qr' }> 
       reader.current = null;
       return errorMessage(e, `That is not the signature your ${label} shows.`);
     }
-    if (typeof result === 'number') {
+    if (typeof result === "number") {
       setProgress(Math.round(result * 100));
       return undefined;
     }
@@ -174,8 +158,7 @@ function QrExchange({ prompt }: { prompt: Extract<DevicePrompt, { kind: 'qr' }> 
   ) : (
     <>
       <Text variant="footnote">
-        Scan this with your {label} to sign {PURPOSE[prompt.purpose]}, and check what it shows
-        before you approve.
+        Scan this with your {label} to sign {PURPOSE[prompt.purpose]}, and check what it shows before you approve.
       </Text>
       <View className="items-center">
         <AnimatedQrCode parts={prompt.parts} />
@@ -185,14 +168,14 @@ function QrExchange({ prompt }: { prompt: Extract<DevicePrompt, { kind: 'qr' }> 
   );
 }
 
-function Confirming({ prompt }: { prompt: Extract<DevicePrompt, { kind: 'confirm' }> }) {
+function Confirming({ prompt }: { prompt: Extract<DevicePrompt, { kind: "confirm" }> }) {
   const colors = useThemeColors();
   const { label, connection } = prompt.vendor;
   return (
     <View className="flex-row items-center gap-3">
       <ActivityIndicator color={colors.content} />
       <Text variant="footnote" className="flex-1">
-        {connection === 'companion-app'
+        {connection === "companion-app"
           ? `Finish in ${label} Suite, then come back to Statim.`
           : `Check the details on your ${label} and approve them there.`}
       </Text>
@@ -203,31 +186,27 @@ function Confirming({ prompt }: { prompt: Extract<DevicePrompt, { kind: 'confirm
 export function devicePromptTitle(prompt: DevicePrompt): string {
   const { label, connection } = prompt.vendor;
   switch (prompt.kind) {
-    case 'connect':
+    case "connect":
       return `Connect your ${label}`;
-    case 'qr':
+    case "qr":
       return `Sign on your ${label}`;
-    case 'confirm':
-      return connection === 'companion-app'
-        ? `Waiting for ${label} Suite`
-        : `Confirm on your ${label}`;
+    case "confirm":
+      return connection === "companion-app" ? `Waiting for ${label} Suite` : `Confirm on your ${label}`;
   }
 }
 
 export function DevicePromptBody({ prompt }: { prompt: DevicePrompt }) {
-  const cancellable = prompt.kind !== 'confirm' || prompt.vendor.connection === 'companion-app';
+  const cancellable = prompt.kind !== "confirm" || prompt.vendor.connection === "companion-app";
   return (
     <>
-      {prompt.kind === 'connect' ? (
+      {prompt.kind === "connect" ? (
         <Reconnect prompt={prompt} />
-      ) : prompt.kind === 'qr' ? (
+      ) : prompt.kind === "qr" ? (
         <QrExchange prompt={prompt} />
       ) : (
         <Confirming prompt={prompt} />
       )}
-      {cancellable ? (
-        <Button label="Cancel" tone="neutral" fullWidth onPress={() => cancelPrompt(prompt)} />
-      ) : null}
+      {cancellable ? <Button label="Cancel" tone="neutral" fullWidth onPress={() => cancelPrompt(prompt)} /> : null}
     </>
   );
 }
@@ -276,7 +255,8 @@ export function DevicePromptHost() {
       onClose={() => {
         const current = useDevicePrompt.getState().prompt;
         if (current) cancelPrompt(current);
-      }}>
+      }}
+    >
       {hosted ? <DevicePromptBody prompt={hosted} /> : null}
     </Sheet>
   );

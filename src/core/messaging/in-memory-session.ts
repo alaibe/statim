@@ -1,20 +1,20 @@
-import { isParticipantId } from './bots';
-import { showsInPreview } from './message-rules';
-import { protocolChatId } from './namespace';
-import type { ChatSession } from './protocol';
+import { isParticipantId } from "./bots";
+import { showsInPreview } from "./message-rules";
+import { protocolChatId } from "./namespace";
+import type { ChatSession } from "./protocol";
 import type {
-  ProtocolChatId,
+  ConsentDecision,
   GroupMember,
   GroupRole,
   MessageContent,
   MessageId,
   ParticipantId,
+  ProtocolChat,
+  ProtocolChatId,
+  ProtocolMessage,
   SelfParticipant,
   Unsubscribe,
-  ConsentDecision,
-  ProtocolMessage,
-  ProtocolChat,
-} from './types';
+} from "./types";
 
 export class InMemoryChatSession implements ChatSession {
   readonly self: SelfParticipant;
@@ -36,19 +36,19 @@ export class InMemoryChatSession implements ChatSession {
 
   constructor(self?: Partial<SelfParticipant>) {
     this.self = {
-      participantId: 'a'.repeat(64),
-      address: '0x1111111111111111111111111111111111111111',
+      participantId: "a".repeat(64),
+      address: "0x1111111111111111111111111111111111111111",
       ...self,
     };
   }
 
-  seedChat(partial: Omit<Partial<ProtocolChat>, 'id'> & { id: string }): ProtocolChat {
+  seedChat(partial: Omit<Partial<ProtocolChat>, "id"> & { id: string }): ProtocolChat {
     const chat: ProtocolChat = {
-      kind: 'dm',
+      kind: "dm",
       title: partial.id,
-      memberIds: [this.self.participantId, 'b'.repeat(64)],
+      memberIds: [this.self.participantId, "b".repeat(64)],
       createdAt: 1_000,
-      consent: 'accepted',
+      consent: "accepted",
       ...partial,
       id: protocolChatId(partial.id),
     };
@@ -71,11 +71,11 @@ export class InMemoryChatSession implements ChatSession {
     const full: ProtocolMessage = {
       id: `remote-${Math.random().toString(36).slice(2, 8)}`,
       chatId,
-      senderId: 'b'.repeat(64),
+      senderId: "b".repeat(64),
       sentAt: 2_000,
-      content: { kind: 'text', text: 'hello from the protocol' },
+      content: { kind: "text", text: "hello from the protocol" },
       fromMe: false,
-      status: 'sent',
+      status: "sent",
       ...message,
     };
 
@@ -90,7 +90,7 @@ export class InMemoryChatSession implements ChatSession {
     return full;
   }
 
-  announce(announced: Omit<ProtocolChat, 'id'> & { id: string }) {
+  announce(announced: Omit<ProtocolChat, "id"> & { id: string }) {
     const chat = { ...announced, id: protocolChatId(announced.id) };
     this.chats.set(chat.id, chat);
     for (const listener of this.chatListeners) listener(chat);
@@ -106,14 +106,14 @@ export class InMemoryChatSession implements ChatSession {
 
   async getMessages(
     id: ProtocolChatId,
-    opts?: { limit?: number; before?: { sentAt: number; id: MessageId } }
+    opts?: { limit?: number; before?: { sentAt: number; id: MessageId } },
   ): Promise<ProtocolMessage[]> {
     const messages = [...(this.messages.get(id) ?? [])]
       .filter(
         (message) =>
           !opts?.before ||
           message.sentAt < opts.before.sentAt ||
-          (message.sentAt === opts.before.sentAt && message.id < opts.before.id)
+          (message.sentAt === opts.before.sentAt && message.id < opts.before.id),
       )
       .sort((a, b) => a.sentAt - b.sentAt || a.id.localeCompare(b.id));
     return opts?.limit ? messages.slice(-opts.limit) : messages;
@@ -147,10 +147,10 @@ export class InMemoryChatSession implements ChatSession {
   async createGroup(participants: ParticipantId[], title: string): Promise<ProtocolChat> {
     return this.seedChat({
       id: `group-${title}`,
-      kind: 'group',
+      kind: "group",
       title,
       memberIds: [this.self.participantId, ...participants],
-      selfRole: 'owner',
+      selfRole: "owner",
     });
   }
 
@@ -162,7 +162,7 @@ export class InMemoryChatSession implements ChatSession {
 
   private requireGroup(id: ProtocolChatId): ProtocolChat {
     const chat = this.requireChat(id);
-    if (chat.kind !== 'group') throw new Error('That only works in a group.');
+    if (chat.kind !== "group") throw new Error("That only works in a group.");
     return chat;
   }
 
@@ -170,9 +170,7 @@ export class InMemoryChatSession implements ChatSession {
     const chat = this.requireGroup(id);
     return chat.memberIds.map((memberId) => ({
       id: memberId,
-      role:
-        this.roles.get(`${id}:${memberId}`) ??
-        (memberId === this.self.participantId ? 'owner' : 'member'),
+      role: this.roles.get(`${id}:${memberId}`) ?? (memberId === this.self.participantId ? "owner" : "member"),
     }));
   }
 
@@ -236,7 +234,7 @@ export class InMemoryChatSession implements ChatSession {
       sentAt: 3_000,
       content,
       fromMe: true,
-      status: 'sent',
+      status: "sent",
       replyTo,
     };
 

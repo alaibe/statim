@@ -1,9 +1,9 @@
-import { SITE } from '@/lib/guide';
+import { SITE } from "@/lib/guide";
 
 const OPENING = "I'd like to continue this chat on XMTP, where it is end-to-end encrypted.";
 const ADDRESS = /^My XMTP address: (0x[0-9a-fA-F]{40})$/m;
 
-export const MOVE_ACK = 'Continuing our chat here, end-to-end encrypted.';
+export const MOVE_ACK = "Continuing our chat here, end-to-end encrypted.";
 
 export function moveInviteText(address: string): string {
   return (

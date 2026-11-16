@@ -1,8 +1,8 @@
-import type { AnimationItem } from 'lottie-web';
-import { useEffect, useRef } from 'react';
-import { View } from 'react-native';
+import type { AnimationItem } from "lottie-web";
+import { useEffect, useRef } from "react";
+import { View } from "react-native";
 
-import type { StickerAnimationProps } from './sticker-animation';
+import type { StickerAnimationProps } from "./sticker-animation";
 
 /** The message list keeps every loaded row mounted, so a sticker only plays while it is in view. */
 export function StickerAnimation({ animation, width, height }: StickerAnimationProps) {
@@ -17,11 +17,11 @@ export function StickerAnimation({ animation, width, height }: StickerAnimationP
         void player?.then((loaded) => loaded.pause());
         return;
       }
-      player ??= import('lottie-web/build/player/lottie_light').then(({ default: lottie }) => {
+      player ??= import("lottie-web/build/player/lottie_light").then(({ default: lottie }) => {
         const loaded = lottie.loadAnimation({
           container,
           animationData: animation,
-          renderer: 'svg',
+          renderer: "svg",
           loop: true,
           autoplay: false,
         });

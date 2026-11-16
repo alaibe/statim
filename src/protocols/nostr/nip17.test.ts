@@ -1,5 +1,5 @@
-import { eventId, serializeEvent, signEvent, verifyEvent } from './events';
-import { keysFromSecretKey } from './keys';
+import { eventId, serializeEvent, signEvent, verifyEvent } from "./events";
+import { keysFromSecretKey } from "./keys";
 import {
   buildRumor,
   chatIdFor,
@@ -11,79 +11,77 @@ import {
   sealRumor,
   unwrapGiftWrap,
   wrapForRecipients,
-} from './nip17';
+} from "./nip17";
 
 const alice = keysFromSecretKey(new Uint8Array(32).fill(1));
 const bob = keysFromSecretKey(new Uint8Array(32).fill(2));
 const carol = keysFromSecretKey(new Uint8Array(32).fill(3));
 const mallory = keysFromSecretKey(new Uint8Array(32).fill(9));
 
-describe('event ids', () => {
-  it('hash the canonical array, in the spec order', () => {
+describe("event ids", () => {
+  it("hash the canonical array, in the spec order", () => {
     const event = {
       pubkey: alice.publicKey,
       created_at: 1_700_000_000,
       kind: 1,
-      tags: [['p', bob.publicKey]],
-      content: 'hi',
+      tags: [["p", bob.publicKey]],
+      content: "hi",
     };
-    expect(serializeEvent(event)).toBe(
-      `[0,"${alice.publicKey}",1700000000,1,[["p","${bob.publicKey}"]],"hi"]`
-    );
+    expect(serializeEvent(event)).toBe(`[0,"${alice.publicKey}",1700000000,1,[["p","${bob.publicKey}"]],"hi"]`);
     expect(eventId(event)).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  it('changes when any field changes', () => {
-    const base = { pubkey: alice.publicKey, created_at: 1, kind: 1, tags: [], content: 'a' };
-    expect(eventId(base)).not.toBe(eventId({ ...base, content: 'b' }));
+  it("changes when any field changes", () => {
+    const base = { pubkey: alice.publicKey, created_at: 1, kind: 1, tags: [], content: "a" };
+    expect(eventId(base)).not.toBe(eventId({ ...base, content: "b" }));
     expect(eventId(base)).not.toBe(eventId({ ...base, created_at: 2 }));
   });
 });
 
-describe('signing', () => {
-  it('produces an event that verifies', () => {
+describe("signing", () => {
+  it("produces an event that verifies", () => {
     const event = signEvent(
-      { pubkey: alice.publicKey, created_at: 1, kind: 1, tags: [], content: 'hi' },
-      alice.secretKey
+      { pubkey: alice.publicKey, created_at: 1, kind: 1, tags: [], content: "hi" },
+      alice.secretKey,
     );
     expect(verifyEvent(event)).toBe(true);
   });
 
-  it('rejects an event whose content was rewritten after signing', () => {
+  it("rejects an event whose content was rewritten after signing", () => {
     // The id is recomputed from the body before the signature is checked, so a
     // relay cannot swap the content of an otherwise valid event.
     const event = signEvent(
-      { pubkey: alice.publicKey, created_at: 1, kind: 1, tags: [], content: 'hi' },
-      alice.secretKey
+      { pubkey: alice.publicKey, created_at: 1, kind: 1, tags: [], content: "hi" },
+      alice.secretKey,
     );
-    expect(verifyEvent({ ...event, content: 'goodbye' })).toBe(false);
+    expect(verifyEvent({ ...event, content: "goodbye" })).toBe(false);
   });
 
-  it('rejects a signature from someone else', () => {
+  it("rejects a signature from someone else", () => {
     const event = signEvent(
-      { pubkey: alice.publicKey, created_at: 1, kind: 1, tags: [], content: 'hi' },
-      mallory.secretKey
+      { pubkey: alice.publicKey, created_at: 1, kind: 1, tags: [], content: "hi" },
+      mallory.secretKey,
     );
     expect(verifyEvent(event)).toBe(false);
   });
 });
 
-describe('gift wrapping a DM', () => {
-  it('produces one wrap per participant, including the sender', () => {
+describe("gift wrapping a DM", () => {
+  it("produces one wrap per participant, including the sender", () => {
     // Without a self-addressed copy you cannot read your own outbox on another
     // device or after a reinstall.
     const { wraps } = wrapForRecipients(alice, {
       recipients: [bob.publicKey],
-      content: 'hello',
+      content: "hello",
     });
     expect(wraps).toHaveLength(2);
     expect(wraps.every((w) => w.kind === KIND_GIFT_WRAP)).toBe(true);
   });
 
-  it('signs each wrap with a fresh throwaway key, never the sender', () => {
+  it("signs each wrap with a fresh throwaway key, never the sender", () => {
     const { wraps } = wrapForRecipients(alice, {
       recipients: [bob.publicKey, carol.publicKey],
-      content: 'hello',
+      content: "hello",
     });
 
     const authors = wraps.map((w) => w.pubkey);
@@ -94,65 +92,65 @@ describe('gift wrapping a DM', () => {
     expect(wraps.every(verifyEvent)).toBe(true);
   });
 
-  it('leaks only the recipient in a wrap tag, never the sender or content', () => {
+  it("leaks only the recipient in a wrap tag, never the sender or content", () => {
     const { wraps } = wrapForRecipients(alice, {
       recipients: [bob.publicKey],
-      content: 'a very distinctive phrase',
+      content: "a very distinctive phrase",
     });
     const forBob = wraps.find((w) => w.tags[0][1] === bob.publicKey)!;
 
-    expect(JSON.stringify(forBob)).not.toContain('a very distinctive phrase');
+    expect(JSON.stringify(forBob)).not.toContain("a very distinctive phrase");
     expect(JSON.stringify(forBob.tags)).not.toContain(alice.publicKey);
   });
 
-  it('unwraps back to the original rumor', () => {
+  it("unwraps back to the original rumor", () => {
     const { rumor, wraps } = wrapForRecipients(alice, {
       recipients: [bob.publicKey],
-      content: 'hello',
+      content: "hello",
     });
     const forBob = wraps.find((w) => w.tags[0][1] === bob.publicKey)!;
 
     const opened = unwrapGiftWrap(forBob, bob);
-    expect(opened?.content).toBe('hello');
+    expect(opened?.content).toBe("hello");
     expect(opened?.pubkey).toBe(alice.publicKey);
     expect(opened?.id).toBe(rumor.id);
     expect(opened?.kind).toBe(KIND_DM);
   });
 
-  it('lets the sender read their own copy', () => {
+  it("lets the sender read their own copy", () => {
     const { wraps } = wrapForRecipients(alice, {
       recipients: [bob.publicKey],
-      content: 'note to self about bob',
+      content: "note to self about bob",
     });
     const forAlice = wraps.find((w) => w.tags[0][1] === alice.publicKey)!;
-    expect(unwrapGiftWrap(forAlice, alice)?.content).toBe('note to self about bob');
+    expect(unwrapGiftWrap(forAlice, alice)?.content).toBe("note to self about bob");
   });
 
-  it('returns null for a wrap addressed to someone else', () => {
+  it("returns null for a wrap addressed to someone else", () => {
     const { wraps } = wrapForRecipients(alice, {
       recipients: [bob.publicKey],
-      content: 'private',
+      content: "private",
     });
     const forBob = wraps.find((w) => w.tags[0][1] === bob.publicKey)!;
     expect(unwrapGiftWrap(forBob, mallory)).toBeNull();
   });
 
-  it('carries a group subject and every recipient as a p tag', () => {
+  it("carries a group subject and every recipient as a p tag", () => {
     const { rumor } = wrapForRecipients(alice, {
       recipients: [bob.publicKey, carol.publicKey],
-      content: 'hi both',
-      subject: 'Weekend',
+      content: "hi both",
+      subject: "Weekend",
     });
-    expect(rumor.tags).toContainEqual(['subject', 'Weekend']);
-    expect(rumor.tags).toContainEqual(['p', bob.publicKey]);
-    expect(rumor.tags).toContainEqual(['p', carol.publicKey]);
+    expect(rumor.tags).toContainEqual(["subject", "Weekend"]);
+    expect(rumor.tags).toContainEqual(["p", bob.publicKey]);
+    expect(rumor.tags).toContainEqual(["p", carol.publicKey]);
   });
 
-  it('randomises wrap timestamps into the past, but not the rumor', () => {
+  it("randomises wrap timestamps into the past, but not the rumor", () => {
     const now = Math.floor(Date.now() / 1000);
     const { rumor, wraps } = wrapForRecipients(alice, {
       recipients: [bob.publicKey],
-      content: 'hi',
+      content: "hi",
     });
 
     // The rumor's own time is what message ordering uses; the wrap's is jitter.
@@ -164,12 +162,12 @@ describe('gift wrapping a DM', () => {
   });
 });
 
-describe('unwrapping refuses forgeries', () => {
-  it('rejects a seal signed by someone other than the rumor author', () => {
+describe("unwrapping refuses forgeries", () => {
+  it("rejects a seal signed by someone other than the rumor author", () => {
     // Mallory wraps a rumor claiming to be from Alice. The seal is hers, so
     // the pubkey check catches it; without that check, anyone could
     // impersonate anyone by wrapping a rumor they made up.
-    const forged = buildRumor(alice, { recipients: [bob.publicKey], content: 'transfer funds' });
+    const forged = buildRumor(alice, { recipients: [bob.publicKey], content: "transfer funds" });
     const seal = signEvent(
       {
         pubkey: mallory.publicKey,
@@ -178,46 +176,44 @@ describe('unwrapping refuses forgeries', () => {
         tags: [],
         content: encryptTo(JSON.stringify(forged), mallory, bob.publicKey),
       },
-      mallory.secretKey
+      mallory.secretKey,
     );
     const wrap = wrapAs(seal, bob.publicKey);
 
     expect(unwrapGiftWrap(wrap, bob)).toBeNull();
   });
 
-  it('rejects a rumor whose id does not match its body', () => {
-    const { wraps } = wrapForRecipients(alice, { recipients: [bob.publicKey], content: 'ok' });
+  it("rejects a rumor whose id does not match its body", () => {
+    const { wraps } = wrapForRecipients(alice, { recipients: [bob.publicKey], content: "ok" });
     const forBob = wraps.find((w) => w.tags[0][1] === bob.publicKey)!;
     expect(unwrapGiftWrap(forBob, bob)).not.toBeNull();
 
-    const tampered = { ...forBob, content: forBob.content.slice(0, -4) + 'AAAA' };
+    const tampered = { ...forBob, content: forBob.content.slice(0, -4) + "AAAA" };
     expect(unwrapGiftWrap(tampered, bob)).toBeNull();
   });
 
-  it('rejects an event that is not a gift wrap at all', () => {
+  it("rejects an event that is not a gift wrap at all", () => {
     const note = signEvent(
-      { pubkey: alice.publicKey, created_at: 1, kind: 1, tags: [], content: 'public' },
-      alice.secretKey
+      { pubkey: alice.publicKey, created_at: 1, kind: 1, tags: [], content: "public" },
+      alice.secretKey,
     );
     expect(unwrapGiftWrap(note, bob)).toBeNull();
   });
 
-  it('rejects a validly signed rumor that does not address the recipient', () => {
-    const rumor = buildRumor(alice, { recipients: [carol.publicKey], content: 'not for bob' });
+  it("rejects a validly signed rumor that does not address the recipient", () => {
+    const rumor = buildRumor(alice, { recipients: [carol.publicKey], content: "not for bob" });
     const wrap = giftWrap(sealRumor(rumor, alice, bob.publicKey), bob.publicKey);
 
     expect(unwrapGiftWrap(wrap, bob)).toBeNull();
   });
 });
 
-describe('chat id', () => {
-  it('is the participant set, order-independent', () => {
-    expect(chatIdFor([alice.publicKey, bob.publicKey])).toBe(
-      chatIdFor([bob.publicKey, alice.publicKey])
-    );
+describe("chat id", () => {
+  it("is the participant set, order-independent", () => {
+    expect(chatIdFor([alice.publicKey, bob.publicKey])).toBe(chatIdFor([bob.publicKey, alice.publicKey]));
   });
 
-  it('is hex, so it is a legal chat id with no further encoding', () => {
+  it("is hex, so it is a legal chat id with no further encoding", () => {
     expect(chatIdFor([alice.publicKey])).toMatch(/^[0-9a-f]{64}$/);
   });
 
@@ -227,10 +223,10 @@ describe('chat id', () => {
     expect(pair).not.toBe(trio);
   });
 
-  it('derives the same set from either side of a group message', () => {
+  it("derives the same set from either side of a group message", () => {
     const { rumor } = wrapForRecipients(alice, {
       recipients: [bob.publicKey, carol.publicKey],
-      content: 'hi',
+      content: "hi",
     });
     expect(participantsOf(rumor)).toEqual([alice.publicKey, bob.publicKey, carol.publicKey].sort());
   });
@@ -238,7 +234,7 @@ describe('chat id', () => {
 
 function encryptTo(plaintext: string, from: typeof alice, toPublicKey: string): string {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { encrypt } = require('@/lib/nip44') as typeof import('@/lib/nip44');
+  const { encrypt } = require("@/lib/nip44") as typeof import("@/lib/nip44");
   return encrypt(plaintext, from.secretKey, toPublicKey);
 }
 
@@ -249,9 +245,9 @@ function wrapAs(seal: ReturnType<typeof signEvent>, recipientPublicKey: string) 
       pubkey: ephemeral.publicKey,
       created_at: 1,
       kind: KIND_GIFT_WRAP,
-      tags: [['p', recipientPublicKey]],
+      tags: [["p", recipientPublicKey]],
       content: encryptTo(JSON.stringify(seal), ephemeral, recipientPublicKey),
     },
-    ephemeral.secretKey
+    ephemeral.secretKey,
   );
 }

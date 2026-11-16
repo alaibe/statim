@@ -1,10 +1,10 @@
-import { bech32 } from '@scure/base';
-import { secp256k1 } from '@noble/curves/secp256k1.js';
-import { sha256 } from '@noble/hashes/sha2.js';
+import { secp256k1 } from "@noble/curves/secp256k1.js";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bech32 } from "@scure/base";
 
-import { concat, fromHex, u32le, u64le } from '@/lib/bytes';
+import { concat, fromHex, u32le, u64le } from "@/lib/bytes";
 
-import { hash160, CHAIN_PREFIX, type BitcoinChain } from './address';
+import { type BitcoinChain, CHAIN_PREFIX, hash160 } from "./address";
 
 export function hash256(bytes: Uint8Array): Uint8Array {
   return sha256(sha256(bytes));
@@ -24,28 +24,24 @@ export function varint(value: number): Uint8Array {
   return out;
 }
 
-export function scriptPubKey(address: string, chain: BitcoinChain = 'mainnet'): Uint8Array {
+export function scriptPubKey(address: string, chain: BitcoinChain = "mainnet"): Uint8Array {
   const decoded = bech32.decode(address as `${string}1${string}`);
   if (decoded.prefix !== CHAIN_PREFIX[chain]) {
     throw new Error(`"${address}" is not a ${chain} address.`);
   }
   const [version, ...data] = decoded.words;
   if (version !== 0) {
-    throw new Error('Only witness v0 addresses are supported; that looks like Taproot.');
+    throw new Error("Only witness v0 addresses are supported; that looks like Taproot.");
   }
   const program = bech32.fromWords(data);
   if (program.length !== 20 && program.length !== 32) {
-    throw new Error('That witness program is the wrong length.');
+    throw new Error("That witness program is the wrong length.");
   }
   return concat([Uint8Array.from([0x00, program.length]), program]);
 }
 
 export function scriptCode(publicKey: Uint8Array): Uint8Array {
-  return concat([
-    Uint8Array.from([0x76, 0xa9, 0x14]),
-    hash160(publicKey),
-    Uint8Array.from([0x88, 0xac]),
-  ]);
+  return concat([Uint8Array.from([0x76, 0xa9, 0x14]), hash160(publicKey), Uint8Array.from([0x88, 0xac])]);
 }
 
 export interface Utxo {
@@ -70,12 +66,7 @@ function serialiseOutput(output: TxOutput): Uint8Array {
   return concat([u64le(output.value), varint(output.script.length), output.script]);
 }
 
-export function sighash(
-  inputs: Utxo[],
-  outputs: TxOutput[],
-  index: number,
-  publicKey: Uint8Array
-): Uint8Array {
+export function sighash(inputs: Utxo[], outputs: TxOutput[], index: number, publicKey: Uint8Array): Uint8Array {
   const hashPrevouts = hash256(concat(inputs.map(outpoint)));
   const hashSequence = hash256(concat(inputs.map(() => u32le(SEQUENCE))));
   const hashOutputs = hash256(concat(outputs.map(serialiseOutput)));
@@ -94,7 +85,7 @@ export function sighash(
       hashOutputs,
       u32le(0),
       u32le(SIGHASH_ALL),
-    ])
+    ]),
   );
 }
 
@@ -102,18 +93,12 @@ export function buildTransaction(
   inputs: Utxo[],
   outputs: TxOutput[],
   privateKey: Uint8Array,
-  publicKey: Uint8Array
+  publicKey: Uint8Array,
 ): Uint8Array {
   const witnesses = inputs.map((_, index) => {
     const signature = secp256k1.sign(sighash(inputs, outputs, index, publicKey), privateKey);
     const der = concat([signature.toDERRawBytes(), Uint8Array.from([SIGHASH_ALL])]);
-    return concat([
-      Uint8Array.from([2]),
-      varint(der.length),
-      der,
-      varint(publicKey.length),
-      publicKey,
-    ]);
+    return concat([Uint8Array.from([2]), varint(der.length), der, varint(publicKey.length), publicKey]);
   });
 
   return concat([

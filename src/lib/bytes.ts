@@ -9,7 +9,7 @@ export function concat(parts: Uint8Array[]): Uint8Array {
 }
 
 export function toHex(bytes: Uint8Array): string {
-  return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 export function fromHex(hex: string): Uint8Array<ArrayBuffer> {
@@ -29,7 +29,7 @@ export function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
 }
 
 export function stripHex(hex: string): string {
-  return hex.startsWith('0x') ? hex.slice(2) : hex;
+  return hex.startsWith("0x") ? hex.slice(2) : hex;
 }
 
 export function u32le(value: number): Uint8Array {
@@ -45,7 +45,7 @@ export function u64le(value: bigint): Uint8Array {
 }
 
 export function bytesToBase64(bytes: Uint8Array): string {
-  let binary = '';
+  let binary = "";
   for (let i = 0; i < bytes.length; i += 4096) {
     binary += String.fromCharCode(...bytes.subarray(i, i + 4096));
   }

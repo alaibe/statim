@@ -1,10 +1,10 @@
-import type { Address } from 'viem';
+import type { Address } from "viem";
 
-import type { PluginContext } from '@/core/plugins/types';
-import { describeToken } from '@/lib/evm/tokens';
-import type { ListedToken } from '@/lib/evm/token-list';
+import type { PluginContext } from "@/core/plugins/types";
+import type { ListedToken } from "@/lib/evm/token-list";
+import { describeToken } from "@/lib/evm/tokens";
 
-const STORAGE_TOKENS = 'custom-tokens';
+const STORAGE_TOKENS = "custom-tokens";
 
 type Saved = Record<string, ListedToken[]>;
 
@@ -28,17 +28,14 @@ async function save(context: PluginContext, saved: Saved): Promise<void> {
   await context.storage.set(STORAGE_TOKENS, saved);
 }
 
-export async function readCustomTokens(
-  context: PluginContext,
-  chainId: number
-): Promise<ListedToken[]> {
+export async function readCustomTokens(context: PluginContext, chainId: number): Promise<ListedToken[]> {
   return (await all(context))[String(chainId)] ?? [];
 }
 
 export async function addCustomToken(
   context: PluginContext,
   chainId: number,
-  contract: Address
+  contract: Address,
 ): Promise<ListedToken | null> {
   const token = await describeToken(chainId, contract);
   if (!token) return null;
@@ -54,11 +51,7 @@ export async function addCustomToken(
   return token;
 }
 
-export async function removeCustomToken(
-  context: PluginContext,
-  chainId: number,
-  contract: Address
-): Promise<boolean> {
+export async function removeCustomToken(context: PluginContext, chainId: number, contract: Address): Promise<boolean> {
   const saved = { ...(await all(context)) };
   const onChain = saved[String(chainId)] ?? [];
   const left = onChain.filter((t) => t.address.toLowerCase() !== contract.toLowerCase());

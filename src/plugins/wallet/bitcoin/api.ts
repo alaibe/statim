@@ -1,8 +1,8 @@
-import { formatUnits } from 'viem';
+import { formatUnits } from "viem";
 
-import { HttpError } from '@/core/errors';
+import { HttpError } from "@/core/errors";
 
-export const DEFAULT_API_BASE = 'https://mempool.space/api';
+export const DEFAULT_API_BASE = "https://mempool.space/api";
 
 export interface AddressStats {
   confirmed: bigint;
@@ -16,18 +16,15 @@ interface ChainStats {
   tx_count: number;
 }
 
-export async function fetchAddressStats(
-  address: string,
-  apiBase: string = DEFAULT_API_BASE
-): Promise<AddressStats> {
+export async function fetchAddressStats(address: string, apiBase: string = DEFAULT_API_BASE): Promise<AddressStats> {
   const response = await fetch(`${apiBase}/address/${encodeURIComponent(address)}`);
 
   if (!response.ok) {
     throw new HttpError(
       response.status,
       response.status === 400
-        ? 'That does not look like a valid Bitcoin address.'
-        : `Explorer returned ${response.status}.`
+        ? "That does not look like a valid Bitcoin address."
+        : `Explorer returned ${response.status}.`,
     );
   }
 
@@ -36,10 +33,8 @@ export async function fetchAddressStats(
     mempool_stats: ChainStats;
   };
 
-  const confirmed =
-    BigInt(body.chain_stats.funded_txo_sum) - BigInt(body.chain_stats.spent_txo_sum);
-  const pending =
-    BigInt(body.mempool_stats.funded_txo_sum) - BigInt(body.mempool_stats.spent_txo_sum);
+  const confirmed = BigInt(body.chain_stats.funded_txo_sum) - BigInt(body.chain_stats.spent_txo_sum);
+  const pending = BigInt(body.mempool_stats.funded_txo_sum) - BigInt(body.mempool_stats.spent_txo_sum);
 
   return { confirmed, pending, txCount: body.chain_stats.tx_count };
 }
@@ -57,7 +52,7 @@ interface RawUtxo {
 
 export async function fetchUtxos(
   address: string,
-  apiBase: string = DEFAULT_API_BASE
+  apiBase: string = DEFAULT_API_BASE,
 ): Promise<{ txid: string; vout: number; value: bigint }[]> {
   const response = await fetch(`${apiBase}/address/${encodeURIComponent(address)}/utxo`);
   if (!response.ok) {
@@ -65,9 +60,7 @@ export async function fetchUtxos(
   }
 
   const raw = (await response.json()) as RawUtxo[];
-  return raw
-    .filter((u) => u.status.confirmed)
-    .map((u) => ({ txid: u.txid, vout: u.vout, value: BigInt(u.value) }));
+  return raw.filter((u) => u.status.confirmed).map((u) => ({ txid: u.txid, vout: u.vout, value: BigInt(u.value) }));
 }
 
 export interface FeeRates {
@@ -96,8 +89,8 @@ export async function fetchFeeRates(apiBase: string = DEFAULT_API_BASE): Promise
 
 export async function broadcast(hex: string, apiBase: string = DEFAULT_API_BASE): Promise<string> {
   const response = await fetch(`${apiBase}/tx`, {
-    method: 'POST',
-    headers: { 'content-type': 'text/plain' },
+    method: "POST",
+    headers: { "content-type": "text/plain" },
     body: hex,
   });
   const body = (await response.text()).trim();

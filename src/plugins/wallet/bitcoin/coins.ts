@@ -1,4 +1,4 @@
-import { virtualSize, type Utxo } from './transaction';
+import { type Utxo, virtualSize } from "./transaction";
 
 export const DUST_LIMIT = 294n;
 
@@ -16,11 +16,11 @@ export function planSpend(
   utxos: Utxo[],
   target: bigint,
   feeRate: number,
-  { sendMax = false }: { sendMax?: boolean } = {}
+  { sendMax = false }: { sendMax?: boolean } = {},
 ): CoinResult {
-  if (feeRate <= 0) return { ok: false, reason: 'Fee rate must be positive.' };
-  if (!sendMax && target <= 0n) return { ok: false, reason: 'That is nothing to send.' };
-  if (utxos.length === 0) return { ok: false, reason: 'Nothing to spend.' };
+  if (feeRate <= 0) return { ok: false, reason: "Fee rate must be positive." };
+  if (!sendMax && target <= 0n) return { ok: false, reason: "That is nothing to send." };
+  if (utxos.length === 0) return { ok: false, reason: "Nothing to spend." };
 
   const sorted = [...utxos].sort((a, b) => (b.value > a.value ? 1 : b.value < a.value ? -1 : 0));
   const rate = BigInt(Math.ceil(feeRate));
@@ -31,7 +31,7 @@ export function planSpend(
     const fee = BigInt(vsize) * rate;
     const send = total - fee;
     if (send < DUST_LIMIT) {
-      return { ok: false, reason: 'After the fee there would be nothing left to send.' };
+      return { ok: false, reason: "After the fee there would be nothing left to send." };
     }
     return { ok: true, plan: { inputs: sorted, send, change: null, fee, vsize } };
   }
@@ -70,5 +70,5 @@ export function planSpend(
     }
   }
 
-  return { ok: false, reason: 'Not enough bitcoin, once the fee is counted.' };
+  return { ok: false, reason: "Not enough bitcoin, once the fee is counted." };
 }

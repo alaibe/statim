@@ -1,6 +1,6 @@
-import type { Unsubscribe } from '@/core/messaging/types';
+import type { Unsubscribe } from "@/core/messaging/types";
 
-import type { Homeserver } from './homeserver';
+import type { Homeserver } from "./homeserver";
 
 const POLL_MS = 60_000;
 
@@ -25,7 +25,7 @@ export class PresenceWatcher {
 
   constructor(
     private readonly homeserver: () => Homeserver | null,
-    private readonly onChange: (userId: string) => void
+    private readonly onChange: (userId: string) => void,
   ) {}
 
   get(userId: string): Presence | undefined {
@@ -61,11 +61,11 @@ export class PresenceWatcher {
     if (!homeserver) return;
     try {
       const status = await homeserver.request<{
-        presence: 'online' | 'unavailable' | 'offline';
+        presence: "online" | "unavailable" | "offline";
         last_active_ago?: number;
         currently_active?: boolean;
-      }>('GET', `/presence/${encodeURIComponent(userId)}/status`);
-      const online = status.presence === 'online' && status.currently_active !== false;
+      }>("GET", `/presence/${encodeURIComponent(userId)}/status`);
+      const online = status.presence === "online" && status.currently_active !== false;
       const next: Presence = {
         online,
         ...(!online && status.last_active_ago !== undefined
@@ -74,8 +74,7 @@ export class PresenceWatcher {
       };
       const previous = this.known.get(userId);
       this.known.set(userId, next);
-      if (previous?.online !== next.online || previous?.lastSeenAt !== next.lastSeenAt)
-        this.onChange(userId);
+      if (previous?.online !== next.online || previous?.lastSeenAt !== next.lastSeenAt) this.onChange(userId);
     } catch {}
   }
 }

@@ -1,8 +1,8 @@
-import { Stack } from 'expo-router';
+import { Stack } from "expo-router";
 
 export default function OnboardingLayout() {
   return (
-    <Stack screenOptions={{ animation: 'slide_from_right' }}>
+    <Stack screenOptions={{ animation: "slide_from_right" }}>
       <Stack.Screen name="welcome" options={{ headerShown: false }} />
       {/*
         No header. Both screens draw their own back control, because each is

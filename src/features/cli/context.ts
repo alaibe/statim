@@ -1,23 +1,18 @@
-import { useAccountStore } from '@/core/account/account-store';
-import { useLockStore } from '@/core/account/lock-store';
-import type { AccountRecord } from '@/core/account/accounts';
-import { isLocalChat } from '@/core/messaging/bots';
-import { selfIdFor, useChatStore } from '@/core/messaging/chat-store';
-import { attachedFile } from '@/core/messaging/attachments';
-import { contentPreview } from '@/core/messaging/preview';
-import { showsInPreview } from '@/core/messaging/message-rules';
-import type { ProtocolId } from '@/core/messaging/namespace';
-import type { ChatMessage, Chat, ChatId, ParticipantId } from '@/core/messaging/types';
-import {
-  chatParticipants,
-  chatTitle,
-  displayName,
-  resolveParticipants,
-} from '@/core/messaging/display-names';
-import type { PluginHostValue } from '@/core/plugins/host';
-import type { PluginRegistry } from '@/core/plugins/registry';
-import { CliError } from './errors';
-import type { ParsedArgs } from './args';
+import { useAccountStore } from "@/core/account/account-store";
+import type { AccountRecord } from "@/core/account/accounts";
+import { useLockStore } from "@/core/account/lock-store";
+import { attachedFile } from "@/core/messaging/attachments";
+import { isLocalChat } from "@/core/messaging/bots";
+import { selfIdFor, useChatStore } from "@/core/messaging/chat-store";
+import { chatParticipants, chatTitle, displayName, resolveParticipants } from "@/core/messaging/display-names";
+import { showsInPreview } from "@/core/messaging/message-rules";
+import type { ProtocolId } from "@/core/messaging/namespace";
+import { contentPreview } from "@/core/messaging/preview";
+import type { Chat, ChatId, ChatMessage, ParticipantId } from "@/core/messaging/types";
+import type { PluginHostValue } from "@/core/plugins/host";
+import type { PluginRegistry } from "@/core/plugins/registry";
+import type { ParsedArgs } from "./args";
+import { CliError } from "./errors";
 
 export interface CliIo {
   json: boolean;
@@ -49,11 +44,7 @@ export type CliHandler = (input: ParsedArgs, env: CliEnv) => Promise<CliOutput>;
 
 type Store<S> = { getState(): S; subscribe(listener: (state: S) => void): () => void };
 
-export function waitFor<S>(
-  store: Store<S>,
-  done: (state: S) => boolean,
-  timeoutMs: number
-): Promise<boolean> {
+export function waitFor<S>(store: Store<S>, done: (state: S) => boolean, timeoutMs: number): Promise<boolean> {
   if (done(store.getState())) return Promise.resolve(true);
   return new Promise((resolve) => {
     const timer = setTimeout(() => {
@@ -71,33 +62,30 @@ export function waitFor<S>(
 
 /** Waits out startup: the lock check, then the account. */
 export async function whenSettled(): Promise<void> {
-  await waitFor(useLockStore, (s) => s.status !== 'checking', 10_000);
-  await waitFor(useAccountStore, (s) => s.status !== 'loading', 30_000);
+  await waitFor(useLockStore, (s) => s.status !== "checking", 10_000);
+  await waitFor(useAccountStore, (s) => s.status !== "loading", 30_000);
 }
 
 export async function whenUnlocked(): Promise<void> {
   await whenSettled();
-  if (useLockStore.getState().status === 'locked') {
-    throw new CliError('The app is locked. Unlock it in the window: statim open', 'unavailable');
+  if (useLockStore.getState().status === "locked") {
+    throw new CliError("The app is locked. Unlock it in the window: statim open", "unavailable");
   }
 }
 
 export async function whenAccountReady(): Promise<void> {
   await whenUnlocked();
   const accountState = useAccountStore.getState();
-  if (accountState.status === 'absent') {
-    throw new CliError(
-      'There is no account yet. Run statim accounts create, or accounts import.',
-      'unavailable'
-    );
+  if (accountState.status === "absent") {
+    throw new CliError("There is no account yet. Run statim accounts create, or accounts import.", "unavailable");
   }
-  if (accountState.status !== 'ready') {
-    throw new CliError(accountState.error ?? 'The account could not be opened.', 'unavailable');
+  if (accountState.status !== "ready") {
+    throw new CliError(accountState.error ?? "The account could not be opened.", "unavailable");
   }
   const accountId = accountState.activeAccountId;
   await waitFor(useChatStore, (s) => s.accountId === accountId, 30_000);
   if (settledFor === accountId) return;
-  await waitFor(useChatStore, (s) => s.status === 'ready' || s.status === 'error', 15_000);
+  await waitFor(useChatStore, (s) => s.status === "ready" || s.status === "error", 15_000);
   settledFor = accountId;
 }
 
@@ -110,7 +98,7 @@ let settledFor: string | null = null;
 function describeChoices(items: string[]): string {
   const shown = items.slice(0, 10).map((line) => `  ${line}`);
   if (items.length > 10) shown.push(`  …and ${items.length - 10} more`);
-  return shown.join('\n');
+  return shown.join("\n");
 }
 
 function pick<T>(
@@ -118,7 +106,7 @@ function pick<T>(
   ref: string,
   keys: (item: T) => (string | undefined)[],
   describe: (item: T) => string,
-  noun: string
+  noun: string,
 ): T {
   const wanted = ref.trim().toLowerCase();
   const exact = items.filter((item) => keys(item).some((k) => k?.toLowerCase() === wanted));
@@ -127,10 +115,10 @@ function pick<T>(
     ? exact
     : items.filter((item) => keys(item).some((k) => k?.toLowerCase().includes(wanted)));
   if (partial.length === 1) return partial[0];
-  if (partial.length === 0) throw new CliError(`No ${noun} matches "${ref}".`, 'notFound');
+  if (partial.length === 0) throw new CliError(`No ${noun} matches "${ref}".`, "notFound");
   throw new CliError(
     `"${ref}" matches ${partial.length} ${noun}s. Use the id:\n${describeChoices(partial.map(describe))}`,
-    'notFound'
+    "notFound",
   );
 }
 
@@ -156,8 +144,7 @@ async function participants(protocol: ProtocolId, ids: ParticipantId[]) {
   const missing = [...new Set(ids)].filter((id) => !participantCache.has(key(id)));
   if (missing.length && useChatStore.getState().sessions[protocol]) {
     const { names, addresses } = await resolveParticipants(protocol, missing);
-    for (const id of missing)
-      participantCache.set(key(id), { name: names[id], address: addresses[id] });
+    for (const id of missing) participantCache.set(key(id), { name: names[id], address: addresses[id] });
   }
   const own = (await namingRegistry?.participantNames().catch(() => undefined)) ?? {};
   return (id: ParticipantId) => {
@@ -175,7 +162,7 @@ export async function chatLabels(chats: readonly Chat[]): Promise<Map<ChatId, Ch
   const byProtocol = new Map<ProtocolId, Chat[]>();
   const out = new Map<ChatId, ChatLabel>();
   for (const chat of chats) {
-    if (chat.kind === 'dm' && !isLocalChat(chat.id)) {
+    if (chat.kind === "dm" && !isLocalChat(chat.id)) {
       byProtocol.set(chat.protocol, [...(byProtocol.get(chat.protocol) ?? []), chat]);
     } else {
       out.set(chat.id, { title: chat.title });
@@ -191,7 +178,7 @@ export async function chatLabels(chats: readonly Chat[]): Promise<Map<ChatId, Ch
         const title = chatTitle(chat, self, (id) => lookup(id).name);
         out.set(chat.id, { title, participant, address: lookup(participant).address });
       }
-    })
+    }),
   );
   return out;
 }
@@ -213,7 +200,7 @@ export async function findChat(ref: string): Promise<FoundChat> {
     ref,
     (c) => [c.label, c.title, c.participant, c.address],
     (c) => `${c.id}  ${c.label}`,
-    'chat'
+    "chat",
   );
 }
 
@@ -233,7 +220,7 @@ export function findAccount(ref: string): AccountRecord {
     ref,
     (a) => [a.id, a.label, a.address],
     (a) => `${a.id}  ${a.label}  ${a.address}`,
-    'account'
+    "account",
   );
 }
 
@@ -245,9 +232,9 @@ export async function loadedMessages(chatId: ChatId): Promise<readonly ChatMessa
 
 export async function findMessage(chatId: ChatId, ref: string): Promise<ChatMessage> {
   let messages = await loadedMessages(chatId);
-  if (ref === 'last') {
+  if (ref === "last") {
     const last = messages.findLast(showsInPreview);
-    if (!last) throw new CliError('That chat has no messages.', 'notFound');
+    if (!last) throw new CliError("That chat has no messages.", "notFound");
     return last;
   }
   for (let page = 0; page < 10; page++) {
@@ -260,7 +247,7 @@ export async function findMessage(chatId: ChatId, ref: string): Promise<ChatMess
     if (next.length === messages.length) break;
     messages = next;
   }
-  throw new CliError(`No message "${ref}" in ${chatId}.`, 'notFound');
+  throw new CliError(`No message "${ref}" in ${chatId}.`, "notFound");
 }
 
 function uniquePrefix(messages: readonly ChatMessage[], ref: string): ChatMessage | undefined {
@@ -269,10 +256,7 @@ function uniquePrefix(messages: readonly ChatMessage[], ref: string): ChatMessag
   return matches.length === 1 ? matches[0] : undefined;
 }
 
-export async function displayNames(
-  protocol: ProtocolId,
-  ids: ParticipantId[]
-): Promise<Record<ParticipantId, string>> {
+export async function displayNames(protocol: ProtocolId, ids: ParticipantId[]): Promise<Record<ParticipantId, string>> {
   if (ids.length === 0) return {};
   const lookup = await participants(protocol, [...new Set(ids)]);
   return Object.fromEntries(ids.map((id) => [id, lookup(id).name]));
@@ -285,13 +269,13 @@ export function messageJson(m: ChatMessage, names: Record<ParticipantId, string>
   return {
     id: m.id,
     chat: m.chatId,
-    from: m.fromMe ? 'me' : m.senderId,
-    fromName: m.fromMe ? 'You' : (names[m.senderId] ?? m.senderId),
+    from: m.fromMe ? "me" : m.senderId,
+    fromName: m.fromMe ? "You" : (names[m.senderId] ?? m.senderId),
     sentAt: new Date(m.sentAt).toISOString(),
     kind: c.kind,
-    text: c.kind === 'text' ? c.text : contentPreview(c),
+    text: c.kind === "text" ? c.text : contentPreview(c),
     ...(attachment ? { attachment } : {}),
-    ...(c.kind === 'poll'
+    ...(c.kind === "poll"
       ? {
           poll: {
             question: c.question,
@@ -312,20 +296,20 @@ export function messageJson(m: ChatMessage, names: Record<ParticipantId, string>
 
 export function messageLine(m: ChatMessage, names: Record<ParticipantId, string> = {}): string {
   const when = new Date(m.sentAt).toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
-  const who = m.fromMe ? 'You' : (names[m.senderId] ?? m.senderId);
-  const body = m.content.kind === 'text' ? m.content.text : contentPreview(m.content);
-  const marks = [m.edited ? 'edited' : '', m.status === 'failed' ? 'failed' : '']
+  const who = m.fromMe ? "You" : (names[m.senderId] ?? m.senderId);
+  const body = m.content.kind === "text" ? m.content.text : contentPreview(m.content);
+  const marks = [m.edited ? "edited" : "", m.status === "failed" ? "failed" : ""]
     .filter(Boolean)
     .map((mark) => ` (${mark})`)
-    .join('');
+    .join("");
   return `${when}  ${who}: ${body}${marks}  [${m.id}]`;
 }
 
 export async function approveOrThrow(io: CliIo, request: string): Promise<void> {
-  if (!(await io.approve(request))) throw new CliError('Declined in the app.', 'declined');
+  if (!(await io.approve(request))) throw new CliError("Declined in the app.", "declined");
 }

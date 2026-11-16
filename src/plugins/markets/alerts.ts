@@ -1,9 +1,9 @@
-import { displaySymbol, formatPrice, normaliseSymbol } from './api';
+import { displaySymbol, formatPrice, normaliseSymbol } from "./api";
 
 interface ThresholdAlert {
   id: string;
   symbol: string;
-  kind: 'above' | 'below';
+  kind: "above" | "below";
   price: number;
   createdAt: number;
 }
@@ -11,7 +11,7 @@ interface ThresholdAlert {
 interface MoveAlert {
   id: string;
   symbol: string;
-  kind: 'move';
+  kind: "move";
   percent: number;
   from: number;
   createdAt: number;
@@ -20,13 +20,13 @@ interface MoveAlert {
 export type MarketAlert = ThresholdAlert | MoveAlert;
 
 type AlertSpec =
-  | { kind: 'above' | 'below'; symbol: string; price: number }
-  | { kind: 'move'; symbol: string; percent: number };
+  | { kind: "above" | "below"; symbol: string; price: number }
+  | { kind: "move"; symbol: string; percent: number };
 
 export function parseAlert(args: string[]): AlertSpec | { error: string } {
   const [rawSymbol, ...rest] = args;
   if (!rawSymbol) {
-    return { error: 'Which market? /alert btc above 100000, or /alert btc 5%' };
+    return { error: "Which market? /alert btc above 100000, or /alert btc 5%" };
   }
 
   const symbol = normaliseSymbol(rawSymbol);
@@ -34,18 +34,18 @@ export function parseAlert(args: string[]): AlertSpec | { error: string } {
 
   const percent = rest.length === 1 ? parsePercent(rest[0]) : null;
   if (percent !== null) {
-    if (percent <= 0) return { error: 'A move alert needs a percentage above zero.' };
-    return { kind: 'move', symbol, percent };
+    if (percent <= 0) return { error: "A move alert needs a percentage above zero." };
+    return { kind: "move", symbol, percent };
   }
 
   const direction = parseDirection(rest[0]);
   if (!direction) {
     return {
-      error: 'Say which way: /alert btc above 100000, /alert btc below 80000, or /alert btc 5%',
+      error: "Say which way: /alert btc above 100000, /alert btc below 80000, or /alert btc 5%",
     };
   }
 
-  const price = Number(rest[1]?.replace(/[,_]/g, ''));
+  const price = Number(rest[1]?.replace(/[,_]/g, ""));
   if (!Number.isFinite(price) || price <= 0) {
     return { error: `Give me a price: /alert ${rawSymbol} ${direction} 100000` };
   }
@@ -53,16 +53,16 @@ export function parseAlert(args: string[]): AlertSpec | { error: string } {
   return { kind: direction, symbol, price };
 }
 
-function parseDirection(value: string | undefined): 'above' | 'below' | null {
+function parseDirection(value: string | undefined): "above" | "below" | null {
   switch (value?.toLowerCase()) {
-    case 'above':
-    case 'over':
-    case '>':
-      return 'above';
-    case 'below':
-    case 'under':
-    case '<':
-      return 'below';
+    case "above":
+    case "over":
+    case ">":
+      return "above";
+    case "below":
+    case "under":
+    case "<":
+      return "below";
     default:
       return null;
   }
@@ -75,8 +75,8 @@ function parsePercent(value: string): number | null {
 
 export function toAlert(spec: AlertSpec, price: number, now: number): MarketAlert {
   const id = `${spec.symbol}:${now.toString(36)}`;
-  return spec.kind === 'move'
-    ? { id, symbol: spec.symbol, kind: 'move', percent: spec.percent, from: price, createdAt: now }
+  return spec.kind === "move"
+    ? { id, symbol: spec.symbol, kind: "move", percent: spec.percent, from: price, createdAt: now }
     : { id, symbol: spec.symbol, kind: spec.kind, price: spec.price, createdAt: now };
 }
 
@@ -100,11 +100,11 @@ export function firedAlerts(alerts: MarketAlert[], prices: Record<string, number
 
 function hasFired(alert: MarketAlert, price: number): boolean {
   switch (alert.kind) {
-    case 'above':
+    case "above":
       return price >= alert.price;
-    case 'below':
+    case "below":
       return price <= alert.price;
-    case 'move':
+    case "move":
       return alert.from > 0 && (Math.abs(price - alert.from) / alert.from) * 100 >= alert.percent;
   }
 }
@@ -115,13 +115,13 @@ export function afterFiring(alerts: MarketAlert[], fired: FiredAlert[]): MarketA
   return alerts.flatMap((alert) => {
     const price = byId.get(alert.id);
     if (price === undefined) return [alert];
-    return alert.kind === 'move' ? [{ ...alert, from: price }] : [];
+    return alert.kind === "move" ? [{ ...alert, from: price }] : [];
   });
 }
 
 export function describeAlert(alert: MarketAlert): string {
   const market = displaySymbol(alert.symbol);
-  return alert.kind === 'move'
+  return alert.kind === "move"
     ? `${market} moves ${alert.percent}% from ${formatPrice(alert.from)}`
     : `${market} ${alert.kind} ${formatPrice(alert.price)}`;
 }

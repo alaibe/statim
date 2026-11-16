@@ -1,31 +1,23 @@
-import {
-  useEffect,
-  useEffectEvent,
-  useImperativeHandle,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
+import { useEffect, useEffectEvent, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 
-import { htmlToMarkdown } from '@/core/messaging/html-markdown';
-import { markdownHtml } from '@/core/messaging/markdown';
+import { htmlToMarkdown } from "@/core/messaging/html-markdown";
+import { markdownHtml } from "@/core/messaging/markdown";
+import { htmlWithBreaks } from "./composer-html";
+import type { ComposerInputProps } from "./composer-input";
+import { isCommand, typedEmoji } from "./typed-emoji";
 
-import type { ComposerInputProps } from './composer-input';
-import { htmlWithBreaks } from './composer-html';
-import { isCommand, typedEmoji } from './typed-emoji';
+export type { ComposerInputHandle, ComposerInputProps } from "./composer-input";
 
-export type { ComposerInputHandle, ComposerInputProps } from './composer-input';
+const ZERO_WIDTH = "​";
 
-const ZERO_WIDTH = '​';
-
-const SHORTCUTS: Record<string, string> = { b: 'bold', i: 'italic', x: 'strikeThrough' };
+const SHORTCUTS: Record<string, string> = { b: "bold", i: "italic", x: "strikeThrough" };
 
 /** Closing a Markdown pair while typing turns it into the formatting it stands for. */
 const TYPED: [RegExp, string][] = [
-  [/(\*\*|__)(\S(?:.*?\S)?)\1$/, 'strong'],
-  [/(?<![*\w])([*_])([^*_\s](?:[^*_]*[^*_\s])?)\1$/, 'em'],
-  [/(~~?)([^~\s](?:[^~]*[^~\s])?)\1$/, 's'],
-  [/`([^`]+)`$/, 'code'],
+  [/(\*\*|__)(\S(?:.*?\S)?)\1$/, "strong"],
+  [/(?<![*\w])([*_])([^*_\s](?:[^*_]*[^*_\s])?)\1$/, "em"],
+  [/(~~?)([^~\s](?:[^~]*[^~\s])?)\1$/, "s"],
+  [/`([^`]+)`$/, "code"],
 ];
 
 const STYLE = `
@@ -70,25 +62,23 @@ export function ComposerInput({
     if (document.activeElement === el) focusAtEnd(el);
   }, [value]);
 
-  const emit = (suffix = '') => {
+  const emit = (suffix = "") => {
     const el = field.current;
     if (!el) return;
-    const plain = el.innerText.replace(/​/g, '');
+    const plain = el.innerText.replace(/​/g, "");
     // Commands take their arguments as typed, so they skip the formatting.
-    const text = plain.trimStart().startsWith('/')
-      ? plain.replace(/\n$/, '')
-      : htmlToMarkdown(htmlWithBreaks(el));
+    const text = plain.trimStart().startsWith("/") ? plain.replace(/\n$/, "") : htmlToMarkdown(htmlWithBreaks(el));
     shown.current = text;
     onChangeText(text + suffix);
   };
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.nativeEvent.isComposing) return;
-    if (event.key === 'Enter') {
+    if (event.key === "Enter") {
       event.preventDefault();
       if (event.shiftKey) {
-        applyTypedEmoji('\n');
-        document.execCommand('insertLineBreak');
+        applyTypedEmoji("\n");
+        document.execCommand("insertLineBreak");
         emit();
       } else {
         onSubmit();
@@ -96,23 +86,23 @@ export function ComposerInput({
       return;
     }
     const modified = event.metaKey || event.ctrlKey || event.altKey || event.shiftKey;
-    if (event.key === 'ArrowUp' && !modified && onEditLast) {
+    if (event.key === "ArrowUp" && !modified && onEditLast) {
       event.preventDefault();
       onEditLast();
       return;
     }
-    if (event.key === 'Tab' && !event.shiftKey) {
+    if (event.key === "Tab" && !event.shiftKey) {
       event.preventDefault();
-      emit('\t');
+      emit("\t");
       return;
     }
     if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
     const key = event.key.toLowerCase();
-    if (key === 'e') {
+    if (key === "e") {
       event.preventDefault();
-      wrapSelection('code');
+      wrapSelection("code");
       emit();
-    } else if (SHORTCUTS[key] && (key === 'x') === event.shiftKey) {
+    } else if (SHORTCUTS[key] && (key === "x") === event.shiftKey) {
       event.preventDefault();
       document.execCommand(SHORTCUTS[key]);
       emit();
@@ -121,13 +111,13 @@ export function ComposerInput({
 
   const onInput = (event: React.FormEvent<HTMLDivElement>) => {
     const input = event.nativeEvent as InputEvent;
-    if (input.inputType === 'insertText' && input.data && '*_~`'.includes(input.data)) {
+    if (input.inputType === "insertText" && input.data && "*_~`".includes(input.data)) {
       applyTypedMarkdown();
-    } else if (input.inputType === 'insertText' && input.data && /^(:|\s)$/.test(input.data)) {
+    } else if (input.inputType === "insertText" && input.data && /^(:|\s)$/.test(input.data)) {
       applyTypedEmoji();
     }
     const el = field.current;
-    if (el && el.innerText.trim() === '' && el.innerHTML !== '') el.innerHTML = '';
+    if (el && el.innerText.trim() === "" && el.innerHTML !== "") el.innerHTML = "";
     emit();
   };
 
@@ -139,35 +129,35 @@ export function ComposerInput({
       return;
     }
     event.clipboardData
-      .getData('text/plain')
+      .getData("text/plain")
       .split(/\r?\n/)
       .forEach((line, i) => {
-        if (i > 0) document.execCommand('insertLineBreak');
-        if (line) document.execCommand('insertText', false, line);
+        if (i > 0) document.execCommand("insertLineBreak");
+        if (line) document.execCommand("insertText", false, line);
       });
   };
 
   const dragging = useWindowFileDrop(onFile);
 
   return (
-    <div
-      style={{ position: 'relative', display: 'grid', flex: 1, minWidth: 0, alignSelf: 'center' }}>
+    <div style={{ position: "relative", display: "grid", flex: 1, minWidth: 0, alignSelf: "center" }}>
       <style>{STYLE}</style>
       {dragging ? <DropZone /> : null}
-      {value === '' ? (
+      {value === "" ? (
         <div
           aria-hidden
           style={{
-            gridArea: '1 / 1',
+            gridArea: "1 / 1",
             maxHeight: 128,
-            overflow: 'hidden',
-            overflowWrap: 'anywhere',
-            whiteSpace: 'pre-wrap',
-            padding: '10px 4px 10px 0',
+            overflow: "hidden",
+            overflowWrap: "anywhere",
+            whiteSpace: "pre-wrap",
+            padding: "10px 4px 10px 0",
             color: placeholderColor,
-            pointerEvents: 'none',
+            pointerEvents: "none",
           }}
-          className="text-body">
+          className="text-body"
+        >
           {placeholder}
         </div>
       ) : null}
@@ -184,11 +174,11 @@ export function ComposerInput({
         onPaste={onPaste}
         className="composer-rich text-body text-content"
         style={{
-          gridArea: '1 / 1',
+          gridArea: "1 / 1",
           maxHeight: 128,
           minHeight: 22,
-          overflowY: 'auto',
-          padding: '10px 4px 10px 0',
+          overflowY: "auto",
+          padding: "10px 4px 10px 0",
         }}
       />
     </div>
@@ -200,18 +190,19 @@ function DropZone() {
     <div
       aria-hidden
       style={{
-        position: 'fixed',
+        position: "fixed",
         inset: 8,
         zIndex: 50,
-        pointerEvents: 'none',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        pointerEvents: "none",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         borderRadius: 20,
-        border: '2px dashed rgb(var(--color-brand))',
-        background: 'rgb(var(--color-canvas) / 0.85)',
-      }}>
-      <div className="text-title font-semibold" style={{ color: 'rgb(var(--color-brand))' }}>
+        border: "2px dashed rgb(var(--color-brand))",
+        background: "rgb(var(--color-canvas) / 0.85)",
+      }}
+    >
+      <div className="text-title font-semibold" style={{ color: "rgb(var(--color-brand))" }}>
         Drop to send
       </div>
     </div>
@@ -221,11 +212,7 @@ function DropZone() {
 function toHtml(markdown: string): string {
   return (
     markdownHtml(markdown) ??
-    markdown
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/\n/g, '<br>')
+    markdown.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>")
   );
 }
 
@@ -267,7 +254,7 @@ function applyTypedMarkdown() {
   const node = selection?.anchorNode;
   if (!selection?.isCollapsed || !node || node.nodeType !== Node.TEXT_NODE) return;
   const offset = selection.anchorOffset;
-  const before = (node.textContent ?? '').slice(0, offset);
+  const before = (node.textContent ?? "").slice(0, offset);
 
   for (const [pattern, tag] of TYPED) {
     const match = pattern.exec(before);
@@ -286,16 +273,16 @@ function applyTypedMarkdown() {
 }
 
 /** Replaces the emoticon or shortcode the caret has just closed, or that `closing` is about to. */
-function applyTypedEmoji(closing = '') {
+function applyTypedEmoji(closing = "") {
   const selection = window.getSelection();
   const node = selection?.anchorNode;
   if (!selection?.isCollapsed || !node || node.nodeType !== Node.TEXT_NODE) return;
-  const field = node.parentElement?.closest('.composer-rich');
-  if (!field || node.parentElement?.closest('code, pre') || isCommand(field.textContent ?? '')) {
+  const field = node.parentElement?.closest(".composer-rich");
+  if (!field || node.parentElement?.closest("code, pre") || isCommand(field.textContent ?? "")) {
     return;
   }
   const offset = selection.anchorOffset;
-  const found = typedEmoji((node.textContent ?? '').slice(0, offset) + closing);
+  const found = typedEmoji((node.textContent ?? "").slice(0, offset) + closing);
   if (!found) return;
   (node as Text).replaceData(found.from, found.to - found.from, found.emoji);
   selection.collapse(node, offset - (found.to - found.from) + found.emoji.length);
@@ -305,8 +292,7 @@ function applyTypedEmoji(closing = '') {
 function useWindowFileDrop(onFile: ((file: File) => void) | undefined): boolean {
   const [dragging, setDragging] = useState(false);
   const depth = useRef(0);
-  const carriesFiles = (event: DragEvent) =>
-    Boolean(onFile && event.dataTransfer?.types.includes('Files'));
+  const carriesFiles = (event: DragEvent) => Boolean(onFile && event.dataTransfer?.types.includes("Files"));
   const onDragEnter = useEffectEvent((event: DragEvent) => {
     if (!carriesFiles(event)) return;
     depth.current += 1;

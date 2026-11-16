@@ -1,4 +1,4 @@
-import { disable, enable, isEnabled } from '@tauri-apps/plugin-autostart';
+import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
 
 export function opensAtLogin(): Promise<boolean> {
   return isEnabled();

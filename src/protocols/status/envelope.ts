@@ -2,11 +2,11 @@
  * The layers between a Waku message and an application message, in the order
  * status-go peels them: payload codec, segments, encryption, data sync (MVDS).
  */
-import { bytesToNumberBE } from '@noble/curves/utils';
-import { sha256 } from '@noble/hashes/sha2';
-import { utf8ToBytes } from '@noble/hashes/utils';
+import { bytesToNumberBE } from "@noble/curves/utils";
+import { sha256 } from "@noble/hashes/sha2";
+import { utf8ToBytes } from "@noble/hashes/utils";
 
-import { concat, toHex, u64le } from '@/lib/bytes';
+import { concat, toHex, u64le } from "@/lib/bytes";
 
 import {
   compressPublicKey,
@@ -19,7 +19,7 @@ import {
   recoverPublicKey,
   sharedSecret,
   sign,
-} from './crypto';
+} from "./crypto";
 import {
   decodeApplicationMessage,
   decodeMvds,
@@ -27,13 +27,13 @@ import {
   encodeApplicationMessage,
   encodeProtocolMessage,
   type MvdsMessage,
-} from './messages';
-import { decodePayload, encodePayload } from './payload';
-import type { Ratchets } from './ratchet';
-import { segment } from './segments';
+} from "./messages";
+import { decodePayload, encodePayload } from "./payload";
+import type { Ratchets } from "./ratchet";
+import { segment } from "./segments";
 
 /** The installation id status-go encrypts to when it knows none of the recipient's devices. */
-export const ANY_INSTALLATION = 'none';
+export const ANY_INSTALLATION = "none";
 
 export interface Keys {
   privateKey: Uint8Array;
@@ -61,21 +61,10 @@ export function oneToOneGroupId(a: Uint8Array, b: Uint8Array): Uint8Array {
 }
 
 export function syncMessageId(message: MvdsMessage): Uint8Array {
-  return sha256(
-    concat([
-      utf8ToBytes('MESSAGE_ID'),
-      message.groupId,
-      u64le(BigInt(message.timestamp)),
-      message.body,
-    ])
-  );
+  return sha256(concat([utf8ToBytes("MESSAGE_ID"), message.groupId, u64le(BigInt(message.timestamp)), message.body]));
 }
 
-export function wrapApplication(
-  type: number,
-  payload: Uint8Array,
-  signer: Keys
-): { bytes: Uint8Array; id: string } {
+export function wrapApplication(type: number, payload: Uint8Array, signer: Keys): { bytes: Uint8Array; id: string } {
   const bytes = encodeApplicationMessage({
     signature: sign(keccak256(payload), signer.privateKey),
     payload,
@@ -109,7 +98,7 @@ export function syncRecord(
   sender: Uint8Array,
   recipient: Uint8Array,
   body: Uint8Array,
-  timestamp: number
+  timestamp: number,
 ): MvdsMessage {
   return { groupId: oneToOneGroupId(sender, recipient), timestamp, body };
 }
@@ -120,7 +109,7 @@ export function sealEnvelope(
   installationId: string,
   recipient: Uint8Array,
   plaintext: Uint8Array,
-  bundle?: Uint8Array
+  bundle?: Uint8Array,
 ): Uint8Array[] {
   const ephemeral = randomPrivateKey();
   const protocolMessage = encodeProtocolMessage({
@@ -136,9 +125,7 @@ export function sealEnvelope(
       ],
     ]),
   });
-  return segment(protocolMessage).map((part) =>
-    encodePayload(part, { recipient }, sender.privateKey)
-  );
+  return segment(protocolMessage).map((part) => encodePayload(part, { recipient }, sender.privateKey));
 }
 
 function decrypt(
@@ -146,7 +133,7 @@ function decrypt(
   installationId: string,
   signer: Uint8Array,
   data: Uint8Array,
-  ratchets?: Ratchets
+  ratchets?: Ratchets,
 ): Uint8Array | null {
   let message: ReturnType<typeof decodeProtocolMessage>;
   try {
@@ -162,10 +149,7 @@ function decrypt(
   if (entry.ratchet) return ratchets?.decrypt(signer, message.installationId, entry) ?? null;
   if (!entry.dhKey) return null;
   try {
-    return decryptSymmetric(
-      sharedSecret(identity.privateKey, decompressPublicKey(entry.dhKey)),
-      entry.payload
-    );
+    return decryptSymmetric(sharedSecret(identity.privateKey, decompressPublicKey(entry.dhKey)), entry.payload);
   } catch {
     return null;
   }
@@ -177,7 +161,7 @@ export function openData(
   installationId: string,
   signer: Uint8Array,
   data: Uint8Array,
-  ratchets?: Ratchets
+  ratchets?: Ratchets,
 ): OpenedEnvelope | null {
   const plaintext = decrypt(identity, installationId, signer, data, ratchets);
   if (!plaintext) return null;
@@ -199,7 +183,7 @@ export function openEnvelope(
   identity: Keys,
   installationId: string,
   payload: Uint8Array,
-  ratchets?: Ratchets
+  ratchets?: Ratchets,
 ): OpenedEnvelope | null {
   const decoded = decodePayload(payload, { privateKey: identity.privateKey });
   return decoded && openData(identity, installationId, decoded.signer, decoded.data, ratchets);

@@ -1,18 +1,18 @@
-import { mentionIdOf } from '@/core/messaging/mentions';
-import { markdownHtml, mentionedIds, plainText } from '@/core/messaging/markdown';
-import type { MessageContent } from '@/core/messaging/types';
-import { pathOfFileUri } from '@/storage/media';
+import { markdownHtml, mentionedIds, plainText } from "@/core/messaging/markdown";
+import { mentionIdOf } from "@/core/messaging/mentions";
+import type { MessageContent } from "@/core/messaging/types";
+import { pathOfFileUri } from "@/storage/media";
 
-import type { MxOutgoing, MxTextOutgoing } from './api';
-import { permalink, USER_ID } from './ids';
+import type { MxOutgoing, MxTextOutgoing } from "./api";
+import { permalink, USER_ID } from "./ids";
 
 export function outgoing(content: MessageContent): MxOutgoing {
   switch (content.kind) {
-    case 'text':
+    case "text":
       return textOutgoing(content.text);
-    case 'image':
+    case "image":
       return {
-        kind: 'image',
+        kind: "image",
         path: pathOfFileUri(content.uri),
         mimeType: content.mimeType,
         width: content.width,
@@ -20,17 +20,17 @@ export function outgoing(content: MessageContent): MxOutgoing {
         size: content.size,
         caption: content.caption,
       };
-    case 'file':
+    case "file":
       return {
-        kind: 'file',
+        kind: "file",
         path: pathOfFileUri(content.uri),
         name: content.name,
         mimeType: content.mimeType,
         size: content.size,
       };
-    case 'video':
+    case "video":
       return {
-        kind: 'video',
+        kind: "video",
         path: pathOfFileUri(content.uri),
         mimeType: content.mimeType,
         width: content.width,
@@ -39,19 +39,19 @@ export function outgoing(content: MessageContent): MxOutgoing {
         size: content.size,
         caption: content.caption,
       };
-    case 'voice':
+    case "voice":
       return {
-        kind: 'voice',
+        kind: "voice",
         path: pathOfFileUri(content.uri),
         durationMs: content.durationMs,
         mimeType: content.mimeType,
         size: content.size,
       };
-    case 'sticker':
+    case "sticker":
       return {
-        kind: 'sticker',
+        kind: "sticker",
         path: pathOfFileUri(content.uri),
-        body: content.emoji || 'Sticker',
+        body: content.emoji || "Sticker",
         mimeType: content.mimeType,
         width: content.width,
         height: content.height,
@@ -72,12 +72,12 @@ export function textOutgoing(text: string): MxTextOutgoing {
     ...new Set([
       ...mentionedIds(text).filter((id) => USER_ID.test(id)),
       ...[...body.matchAll(/(?:^|[^\w@])(@[^:\s]+:[^\s,;!?]+)/g)]
-        .map((match) => match[1].replace(/[.)\]]+$/, ''))
+        .map((match) => match[1].replace(/[.)\]]+$/, ""))
         .filter((id) => USER_ID.test(id)),
     ]),
   ];
   return {
-    kind: 'text',
+    kind: "text",
     body,
     ...(html ? { html } : {}),
     ...(mentions.length ? { mentions } : {}),

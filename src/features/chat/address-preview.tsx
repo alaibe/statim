@@ -1,7 +1,7 @@
-import type { ChatId } from '@/core/messaging/types';
+import type { ChatId } from "@/core/messaging/types";
 
-import { PluginPreview } from './plugin-preview';
-import { useOffersSend } from './use-offers-send';
+import { PluginPreview } from "./plugin-preview";
+import { useOffersSend } from "./use-offers-send";
 
 /** The wallet's card for an address or name; nothing when the wallet is off. */
 export function AddressPreview({
@@ -14,12 +14,6 @@ export function AddressPreview({
   onCommand?: (command: string) => void;
 }) {
   const canSend = useOffersSend(chatId, onCommand);
-  const args = canSend ? [value] : [value, 'no-send'];
-  return (
-    <PluginPreview
-      live={{ pluginId: 'wallet', view: 'address', args }}
-      once
-      onCommand={onCommand}
-    />
-  );
+  const args = canSend ? [value] : [value, "no-send"];
+  return <PluginPreview live={{ pluginId: "wallet", view: "address", args }} once onCommand={onCommand} />;
 }

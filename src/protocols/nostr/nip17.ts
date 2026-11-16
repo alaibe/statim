@@ -9,22 +9,12 @@
  * enforcement, or deniable delivery: relays still see one wrap per
  * recipient, so a chat's size leaks.
  */
-import { sha256 } from '@noble/hashes/sha2';
-import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils';
-
-import {
-  nowSeconds,
-  signEvent,
-  tagValues,
-  verifyEvent,
-  withId,
-  type NostrEvent,
-  type Rumor,
-  type Tag,
-} from './events';
-import { ephemeralKeys, type NostrKeys } from './keys';
-import { decrypt, encrypt } from '@/lib/nip44';
-import { randomInt } from '@/lib/random';
+import { sha256 } from "@noble/hashes/sha2";
+import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils";
+import { decrypt, encrypt } from "@/lib/nip44";
+import { randomInt } from "@/lib/random";
+import { type NostrEvent, nowSeconds, type Rumor, signEvent, type Tag, tagValues, verifyEvent, withId } from "./events";
+import { ephemeralKeys, type NostrKeys } from "./keys";
 
 export const KIND_DM = 14;
 export const KIND_REACTION = 7;
@@ -51,8 +41,8 @@ interface DirectMessage {
 }
 
 export function buildRumor(sender: NostrKeys, message: DirectMessage): Rumor {
-  const tags: Tag[] = message.recipients.map((pubkey) => ['p', pubkey]);
-  if (message.subject) tags.push(['subject', message.subject]);
+  const tags: Tag[] = message.recipients.map((pubkey) => ["p", pubkey]);
+  if (message.subject) tags.push(["subject", message.subject]);
   if (message.tags) tags.push(...message.tags);
 
   return withId({
@@ -73,7 +63,7 @@ export function sealRumor(rumor: Rumor, sender: NostrKeys, recipientPubkey: stri
       tags: [],
       content: encrypt(JSON.stringify(rumor), sender.secretKey, recipientPubkey),
     },
-    sender.secretKey
+    sender.secretKey,
   );
 }
 
@@ -84,17 +74,14 @@ export function giftWrap(seal: NostrEvent, recipientPubkey: string): NostrEvent 
       pubkey: ephemeral.publicKey,
       created_at: jitteredTimestamp(),
       kind: KIND_GIFT_WRAP,
-      tags: [['p', recipientPubkey]],
+      tags: [["p", recipientPubkey]],
       content: encrypt(JSON.stringify(seal), ephemeral.secretKey, recipientPubkey),
     },
-    ephemeral.secretKey
+    ephemeral.secretKey,
   );
 }
 
-export function wrapForRecipients(
-  sender: NostrKeys,
-  message: DirectMessage
-): { rumor: Rumor; wraps: NostrEvent[] } {
+export function wrapForRecipients(sender: NostrKeys, message: DirectMessage): { rumor: Rumor; wraps: NostrEvent[] } {
   const rumor = buildRumor(sender, message);
   const audience = [...new Set([...message.recipients, sender.publicKey])];
 
@@ -118,10 +105,7 @@ export function unwrapGiftWrap(wrap: NostrEvent, recipient: NostrKeys): Rumor | 
     if (!CHAT_KINDS.has(rumor.kind)) return null;
     if (rumor.pubkey !== seal.pubkey) return null;
     if (withId(rumor).id !== rumor.id) return null;
-    if (
-      rumor.pubkey !== recipient.publicKey &&
-      !tagValues(rumor, 'p').includes(recipient.publicKey)
-    ) {
+    if (rumor.pubkey !== recipient.publicKey && !tagValues(rumor, "p").includes(recipient.publicKey)) {
       return null;
     }
 
@@ -133,9 +117,9 @@ export function unwrapGiftWrap(wrap: NostrEvent, recipient: NostrKeys): Rumor | 
 
 export function chatIdFor(participants: string[]): string {
   const sorted = [...new Set(participants)].sort();
-  return bytesToHex(sha256(utf8ToBytes(sorted.join(','))));
+  return bytesToHex(sha256(utf8ToBytes(sorted.join(","))));
 }
 
 export function participantsOf(rumor: Rumor): string[] {
-  return [...new Set([rumor.pubkey, ...tagValues(rumor, 'p')])].sort();
+  return [...new Set([rumor.pubkey, ...tagValues(rumor, "p")])].sort();
 }

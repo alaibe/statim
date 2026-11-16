@@ -1,6 +1,8 @@
-import { useState } from 'react';
-import { View } from 'react-native';
-
+import { useState } from "react";
+import { View } from "react-native";
+import { useChatStore } from "@/core/messaging/chat-store";
+import type { GroupInfo } from "@/core/messaging/protocol";
+import type { ChatId, ParticipantId } from "@/core/messaging/types";
 import {
   ActionSheet,
   Card,
@@ -14,25 +16,20 @@ import {
   Section,
   Text,
   toast,
-} from '@/design';
-import { useChatStore } from '@/core/messaging/chat-store';
-import type { GroupInfo } from '@/core/messaging/protocol';
-import type { ChatId, ParticipantId } from '@/core/messaging/types';
-
-import { useKeyedLoad } from '@/lib/use-keyed-load';
-
-import { useAction } from '@/features/use-action';
-import { useChatPermissions } from './use-chat-permissions';
+} from "@/design";
+import { useAction } from "@/features/use-action";
+import { useKeyedLoad } from "@/lib/use-keyed-load";
+import { useChatPermissions } from "./use-chat-permissions";
 
 const SLOW_MODE: { seconds: number; label: string }[] = [
-  { seconds: 0, label: 'Off' },
-  { seconds: 5, label: '5 seconds' },
-  { seconds: 10, label: '10 seconds' },
-  { seconds: 30, label: '30 seconds' },
-  { seconds: 60, label: '1 minute' },
-  { seconds: 300, label: '5 minutes' },
-  { seconds: 900, label: '15 minutes' },
-  { seconds: 3600, label: '1 hour' },
+  { seconds: 0, label: "Off" },
+  { seconds: 5, label: "5 seconds" },
+  { seconds: 10, label: "10 seconds" },
+  { seconds: 30, label: "30 seconds" },
+  { seconds: 60, label: "1 minute" },
+  { seconds: 300, label: "5 minutes" },
+  { seconds: 900, label: "15 minutes" },
+  { seconds: 3600, label: "1 hour" },
 ];
 
 export function GroupAbout({ info, error }: { info?: GroupInfo; error?: string }) {
@@ -56,8 +53,9 @@ function LinkRow({ label, link }: { label: string; link: string }) {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Copy ${label.toLowerCase()}`}
-      onPress={() => void copyText(link, 'Link copied')}
-      className="gap-1">
+      onPress={() => void copyText(link, "Link copied")}
+      className="gap-1"
+    >
       <Text variant="caption">{label}</Text>
       <Text className="text-brand" selectable>
         {link}
@@ -66,34 +64,23 @@ function LinkRow({ label, link }: { label: string; link: string }) {
   );
 }
 
-export function InviteLinks({
-  chatId,
-  visible,
-  onClose,
-}: {
-  chatId: ChatId;
-  visible: boolean;
-  onClose: () => void;
-}) {
+export function InviteLinks({ chatId, visible, onClose }: { chatId: ChatId; visible: boolean; onClose: () => void }) {
   const createInviteLink = useChatStore((s) => s.createInviteLink);
   const [created, setCreated] = useState<{ link: string; approval: boolean } | null>(null);
   const create = useAction(
     async (approval: boolean) => {
       const link = await createInviteLink(chatId, approval);
       setCreated({ link, approval });
-      await copyText(link, approval ? 'Approval link copied' : 'Invite link copied');
+      await copyText(link, approval ? "Approval link copied" : "Invite link copied");
     },
-    { failure: 'Could not create invite link' }
+    { failure: "Could not create invite link" },
   );
 
   return (
     <>
       {created ? (
         <Card className="mx-gutter mb-5">
-          <LinkRow
-            label={`${created.approval ? 'Approval link' : 'Invite link'} · copied`}
-            link={created.link}
-          />
+          <LinkRow label={`${created.approval ? "Approval link" : "Invite link"} · copied`} link={created.link} />
         </Card>
       ) : null}
       <ActionSheet
@@ -102,13 +89,13 @@ export function InviteLinks({
         title="Invite people"
         actions={[
           {
-            label: 'Create invite link',
-            icon: 'link-outline',
+            label: "Create invite link",
+            icon: "link-outline",
             onPress: () => create.run(false),
           },
           {
-            label: 'Create link that needs approval',
-            icon: 'person-add-outline',
+            label: "Create link that needs approval",
+            icon: "person-add-outline",
             onPress: () => create.run(true),
           },
         ]}
@@ -133,14 +120,14 @@ export function SlowModeSection({
       await setSlowModeDelay(chatId, seconds);
       onChanged(seconds);
     },
-    { success: 'Slow mode updated', failure: 'Could not update slow mode' }
+    { success: "Slow mode updated", failure: "Could not update slow mode" },
   );
 
   return (
     <Section title="Moderation" surface="card" className="mb-5">
       <ListItem
         title="Slow mode"
-        subtitle={SLOW_MODE.find((option) => option.seconds === delay)?.label ?? 'Off'}
+        subtitle={SLOW_MODE.find((option) => option.seconds === delay)?.label ?? "Off"}
         leading={<RowIcon name="time-outline" />}
         onPress={() => setOpen(true)}
       />
@@ -158,27 +145,27 @@ export function SlowModeSection({
   );
 }
 
-type Removal = 'remove' | 'ban';
+type Removal = "remove" | "ban";
 
 const REMOVAL: Record<
   Removal,
   { title: string; subtitle: string; confirm: string; body: string; done: string; icon: IconName }
 > = {
   remove: {
-    title: 'Remove from group',
-    subtitle: 'They can come back with an invite or a link.',
-    confirm: 'Remove',
-    body: 'They stop receiving messages from this group. Nothing they already received is recalled, and they can come back with an invite or a link.',
-    done: 'Removed',
-    icon: 'person-remove-outline',
+    title: "Remove from group",
+    subtitle: "They can come back with an invite or a link.",
+    confirm: "Remove",
+    body: "They stop receiving messages from this group. Nothing they already received is recalled, and they can come back with an invite or a link.",
+    done: "Removed",
+    icon: "person-remove-outline",
   },
   ban: {
-    title: 'Ban from group',
-    subtitle: 'They are removed and cannot come back.',
-    confirm: 'Ban',
-    body: 'They stop receiving messages from this group and cannot join again, even with a link, until an admin lets them back in from another app.',
-    done: 'Banned',
-    icon: 'ban-outline',
+    title: "Ban from group",
+    subtitle: "They are removed and cannot come back.",
+    confirm: "Ban",
+    body: "They stop receiving messages from this group and cannot join again, even with a link, until an admin lets them back in from another app.",
+    done: "Banned",
+    icon: "ban-outline",
   },
 };
 
@@ -209,25 +196,22 @@ export function MemberModeration({
       await setMemberMuted(chatId, member, !muted);
       members.update((list) => list.map((m) => (m.id === member ? { ...m, muted: !muted } : m)));
     },
-    { success: muted ? 'They can send again' : 'Muted', failure: 'Could not change that' }
+    { success: muted ? "They can send again" : "Muted", failure: "Could not change that" },
   );
   const remove = useAction(
-    (removal: Removal) =>
-      removal === 'ban' ? banMember(chatId, member) : removeMembers(chatId, [member]),
-    { failure: 'Could not do that' }
+    (removal: Removal) => (removal === "ban" ? banMember(chatId, member) : removeMembers(chatId, [member])),
+    { failure: "Could not do that" },
   );
-  const removals: Removal[] = can.ban ? ['remove', 'ban'] : ['remove'];
+  const removals: Removal[] = can.ban ? ["remove", "ban"] : ["remove"];
 
   return (
     <Section surface="card" className="mb-5">
       {can.muteMembers ? (
         <ListItem
           testID="profile-mute-member"
-          title={muted ? 'Let them send messages' : 'Mute in group'}
-          subtitle={
-            muted ? 'They are muted: they read but cannot send.' : 'They stay, but cannot send.'
-          }
-          leading={<RowIcon name={muted ? 'mic-outline' : 'mic-off-outline'} />}
+          title={muted ? "Let them send messages" : "Mute in group"}
+          subtitle={muted ? "They are muted: they read but cannot send." : "They stay, but cannot send."}
+          leading={<RowIcon name={muted ? "mic-outline" : "mic-off-outline"} />}
           onPress={members.loading ? undefined : () => mute.run()}
         />
       ) : null}
@@ -249,9 +233,9 @@ export function MemberModeration({
           title={`${REMOVAL[confirming].confirm} ${memberName} from ${groupTitle}?`}
           body={REMOVAL[confirming].body}
           confirm={{
-            testID: 'confirm-remove-member',
+            testID: "confirm-remove-member",
             label: REMOVAL[confirming].title,
-            tone: 'danger',
+            tone: "danger",
             onPress: async () => {
               if (!(await remove.run(confirming))) return;
               toast.success(REMOVAL[confirming].done);

@@ -1,17 +1,17 @@
-import { loadAiConfig, loadAiKey, type AiConfig } from '../config';
-import { deviceModelState } from '../device';
-import { AiError } from '../errors';
-import { anthropicProvider, DEFAULT_ANTHROPIC_MODEL } from './anthropic';
-import type { AiProvider } from './interface';
-import { deviceProvider, deviceUnavailableReason, SET_UP_A_MODEL } from './on-device';
-import { listModels, openAiProvider } from './openai';
+import { type AiConfig, loadAiConfig, loadAiKey } from "../config";
+import { deviceModelState } from "../device";
+import { AiError } from "../errors";
+import { anthropicProvider, DEFAULT_ANTHROPIC_MODEL } from "./anthropic";
+import type { AiProvider } from "./interface";
+import { deviceProvider, deviceUnavailableReason, SET_UP_A_MODEL } from "./on-device";
+import { listModels, openAiProvider } from "./openai";
 
-export type { AiAnswer, AiProvider, CompletionRequest } from './interface';
+export type { AiAnswer, AiProvider, CompletionRequest } from "./interface";
 
-export const OLLAMA_URL = 'http://localhost:11434/v1';
+export const OLLAMA_URL = "http://localhost:11434/v1";
 
 async function localOllama(): Promise<AiProvider | null> {
-  if (process.env.EXPO_OS !== 'web') return null;
+  if (process.env.EXPO_OS !== "web") return null;
   const [model] = await listModels(OLLAMA_URL, null, 1_500).catch(() => []);
   return model ? openAiProvider({ url: OLLAMA_URL, model, key: null }) : null;
 }
@@ -19,23 +19,20 @@ async function localOllama(): Promise<AiProvider | null> {
 /** Throws `unavailable`, saying what to set up, when there is no model to use. */
 export async function providerFor(config: AiConfig, key: string | null): Promise<AiProvider> {
   switch (config.source) {
-    case 'auto': {
+    case "auto": {
       const state = await deviceModelState();
-      if (state === 'ready') return deviceProvider;
+      if (state === "ready") return deviceProvider;
       const ollama = await localOllama();
       if (ollama) return ollama;
-      throw new AiError('unavailable', deviceUnavailableReason(state));
+      throw new AiError("unavailable", deviceUnavailableReason(state));
     }
-    case 'openai':
+    case "openai":
       if (!config.url || !config.model) {
-        throw new AiError(
-          'unavailable',
-          `Your server needs an address and a model. ${SET_UP_A_MODEL}`
-        );
+        throw new AiError("unavailable", `Your server needs an address and a model. ${SET_UP_A_MODEL}`);
       }
       return openAiProvider({ url: config.url, model: config.model, key });
-    case 'anthropic':
-      if (!key) throw new AiError('unavailable', `Anthropic needs an API key. ${SET_UP_A_MODEL}`);
+    case "anthropic":
+      if (!key) throw new AiError("unavailable", `Anthropic needs an API key. ${SET_UP_A_MODEL}`);
       return anthropicProvider({
         key,
         model: config.model || DEFAULT_ANTHROPIC_MODEL,
@@ -46,5 +43,5 @@ export async function providerFor(config: AiConfig, key: string | null): Promise
 
 export async function resolveProvider(accountId: string, loaded?: AiConfig): Promise<AiProvider> {
   const config = loaded ?? (await loadAiConfig(accountId));
-  return providerFor(config, config.source === 'auto' ? null : await loadAiKey(accountId));
+  return providerFor(config, config.source === "auto" ? null : await loadAiKey(accountId));
 }

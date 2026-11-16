@@ -1,9 +1,9 @@
-import { schnorr } from '@noble/curves/secp256k1';
-import { bytesToHex } from '@noble/hashes/utils';
+import { schnorr } from "@noble/curves/secp256k1";
+import { bytesToHex } from "@noble/hashes/utils";
 
-import type { DerivedKey } from '@/core/account/keyring';
-import { encodeNpub } from '@/lib/bech32';
-import { randomBytes } from '@/lib/random';
+import type { DerivedKey } from "@/core/account/keyring";
+import { encodeNpub } from "@/lib/bech32";
+import { randomBytes } from "@/lib/random";
 
 export const NOSTR_DERIVATION_PATH = "m/44'/1237'/0'/0/0";
 

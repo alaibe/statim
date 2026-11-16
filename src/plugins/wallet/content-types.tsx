@@ -1,13 +1,15 @@
-import { useState } from 'react';
-import { View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import { useState } from "react";
+import { View } from "react-native";
+import Animated from "react-native-reanimated";
+import { shortAddress } from "@/core/account/keyring";
+import type { ChatId } from "@/core/messaging/types";
+import { contentType, type MessageRendererProps, type PluginContext } from "@/core/plugins/types";
+import { Badge, Button, cn, Enter, ErrorText, Eyebrow, Icon, Sheet, Text } from "@/design";
 
-import { Badge, Button, cn, Enter, ErrorText, Eyebrow, Icon, Sheet, Text } from '@/design';
-import { shortAddress } from '@/core/account/keyring';
-import type { ChatId } from '@/core/messaging/types';
-import { contentType, type MessageRendererProps, type PluginContext } from '@/core/plugins/types';
-
-import { chainById } from '@/lib/evm/chains';
+import { chainById } from "@/lib/evm/chains";
+import { type ChainStrategy, chainStrategies } from "./chains/strategy";
+import { walletErrorMessage } from "./errors";
+import { chainOffMessage, commitTransfer } from "./transfer";
 import {
   CONTENT_TYPE_PAYMENT_RECEIPT,
   CONTENT_TYPE_PAYMENT_REQUEST,
@@ -18,18 +20,16 @@ import {
   type PaymentReceipt,
   type PaymentRequest,
   type SplitRequest,
-} from './types';
-import { walletErrorMessage } from './errors';
-import { commitTransfer, chainOffMessage } from './transfer';
-import { chainStrategies, type ChainStrategy } from './chains/strategy';
+} from "./types";
 
 function CardShell({ fromMe, children }: { fromMe: boolean; children: React.ReactNode }) {
   return (
     <View
       className={cn(
-        'w-[260px] gap-3 rounded-bubble border p-3.5',
-        fromMe ? 'border-brand/40 bg-brand-soft' : 'border-line bg-surface-raised'
-      )}>
+        "w-[260px] gap-3 rounded-bubble border p-3.5",
+        fromMe ? "border-brand/40 bg-brand-soft" : "border-line bg-surface-raised",
+      )}
+    >
       {children}
     </View>
   );
@@ -47,7 +47,7 @@ function chainLabel(data: { chain?: string; chainId?: number }): string {
   const strategy = strategyFor(data);
   if (strategy) return strategy.name;
   if (data.chainId !== undefined) return chainById(data.chainId)?.name ?? `chain ${data.chainId}`;
-  return data.chain ?? 'an unknown chain';
+  return data.chain ?? "an unknown chain";
 }
 
 interface PaymentTarget {
@@ -81,10 +81,10 @@ function usePayment(data: PaymentTarget, context: PluginContext, chatId: ChatId)
       let rows: { label: string; value: string }[] | null = null;
       try {
         const quoted = await ready.transfer!.quote(context, { amount, to: data.to });
-        if ('error' in quoted) setError(`${quoted.error} Nothing was sent.`);
+        if ("error" in quoted) setError(`${quoted.error} Nothing was sent.`);
         else rows = quoted.rows;
       } catch (e) {
-        setError(walletErrorMessage(e, ready, 'review'));
+        setError(walletErrorMessage(e, ready, "review"));
       }
       setBusy(false);
       return rows;
@@ -97,7 +97,7 @@ function usePayment(data: PaymentTarget, context: PluginContext, chatId: ChatId)
         ready,
         context,
         { amount, to: data.to },
-        { chatId, symbol: data.symbol, onSent: () => setPaid(true) }
+        { chatId, symbol: data.symbol, onSent: () => setPaid(true) },
       ).finally(() => setBusy(false));
       if (!sent.ok) setError(sent.message);
       return sent.ok;
@@ -105,12 +105,7 @@ function usePayment(data: PaymentTarget, context: PluginContext, chatId: ChatId)
   };
 }
 
-function PaymentRequestCard({
-  data,
-  fromMe,
-  context,
-  message,
-}: MessageRendererProps<PaymentRequest>) {
+function PaymentRequestCard({ data, fromMe, context, message }: MessageRendererProps<PaymentRequest>) {
   const payment = usePayment(data, context, message.chatId);
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<{ label: string; value: string }[] | null>(null);
@@ -123,7 +118,7 @@ function PaymentRequestCard({
 
   async function pay() {
     if (!(await payment.send(data.amount))) return setRows(null);
-    context.ui.notify('Payment sent', 'success');
+    context.ui.notify("Payment sent", "success");
     setOpen(false);
   }
 
@@ -160,8 +155,7 @@ function PaymentRequestCard({
           <View className="gap-2 rounded-card bg-surface-raised p-3">
             <Row label="Amount" value={`${data.amount} ${data.symbol}`} />
             <Row label="To" value={shortAddress(data.to, 8, 6)} />
-            {rows?.map((row) => <Row key={row.label} label={row.label} value={row.value} />) ??
-              null}
+            {rows?.map((row) => <Row key={row.label} label={row.label} value={row.value} />) ?? null}
           </View>
 
           {payment.error ? (
@@ -190,7 +184,7 @@ function SplitRequestCard({ data, fromMe, context, message }: MessageRendererPro
     <CardShell fromMe={fromMe}>
       <View className="flex-row items-center gap-1.5">
         <Icon name="pie-chart-outline" size={15} tone="brand" />
-        <Eyebrow>{data.note ? `Split · ${data.note}` : 'Split'}</Eyebrow>
+        <Eyebrow>{data.note ? `Split · ${data.note}` : "Split"}</Eyebrow>
       </View>
 
       <Text variant="amount">
@@ -212,11 +206,7 @@ function SplitRequestCard({ data, fromMe, context, message }: MessageRendererPro
           Your share is paid.
         </Text>
       ) : (
-        <Button
-          label={`Pay ${data.share} ${data.symbol}`}
-          fullWidth
-          onPress={() => payment.send(data.share)}
-        />
+        <Button label={`Pay ${data.share} ${data.symbol}`} fullWidth onPress={() => payment.send(data.share)} />
       )}
     </CardShell>
   );
@@ -261,16 +251,14 @@ export const walletContentTypes = [
   contentType({
     typeId: CONTENT_TYPE_PAYMENT_REQUEST,
     is: isPaymentRequest,
-    fallback: (data) =>
-      `Payment request: ${data.amount} ${data.symbol}${data.note ? ` (${data.note})` : ''}`,
+    fallback: (data) => `Payment request: ${data.amount} ${data.symbol}${data.note ? ` (${data.note})` : ""}`,
     render: PaymentRequestCard,
   }),
   contentType({
     typeId: CONTENT_TYPE_PAYMENT_SPLIT,
     is: isSplitRequest,
     render: SplitRequestCard,
-    fallback: (data) =>
-      `Split ${data.total} ${data.symbol} ${data.people} ways, ${data.share} each`,
+    fallback: (data) => `Split ${data.total} ${data.symbol} ${data.people} ways, ${data.share} each`,
   }),
   contentType({
     typeId: CONTENT_TYPE_PAYMENT_RECEIPT,

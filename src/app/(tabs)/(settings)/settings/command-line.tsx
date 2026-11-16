@@ -1,19 +1,19 @@
-import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { useEffect, useState } from "react";
+import { View } from "react-native";
 
-import { Button, Card, ListItem, Section, Text, Toggle } from '@/design';
-import { copyText } from '@/design/copy-text';
-import { isCliAllowed, setCliAllowed } from '@/features/cli/access';
-import { cliInstall, cliLink, type CliInstall } from '@/features/cli/install';
-import { SettingsScreen } from '@/features/settings/settings-screen';
-import { guideUrl } from '@/lib/guide';
-import { openExternal } from '@/lib/open-url';
+import { Button, Card, ListItem, Section, Text, Toggle } from "@/design";
+import { copyText } from "@/design/copy-text";
+import { isCliAllowed, setCliAllowed } from "@/features/cli/access";
+import { type CliInstall, cliInstall, cliLink } from "@/features/cli/install";
+import { SettingsScreen } from "@/features/settings/settings-screen";
+import { guideUrl } from "@/lib/guide";
+import { openExternal } from "@/lib/open-url";
 
-const SKILLS = 'statim skills install';
-const CLAUDE_CODE_MCP = 'claude mcp add --scope user statim -- statim mcp';
+const SKILLS = "statim skills install";
+const CLAUDE_CODE_MCP = "claude mcp add --scope user statim -- statim mcp";
 
 function mcpSettings(path: string): string {
-  return JSON.stringify({ mcpServers: { statim: { command: path, args: ['mcp'] } } }, null, 2);
+  return JSON.stringify({ mcpServers: { statim: { command: path, args: ["mcp"] } } }, null, 2);
 }
 
 function Command({ command, done }: { command: string; done: string }) {
@@ -63,9 +63,8 @@ export default function CommandLineScreen() {
     <SettingsScreen title="Command line">
       <View className="gap-2 px-gutter pb-6">
         <Text variant="body">
-          statim does from a terminal whatever this app does: read and send messages, manage chats
-          and groups, run plugin commands. It talks to this app, and starts it in the background
-          when it is closed.
+          statim does from a terminal whatever this app does: read and send messages, manage chats and groups, run
+          plugin commands. It talks to this app, and starts it in the background when it is closed.
         </Text>
         <Text variant="footnote">
           Anything that signs, erases or turns on a plugin waits for you to approve it here.
@@ -78,9 +77,7 @@ export default function CommandLineScreen() {
           title="Allow the command line"
           subtitle="While this is on, any program running as you on this computer can read and send your messages through it, without asking. Off by default."
           numberOfLinesSubtitle={4}
-          trailing={
-            <Toggle label="Allow the command line" value={allowed} onValueChange={toggle} />
-          }
+          trailing={<Toggle label="Allow the command line" value={allowed} onValueChange={toggle} />}
         />
       </Section>
 
@@ -91,18 +88,10 @@ export default function CommandLineScreen() {
           ) : install?.command ? (
             <>
               <Text variant="footnote">Adds statim to your PATH, so any terminal can run it.</Text>
-              <Button
-                label="Install"
-                size="sm"
-                loading={linking}
-                onPress={() => void link()}
-                testID="cli-link"
-              />
+              <Button label="Install" size="sm" loading={linking} onPress={() => void link()} testID="cli-link" />
               {linkError ? (
                 <>
-                  <Text variant="footnote">
-                    That did not work: {linkError}. Run this once in Terminal instead.
-                  </Text>
+                  <Text variant="footnote">That did not work: {linkError}. Run this once in Terminal instead.</Text>
                   <Command command={install.command} done="Command copied" />
                 </>
               ) : null}
@@ -114,8 +103,7 @@ export default function CommandLineScreen() {
       <Section title="AI agents" surface="card" className="mb-6">
         <View className="gap-3 p-4">
           <Text variant="footnote">
-            Teaches Claude Code how to use it. Add --codex for Codex, or --dir with a folder for
-            another agent.
+            Teaches Claude Code how to use it. Add --codex for Codex, or --dir with a folder for another agent.
           </Text>
           <Command command={SKILLS} done="Command copied" />
         </View>
@@ -124,16 +112,16 @@ export default function CommandLineScreen() {
       <Section title="AI apps over MCP" surface="card" className="mb-6">
         <View className="gap-3 p-4">
           <Text variant="footnote">
-            Apps that take an MCP server can use these commands as tools, while the command line is
-            allowed. For Claude Code, run:
+            Apps that take an MCP server can use these commands as tools, while the command line is allowed. For Claude
+            Code, run:
           </Text>
           <Command command={CLAUDE_CODE_MCP} done="Command copied" />
           {install?.path ? (
             <>
               <Text variant="footnote">
-                Claude Desktop, Cursor and LM Studio read a settings file instead. In Claude Desktop
-                it is Settings › Developer › Edit Config, not Connectors, which only take web
-                addresses. Add this to it, then quit and reopen the app.
+                Claude Desktop, Cursor and LM Studio read a settings file instead. In Claude Desktop it is Settings ›
+                Developer › Edit Config, not Connectors, which only take web addresses. Add this to it, then quit and
+                reopen the app.
               </Text>
               <Command command={mcpSettings(install.path)} done="Settings copied" />
             </>
@@ -142,9 +130,7 @@ export default function CommandLineScreen() {
             label="How to add it to Codex and other apps"
             tone="neutral"
             size="sm"
-            onPress={() =>
-              openExternal(guideUrl('command-line', 'ai-apps-over-mcp')).catch(() => {})
-            }
+            onPress={() => openExternal(guideUrl("command-line", "ai-apps-over-mcp")).catch(() => {})}
           />
         </View>
       </Section>

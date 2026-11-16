@@ -1,8 +1,8 @@
-import type { MessageContent } from '@/core/messaging/types';
-import type { IconName } from '@/design';
-import { W } from '@/design/widgets';
+import type { MessageContent } from "@/core/messaging/types";
+import type { IconName } from "@/design";
+import { W } from "@/design/widgets";
 
-import type { ChainId } from './strategy';
+import type { ChainId } from "./strategy";
 
 export function balanceChangeCard({
   fallback,
@@ -22,30 +22,30 @@ export function balanceChangeCard({
   headline: string;
   label: string;
   caption: string;
-  tone: 'success' | 'warning';
+  tone: "success" | "warning";
   address: string;
   /** The `--chain` value the card's buttons pass back. */
   chain: ChainId;
   short: (address: string) => string;
 }): MessageContent {
   return {
-    kind: 'widget',
+    kind: "widget",
     fallback,
     widget: W.card(
       [
         W.stat(headline, { label, caption, tone }),
         W.rows([
           {
-            label: 'Address',
+            label: "Address",
             value: short(address),
             actions: [
-              { label: 'Open in explorer', command: `/explorer ${address} --chain ${chain}` },
-              { label: 'Full balance', command: `/balance --chain ${chain}`, tone: 'neutral' },
+              { label: "Open in explorer", command: `/explorer ${address} --chain ${chain}` },
+              { label: "Full balance", command: `/balance --chain ${chain}`, tone: "neutral" },
             ],
           },
         ]),
       ],
-      { title, icon }
+      { title, icon },
     ),
   };
 }

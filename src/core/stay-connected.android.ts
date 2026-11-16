@@ -1,8 +1,8 @@
-import { AppRegistry } from 'react-native';
+import { AppRegistry } from "react-native";
 
-import StayConnected from '../../modules/stay-connected';
+import StayConnected from "../../modules/stay-connected";
 
-AppRegistry.registerHeadlessTask('StayConnected', () => () => new Promise<void>(() => {}));
+AppRegistry.registerHeadlessTask("StayConnected", () => () => new Promise<void>(() => {}));
 
 export function staysConnected(): boolean {
   return StayConnected.isEnabled();

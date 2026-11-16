@@ -1,18 +1,12 @@
-import type {
-  MessageContent,
-  MessageId,
-  ParticipantId,
-  ProtocolChatId,
-  SelfParticipant,
-} from './types';
-import type { TransportChat } from './message-store';
-import type { ProtocolId } from './namespace';
+import type { TransportChat } from "./message-store";
+import type { ProtocolId } from "./namespace";
+import type { MessageContent, MessageId, ParticipantId, ProtocolChatId, SelfParticipant } from "./types";
 
 export interface TransportSink {
   deliverToParticipants(
     participants: ParticipantId[],
     message: IncomingMessage,
-    meta?: { title?: string; createdAt?: number }
+    meta?: { title?: string; createdAt?: number },
   ): Promise<void>;
   /** Takes back the reaction `undoes` names if its sender sent it; anything else is left alone. */
   withdraw(participants: ParticipantId[], withdrawal: Withdrawal): Promise<void>;
@@ -28,7 +22,7 @@ export interface IncomingMessage {
   transportTimestamp?: number;
 }
 
-export interface Withdrawal extends Omit<IncomingMessage, 'content' | 'replyTo'> {
+export interface Withdrawal extends Omit<IncomingMessage, "content" | "replyTo"> {
   undoes: MessageId;
 }
 

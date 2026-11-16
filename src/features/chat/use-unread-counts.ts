@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
-import { useChatStore } from '@/core/messaging/chat-store';
-import { parseChatRoute } from '@/core/messaging/namespace';
-import type { Chat } from '@/core/messaging/types';
-import { isCaughtUp, MARKED_UNREAD } from '@/core/messaging/unread';
+import { useChatStore } from "@/core/messaging/chat-store";
+import { parseChatRoute } from "@/core/messaging/namespace";
+import type { Chat } from "@/core/messaging/types";
+import { isCaughtUp, MARKED_UNREAD } from "@/core/messaging/unread";
 
 interface Counted {
   key: string;
@@ -25,18 +25,18 @@ export function useUnreadCounts(chats: readonly Chat[]): Chat[] {
         c.unreadCount === undefined &&
         readAt[c.id] !== MARKED_UNREAD &&
         !isCaughtUp(readAt[c.id] ?? 0, c.lastMessage) &&
-        counted[c.id]?.key !== keyOf(c)
+        counted[c.id]?.key !== keyOf(c),
     )
     .map((c) => `${c.id} ${keyOf(c)}`)
-    .join('\n');
+    .join("\n");
 
   useEffect(() => {
     if (!stale) return;
     let cancelled = false;
     const { sessions, readAt } = useChatStore.getState();
     void Promise.all(
-      stale.split('\n').map(async (line) => {
-        const [id, key] = line.split(' ');
+      stale.split("\n").map(async (line) => {
+        const [id, key] = line.split(" ");
         const route = parseChatRoute(id);
         const countUnread = route && sessions[route.protocol]?.countUnread;
         const count =
@@ -46,7 +46,7 @@ export function useUnreadCounts(chats: readonly Chat[]): Chat[] {
                 .catch(() => undefined)
             : undefined;
         return [id, { key, count }] as const;
-      })
+      }),
     ).then((results) => {
       if (cancelled) return;
       setCounted((prev) => ({ ...prev, ...Object.fromEntries(results) }));

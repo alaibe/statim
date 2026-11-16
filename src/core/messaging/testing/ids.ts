@@ -1,5 +1,5 @@
-import { parseChatId } from '../namespace';
-import type { ChatId } from '../types';
+import { parseChatId } from "../namespace";
+import type { ChatId } from "../types";
 
 export function asChatId(raw: string): ChatId {
   const id = parseChatId(raw);

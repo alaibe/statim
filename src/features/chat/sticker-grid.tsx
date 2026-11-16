@@ -1,15 +1,14 @@
-import { Image } from 'expo-image';
-import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Image } from "expo-image";
+import { useState } from "react";
+import { ScrollView, View } from "react-native";
+import { errorMessage } from "@/core/errors";
+import { stickerLabel } from "@/core/messaging/preview";
+import type { PickerPack } from "@/core/messaging/stickers";
+import type { ChatId, MessageContent } from "@/core/messaging/types";
+import { ErrorText, Loading, Pressable, Text } from "@/design";
 
-import { ErrorText, Loading, Pressable, Text } from '@/design';
-import { errorMessage } from '@/core/errors';
-import { stickerLabel } from '@/core/messaging/preview';
-import type { PickerPack } from '@/core/messaging/stickers';
-import type { ChatId, MessageContent } from '@/core/messaging/types';
-
-import { StickerEmoji } from './attachments/sticker-bubble';
-import { useLoadUntil, useStickerPacks } from './use-sticker-packs';
+import { StickerEmoji } from "./attachments/sticker-bubble";
+import { useLoadUntil, useStickerPacks } from "./use-sticker-packs";
 
 const COLUMNS = 4;
 const GAP = 6;
@@ -24,11 +23,7 @@ export function StickerGrid({ chatId, ...grid }: GridProps & { chatId: ChatId })
   const { packs, error } = useStickerPacks(chatId);
 
   if (error) {
-    return (
-      <ErrorText className="px-4 py-4">
-        {errorMessage(error, 'Could not load the stickers')}
-      </ErrorText>
-    );
+    return <ErrorText className="px-4 py-4">{errorMessage(error, "Could not load the stickers")}</ErrorText>;
   }
   if (!packs) return <Loading className="flex-1 py-8" />;
   if (packs.length === 0) {
@@ -47,7 +42,7 @@ function Packs({ packs, width, onSend }: GridProps & { packs: PickerPack[] }) {
   const choices = useLoadUntil(
     pack.key,
     () => pack.stickers(),
-    (loaded) => loaded.every((choice) => choice.preview)
+    (loaded) => loaded.every((choice) => choice.preview),
   );
   const [error, setError] = useState<string | null>(null);
 
@@ -57,7 +52,7 @@ function Packs({ packs, width, onSend }: GridProps & { packs: PickerPack[] }) {
     try {
       onSend(await pack.content(stickerId));
     } catch (e) {
-      setError(errorMessage(e, 'Could not send that sticker'));
+      setError(errorMessage(e, "Could not send that sticker"));
     }
   };
 
@@ -67,7 +62,8 @@ function Packs({ packs, width, onSend }: GridProps & { packs: PickerPack[] }) {
         horizontal
         showsHorizontalScrollIndicator={false}
         className="shrink-0 grow-0 border-b border-line"
-        contentContainerClassName="gap-1 px-3 py-2">
+        contentContainerClassName="gap-1 px-3 py-2"
+      >
         {packs.map((each) => (
           <Pressable
             key={each.key}
@@ -75,13 +71,10 @@ function Packs({ packs, width, onSend }: GridProps & { packs: PickerPack[] }) {
             accessibilityLabel={each.title}
             accessibilityState={{ selected: each === pack }}
             onPress={() => setChosen(each.key)}
-            className={each === pack ? 'rounded-md bg-surface-sunken p-1' : 'rounded-md p-1'}>
+            className={each === pack ? "rounded-md bg-surface-sunken p-1" : "rounded-md p-1"}
+          >
             {each.cover ? (
-              <Image
-                source={{ uri: each.cover }}
-                style={{ width: COVER, height: COVER }}
-                contentFit="contain"
-              />
+              <Image source={{ uri: each.cover }} style={{ width: COVER, height: COVER }} contentFit="contain" />
             ) : (
               <View style={{ width: COVER, height: COVER }} className="items-center justify-center">
                 <Text variant="caption">{each.title.slice(0, 1)}</Text>
@@ -92,7 +85,7 @@ function Packs({ packs, width, onSend }: GridProps & { packs: PickerPack[] }) {
       </ScrollView>
 
       <ErrorText className="px-4 pt-2">
-        {error ?? (choices.error ? errorMessage(choices.error, 'Could not open that pack') : null)}
+        {error ?? (choices.error ? errorMessage(choices.error, "Could not open that pack") : null)}
       </ErrorText>
 
       {choices.loading ? (
@@ -101,13 +94,15 @@ function Packs({ packs, width, onSend }: GridProps & { packs: PickerPack[] }) {
         <ScrollView
           className="flex-1"
           contentContainerClassName="flex-row flex-wrap px-3 py-2"
-          contentContainerStyle={{ gap: GAP }}>
+          contentContainerStyle={{ gap: GAP }}
+        >
           {(choices.value ?? []).map((sticker) => (
             <Pressable
               key={sticker.id}
               accessibilityRole="button"
               accessibilityLabel={stickerLabel(sticker.emoji)}
-              onPress={() => void send(sticker.id)}>
+              onPress={() => void send(sticker.id)}
+            >
               {sticker.preview ? (
                 <Image
                   source={{ uri: sticker.preview }}

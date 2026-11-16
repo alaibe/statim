@@ -1,8 +1,8 @@
-import { router } from 'expo-router';
-import { useEffect, useId, useRef } from 'react';
-import { create } from 'zustand';
+import { router } from "expo-router";
+import { useEffect, useId, useRef } from "react";
+import { create } from "zustand";
 
-import type { MenuAnchor } from '../lib/context-menu';
+import type { MenuAnchor } from "../lib/context-menu";
 
 export interface SheetProps {
   visible: boolean;
@@ -16,7 +16,7 @@ export interface SheetProps {
   children: React.ReactNode;
 }
 
-interface Presented extends Omit<SheetProps, 'visible'> {
+interface Presented extends Omit<SheetProps, "visible"> {
   id: string;
 }
 
@@ -36,7 +36,7 @@ export const SHEET_DISMISS_MS = 500;
 export const useSheetStore = create<SheetState>(() => ({ current: null, afterClose: null }));
 
 /** Closes the sheet and runs `action` once it is off screen. */
-export function closeSheetThen(sheet: Pick<SheetProps, 'onClose'>, action: () => void) {
+export function closeSheetThen(sheet: Pick<SheetProps, "onClose">, action: () => void) {
   useSheetStore.setState({ afterClose: action });
   sheet.onClose();
 }
@@ -54,7 +54,7 @@ export function Sheet({ visible, title, subtitle, leading, children, onClose }: 
     if (visible && !presented.current) {
       presented.current = true;
       useSheetStore.setState({ current: spec });
-      router.push('/sheet');
+      router.push("/sheet");
     } else if (!visible && presented.current) {
       presented.current = false;
       if (owns(id)) {
@@ -73,7 +73,7 @@ export function Sheet({ visible, title, subtitle, leading, children, onClose }: 
         router.back();
       }
     },
-    [id]
+    [id],
   );
 
   return null;

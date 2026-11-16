@@ -1,8 +1,8 @@
-import type { JoinRequest } from '@/core/messaging/protocol';
+import type { JoinRequest } from "@/core/messaging/protocol";
 
-import type { MxRoom } from './api';
-import type { Homeserver } from './homeserver';
-import { permalink, serverName } from './ids';
+import type { MxRoom } from "./api";
+import type { Homeserver } from "./homeserver";
+import { permalink, serverName } from "./ids";
 
 interface MemberEvent {
   state_key: string;
@@ -12,8 +12,8 @@ interface MemberEvent {
 
 export async function knocks(homeserver: Homeserver, roomId: string): Promise<JoinRequest[]> {
   const { chunk } = await homeserver.request<{ chunk: MemberEvent[] }>(
-    'GET',
-    `/rooms/${encodeURIComponent(roomId)}/members?membership=knock`
+    "GET",
+    `/rooms/${encodeURIComponent(roomId)}/members?membership=knock`,
   );
   return chunk.map((event) => ({
     participantId: event.state_key,
@@ -31,17 +31,14 @@ export async function inviteLink(
   homeserver: Homeserver,
   room: MxRoom,
   selfId: string,
-  requiresApproval: boolean
+  requiresApproval: boolean,
 ): Promise<string> {
   const path = `/rooms/${encodeURIComponent(room.id)}/state/m.room.join_rules`;
   const { join_rule } = await homeserver
-    .request<{ join_rule?: string }>('GET', path)
+    .request<{ join_rule?: string }>("GET", path)
     .catch(() => ({ join_rule: undefined }));
-  if (requiresApproval && join_rule !== 'knock')
-    await homeserver.request('PUT', path, { join_rule: 'knock' });
-  if (!requiresApproval && join_rule !== 'public')
-    throw new Error(
-      'Only invited people can join this chat. Create a link that needs approval instead.'
-    );
+  if (requiresApproval && join_rule !== "knock") await homeserver.request("PUT", path, { join_rule: "knock" });
+  if (!requiresApproval && join_rule !== "public")
+    throw new Error("Only invited people can join this chat. Create a link that needs approval instead.");
   return permalink(room.canonicalAlias ?? room.id, serverName(selfId));
 }

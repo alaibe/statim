@@ -1,15 +1,14 @@
-import { View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import { View } from "react-native";
+import Animated from "react-native-reanimated";
 
-import type { AiConfig } from '@/core/ai/config';
-import { useChatAttention } from './use-chat-attention';
-import type { ChatPrefs } from '@/core/messaging/chat-prefs';
-import { useChatStore } from '@/core/messaging/chat-store';
-import { type Folder, type ChatListRow, isOwnFolder } from '@/core/messaging/folders';
-import { formatTimestamp, messagePreview } from '@/core/messaging/preview';
-import type { NetworkId } from '@/core/messaging/networks';
-import type { Chat, ChatId } from '@/core/messaging/types';
-import { readByPeer, unreadBadge } from '@/core/messaging/unread';
+import type { AiConfig } from "@/core/ai/config";
+import type { ChatPrefs } from "@/core/messaging/chat-prefs";
+import { useChatStore } from "@/core/messaging/chat-store";
+import { type ChatListRow, type Folder, isOwnFolder } from "@/core/messaging/folders";
+import type { NetworkId } from "@/core/messaging/networks";
+import { formatTimestamp, messagePreview } from "@/core/messaging/preview";
+import type { Chat, ChatId } from "@/core/messaging/types";
+import { readByPeer, unreadBadge } from "@/core/messaging/unread";
 import {
   Badge,
   Chevron,
@@ -17,21 +16,22 @@ import {
   Enter,
   Icon,
   ListItem,
-  NetworkMark,
   type MenuAnchor,
-  squareCorner,
+  NetworkMark,
   Pressable,
   SwipeableRow,
+  squareCorner,
   Text,
-} from '@/design';
-import { openChat } from '@/features/navigation/open';
-import { networkLabel } from '@/features/protocols/presentation';
-import { ChatAvatar } from './chat-avatar';
-import { DeliveryIcon, useReadUpTo } from './delivery-icon';
+} from "@/design";
+import { openChat } from "@/features/navigation/open";
+import { networkLabel } from "@/features/protocols/presentation";
+import { ChatAvatar } from "./chat-avatar";
+import { DeliveryIcon, useReadUpTo } from "./delivery-icon";
+import { useChatAttention } from "./use-chat-attention";
 
 const ATTENTION = {
-  reply: { label: 'Reply needed', tone: 'brand' },
-  'follow-up': { label: 'Follow up', tone: 'warning' },
+  reply: { label: "Reply needed", tone: "brand" },
+  "follow-up": { label: "Follow up", tone: "warning" },
 } as const;
 
 export function ChatRow({
@@ -71,29 +71,30 @@ export function ChatRow({
     <SwipeableRow
       left={[
         {
-          id: 'pin',
-          label: pinned ? 'Unpin' : 'Pin',
-          icon: 'pin-outline',
-          tone: 'neutral',
-          onPress: () => onToggle(chat.id, 'pinned'),
+          id: "pin",
+          label: pinned ? "Unpin" : "Pin",
+          icon: "pin-outline",
+          tone: "neutral",
+          onPress: () => onToggle(chat.id, "pinned"),
         },
       ]}
       right={[
         {
-          id: 'mute',
-          label: muted ? 'Unmute' : 'Mute',
-          icon: muted ? 'volume-high-outline' : 'volume-mute-outline',
-          tone: 'warning',
-          onPress: () => onToggle(chat.id, 'muted'),
+          id: "mute",
+          label: muted ? "Unmute" : "Mute",
+          icon: muted ? "volume-high-outline" : "volume-mute-outline",
+          tone: "warning",
+          onPress: () => onToggle(chat.id, "muted"),
         },
         {
-          id: 'archive',
-          label: prefs.archived ? 'Unarchive' : 'Archive',
-          icon: 'archive-outline',
-          tone: 'brand',
-          onPress: () => onToggle(chat.id, 'archived'),
+          id: "archive",
+          label: prefs.archived ? "Unarchive" : "Archive",
+          icon: "archive-outline",
+          tone: "brand",
+          onPress: () => onToggle(chat.id, "archived"),
         },
-      ]}>
+      ]}
+    >
       <ListItem
         testID={`chat-${chat.id}`}
         title={
@@ -101,16 +102,14 @@ export function ChatRow({
             {title}
             {muted ? (
               <>
-                {' '}
+                {" "}
                 <Icon name="volume-mute-outline" size={13} tone="subtle" />
               </>
             ) : null}
           </>
         }
-        accessibilityLabel={[title, attention?.label, chat.typing ? 'typing' : preview]
-          .filter(Boolean)
-          .join(', ')}
-        subtitle={chat.typing ? 'typing…' : preview}
+        accessibilityLabel={[title, attention?.label, chat.typing ? "typing" : preview].filter(Boolean).join(", ")}
+        subtitle={chat.typing ? "typing…" : preview}
         onPress={() => openChat(chat.id)}
         onLongPress={() => onMenu(chat, null)}
         onContextMenu={(anchor) => onMenu(chat, anchor)}
@@ -120,10 +119,8 @@ export function ChatRow({
         meta={
           last ? (
             <View className="flex-row items-center gap-1">
-              {last.fromMe ? (
-                <DeliveryIcon message={last} read={readByPeer(readUpTo, last)} size={14} />
-              ) : null}
-              <Text variant="caption" className={unread && !muted ? 'text-brand' : undefined}>
+              {last.fromMe ? <DeliveryIcon message={last} read={readByPeer(readUpTo, last)} size={14} /> : null}
+              <Text variant="caption" className={unread && !muted ? "text-brand" : undefined}>
                 {formatTimestamp(last.sentAt)}
               </Text>
             </View>
@@ -146,11 +143,11 @@ export function ChatRow({
   );
 }
 
-const chatCount = (n: number) => `${n} ${n === 1 ? 'chat' : 'chats'}`;
+const chatCount = (n: number) => `${n} ${n === 1 ? "chat" : "chats"}`;
 
 const OWN_FOLDERS = {
-  archive: { label: 'Archive', icon: 'archive-outline' },
-  blocked: { label: 'Blocked', icon: 'ban-outline' },
+  archive: { label: "Archive", icon: "archive-outline" },
+  blocked: { label: "Blocked", icon: "ban-outline" },
 } as const;
 
 export function folderLabel(folder: Folder): string {
@@ -160,7 +157,7 @@ export function folderLabel(folder: Folder): string {
 export const leaveFolderLabel = (folder: Folder) => `Back to all chats from ${folderLabel(folder)}`;
 
 export const chatSearchPlaceholder = (folder: Folder | null) =>
-  folder ? `Search ${folderLabel(folder)}` : 'Search chats';
+  folder ? `Search ${folderLabel(folder)}` : "Search chats";
 
 function FolderIcon({ folder, size }: { folder: Folder; size: number }) {
   if (!isOwnFolder(folder)) {
@@ -172,9 +169,10 @@ function FolderIcon({ folder, size }: { folder: Folder; size: number }) {
         width: size,
         height: size,
         borderRadius: squareCorner(size),
-        borderCurve: 'continuous',
+        borderCurve: "continuous",
       }}
-      className="items-center justify-center bg-surface-sunken">
+      className="items-center justify-center bg-surface-sunken"
+    >
       <Icon name={OWN_FOLDERS[folder].icon} size={size * 0.5} tone="muted" />
     </View>
   );
@@ -186,7 +184,7 @@ export function FolderRow({
   preview,
   onPress,
 }: {
-  row: Extract<ChatListRow, { kind: 'folder' }>;
+  row: Extract<ChatListRow, { kind: "folder" }>;
   unread: number;
   preview: string;
   onPress: () => void;
@@ -198,13 +196,13 @@ export function FolderRow({
       testID={`folder-${row.folder}`}
       title={folderLabel(row.folder)}
       subtitle={preview}
-      accessibilityLabel={`${folderLabel(row.folder)}, ${chatCount(row.chats.length)}${unread ? `, ${unread} unread` : ''}`}
+      accessibilityLabel={`${folderLabel(row.folder)}, ${chatCount(row.chats.length)}${unread ? `, ${unread} unread` : ""}`}
       onPress={onPress}
       unread={highlight}
       leading={<FolderIcon folder={row.folder} size={44} />}
       meta={
         row.latest.lastMessage ? (
-          <Text variant="caption" className={highlight ? 'text-brand' : undefined}>
+          <Text variant="caption" className={highlight ? "text-brand" : undefined}>
             {formatTimestamp(row.latest.lastMessage.sentAt)}
           </Text>
         ) : undefined
@@ -221,7 +219,8 @@ export function FolderHeader({ folder, onBack }: { folder: Folder; onBack: () =>
       accessibilityRole="button"
       accessibilityLabel={leaveFolderLabel(folder)}
       onPress={onBack}
-      className="min-w-0 flex-1 flex-row items-center gap-1.5">
+      className="min-w-0 flex-1 flex-row items-center gap-1.5"
+    >
       <Icon name="chevron-back" size={20} tone="brand" />
       <FolderIcon folder={folder} size={22} />
       <Text variant="title" className="flex-1 font-semibold" numberOfLines={1}>

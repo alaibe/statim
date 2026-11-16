@@ -1,20 +1,20 @@
-import { useAccountStore } from '@/core/account/account-store';
-import { connectionFor, useChatStore } from '@/core/messaging/chat-store';
-import { loadProtocolConfig, missingFields, withDefaults } from '@/core/messaging/config';
-import type { ProtocolId } from '@/core/messaging/namespace';
-import type { LoginState } from '@/core/messaging/protocol';
-import { isConfigured, type ProtocolDescriptor } from '@/core/messaging/registry';
-import { protocolById, connectableProtocols } from '@/protocols';
-import { accountRuntime } from '@/runtime';
-import { listXmtpInstallations, revokeXmtpInstallations } from '@/features/xmtp-devices';
+import { useAccountStore } from "@/core/account/account-store";
+import { connectionFor, useChatStore } from "@/core/messaging/chat-store";
+import { loadProtocolConfig, missingFields, withDefaults } from "@/core/messaging/config";
+import type { ProtocolId } from "@/core/messaging/namespace";
+import type { LoginState } from "@/core/messaging/protocol";
+import { isConfigured, type ProtocolDescriptor } from "@/core/messaging/registry";
+import { listXmtpInstallations, revokeXmtpInstallations } from "@/features/xmtp-devices";
+import { connectableProtocols, protocolById } from "@/protocols";
+import { accountRuntime } from "@/runtime";
 
-import { approveOrThrow, waitFor, whenAccountReady, type CliHandler, type CliIo } from '../context';
-import { CliError } from '../errors';
+import { approveOrThrow, type CliHandler, type CliIo, waitFor, whenAccountReady } from "../context";
+import { CliError } from "../errors";
 
-const STEP_LABEL: Record<LoginState['step'], string> = {
-  phone: 'Phone number',
-  code: 'Code',
-  password: 'Password',
+const STEP_LABEL: Record<LoginState["step"], string> = {
+  phone: "Phone number",
+  code: "Code",
+  password: "Password",
 };
 
 export function requireProtocol(id: string) {
@@ -22,8 +22,8 @@ export function requireProtocol(id: string) {
   if (!descriptor?.connect) {
     const known = connectableProtocols()
       .map((p) => p.id)
-      .join(', ');
-    throw new CliError(`No protocol "${id}". Known: ${known}.`, 'notFound');
+      .join(", ");
+    throw new CliError(`No protocol "${id}". Known: ${known}.`, "notFound");
   }
   return descriptor;
 }
@@ -31,10 +31,7 @@ export function requireProtocol(id: string) {
 function sessionOf({ id, label }: ProtocolDescriptor) {
   const session = useChatStore.getState().sessions[id];
   if (!session) {
-    throw new CliError(
-      `${label} is not connected. Check statim protocols config ${id}.`,
-      'unavailable'
-    );
+    throw new CliError(`${label} is not connected. Check statim protocols config ${id}.`, "unavailable");
   }
   return session;
 }
@@ -57,7 +54,7 @@ function describeLogin(label: string, login: LoginState | null) {
 
 function typeItInTheApp(protocol: string, what: string): CliError {
   return new CliError(
-    `Your ${protocol} ${what} does not go through an AI app. Type it in Statim under Settings › Protocols › ${protocol}.`
+    `Your ${protocol} ${what} does not go through an AI app. Type it in Statim under Settings › Protocols › ${protocol}.`,
   );
 }
 
@@ -65,11 +62,7 @@ async function submitLogin(descriptor: ProtocolDescriptor, answer: string): Prom
   const session = sessionOf(descriptor);
   const before = loginOf(descriptor.id);
   await session.submitLogin!(answer);
-  await waitFor(
-    useChatStore,
-    (s) => connectionFor(s.protocols, descriptor.id).login !== before,
-    60_000
-  );
+  await waitFor(useChatStore, (s) => connectionFor(s.protocols, descriptor.id).login !== before, 60_000);
 }
 
 async function interactiveLogin(descriptor: ProtocolDescriptor, io: CliIo) {
@@ -78,8 +71,8 @@ async function interactiveLogin(descriptor: ProtocolDescriptor, io: CliIo) {
     if (login.title) io.warn(login.title);
     if (login.hint) io.warn(login.hint);
     if (login.error) io.warn(`Error: ${login.error}`);
-    const answer = await io.prompt(`${STEP_LABEL[login.step]}: `, login.step === 'password');
-    if (!answer.trim()) throw new CliError('Sign-in cancelled.');
+    const answer = await io.prompt(`${STEP_LABEL[login.step]}: `, login.step === "password");
+    if (!answer.trim()) throw new CliError("Sign-in cancelled.");
     await submitLogin(descriptor, answer);
   }
   return describeLogin(label, null);
@@ -98,31 +91,28 @@ export const protocolHandlers = {
           id: p.id,
           name: p.label,
           configured: isConfigured(p, withDefaults(p.configSchema, config)),
-          status: connection?.status ?? 'off',
+          status: connection?.status ?? "off",
           error: connection?.error ?? undefined,
           waitingFor: connection?.login?.step,
         };
-      })
+      }),
     );
     return {
       data,
       text: data.map(
         (n) =>
-          `${n.id.padEnd(10)} ${n.name.padEnd(12)} ${n.configured ? n.status : 'not set up'}` +
-          (n.waitingFor ? ` (waiting for ${n.waitingFor})` : '') +
-          (n.error ? ` — ${n.error}` : '')
+          `${n.id.padEnd(10)} ${n.name.padEnd(12)} ${n.configured ? n.status : "not set up"}` +
+          (n.waitingFor ? ` (waiting for ${n.waitingFor})` : "") +
+          (n.error ? ` — ${n.error}` : ""),
       ),
     };
   },
 
-  async 'protocols config'({ args, rest }, { io }) {
+  async "protocols config"({ args, rest }, { io }) {
     await whenAccountReady();
     const descriptor = requireProtocol(args.protocol!);
     const accountId = useAccountStore.getState().activeAccountId!;
-    const config = withDefaults(
-      descriptor.configSchema,
-      await loadProtocolConfig(accountId, descriptor.id)
-    );
+    const config = withDefaults(descriptor.configSchema, await loadProtocolConfig(accountId, descriptor.id));
     const fields = descriptor.configSchema.fields;
 
     if (rest.length === 0) {
@@ -131,7 +121,7 @@ export const protocolHandlers = {
         label: f.label,
         kind: f.kind,
         required: Boolean(f.required),
-        value: f.kind === 'secret' ? undefined : config[f.key],
+        value: f.kind === "secret" ? undefined : config[f.key],
         set: Boolean(config[f.key]),
         help: f.help,
       }));
@@ -140,8 +130,8 @@ export const protocolHandlers = {
         text: data.length
           ? data.map(
               (f) =>
-                `${f.key}${f.required ? '*' : ''} = ${f.kind === 'secret' ? (f.set ? '(set)' : '') : (f.value ?? '')}` +
-                `   ${f.label}`
+                `${f.key}${f.required ? "*" : ""} = ${f.kind === "secret" ? (f.set ? "(set)" : "") : (f.value ?? "")}` +
+                `   ${f.label}`,
             )
           : `${descriptor.label} has no settings.`,
       };
@@ -149,45 +139,45 @@ export const protocolHandlers = {
 
     const next = { ...config };
     for (const pair of rest) {
-      const eq = pair.indexOf('=');
+      const eq = pair.indexOf("=");
       const key = eq === -1 ? pair : pair.slice(0, eq);
       const field = fields.find((f) => f.key === key);
       if (!field) {
         throw new CliError(
-          `${descriptor.label} has no setting "${key}". Settings: ${fields.map((f) => f.key).join(', ')}.`,
-          'usage'
+          `${descriptor.label} has no setting "${key}". Settings: ${fields.map((f) => f.key).join(", ")}.`,
+          "usage",
         );
       }
-      if (io.mcp && field.kind === 'secret') throw typeItInTheApp(descriptor.label, field.label);
+      if (io.mcp && field.kind === "secret") throw typeItInTheApp(descriptor.label, field.label);
       next[key] =
         eq === -1
-          ? await io.prompt(`${field.label}: `, field.kind === 'secret')
-          : pair.slice(eq + 1).replace(/\\n/g, '\n');
+          ? await io.prompt(`${field.label}: `, field.kind === "secret")
+          : pair.slice(eq + 1).replace(/\\n/g, "\n");
     }
     const missing = missingFields(descriptor.configSchema, next);
     await accountRuntime.updateProtocolConfig(accountId, descriptor.id, next);
     return {
       data: { protocol: descriptor.id, saved: true, missing: missing.map((f) => f.key) },
       text: missing.length
-        ? `Saved. Still needed: ${missing.map((f) => f.key).join(', ')}.`
+        ? `Saved. Still needed: ${missing.map((f) => f.key).join(", ")}.`
         : `Saved. ${descriptor.label} is reconnecting.`,
     };
   },
 
-  async 'protocols login'({ args }, { io }) {
+  async "protocols login"({ args }, { io }) {
     await whenAccountReady();
     const descriptor = requireProtocol(args.protocol!);
     const session = sessionOf(descriptor);
     if (!session.subscribeLogin || !session.submitLogin) {
       throw new CliError(
         `${descriptor.label} does not sign in step by step. Use statim protocols config ${descriptor.id}.`,
-        'unsupported'
+        "unsupported",
       );
     }
     if (args.answer !== undefined) {
       const login = loginOf(descriptor.id);
       if (!login) return describeLogin(descriptor.label, null);
-      if (io.mcp && login.step === 'password') throw typeItInTheApp(descriptor.label, 'password');
+      if (io.mcp && login.step === "password") throw typeItInTheApp(descriptor.label, "password");
       await submitLogin(descriptor, args.answer);
       return describeLogin(descriptor.label, loginOf(descriptor.id));
     }
@@ -195,11 +185,11 @@ export const protocolHandlers = {
     return interactiveLogin(descriptor, io);
   },
 
-  async 'protocols logout'({ args }, { io }) {
+  async "protocols logout"({ args }, { io }) {
     await whenAccountReady();
     const descriptor = requireProtocol(args.protocol!);
     const session = sessionOf(descriptor);
-    if (!session.signOut) throw new CliError(`${descriptor.label} has no sign-out.`, 'unsupported');
+    if (!session.signOut) throw new CliError(`${descriptor.label} has no sign-out.`, "unsupported");
     await approveOrThrow(io, `Sign out of ${descriptor.label}?`);
     await session.signOut();
     return {
@@ -208,12 +198,12 @@ export const protocolHandlers = {
     };
   },
 
-  async 'protocols sync'({ args }) {
+  async "protocols sync"({ args }) {
     await whenAccountReady();
     const store = useChatStore.getState();
     if (args.protocol) await store.syncProtocol(requireProtocol(args.protocol).id);
     else await store.sync();
-    return { data: { synced: args.protocol ?? 'all' }, text: 'Up to date.' };
+    return { data: { synced: args.protocol ?? "all" }, text: "Up to date." };
   },
 
   async devices() {
@@ -223,20 +213,20 @@ export const protocolHandlers = {
       data: installations,
       text: installations.map(
         (i) =>
-          `${i.current ? '*' : ' '} ${i.id}` +
-          (i.createdAt ? `  ${new Date(i.createdAt).toLocaleDateString()}` : '') +
-          (i.current ? '  (this device)' : '')
+          `${i.current ? "*" : " "} ${i.id}` +
+          (i.createdAt ? `  ${new Date(i.createdAt).toLocaleDateString()}` : "") +
+          (i.current ? "  (this device)" : ""),
       ),
     };
   },
 
-  async 'devices revoke'({ rest }, { io }) {
+  async "devices revoke"({ rest }, { io }) {
     await whenAccountReady();
     const current = (await listXmtpInstallations()).find((i) => i.current)?.id;
     if (current && rest.includes(current)) {
-      throw new CliError('That is this device. Revoke the others instead.', 'usage');
+      throw new CliError("That is this device. Revoke the others instead.", "usage");
     }
-    await approveOrThrow(io, `Revoke ${rest.length} XMTP installation(s)?\n${rest.join('\n')}`);
+    await approveOrThrow(io, `Revoke ${rest.length} XMTP installation(s)?\n${rest.join("\n")}`);
     await revokeXmtpInstallations(rest);
     return { data: { revoked: rest }, text: `Revoked ${rest.length} installation(s).` };
   },

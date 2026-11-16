@@ -1,4 +1,4 @@
-import type { CookiesParams } from '@/protocols/matrix/provisioning';
+import type { CookiesParams } from "@/protocols/matrix/provisioning";
 
 export interface WebLoginProps {
   params: CookiesParams;
@@ -17,8 +17,8 @@ export function parsePage(raw: string | null | undefined): PageState | null {
   if (!raw) return null;
   try {
     let value: unknown = JSON.parse(raw);
-    if (typeof value === 'string') value = JSON.parse(value);
-    return value && typeof value === 'object' ? (value as PageState) : null;
+    if (typeof value === "string") value = JSON.parse(value);
+    return value && typeof value === "object" ? (value as PageState) : null;
   } catch {
     return null;
   }

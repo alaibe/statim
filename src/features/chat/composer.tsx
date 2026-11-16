@@ -1,9 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { View } from "react-native";
+import Animated from "react-native-reanimated";
 
-import { SUGGESTED_ACTION_IDS } from '@/core/commands/ai';
-import { completeCommandName } from '@/core/commands/parser';
+import { SUGGESTED_ACTION_IDS } from "@/core/commands/ai";
+import { completeCommandName } from "@/core/commands/parser";
+import { errorMessage } from "@/core/errors";
+import { chatScope } from "@/core/messaging/chat-scope";
+import { useChatStore } from "@/core/messaging/chat-store";
+import { draftKey } from "@/core/messaging/drafts";
+import type { ChatId, ChatKind, MessageContent, MessageId } from "@/core/messaging/types";
+import { usePluginHost } from "@/core/plugins/host";
 import {
   ActionSheet,
   cn,
@@ -17,16 +23,7 @@ import {
   springLayout,
   Text,
   useThemeColors,
-} from '@/design';
-import { chatScope } from '@/core/messaging/chat-scope';
-import { useChatStore } from '@/core/messaging/chat-store';
-import { draftKey } from '@/core/messaging/drafts';
-import type { ChatId, ChatKind, MessageContent, MessageId } from '@/core/messaging/types';
-import { usePluginHost } from '@/core/plugins/host';
-import { errorMessage } from '@/core/errors';
-
-import { MediaPanel, type MediaAnchor } from './media-panel';
-import type { MediaTab } from './media-panel-content';
+} from "@/design";
 import {
   type AttachLimits,
   contentFromBrowserFile,
@@ -34,21 +31,23 @@ import {
   pickImage,
   pickVideo,
   takePhoto,
-} from './attachments/pick';
-import { VoiceRecorder } from './attachments/voice-recorder';
-import { ModeBanner } from './mode-banner';
-import { QuickActions } from './quick-actions';
-import { commandSuggestions } from './command-suggestions';
-import { ComposerInput, type ComposerInputHandle } from './composer-input';
-import type { ComposerBanner } from './composer-mode';
-import { SuggestionPopover } from './suggestion-popover';
-import { useCommandDispatch } from './use-command-dispatch';
-import { useMentionSuggestions } from './use-mention-suggestions';
-import { useChatPermissions } from './use-chat-permissions';
-import { withFinalEmoji } from './typed-emoji';
-import { useReplySuggestion } from './use-reply-suggestion';
-import { useSuggestedAction } from './use-suggested-action';
-import { useTypingAnnouncer } from './use-typing-announcer';
+} from "./attachments/pick";
+import { VoiceRecorder } from "./attachments/voice-recorder";
+import { commandSuggestions } from "./command-suggestions";
+import { ComposerInput, type ComposerInputHandle } from "./composer-input";
+import type { ComposerBanner } from "./composer-mode";
+import { type MediaAnchor, MediaPanel } from "./media-panel";
+import type { MediaTab } from "./media-panel-content";
+import { ModeBanner } from "./mode-banner";
+import { QuickActions } from "./quick-actions";
+import { SuggestionPopover } from "./suggestion-popover";
+import { withFinalEmoji } from "./typed-emoji";
+import { useChatPermissions } from "./use-chat-permissions";
+import { useCommandDispatch } from "./use-command-dispatch";
+import { useMentionSuggestions } from "./use-mention-suggestions";
+import { useReplySuggestion } from "./use-reply-suggestion";
+import { useSuggestedAction } from "./use-suggested-action";
+import { useTypingAnnouncer } from "./use-typing-announcer";
 
 interface ComposerProps {
   chatId: ChatId;
@@ -86,12 +85,9 @@ export function Composer({
   const { registry } = usePluginHost();
   const can = useChatPermissions(chatId);
 
-  const value = useChatStore((s) => s.drafts[draftKey(chatId, thread)] ?? '');
+  const value = useChatStore((s) => s.drafts[draftKey(chatId, thread)] ?? "");
   const setDraftFor = useChatStore((s) => s.setDraft);
-  const setValue = useCallback(
-    (text: string) => setDraftFor(chatId, text, thread),
-    [chatId, thread, setDraftFor]
-  );
+  const setValue = useCallback((text: string) => setDraftFor(chatId, text, thread), [chatId, thread, setDraftFor]);
 
   const scope = chatScope(chatId, kind);
   const { commands, dispatch, busy, error, setError } = useCommandDispatch({
@@ -112,22 +108,20 @@ export function Composer({
   const openMedia = (tab: MediaTab) => {
     const button = emojiButton.current;
     if (!button) return setMedia({ tab, anchor: null });
-    button.measureInWindow((x, y, width, height) =>
-      setMedia({ tab, anchor: { x, y, width, height } })
-    );
+    button.measureInWindow((x, y, width, height) => setMedia({ tab, anchor: { x, y, width, height } }));
   };
 
   const canAttach = !editing && can.attach;
   const carriesImages = !editing && can.sendImages;
-  const mediaTabs: MediaTab[] = carriesImages ? ['emoji', 'stickers', 'gifs'] : ['emoji'];
+  const mediaTabs: MediaTab[] = carriesImages ? ["emoji", "stickers", "gifs"] : ["emoji"];
 
   const sendContent = (content: MessageContent) => {
-    onSendContent(content).catch((e) => setError(errorMessage(e, 'Could not send that')));
+    onSendContent(content).catch((e) => setError(errorMessage(e, "Could not send that")));
   };
   const closeMedia = () => {
     setMedia(null);
     // After the modal has unmounted, or its focus trap puts the focus back on the button.
-    if (process.env.EXPO_OS === 'web') setTimeout(() => inputRef.current?.focus(), 0);
+    if (process.env.EXPO_OS === "web") setTimeout(() => inputRef.current?.focus(), 0);
   };
 
   const attach = async (pick: () => Promise<MessageContent | null>) => {
@@ -135,7 +129,7 @@ export function Composer({
       const content = await pick();
       if (content) await onSendContent(content);
     } catch (e) {
-      setError(errorMessage(e, 'Could not attach that'));
+      setError(errorMessage(e, "Could not attach that"));
     }
   };
 
@@ -152,24 +146,23 @@ export function Composer({
   };
 
   useEffect(() => {
-    if (process.env.EXPO_OS === 'web') inputRef.current?.focus();
+    if (process.env.EXPO_OS === "web") inputRef.current?.focus();
   }, [chatId, thread]);
 
   const canSend = value.trim().length > 0 && !busy;
-  const assists = !thread && (scope === 'dm' || scope === 'group');
+  const assists = !thread && (scope === "dm" || scope === "group");
   const idle = !busy && !banner;
   const suggested = useSuggestedAction(chatId, assists && idle && !value.trim());
   const reply = useReplySuggestion(chatId, assists && idle);
   const ghost = reply.suggestion;
-  const ready = ghost?.status === 'ready' ? ghost : null;
+  const ready = ghost?.status === "ready" ? ghost : null;
   const takeReply = () => {
     if (!ready) return;
     fill(ready.text);
     reply.dismiss();
   };
-  const ghostText =
-    ready?.text ?? (ghost?.status === 'pending' ? `Preparing a ${reply.kind}…` : null);
-  const shownError = error ?? (ghost?.status === 'error' ? ghost.text : null);
+  const ghostText = ready?.text ?? (ghost?.status === "pending" ? `Preparing a ${reply.kind}…` : null);
+  const shownError = error ?? (ghost?.status === "error" ? ghost.text : null);
 
   return (
     <View>
@@ -193,13 +186,11 @@ export function Composer({
         onPick={({ command }) => fill(`/${command.name} `)}
         render={({ command, pluginId }) => (
           <>
-            <Text className="font-mono text-footnote font-semibold text-brand">
-              /{command.name}
-            </Text>
+            <Text className="font-mono text-footnote font-semibold text-brand">/{command.name}</Text>
             <Text variant="caption" numberOfLines={1} className="flex-1">
               {command.description}
             </Text>
-            <Text variant="micro">{registry.get(pluginId)?.manifest.name ?? ''}</Text>
+            <Text variant="micro">{registry.get(pluginId)?.manifest.name ?? ""}</Text>
           </>
         )}
       />
@@ -213,14 +204,11 @@ export function Composer({
       <QuickActions
         chatId={chatId}
         scope={scope}
-        hasDraft={value.trim() !== ''}
+        hasDraft={value.trim() !== ""}
         suggestedId={suggested ? SUGGESTED_ACTION_IDS[suggested] : undefined}
         onRun={(action) => {
           const draft = useChatStore.getState().drafts[draftKey(chatId, thread)]?.trim();
-          void dispatch(
-            action.takesDraft ? `${action.command} ${draft}` : action.command,
-            'action'
-          );
+          void dispatch(action.takesDraft ? `${action.command} ${draft}` : action.command, "action");
         }}
       />
 
@@ -240,26 +228,25 @@ export function Composer({
 
         <View
           className={cn(
-            'min-h-[44px] flex-1 flex-row items-end rounded-pill border bg-surface-raised pl-4 pr-1',
-            ghostText ? 'border-ai/60' : 'border-line'
-          )}>
+            "min-h-[44px] flex-1 flex-row items-end rounded-pill border bg-surface-raised pl-4 pr-1",
+            ghostText ? "border-ai/60" : "border-line",
+          )}
+        >
           <ComposerInput
             ref={inputRef}
             value={value}
             onChangeText={(text) => {
               announceTyping(text);
               if (error) setError(null);
-              const typed = text.replace(/\t/g, '');
-              if (typed !== text && typed === '' && ready) return takeReply();
+              const typed = text.replace(/\t/g, "");
+              if (typed !== text && typed === "" && ready) return takeReply();
               setValue(typed === text ? text : (completeCommandName(typed, commandNames) ?? typed));
             }}
             onSubmit={() => void submit()}
-            onFile={
-              canAttach ? (file) => void attach(() => contentFromBrowserFile(file, can)) : undefined
-            }
-            onEditLast={value === '' && !busy && !editing ? onEditLast : undefined}
-            placeholder={ghostText ?? (thread ? 'Reply in thread' : 'Message')}
-            placeholderColor={ghostText ? colors.ai : colors['content-subtle']}
+            onFile={canAttach ? (file) => void attach(() => contentFromBrowserFile(file, can)) : undefined}
+            onEditLast={value === "" && !busy && !editing ? onEditLast : undefined}
+            placeholder={ghostText ?? (thread ? "Reply in thread" : "Message")}
+            placeholderColor={ghostText ? colors.ai : colors["content-subtle"]}
           />
 
           {ready ? (
@@ -268,7 +255,8 @@ export function Composer({
               accessibilityRole="button"
               accessibilityLabel={`Use suggested ${reply.kind}, by ${ready.label}`}
               onPress={takeReply}
-              className="h-11 w-9 items-center justify-center">
+              className="h-11 w-9 items-center justify-center"
+            >
               <Icon name="sparkles-outline" size={20} tone="ai" />
             </Pressable>
           ) : null}
@@ -278,8 +266,9 @@ export function Composer({
               testID="composer-emoji"
               accessibilityRole="button"
               accessibilityLabel="Emoji"
-              onPress={() => openMedia('emoji')}
-              className="h-11 w-9 items-center justify-center">
+              onPress={() => openMedia("emoji")}
+              className="h-11 w-9 items-center justify-center"
+            >
               <Icon name="happy-outline" size={21} tone="muted" />
             </Pressable>
           </View>
@@ -290,10 +279,10 @@ export function Composer({
         ) : (
           <IconButton
             testID="composer-send"
-            icon={busy ? 'ellipsis-horizontal' : 'arrow-up'}
+            icon={busy ? "ellipsis-horizontal" : "arrow-up"}
             label="Send"
-            surface={canSend ? 'brand' : 'outline'}
-            tone={canSend ? 'brand-on' : 'subtle'}
+            surface={canSend ? "brand" : "outline"}
+            tone={canSend ? "brand-on" : "subtle"}
             size={20}
             disabled={!canSend}
             onPress={() => void submit()}
@@ -322,7 +311,7 @@ export function Composer({
         carriesImages={carriesImages}
         sendsVideo={can.sendVideo}
         onAttach={(pick) => void attach(() => pick(can))}
-        onGifs={() => openMedia('gifs')}
+        onGifs={() => openMedia("gifs")}
       />
     </View>
   );
@@ -346,22 +335,22 @@ function AttachSheet({
   const actions: SheetAction[] = [];
   if (carriesImages) {
     actions.push({
-      label: 'Photo library',
-      icon: 'images-outline',
+      label: "Photo library",
+      icon: "images-outline",
       onPress: () => onAttach(pickImage),
     });
   }
   if (sendsVideo) {
-    actions.push({ label: 'Video', icon: 'videocam-outline', onPress: () => onAttach(pickVideo) });
+    actions.push({ label: "Video", icon: "videocam-outline", onPress: () => onAttach(pickVideo) });
   }
   if (carriesImages) {
     actions.push({
-      label: 'Take a photo',
-      icon: 'camera-outline',
+      label: "Take a photo",
+      icon: "camera-outline",
       onPress: () => onAttach(takePhoto),
     });
   }
-  actions.push({ label: 'File', icon: 'document-outline', onPress: () => onAttach(pickFile) });
-  if (carriesImages) actions.push({ label: 'GIF', icon: 'happy-outline', onPress: onGifs });
+  actions.push({ label: "File", icon: "document-outline", onPress: () => onAttach(pickFile) });
+  if (carriesImages) actions.push({ label: "GIF", icon: "happy-outline", onPress: onGifs });
   return <ActionSheet visible={visible} onClose={onClose} title="Attach" actions={actions} />;
 }

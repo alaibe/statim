@@ -16,6 +16,4 @@ export type VaultStep = (vault: VaultEntries) => Promise<void>;
  * run again if the app stops halfway through it, so it must leave entries it
  * already moved as they are.
  */
-export const VAULT_MIGRATIONS: readonly VaultStep[] = [
-  (vault) => vault.remove('notifications.icloudNotes'),
-];
+export const VAULT_MIGRATIONS: readonly VaultStep[] = [(vault) => vault.remove("notifications.icloudNotes")];

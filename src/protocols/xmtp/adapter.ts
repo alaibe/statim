@@ -3,61 +3,61 @@ import {
   ConsentRecord,
   type ConsentState,
   ConversationVersion,
+  type DecodedMessage,
   Dm,
   Group,
-  PublicIdentity,
-  type Signer,
-  type Conversation as XmtpConversation,
-  type DecodedMessage,
-  type ConversationId as XmtpConversationId,
   type InboxId,
   type JSContentCodec,
+  PublicIdentity,
+  type Signer,
   type XMTPEnvironment,
-} from '@xmtp/react-native-sdk';
-import { isAddress, type LocalAccount } from 'viem';
+  type Conversation as XmtpConversation,
+  type ConversationId as XmtpConversationId,
+} from "@xmtp/react-native-sdk";
+import { isAddress, type LocalAccount } from "viem";
 
 import {
   classifyAttachment,
   fallbackMimeType,
   readInlineAttachment,
   writeInlineAttachment,
-} from '@/core/messaging/attachments';
-import { protocolChatId } from '@/core/messaging/namespace';
-import { showsInPreview } from '@/core/messaging/message-rules';
-import type { ChatSession, GroupInfo, XmtpInstallation } from '@/core/messaging/protocol';
+} from "@/core/messaging/attachments";
+import { isParticipantId } from "@/core/messaging/bots";
+import { showsInPreview } from "@/core/messaging/message-rules";
+import { protocolChatId } from "@/core/messaging/namespace";
+import type { ChatSession, GroupInfo, XmtpInstallation } from "@/core/messaging/protocol";
 import type {
   Chat,
-  ProtocolChatId,
+  ConsentDecision,
   GroupMember,
   GroupRole,
   MessageContent,
   MessageId,
   ParticipantId,
+  ProtocolChat,
+  ProtocolChatId,
+  ProtocolMessage,
   SelfParticipant,
   Unsubscribe,
-  ConsentDecision,
-  ProtocolMessage,
-  ProtocolChat,
-} from '@/core/messaging/types';
-import { isParticipantId } from '@/core/messaging/bots';
-import { PLUGIN_AUTHORITY } from './codec';
-import { xmtpNative } from './native';
+} from "@/core/messaging/types";
+import type { AccountStorage } from "@/storage/account";
+import { PLUGIN_AUTHORITY } from "./codec";
+import { xmtpNative } from "./native";
 import {
   fallbackFilename,
   INSTALLATION_LIMIT,
   newestReadByOthers,
-  ReadMarks,
   REVOKED_AND_FULL,
+  ReadMarks,
   xmtpEnvironment,
-} from './shared';
-import type { AccountStorage } from '@/storage/account';
+} from "./shared";
 
 function signerForAccount(account: LocalAccount): Signer {
   return {
-    getIdentifier: async () => new PublicIdentity(account.address, 'ETHEREUM'),
+    getIdentifier: async () => new PublicIdentity(account.address, "ETHEREUM"),
     getChainId: () => undefined,
     getBlockNumber: () => undefined,
-    signerType: () => 'EOA',
+    signerType: () => "EOA",
     signMessage: async (message: string) => ({
       signature: await account.signMessage({ message }),
     }),
@@ -65,7 +65,7 @@ function signerForAccount(account: LocalAccount): Signer {
 }
 
 function inboxOf(account: LocalAccount, env: XMTPEnvironment): Promise<InboxId> {
-  return Client.getOrCreateInboxId(new PublicIdentity(account.address, 'ETHEREUM'), env);
+  return Client.getOrCreateInboxId(new PublicIdentity(account.address, "ETHEREUM"), env);
 }
 
 /**
@@ -81,7 +81,7 @@ async function installationsIfRevoked(client: Client<any>) {
 /** Read from the network, so it works while this device cannot register, as when the inbox is full. */
 export async function inboxInstallations(
   account: LocalAccount,
-  env: XMTPEnvironment = xmtpEnvironment()
+  env: XMTPEnvironment = xmtpEnvironment(),
 ): Promise<XmtpInstallation[]> {
   const [state] = await Client.inboxStatesForInboxIds(env, [await inboxOf(account, env)]);
   return (state?.installations ?? []).map((installation) => ({
@@ -94,13 +94,13 @@ export async function inboxInstallations(
 export async function revokeInboxInstallations(
   account: LocalAccount,
   ids: string[],
-  env: XMTPEnvironment = xmtpEnvironment()
+  env: XMTPEnvironment = xmtpEnvironment(),
 ): Promise<void> {
   await Client.revokeInstallations(
     env,
     signerForAccount(account),
     await inboxOf(account, env),
-    ids as Parameters<typeof Client.revokeInstallations>[3]
+    ids as Parameters<typeof Client.revokeInstallations>[3],
   );
 }
 
@@ -121,7 +121,7 @@ interface XmtpEraseOptions {
 }
 
 export async function eraseXmtpLocalDatabase(options: XmtpEraseOptions): Promise<void> {
-  const client = await Client.build(new PublicIdentity(options.address, 'ETHEREUM'), {
+  const client = await Client.build(new PublicIdentity(options.address, "ETHEREUM"), {
     env: options.env ?? xmtpEnvironment(),
     dbEncryptionKey: options.dbEncryptionKey,
   });
@@ -145,7 +145,7 @@ export class XmtpSession implements ChatSession {
     private readonly client: Client<any>,
     private readonly codecsByTypeId: Map<string, JSContentCodec<any>>,
     private readonly account: LocalAccount,
-    private readonly accountId: string
+    private readonly accountId: string,
   ) {
     this.self = {
       participantId: client.inboxId,
@@ -163,11 +163,9 @@ export class XmtpSession implements ChatSession {
 
     const inboxKey = `xmtp.inboxId.${options.env}`;
     const knownInboxId = (await opts.storage?.get<InboxId>(inboxKey)) ?? undefined;
-    let client = await Client.build(
-      new PublicIdentity(opts.account.address, 'ETHEREUM'),
-      options,
-      knownInboxId
-    ).catch(() => undefined);
+    let client = await Client.build(new PublicIdentity(opts.account.address, "ETHEREUM"), options, knownInboxId).catch(
+      () => undefined,
+    );
     const others = client && (await installationsIfRevoked(client));
     if (client && others) {
       if (others.length >= INSTALLATION_LIMIT) throw new Error(REVOKED_AND_FULL);
@@ -192,12 +190,12 @@ export class XmtpSession implements ChatSession {
       this.client.conversations.list(
         { lastMessage: true },
         undefined,
-        ['allowed', 'unknown'],
+        ["allowed", "unknown"],
         undefined,
         undefined,
         undefined,
         undefined,
-        'last_activity'
+        "last_activity",
       ),
       this.blockedDms(),
     ]);
@@ -209,17 +207,13 @@ export class XmtpSession implements ChatSession {
 
   /** Blocking denies the DM and its peer's inbox; a DM denied alone was declined. */
   private async blockedDms(): Promise<Dm<any>[]> {
-    const denied = await this.client.conversations.listDms({ lastMessage: true }, undefined, [
-      'denied',
-    ]);
-    const blocked = await Promise.all(
-      denied.map(async (dm) => this.inboxBlocked(await dm.peerInboxId()))
-    );
+    const denied = await this.client.conversations.listDms({ lastMessage: true }, undefined, ["denied"]);
+    const blocked = await Promise.all(denied.map(async (dm) => this.inboxBlocked(await dm.peerInboxId())));
     return denied.filter((_, i) => blocked[i]);
   }
 
   private async inboxBlocked(inboxId: InboxId): Promise<boolean> {
-    return (await this.client.preferences.inboxIdConsentState(inboxId)) === 'denied';
+    return (await this.client.preferences.inboxIdConsentState(inboxId)) === "denied";
   }
 
   async getMessages(id: ProtocolChatId, opts?: { limit?: number }): Promise<ProtocolMessage[]> {
@@ -242,9 +236,9 @@ export class XmtpSession implements ChatSession {
     });
     return messages.filter(
       (message) =>
-        !['reaction', 'readReceipt', 'group_updated'].some((kind) =>
-          message.contentTypeId.startsWith(`xmtp.org/${kind}:`)
-        )
+        !["reaction", "readReceipt", "group_updated"].some((kind) =>
+          message.contentTypeId.startsWith(`xmtp.org/${kind}:`),
+        ),
     ).length;
   }
 
@@ -254,7 +248,7 @@ export class XmtpSession implements ChatSession {
     if (isParticipantId(trimmed)) return trimmed as InboxId;
     if (!isAddress(trimmed)) return null;
 
-    const identity = new PublicIdentity(trimmed, 'ETHEREUM');
+    const identity = new PublicIdentity(trimmed, "ETHEREUM");
     const reachable = await this.client.canMessage([identity]);
     if (!reachable[identity.identifier]) return null;
 
@@ -276,13 +270,13 @@ export class XmtpSession implements ChatSession {
       try {
         const states = await this.client.inboxStates(false, missing as InboxId[]);
         for (const state of states) {
-          const address = state.identities.find((i) => i.kind === 'ETHEREUM')?.identifier;
+          const address = state.identities.find((i) => i.kind === "ETHEREUM")?.identifier;
           if (!address) continue;
           this.addressCache.set(state.inboxId, address);
           out[state.inboxId] = address;
         }
       } catch (error) {
-        console.warn('[xmtp] could not resolve addresses', error);
+        console.warn("[xmtp] could not resolve addresses", error);
       }
     }
 
@@ -310,7 +304,7 @@ export class XmtpSession implements ChatSession {
   private async requireGroup(id: ProtocolChatId): Promise<Group<any>> {
     const conversation = await this.requireConversation(id);
     if (conversation.version !== ConversationVersion.GROUP) {
-      throw new Error('That only works in a group.');
+      throw new Error("That only works in a group.");
     }
     return conversation as Group<any>;
   }
@@ -318,7 +312,7 @@ export class XmtpSession implements ChatSession {
   private async requireDm(id: ProtocolChatId): Promise<Dm<any>> {
     const conversation = await this.requireConversation(id);
     if (conversation.version === ConversationVersion.GROUP) {
-      throw new Error('That only works in a DM.');
+      throw new Error("That only works in a DM.");
     }
     return conversation as unknown as Dm<any>;
   }
@@ -360,29 +354,23 @@ export class XmtpSession implements ChatSession {
     return sent;
   }
 
-  private async sendContent(
-    id: ProtocolChatId,
-    content: MessageContent,
-    replyTo?: MessageId
-  ): Promise<MessageId> {
+  private async sendContent(id: ProtocolChatId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
     const conversation = await this.requireConversation(id);
 
-    if (replyTo && content.kind === 'text') {
+    if (replyTo && content.kind === "text") {
       return conversation.send({
         reply: { reference: replyTo as never, content: { text: content.text } },
       });
     }
 
-    if (content.kind === 'text') {
+    if (content.kind === "text") {
       return conversation.send({ text: content.text });
     }
 
-    if (content.kind === 'custom') {
+    if (content.kind === "custom") {
       const codec = this.codecsByTypeId.get(content.typeId);
       if (!codec) {
-        throw new Error(
-          `No codec registered for "${content.typeId}". Is the owning plugin enabled?`
-        );
+        throw new Error(`No codec registered for "${content.typeId}". Is the owning plugin enabled?`);
       }
       type CodecPayload = Parameters<typeof codec.encode>[0];
       return conversation.send(content.data as CodecPayload, {
@@ -390,23 +378,21 @@ export class XmtpSession implements ChatSession {
       });
     }
 
-    if (content.kind === 'image' || content.kind === 'file' || content.kind === 'voice') {
+    if (content.kind === "image" || content.kind === "file" || content.kind === "voice") {
       const filename =
-        content.kind === 'file'
-          ? content.name
-          : (content.name ?? fallbackFilename(content.uri, content.kind));
+        content.kind === "file" ? content.name : (content.name ?? fallbackFilename(content.uri, content.kind));
       const mimeType = content.mimeType ?? fallbackMimeType(filename);
 
       const attachment = await readInlineAttachment(content.uri, filename, mimeType);
       return conversation.send({ attachment });
     }
 
-    if (content.kind === 'reaction') {
+    if (content.kind === "reaction") {
       return conversation.send({
         reaction: {
           reference: content.targetId,
           action: content.action,
-          schema: 'unicode',
+          schema: "unicode",
           content: content.emoji,
         },
       });
@@ -420,23 +406,21 @@ export class XmtpSession implements ChatSession {
     await conversation.deleteMessage(messageId as Parameters<typeof conversation.deleteMessage>[0]);
   }
 
-  async streamDeletedMessages(
-    listener: (id: ProtocolChatId, messageIds: MessageId[]) => void
-  ): Promise<Unsubscribe> {
+  async streamDeletedMessages(listener: (id: ProtocolChatId, messageIds: MessageId[]) => void): Promise<Unsubscribe> {
     this.deletedListeners.add(listener);
     return () => this.deletedListeners.delete(listener);
   }
 
   async setConsent(id: ProtocolChatId, consent: ConsentDecision): Promise<void> {
     const conversation = await this.requireConversation(id);
-    await conversation.updateConsent(consent === 'accepted' ? 'allowed' : 'denied');
+    await conversation.updateConsent(consent === "accepted" ? "allowed" : "denied");
   }
 
   async setBlocked(id: ProtocolChatId, blocked: boolean): Promise<void> {
     const dm = await this.requireDm(id);
-    const state = blocked ? 'denied' : 'allowed';
+    const state = blocked ? "denied" : "allowed";
     const peer = await dm.peerInboxId();
-    await this.client.preferences.setConsentState(new ConsentRecord(peer, 'inbox_id', state));
+    await this.client.preferences.setConsentState(new ConsentRecord(peer, "inbox_id", state));
     await dm.updateConsent(state);
     if (blocked) this.blockedDmIds.add(dm.id);
     else this.blockedDmIds.delete(dm.id);
@@ -464,12 +448,12 @@ export class XmtpSession implements ChatSession {
       xmtpEnvironment(),
       signerForAccount(this.account),
       this.client.inboxId,
-      ids as Parameters<typeof Client.revokeInstallations>[3]
+      ids as Parameters<typeof Client.revokeInstallations>[3],
     );
   }
 
   async sync(): Promise<void> {
-    await this.client.conversations.syncAllConversations(['allowed', 'unknown']);
+    await this.client.conversations.syncAllConversations(["allowed", "unknown"]);
   }
 
   async streamMessages(onMessage: (m: ProtocolMessage) => void): Promise<Unsubscribe> {
@@ -486,7 +470,7 @@ export class XmtpSession implements ChatSession {
           if (this.marks.raise(id, Math.round(message.sentNs / 1_000_000))) {
             await this.announce(id).catch((error) => {
               this.marks.forget(id);
-              console.warn('[xmtp] could not announce a chat', error);
+              console.warn("[xmtp] could not announce a chat", error);
             });
           }
           return;
@@ -503,8 +487,8 @@ export class XmtpSession implements ChatSession {
         if (converted.fromMe) this.marks.sent(id, converted.sentAt);
         onMessage(converted);
       },
-      'all',
-      ['allowed', 'unknown']
+      "all",
+      ["allowed", "unknown"],
     );
     return () => this.client.conversations.cancelStreamAllMessages();
   }
@@ -532,7 +516,7 @@ export class XmtpSession implements ChatSession {
   private async toChat(
     raw: XmtpConversation<any>,
     current: () => boolean = () => true,
-    blocked?: boolean
+    blocked?: boolean,
   ): Promise<ProtocolChat> {
     const isGroup = raw.version === ConversationVersion.GROUP;
 
@@ -544,17 +528,14 @@ export class XmtpSession implements ChatSession {
     if (isGroup) {
       const group = raw as Group<any>;
       const members = await group.members();
-      title = group.groupName?.trim() || 'Untitled group';
+      title = group.groupName?.trim() || "Untitled group";
       memberIds = members.map((m) => m.inboxId);
-      selfRole = mapRole(
-        members.find((m) => m.inboxId === this.self.participantId)?.permissionLevel
-      );
+      selfRole = mapRole(members.find((m) => m.inboxId === this.self.participantId)?.permissionLevel);
     } else {
       const participant = await (raw as Dm<any>).peerInboxId();
       title = participant;
       memberIds = [participant, this.self.participantId];
-      peerBlocked =
-        blocked === undefined ? this.inboxBlocked(participant) : Promise.resolve(blocked);
+      peerBlocked = blocked === undefined ? this.inboxBlocked(participant) : Promise.resolve(blocked);
     }
 
     const [isBlocked, lastMessage, readUpTo] = await Promise.all([
@@ -569,7 +550,7 @@ export class XmtpSession implements ChatSession {
 
     return {
       id: protocolChatId(raw.id),
-      kind: isGroup ? 'group' : 'dm',
+      kind: isGroup ? "group" : "dm",
       title,
       memberIds,
       createdAt: raw.createdAt,
@@ -585,9 +566,7 @@ export class XmtpSession implements ChatSession {
     const times = await xmtpNative
       .getLastReadTimes(this.client.installationId, raw.id)
       .catch(() => ({}) as Record<string, number>);
-    return newestReadByOthers(Object.entries(times), this.self.participantId, (ns) =>
-      Math.round(ns / 1_000_000)
-    );
+    return newestReadByOthers(Object.entries(times), this.self.participantId, (ns) => Math.round(ns / 1_000_000));
   }
 
   private async announce(id: string): Promise<void> {
@@ -607,12 +586,8 @@ export class XmtpSession implements ChatSession {
     return conversation?.version === ConversationVersion.DM;
   }
 
-  private async previewOf(
-    raw: XmtpConversation<any>,
-    isGroup: boolean
-  ): Promise<ProtocolMessage | undefined> {
-    const hidden = (message: DecodedMessage<any>) =>
-      isReadReceipt(message) || (!isGroup && isGroupUpdate(message));
+  private async previewOf(raw: XmtpConversation<any>, isGroup: boolean): Promise<ProtocolMessage | undefined> {
+    const hidden = (message: DecodedMessage<any>) => isReadReceipt(message) || (!isGroup && isGroupUpdate(message));
     // Only a listing fills lastMessage; a conversation found by id or topic has none.
     const last = raw.lastMessage;
     if (last && !hidden(last)) {
@@ -628,17 +603,14 @@ export class XmtpSession implements ChatSession {
     return undefined;
   }
 
-  private async toMessage(
-    raw: DecodedMessage<any>,
-    chatId: ProtocolChatId
-  ): Promise<ProtocolMessage> {
+  private async toMessage(raw: DecodedMessage<any>, chatId: ProtocolChatId): Promise<ProtocolMessage> {
     return {
       id: raw.id,
       chatId,
       senderId: raw.senderInboxId,
       sentAt: Math.round(raw.sentNs / 1_000_000),
       fromMe: raw.senderInboxId === this.self.participantId,
-      status: raw.deliveryStatus === 'FAILED' ? 'failed' : 'sent',
+      status: raw.deliveryStatus === "FAILED" ? "failed" : "sent",
       content: await this.toContent(raw),
       replyTo: raw.nativeContent?.reply?.reference,
     };
@@ -647,12 +619,12 @@ export class XmtpSession implements ChatSession {
   private async toContent(raw: DecodedMessage<any>): Promise<MessageContent> {
     const native = raw.nativeContent;
 
-    if (typeof native?.text === 'string') {
-      return { kind: 'text', text: native.text };
+    if (typeof native?.text === "string") {
+      return { kind: "text", text: native.text };
     }
 
     if (native?.groupUpdated) {
-      return { kind: 'system', text: describeGroupUpdate(native.groupUpdated) };
+      return { kind: "system", text: describeGroupUpdate(native.groupUpdated) };
     }
 
     if (native?.attachment) {
@@ -660,54 +632,54 @@ export class XmtpSession implements ChatSession {
       const uri = await writeInlineAttachment(raw.id, { filename, mimeType, data }, this.accountId);
       const kind = classifyAttachment(mimeType, filename);
 
-      if (kind === 'image') return { kind: 'image', uri, name: filename, mimeType };
-      if (kind === 'voice') {
-        return { kind: 'voice', uri, durationMs: 0, name: filename, mimeType };
+      if (kind === "image") return { kind: "image", uri, name: filename, mimeType };
+      if (kind === "voice") {
+        return { kind: "voice", uri, durationMs: 0, name: filename, mimeType };
       }
-      return { kind: 'file', uri, name: filename, mimeType };
+      return { kind: "file", uri, name: filename, mimeType };
     }
 
     if (native?.reply) {
       const inner = native.reply.content;
-      if (typeof inner?.text === 'string') {
-        return { kind: 'text', text: inner.text };
+      if (typeof inner?.text === "string") {
+        return { kind: "text", text: inner.text };
       }
-      return { kind: 'unsupported', typeId: 'reply', fallback: raw.fallback ?? 'Reply' };
+      return { kind: "unsupported", typeId: "reply", fallback: raw.fallback ?? "Reply" };
     }
 
     const reaction = native?.reaction ?? native?.reactionV2;
     if (reaction) {
       return {
-        kind: 'reaction',
+        kind: "reaction",
         targetId: reaction.reference,
         emoji: reaction.content,
-        action: reaction.action === 'removed' ? 'removed' : 'added',
+        action: reaction.action === "removed" ? "removed" : "added",
       };
     }
 
-    const contentTypeId = raw.contentTypeId ?? '';
+    const contentTypeId = raw.contentTypeId ?? "";
     if (contentTypeId.startsWith(PLUGIN_AUTHORITY)) {
       const typeId = parseTypeId(contentTypeId);
 
       if (native?.unknown) {
         return {
-          kind: 'unsupported',
+          kind: "unsupported",
           typeId,
-          fallback: raw.fallback ?? 'Unsupported message',
+          fallback: raw.fallback ?? "Unsupported message",
         };
       }
 
       try {
-        return { kind: 'custom', typeId, data: raw.content(), fallback: raw.fallback };
+        return { kind: "custom", typeId, data: raw.content(), fallback: raw.fallback };
       } catch {
-        return { kind: 'unsupported', typeId, fallback: raw.fallback ?? 'Unsupported message' };
+        return { kind: "unsupported", typeId, fallback: raw.fallback ?? "Unsupported message" };
       }
     }
 
     return {
-      kind: 'unsupported',
+      kind: "unsupported",
       typeId: parseTypeId(contentTypeId),
-      fallback: raw.fallback ?? 'Unsupported message',
+      fallback: raw.fallback ?? "Unsupported message",
     };
   }
 }
@@ -719,28 +691,28 @@ function toXmtpId(id: string): XmtpConversationId {
 }
 
 function isReadReceipt(message: DecodedMessage<any>): boolean {
-  return message.contentTypeId.startsWith('xmtp.org/readReceipt:');
+  return message.contentTypeId.startsWith("xmtp.org/readReceipt:");
 }
 
 function isGroupUpdate(message: DecodedMessage<any>): boolean {
-  return message.contentTypeId.startsWith('xmtp.org/group_updated:');
+  return message.contentTypeId.startsWith("xmtp.org/group_updated:");
 }
 
 function parseTypeId(contentTypeId: string): string {
-  const afterAuthority = contentTypeId.split('/').pop() ?? contentTypeId;
-  return afterAuthority.split(':')[0];
+  const afterAuthority = contentTypeId.split("/").pop() ?? contentTypeId;
+  return afterAuthority.split(":")[0];
 }
 
-function mapRole(level: 'member' | 'admin' | 'super_admin' | undefined): GroupRole {
-  if (level === 'super_admin') return 'owner';
-  if (level === 'admin') return 'admin';
-  return 'member';
+function mapRole(level: "member" | "admin" | "super_admin" | undefined): GroupRole {
+  if (level === "super_admin") return "owner";
+  if (level === "admin") return "admin";
+  return "member";
 }
 
-function mapConsent(state: ConsentState): Chat['consent'] {
-  if (state === 'allowed') return 'accepted';
-  if (state === 'denied') return 'declined';
-  return 'request';
+function mapConsent(state: ConsentState): Chat["consent"] {
+  if (state === "allowed") return "accepted";
+  if (state === "denied") return "declined";
+  return "request";
 }
 
 function describeGroupUpdate(update: {
@@ -752,7 +724,7 @@ function describeGroupUpdate(update: {
   if (update.membersAdded.length) parts.push(`${update.membersAdded.length} joined`);
   if (update.membersRemoved.length) parts.push(`${update.membersRemoved.length} left`);
   for (const field of update.metadataFieldsChanged) {
-    if (field.fieldName === 'group_name') parts.push(`Renamed to "${field.newValue}"`);
+    if (field.fieldName === "group_name") parts.push(`Renamed to "${field.newValue}"`);
   }
-  return parts.join(' · ') || 'Group updated';
+  return parts.join(" · ") || "Group updated";
 }

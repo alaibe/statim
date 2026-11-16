@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
-import { useChatStore } from '@/core/messaging/chat-store';
-import type { MentionCandidate } from '@/core/messaging/protocol';
-import { mentionLink } from '@/core/messaging/mentions';
-import type { ChatId } from '@/core/messaging/types';
+import { useChatStore } from "@/core/messaging/chat-store";
+import { mentionLink } from "@/core/messaging/mentions";
+import type { MentionCandidate } from "@/core/messaging/protocol";
+import type { ChatId } from "@/core/messaging/types";
 
 const MENTION = /(?:^|\s)@([^\s@]*)$/;
 
@@ -31,9 +31,7 @@ export function useMentionSuggestions(chatId: ChatId, value: string, enabled: bo
     needle === undefined
       ? []
       : found.filter(
-          (person) =>
-            person.address?.toLowerCase().includes(needle) ||
-            person.name.toLowerCase().includes(needle)
+          (person) => person.address?.toLowerCase().includes(needle) || person.name.toLowerCase().includes(needle),
         );
 
   return {

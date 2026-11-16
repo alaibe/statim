@@ -1,17 +1,17 @@
-import { useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { useMemo, useState } from "react";
+import { ScrollView, View } from "react-native";
 
-import { useThemeColors } from '../hooks/use-theme-colors';
-import { cn } from '../lib/cn';
-import { Icon, type IconName } from '../icon';
-import { type PressHandler, runPress } from '../lib/press';
-import type { WidgetTone } from '../widgets/schema';
-import { Checkmark } from './checkmark';
-import { ListItem } from './list-item';
-import { Section } from './section';
-import { SearchField } from './search-field';
-import { closeSheetThen, Sheet, type SheetProps } from './sheet';
-import { Text } from './text';
+import { useThemeColors } from "../hooks/use-theme-colors";
+import { Icon, type IconName } from "../icon";
+import { cn } from "../lib/cn";
+import { type PressHandler, runPress } from "../lib/press";
+import type { WidgetTone } from "../widgets/schema";
+import { Checkmark } from "./checkmark";
+import { ListItem } from "./list-item";
+import { SearchField } from "./search-field";
+import { Section } from "./section";
+import { closeSheetThen, Sheet, type SheetProps } from "./sheet";
+import { Text } from "./text";
 
 export interface SheetAction {
   label: string;
@@ -22,7 +22,7 @@ export interface SheetAction {
   onPress: PressHandler;
 }
 
-export interface ActionSheetProps extends Omit<SheetProps, 'children'> {
+export interface ActionSheetProps extends Omit<SheetProps, "children"> {
   /** Picking one closes the sheet before it runs. */
   actions: SheetAction[];
   searchFor?: string;
@@ -39,7 +39,7 @@ const LIST_MAX = 360;
 
 export function ActionSheet({ actions, searchFor, ...sheet }: ActionSheetProps) {
   const colors = useThemeColors();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
 
   const searchable = actions.length >= MANY_OPTIONS;
   const shown = useMemo(() => {
@@ -52,10 +52,10 @@ export function ActionSheet({ actions, searchFor, ...sheet }: ActionSheetProps) 
     <Sheet {...sheet}>
       {searchable ? (
         <SearchField
-          placeholder={searchFor ? `Search ${searchFor}` : 'Search'}
+          placeholder={searchFor ? `Search ${searchFor}` : "Search"}
           value={query}
           onChangeText={setQuery}
-          onClear={() => setQuery('')}
+          onClear={() => setQuery("")}
           returnKeyType="search"
           testID="sheet-search"
         />
@@ -70,21 +70,18 @@ export function ActionSheet({ actions, searchFor, ...sheet }: ActionSheetProps) 
             </View>
           ) : null}
           {shown.map((action, i) => {
-            const color =
-              action.tone && action.tone !== 'neutral' ? colors[action.tone] : colors.content;
+            const color = action.tone && action.tone !== "neutral" ? colors[action.tone] : colors.content;
             return (
               <ListItem
                 key={`${action.label}-${i}`}
                 accessibilityLabel={action.label}
-                className={cn('px-4', i > 0 && 'border-t border-line')}
+                className={cn("px-4", i > 0 && "border-t border-line")}
                 title={
                   <Text className="font-medium" style={{ color }}>
                     {action.label}
                   </Text>
                 }
-                leading={
-                  action.icon ? <Icon name={action.icon} size={20} color={color} /> : undefined
-                }
+                leading={action.icon ? <Icon name={action.icon} size={20} color={color} /> : undefined}
                 trailing={<Checkmark selected={action.selected} />}
                 onPress={() => closeSheetThen(sheet, () => void runPress(action.onPress))}
               />
@@ -106,7 +103,8 @@ function Scroller({ searchable, children }: { searchable: boolean; children: Rea
     <ScrollView
       style={{ maxHeight: LIST_MAX }}
       keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}>
+      showsVerticalScrollIndicator={false}
+    >
       {children}
     </ScrollView>
   );

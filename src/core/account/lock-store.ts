@@ -1,11 +1,11 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
-import { reportError } from '../app/report-error';
-import type { PromptOutcome } from './biometric-prompt';
-import { authenticate, type LockSetup, readLockSetup, setLockEnabled, unlockMethod } from './lock';
-import { checkPin, deletePin, type PinCheck, savePin } from './pin';
+import { reportError } from "../app/report-error";
+import type { PromptOutcome } from "./biometric-prompt";
+import { authenticate, type LockSetup, readLockSetup, setLockEnabled, unlockMethod } from "./lock";
+import { checkPin, deletePin, type PinCheck, savePin } from "./pin";
 
-export type LockStatus = 'checking' | 'locked' | 'open';
+export type LockStatus = "checking" | "locked" | "open";
 
 export interface LockState {
   status: LockStatus;
@@ -23,26 +23,26 @@ export interface LockState {
 }
 
 export const useLockStore = create<LockState>((set, get) => ({
-  status: 'checking',
+  status: "checking",
   setup: null,
   prompting: false,
 
   async evaluate() {
     const setup = await readSetup();
-    set({ setup, status: setup && unlockMethod(setup) === null ? 'open' : 'locked' });
+    set({ setup, status: setup && unlockMethod(setup) === null ? "open" : "locked" });
   },
 
   noteJustAuthenticated() {
-    set({ status: 'open' });
+    set({ status: "open" });
   },
 
   async unlock() {
-    if (get().prompting) return 'failed';
+    if (get().prompting) return "failed";
 
     set({ prompting: true });
     try {
-      const outcome = await authenticate('unlock');
-      if (outcome === 'passed') set({ status: 'open' });
+      const outcome = await authenticate("unlock");
+      if (outcome === "passed") set({ status: "open" });
       return outcome;
     } finally {
       set({ prompting: false });
@@ -51,8 +51,8 @@ export const useLockStore = create<LockState>((set, get) => ({
 
   async verifyPin(pin) {
     const check = await checkPin(pin);
-    if (check.result === 'correct' && get().status === 'locked') {
-      set({ status: 'open' });
+    if (check.result === "correct" && get().status === "locked") {
+      set({ status: "open" });
     }
     return check;
   },

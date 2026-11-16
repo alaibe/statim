@@ -1,8 +1,8 @@
-import { FlashList, type FlashListRef } from '@shopify/flash-list';
-import { type ReactElement, type Ref, useImperativeHandle, useRef } from 'react';
-import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
+import { FlashList, type FlashListRef } from "@shopify/flash-list";
+import { type ReactElement, type Ref, useImperativeHandle, useRef } from "react";
+import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 
-import type { ChatMessage, MessageId } from '@/core/messaging/types';
+import type { ChatMessage, MessageId } from "@/core/messaging/types";
 
 export interface MessageListHandle {
   scrollToEnd(): void;
@@ -50,8 +50,7 @@ export function MessageList({
   // A wheel or trackpad never begins a drag, so the scroll direction decides whether to follow.
   const trackScroll = ({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
-    if (contentSize.height - contentOffset.y - layoutMeasurement.height < FOLLOW_SLACK_PX)
-      following.current = true;
+    if (contentSize.height - contentOffset.y - layoutMeasurement.height < FOLLOW_SLACK_PX) following.current = true;
     else if (contentOffset.y < lastOffset.current) following.current = false;
     lastOffset.current = contentOffset.y;
   };

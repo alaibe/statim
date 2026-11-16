@@ -2,7 +2,7 @@
  * The status-go protobufs this adapter reads and writes, by field number.
  * Only the fields DMs and groups use; anything else is skipped on read.
  */
-import { ProtoFields, ProtoWriter } from './proto';
+import { ProtoFields, ProtoWriter } from "./proto";
 
 export const AppType = {
   CHAT_MESSAGE: 1,
@@ -256,7 +256,7 @@ export function decodeReaction(bytes: Uint8Array): WireReaction {
   return readReaction(ProtoFields.parse(bytes));
 }
 
-export function encodeMembershipUpdate(update: Omit<WireMembershipUpdate, 'reaction'>): Uint8Array {
+export function encodeMembershipUpdate(update: Omit<WireMembershipUpdate, "reaction">): Uint8Array {
   return new ProtoWriter()
     .string(1, update.chatId)
     .repeatedBytes(2, update.events)
@@ -430,11 +430,7 @@ export function decodeDelete(bytes: Uint8Array): WireDelete {
 }
 
 export function encodeApplicationMessage(message: WireApplicationMessage): Uint8Array {
-  return new ProtoWriter()
-    .bytes(1, message.signature)
-    .bytes(2, message.payload)
-    .uint(3, message.type)
-    .finish();
+  return new ProtoWriter().bytes(1, message.signature).bytes(2, message.payload).uint(3, message.type).finish();
 }
 
 export function decodeApplicationMessage(bytes: Uint8Array): WireApplicationMessage {
@@ -447,11 +443,7 @@ export function encodeMvds(payload: { acks?: Uint8Array[]; messages?: MvdsMessag
   for (const message of payload.messages ?? []) {
     writer.message(
       5004,
-      new ProtoWriter()
-        .bytes(6001, message.groupId)
-        .uint(6002, message.timestamp)
-        .bytes(6003, message.body)
-        .finish()
+      new ProtoWriter().bytes(6001, message.groupId).uint(6002, message.timestamp).bytes(6003, message.body).finish(),
     );
   }
   return writer.finish();
@@ -466,10 +458,7 @@ export function decodeMvds(bytes: Uint8Array): MvdsPayload {
       timestamp: message.number(6002),
       body: message.bytes(6003),
     })),
-    others:
-      fields.repeatedBytes(5002).length +
-      fields.repeatedBytes(5003).length +
-      fields.repeatedBytes(5005).length,
+    others: fields.repeatedBytes(5002).length + fields.repeatedBytes(5003).length + fields.repeatedBytes(5005).length,
   };
 }
 
@@ -483,10 +472,7 @@ export function encodeBundle(bundle: {
   const signedPreKey = new ProtoWriter().bytes(1, bundle.signedPreKey).finish();
   return new ProtoWriter()
     .bytes(1, bundle.identity)
-    .message(
-      2,
-      new ProtoWriter().string(1, bundle.installationId).message(2, signedPreKey).finish()
-    )
+    .message(2, new ProtoWriter().string(1, bundle.installationId).message(2, signedPreKey).finish())
     .bytes(4, bundle.signature)
     .uint(5, bundle.timestamp)
     .finish();

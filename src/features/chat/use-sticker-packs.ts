@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
-import { useAccountStore } from '@/core/account/account-store';
-import { useChatStore } from '@/core/messaging/chat-store';
-import type { PickerPack } from '@/core/messaging/stickers';
-import type { ChatId } from '@/core/messaging/types';
-import { useKeyedLoad } from '@/lib/use-keyed-load';
+import { useAccountStore } from "@/core/account/account-store";
+import { useChatStore } from "@/core/messaging/chat-store";
+import type { PickerPack } from "@/core/messaging/stickers";
+import type { ChatId } from "@/core/messaging/types";
+import { useKeyedLoad } from "@/lib/use-keyed-load";
 
-import { statimPacks } from './attachments/statim-stickers';
-import { useChatPermissions } from './use-chat-permissions';
+import { statimPacks } from "./attachments/statim-stickers";
+import { useChatPermissions } from "./use-chat-permissions";
 
 const RETRY_MS = 700;
 const RETRIES = 15;
@@ -29,7 +29,7 @@ export function useStickerPacks(chatId: ChatId) {
       content: (stickerId) => stickerContent(id, pack.id, stickerId),
     }));
   const network = useLoadUntil(networkStickers ? chatId : null, loadNetwork, (packs) =>
-    packs.every((pack) => pack.cover)
+    packs.every((pack) => pack.cover),
   );
   const statim = useKeyedLoad(accountId, statimPacks);
   const packs = [...(network.value ?? []), ...(statim.value ?? [])];
@@ -43,7 +43,7 @@ export function useStickerPacks(chatId: ChatId) {
 export function useLoadUntil<T, K extends string>(
   key: K | null,
   load: (key: K) => Promise<T>,
-  done: (value: T) => boolean
+  done: (value: T) => boolean,
 ) {
   const [retry, setRetry] = useState({ key, round: 0 });
   const round = retry.key === key ? retry.round : 0;

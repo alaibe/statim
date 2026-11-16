@@ -1,1 +1,1 @@
-import '@walletconnect/react-native-compat';
+import "@walletconnect/react-native-compat";

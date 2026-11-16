@@ -1,33 +1,11 @@
-import { formatEther, parseEther, type Address } from 'viem';
+import { type Address, formatEther, parseEther } from "viem";
 
-import { shortAddress } from '@/core/account/keyring';
-import { isLocalChat } from '@/core/messaging/bots';
-import type {
-  CommandInvocation,
-  CommandResult,
-  PluginContext,
-  SlashCommand,
-} from '@/core/plugins/types';
-import { W, type WidgetOption } from '@/design/widgets';
+import { shortAddress } from "@/core/account/keyring";
+import { isLocalChat } from "@/core/messaging/bots";
+import type { CommandInvocation, CommandResult, PluginContext, SlashCommand } from "@/core/plugins/types";
+import { W, type WidgetOption } from "@/design/widgets";
 
-import { trimDecimals } from '@/lib/evm/chains';
-import {
-  CONTENT_TYPE_PAYMENT_SPLIT,
-  CONTENT_TYPE_PAYMENT_REQUEST,
-  type PaymentRequest,
-  type SplitRequest,
-} from './types';
-import {
-  chainStrategies,
-  holdingRows,
-  holdingsOf,
-  selfAddressOf,
-  targetAddress,
-  type AddressLookup,
-  type ChainId,
-  type ChainStrategy,
-} from './chains/strategy';
-import { EVM_CHAINS, type ChainSpec } from './chains/evm';
+import { trimDecimals } from "@/lib/evm/chains";
 import {
   activeChain,
   chainFlag,
@@ -37,23 +15,37 @@ import {
   pickStrategy,
   walletChainById,
   withoutChain,
-} from './chain-list';
-import { walletErrorMessage } from './errors';
-import { commitTransfer } from './transfer';
+} from "./chain-list";
+import { type ChainSpec, EVM_CHAINS } from "./chains/evm";
+import {
+  type AddressLookup,
+  type ChainId,
+  type ChainStrategy,
+  chainStrategies,
+  holdingRows,
+  holdingsOf,
+  selfAddressOf,
+  targetAddress,
+} from "./chains/strategy";
+import { walletErrorMessage } from "./errors";
+import { commitTransfer } from "./transfer";
+import {
+  CONTENT_TYPE_PAYMENT_REQUEST,
+  CONTENT_TYPE_PAYMENT_SPLIT,
+  type PaymentRequest,
+  type SplitRequest,
+} from "./types";
 
-type Respond = CommandInvocation['respond'];
+type Respond = CommandInvocation["respond"];
 
 const SPLIT_CHAINS = EVM_CHAINS.filter((spec) => !spec.testnet);
 const splitSpec = (id: ChainId | undefined) => SPLIT_CHAINS.find((spec) => spec.id === id);
-const SPLIT_FALLBACK = splitSpec('base')!;
+const SPLIT_FALLBACK = splitSpec("base")!;
 const SPLIT_NAMES = SPLIT_CHAINS.map((spec) => spec.name);
-const SPLITS_ON = `/split works on ${SPLIT_NAMES.slice(0, -1).join(', ')} and ${SPLIT_NAMES.at(-1)}.`;
+const SPLITS_ON = `/split works on ${SPLIT_NAMES.slice(0, -1).join(", ")} and ${SPLIT_NAMES.at(-1)}.`;
 
 /** The chain `--chain` names, else the active chain if /split works there, else Base. */
-async function splitChain(
-  context: PluginContext,
-  named: string | undefined
-): Promise<ChainSpec | { error: string }> {
+async function splitChain(context: PluginContext, named: string | undefined): Promise<ChainSpec | { error: string }> {
   if (!named) return splitSpec((await activeChain(context))?.id) ?? SPLIT_FALLBACK;
   const chain = walletChainById(named);
   if (!chain) return { error: noChainCalled(named) };
@@ -77,7 +69,7 @@ function tokenMismatch(chain: ChainStrategy, token: string | undefined): string 
   return `${chain.name} sends ${chain.transfer!.symbol}, not ${token}.`;
 }
 
-export const withoutConfirm = (rest: string[]) => rest.filter((a) => a !== '--confirm');
+export const withoutConfirm = (rest: string[]) => rest.filter((a) => a !== "--confirm");
 
 /**
  * What a form can offer to send: each chain's coin, then the tokens held
@@ -90,12 +82,12 @@ export async function assetField(chains: ChainStrategy[], context: PluginContext
       chain: c,
       // A holding with no id cannot be sent.
       extra: (await holdingsOf(c, context).catch(() => [])).filter((t) => t.id !== undefined),
-    }))
+    })),
   );
   return {
     options: (chainField: string): WidgetOption[] =>
       assets.flatMap(({ chain: c, extra }) => [
-        { label: c.transfer!.symbol, value: 'native', when: { [chainField]: c.id } },
+        { label: c.transfer!.symbol, value: "native", when: { [chainField]: c.id } },
         ...extra.map((a) => ({ label: a.symbol, value: a.id!, when: { [chainField]: c.id } })),
       ]),
     /** The held token `given` names on `chainId`, by id or symbol. */
@@ -121,7 +113,7 @@ async function balanceDetail(
   chain: ChainStrategy,
   given: string | undefined,
   context: PluginContext,
-  respond: Respond
+  respond: Respond,
 ): Promise<CommandResult> {
   const blocked = chain.unavailable?.(context) ?? null;
   if (blocked) return blocked;
@@ -130,26 +122,26 @@ async function balanceDetail(
   try {
     target = await targetAddress(chain, context, given, { resolve: true });
   } catch (error) {
-    return { type: 'error', message: walletErrorMessage(error, chain, 'balance') };
+    return { type: "error", message: walletErrorMessage(error, chain, "balance") };
   }
-  if ('error' in target) return { type: 'error', message: target.error };
+  if ("error" in target) return { type: "error", message: target.error };
   const { address } = target;
 
   try {
-    const [amount = '—', tokens, detail = []] = await Promise.all([
+    const [amount = "—", tokens, detail = []] = await Promise.all([
       chain.balance?.(context, address),
       chain.holdings?.(context, address).catch(() => []) ?? [],
       chain.detail?.(context, address),
     ]);
-    const symbol = chain.transfer?.symbol ?? '';
+    const symbol = chain.transfer?.symbol ?? "";
 
     await respond({
-      kind: 'widget',
+      kind: "widget",
       fallback: `${amount} ${symbol} on ${chain.name}`,
       widget: W.card(
         [
           W.stat(`${amount} ${symbol}`.trim(), {
-            label: given ? shortAddress(address) : 'Your balance',
+            label: given ? shortAddress(address) : "Your balance",
             caption: chain.name,
             actions: chain.transfer
               ? [{ label: `Send ${symbol}`, command: `/draft /send  --chain ${chain.id}` }]
@@ -157,25 +149,21 @@ async function balanceDetail(
           }),
           ...(tokens.length ? [W.rows(holdingRows(chain.id, tokens))] : []),
           ...detail,
-          W.link(
-            `View on ${chain.explorer.name}`,
-            chain.explorer.addressUrl(address),
-            'open-outline'
-          ),
+          W.link(`View on ${chain.explorer.name}`, chain.explorer.addressUrl(address), "open-outline"),
         ],
-        { title: chain.name, icon: chain.icon }
+        { title: chain.name, icon: chain.icon },
       ),
     });
-    return { type: 'handled' };
+    return { type: "handled" };
   } catch (error) {
-    return { type: 'error', message: walletErrorMessage(error, chain, 'balance') };
+    return { type: "error", message: walletErrorMessage(error, chain, "balance") };
   }
 }
 
 async function balanceOverview(
   chains: ChainStrategy[],
   context: PluginContext,
-  respond: Respond
+  respond: Respond,
 ): Promise<CommandResult> {
   const readings = await Promise.all(
     chains.map(async (chain) => {
@@ -190,28 +178,25 @@ async function balanceOverview(
       } catch {
         return { chain, amount: null, tokens: [] };
       }
-    })
+    }),
   );
 
   await respond({
-    kind: 'widget',
-    fallback: readings.map((r) => `${r.chain.name} ${r.amount ?? 'unavailable'}`).join(' · '),
+    kind: "widget",
+    fallback: readings.map((r) => `${r.chain.name} ${r.amount ?? "unavailable"}`).join(" · "),
     widget: W.card(
       [
         W.rows(
           readings.flatMap((r) => [
             {
               label: r.chain.name,
-              value:
-                r.amount === null
-                  ? 'unavailable'
-                  : `${r.amount} ${r.chain.transfer?.symbol ?? ''}`.trim(),
-              tone: r.amount === null ? ('warning' as const) : undefined,
+              value: r.amount === null ? "unavailable" : `${r.amount} ${r.chain.transfer?.symbol ?? ""}`.trim(),
+              tone: r.amount === null ? ("warning" as const) : undefined,
               actions:
                 r.amount === null
-                  ? [{ label: 'Why unavailable?', command: `/balance --chain ${r.chain.id}` }]
+                  ? [{ label: "Why unavailable?", command: `/balance --chain ${r.chain.id}` }]
                   : [
-                      { label: 'Detail', command: `/balance --chain ${r.chain.id}` },
+                      { label: "Detail", command: `/balance --chain ${r.chain.id}` },
                       ...(r.chain.transfer
                         ? [
                             {
@@ -223,281 +208,281 @@ async function balanceOverview(
                     ],
             },
             ...holdingRows(r.chain.id, r.tokens, true),
-          ])
+          ]),
         ),
-        W.text('Only the chains you have switched on. /chains changes that.'),
+        W.text("Only the chains you have switched on. /chains changes that."),
       ],
-      { title: 'Balances', icon: 'wallet-outline' }
+      { title: "Balances", icon: "wallet-outline" },
     ),
   });
-  return { type: 'handled' };
+  return { type: "handled" };
 }
 
 export const walletCommands: SlashCommand[] = [
   {
-    name: 'balance',
-    aliases: ['bal'],
-    description: 'What you hold, across every chain by default',
-    showIn: ['dm', 'group', 'channel'],
-    usage: '/balance [address] [--chain bitcoin]',
+    name: "balance",
+    aliases: ["bal"],
+    description: "What you hold, across every chain by default",
+    showIn: ["dm", "group", "channel"],
+    usage: "/balance [address] [--chain bitcoin]",
     async run({ args, context, respond }) {
       const chains = chainStrategies();
-      if (chains.length === 0) return { type: 'error', message: NO_CHAIN_ON };
+      if (chains.length === 0) return { type: "error", message: NO_CHAIN_ON };
 
       const named = chainFlag(args);
       if (!named) return balanceOverview(chains, context, respond);
 
       const picked = pickStrategy(chains, named);
-      if ('error' in picked) return { type: 'error', message: picked.error };
+      if ("error" in picked) return { type: "error", message: picked.error };
       return balanceDetail(picked.chain, withoutChain(args)[0], context, respond);
     },
   },
 
   {
-    name: 'send',
-    aliases: ['pay'],
-    description: 'Send a coin or a token to an address',
-    showIn: ['dm', 'group', 'channel'],
-    usage: '/send <amount> <address | name.eth> [--chain bitcoin] [--token USDC]',
+    name: "send",
+    aliases: ["pay"],
+    description: "Send a coin or a token to an address",
+    showIn: ["dm", "group", "channel"],
+    usage: "/send <amount> <address | name.eth> [--chain bitcoin] [--token USDC]",
     async run({ args, context, respond }) {
       const picked = await pickSendable(context, args, (rest) => sendPositionals(rest).recipient);
-      if ('error' in picked) return { type: 'error', message: picked.error };
+      if ("error" in picked) return { type: "error", message: picked.error };
       const { chain, chains, token, rest } = picked;
 
-      const confirmed = rest.includes('--confirm');
+      const confirmed = rest.includes("--confirm");
       const { amount, recipient } = sendPositionals(rest);
 
       if (!amount || !recipient) {
         const assets = await assetField(chains, context);
         // The recipient defaults to your own address, which a hardware account may not have here.
         const self = selfAddressOf(chain, context);
-        const mine = 'address' in self ? self.address : '';
+        const mine = "address" in self ? self.address : "";
 
         await respond({
-          kind: 'widget',
+          kind: "widget",
           fallback: `Send on ${chain.name}`,
           widget: W.card(
             [
               W.form(
                 [
                   {
-                    id: 'chain',
-                    label: 'Chain',
+                    id: "chain",
+                    label: "Chain",
                     value: chain.id,
                     options: chainOptions(chains),
                   },
                   {
-                    id: 'token',
-                    label: 'Asset',
-                    value: assets.held(chain.id, token)?.id ?? 'native',
-                    options: assets.options('chain'),
+                    id: "token",
+                    label: "Asset",
+                    value: assets.held(chain.id, token)?.id ?? "native",
+                    options: assets.options("chain"),
                     select: true,
                   },
                   {
-                    id: 'amount',
-                    label: 'Amount in {token}',
-                    placeholder: '0.01',
-                    keyboard: 'decimal',
-                    value: amount ?? '',
+                    id: "amount",
+                    label: "Amount in {token}",
+                    placeholder: "0.01",
+                    keyboard: "decimal",
+                    value: amount ?? "",
                   },
                   {
-                    id: 'to',
-                    label: 'To',
-                    placeholder: '{chain} address',
+                    id: "to",
+                    label: "To",
+                    placeholder: "{chain} address",
                     value: recipient ?? mine,
                   },
                 ],
-                { label: 'Review', command: '/send {amount} {to} --chain {chain} --token {token}' }
+                { label: "Review", command: "/send {amount} {to} --chain {chain} --token {token}" },
               ),
               W.text(
                 `Changing the chain re-prices the transfer. ${chain.name} sends from your ` +
-                  `${chain.name} address, which is not the same address on every chain.`
+                  `${chain.name} address, which is not the same address on every chain.`,
               ),
             ],
-            { title: `Send on ${chain.name}`, icon: 'arrow-up-circle-outline' }
+            { title: `Send on ${chain.name}`, icon: "arrow-up-circle-outline" },
           ),
         });
-        return { type: 'handled' };
+        return { type: "handled" };
       }
 
-      const asset = token && token !== 'native' ? token : undefined;
+      const asset = token && token !== "native" ? token : undefined;
       const params = { amount, to: recipient, asset };
 
       try {
         const quote = await chain.transfer!.quote(context, params);
-        if ('error' in quote) return { type: 'error', message: `${quote.error} Nothing was sent.` };
+        if ("error" in quote) return { type: "error", message: `${quote.error} Nothing was sent.` };
         const { symbol } = quote;
 
         if (!confirmed) {
           await respond({
-            kind: 'widget',
+            kind: "widget",
             fallback: `Send ${amount} ${symbol} to ${recipient}?`,
             widget: W.card(
               [
-                W.stat(`${amount} ${symbol}`, { label: `To ${recipient}`, tone: 'brand' }),
+                W.stat(`${amount} ${symbol}`, { label: `To ${recipient}`, tone: "brand" }),
                 W.rows(quote.rows),
                 W.actions([
                   {
-                    label: 'Confirm and send',
+                    label: "Confirm and send",
                     command:
                       `/send ${amount} ${recipient} --chain ${chain.id}` +
-                      `${asset ? ` --token ${asset}` : ''} --confirm`,
+                      `${asset ? ` --token ${asset}` : ""} --confirm`,
                   },
                 ]),
-                W.text('Nothing is signed until you confirm.'),
+                W.text("Nothing is signed until you confirm."),
               ],
-              { title: 'Review transfer', icon: 'arrow-up-circle-outline', tone: 'brand' }
+              { title: "Review transfer", icon: "arrow-up-circle-outline", tone: "brand" },
             ),
           });
-          return { type: 'handled' };
+          return { type: "handled" };
         }
 
         const sent = await commitTransfer(chain, context, params, {
           onSent: (id) =>
             respond({
-              kind: 'widget',
+              kind: "widget",
               fallback: `Sent ${amount} ${symbol} to ${recipient}`,
               widget: W.card(
                 [
-                  W.stat(`${amount} ${symbol}`, { label: `Sent to ${recipient}`, tone: 'success' }),
-                  W.code(id, { label: 'Transaction' }),
+                  W.stat(`${amount} ${symbol}`, { label: `Sent to ${recipient}`, tone: "success" }),
+                  W.code(id, { label: "Transaction" }),
                   W.link(`View on ${chain.explorer.name}`, chain.explorer.addressUrl(recipient)),
                 ],
-                { title: 'Sent', icon: 'checkmark-circle', tone: 'success' }
+                { title: "Sent", icon: "checkmark-circle", tone: "success" },
               ),
             }),
         });
-        return sent.ok ? { type: 'handled' } : { type: 'error', message: sent.message };
+        return sent.ok ? { type: "handled" } : { type: "error", message: sent.message };
       } catch (error) {
-        return { type: 'error', message: walletErrorMessage(error, chain, 'review') };
+        return { type: "error", message: walletErrorMessage(error, chain, "review") };
       }
     },
   },
 
   {
-    name: 'request',
-    aliases: ['req'],
-    description: 'Ask for a payment: a card with a Pay button',
+    name: "request",
+    aliases: ["req"],
+    description: "Ask for a payment: a card with a Pay button",
     sendsCustom: true,
-    showIn: ['dm', 'group'],
-    usage: '/request <amount> [--chain bitcoin] [--token BTC] [note…]',
+    showIn: ["dm", "group"],
+    usage: "/request <amount> [--chain bitcoin] [--token BTC] [note…]",
     async run({ args, chatId, context, respond }) {
       const picked = await pickSendable(context, args);
-      if ('error' in picked) return { type: 'error', message: picked.error };
+      if ("error" in picked) return { type: "error", message: picked.error };
       const { chain, chains, token, rest } = picked;
       const [amount, ...noteParts] = rest;
 
       const mismatch = tokenMismatch(chain, token);
-      if (mismatch) return { type: 'error', message: mismatch };
+      if (mismatch) return { type: "error", message: mismatch };
 
       const symbol = chain.transfer!.symbol;
 
       if (!amount) {
         await respond({
-          kind: 'widget',
+          kind: "widget",
           fallback: `Request ${symbol} on ${chain.name}`,
           widget: W.card(
             [
               W.form(
                 [
                   {
-                    id: 'chain',
-                    label: 'Chain',
+                    id: "chain",
+                    label: "Chain",
                     value: chain.id,
                     options: chainOptions(chains),
                   },
                   {
-                    id: 'token',
-                    label: 'Token',
+                    id: "token",
+                    label: "Token",
                     value: symbol,
                     options: tokenOptions(chains),
-                    hint: 'They pay into your {chain} address.',
+                    hint: "They pay into your {chain} address.",
                   },
                   {
-                    id: 'amount',
-                    label: 'Amount in {token}',
-                    placeholder: '0.05',
-                    keyboard: 'decimal',
+                    id: "amount",
+                    label: "Amount in {token}",
+                    placeholder: "0.05",
+                    keyboard: "decimal",
                   },
                   {
-                    id: 'note',
-                    label: 'What for',
-                    placeholder: 'coffee',
-                    hint: 'Shown on the card they receive.',
+                    id: "note",
+                    label: "What for",
+                    placeholder: "coffee",
+                    hint: "Shown on the card they receive.",
                     optional: true,
                   },
                 ],
                 {
-                  label: 'Send request',
-                  command: '/request {amount} --chain {chain} --token {token} {note}',
-                }
+                  label: "Send request",
+                  command: "/request {amount} --chain {chain} --token {token} {note}",
+                },
               ),
             ],
-            { title: `Ask for ${symbol}`, icon: 'arrow-down-circle-outline' }
+            { title: `Ask for ${symbol}`, icon: "arrow-down-circle-outline" },
           ),
         });
-        return { type: 'handled' };
+        return { type: "handled" };
       }
 
       if (!/^\d+(\.\d+)?$/.test(amount) || Number(amount) <= 0) {
         return {
-          type: 'error',
+          type: "error",
           message: `"${amount}" is not a valid amount. Enter a number greater than 0.`,
         };
       }
 
       if (isLocalChat(chatId)) {
         return {
-          type: 'error',
-          message: 'Payment requests need a real chat. There is nobody to pay here.',
+          type: "error",
+          message: "Payment requests need a real chat. There is nobody to pay here.",
         };
       }
 
       const self = selfAddressOf(chain, context);
-      if ('error' in self) return { type: 'error', message: self.error };
+      if ("error" in self) return { type: "error", message: self.error };
 
       const payload: PaymentRequest = {
         amount,
         symbol,
         chain: chain.id,
         to: self.address,
-        note: noteParts.join(' ') || undefined,
+        note: noteParts.join(" ") || undefined,
       };
 
       await context.chat.sendCustom(chatId, CONTENT_TYPE_PAYMENT_REQUEST, payload);
-      return { type: 'handled' };
+      return { type: "handled" };
     },
   },
 
   {
-    name: 'split',
-    description: 'Ask everyone here for their share of a bill',
+    name: "split",
+    description: "Ask everyone here for their share of a bill",
     sendsCustom: true,
-    usage: '/split <total> [--chain base] [note…]',
-    showIn: ['group'],
+    usage: "/split <total> [--chain base] [note…]",
+    showIn: ["group"],
     async run({ args, chatId, context, respond }) {
       const picked = await splitChain(context, chainFlag(args));
-      if ('error' in picked) return { type: 'error', message: picked.error };
+      if ("error" in picked) return { type: "error", message: picked.error };
       const { chain } = picked;
       const [total, ...noteParts] = withoutChain(args);
 
       if (!total) {
         await respond({
-          kind: 'widget',
+          kind: "widget",
           fallback: `Split a bill on ${picked.name}`,
           widget: W.card(
             [
               W.form(
                 [
                   {
-                    id: 'chain',
-                    label: 'Chain',
+                    id: "chain",
+                    label: "Chain",
                     value: picked.id,
                     options: SPLIT_CHAINS.map((spec) => ({ label: spec.name, value: spec.id })),
                   },
                   {
-                    id: 'token',
-                    label: 'Token',
+                    id: "token",
+                    label: "Token",
                     value: chain.nativeCurrency.symbol,
                     options: SPLIT_CHAINS.map((spec) => ({
                       label: spec.chain.nativeCurrency.symbol,
@@ -506,37 +491,37 @@ export const walletCommands: SlashCommand[] = [
                     })),
                   },
                   {
-                    id: 'total',
-                    label: 'Total in {token}',
-                    placeholder: '0.32',
-                    keyboard: 'decimal',
+                    id: "total",
+                    label: "Total in {token}",
+                    placeholder: "0.32",
+                    keyboard: "decimal",
                   },
-                  { id: 'note', label: 'What for', placeholder: 'dinner', optional: true },
+                  { id: "note", label: "What for", placeholder: "dinner", optional: true },
                 ],
-                { label: 'Split it', command: '/split {total} --chain {chain} {note}' }
+                { label: "Split it", command: "/split {total} --chain {chain} {note}" },
               ),
             ],
-            { title: 'Split a bill', icon: 'people-outline' }
+            { title: "Split a bill", icon: "people-outline" },
           ),
         });
-        return { type: 'handled' };
+        return { type: "handled" };
       }
 
       const totalWei = /^\d*\.?\d+$/.test(total) ? parseEther(total) : 0n;
       if (totalWei <= 0n) {
         return {
-          type: 'error',
+          type: "error",
           message: `"${total}" is not a valid amount. Enter a number greater than 0.`,
         };
       }
 
       const members = await context.chat.members(chatId);
       if (members.length < 2) {
-        return { type: 'error', message: 'Nobody to split with. /split works in a group.' };
+        return { type: "error", message: "Nobody to split with. /split works in a group." };
       }
 
       const share = trimDecimals(formatEther(totalWei / BigInt(members.length)));
-      const note = noteParts.join(' ').trim();
+      const note = noteParts.join(" ").trim();
 
       const payload: SplitRequest = {
         total,
@@ -549,7 +534,7 @@ export const walletCommands: SlashCommand[] = [
       };
 
       await context.chat.sendCustom(chatId, CONTENT_TYPE_PAYMENT_SPLIT, payload);
-      return { type: 'handled' };
+      return { type: "handled" };
     },
   },
 ];

@@ -1,11 +1,11 @@
-import { labelled, stickerLabel, unsupported } from '@/core/messaging/preview';
-import { LOTTIE_STICKER, type StickerContent } from '@/core/messaging/stickers';
-import type { MessageContent, ParticipantId, ProtocolMessage } from '@/core/messaging/types';
+import { labelled, stickerLabel, unsupported } from "@/core/messaging/preview";
+import { LOTTIE_STICKER, type StickerContent } from "@/core/messaging/stickers";
+import type { MessageContent, ParticipantId, ProtocolMessage } from "@/core/messaging/types";
 
-import type { TdObject } from './api';
-import { formattedToMarkdown } from './formatting';
-import { chatIdOf, messageIdOf, senderIdOf, userIdOf } from './ids';
-import type { TdFile, TdFormattedText, TdMessage, TdSticker } from './types';
+import type { TdObject } from "./api";
+import { formattedToMarkdown } from "./formatting";
+import { chatIdOf, messageIdOf, senderIdOf, userIdOf } from "./ids";
+import type { TdFile, TdFormattedText, TdMessage, TdSticker } from "./types";
 
 export interface MappingContext {
   selfId?: ParticipantId;
@@ -16,8 +16,7 @@ export interface MappingContext {
 
 export function toMessage(raw: TdMessage, context: MappingContext): ProtocolMessage {
   const replyTo =
-    raw.reply_to?.['@type'] === 'messageReplyToMessage' &&
-    (raw.reply_to as { chat_id: number }).chat_id === raw.chat_id
+    raw.reply_to?.["@type"] === "messageReplyToMessage" && (raw.reply_to as { chat_id: number }).chat_id === raw.chat_id
       ? messageIdOf(raw.chat_id, (raw.reply_to as { message_id: number }).message_id)
       : undefined;
   const reactions = reactionsOf(raw, context.selfId);
@@ -29,10 +28,10 @@ export function toMessage(raw: TdMessage, context: MappingContext): ProtocolMess
     content: toContent(raw, context),
     fromMe: raw.is_outgoing,
     status: !raw.sending_state
-      ? 'sent'
-      : raw.sending_state['@type'] === 'messageSendingStateFailed'
-        ? 'failed'
-        : 'sending',
+      ? "sent"
+      : raw.sending_state["@type"] === "messageSendingStateFailed"
+        ? "failed"
+        : "sending",
     ...(replyTo ? { replyTo } : {}),
     ...(reactions ? { reactions } : {}),
     ...(raw.forward_info ? { forwarded: true } : {}),
@@ -42,15 +41,12 @@ export function toMessage(raw: TdMessage, context: MappingContext): ProtocolMess
 }
 
 /** TDLib lists a few recent senders per emoji; that is what there is to show. */
-function reactionsOf(
-  raw: TdMessage,
-  selfId: ParticipantId | undefined
-): Record<string, ParticipantId[]> | undefined {
+function reactionsOf(raw: TdMessage, selfId: ParticipantId | undefined): Record<string, ParticipantId[]> | undefined {
   const list = raw.interaction_info?.reactions?.reactions;
   if (!list || list.length === 0) return undefined;
   const out: Record<string, ParticipantId[]> = {};
   for (const reaction of list) {
-    if (reaction.type['@type'] !== 'reactionTypeEmoji') continue;
+    if (reaction.type["@type"] !== "reactionTypeEmoji") continue;
     const emoji = (reaction.type as { emoji: string }).emoji;
     const people = new Set(reaction.recent_sender_ids.map(senderIdOf));
     if (reaction.is_chosen && selfId) people.add(selfId);
@@ -67,28 +63,28 @@ interface Input {
 }
 
 const SYSTEM_TEXT: Record<string, string> = {
-  messageChatChangePhoto: 'Group photo changed',
-  messageChatDeletePhoto: 'Group photo removed',
-  messageBasicGroupChatCreate: 'Group created',
-  messageSupergroupChatCreate: 'Group created',
-  messagePinMessage: 'Message pinned',
-  messageChatUpgradeTo: 'Group upgraded',
-  messageChatUpgradeFrom: 'Group upgraded',
+  messageChatChangePhoto: "Group photo changed",
+  messageChatDeletePhoto: "Group photo removed",
+  messageBasicGroupChatCreate: "Group created",
+  messageSupergroupChatCreate: "Group created",
+  messagePinMessage: "Message pinned",
+  messageChatUpgradeTo: "Group upgraded",
+  messageChatUpgradeFrom: "Group upgraded",
 };
 
 const senderName = ({ raw, context }: Input) => context.names([userIdOf(raw.sender_id)]);
 
 const STICKER_MIME: Record<string, string> = {
-  stickerFormatWebp: 'image/webp',
+  stickerFormatWebp: "image/webp",
   stickerFormatTgs: LOTTIE_STICKER,
-  stickerFormatWebm: 'video/webm',
+  stickerFormatWebm: "video/webm",
 };
 
 export function stickerContent(sticker: TdSticker, uri: string): StickerContent {
   return {
-    kind: 'sticker',
+    kind: "sticker",
     uri,
-    mimeType: STICKER_MIME[sticker.format['@type']],
+    mimeType: STICKER_MIME[sticker.format["@type"]],
     width: sticker.width,
     height: sticker.height,
     size: sticker.sticker.size,
@@ -98,18 +94,17 @@ export function stickerContent(sticker: TdSticker, uri: string): StickerContent 
 
 const MAPPERS: Record<string, (input: Input) => MessageContent> = {
   messageText: ({ content }) => ({
-    kind: 'text',
+    kind: "text",
     text: formattedToMarkdown(content.text as TdFormattedText),
   }),
 
   messagePhoto: ({ content, context, caption }) => {
-    const sizes = (content.photo as { sizes: { photo: TdFile; width: number; height: number }[] })
-      .sizes;
+    const sizes = (content.photo as { sizes: { photo: TdFile; width: number; height: number }[] }).sizes;
     const size = sizes[sizes.length - 1];
     const uri = size ? context.media(size.photo) : null;
-    if (!uri) return unsupported('photo', labelled('📷 Photo', caption));
+    if (!uri) return unsupported("photo", labelled("📷 Photo", caption));
     return {
-      kind: 'image',
+      kind: "image",
       uri,
       width: size.width,
       height: size.height,
@@ -121,9 +116,9 @@ const MAPPERS: Record<string, (input: Input) => MessageContent> = {
   messageDocument: ({ content, context, caption }) => {
     const document = content.document as { document: TdFile; file_name: string; mime_type: string };
     const uri = context.media(document.document);
-    if (!uri) return unsupported('document', labelled(`📎 ${document.file_name}`, caption));
+    if (!uri) return unsupported("document", labelled(`📎 ${document.file_name}`, caption));
     return {
-      kind: 'file',
+      kind: "file",
       uri,
       name: document.file_name,
       mimeType: document.mime_type,
@@ -134,9 +129,9 @@ const MAPPERS: Record<string, (input: Input) => MessageContent> = {
   messageVoiceNote: ({ content, context }) => {
     const voice = content.voice_note as { voice: TdFile; duration: number; mime_type: string };
     const uri = context.media(voice.voice);
-    if (!uri) return unsupported('voice', '🎤 Voice message');
+    if (!uri) return unsupported("voice", "🎤 Voice message");
     return {
-      kind: 'voice',
+      kind: "voice",
       uri,
       durationMs: voice.duration * 1000,
       size: voice.voice.size,
@@ -152,9 +147,9 @@ const MAPPERS: Record<string, (input: Input) => MessageContent> = {
       duration: number;
     };
     const uri = context.media(video.video);
-    if (!uri) return unsupported('video', labelled('🎬 Video', caption));
+    if (!uri) return unsupported("video", labelled("🎬 Video", caption));
     return {
-      kind: 'video',
+      kind: "video",
       uri,
       width: video.width,
       height: video.height,
@@ -168,11 +163,11 @@ const MAPPERS: Record<string, (input: Input) => MessageContent> = {
       question: TdFormattedText;
       options: { text: TdFormattedText; vote_percentage: number; is_chosen: boolean }[];
       total_voter_count: number;
-      type: { '@type': string; allow_multiple_answers?: boolean };
+      type: { "@type": string; allow_multiple_answers?: boolean };
       is_closed: boolean;
     };
     return {
-      kind: 'poll',
+      kind: "poll",
       question: poll.question.text,
       options: poll.options.map((option) => ({
         text: option.text.text,
@@ -180,7 +175,7 @@ const MAPPERS: Record<string, (input: Input) => MessageContent> = {
         chosen: option.is_chosen,
       })),
       totalVoters: poll.total_voter_count,
-      multiple: poll.type['@type'] === 'pollTypeRegular' && !!poll.type.allow_multiple_answers,
+      multiple: poll.type["@type"] === "pollTypeRegular" && !!poll.type.allow_multiple_answers,
       closed: poll.is_closed,
     };
   },
@@ -188,14 +183,14 @@ const MAPPERS: Record<string, (input: Input) => MessageContent> = {
   messageSticker: ({ content, context }) => {
     const sticker = content.sticker as TdSticker;
     const uri = context.media(sticker.sticker);
-    return uri ? stickerContent(sticker, uri) : unsupported('sticker', stickerLabel(sticker.emoji));
+    return uri ? stickerContent(sticker, uri) : unsupported("sticker", stickerLabel(sticker.emoji));
   },
   messageAnimatedEmoji: ({ content, context }) => {
     const emoji = content.emoji as string;
     const sticker = (content.animated_emoji as { sticker: TdSticker | null }).sticker;
-    if (!sticker) return { kind: 'text', text: emoji };
+    if (!sticker) return { kind: "text", text: emoji };
     const uri = context.media(sticker.sticker);
-    return uri ? { ...stickerContent(sticker, uri), emoji } : unsupported('sticker', emoji);
+    return uri ? { ...stickerContent(sticker, uri), emoji } : unsupported("sticker", emoji);
   },
   messageAnimation: ({ content, context, caption }) => {
     const animation = content.animation as {
@@ -205,67 +200,63 @@ const MAPPERS: Record<string, (input: Input) => MessageContent> = {
       height: number;
     };
     const uri = context.media(animation.animation);
-    if (!uri) return unsupported('animation', labelled('GIF', caption));
+    if (!uri) return unsupported("animation", labelled("GIF", caption));
     const shape = { uri, width: animation.width, height: animation.height };
     const captioned = caption ? { caption } : {};
-    return animation.mime_type === 'image/gif'
-      ? { kind: 'image', ...shape, mimeType: 'image/gif', ...captioned }
-      : { kind: 'video', ...shape, gif: true, ...captioned };
+    return animation.mime_type === "image/gif"
+      ? { kind: "image", ...shape, mimeType: "image/gif", ...captioned }
+      : { kind: "video", ...shape, gif: true, ...captioned };
   },
-  messageVideoNote: () => unsupported('videoNote', '📹 Video message'),
+  messageVideoNote: () => unsupported("videoNote", "📹 Video message"),
   messageAudio: ({ content, caption }) => {
     const audio = content.audio as { title?: string; file_name?: string };
-    return unsupported(
-      'audio',
-      labelled(`🎵 ${audio.title || audio.file_name || 'Audio'}`, caption)
-    );
+    return unsupported("audio", labelled(`🎵 ${audio.title || audio.file_name || "Audio"}`, caption));
   },
-  messageLocation: () => unsupported('location', '📍 Location'),
-  messageVenue: () => unsupported('location', '📍 Location'),
+  messageLocation: () => unsupported("location", "📍 Location"),
+  messageVenue: () => unsupported("location", "📍 Location"),
   messageContact: ({ content }) => {
     const contact = content.contact as { first_name: string; last_name: string };
-    const name = [contact.first_name, contact.last_name].filter(Boolean).join(' ');
-    return unsupported('contact', `👤 ${name}`);
+    const name = [contact.first_name, contact.last_name].filter(Boolean).join(" ");
+    return unsupported("contact", `👤 ${name}`);
   },
   messageCall: ({ content, raw }) => {
     const duration = content.duration as number;
     const video = content.is_video ? { video: true } : {};
     if (duration > 0) {
-      return { kind: 'call', outcome: 'ended', ...video, durationMs: duration * 1000 };
+      return { kind: "call", outcome: "ended", ...video, durationMs: duration * 1000 };
     }
-    const declined = (content.discard_reason as TdObject)['@type'] === 'callDiscardReasonDeclined';
-    const outcome = declined ? 'declined' : raw.is_outgoing ? 'cancelled' : 'missed';
-    return { kind: 'call', outcome, ...video };
+    const declined = (content.discard_reason as TdObject)["@type"] === "callDiscardReasonDeclined";
+    const outcome = declined ? "declined" : raw.is_outgoing ? "cancelled" : "missed";
+    return { kind: "call", outcome, ...video };
   },
-  messageDice: ({ content }) =>
-    unsupported('dice', `${content.emoji as string} ${content.value as number}`),
+  messageDice: ({ content }) => unsupported("dice", `${content.emoji as string} ${content.value as number}`),
 
   messageChatAddMembers: ({ content, context }) => ({
-    kind: 'system',
+    kind: "system",
     text: `${context.names(content.member_user_ids as number[])} joined`,
   }),
   messageChatDeleteMember: ({ content, context }) => ({
-    kind: 'system',
+    kind: "system",
     text: `${context.names([content.user_id as number])} left`,
   }),
-  messageChatJoinByLink: (input) => ({ kind: 'system', text: `${senderName(input)} joined` }),
-  messageChatJoinByRequest: (input) => ({ kind: 'system', text: `${senderName(input)} joined` }),
+  messageChatJoinByLink: (input) => ({ kind: "system", text: `${senderName(input)} joined` }),
+  messageChatJoinByRequest: (input) => ({ kind: "system", text: `${senderName(input)} joined` }),
   messageContactRegistered: (input) => ({
-    kind: 'system',
+    kind: "system",
     text: `${senderName(input)} joined Telegram`,
   }),
   messageChatChangeTitle: ({ content }) => ({
-    kind: 'system',
+    kind: "system",
     text: `Renamed to "${content.title as string}"`,
   }),
 };
 
 function toContent(raw: TdMessage, context: MappingContext): MessageContent {
   const content = raw.content;
-  const type = content['@type'];
-  if (SYSTEM_TEXT[type]) return { kind: 'system', text: SYSTEM_TEXT[type] };
+  const type = content["@type"];
+  if (SYSTEM_TEXT[type]) return { kind: "system", text: SYSTEM_TEXT[type] };
   const map = MAPPERS[type];
-  if (!map) return unsupported(type, 'Unsupported message');
+  if (!map) return unsupported(type, "Unsupported message");
   const caption = content.caption
     ? formattedToMarkdown(content.caption as TdFormattedText).trim() || undefined
     : undefined;

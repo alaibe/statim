@@ -1,32 +1,26 @@
-import type { PluginContext } from '@/core/plugins/types';
-import type { Widget, WidgetRow } from '@/design/widgets';
+import { STATIM_LOCAL_ID } from "@/core/messaging/bots";
+import type { PluginContext } from "@/core/plugins/types";
+import type { Widget, WidgetRow } from "@/design/widgets";
+import { type ChainStrategy, type Holding, registerChainStrategy } from "./chains/strategy";
+import { walletCommands } from "./commands";
 
-import { registerChainStrategy, type ChainStrategy, type Holding } from './chains/strategy';
-import { walletCommands } from './commands';
-import { STATIM_LOCAL_ID } from '@/core/messaging/bots';
+jest.mock("./bitcoin/bot", () => ({ checkAddress: jest.fn() }));
+jest.mock("./bitcoin", () => ({ bitcoinStrategy: jest.fn() }));
+jest.mock("./bitcoin/config", () => ({ hydrateApiBase: jest.fn() }));
+jest.mock("./solana", () => ({ solanaStrategy: {} }));
+jest.mock("./chains/watcher", () => ({ checkBalances: jest.fn() }));
 
-jest.mock('./bitcoin/bot', () => ({ checkAddress: jest.fn() }));
-jest.mock('./bitcoin', () => ({ bitcoinStrategy: jest.fn() }));
-jest.mock('./bitcoin/config', () => ({ hydrateApiBase: jest.fn() }));
-jest.mock('./solana', () => ({ solanaStrategy: {} }));
-jest.mock('./chains/watcher', () => ({ checkBalances: jest.fn() }));
+const me = "0x0000000000000000000000000000000000000002";
 
-const me = '0x0000000000000000000000000000000000000002';
-
-function chain(
-  id: string,
-  symbol: string,
-  amount: string | null,
-  holdings?: Holding[] | Error
-): ChainStrategy {
+function chain(id: string, symbol: string, amount: string | null, holdings?: Holding[] | Error): ChainStrategy {
   return {
     id,
     name: id,
-    icon: 'wallet-outline',
+    icon: "wallet-outline",
     isAddress: () => true,
     selfAddress: () => me,
     balance: async () => {
-      if (amount === null) throw new Error('endpoint down');
+      if (amount === null) throw new Error("endpoint down");
       return amount;
     },
     holdings: holdings
@@ -36,7 +30,7 @@ function chain(
         }
       : undefined,
     transfer: { symbol },
-    explorer: { name: id, addressUrl: () => '' },
+    explorer: { name: id, addressUrl: () => "" },
   } as unknown as ChainStrategy;
 }
 
@@ -57,69 +51,69 @@ afterEach(() => {
 async function overview(): Promise<WidgetRow[]> {
   let widget: Widget | undefined;
   await walletCommands
-    .find((c) => c.name === 'balance')!
+    .find((c) => c.name === "balance")!
     .run({
       args: [],
-      rest: '',
+      rest: "",
       context,
       chatId: STATIM_LOCAL_ID,
       respond: async (content) => {
-        if (typeof content !== 'string' && content.kind === 'widget') widget = content.widget;
+        if (typeof content !== "string" && content.kind === "widget") widget = content.widget;
       },
     });
-  const rows = widget?.kind === 'card' ? widget.children.find((c) => c.kind === 'rows') : undefined;
-  return rows?.kind === 'rows' ? rows.rows : [];
+  const rows = widget?.kind === "card" ? widget.children.find((c) => c.kind === "rows") : undefined;
+  return rows?.kind === "rows" ? rows.rows : [];
 }
 
-describe('/balance with no argument', () => {
-  it('lists the tokens a chain holds under its coin', async () => {
+describe("/balance with no argument", () => {
+  it("lists the tokens a chain holds under its coin", async () => {
     register(
-      chain('ethereum', 'ETH', '1.5', [
-        { symbol: 'USDC', amount: '250', id: '0xa0b8' },
-        { symbol: 'DAI', amount: '12.5', id: '0x6b17' },
-      ])
+      chain("ethereum", "ETH", "1.5", [
+        { symbol: "USDC", amount: "250", id: "0xa0b8" },
+        { symbol: "DAI", amount: "12.5", id: "0x6b17" },
+      ]),
     );
 
     const rows = await overview();
 
-    expect(rows.map((row) => row.label.trim())).toEqual(['ethereum', 'USDC', 'DAI']);
-    expect(rows[1].value).toBe('250');
+    expect(rows.map((row) => row.label.trim())).toEqual(["ethereum", "USDC", "DAI"]);
+    expect(rows[1].value).toBe("250");
     // Indented, so a token reads as belonging to the chain above it.
-    expect(rows[1].label.startsWith(' ')).toBe(true);
+    expect(rows[1].label.startsWith(" ")).toBe(true);
   });
 
-  it('offers to send a token it can name a contract for', async () => {
-    register(chain('base', 'ETH', '0.2', [{ symbol: 'USDC', amount: '5', id: '0x8335' }]));
+  it("offers to send a token it can name a contract for", async () => {
+    register(chain("base", "ETH", "0.2", [{ symbol: "USDC", amount: "5", id: "0x8335" }]));
 
     const [, token] = await overview();
     expect(token.actions?.[0]).toEqual(
       expect.objectContaining({
-        command: expect.stringContaining('--token 0x8335'),
-      })
+        command: expect.stringContaining("--token 0x8335"),
+      }),
     );
   });
 
-  it('leaves a token alone when the chain cannot send it', async () => {
+  it("leaves a token alone when the chain cannot send it", async () => {
     // Solana lists its tokens without an id, so none can be sent.
-    register(chain('solana', 'SOL', '3', [{ symbol: 'USDC', amount: '9' }]));
+    register(chain("solana", "SOL", "3", [{ symbol: "USDC", amount: "9" }]));
 
     const [, token] = await overview();
     expect(token.actions).toBeUndefined();
   });
 
-  it('still shows the coin when the token read fails', async () => {
-    register(chain('ethereum', 'ETH', '1.5', new Error('rpc refused')));
+  it("still shows the coin when the token read fails", async () => {
+    register(chain("ethereum", "ETH", "1.5", new Error("rpc refused")));
 
     const rows = await overview();
-    expect(rows.map((row) => row.label.trim())).toEqual(['ethereum']);
-    expect(rows[0].value).toBe('1.5 ETH');
+    expect(rows.map((row) => row.label.trim())).toEqual(["ethereum"]);
+    expect(rows[0].value).toBe("1.5 ETH");
   });
 
-  it('says a chain is unavailable rather than claiming nothing is held', async () => {
-    register(chain('ethereum', 'ETH', null, [{ symbol: 'USDC', amount: '250' }]));
+  it("says a chain is unavailable rather than claiming nothing is held", async () => {
+    register(chain("ethereum", "ETH", null, [{ symbol: "USDC", amount: "250" }]));
 
     const rows = await overview();
-    expect(rows[0].value).toBe('unavailable');
+    expect(rows[0].value).toBe("unavailable");
     expect(rows).toHaveLength(1);
   });
 });

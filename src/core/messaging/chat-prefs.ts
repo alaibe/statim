@@ -1,5 +1,5 @@
-import type { AccountStorage } from '@/storage/account';
-import type { Chat, ChatId } from './types';
+import type { AccountStorage } from "@/storage/account";
+import type { Chat, ChatId } from "./types";
 
 export interface ChatPrefs {
   pinned?: boolean;
@@ -15,7 +15,7 @@ export function prefsFor(prefs: ChatPrefsMap, id: ChatId): Readonly<ChatPrefs> {
   return prefs[id] ?? NO_PREFS;
 }
 
-const KEY = 'chat.prefs';
+const KEY = "chat.prefs";
 
 export async function loadChatPrefs(storage: AccountStorage): Promise<ChatPrefsMap> {
   return (await storage.get<ChatPrefsMap>(KEY)) ?? {};
@@ -25,15 +25,11 @@ export async function saveChatPrefs(storage: AccountStorage, prefs: ChatPrefsMap
   try {
     await storage.set(KEY, prefs);
   } catch (error) {
-    console.warn('[chat] could not persist chat preferences', error);
+    console.warn("[chat] could not persist chat preferences", error);
   }
 }
 
-export function withPref(
-  prefs: ChatPrefsMap,
-  id: ChatId,
-  change: Partial<ChatPrefs>
-): ChatPrefsMap {
+export function withPref(prefs: ChatPrefsMap, id: ChatId, change: Partial<ChatPrefs>): ChatPrefsMap {
   const next = { ...prefsFor(prefs, id), ...change };
 
   const cleaned: ChatPrefs = {};
@@ -47,11 +43,7 @@ export function withPref(
   return out;
 }
 
-export function orderChats(
-  chats: Chat[],
-  prefs: ChatPrefsMap,
-  { includeArchived = false } = {}
-): Chat[] {
+export function orderChats(chats: Chat[], prefs: ChatPrefsMap, { includeArchived = false } = {}): Chat[] {
   const recency = (c: Chat) => c.lastMessage?.sentAt ?? c.createdAt;
 
   return chats

@@ -1,6 +1,6 @@
-import { isAddress, type Address } from 'viem';
+import { type Address, isAddress } from "viem";
 
-import { isNumber, isString, optional, shape } from '@/lib/guards';
+import { isNumber, isString, optional, shape } from "@/lib/guards";
 
 export interface PaymentRequest {
   amount: string;
@@ -58,6 +58,6 @@ export const isPaymentReceipt = shape<PaymentReceipt>({
   to: isString,
 });
 
-export const CONTENT_TYPE_PAYMENT_REQUEST = 'eth.payment.request';
-export const CONTENT_TYPE_PAYMENT_RECEIPT = 'eth.payment.receipt';
-export const CONTENT_TYPE_PAYMENT_SPLIT = 'eth.payment.split';
+export const CONTENT_TYPE_PAYMENT_REQUEST = "eth.payment.request";
+export const CONTENT_TYPE_PAYMENT_RECEIPT = "eth.payment.receipt";
+export const CONTENT_TYPE_PAYMENT_SPLIT = "eth.payment.split";

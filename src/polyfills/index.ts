@@ -3,10 +3,10 @@
  * touches @noble/hashes, which WalletConnect does at import time. ES imports
  * are hoisted but evaluate top to bottom, so this order is the guarantee.
  */
-import './crypto';
+import "./crypto";
 
-import './walletconnect';
+import "./walletconnect";
 
-import './desktop';
+import "./desktop";
 
-import './verify';
+import "./verify";

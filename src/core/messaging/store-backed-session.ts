@@ -1,20 +1,20 @@
-import { UnsupportedError } from '../errors';
-import { HistoryTracker, type HistoryState } from './history';
-import { HYDRATE_LIMIT, type MessageStore, type TransportChat } from './message-store';
-import { showsInPreview } from './message-rules';
-import type { ChatSession } from './protocol';
-import type { ChatTransport, IncomingMessage, TransportSink, Withdrawal } from './transport';
+import { UnsupportedError } from "../errors";
+import { type HistoryState, HistoryTracker } from "./history";
+import { showsInPreview } from "./message-rules";
+import { HYDRATE_LIMIT, type MessageStore, type TransportChat } from "./message-store";
+import type { ChatSession } from "./protocol";
+import type { ChatTransport, IncomingMessage, TransportSink, Withdrawal } from "./transport";
 import type {
-  ProtocolChatId,
   GroupMember,
   MessageContent,
   MessageId,
   ParticipantId,
+  ProtocolChat,
+  ProtocolChatId,
+  ProtocolMessage,
   SelfParticipant,
   Unsubscribe,
-  ProtocolMessage,
-  ProtocolChat,
-} from './types';
+} from "./types";
 
 export class StoreBackedSession implements ChatSession, TransportSink {
   readonly self: SelfParticipant;
@@ -30,7 +30,7 @@ export class StoreBackedSession implements ChatSession, TransportSink {
 
   constructor(
     private readonly transport: ChatTransport,
-    private readonly store: MessageStore
+    private readonly store: MessageStore,
   ) {
     this.self = transport.self;
   }
@@ -46,7 +46,7 @@ export class StoreBackedSession implements ChatSession, TransportSink {
   deliverToParticipants(
     participants: ParticipantId[],
     incoming: IncomingMessage,
-    meta?: { title?: string; createdAt?: number }
+    meta?: { title?: string; createdAt?: number },
   ): Promise<void> {
     if (!this.acceptingDeliveries) return Promise.resolve();
     return this.enqueueDelivery(async () => {
@@ -57,9 +57,7 @@ export class StoreBackedSession implements ChatSession, TransportSink {
             ...existing,
             title: meta?.title ?? existing.title,
             createdAt:
-              meta?.createdAt === undefined
-                ? existing.createdAt
-                : Math.min(existing.createdAt, meta.createdAt),
+              meta?.createdAt === undefined ? existing.createdAt : Math.min(existing.createdAt, meta.createdAt),
             hidden: false,
           }
         : this.build(participants, meta?.title, meta?.createdAt);
@@ -73,9 +71,9 @@ export class StoreBackedSession implements ChatSession, TransportSink {
       const chat = this.chats.get(this.transport.chatIdFor(participants));
       if (!chat) return;
       const undone = await this.store.getMessage(chat.id, withdrawal.undoes);
-      if (undone?.content.kind !== 'reaction' || undone.senderId !== withdrawal.senderId) return;
+      if (undone?.content.kind !== "reaction" || undone.senderId !== withdrawal.senderId) return;
       const { undoes: _, ...message } = withdrawal;
-      const removal = { ...message, content: { ...undone.content, action: 'removed' as const } };
+      const removal = { ...message, content: { ...undone.content, action: "removed" as const } };
       await this.deliver(chat, after(undone, removal), false);
     });
   }
@@ -86,19 +84,15 @@ export class StoreBackedSession implements ChatSession, TransportSink {
     const message: ProtocolMessage = {
       ...incoming,
       chatId: visible.id,
-      status: 'sent',
+      status: "sent",
     };
 
     let inserted: boolean;
     const deliveryKey = `${visible.id}:${message.id}`;
     try {
-      inserted = await this.store.insertMessage(
-        message,
-        this.snapshot(visible),
-        incoming.transportTimestamp
-      );
+      inserted = await this.store.insertMessage(message, this.snapshot(visible), incoming.transportTimestamp);
     } catch (error) {
-      const detail = error instanceof Error ? error.message : 'Unknown storage error';
+      const detail = error instanceof Error ? error.message : "Unknown storage error";
       const failure = new Error(`Could not save message history: ${detail}`);
       this.failedDelivery = deliveryKey;
       this.history.reportFailure(failure);
@@ -142,7 +136,7 @@ export class StoreBackedSession implements ChatSession, TransportSink {
         const since = await this.store.newestTransportTimestamp(
           this.transport.protocolId,
           Number.POSITIVE_INFINITY,
-          chat.id
+          chat.id,
         );
         await this.transport.openChat!(this.snapshot(chat), { since });
       })
@@ -162,11 +156,11 @@ export class StoreBackedSession implements ChatSession, TransportSink {
     const others = chat.participants.filter((id) => id !== this.self.participantId);
     return {
       id: chat.id,
-      kind: others.length > 1 ? 'group' : 'dm',
+      kind: others.length > 1 ? "group" : "dm",
       title: chat.title?.trim() || (others[0] ?? this.self.participantId),
       memberIds: chat.participants,
       createdAt: chat.createdAt,
-      consent: 'accepted',
+      consent: "accepted",
       ...(chat.blocked ? { blocked: true } : {}),
       lastMessage,
       selfRole: undefined,
@@ -200,9 +194,7 @@ export class StoreBackedSession implements ChatSession, TransportSink {
       this.store.loadChats<ProtocolChatId>(this.transport.protocolId),
       this.store.latestMessages<ProtocolChatId>(this.transport.protocolId),
     ]);
-    return stored
-      .filter((chat) => !chat.hidden)
-      .map((chat) => this.toChat(chat, latest.get(chat.id)));
+    return stored.filter((chat) => !chat.hidden).map((chat) => this.toChat(chat, latest.get(chat.id)));
   }
 
   async getMessages(
@@ -210,7 +202,7 @@ export class StoreBackedSession implements ChatSession, TransportSink {
     opts?: {
       limit?: number;
       before?: { sentAt: number; id: MessageId };
-    }
+    },
   ): Promise<ProtocolMessage[]> {
     if (!this.chats.has(id)) return [];
     return this.store.loadMessages(id, opts?.limit, opts?.before);
@@ -235,7 +227,7 @@ export class StoreBackedSession implements ChatSession, TransportSink {
   async getMembers(id: ProtocolChatId): Promise<GroupMember[]> {
     return this.require(id).participants.map((participant) => ({
       id: participant,
-      role: 'member',
+      role: "member",
     }));
   }
 
@@ -253,7 +245,7 @@ export class StoreBackedSession implements ChatSession, TransportSink {
 
   async setBlocked(id: ProtocolChatId, blocked: boolean): Promise<void> {
     const chat = this.require(id);
-    if (chat.participants.length > 2) throw new UnsupportedError('Only a DM can be blocked.');
+    if (chat.participants.length > 2) throw new UnsupportedError("Only a DM can be blocked.");
     await this.update({ ...chat, blocked });
   }
 
@@ -273,7 +265,7 @@ export class StoreBackedSession implements ChatSession, TransportSink {
   async send(id: ProtocolChatId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
     const chat = this.require(id);
     const undone =
-      content.kind === 'reaction' && content.action === 'removed'
+      content.kind === "reaction" && content.action === "removed"
         ? await this.ownReaction(id, content.targetId, content.emoji)
         : undefined;
     const result = await this.transport.send(this.snapshot(chat), content, {
@@ -282,9 +274,7 @@ export class StoreBackedSession implements ChatSession, TransportSink {
     });
     const local = result.localMessage;
     if (local) {
-      await this.enqueueDelivery(() =>
-        this.deliver(chat, undone ? after(undone, local) : local, false)
-      );
+      await this.enqueueDelivery(() => this.deliver(chat, undone ? after(undone, local) : local, false));
     }
     this.transport.confirmSend?.(id, result.id);
     return result.id;
@@ -295,12 +285,12 @@ export class StoreBackedSession implements ChatSession, TransportSink {
     const mine = recent.findLast(
       ({ fromMe, content }) =>
         fromMe &&
-        content.kind === 'reaction' &&
-        content.action === 'added' &&
+        content.kind === "reaction" &&
+        content.action === "added" &&
         content.targetId === targetId &&
-        content.emoji === emoji
+        content.emoji === emoji,
     );
-    if (!mine) throw new Error('That reaction is too old to take back.');
+    if (!mine) throw new Error("That reaction is too old to take back.");
     return mine;
   }
 
@@ -308,12 +298,12 @@ export class StoreBackedSession implements ChatSession, TransportSink {
     await this.deliveries;
     await this.history.run(async () => {
       const results = await Promise.allSettled(
-        [...this.chats.values()].filter((chat) => !chat.hidden).map((chat) => this.open(chat))
+        [...this.chats.values()].filter((chat) => !chat.hidden).map((chat) => this.open(chat)),
       );
       await this.transport.sync();
       await this.deliveries;
-      const failed = results.find((result) => result.status === 'rejected');
-      if (failed?.status === 'rejected') throw failed.reason;
+      const failed = results.find((result) => result.status === "rejected");
+      if (failed?.status === "rejected") throw failed.reason;
     });
   }
 

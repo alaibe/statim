@@ -27,28 +27,21 @@ export async function localHomeserverUrl(): Promise<string | null> {
 }
 
 export async function startHomeserver(_accountId: string): Promise<string> {
-  throw new Error('Only the desktop app runs a homeserver.');
+  throw new Error("Only the desktop app runs a homeserver.");
 }
 
-export async function homeserverSession(
-  _accountId: string,
-  _deviceName: string
-): Promise<HomeserverSession> {
-  throw new Error('Only the desktop app runs a homeserver.');
+export async function homeserverSession(_accountId: string, _deviceName: string): Promise<HomeserverSession> {
+  throw new Error("Only the desktop app runs a homeserver.");
 }
 
 export async function homeserverPhoneLink(_accountId: string): Promise<PhoneLink> {
-  throw new Error('Only the desktop app runs a homeserver.');
+  throw new Error("Only the desktop app runs a homeserver.");
 }
 
 export async function homeserverBridges(_accountId: string): Promise<HomeserverBridge[]> {
   return [];
 }
 
-export async function setHomeserverBridge(
-  _accountId: string,
-  _bridge: string,
-  _enabled: boolean
-): Promise<void> {}
+export async function setHomeserverBridge(_accountId: string, _bridge: string, _enabled: boolean): Promise<void> {}
 
 export async function eraseHomeserver(_accountId: string): Promise<void> {}

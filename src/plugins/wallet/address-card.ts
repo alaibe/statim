@@ -1,13 +1,12 @@
-import type { Address } from 'viem';
+import type { Address } from "viem";
 
-import { shortAddress } from '@/core/account/keyring';
-import type { WidgetContent } from '@/core/messaging/types';
-import type { PluginContext } from '@/core/plugins/types';
-import { W } from '@/design/widgets';
-import { looksLikeEnsName, lookupName, resolveName } from '@/lib/evm/ens';
-
-import { chainStrategies, type ChainStrategy } from './chains/strategy';
-import { activeChain, defaultChain } from './chain-list';
+import { shortAddress } from "@/core/account/keyring";
+import type { WidgetContent } from "@/core/messaging/types";
+import type { PluginContext } from "@/core/plugins/types";
+import { W } from "@/design/widgets";
+import { looksLikeEnsName, lookupName, resolveName } from "@/lib/evm/ens";
+import { activeChain, defaultChain } from "./chain-list";
+import { type ChainStrategy, chainStrategies } from "./chains/strategy";
 
 /**
  * Who an address or ENS name in a message belongs to, and what it holds.
@@ -16,8 +15,8 @@ import { activeChain, defaultChain } from './chain-list';
 export async function addressCard(
   context: PluginContext,
   value: string,
-  { offerSend = true } = {}
-): Promise<Omit<WidgetContent, 'live'>> {
+  { offerSend = true } = {},
+): Promise<Omit<WidgetContent, "live">> {
   const chains = chainStrategies();
   let address = value;
   let name: string | null = null;
@@ -33,13 +32,13 @@ export async function addressCard(
   if (matches.length === 0) throw new Error(`${address} belongs to a chain that is off.`);
   const chain = defaultChain(matches, address, (await activeChain(context))?.id);
 
-  if (!name && address.startsWith('0x')) {
+  if (!name && address.startsWith("0x")) {
     name = await lookupName(address as Address).catch(() => null);
   }
 
   const balance = await chain.balance?.(context, address).catch(() => null);
   return {
-    kind: 'widget',
+    kind: "widget",
     fallback: `${name ?? shortAddress(address)} on ${chain.name}`,
     widget: W.card([
       W.list([
@@ -47,16 +46,16 @@ export async function addressCard(
           title: name ?? shortAddress(address),
           subtitle: [
             name ? shortAddress(address) : null,
-            balance ? `${balance} ${chain.transfer?.symbol ?? ''}`.trim() : null,
+            balance ? `${balance} ${chain.transfer?.symbol ?? ""}`.trim() : null,
             chain.name,
           ]
             .filter(Boolean)
-            .join(' · '),
+            .join(" · "),
           icon: chain.icon,
           actions: offerSend ? sendAction(chain, name ?? address) : [],
         },
       ]),
-      W.link(`View on ${chain.explorer.name}`, chain.explorer.addressUrl(address), 'open-outline'),
+      W.link(`View on ${chain.explorer.name}`, chain.explorer.addressUrl(address), "open-outline"),
     ]),
   };
 }
@@ -67,7 +66,7 @@ function sendAction(chain: ChainStrategy, recipient: string) {
     {
       label: `Send ${chain.transfer.symbol}`,
       command: `/send ${recipient} --chain ${chain.id}`,
-      icon: 'arrow-up-circle-outline' as const,
+      icon: "arrow-up-circle-outline" as const,
     },
   ];
 }

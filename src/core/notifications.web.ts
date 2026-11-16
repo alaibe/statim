@@ -1,14 +1,10 @@
-import { invoke } from '@tauri-apps/api/core';
-import {
-  isPermissionGranted,
-  requestPermission,
-  sendNotification,
-} from '@tauri-apps/plugin-notification';
+import { invoke } from "@tauri-apps/api/core";
+import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification";
 
-import type { ChatId } from './messaging/types';
-import type { MessageNotification } from './notifications';
+import type { ChatId } from "./messaging/types";
+import type { MessageNotification } from "./notifications";
 
-export type { MessageNotification } from './notifications';
+export type { MessageNotification } from "./notifications";
 
 export function configureNotifications(): void {}
 
@@ -20,7 +16,7 @@ export function appFocused(): boolean {
 
 async function allowed(): Promise<boolean> {
   if (await isPermissionGranted()) return true;
-  return (await requestPermission()) === 'granted';
+  return (await requestPermission()) === "granted";
 }
 
 export async function notifyMessage(notification: MessageNotification): Promise<void> {
@@ -28,7 +24,7 @@ export async function notifyMessage(notification: MessageNotification): Promise<
     if (!(await allowed())) return;
     sendNotification({ title: notification.title, body: notification.body });
   } catch (error) {
-    console.warn('[notifications] could not post', error);
+    console.warn("[notifications] could not post", error);
   }
 }
 
@@ -39,7 +35,7 @@ export async function setBadgeCount(count: number): Promise<void> {
   if (count === shownBadge) return;
   shownBadge = count;
   try {
-    await invoke('set_badge', { count });
+    await invoke("set_badge", { count });
   } catch {}
 }
 

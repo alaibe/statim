@@ -1,7 +1,6 @@
-import { View } from 'react-native';
-
-import { Text } from '@/design';
-import { formatDayLabel } from '@/core/messaging/preview';
+import { View } from "react-native";
+import { formatDayLabel } from "@/core/messaging/preview";
+import { Text } from "@/design";
 
 export function DateSeparator({ at }: { at: number }) {
   return (

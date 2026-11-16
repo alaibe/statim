@@ -22,8 +22,7 @@ export function persistedCache<T>({ name, limit, ttlMs, missTtlMs }: PersistedCa
   const pending = new Map<string, Promise<T>>();
   let flush: ReturnType<typeof setTimeout> | null = null;
 
-  const fresh = (entry: Entry<T>) =>
-    entry.at > Date.now() - (entry.value === null ? missTtlMs : ttlMs);
+  const fresh = (entry: Entry<T>) => entry.at > Date.now() - (entry.value === null ? missTtlMs : ttlMs);
 
   function persist(): void {
     flush = null;
@@ -101,7 +100,7 @@ export function persistedCache<T>({ name, limit, ttlMs, missTtlMs }: PersistedCa
         (error: unknown) => {
           if (pending.get(key) === request) pending.delete(key);
           throw error;
-        }
+        },
       );
       pending.set(key, request);
       return request;

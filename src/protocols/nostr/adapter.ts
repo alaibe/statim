@@ -1,33 +1,15 @@
-import type { DerivedKey } from '@/core/account/keyring';
-import { PartialHistoryError } from '@/core/messaging/history';
-import type { MessageStore, TransportChat } from '@/core/messaging/message-store';
-import { protocolChatId } from '@/core/messaging/namespace';
-import type { ChatSession } from '@/core/messaging/protocol';
-import { StoreBackedSession } from '@/core/messaging/store-backed-session';
-import type {
-  ChatTransport,
-  IncomingMessage,
-  SendMeta,
-  SendResult,
-  TransportSink,
-} from '@/core/messaging/transport';
-import type {
-  MessageContent,
-  ParticipantId,
-  SelfParticipant,
-  ProtocolChatId,
-} from '@/core/messaging/types';
-import type { AccountStorage } from '@/storage/account';
-import { npubFor, parsePublicKey } from '@/lib/bech32';
-import {
-  firstTagValue,
-  nowSeconds,
-  signEvent,
-  tagValues,
-  type NostrEvent,
-  type Rumor,
-} from './events';
-import { keysFromDerivedKey, NOSTR_DERIVATION_PATH, type NostrKeys } from './keys';
+import type { DerivedKey } from "@/core/account/keyring";
+import { PartialHistoryError } from "@/core/messaging/history";
+import type { MessageStore, TransportChat } from "@/core/messaging/message-store";
+import { protocolChatId } from "@/core/messaging/namespace";
+import type { ChatSession } from "@/core/messaging/protocol";
+import { StoreBackedSession } from "@/core/messaging/store-backed-session";
+import type { ChatTransport, IncomingMessage, SendMeta, SendResult, TransportSink } from "@/core/messaging/transport";
+import type { MessageContent, ParticipantId, ProtocolChatId, SelfParticipant } from "@/core/messaging/types";
+import { npubFor, parsePublicKey } from "@/lib/bech32";
+import type { AccountStorage } from "@/storage/account";
+import { firstTagValue, type NostrEvent, nowSeconds, type Rumor, signEvent, tagValues } from "./events";
+import { keysFromDerivedKey, NOSTR_DERIVATION_PATH, type NostrKeys } from "./keys";
 import {
   chatIdFor,
   KIND_DELETION,
@@ -37,10 +19,10 @@ import {
   participantsOf,
   unwrapGiftWrap,
   wrapForRecipients,
-} from './nip17';
-import { RelayPool, type WebSocketLike } from './relay-pool';
+} from "./nip17";
+import { RelayPool, type WebSocketLike } from "./relay-pool";
 
-const NOSTR_PROTOCOL_ID = 'nostr';
+const NOSTR_PROTOCOL_ID = "nostr";
 
 /** How far back relays are asked to go when this device has no history yet. */
 const HISTORY_WINDOW_SECONDS = 30 * 24 * 60 * 60;
@@ -64,55 +46,51 @@ interface NostrConnectOptions {
 
 /** NIP-25's like and dislike, drawn as the emoji the app reacts with. */
 const REACTION_EMOJI = new Map([
-  ['', '👍'],
-  ['+', '👍'],
-  ['-', '👎'],
+  ["", "👍"],
+  ["+", "👍"],
+  ["-", "👎"],
 ]);
 
-function messageOf(rumor: Rumor): Pick<IncomingMessage, 'content' | 'replyTo'> | null {
-  const parents = tagValues(rumor, 'e');
+function messageOf(rumor: Rumor): Pick<IncomingMessage, "content" | "replyTo"> | null {
+  const parents = tagValues(rumor, "e");
   if (rumor.kind === KIND_REACTION) {
     const targetId = parents.at(-1);
     if (!targetId) return null;
     const emoji = REACTION_EMOJI.get(rumor.content) ?? rumor.content;
-    return { content: { kind: 'reaction', targetId, emoji, action: 'added' } };
+    return { content: { kind: "reaction", targetId, emoji, action: "added" } };
   }
-  const replyTo =
-    rumor.tags.find((tag) => tag[0] === 'e' && tag[3] === 'reply')?.[1] ?? parents.at(-1);
-  return { content: { kind: 'text', text: rumor.content }, ...(replyTo ? { replyTo } : {}) };
+  const replyTo = rumor.tags.find((tag) => tag[0] === "e" && tag[3] === "reply")?.[1] ?? parents.at(-1);
+  return { content: { kind: "text", text: rumor.content }, ...(replyTo ? { replyTo } : {}) };
 }
 
-function rumorFor(
-  content: MessageContent,
-  { replyTo, undoes }: SendMeta
-): Pick<Rumor, 'kind' | 'content' | 'tags'> {
-  if (content.kind === 'text') {
-    return { kind: KIND_DM, content: content.text, tags: replyTo ? [['e', replyTo]] : [] };
+function rumorFor(content: MessageContent, { replyTo, undoes }: SendMeta): Pick<Rumor, "kind" | "content" | "tags"> {
+  if (content.kind === "text") {
+    return { kind: KIND_DM, content: content.text, tags: replyTo ? [["e", replyTo]] : [] };
   }
-  if (content.kind === 'reaction' && content.action === 'added') {
+  if (content.kind === "reaction" && content.action === "added") {
     return {
       kind: KIND_REACTION,
       content: content.emoji,
       tags: [
-        ['e', content.targetId],
-        ['k', String(KIND_DM)],
+        ["e", content.targetId],
+        ["k", String(KIND_DM)],
       ],
     };
   }
-  if (content.kind === 'reaction' && undoes) {
+  if (content.kind === "reaction" && undoes) {
     return {
       kind: KIND_DELETION,
-      content: '',
+      content: "",
       tags: [
-        ['e', undoes],
-        ['k', String(KIND_REACTION)],
+        ["e", undoes],
+        ["k", String(KIND_REACTION)],
       ],
     };
   }
   throw new Error(`Nostr can only send text and reactions, not "${content.kind}"`);
 }
 
-const HANDLED_KEY = 'nostr.handledWraps';
+const HANDLED_KEY = "nostr.handledWraps";
 const HANDLED_FOR_SECONDS = 7 * 24 * 60 * 60;
 
 class HandledWraps {
@@ -120,7 +98,7 @@ class HandledWraps {
 
   private constructor(
     private readonly storage: AccountStorage,
-    private readonly wraps: Map<string, number>
+    private readonly wraps: Map<string, number>,
   ) {}
 
   static async load(storage: AccountStorage): Promise<HandledWraps> {
@@ -152,11 +130,11 @@ class NostrTransport implements ChatTransport {
 
   readonly rosterIsFixed = {
     onAdd:
-      'Nostr groups have no roster to add to: the group is whoever a message is addressed to. ' +
-      'Start a new group with everyone in it.',
+      "Nostr groups have no roster to add to: the group is whoever a message is addressed to. " +
+      "Start a new group with everyone in it.",
     onRemove:
-      'Nostr cannot remove anyone: nothing revokes access to messages already sent, ' +
-      'and there is no roster to change.',
+      "Nostr cannot remove anyone: nothing revokes access to messages already sent, " +
+      "and there is no roster to change.",
   };
 
   private sink: TransportSink | null = null;
@@ -180,7 +158,7 @@ class NostrTransport implements ChatTransport {
   constructor(
     readonly keys: NostrKeys,
     readonly pool: RelayPool,
-    private readonly handled?: HandledWraps
+    private readonly handled?: HandledWraps,
   ) {
     this.self = { participantId: keys.publicKey, address: keys.npub };
   }
@@ -202,7 +180,7 @@ class NostrTransport implements ChatTransport {
       filters: [
         {
           kinds: [KIND_GIFT_WRAP],
-          '#p': [this.keys.publicKey],
+          "#p": [this.keys.publicKey],
           since: sinceFor(newestSeenAt),
         },
       ],
@@ -231,7 +209,7 @@ class NostrTransport implements ChatTransport {
     };
     try {
       if (rumor.kind === KIND_DELETION) {
-        const undoes = firstTagValue(rumor, 'e');
+        const undoes = firstTagValue(rumor, "e");
         if (undoes) await this.sink?.withdraw(participants, { ...sent, undoes });
       } else {
         const message = messageOf(rumor);
@@ -239,7 +217,7 @@ class NostrTransport implements ChatTransport {
           await this.sink?.deliverToParticipants(
             participants,
             { ...sent, ...message },
-            { title: firstTagValue(rumor, 'subject'), createdAt: rumor.created_at * 1000 }
+            { title: firstTagValue(rumor, "subject"), createdAt: rumor.created_at * 1000 },
           );
         }
       }
@@ -262,20 +240,14 @@ class NostrTransport implements ChatTransport {
     return protocolChatId(chatIdFor(participants));
   }
 
-  async send(
-    chat: TransportChat,
-    content: MessageContent,
-    meta: SendMeta = {}
-  ): Promise<SendResult> {
+  async send(chat: TransportChat, content: MessageContent, meta: SendMeta = {}): Promise<SendResult> {
     const rumor = rumorFor(content, meta);
     const key = JSON.stringify(rumor);
     const recipients = chat.participants.filter((p) => p !== this.keys.publicKey);
 
     let pending = this.pendingSends.get(chat.id);
     if (pending && pending.key !== key) {
-      throw new Error(
-        'Finish retrying the partially published Nostr message before sending another'
-      );
+      throw new Error("Finish retrying the partially published Nostr message before sending another");
     }
     if (!pending) {
       const wrapped = wrapForRecipients(this.keys, { recipients, subject: chat.title, ...rumor });
@@ -322,14 +294,14 @@ class NostrTransport implements ChatTransport {
   }
 
   async sync(): Promise<void> {
-    if (this.stopped) throw new Error('Nostr disconnected');
+    if (this.stopped) throw new Error("Nostr disconnected");
     if (this.retryHistory) {
       this.retryHistory = false;
       this.deliveryError = undefined;
       this.listen(this.historyCursor);
     }
     const urls = this.pool.states.map((relay) => relay.url);
-    if (urls.length === 0) throw new Error('No Nostr relays configured');
+    if (urls.length === 0) throw new Error("No Nostr relays configured");
     await new Promise<void>((resolve, reject) => {
       const finish = (error?: Error) => {
         clearTimeout(timer);
@@ -340,7 +312,7 @@ class NostrTransport implements ChatTransport {
         } else resolve();
       };
       const check = () => {
-        if (this.stopped) finish(new Error('Nostr disconnected'));
+        if (this.stopped) finish(new Error("Nostr disconnected"));
         else if (urls.every((url) => this.eosed.has(url))) finish();
       };
       const timer = setTimeout(() => {
@@ -349,9 +321,9 @@ class NostrTransport implements ChatTransport {
         finish(
           completed.length > 0
             ? new PartialHistoryError(
-                `History fetched from ${completed.length} of ${urls.length} relays. Unavailable: ${unavailable.join(', ')}`
+                `History fetched from ${completed.length} of ${urls.length} relays. Unavailable: ${unavailable.join(", ")}`,
               )
-            : new Error('Nostr history fetch timed out')
+            : new Error("Nostr history fetch timed out"),
         );
       }, 15_000);
       this.historyWaiters.add(check);
@@ -397,15 +369,15 @@ export class NostrSession extends StoreBackedSession implements ChatSession {
               created_at: nowSeconds(),
               kind: 22242,
               tags: [
-                ['relay', url],
-                ['challenge', challenge],
+                ["relay", url],
+                ["challenge", challenge],
               ],
-              content: '',
+              content: "",
             },
-            keys.secretKey
+            keys.secretKey,
           ),
       }),
-      handled
+      handled,
     );
 
     const session = new NostrSession(transport, options.store);

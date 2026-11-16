@@ -1,12 +1,10 @@
-import * as Crypto from 'expo-crypto';
-
-import type { AccountKind } from './account-kind';
-import type { Address } from 'viem';
-import { mnemonicToAccount } from 'viem/accounts';
-
-import { normalizeMnemonic } from './keyring';
-import { toHex } from '@/lib/bytes';
-import { VaultKey, vaultDelete, vaultGet, vaultSet } from '@/storage/vault';
+import * as Crypto from "expo-crypto";
+import type { Address } from "viem";
+import { mnemonicToAccount } from "viem/accounts";
+import { toHex } from "@/lib/bytes";
+import { VaultKey, vaultDelete, vaultGet, vaultSet } from "@/storage/vault";
+import type { AccountKind } from "./account-kind";
+import { normalizeMnemonic } from "./keyring";
 
 export interface AccountRecord {
   id: string;

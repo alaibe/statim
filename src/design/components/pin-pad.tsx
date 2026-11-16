@@ -1,6 +1,6 @@
-import * as Haptics from 'expo-haptics';
-import { useEffect } from 'react';
-import { View } from 'react-native';
+import * as Haptics from "expo-haptics";
+import { useEffect } from "react";
+import { View } from "react-native";
 import Animated, {
   ReduceMotion,
   useAnimatedStyle,
@@ -8,39 +8,25 @@ import Animated, {
   withRepeat,
   withSequence,
   withTiming,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 
-import { Icon, type IconName } from '../icon';
-import { useDigitKeys } from '../lib/digit-keys';
-import { cn } from '../lib/cn';
-import { Pressable } from './pressable';
-import { Text } from './text';
+import { Icon, type IconName } from "../icon";
+import { cn } from "../lib/cn";
+import { useDigitKeys } from "../lib/digit-keys";
+import { Pressable } from "./pressable";
+import { Text } from "./text";
 
 const SHAKE = { duration: 55, reduceMotion: ReduceMotion.System } as const;
 
 /** `shakes` counts rejections; each new one shakes the dots and buzzes. */
-export function PinDots({
-  length,
-  filled,
-  shakes,
-}: {
-  length: number;
-  filled: number;
-  shakes: number;
-}) {
+export function PinDots({ length, filled, shakes }: { length: number; filled: number; shakes: number }) {
   const offset = useSharedValue(0);
   const style = useAnimatedStyle(() => ({ transform: [{ translateX: offset.get() }] }));
 
   useEffect(() => {
     if (shakes === 0) return;
-    offset.set(
-      withSequence(
-        withTiming(-10, SHAKE),
-        withRepeat(withTiming(10, SHAKE), 4, true),
-        withTiming(0, SHAKE)
-      )
-    );
-    if (process.env.EXPO_OS !== 'web') {
+    offset.set(withSequence(withTiming(-10, SHAKE), withRepeat(withTiming(10, SHAKE), 4, true), withTiming(0, SHAKE)));
+    if (process.env.EXPO_OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
     }
   }, [shakes, offset]);
@@ -50,13 +36,14 @@ export function PinDots({
       style={style}
       accessible
       accessibilityLabel={`${filled} of ${length} digits entered`}
-      className="flex-row justify-center gap-4 py-2">
+      className="flex-row justify-center gap-4 py-2"
+    >
       {Array.from({ length }, (_, i) => (
         <View
           key={i}
           className={cn(
-            'h-3.5 w-3.5 rounded-pill border-2',
-            i < filled ? 'border-content bg-content' : 'border-line-strong'
+            "h-3.5 w-3.5 rounded-pill border-2",
+            i < filled ? "border-content bg-content" : "border-line-strong",
           )}
         />
       ))}
@@ -65,9 +52,9 @@ export function PinDots({
 }
 
 const ROWS = [
-  ['1', '2', '3'],
-  ['4', '5', '6'],
-  ['7', '8', '9'],
+  ["1", "2", "3"],
+  ["4", "5", "6"],
+  ["7", "8", "9"],
 ] as const;
 
 export interface PinPadProps {
@@ -80,13 +67,7 @@ export interface PinPadProps {
   extra?: { label: string; icon: IconName; onPress(): void };
 }
 
-export function PinPad({
-  onDigit,
-  onDelete,
-  disabled = false,
-  listening = true,
-  extra,
-}: PinPadProps) {
+export function PinPad({ onDigit, onDelete, disabled = false, listening = true, extra }: PinPadProps) {
   useDigitKeys(listening && !disabled, onDigit, onDelete);
 
   return (
@@ -128,13 +109,14 @@ function DigitKey({
       disabled={disabled}
       pressScale={0.92}
       onPress={() => {
-        if (process.env.EXPO_OS === 'ios') Haptics.selectionAsync().catch(() => {});
+        if (process.env.EXPO_OS === "ios") Haptics.selectionAsync().catch(() => {});
         onPress(digit);
       }}
       className={cn(
-        'h-[72px] w-[72px] items-center justify-center rounded-pill bg-surface-sunken active:bg-line',
-        disabled && 'opacity-40'
-      )}>
+        "h-[72px] w-[72px] items-center justify-center rounded-pill bg-surface-sunken active:bg-line",
+        disabled && "opacity-40",
+      )}
+    >
       <Text className="text-[28px] leading-[34px] tabular-nums text-content">{digit}</Text>
     </Pressable>
   );
@@ -160,9 +142,10 @@ function IconKey({
       pressScale={0.92}
       onPress={onPress}
       className={cn(
-        'h-[72px] w-[72px] items-center justify-center rounded-pill active:bg-surface-sunken',
-        disabled && 'opacity-40'
-      )}>
+        "h-[72px] w-[72px] items-center justify-center rounded-pill active:bg-surface-sunken",
+        disabled && "opacity-40",
+      )}
+    >
       <Icon name={icon} size={26} tone="content" />
     </Pressable>
   );

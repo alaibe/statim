@@ -1,17 +1,12 @@
-import type {
-  ProtocolChatId,
-  MessageContent,
-  MessageId,
-  ProtocolMessage,
-} from '@/core/messaging/types';
+import type { MessageContent, MessageId, ProtocolChatId, ProtocolMessage } from "@/core/messaging/types";
 
-import type { TdObject } from './api';
-import { plainFormatted } from './formatting';
-import { messageIdOf, tdMessageId } from './ids';
-import type { Outbox } from './outbox';
-import { inputContent } from './outgoing';
-import type { TdMessage } from './types';
-import type { TelegramHost } from './service-host';
+import type { TdObject } from "./api";
+import { plainFormatted } from "./formatting";
+import { messageIdOf, tdMessageId } from "./ids";
+import type { Outbox } from "./outbox";
+import { inputContent } from "./outgoing";
+import type { TelegramHost } from "./service-host";
+import type { TdMessage } from "./types";
 
 interface TdMessageProperties extends TdObject {
   can_be_edited: boolean;
@@ -22,18 +17,18 @@ interface TdMessageProperties extends TdObject {
 export class TelegramMessages {
   constructor(
     private readonly host: TelegramHost,
-    private readonly outbox: Outbox
+    private readonly outbox: Outbox,
   ) {}
 
   async send(id: ProtocolChatId, content: MessageContent, replyTo?: MessageId): Promise<MessageId> {
     const chatId = Number(id);
 
-    if (content.kind === 'reaction') {
-      const reaction = { '@type': 'reactionTypeEmoji', emoji: content.emoji };
+    if (content.kind === "reaction") {
+      const reaction = { "@type": "reactionTypeEmoji", emoji: content.emoji };
       await this.host.api().send(
-        content.action === 'added'
+        content.action === "added"
           ? {
-              '@type': 'addMessageReaction',
+              "@type": "addMessageReaction",
               chat_id: chatId,
               message_id: tdMessageId(content.targetId),
               reaction_type: reaction,
@@ -41,23 +36,23 @@ export class TelegramMessages {
               update_recent_reactions: false,
             }
           : {
-              '@type': 'removeMessageReaction',
+              "@type": "removeMessageReaction",
               chat_id: chatId,
               message_id: tdMessageId(content.targetId),
               reaction_type: reaction,
-            }
+            },
       );
       return `${content.targetId}_reaction`;
     }
 
     const request: TdObject = {
-      '@type': 'sendMessage',
+      "@type": "sendMessage",
       chat_id: chatId,
       input_message_content: inputContent(content),
     };
     if (replyTo) {
       request.reply_to = {
-        '@type': 'inputMessageReplyToMessage',
+        "@type": "inputMessageReplyToMessage",
         message_id: tdMessageId(replyTo),
       };
     }
@@ -68,13 +63,13 @@ export class TelegramMessages {
 
   async editMessage(id: ProtocolChatId, messageId: MessageId, text: string): Promise<void> {
     const properties = await this.properties(Number(id), tdMessageId(messageId));
-    if (!properties.can_be_edited) throw new Error('Telegram does not allow editing this message.');
+    if (!properties.can_be_edited) throw new Error("Telegram does not allow editing this message.");
     const message = await this.host.api().send<TdMessage>({
-      '@type': 'editMessageText',
+      "@type": "editMessageText",
       chat_id: Number(id),
       message_id: tdMessageId(messageId),
       reply_markup: null,
-      input_message_content: inputContent({ kind: 'text', text }),
+      input_message_content: inputContent({ kind: "text", text }),
     });
     await this.host.emitMessage(message);
   }
@@ -82,7 +77,7 @@ export class TelegramMessages {
   async deleteMessage(id: ProtocolChatId, messageId: MessageId): Promise<void> {
     const properties = await this.properties(Number(id), tdMessageId(messageId));
     if (!properties.can_be_deleted_for_all_users)
-      throw new Error('Telegram does not allow deleting this message for everyone.');
+      throw new Error("Telegram does not allow deleting this message for everyone.");
     await this.deleteMessages(id, messageId, true);
   }
 
@@ -92,7 +87,7 @@ export class TelegramMessages {
 
   private async deleteMessages(id: ProtocolChatId, messageId: MessageId, revoke: boolean) {
     await this.host.api().send({
-      '@type': 'deleteMessages',
+      "@type": "deleteMessages",
       chat_id: Number(id),
       message_ids: [tdMessageId(messageId)],
       revoke,
@@ -103,7 +98,7 @@ export class TelegramMessages {
     const chatId = Number(id);
     const tdId = tdMessageId(messageId);
     await this.host.api().send({
-      '@type': 'setPollAnswer',
+      "@type": "setPollAnswer",
       chat_id: chatId,
       message_id: tdId,
       option_ids: optionIds,
@@ -114,14 +109,14 @@ export class TelegramMessages {
   async createPoll(id: ProtocolChatId, question: string, options: string[]): Promise<void> {
     const chatId = Number(id);
     const sent = await this.host.api().send<TdMessage>({
-      '@type': 'sendMessage',
+      "@type": "sendMessage",
       chat_id: chatId,
       input_message_content: {
-        '@type': 'inputMessagePoll',
+        "@type": "inputMessagePoll",
         question: plainFormatted(question),
         options: options.map((option) => plainFormatted(option)),
         is_anonymous: true,
-        type: { '@type': 'pollTypeRegular', allow_multiple_answers: false },
+        type: { "@type": "pollTypeRegular", allow_multiple_answers: false },
         open_period: 0,
         close_date: 0,
         is_closed: false,
@@ -136,19 +131,19 @@ export class TelegramMessages {
     let from = 0;
     while (true) {
       const page = await this.host.api().send<{
-        '@type': string;
+        "@type": string;
         messages: TdMessage[];
         next_from_message_id: number;
       }>({
-        '@type': 'searchChatMessages',
+        "@type": "searchChatMessages",
         chat_id: chatId,
         topic_id: null,
-        query: '',
+        query: "",
         sender_id: null,
         from_message_id: from,
         offset: 0,
         limit: 100,
-        filter: { '@type': 'searchMessagesFilterPinned' },
+        filter: { "@type": "searchMessagesFilterPinned" },
       });
       for (const message of page.messages) found.set(message.id, message);
       if (!page.next_from_message_id || page.next_from_message_id === from) break;
@@ -159,8 +154,8 @@ export class TelegramMessages {
 
   async searchMessages(query: string, id?: ProtocolChatId): Promise<ProtocolMessage[]> {
     const page = id
-      ? await this.host.api().send<{ '@type': string; messages: TdMessage[] }>({
-          '@type': 'searchChatMessages',
+      ? await this.host.api().send<{ "@type": string; messages: TdMessage[] }>({
+          "@type": "searchChatMessages",
           chat_id: Number(id),
           topic_id: null,
           query,
@@ -170,11 +165,11 @@ export class TelegramMessages {
           limit: 100,
           filter: null,
         })
-      : await this.host.api().send<{ '@type': string; messages: TdMessage[] }>({
-          '@type': 'searchMessages',
+      : await this.host.api().send<{ "@type": string; messages: TdMessage[] }>({
+          "@type": "searchMessages",
           chat_list: null,
           query,
-          offset: '',
+          offset: "",
           limit: 100,
           filter: null,
           chat_type_filter: null,
@@ -188,24 +183,24 @@ export class TelegramMessages {
     const chatId = Number(id);
     const tdId = tdMessageId(messageId);
     const properties = await this.properties(chatId, tdId);
-    if (!properties.can_be_pinned) throw new Error('Telegram does not allow pinning this message.');
+    if (!properties.can_be_pinned) throw new Error("Telegram does not allow pinning this message.");
     await this.host.api().send(
       pinned
         ? {
-            '@type': 'pinChatMessage',
+            "@type": "pinChatMessage",
             chat_id: chatId,
             message_id: tdId,
             disable_notification: true,
             only_for_self: false,
           }
-        : { '@type': 'unpinChatMessage', chat_id: chatId, message_id: tdId }
+        : { "@type": "unpinChatMessage", chat_id: chatId, message_id: tdId },
     );
     await this.host.refetch(chatId, tdId);
   }
 
   private properties(chatId: number, messageId: number) {
     return this.host.api().send<TdMessageProperties>({
-      '@type': 'getMessageProperties',
+      "@type": "getMessageProperties",
       chat_id: chatId,
       message_id: messageId,
     });

@@ -1,4 +1,4 @@
-import '@/polyfills/libp2p';
+import "@/polyfills/libp2p";
 
 import {
   createLightNode,
@@ -10,24 +10,24 @@ import {
   type IProtoMessage,
   type LightNode,
   Protocols,
-} from '@waku/sdk';
+} from "@waku/sdk";
 
-import { fromHex, toHex } from '@/lib/bytes';
+import { fromHex, toHex } from "@/lib/bytes";
 
-import type { HistoryOptions, WakuMessage, WakuNode } from './node';
-import { STATUS_PUBSUB_TOPIC } from './topics';
+import type { HistoryOptions, WakuMessage, WakuNode } from "./node";
+import { STATUS_PUBSUB_TOPIC } from "./topics";
 
 /** status.prod's WebSocket entry points, as fleets.status.im lists them. */
 const STATUS_FLEET = [
-  '/dns4/boot-01.do-ams3.status.prod.status.im/tcp/443/wss/p2p/16Uiu2HAmAR24Mbb6VuzoyUiGx42UenDkshENVDj4qnmmbabLvo31',
-  '/dns4/boot-01.gc-us-central1-a.status.prod.status.im/tcp/443/wss/p2p/16Uiu2HAm8mUZ18tBWPXDQsaF7PbCKYA35z7WB2xNZH2EVq1qS8LJ',
-  '/dns4/boot-01.ac-cn-hongkong-c.status.prod.status.im/tcp/443/wss/p2p/16Uiu2HAmGwcE8v7gmJNEWFtZtojYpPMTHy2jBLL6xRk33qgDxFWX',
-  '/dns4/store-01.do-ams3.status.prod.status.im/tcp/443/wss/p2p/16Uiu2HAmAUdrQ3uwzuE4Gy4D56hX6uLKEeerJAnhKEHZ3DxF1EfT',
-  '/dns4/store-02.do-ams3.status.prod.status.im/tcp/443/wss/p2p/16Uiu2HAm9aDJPkhGxc2SFcEACTFdZ91Q5TJjp76qZEhq9iF59x7R',
-  '/dns4/store-01.gc-us-central1-a.status.prod.status.im/tcp/443/wss/p2p/16Uiu2HAmMELCo218hncCtTvC2Dwbej3rbyHQcR8erXNnKGei7WPZ',
-  '/dns4/store-02.gc-us-central1-a.status.prod.status.im/tcp/443/wss/p2p/16Uiu2HAmJnVR7ZzFaYvciPVafUXuYGLHPzSUigqAmeNw9nJUVGeM',
-  '/dns4/store-01.ac-cn-hongkong-c.status.prod.status.im/tcp/443/wss/p2p/16Uiu2HAm2M7xs7cLPc3jamawkEqbr7cUJX11uvY7LxQ6WFUdUKUT',
-  '/dns4/store-02.ac-cn-hongkong-c.status.prod.status.im/tcp/443/wss/p2p/16Uiu2HAm9CQhsuwPR54q27kNj9iaQVfyRzTGKrhFmr94oD8ujU6P',
+  "/dns4/boot-01.do-ams3.status.prod.status.im/tcp/443/wss/p2p/16Uiu2HAmAR24Mbb6VuzoyUiGx42UenDkshENVDj4qnmmbabLvo31",
+  "/dns4/boot-01.gc-us-central1-a.status.prod.status.im/tcp/443/wss/p2p/16Uiu2HAm8mUZ18tBWPXDQsaF7PbCKYA35z7WB2xNZH2EVq1qS8LJ",
+  "/dns4/boot-01.ac-cn-hongkong-c.status.prod.status.im/tcp/443/wss/p2p/16Uiu2HAmGwcE8v7gmJNEWFtZtojYpPMTHy2jBLL6xRk33qgDxFWX",
+  "/dns4/store-01.do-ams3.status.prod.status.im/tcp/443/wss/p2p/16Uiu2HAmAUdrQ3uwzuE4Gy4D56hX6uLKEeerJAnhKEHZ3DxF1EfT",
+  "/dns4/store-02.do-ams3.status.prod.status.im/tcp/443/wss/p2p/16Uiu2HAm9aDJPkhGxc2SFcEACTFdZ91Q5TJjp76qZEhq9iF59x7R",
+  "/dns4/store-01.gc-us-central1-a.status.prod.status.im/tcp/443/wss/p2p/16Uiu2HAmMELCo218hncCtTvC2Dwbej3rbyHQcR8erXNnKGei7WPZ",
+  "/dns4/store-02.gc-us-central1-a.status.prod.status.im/tcp/443/wss/p2p/16Uiu2HAmJnVR7ZzFaYvciPVafUXuYGLHPzSUigqAmeNw9nJUVGeM",
+  "/dns4/store-01.ac-cn-hongkong-c.status.prod.status.im/tcp/443/wss/p2p/16Uiu2HAm2M7xs7cLPc3jamawkEqbr7cUJX11uvY7LxQ6WFUdUKUT",
+  "/dns4/store-02.ac-cn-hongkong-c.status.prod.status.im/tcp/443/wss/p2p/16Uiu2HAm9CQhsuwPR54q27kNj9iaQVfyRzTGKrhFmr94oD8ujU6P",
 ];
 
 const CONNECT_TIMEOUT_MS = 20_000;
@@ -44,14 +44,8 @@ class StatusEncoder extends Encoder {
 
 /** Status apps send version 0 today and older ones 1; js-waku's own decoder drops anything but 0. */
 class StatusDecoder extends Decoder {
-  override async fromProtoObj(
-    pubsubTopic: string,
-    message: IProtoMessage
-  ): Promise<IDecodedMessage> {
-    return new DecodedMessage(
-      pubsubTopic,
-      message as ConstructorParameters<typeof DecodedMessage>[1]
-    );
+  override async fromProtoObj(pubsubTopic: string, message: IProtoMessage): Promise<IDecodedMessage> {
+    return new DecodedMessage(pubsubTopic, message as ConstructorParameters<typeof DecodedMessage>[1]);
   }
 }
 
@@ -84,13 +78,10 @@ export class FleetNode implements WakuNode {
     await node.start();
     const retry = setInterval(() => void redial(node).catch(() => {}), CONNECT_REDIAL_MS);
     try {
-      await node.waitForPeers(
-        [Protocols.Filter, Protocols.LightPush, Protocols.Store],
-        CONNECT_TIMEOUT_MS
-      );
+      await node.waitForPeers([Protocols.Filter, Protocols.LightPush, Protocols.Store], CONNECT_TIMEOUT_MS);
     } catch {
       await node.stop();
-      throw new Error('No Status node answered. Check the connection, or set a Status node URL.');
+      throw new Error("No Status node answered. Check the connection, or set a Status node URL.");
     } finally {
       clearInterval(retry);
     }
@@ -108,7 +99,7 @@ export class FleetNode implements WakuNode {
     const subscribed = await this.node.filter.subscribe(fresh.map(decoderFor), (message) => {
       this.buffer.push(wakuMessageOf(message));
     });
-    if (!subscribed) throw new Error('No Status node took the subscription.');
+    if (!subscribed) throw new Error("No Status node took the subscription.");
     for (const topic of fresh) this.subscribed.add(topic);
   }
 
@@ -129,13 +120,13 @@ export class FleetNode implements WakuNode {
   /** A page per call; any page hands back a cursor, so the last one costs an empty query. */
   async history(
     contentTopics: string[],
-    opts: HistoryOptions = {}
+    opts: HistoryOptions = {},
   ): Promise<{ messages: WakuMessage[]; cursor?: string }> {
     for (let pageSize = PAGE_SIZE; ; pageSize = Math.ceil(pageSize / 2)) {
       try {
         return await this.page(contentTopics, opts, pageSize);
       } catch (error) {
-        const tooLong = error instanceof Error && error.name === 'InvalidDataLengthError';
+        const tooLong = error instanceof Error && error.name === "InvalidDataLengthError";
         if (!tooLong || pageSize === 1) throw error;
       }
     }
@@ -145,7 +136,7 @@ export class FleetNode implements WakuNode {
   private async page(
     contentTopics: string[],
     opts: HistoryOptions,
-    pageSize: number
+    pageSize: number,
   ): Promise<{ messages: WakuMessage[]; cursor?: string }> {
     const pages = this.node.store.queryGenerator(contentTopics.map(decoderFor), {
       paginationForward: true,
@@ -154,9 +145,7 @@ export class FleetNode implements WakuNode {
       paginationCursor: opts.cursor ? fromHex(opts.cursor) : undefined,
     });
     for await (const page of pages) {
-      const messages = (await Promise.all(page)).filter(
-        (message): message is IDecodedMessage => message !== undefined
-      );
+      const messages = (await Promise.all(page)).filter((message): message is IDecodedMessage => message !== undefined);
       const last = messages.at(-1);
       return { messages: messages.map(wakuMessageOf), cursor: last && toHex(last.hash) };
     }

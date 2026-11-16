@@ -1,9 +1,9 @@
-import { TextInput, type TextInputProps, View } from 'react-native';
+import { TextInput, type TextInputProps, View } from "react-native";
 
-import { useThemeColors } from '../hooks/use-theme-colors';
-import { cn } from '../lib/cn';
-import { ErrorText } from './error-text';
-import { Text } from './text';
+import { useThemeColors } from "../hooks/use-theme-colors";
+import { cn } from "../lib/cn";
+import { ErrorText } from "./error-text";
+import { Text } from "./text";
 
 interface FieldProps extends TextInputProps {
   ref?: React.Ref<TextInput>;
@@ -14,7 +14,7 @@ interface FieldProps extends TextInputProps {
   containerClassName?: string;
 }
 
-export const FIELD_BOX = 'min-h-tap rounded-field border bg-surface-raised px-3 py-2.5';
+export const FIELD_BOX = "min-h-tap rounded-field border bg-surface-raised px-3 py-2.5";
 
 /** The control is the input below, or a pressable where a value is chosen. */
 export function FieldShell({
@@ -23,11 +23,11 @@ export function FieldShell({
   error,
   containerClassName,
   children,
-}: Pick<FieldProps, 'label' | 'hint' | 'error' | 'containerClassName'> & {
+}: Pick<FieldProps, "label" | "hint" | "error" | "containerClassName"> & {
   children: React.ReactNode;
 }) {
   return (
-    <View className={cn('gap-1.5', containerClassName)}>
+    <View className={cn("gap-1.5", containerClassName)}>
       {label ? <Text variant="footnote">{label}</Text> : null}
       {children}
       {error ? <ErrorText>{error}</ErrorText> : hint ? <Text variant="caption">{hint}</Text> : null}
@@ -41,13 +41,13 @@ export function Field({ label, hint, error, className, containerClassName, ...pr
   return (
     <FieldShell label={label} hint={hint} error={error} containerClassName={containerClassName}>
       <TextInput
-        placeholderTextColor={colors['content-subtle']}
-        style={{ borderCurve: 'continuous' }}
+        placeholderTextColor={colors["content-subtle"]}
+        style={{ borderCurve: "continuous" }}
         className={cn(
           FIELD_BOX,
-          'text-body text-content',
-          error ? 'border-danger' : 'border-line focus:border-brand',
-          className
+          "text-body text-content",
+          error ? "border-danger" : "border-line focus:border-brand",
+          className,
         )}
         {...props}
       />

@@ -1,28 +1,20 @@
-import { router } from 'expo-router';
-import { createContext, use, useState } from 'react';
-import { openExternal } from '@/lib/open-url';
+import { router } from "expo-router";
+import { createContext, use, useState } from "react";
+import { openExternal } from "@/lib/open-url";
+import { accountRuntime } from "@/runtime";
+import type { AccountStorage } from "@/storage/account";
+import { capabilitiesOf } from "../account/account-kind";
+import type { Keyring } from "../account/keyring";
+import { aiFeature } from "../commands/ai";
+import { groupCommands, groupComposerActions } from "../commands/group";
+import { pollCommand } from "../commands/poll";
+import { chatScope } from "../messaging/chat-scope";
+import { sessionFor, useChatStore, xmtpSessionFor } from "../messaging/chat-store";
+import { notifyLiveViews } from "./live";
+import { PluginRegistry, worksOn } from "./registry";
+import type { Plugin, PluginContext, PluginId, PluginLease, PluginPermission, PluginUiApi } from "./types";
 
-import { capabilitiesOf } from '../account/account-kind';
-import type { Keyring } from '../account/keyring';
-import { groupCommands, groupComposerActions } from '../commands/group';
-import { aiFeature } from '../commands/ai';
-import { pollCommand } from '../commands/poll';
-import { sessionFor, useChatStore, xmtpSessionFor } from '../messaging/chat-store';
-import { chatScope } from '../messaging/chat-scope';
-import { notifyLiveViews } from './live';
-import { PluginRegistry, worksOn } from './registry';
-import type {
-  Plugin,
-  PluginContext,
-  PluginId,
-  PluginLease,
-  PluginPermission,
-  PluginUiApi,
-} from './types';
-import { accountRuntime } from '@/runtime';
-import type { AccountStorage } from '@/storage/account';
-
-const PLUGIN_PROTOCOL = 'xmtp';
+const PLUGIN_PROTOCOL = "xmtp";
 
 export interface PluginHostValue {
   registry: PluginRegistry;
@@ -33,7 +25,7 @@ export interface PluginHostValue {
     accountId: string,
     keyring: Keyring,
     storage: AccountStorage,
-    lease: PluginLease
+    lease: PluginLease,
   ): PluginContext;
   onPluginsChanged(ids: PluginId[]): void;
   setEnabled(id: PluginId, enabled: boolean): Promise<void>;
@@ -48,11 +40,11 @@ export function usePluginRegistry(): PluginRegistry | undefined {
 
 export function usePluginHost(): PluginHostValue {
   const value = use(PluginHostContext);
-  if (!value) throw new Error('usePluginHost must be used inside <PluginProvider>');
+  if (!value) throw new Error("usePluginHost must be used inside <PluginProvider>");
   return value;
 }
 
-export type HostUi = Pick<PluginUiApi, 'notify' | 'openChat' | 'openSettings'>;
+export type HostUi = Pick<PluginUiApi, "notify" | "openChat" | "openSettings">;
 
 export interface PluginProviderProps {
   plugins: Plugin[];
@@ -68,7 +60,7 @@ function makePluginContext(
   accountId: string,
   keyring: Keyring,
   storage: AccountStorage,
-  lease: PluginLease
+  lease: PluginLease,
 ): PluginContext {
   const manifest = plugin.manifest;
   const pluginStorage = storage.plugin(manifest.id);
@@ -81,15 +73,14 @@ function makePluginContext(
   };
   const wallet = () => {
     if (!keyring.wallet) {
-      throw new Error('This account keeps its keys on a hardware wallet, which signs for it.');
+      throw new Error("This account keeps its keys on a hardware wallet, which signs for it.");
     }
     return keyring.wallet;
   };
   const accountChat = () => {
     active();
     const chat = useChatStore.getState();
-    if (chat.accountId !== accountId)
-      throw new Error(`Plugin "${manifest.id}" is no longer active.`);
+    if (chat.accountId !== accountId) throw new Error(`Plugin "${manifest.id}" is no longer active.`);
     return chat;
   };
 
@@ -97,16 +88,16 @@ function makePluginContext(
     manifest,
     storage: {
       async get(key) {
-        require('storage');
+        require("storage");
         return guard(() => pluginStorage.get(key));
       },
       async set(key, value) {
-        require('storage');
+        require("storage");
         await guard(() => pluginStorage.set(key, value));
         notifyLiveViews(manifest.id);
       },
       async remove(key) {
-        require('storage');
+        require("storage");
         await guard(() => pluginStorage.remove(key));
         notifyLiveViews(manifest.id);
       },
@@ -126,36 +117,36 @@ function makePluginContext(
         return keyring.address;
       },
       get participantId() {
-        return xmtpSessionFor(accountChat())?.self.participantId ?? '';
+        return xmtpSessionFor(accountChat())?.self.participantId ?? "";
       },
       async signMessage(message: string) {
         active();
-        require('account.sign');
+        require("account.sign");
         return guard(() => keyring.account.signMessage({ message }));
       },
       signer() {
         active();
-        require('account.sign');
+        require("account.sign");
         return keyring.account;
       },
       derive(path: string) {
         active();
-        require('account.sign');
+        require("account.sign");
         return wallet().derive(path);
       },
       deriveEd25519(path: string) {
         active();
-        require('account.sign');
+        require("account.sign");
         return wallet().deriveEd25519(path);
       },
     },
 
     chat: {
       async startDm(addressOrId) {
-        require('chat.send');
+        require("chat.send");
         const store = accountChat();
         const session = xmtpSessionFor(store);
-        if (!session) throw new Error('Not connected to XMTP yet.');
+        if (!session) throw new Error("Not connected to XMTP yet.");
 
         const participantId = await session.resolveParticipant(addressOrId);
         active();
@@ -166,26 +157,24 @@ function makePluginContext(
         return chat.id;
       },
       async startGroup(addressesOrIds, title) {
-        require('chat.send');
+        require("chat.send");
         const store = accountChat();
         const session = xmtpSessionFor(store);
-        if (!session) throw new Error('Not connected to XMTP yet.');
+        if (!session) throw new Error("Not connected to XMTP yet.");
 
         const resolved = await Promise.all(
           addressesOrIds.map(async (value) => ({
             value,
             participantId: await session.resolveParticipant(value),
-          }))
+          })),
         );
         active();
 
-        const reachable = resolved
-          .filter((r) => r.participantId)
-          .map((r) => r.participantId as string);
+        const reachable = resolved.filter((r) => r.participantId).map((r) => r.participantId as string);
         const unreachable = resolved.filter((r) => !r.participantId).map((r) => r.value);
 
         if (reachable.length === 0) {
-          throw new Error('None of those addresses can receive messages yet.');
+          throw new Error("None of those addresses can receive messages yet.");
         }
 
         const chat = await store.startGroup(PLUGIN_PROTOCOL, reachable, title);
@@ -193,15 +182,15 @@ function makePluginContext(
         return { chatId: chat.id, unreachable };
       },
       async send(chatId, content) {
-        require('chat.send');
+        require("chat.send");
         await guard(() => accountChat().sendMessage(chatId, content));
       },
       async sendText(chatId, text) {
-        require('chat.send');
-        await guard(() => accountChat().sendMessage(chatId, { kind: 'text', text }));
+        require("chat.send");
+        await guard(() => accountChat().sendMessage(chatId, { kind: "text", text }));
       },
       async members(chatId) {
-        require('chat.read');
+        require("chat.read");
         try {
           const roster = await accountChat().getMembers(chatId);
           active();
@@ -213,15 +202,15 @@ function makePluginContext(
       },
 
       async sendCustom(chatId, typeId, data) {
-        require('chat.send');
-        await guard(() => accountChat().sendMessage(chatId, { kind: 'custom', typeId, data }));
+        require("chat.send");
+        await guard(() => accountChat().sendMessage(chatId, { kind: "custom", typeId, data }));
       },
     },
 
     plugins: {
       list() {
         active();
-        require('plugins.manage');
+        require("plugins.manage");
         return registry.list().map((p) => ({
           id: p.manifest.id,
           name: p.manifest.name,
@@ -232,13 +221,13 @@ function makePluginContext(
       },
       async setEnabled(id, enabled) {
         active();
-        require('plugins.manage');
+        require("plugins.manage");
         await accountRuntime.setPluginEnabled(id, enabled);
         active();
       },
       commands(chatId) {
         active();
-        require('plugins.manage');
+        require("plugins.manage");
         const kind = useChatStore.getState().chats.find((c) => c.id === chatId)?.kind;
         const scope = chatScope(chatId, kind);
         const session = sessionFor(useChatStore.getState(), chatId);
@@ -254,7 +243,7 @@ function makePluginContext(
       },
       channelOwner(chatId) {
         active();
-        require('plugins.manage');
+        require("plugins.manage");
         return registry.channelOwner(chatId);
       },
     },
@@ -275,12 +264,12 @@ function makePluginContext(
       openProfile(chatId, participantId) {
         active();
         router.push({
-          pathname: '/profile/[id]',
+          pathname: "/profile/[id]",
           params: participantId ? { id: chatId, member: participantId } : { id: chatId },
         });
       },
       async openExternalUrl(url: string) {
-        require('browser.open');
+        require("browser.open");
         await guard(() => openExternal(url));
       },
     },
@@ -294,7 +283,7 @@ export function PluginProvider({ plugins, defaultEnabled, ui, children }: Plugin
         commands: [...groupCommands, pollCommand],
         composerActions: groupComposerActions,
         features: [aiFeature],
-      })
+      }),
   );
   const [enabledIds, setEnabledIds] = useState<PluginId[]>([]);
 

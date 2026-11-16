@@ -1,15 +1,15 @@
 import {
+  type Address,
   createWalletClient,
   formatEther,
-  http,
-  parseEther,
-  type Address,
   type Hex,
-  type WalletClient,
+  http,
   type LocalAccount,
-} from 'viem';
+  parseEther,
+  type WalletClient,
+} from "viem";
 
-import { chainById, publicClientFor, rpcOverrideFor } from './chains';
+import { chainById, publicClientFor, rpcOverrideFor } from "./chains";
 
 export function walletClientFor(account: LocalAccount, chainId: number): WalletClient {
   const chain = chainById(chainId);

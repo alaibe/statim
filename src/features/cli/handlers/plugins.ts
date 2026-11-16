@@ -1,15 +1,15 @@
-import { botChatId, toContent } from '@/core/messaging/bots';
-import { buttonCommand } from '@/core/commands/button';
-import { parseCommand } from '@/core/commands/parser';
-import { sessionFor, useChatStore } from '@/core/messaging/chat-store';
-import { chatScope } from '@/core/messaging/chat-scope';
-import type { ChatId, MessageContent } from '@/core/messaging/types';
-import { CORE_ID, worksOn } from '@/core/plugins/registry';
-import { PERMISSION_LABELS } from '@/core/plugins/types';
+import { buttonCommand } from "@/core/commands/button";
+import { parseCommand } from "@/core/commands/parser";
+import { botChatId, toContent } from "@/core/messaging/bots";
+import { chatScope } from "@/core/messaging/chat-scope";
+import { sessionFor, useChatStore } from "@/core/messaging/chat-store";
+import type { ChatId, MessageContent } from "@/core/messaging/types";
+import { CORE_ID, worksOn } from "@/core/plugins/registry";
+import { PERMISSION_LABELS } from "@/core/plugins/types";
 
-import { approveOrThrow, findChat, whenAccountReady, type CliHandler } from '../context';
-import { CliError } from '../errors';
-import { contentLines } from '../widget-text';
+import { approveOrThrow, type CliHandler, findChat, whenAccountReady } from "../context";
+import { CliError } from "../errors";
+import { contentLines } from "../widget-text";
 
 function quote(word: string): string {
   return /^[\w@./:+=-]+$/.test(word) ? word : `'${word.replace(/'/g, `'\\''`)}'`;
@@ -27,23 +27,21 @@ export const pluginHandlers = {
     }));
     return {
       data,
-      text: data.map(
-        (p) => `${p.enabled ? '*' : ' '} ${p.id.padEnd(10)} ${p.name} — ${p.description}`
-      ),
+      text: data.map((p) => `${p.enabled ? "*" : " "} ${p.id.padEnd(10)} ${p.name} — ${p.description}`),
     };
   },
 
-  async 'plugins enable'({ args }, { host, io }) {
+  async "plugins enable"({ args }, { host, io }) {
     await whenAccountReady();
     const plugin = host.registry.get(args.plugin!);
-    if (!plugin) throw new CliError(`No plugin "${args.plugin}". Run statim plugins.`, 'notFound');
+    if (!plugin) throw new CliError(`No plugin "${args.plugin}". Run statim plugins.`, "notFound");
     const permissions = plugin.manifest.permissions.map((p) => PERMISSION_LABELS[p]);
     await approveOrThrow(
       io,
       [
         `Turn on ${plugin.manifest.name}?`,
-        ...(permissions.length ? ['It will be able to:', ...permissions.map((p) => `• ${p}`)] : []),
-      ].join('\n')
+        ...(permissions.length ? ["It will be able to:", ...permissions.map((p) => `• ${p}`)] : []),
+      ].join("\n"),
     );
     await host.setEnabled(plugin.manifest.id, true);
     return {
@@ -52,10 +50,10 @@ export const pluginHandlers = {
     };
   },
 
-  async 'plugins disable'({ args }, { host }) {
+  async "plugins disable"({ args }, { host }) {
     await whenAccountReady();
     const plugin = host.registry.get(args.plugin!);
-    if (!plugin) throw new CliError(`No plugin "${args.plugin}". Run statim plugins.`, 'notFound');
+    if (!plugin) throw new CliError(`No plugin "${args.plugin}". Run statim plugins.`, "notFound");
     await host.setEnabled(plugin.manifest.id, false);
     return {
       data: { id: plugin.manifest.id, enabled: false },
@@ -74,9 +72,9 @@ export const pluginHandlers = {
             .commandListFor(chat.id, chatScope(chat.id, chat.kind))
             .filter(({ command }) => worksOn(command, session));
         })()
-      : [
-          ...new Map([...registry.commands().values()].map((e) => [e.command.name, e])).values(),
-        ].filter((e) => !e.command.hidden);
+      : [...new Map([...registry.commands().values()].map((e) => [e.command.name, e])).values()].filter(
+          (e) => !e.command.hidden,
+        );
     const data = entries.map(({ command, pluginId }) => ({
       name: command.name,
       plugin: pluginId,
@@ -93,19 +91,19 @@ export const pluginHandlers = {
   async link({ args }, { host }) {
     await whenAccountReady();
     if (!(await host.handleUri(args.uri!))) {
-      throw new CliError('No plugin handles that link.', 'unsupported');
+      throw new CliError("No plugin handles that link.", "unsupported");
     }
-    return { data: { handled: true }, text: 'Opened. Anything it asks for appears in the app.' };
+    return { data: { handled: true }, text: "Opened. Anything it asks for appears in the app." };
   },
 
   async run({ args, rest }, { host, io }) {
     await whenAccountReady();
     const { registry } = host;
-    const words = args.chat?.startsWith('/') ? [args.chat, ...rest] : rest;
-    const chatRef = args.chat?.startsWith('/') ? undefined : args.chat;
-    const text = words.join(' ');
+    const words = args.chat?.startsWith("/") ? [args.chat, ...rest] : rest;
+    const chatRef = args.chat?.startsWith("/") ? undefined : args.chat;
+    const text = words.join(" ");
     const parsed = parseCommand(text);
-    if (!parsed) throw new CliError('Give a slash command, e.g. /balance.', 'usage');
+    if (!parsed) throw new CliError("Give a slash command, e.g. /balance.", "usage");
 
     let chatId: ChatId | undefined;
     let entry;
@@ -114,21 +112,20 @@ export const pluginHandlers = {
       chatId = chat.id;
       entry = registry.commandsFor(chat.id, chatScope(chat.id, chat.kind)).get(parsed.name);
       if (entry && !worksOn(entry.command, sessionFor(useChatStore.getState(), chat.id))) {
-        throw new CliError(`/${parsed.name} does not work on this protocol.`, 'unsupported');
+        throw new CliError(`/${parsed.name} does not work on this protocol.`, "unsupported");
       }
     } else {
       entry = registry.commands().get(parsed.name);
       const bot = entry ? registry.botsOf(entry.pluginId)[0] : undefined;
-      if (entry && !bot)
-        throw new CliError(`/${parsed.name} needs a chat: statim run <chat> ${text}`, 'usage');
+      if (entry && !bot) throw new CliError(`/${parsed.name} needs a chat: statim run <chat> ${text}`, "usage");
       chatId = bot && botChatId(bot.id);
     }
     if (!entry || !chatId) {
-      throw new CliError(`Unknown command /${parsed.name}. Run statim commands.`, 'notFound');
+      throw new CliError(`Unknown command /${parsed.name}. Run statim commands.`, "notFound");
     }
 
     const title = useChatStore.getState().chats.find((c) => c.id === chatId)?.title ?? chatId;
-    if (parsed.args.includes('--confirm')) await approveOrThrow(io, `Run ${text}\nin ${title}`);
+    if (parsed.args.includes("--confirm")) await approveOrThrow(io, `Run ${text}\nin ${title}`);
 
     const replies: MessageContent[] = [];
     const result = await entry.command.run({
@@ -141,22 +138,22 @@ export const pluginHandlers = {
       },
     });
 
-    const target = chatRef ? `${quote(chatRef)} ` : '';
+    const target = chatRef ? `${quote(chatRef)} ` : "";
     const again = (command: string) => {
       const button = buttonCommand(command);
-      if (button.kind === 'reply') {
+      if (button.kind === "reply") {
         return `statim send ${target || `${chatId} `}${quote(button.text)}`;
       }
-      const hint = button.kind === 'draft' ? '  (fill in the rest)' : '';
+      const hint = button.kind === "draft" ? "  (fill in the rest)" : "";
       return `statim run ${target}${button.text.trim()}${hint}`;
     };
     const lines = replies.flatMap((content) => contentLines(content, again));
-    if (result.type === 'error') throw new CliError([...lines, result.message].join('\n'));
-    if (result.type === 'notice') lines.push(result.message);
-    if (result.type === 'setComposer') lines.push(`Next: ${again(result.text)}`);
+    if (result.type === "error") throw new CliError([...lines, result.message].join("\n"));
+    if (result.type === "notice") lines.push(result.message);
+    if (result.type === "setComposer") lines.push(`Next: ${again(result.text)}`);
     return {
       data: { chat: chatId, result, replies },
-      text: lines.length ? lines : 'Done.',
+      text: lines.length ? lines : "Done.",
     };
   },
 } satisfies Record<string, CliHandler>;

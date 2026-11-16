@@ -1,13 +1,11 @@
-import { View } from 'react-native';
-
-import { Avatar, IconButton, ListItem, Section, Text } from '@/design';
-import { errorMessage } from '@/core/errors';
-import { useChatStore } from '@/core/messaging/chat-store';
-import { formatDayLabel } from '@/core/messaging/preview';
-import type { ParticipantId, ChatId } from '@/core/messaging/types';
-import { useKeyedLoad } from '@/lib/use-keyed-load';
-
-import { useAction } from '@/features/use-action';
+import { View } from "react-native";
+import { errorMessage } from "@/core/errors";
+import { useChatStore } from "@/core/messaging/chat-store";
+import { formatDayLabel } from "@/core/messaging/preview";
+import type { ChatId, ParticipantId } from "@/core/messaging/types";
+import { Avatar, IconButton, ListItem, Section, Text } from "@/design";
+import { useAction } from "@/features/use-action";
+import { useKeyedLoad } from "@/lib/use-keyed-load";
 
 export function JoinRequests({ chatId, pending }: { chatId: ChatId; pending?: number }) {
   const getJoinRequests = useChatStore((s) => s.getJoinRequests);
@@ -16,25 +14,23 @@ export function JoinRequests({ chatId, pending }: { chatId: ChatId; pending?: nu
   const answer = useAction(
     async (participantId: ParticipantId, approve: boolean) => {
       await processJoinRequest(chatId, participantId, approve);
-      requests.update((pending) =>
-        pending.filter((request) => request.participantId !== participantId)
-      );
+      requests.update((pending) => pending.filter((request) => request.participantId !== participantId));
     },
-    { success: 'Done', failure: 'Could not handle join request' }
+    { success: "Done", failure: "Could not handle join request" },
   );
 
   const note = requests.error
-    ? errorMessage(requests.error, 'Could not load join requests')
+    ? errorMessage(requests.error, "Could not load join requests")
     : requests.loading
-      ? 'Loading requests…'
+      ? "Loading requests…"
       : requests.value?.length === 0
-        ? 'No pending requests'
+        ? "No pending requests"
         : null;
 
   return (
     <Section title="Join requests" surface="card" className="mb-5">
       {note ? (
-        <Text variant="caption" className={requests.error ? 'px-4 py-3 text-danger' : 'px-4 py-3'}>
+        <Text variant="caption" className={requests.error ? "px-4 py-3 text-danger" : "px-4 py-3"}>
           {note}
         </Text>
       ) : (

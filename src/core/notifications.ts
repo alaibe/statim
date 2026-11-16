@@ -1,10 +1,10 @@
-import * as Notifications from 'expo-notifications';
-import { AppState } from 'react-native';
+import * as Notifications from "expo-notifications";
+import { AppState } from "react-native";
 
-import { parseChatId } from './messaging/namespace';
-import type { ChatId } from './messaging/types';
+import { parseChatId } from "./messaging/namespace";
+import type { ChatId } from "./messaging/types";
 
-const CHANNEL = 'messages';
+const CHANNEL = "messages";
 
 let configured = false;
 
@@ -16,7 +16,7 @@ export function configureNotifications(): void {
   Notifications.setNotificationHandler({
     handleNotification: async (notification) => {
       const { trigger } = notification.request;
-      const remote = !!trigger && 'type' in trigger && trigger.type === 'push';
+      const remote = !!trigger && "type" in trigger && trigger.type === "push";
       return {
         shouldPlaySound: false,
         shouldSetBadge: true,
@@ -31,14 +31,14 @@ export function configureNotifications(): void {
 export async function askForNotifications(): Promise<void> {
   try {
     await Notifications.setNotificationChannelAsync(CHANNEL, {
-      name: 'Messages',
+      name: "Messages",
       importance: Notifications.AndroidImportance.HIGH,
     });
     const current = await Notifications.getPermissionsAsync();
     if (current.granted || !current.canAskAgain) return;
     await Notifications.requestPermissionsAsync();
   } catch (error) {
-    console.warn('[notifications] could not ask for permission', error);
+    console.warn("[notifications] could not ask for permission", error);
   }
 }
 
@@ -52,7 +52,7 @@ export interface MessageNotification {
 
 export async function notifyMessage(notification: MessageNotification): Promise<void> {
   try {
-    if (process.env.EXPO_OS === 'ios' && (await shownThroughIcloud(notification.id))) return;
+    if (process.env.EXPO_OS === "ios" && (await shownThroughIcloud(notification.id))) return;
     await Notifications.scheduleNotificationAsync({
       identifier: notification.id,
       content: {
@@ -63,7 +63,7 @@ export async function notifyMessage(notification: MessageNotification): Promise<
       trigger: { channelId: CHANNEL },
     });
   } catch (error) {
-    console.warn('[notifications] could not post', error);
+    console.warn("[notifications] could not post", error);
   }
 }
 
@@ -73,13 +73,13 @@ async function shownThroughIcloud(id: string): Promise<boolean> {
 }
 
 export function appFocused(): boolean {
-  return AppState.currentState === 'active';
+  return AppState.currentState === "active";
 }
 
 let shownBadge: number | undefined;
 
 export async function setBadgeCount(count: number): Promise<void> {
-  if (process.env.EXPO_OS === 'web' || count === shownBadge) return;
+  if (process.env.EXPO_OS === "web" || count === shownBadge) return;
   shownBadge = count;
   try {
     await Notifications.setBadgeCountAsync(count);
@@ -89,7 +89,7 @@ export async function setBadgeCount(count: number): Promise<void> {
 export function onNotificationTapped(handler: (chatId: ChatId) => void): () => void {
   const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
     const raw = response.notification.request.content.data?.chatId;
-    const id = typeof raw === 'string' ? parseChatId(raw) : null;
+    const id = typeof raw === "string" ? parseChatId(raw) : null;
     if (id) handler(id);
   });
   return () => subscription.remove();

@@ -1,18 +1,17 @@
-import * as SecureStore from 'expo-secure-store';
-
+import * as SecureStore from "expo-secure-store";
+import { accountMnemonicKey, VaultKey } from "@/storage/vault";
+import { eraseAccount, eraseEverything } from "../app/erase-account";
+import { useAccountStore } from "./account-store";
 import {
   disableKeyProtection,
   enableKeyProtection,
   isKeyProtectionEnabled,
   readAccountSecret,
   writeAccountSecret,
-} from './key-protection';
-import { useAccountStore } from './account-store';
-import { eraseAccount, eraseEverything } from '../app/erase-account';
-import { accountMnemonicKey, VaultKey } from '@/storage/vault';
+} from "./key-protection";
 
-const PHRASE_A = 'legal winner thank year wave sausage worth useful legal winner thank yellow';
-const PHRASE_B = 'zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong';
+const PHRASE_A = "legal winner thank year wave sausage worth useful legal winner thank yellow";
+const PHRASE_B = "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong";
 
 type Harness = {
   __reset(): void;
@@ -24,7 +23,7 @@ const keychain = SecureStore as unknown as Harness;
 beforeEach(async () => {
   keychain.__reset();
   useAccountStore.setState({
-    status: 'loading',
+    status: "loading",
     accounts: [],
     activeAccountId: null,
     keyring: null,
@@ -39,8 +38,8 @@ async function withTwoAccounts() {
   return useAccountStore.getState().accounts;
 }
 
-describe('enabling key protection', () => {
-  it('moves every phrase into the sealed store and removes the plain copy', async () => {
+describe("enabling key protection", () => {
+  it("moves every phrase into the sealed store and removes the plain copy", async () => {
     const accounts = await withTwoAccounts();
 
     expect(await enableKeyProtection(accounts.map((a) => a.id))).toEqual({ ok: true });
@@ -49,25 +48,25 @@ describe('enabling key protection', () => {
     for (const account of accounts) {
       expect(await SecureStore.getItemAsync(accountMnemonicKey(account.id))).toBeNull();
       expect(await readAccountSecret(account.id, true)).toEqual({
-        status: 'ok',
-        secret: { kind: 'phrase', phrase: expect.any(String) },
+        status: "ok",
+        secret: { kind: "phrase", phrase: expect.any(String) },
       });
     }
   });
 
-  it('flips the setting only after every account has moved', async () => {
+  it("flips the setting only after every account has moved", async () => {
     // A half-migrated device that believed its keys were sealed would read
     // through the protected path and find nothing.
     const accounts = await withTwoAccounts();
     await enableKeyProtection(accounts.map((a) => a.id));
 
     const sealed = await Promise.all(accounts.map((a) => readAccountSecret(a.id, true)));
-    expect(sealed.every((r) => r.status === 'ok')).toBe(true);
+    expect(sealed.every((r) => r.status === "ok")).toBe(true);
   });
 });
 
-describe('disabling key protection', () => {
-  it('moves phrases back and clears the setting', async () => {
+describe("disabling key protection", () => {
+  it("moves phrases back and clears the setting", async () => {
     const accounts = await withTwoAccounts();
     await enableKeyProtection(accounts.map((a) => a.id));
 
@@ -76,25 +75,25 @@ describe('disabling key protection', () => {
     expect(await SecureStore.getItemAsync(accountMnemonicKey(accounts[0].id))).not.toBeNull();
   });
 
-  it('changes nothing when the prompt is refused', async () => {
+  it("changes nothing when the prompt is refused", async () => {
     const accounts = await withTwoAccounts();
     await enableKeyProtection(accounts.map((a) => a.id));
 
     keychain.__denyProtected(true);
     expect(await disableKeyProtection(accounts.map((a) => a.id))).toEqual({
       ok: false,
-      reason: 'denied',
+      reason: "denied",
     });
 
     // Still sealed: a half-unsealed device is worse than an unchanged one.
     expect(await isKeyProtectionEnabled()).toBe(true);
     keychain.__denyProtected(false);
-    expect((await readAccountSecret(accounts[0].id, true)).status).toBe('ok');
+    expect((await readAccountSecret(accounts[0].id, true)).status).toBe("ok");
   });
 });
 
-describe('when the system discards sealed keys', () => {
-  it('reports invalidated rather than absent for a known account', async () => {
+describe("when the system discards sealed keys", () => {
+  it("reports invalidated rather than absent for a known account", async () => {
     // SecureStore resolves null in both cases; only the caller knows the
     // account is in the registry, and confusing the two would silently drop it.
     const accounts = await withTwoAccounts();
@@ -102,22 +101,22 @@ describe('when the system discards sealed keys', () => {
 
     keychain.__invalidateProtected();
 
-    expect(await readAccountSecret(accounts[0].id, true)).toEqual({ status: 'invalidated' });
+    expect(await readAccountSecret(accounts[0].id, true)).toEqual({ status: "invalidated" });
   });
 
-  it('puts the account store into the invalidated state on restore', async () => {
+  it("puts the account store into the invalidated state on restore", async () => {
     const accounts = await withTwoAccounts();
     await enableKeyProtection(accounts.map((a) => a.id));
     keychain.__invalidateProtected();
 
     await useAccountStore.getState().restore();
 
-    expect(useAccountStore.getState().status).toBe('invalidated');
+    expect(useAccountStore.getState().status).toBe("invalidated");
     expect(useAccountStore.getState().keyring).toBeNull();
     expect(useAccountStore.getState().accounts).toHaveLength(2);
   });
 
-  it('repairs an account when its phrase is imported again', async () => {
+  it("repairs an account when its phrase is imported again", async () => {
     // The record, database and local data are all intact. Merely selecting the
     // account would read the missing key and bounce back to recovery, so the
     // import path has to rewrite it.
@@ -125,67 +124,67 @@ describe('when the system discards sealed keys', () => {
     await enableKeyProtection(accounts.map((a) => a.id));
     keychain.__invalidateProtected();
     await useAccountStore.getState().restore();
-    expect(useAccountStore.getState().status).toBe('invalidated');
+    expect(useAccountStore.getState().status).toBe("invalidated");
 
     await useAccountStore.getState().adoptAccount(PHRASE_A);
 
-    expect(useAccountStore.getState().status).toBe('ready');
+    expect(useAccountStore.getState().status).toBe("ready");
     expect(useAccountStore.getState().accounts).toHaveLength(2);
     expect(useAccountStore.getState().activeAccountId).toBe(accounts[0].id);
   });
 });
 
-describe('a refused prompt', () => {
-  it('blocks rather than invalidates, so it can be retried', async () => {
+describe("a refused prompt", () => {
+  it("blocks rather than invalidates, so it can be retried", async () => {
     const accounts = await withTwoAccounts();
     await enableKeyProtection(accounts.map((a) => a.id));
 
     keychain.__denyProtected(true);
     await useAccountStore.getState().restore();
-    expect(useAccountStore.getState().status).toBe('blocked');
+    expect(useAccountStore.getState().status).toBe("blocked");
 
     keychain.__denyProtected(false);
     expect(await useAccountStore.getState().retryUnlock()).toBe(true);
-    expect(useAccountStore.getState().status).toBe('ready');
+    expect(useAccountStore.getState().status).toBe("ready");
   });
 });
 
-describe('erasing', () => {
-  it('removes the sealed phrase too', async () => {
+describe("erasing", () => {
+  it("removes the sealed phrase too", async () => {
     const accounts = await withTwoAccounts();
     await enableKeyProtection(accounts.map((a) => a.id));
 
     await eraseAccount(accounts[0].id);
 
-    expect(await readAccountSecret(accounts[0].id, false)).toEqual({ status: 'absent' });
-    expect((await readAccountSecret(accounts[1].id, true)).status).toBe('ok');
+    expect(await readAccountSecret(accounts[0].id, false)).toEqual({ status: "absent" });
+    expect((await readAccountSecret(accounts[1].id, true)).status).toBe("ok");
   });
 
-  it('leaves nothing behind on a full wipe', async () => {
+  it("leaves nothing behind on a full wipe", async () => {
     const accounts = await withTwoAccounts();
     await enableKeyProtection(accounts.map((a) => a.id));
 
     await eraseEverything();
 
     for (const account of accounts) {
-      expect(await readAccountSecret(account.id, false)).toEqual({ status: 'absent' });
+      expect(await readAccountSecret(account.id, false)).toEqual({ status: "absent" });
     }
     expect(await SecureStore.getItemAsync(VaultKey.keyProtection)).toBeNull();
   });
 });
 
-describe('the account secret', () => {
-  it('keeps a hardware wallet’s chat seed apart from a recovery phrase', async () => {
-    await writeAccountSecret('wallet', { kind: 'chatSeed', seed: '0xabcd' });
-    await writeAccountSecret('phrase', { kind: 'phrase', phrase: 'one two three' });
+describe("the account secret", () => {
+  it("keeps a hardware wallet’s chat seed apart from a recovery phrase", async () => {
+    await writeAccountSecret("wallet", { kind: "chatSeed", seed: "0xabcd" });
+    await writeAccountSecret("phrase", { kind: "phrase", phrase: "one two three" });
 
-    expect(await readAccountSecret('wallet', true)).toEqual({
-      status: 'ok',
-      secret: { kind: 'chatSeed', seed: '0xabcd' },
+    expect(await readAccountSecret("wallet", true)).toEqual({
+      status: "ok",
+      secret: { kind: "chatSeed", seed: "0xabcd" },
     });
-    expect(await readAccountSecret('phrase', true)).toEqual({
-      status: 'ok',
-      secret: { kind: 'phrase', phrase: 'one two three' },
+    expect(await readAccountSecret("phrase", true)).toEqual({
+      status: "ok",
+      secret: { kind: "phrase", phrase: "one two three" },
     });
   });
 });

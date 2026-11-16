@@ -1,23 +1,23 @@
-import { AccountRuntime, type RuntimeAccount } from './account-runtime';
-import { useChatStore } from '../messaging/chat-store';
-import { InMemoryChatSession } from '../messaging/in-memory-session';
-import { InMemoryMessageStore } from '../messaging/message-store';
-import { protocolChatId } from '../messaging/namespace';
-import { TEST_KEYRING } from '../messaging/testing/store';
-import type { ProtocolMessage } from '../messaging/types';
-import { PluginRegistry } from '../plugins/registry';
-import type { Plugin, PluginContext, PluginLease } from '../plugins/types';
-import { createAccountStorage } from '@/storage/account';
-import { deleteAccountDatabase } from '@/storage/database';
-import { PROTOCOLS } from '@/protocols';
-import { botChatId } from '@/core/messaging/bots';
-import { asChatId } from '@/core/messaging/testing/ids';
+import { botChatId } from "@/core/messaging/bots";
+import { asChatId } from "@/core/messaging/testing/ids";
+import { PROTOCOLS } from "@/protocols";
+import { createAccountStorage } from "@/storage/account";
+import { deleteAccountDatabase } from "@/storage/database";
+import { useChatStore } from "../messaging/chat-store";
+import { InMemoryChatSession } from "../messaging/in-memory-session";
+import { InMemoryMessageStore } from "../messaging/message-store";
+import { protocolChatId } from "../messaging/namespace";
+import { TEST_KEYRING } from "../messaging/testing/store";
+import type { ProtocolMessage } from "../messaging/types";
+import { PluginRegistry } from "../plugins/registry";
+import type { Plugin, PluginContext, PluginLease } from "../plugins/types";
+import { AccountRuntime, type RuntimeAccount } from "./account-runtime";
 
 function input(
   accountId: string,
   registry = new PluginRegistry(),
-  createSession?: RuntimeAccount['createSession'],
-  makeContext: RuntimeAccount['makeContext'] = () => ({}) as PluginContext
+  createSession?: RuntimeAccount["createSession"],
+  makeContext: RuntimeAccount["makeContext"] = () => ({}) as PluginContext,
 ): RuntimeAccount {
   return {
     accountId,
@@ -30,12 +30,12 @@ function input(
   };
 }
 
-const ACCOUNTS = ['account-a', 'account-b'];
+const ACCOUNTS = ["account-a", "account-b"];
 
 beforeEach(async () => {
   for (const id of ACCOUNTS) await deleteAccountDatabase(id);
   useChatStore.setState({
-    status: 'idle',
+    status: "idle",
     sessions: {},
     protocols: {},
     accountId: null,
@@ -48,11 +48,11 @@ beforeEach(async () => {
   });
 });
 
-describe('AccountRuntime', () => {
-  it('routes protocol deletions to the loaded chat', async () => {
+describe("AccountRuntime", () => {
+  it("routes protocol deletions to the loaded chat", async () => {
     const runtime = new AccountRuntime(PROTOCOLS);
     const session = new InMemoryChatSession();
-    session.seedChat({ id: 'chat' });
+    session.seedChat({ id: "chat" });
     let deleted!: (id: string, ids: string[]) => void;
     Object.assign(session, {
       streamDeletedMessages: async (listener: typeof deleted) => {
@@ -60,30 +60,28 @@ describe('AccountRuntime', () => {
         return () => {};
       },
     });
-    await runtime.synchronize(input('deletion-test', new PluginRegistry(), async () => session));
-    await useChatStore.getState().loadMessages(asChatId('xmtp-chat'));
-    session.deliver('chat', { id: 'message', content: { kind: 'text', text: 'bye' } });
-    deleted('chat', ['message']);
-    expect(useChatStore.getState().messages[asChatId('xmtp-chat')]).toEqual([]);
+    await runtime.synchronize(input("deletion-test", new PluginRegistry(), async () => session));
+    await useChatStore.getState().loadMessages(asChatId("xmtp-chat"));
+    session.deliver("chat", { id: "message", content: { kind: "text", text: "bye" } });
+    deleted("chat", ["message"]);
+    expect(useChatStore.getState().messages[asChatId("xmtp-chat")]).toEqual([]);
     await runtime.synchronize(null);
   });
 
-  it('keeps Saved Messages available without a plugin', async () => {
+  it("keeps Saved Messages available without a plugin", async () => {
     const runtime = new AccountRuntime(PROTOCOLS);
     const session = new InMemoryChatSession();
-    session.seedChat({ id: 'chat', createdAt: 1 });
-    await runtime.synchronize(input('saved-account', new PluginRegistry(), async () => session));
-    expect(useChatStore.getState().chats.map((c) => c.id)).toEqual(['xmtp-chat', 'local-saved']);
-    await useChatStore
-      .getState()
-      .sendMessage(botChatId('saved'), { kind: 'text', text: 'remember' });
-    expect(useChatStore.getState().messages[botChatId('saved')]).toEqual([
-      expect.objectContaining({ content: { kind: 'text', text: 'remember' } }),
+    session.seedChat({ id: "chat", createdAt: 1 });
+    await runtime.synchronize(input("saved-account", new PluginRegistry(), async () => session));
+    expect(useChatStore.getState().chats.map((c) => c.id)).toEqual(["xmtp-chat", "local-saved"]);
+    await useChatStore.getState().sendMessage(botChatId("saved"), { kind: "text", text: "remember" });
+    expect(useChatStore.getState().messages[botChatId("saved")]).toEqual([
+      expect.objectContaining({ content: { kind: "text", text: "remember" } }),
     ]);
     await runtime.synchronize(null);
   });
 
-  it('switches projection before an unfinished old start resolves', async () => {
+  it("switches projection before an unfinished old start resolves", async () => {
     const runtime = new AccountRuntime(PROTOCOLS);
     const oldSession = new InMemoryChatSession();
     const newSession = new InMemoryChatSession();
@@ -97,33 +95,31 @@ describe('AccountRuntime', () => {
     });
 
     const starting = runtime.synchronize(
-      input('account-a', new PluginRegistry(), async () => {
+      input("account-a", new PluginRegistry(), async () => {
         entered();
         return pending;
-      })
+      }),
     );
     await creating;
-    expect(useChatStore.getState().accountId).toBe('account-a');
+    expect(useChatStore.getState().accountId).toBe("account-a");
 
-    const switching = runtime.synchronize(
-      input('account-b', new PluginRegistry(), async () => newSession)
-    );
+    const switching = runtime.synchronize(input("account-b", new PluginRegistry(), async () => newSession));
     expect(useChatStore.getState().accountId).toBeNull();
     await switching;
 
-    expect(useChatStore.getState().accountId).toBe('account-b');
+    expect(useChatStore.getState().accountId).toBe("account-b");
     expect(useChatStore.getState().sessions.xmtp).toBe(newSession);
 
     finish(oldSession);
     await starting;
 
     expect(oldSession.disconnected).toBe(true);
-    expect(useChatStore.getState().accountId).toBe('account-b');
+    expect(useChatStore.getState().accountId).toBe("account-b");
     expect(useChatStore.getState().sessions.xmtp).toBe(newSession);
     await runtime.synchronize(null);
   });
 
-  it('erases without waiting for stale session startup', async () => {
+  it("erases without waiting for stale session startup", async () => {
     const runtime = new AccountRuntime(PROTOCOLS);
     const lateSession = new InMemoryChatSession();
     let finish!: (session: InMemoryChatSession) => void;
@@ -135,21 +131,21 @@ describe('AccountRuntime', () => {
       finish = resolve;
     });
     const starting = runtime.synchronize(
-      input('account-a', new PluginRegistry(), async () => {
+      input("account-a", new PluginRegistry(), async () => {
         entered();
         return pending;
-      })
+      }),
     );
     await creating;
 
     const erasing = runtime.erase({
-      id: 'account-a',
-      label: 'A',
-      address: '0x0000000000000000000000000000000000000001',
+      id: "account-a",
+      label: "A",
+      address: "0x0000000000000000000000000000000000000001",
       createdAt: 1,
-      kind: 'phrase',
+      kind: "phrase",
     });
-    expect(useChatStore.getState().status).toBe('erasing');
+    expect(useChatStore.getState().status).toBe("erasing");
     expect(useChatStore.getState().accountId).toBeNull();
     await erasing;
 
@@ -159,34 +155,34 @@ describe('AccountRuntime', () => {
     expect(useChatStore.getState().accountId).toBeNull();
   });
 
-  it('rejects callbacks retained by an outgoing account stream', async () => {
+  it("rejects callbacks retained by an outgoing account stream", async () => {
     const runtime = new AccountRuntime(PROTOCOLS);
     const session = new InMemoryChatSession();
-    session.seedChat({ id: 'old' });
+    session.seedChat({ id: "old" });
     let staleMessage!: (message: ProtocolMessage) => void;
-    jest.spyOn(session, 'streamMessages').mockImplementation(async (listener) => {
+    jest.spyOn(session, "streamMessages").mockImplementation(async (listener) => {
       staleMessage = listener;
       return () => {};
     });
 
-    await runtime.synchronize(input('account-a', new PluginRegistry(), async () => session));
-    await runtime.synchronize(input('account-b'));
+    await runtime.synchronize(input("account-a", new PluginRegistry(), async () => session));
+    await runtime.synchronize(input("account-b"));
     staleMessage({
-      id: 'late',
-      chatId: protocolChatId('old'),
-      senderId: 'them',
+      id: "late",
+      chatId: protocolChatId("old"),
+      senderId: "them",
       sentAt: 1,
-      content: { kind: 'text', text: 'old account' },
+      content: { kind: "text", text: "old account" },
       fromMe: false,
-      status: 'sent',
+      status: "sent",
     });
 
-    expect(useChatStore.getState().accountId).toBe('account-b');
-    expect(useChatStore.getState().messages[asChatId('xmtp-old')]).toBeUndefined();
+    expect(useChatStore.getState().accountId).toBe("account-b");
+    expect(useChatStore.getState().messages[asChatId("xmtp-old")]).toBeUndefined();
     await runtime.synchronize(null);
   });
 
-  it('disposes a bot whose activation resolves after an account switch', async () => {
+  it("disposes a bot whose activation resolves after an account switch", async () => {
     const runtime = new AccountRuntime(PROTOCOLS);
     const dispose = jest.fn();
     let finish!: (dispose: () => void) => void;
@@ -195,19 +191,19 @@ describe('AccountRuntime', () => {
     });
     const plugin: Plugin = {
       manifest: {
-        id: 'ticker',
-        name: 'Ticker',
-        description: '',
-        version: '1',
-        icon: 'ellipse',
+        id: "ticker",
+        name: "Ticker",
+        description: "",
+        version: "1",
+        icon: "ellipse",
         permissions: [],
       },
       setup: () => ({
         bots: [
           {
-            id: 'ticker',
-            name: 'Ticker',
-            tagline: '',
+            id: "ticker",
+            name: "Ticker",
+            tagline: "",
             greeting: () => [],
             activate: async () => activated,
           },
@@ -215,9 +211,9 @@ describe('AccountRuntime', () => {
       }),
     };
 
-    await runtime.synchronize(input('account-a', new PluginRegistry([plugin])));
+    await runtime.synchronize(input("account-a", new PluginRegistry([plugin])));
     await Promise.resolve();
-    const switching = runtime.synchronize(input('account-b'));
+    const switching = runtime.synchronize(input("account-b"));
     finish(dispose);
     await switching;
 
@@ -225,15 +221,15 @@ describe('AccountRuntime', () => {
     await runtime.synchronize(null);
   });
 
-  it('revokes plugin leases on deactivate and rejects in-flight work after switch', async () => {
+  it("revokes plugin leases on deactivate and rejects in-flight work after switch", async () => {
     const runtime = new AccountRuntime(PROTOCOLS);
     const plugin: Plugin = {
       manifest: {
-        id: 'leased',
-        name: 'Leased',
-        description: '',
-        version: '1',
-        icon: 'ellipse',
+        id: "leased",
+        name: "Leased",
+        description: "",
+        version: "1",
+        icon: "ellipse",
         permissions: [],
       },
       setup: () => ({}),
@@ -241,15 +237,10 @@ describe('AccountRuntime', () => {
     const registry = new PluginRegistry([plugin]);
     let lease!: PluginLease;
     await runtime.synchronize(
-      input(
-        'account-a',
-        registry,
-        undefined,
-        (_plugin, _accountId, _keyring, _storage, activeLease) => {
-          lease = activeLease;
-          return {} as PluginContext;
-        }
-      )
+      input("account-a", registry, undefined, (_plugin, _accountId, _keyring, _storage, activeLease) => {
+        lease = activeLease;
+        return {} as PluginContext;
+      }),
     );
 
     let finish!: (value: string) => void;
@@ -257,31 +248,26 @@ describe('AccountRuntime', () => {
       () =>
         new Promise<string>((resolve) => {
           finish = resolve;
-        })
+        }),
     );
-    const switching = runtime.synchronize(input('account-b'));
-    finish('old account');
+    const switching = runtime.synchronize(input("account-b"));
+    finish("old account");
 
-    await expect(work).rejects.toThrow('no longer active');
+    await expect(work).rejects.toThrow("no longer active");
     await switching;
 
     await runtime.synchronize(
-      input(
-        'account-a',
-        registry,
-        undefined,
-        (_plugin, _accountId, _keyring, _storage, activeLease) => {
-          lease = activeLease;
-          return {} as PluginContext;
-        }
-      )
+      input("account-a", registry, undefined, (_plugin, _accountId, _keyring, _storage, activeLease) => {
+        lease = activeLease;
+        return {} as PluginContext;
+      }),
     );
-    await runtime.setPluginEnabled('leased', false);
-    expect(() => lease.assertActive()).toThrow('no longer active');
+    await runtime.setPluginEnabled("leased", false);
+    expect(() => lease.assertActive()).toThrow("no longer active");
     await runtime.synchronize(null);
   });
 
-  it('reconnects only the protocols that read plugin content types', async () => {
+  it("reconnects only the protocols that read plugin content types", async () => {
     const runtime = new AccountRuntime(PROTOCOLS);
     const first = new InMemoryChatSession();
     const second = new InMemoryChatSession();
@@ -289,11 +275,11 @@ describe('AccountRuntime', () => {
     const sessions = [first, second];
     const plugin: Plugin = {
       manifest: {
-        id: 'codec',
-        name: 'Codec',
-        description: '',
-        version: '1',
-        icon: 'ellipse',
+        id: "codec",
+        name: "Codec",
+        description: "",
+        version: "1",
+        icon: "ellipse",
         permissions: [],
         requiresSessionRestart: true,
       },
@@ -301,13 +287,13 @@ describe('AccountRuntime', () => {
     };
 
     await runtime.synchronize({
-      ...input('account-a', new PluginRegistry([plugin]), async ({ protocolId }) =>
-        protocolId === 'nostr' ? nostr : sessions.shift()!
+      ...input("account-a", new PluginRegistry([plugin]), async ({ protocolId }) =>
+        protocolId === "nostr" ? nostr : sessions.shift()!,
       ),
-      only: ['xmtp', 'nostr'],
+      only: ["xmtp", "nostr"],
     });
-    await runtime.setPluginEnabled('codec', false);
-    await runtime['transition'];
+    await runtime.setPluginEnabled("codec", false);
+    await runtime["transition"];
 
     expect(first.disconnected).toBe(true);
     expect(useChatStore.getState().sessions.xmtp).toBe(second);
@@ -316,7 +302,7 @@ describe('AccountRuntime', () => {
     await runtime.synchronize(null);
   });
 
-  it('connects protocols that need no plugin while plugins are still starting', async () => {
+  it("connects protocols that need no plugin while plugins are still starting", async () => {
     const runtime = new AccountRuntime(PROTOCOLS);
     const xmtp = new InMemoryChatSession();
     const nostr = new InMemoryChatSession();
@@ -326,21 +312,21 @@ describe('AccountRuntime', () => {
     });
     const slow: Plugin = {
       manifest: {
-        id: 'slow',
-        name: 'Slow',
-        description: '',
-        version: '1',
-        icon: 'ellipse',
+        id: "slow",
+        name: "Slow",
+        description: "",
+        version: "1",
+        icon: "ellipse",
         permissions: [],
       },
       setup: () => ({ start: () => starting }),
     };
 
     const running = runtime.synchronize({
-      ...input('account-a', new PluginRegistry([slow]), async ({ protocolId }) =>
-        protocolId === 'nostr' ? nostr : xmtp
+      ...input("account-a", new PluginRegistry([slow]), async ({ protocolId }) =>
+        protocolId === "nostr" ? nostr : xmtp,
       ),
-      only: ['xmtp', 'nostr'],
+      only: ["xmtp", "nostr"],
     });
     await new Promise((resolve) => setImmediate(resolve));
 
@@ -352,7 +338,7 @@ describe('AccountRuntime', () => {
     await runtime.synchronize(null);
   });
 
-  it('saves protocol settings without waiting to reconnect, and reconnects only that protocol', async () => {
+  it("saves protocol settings without waiting to reconnect, and reconnects only that protocol", async () => {
     const runtime = new AccountRuntime(PROTOCOLS);
     const xmtp = new InMemoryChatSession();
     const nostr = new InMemoryChatSession();
@@ -364,17 +350,17 @@ describe('AccountRuntime', () => {
     let nostrStarts = 0;
 
     await runtime.synchronize({
-      ...input('account-a', new PluginRegistry(), async ({ protocolId }) => {
-        if (protocolId === 'xmtp') return xmtp;
+      ...input("account-a", new PluginRegistry(), async ({ protocolId }) => {
+        if (protocolId === "xmtp") return xmtp;
         if (nostrStarts++ === 0) return nostr;
         await held;
         return reconnected;
       }),
-      only: ['xmtp', 'nostr'],
+      only: ["xmtp", "nostr"],
     });
-    await runtime.updateProtocolConfig('account-a', 'nostr', { relays: 'wss://relay.example' });
+    await runtime.updateProtocolConfig("account-a", "nostr", { relays: "wss://relay.example" });
     release();
-    await runtime['transition'];
+    await runtime["transition"];
 
     expect(nostr.disconnected).toBe(true);
     expect(useChatStore.getState().sessions.nostr).toBe(reconnected);

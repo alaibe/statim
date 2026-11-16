@@ -1,7 +1,7 @@
-import { protocolChatId } from '@/core/messaging/namespace';
-import type { MessageId, ParticipantId, ProtocolChatId } from '@/core/messaging/types';
+import { protocolChatId } from "@/core/messaging/namespace";
+import type { MessageId, ParticipantId, ProtocolChatId } from "@/core/messaging/types";
 
-import type { TdSender } from './types';
+import type { TdSender } from "./types";
 
 export function chatIdOf(tdChatId: number): ProtocolChatId {
   return protocolChatId(String(tdChatId));
@@ -12,19 +12,19 @@ export function messageIdOf(chatId: number, messageId: number): MessageId {
 }
 
 export function tdMessageId(id: MessageId): number {
-  return Number(id.slice(id.lastIndexOf('_') + 1));
+  return Number(id.slice(id.lastIndexOf("_") + 1));
 }
 
 export function senderIdOf(sender: TdSender): ParticipantId {
-  return sender['@type'] === 'messageSenderUser' ? String(sender.user_id) : `c${sender.chat_id}`;
+  return sender["@type"] === "messageSenderUser" ? String(sender.user_id) : `c${sender.chat_id}`;
 }
 
 export function userSender(id: ParticipantId): TdSender {
-  return { '@type': 'messageSenderUser', user_id: Number(id) };
+  return { "@type": "messageSenderUser", user_id: Number(id) };
 }
 
 export function userIdOf(sender: TdSender): number {
-  return sender['@type'] === 'messageSenderUser' ? sender.user_id : sender.chat_id;
+  return sender["@type"] === "messageSenderUser" ? sender.user_id : sender.chat_id;
 }
 
 export function chatSenderId(id: ParticipantId): number | null {

@@ -1,17 +1,12 @@
-import { useState } from 'react';
-
-import { Chevron, ConfirmSheet, ListItem, RowIcon, Section, toast, Toggle } from '@/design';
-import { reportError } from '@/core/app/report-error';
-import { useAccountStore } from '@/core/account/account-store';
-import {
-  disableKeyProtection,
-  enableKeyProtection,
-  isKeyProtectionEnabled,
-} from '@/core/account/key-protection';
-import { type BiometricCapability, biometricCapability } from '@/core/account/biometrics';
-import { useLockStore } from '@/core/account/lock-store';
-import { openTab } from '@/features/navigation/open';
-import { useKeyedLoad } from '@/lib/use-keyed-load';
+import { useState } from "react";
+import { useAccountStore } from "@/core/account/account-store";
+import { type BiometricCapability, biometricCapability } from "@/core/account/biometrics";
+import { disableKeyProtection, enableKeyProtection, isKeyProtectionEnabled } from "@/core/account/key-protection";
+import { useLockStore } from "@/core/account/lock-store";
+import { reportError } from "@/core/app/report-error";
+import { Chevron, ConfirmSheet, ListItem, RowIcon, Section, Toggle, toast } from "@/design";
+import { openTab } from "@/features/navigation/open";
+import { useKeyedLoad } from "@/lib/use-keyed-load";
 
 interface Biometrics extends BiometricCapability {
   protectedKeys: boolean;
@@ -20,16 +15,13 @@ interface Biometrics extends BiometricCapability {
 const NO_BIOMETRICS: Biometrics = {
   available: false,
   enrolled: false,
-  label: 'Biometrics',
+  label: "Biometrics",
   protectedKeys: false,
 };
 
 async function readBiometrics(): Promise<Biometrics> {
   try {
-    const [capability, protectedKeys] = await Promise.all([
-      biometricCapability(),
-      isKeyProtectionEnabled(),
-    ]);
+    const [capability, protectedKeys] = await Promise.all([biometricCapability(), isKeyProtectionEnabled()]);
     return { ...capability, protectedKeys };
   } catch (error) {
     reportError(error);
@@ -38,7 +30,7 @@ async function readBiometrics(): Promise<Biometrics> {
 }
 
 /** The desktop vault cannot tie an item to Touch ID, so keys there are protected by the vault alone. */
-const SEALS_KEYS = process.env.EXPO_OS !== 'web';
+const SEALS_KEYS = process.env.EXPO_OS !== "web";
 
 export function SecuritySection({
   compact,
@@ -50,7 +42,7 @@ export function SecuritySection({
   pinOffSelected: boolean;
 }) {
   const setup = useLockStore((s) => s.setup);
-  const biometrics = useKeyedLoad('biometrics', readBiometrics).value;
+  const biometrics = useKeyedLoad("biometrics", readBiometrics).value;
   if (!setup || !biometrics) return null;
 
   const hint = (text: string) => (compact ? undefined : text);
@@ -58,9 +50,7 @@ export function SecuritySection({
 
   return (
     <Section title="Security" surface="card" className="mb-6">
-      {biometrics.available ? (
-        <BiometricRows biometrics={biometrics} lockOn={setup.biometric} hint={hint} />
-      ) : null}
+      {biometrics.available ? <BiometricRows biometrics={biometrics} lockOn={setup.biometric} hint={hint} /> : null}
 
       {setup.pin ? (
         <>
@@ -70,13 +60,13 @@ export function SecuritySection({
             subtitle={hint(
               setup.biometric && biometrics.available
                 ? `Asked for when ${biometrics.label} does not work`
-                : 'Asked for when the app opens'
+                : "Asked for when the app opens",
             )}
             numberOfLinesSubtitle={2}
             leading={<RowIcon name="keypad-outline" tone="blue" />}
             trailing={chevron}
             selected={pinSelected}
-            onPress={() => openTab('/settings/pin')}
+            onPress={() => openTab("/settings/pin")}
           />
           <ListItem
             testID="settings-turn-off-pin"
@@ -84,19 +74,19 @@ export function SecuritySection({
             leading={<RowIcon name="close-circle-outline" tone="grey" />}
             trailing={chevron}
             selected={pinOffSelected}
-            onPress={() => openTab('/settings/pin-off')}
+            onPress={() => openTab("/settings/pin-off")}
           />
         </>
       ) : (
         <ListItem
           testID="settings-set-pin"
           title="Set PIN"
-          subtitle={hint('Ask for a PIN of its own whenever the app opens')}
+          subtitle={hint("Ask for a PIN of its own whenever the app opens")}
           numberOfLinesSubtitle={2}
           leading={<RowIcon name="keypad-outline" tone="blue" />}
           trailing={chevron}
           selected={pinSelected}
-          onPress={() => openTab('/settings/pin')}
+          onPress={() => openTab("/settings/pin")}
         />
       )}
     </Section>
@@ -123,10 +113,10 @@ function BiometricRows({
 
   const ids = accounts.map((a) => a.id);
 
-  function unchanged(reason: 'denied' | 'unreadable') {
-    return reason === 'denied'
+  function unchanged(reason: "denied" | "unreadable") {
+    return reason === "denied"
       ? `${label} was not confirmed, so nothing changed`
-      : 'Your recovery phrase could not be read, so nothing changed';
+      : "Your recovery phrase could not be read, so nothing changed";
   }
 
   async function changeLock(next: boolean): Promise<boolean> {
@@ -147,7 +137,7 @@ function BiometricRows({
     const result = await change(ids).catch(() => null);
     setBusy(false);
 
-    if (!result) toast.error('Could not change key protection');
+    if (!result) toast.error("Could not change key protection");
     else if (!result.ok) toast.error(unchanged(result.reason));
     else {
       setProtectedKeys(next);
@@ -159,9 +149,7 @@ function BiometricRows({
     <>
       <ListItem
         title={`Require ${label}`}
-        subtitle={hint(
-          enrolled ? 'Asks before showing your accounts' : `Set up ${label} on this device first`
-        )}
+        subtitle={hint(enrolled ? "Asks before showing your accounts" : `Set up ${label} on this device first`)}
         numberOfLinesSubtitle={2}
         leading={<RowIcon name="finger-print-outline" tone="green" />}
         trailing={
@@ -172,7 +160,7 @@ function BiometricRows({
             onValueChange={async (next) => {
               setBusy(true);
               const applied = await changeLock(next).catch(() => {
-                toast.error('Could not change the lock setting');
+                toast.error("Could not change the lock setting");
                 return false;
               });
               setBusy(false);
@@ -185,9 +173,7 @@ function BiometricRows({
       {lockOn && SEALS_KEYS ? (
         <ListItem
           title="Also protect keys"
-          subtitle={hint(
-            `Your recovery phrase is sealed in the keychain and cannot be read without ${label}`
-          )}
+          subtitle={hint(`Your recovery phrase is sealed in the keychain and cannot be read without ${label}`)}
           numberOfLinesSubtitle={2}
           leading={<RowIcon name="lock-closed-outline" tone="red" />}
           trailing={
@@ -214,7 +200,7 @@ function BiometricRows({
         ]}
         busy={busy}
         confirm={{
-          label: 'My phrase is written down. Turn it on',
+          label: "My phrase is written down. Turn it on",
           onPress: () => {
             setConfirming(false);
             void applyProtection(true);

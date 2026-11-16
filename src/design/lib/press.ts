@@ -1,16 +1,11 @@
-import { useRef, useState } from 'react';
+import { useRef, useState } from "react";
 
-import { reportError } from '@/core/app/report-error';
+import { reportError } from "@/core/app/report-error";
 
 export type PressHandler = () => void | Promise<unknown>;
 
 function isPromise(value: unknown): value is PromiseLike<unknown> {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'then' in value &&
-    typeof value.then === 'function'
-  );
+  return typeof value === "object" && value !== null && "then" in value && typeof value.then === "function";
 }
 
 export function runPress(onPress: PressHandler): Promise<void> | undefined {

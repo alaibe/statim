@@ -1,4 +1,4 @@
-import { useRouter, type Href } from 'expo-router';
+import { type Href, useRouter } from "expo-router";
 
 export function useBack(fallback: Href) {
   const router = useRouter();

@@ -1,70 +1,54 @@
-import { flagSyntax, usage } from './args';
-import {
-  COMMANDS,
-  EXIT_CODES,
-  EXIT_MEANINGS,
-  GLOBAL_FLAGS,
-  type CliCommandSpec,
-  type CliGroup,
-} from './commands';
+import { flagSyntax, usage } from "./args";
+import { type CliCommandSpec, type CliGroup, COMMANDS, EXIT_CODES, EXIT_MEANINGS, GLOBAL_FLAGS } from "./commands";
 
 const GROUPS = [...new Set(COMMANDS.map((c) => c.group))] as CliGroup[];
 
-export const APPROVAL = 'Waits for the person at the app to approve it.';
+export const APPROVAL = "Waits for the person at the app to approve it.";
 
 export function renderHelp(): string {
   const width = Math.max(...COMMANDS.map((c) => c.path.length)) + 2;
   const sections = GROUPS.map((group) =>
-    [
-      group,
-      ...COMMANDS.filter((c) => c.group === group).map(
-        (c) => `  ${c.path.padEnd(width)}${c.summary}`
-      ),
-    ].join('\n')
+    [group, ...COMMANDS.filter((c) => c.group === group).map((c) => `  ${c.path.padEnd(width)}${c.summary}`)].join(
+      "\n",
+    ),
   );
   return [
-    'Usage: statim <command> [arguments] [--json]',
-    '',
-    'Controls the Statim app on this computer, and starts it in the background when it is not running.',
-    '',
-    ...sections.flatMap((s) => [s, '']),
-    'statim help <command>     arguments and examples for one command',
-    'statim --skills           instructions for AI agents (SKILL.md)',
-    'statim skills install     install them for Claude Code (--claude), Codex (--codex) or --dir <path>',
-    'statim mcp                serve these commands to an AI app as an MCP server, over stdio',
-    'statim --version',
-    '',
-  ].join('\n');
+    "Usage: statim <command> [arguments] [--json]",
+    "",
+    "Controls the Statim app on this computer, and starts it in the background when it is not running.",
+    "",
+    ...sections.flatMap((s) => [s, ""]),
+    "statim help <command>     arguments and examples for one command",
+    "statim --skills           instructions for AI agents (SKILL.md)",
+    "statim skills install     install them for Claude Code (--claude), Codex (--codex) or --dir <path>",
+    "statim mcp                serve these commands to an AI app as an MCP server, over stdio",
+    "statim --version",
+    "",
+  ].join("\n");
 }
 
 export function commandHelp(spec: CliCommandSpec): string {
-  const lines = [usage(spec), '', spec.summary];
-  if (spec.approval) lines.push('', APPROVAL);
+  const lines = [usage(spec), "", spec.summary];
+  if (spec.approval) lines.push("", APPROVAL);
   if (spec.args?.length) {
-    lines.push('', 'Arguments:', ...spec.args.map((a) => `  ${a.name.padEnd(12)}${a.description}`));
+    lines.push("", "Arguments:", ...spec.args.map((a) => `  ${a.name.padEnd(12)}${a.description}`));
   }
   const flags = [...(spec.flags ?? []), ...GLOBAL_FLAGS];
-  lines.push('', 'Options:', ...flags.map((f) => `  ${flagSyntax(f).padEnd(20)}${f.description}`));
-  if (spec.examples?.length) lines.push('', 'Examples:', ...spec.examples.map((e) => `  ${e}`));
-  return lines.join('\n');
+  lines.push("", "Options:", ...flags.map((f) => `  ${flagSyntax(f).padEnd(20)}${f.description}`));
+  if (spec.examples?.length) lines.push("", "Examples:", ...spec.examples.map((e) => `  ${e}`));
+  return lines.join("\n");
 }
 
 function skillCommand(spec: CliCommandSpec): string {
-  const lines = [
-    `#### ${spec.path}`,
-    '',
-    `\`${usage(spec).replace('Usage: ', '')}\``,
-    '',
-    spec.summary + '.',
-  ];
-  if (spec.approval) lines.push('', APPROVAL);
+  const lines = [`#### ${spec.path}`, "", `\`${usage(spec).replace("Usage: ", "")}\``, "", spec.summary + "."];
+  if (spec.approval) lines.push("", APPROVAL);
   const described = [
     ...(spec.args ?? []).map((a) => `- \`${a.name}\`: ${a.description}`),
     ...(spec.flags ?? []).map((f) => `- \`${flagSyntax(f)}\`: ${f.description}`),
   ];
-  if (described.length) lines.push('', ...described);
-  if (spec.examples?.length) lines.push('', '```sh', ...spec.examples, '```');
-  return lines.join('\n');
+  if (described.length) lines.push("", ...described);
+  if (spec.examples?.length) lines.push("", "```sh", ...spec.examples, "```");
+  return lines.join("\n");
 }
 
 export function renderSkill(): string {
@@ -98,7 +82,7 @@ description: Read, search and send messages across XMTP, Telegram, Matrix and th
 
 | Code | Meaning |
 | --- | --- |
-${exitRows.join('\n')}
+${exitRows.join("\n")}
 
 ## Recipes
 
@@ -128,7 +112,7 @@ ${GROUPS.map(
   (group) =>
     `### ${group}\n\n${COMMANDS.filter((c) => c.group === group)
       .map(skillCommand)
-      .join('\n\n')}`
-).join('\n\n')}
+      .join("\n\n")}`,
+).join("\n\n")}
 `;
 }

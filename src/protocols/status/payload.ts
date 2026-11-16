@@ -3,8 +3,8 @@
  * the payload size, the payload, random padding to a multiple of 256 and a
  * signature, then ECIES to one public key or AES-GCM under a topic key.
  */
-import { concat } from '@/lib/bytes';
-import { randomBytes } from '@/lib/random';
+import { concat } from "@/lib/bytes";
+import { randomBytes } from "@/lib/random";
 
 import {
   decryptSymmetric,
@@ -14,7 +14,7 @@ import {
   keccak256,
   recoverPublicKey,
   sign,
-} from './crypto';
+} from "./crypto";
 
 const SIGNATURE_FLAG = 4;
 const SIZE_MASK = 3;
@@ -44,21 +44,16 @@ export function encodePayload(data: Uint8Array, key: PayloadKey, signer: Uint8Ar
   const padding = randomBytes(PADDING_BLOCK - (unpadded % PADDING_BLOCK));
   const frame = concat([Uint8Array.of(size.length | SIGNATURE_FLAG), size, data, padding]);
   const signed = concat([frame, sign(keccak256(frame), signer)]);
-  return 'recipient' in key
-    ? eciesEncrypt(key.recipient, signed)
-    : encryptSymmetric(key.symmetricKey, signed);
+  return "recipient" in key ? eciesEncrypt(key.recipient, signed) : encryptSymmetric(key.symmetricKey, signed);
 }
 
 export function decodePayload(
   bytes: Uint8Array,
-  key: { privateKey: Uint8Array } | { symmetricKey: Uint8Array }
+  key: { privateKey: Uint8Array } | { symmetricKey: Uint8Array },
 ): DecodedPayload | null {
   let frame: Uint8Array;
   try {
-    frame =
-      'privateKey' in key
-        ? eciesDecrypt(key.privateKey, bytes)
-        : decryptSymmetric(key.symmetricKey, bytes);
+    frame = "privateKey" in key ? eciesDecrypt(key.privateKey, bytes) : decryptSymmetric(key.symmetricKey, bytes);
   } catch {
     return null;
   }

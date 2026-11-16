@@ -1,4 +1,5 @@
-import { Text } from '@/design';
+import { Text } from "@/design";
+
 interface ContactNameProps {
   given?: string | null;
   family?: string | null;

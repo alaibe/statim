@@ -3,20 +3,20 @@
  * once they hold a bundle for this device. Replies still go out as DH
  * messages, so this side never sends on a ratchet: it only follows theirs.
  */
-import { ctr } from '@noble/ciphers/aes';
-import { hkdf } from '@noble/hashes/hkdf';
-import { hmac } from '@noble/hashes/hmac';
-import { sha256 } from '@noble/hashes/sha2';
-import { utf8ToBytes } from '@noble/hashes/utils';
+import { ctr } from "@noble/ciphers/aes";
+import { hkdf } from "@noble/hashes/hkdf";
+import { hmac } from "@noble/hashes/hmac";
+import { sha256 } from "@noble/hashes/sha2";
+import { utf8ToBytes } from "@noble/hashes/utils";
 
-import { concat, fromHex, timingSafeEqual, toHex, u32le } from '@/lib/bytes';
+import { concat, fromHex, timingSafeEqual, toHex, u32le } from "@/lib/bytes";
 
-import { compressPublicKey, keccak256, randomPrivateKey, sharedSecret, sign } from './crypto';
-import type { Keys } from './envelope';
-import { encodeBundle, type WireEncrypted } from './messages';
+import { compressPublicKey, keccak256, randomPrivateKey, sharedSecret, sign } from "./crypto";
+import type { Keys } from "./envelope";
+import { encodeBundle, type WireEncrypted } from "./messages";
 
-const ROOT_INFO = utf8ToBytes('rsZUpEuXUqqwXBvSy3EcievAh4cMj6QL');
-const MESSAGE_INFO = utf8ToBytes('pcwSByyx2CRdryCffXJwy7xgVZWtW5Sh');
+const ROOT_INFO = utf8ToBytes("rsZUpEuXUqqwXBvSy3EcievAh4cMj6QL");
+const MESSAGE_INFO = utf8ToBytes("pcwSByyx2CRdryCffXJwy7xgVZWtW5Sh");
 const MAX_SKIP = 1000;
 const MAX_KEPT_KEYS = 2000;
 const TAG_LENGTH = 32;
@@ -47,12 +47,12 @@ export function signedBundle(
   identity: Keys,
   installationId: string,
   signedPreKey: Uint8Array,
-  timestamp: bigint
+  timestamp: bigint,
 ): Uint8Array {
   const material = concat([
     utf8ToBytes(installationId),
     signedPreKey,
-    utf8ToBytes('0'),
+    utf8ToBytes("0"),
     utf8ToBytes(timestamp.toString()),
   ]);
   return encodeBundle({
@@ -77,39 +77,29 @@ function chainStep(chain: Chain): { chain: Chain; messageKey: Uint8Array } {
   };
 }
 
-function openWithMessageKey(
-  messageKey: Uint8Array,
-  data: Uint8Array,
-  associated: Uint8Array
-): Uint8Array | null {
+function openWithMessageKey(messageKey: Uint8Array, data: Uint8Array, associated: Uint8Array): Uint8Array | null {
   if (data.length < IV_LENGTH + TAG_LENGTH) return null;
   const keys = hkdf(sha256, messageKey, new Uint8Array(32), MESSAGE_INFO, 80);
   const ciphertext = data.subarray(0, data.length - TAG_LENGTH);
   const tag = hmac(sha256, keys.subarray(32, 64), concat([associated, ciphertext]));
   if (!timingSafeEqual(tag, data.subarray(data.length - TAG_LENGTH))) return null;
-  return ctr(keys.subarray(0, 32), ciphertext.subarray(0, IV_LENGTH)).decrypt(
-    ciphertext.subarray(IV_LENGTH)
-  );
+  return ctr(keys.subarray(0, 32), ciphertext.subarray(0, IV_LENGTH)).decrypt(ciphertext.subarray(IV_LENGTH));
 }
 
 function passiveX3dh(
   identity: Uint8Array,
   signedPreKey: Uint8Array,
   theirIdentity: Uint8Array,
-  theirEphemeral: Uint8Array
+  theirEphemeral: Uint8Array,
 ): Uint8Array {
   return keccak256(
     sharedSecret(signedPreKey, theirIdentity),
     sharedSecret(identity, theirEphemeral),
-    sharedSecret(signedPreKey, theirEphemeral)
+    sharedSecret(signedPreKey, theirEphemeral),
   );
 }
 
-function startSession(
-  sharedKey: Uint8Array,
-  signedPreKey: SignedPreKey,
-  ephemeral: Uint8Array
-): RatchetSession {
+function startSession(sharedKey: Uint8Array, signedPreKey: SignedPreKey, ephemeral: Uint8Array): RatchetSession {
   const key = toHex(sharedKey);
   return {
     ephemeral: toHex(ephemeral),
@@ -124,7 +114,7 @@ function skipTo(
   session: RatchetSession,
   dh: string,
   until: number,
-  kept: RatchetSession['kept']
+  kept: RatchetSession["kept"],
 ): RatchetSession | null {
   if (until < session.receiving.n || until > session.receiving.n + MAX_SKIP) return null;
   let receiving = session.receiving;
@@ -137,10 +127,7 @@ function skipTo(
 }
 
 function turn(session: RatchetSession, theirs: string): RatchetSession {
-  const received = rootStep(
-    fromHex(session.root),
-    sharedSecret(fromHex(session.ours.privateKey), fromHex(theirs))
-  );
+  const received = rootStep(fromHex(session.root), sharedSecret(fromHex(session.ours.privateKey), fromHex(theirs)));
   const ours = randomPrivateKey();
   const sent = rootStep(received.root, sharedSecret(ours, fromHex(theirs)));
   return {
@@ -156,7 +143,7 @@ function turn(session: RatchetSession, theirs: string): RatchetSession {
 function ratchetDecrypt(
   session: RatchetSession,
   header: { key: Uint8Array; n: number; pn: number },
-  ciphertext: Uint8Array
+  ciphertext: Uint8Array,
 ): { plaintext: Uint8Array; session: RatchetSession } | null {
   const dh = toHex(header.key);
   const associated = concat([u32le(header.n), u32le(header.pn), header.key]);
@@ -167,10 +154,10 @@ function ratchetDecrypt(
     return plaintext && { plaintext, session };
   }
 
-  const kept: RatchetSession['kept'] = [];
+  const kept: RatchetSession["kept"] = [];
   let next: RatchetSession | null = session;
   if (dh !== session.theirs) {
-    next = skipTo(session, session.theirs ?? '', header.pn, kept);
+    next = skipTo(session, session.theirs ?? "", header.pn, kept);
     if (!next) return null;
     next = turn(next, dh);
   }
@@ -198,14 +185,10 @@ export class Ratchets {
   constructor(
     private readonly identity: Keys,
     private readonly signedPreKey: SignedPreKey,
-    readonly sessions: Map<string, RatchetSession>
+    readonly sessions: Map<string, RatchetSession>,
   ) {}
 
-  decrypt(
-    theirIdentity: Uint8Array,
-    theirInstallation: string,
-    entry: WireEncrypted
-  ): Uint8Array | null {
+  decrypt(theirIdentity: Uint8Array, theirInstallation: string, entry: WireEncrypted): Uint8Array | null {
     if (!entry.ratchet) return null;
     const ours = compressPublicKey(this.signedPreKey.publicKey);
     if (!timingSafeEqual(entry.ratchet.id, ours)) return null;
@@ -214,12 +197,7 @@ export class Ratchets {
     let session = this.sessions.get(id);
     const x3dh = entry.x3dh;
     if (x3dh && timingSafeEqual(x3dh.id, ours) && session?.ephemeral !== toHex(x3dh.key)) {
-      const sharedKey = passiveX3dh(
-        this.identity.privateKey,
-        this.signedPreKey.privateKey,
-        theirIdentity,
-        x3dh.key
-      );
+      const sharedKey = passiveX3dh(this.identity.privateKey, this.signedPreKey.privateKey, theirIdentity, x3dh.key);
       session = startSession(sharedKey, this.signedPreKey, x3dh.key);
     }
     if (!session) return null;

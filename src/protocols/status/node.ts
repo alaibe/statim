@@ -1,8 +1,8 @@
-import { HttpError } from '@/core/errors';
-import { base64ToBytes, bytesToBase64 } from '@/lib/bytes';
-import { appFetch } from '@/lib/http';
+import { HttpError } from "@/core/errors";
+import { base64ToBytes, bytesToBase64 } from "@/lib/bytes";
+import { appFetch } from "@/lib/http";
 
-import { STATUS_PUBSUB_TOPIC } from './topics';
+import { STATUS_PUBSUB_TOPIC } from "./topics";
 
 export interface WakuMessage {
   payload: Uint8Array;
@@ -31,10 +31,7 @@ export interface WakuNode {
   subscribe(contentTopics: string[]): Promise<void>;
   poll(): Promise<WakuMessage[]>;
   publish(contentTopic: string, payload: Uint8Array): Promise<void>;
-  history(
-    contentTopics: string[],
-    opts?: HistoryOptions
-  ): Promise<{ messages: WakuMessage[]; cursor?: string }>;
+  history(contentTopics: string[], opts?: HistoryOptions): Promise<{ messages: WakuMessage[]; cursor?: string }>;
   close?(): Promise<void>;
 }
 
@@ -65,25 +62,25 @@ export class StatusNode implements WakuNode {
   private readonly fetchImpl: typeof fetch;
 
   constructor(options: NodeOptions) {
-    this.base = options.nodeUrl.trim().replace(/\/+$/, '');
+    this.base = options.nodeUrl.trim().replace(/\/+$/, "");
     if (!/^https?:\/\//i.test(this.base)) {
-      throw new Error('The Status node URL must start with http:// or https://');
+      throw new Error("The Status node URL must start with http:// or https://");
     }
     this.fetchImpl = options.fetchImpl ?? appFetch;
   }
 
   async info(): Promise<unknown> {
-    return this.request('GET', '/debug/v1/info');
+    return this.request("GET", "/debug/v1/info");
   }
 
   /** Relay takes the whole shard, whatever the topics. */
   async subscribe(): Promise<void> {
-    await this.request('POST', '/relay/v1/subscriptions', [STATUS_PUBSUB_TOPIC]);
+    await this.request("POST", "/relay/v1/subscriptions", [STATUS_PUBSUB_TOPIC]);
   }
 
   /** What the node relayed on the shard since the last poll; the node forgets it once read. */
   async poll(): Promise<WakuMessage[]> {
-    const body = await this.request('GET', `/relay/v1/messages/${SHARD}`);
+    const body = await this.request("GET", `/relay/v1/messages/${SHARD}`);
     return Array.isArray(body) ? (body as RestMessage[]).map(fromRest) : [];
   }
 
@@ -94,32 +91,30 @@ export class StatusNode implements WakuNode {
       version: 1,
       timestamp: Date.now() * 1_000_000,
     };
-    await this.request('POST', `/relay/v1/messages/${SHARD}`, message);
+    await this.request("POST", `/relay/v1/messages/${SHARD}`, message);
   }
 
   async history(
     contentTopics: string[],
-    opts: HistoryOptions = {}
+    opts: HistoryOptions = {},
   ): Promise<{ messages: WakuMessage[]; cursor?: string }> {
     const params = new URLSearchParams({
       pubsubTopic: STATUS_PUBSUB_TOPIC,
-      contentTopics: contentTopics.join(','),
+      contentTopics: contentTopics.join(","),
       pageSize: String(PAGE_SIZE),
-      ascending: 'true',
-      includeData: 'true',
+      ascending: "true",
+      includeData: "true",
     });
-    if (opts.cursor) params.set('cursor', opts.cursor);
+    if (opts.cursor) params.set("cursor", opts.cursor);
     if (opts.startTime !== undefined) {
-      params.set('startTime', String(Math.floor(opts.startTime) * 1_000_000));
+      params.set("startTime", String(Math.floor(opts.startTime) * 1_000_000));
     }
-    const body = (await this.request('GET', `/store/v3/messages?${params.toString()}`)) as {
+    const body = (await this.request("GET", `/store/v3/messages?${params.toString()}`)) as {
       messages?: { message?: RestMessage }[];
       paginationCursor?: string;
     } | null;
     return {
-      messages: (body?.messages ?? []).flatMap(({ message }) =>
-        message?.payload ? [fromRest(message)] : []
-      ),
+      messages: (body?.messages ?? []).flatMap(({ message }) => (message?.payload ? [fromRest(message)] : [])),
       cursor: body?.paginationCursor,
     };
   }
@@ -132,17 +127,17 @@ export class StatusNode implements WakuNode {
         method,
         signal: controller.signal,
         headers: {
-          accept: 'application/json',
-          ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+          accept: "application/json",
+          ...(body === undefined ? {} : { "content-type": "application/json" }),
         },
         body: body === undefined ? undefined : JSON.stringify(body),
       });
       if (!response.ok) {
-        const detail = String((await response.text().catch(() => '')) ?? '').trim();
+        const detail = String((await response.text().catch(() => "")) ?? "").trim();
         throw new HttpError(
           response.status,
-          `Your Status node returned ${response.status} for ${method} ${path.split('?')[0]}` +
-            (detail ? `: ${detail.slice(0, 200)}` : '')
+          `Your Status node returned ${response.status} for ${method} ${path.split("?")[0]}` +
+            (detail ? `: ${detail.slice(0, 200)}` : ""),
         );
       }
       const text = await response.text();
@@ -153,7 +148,7 @@ export class StatusNode implements WakuNode {
         return text;
       }
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
+      if (error instanceof Error && error.name === "AbortError") {
         throw new Error(`Your Status node did not respond within ${TIMEOUT_MS}ms`);
       }
       throw error;

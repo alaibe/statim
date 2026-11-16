@@ -1,24 +1,24 @@
-import { Icon, ListItem, Section, Toggle } from '@/design';
-import { icloudContainer } from '@/core/icloud/container';
-import { listenToComputer, listeningState, stopListening } from '@/core/icloud/phone';
+import { icloudContainer } from "@/core/icloud/container";
+import { listeningState, listenToComputer, stopListening } from "@/core/icloud/phone";
+import { Icon, ListItem, Section, Toggle } from "@/design";
 
-import { useAccountSwitch } from './use-account-switch';
+import { useAccountSwitch } from "./use-account-switch";
 
 export const notificationsIntro =
-  'Statim notifies you while it runs. iOS stops it soon after you leave it, so Statim on your computer can wake this iPhone instead.';
+  "Statim notifies you while it runs. iOS stops it soon after you leave it, so Statim on your computer can wake this iPhone instead.";
 
 /** Hidden without an iCloud container in the build, since the page's one switch needs it. */
-export const notificationsHint = icloudContainer() ? 'From your computer' : null;
+export const notificationsHint = icloudContainer() ? "From your computer" : null;
 
 export function NotificationSettings() {
   const { state, change } = useAccountSwitch(
     listeningState,
     listenToComputer,
     stopListening,
-    'Could not change notifications from your computer'
+    "Could not change notifications from your computer",
   );
 
-  if (!state || state === 'unavailable') return null;
+  if (!state || state === "unavailable") return null;
   return (
     <Section title="From your computer" surface="card" className="mb-6">
       <ListItem
@@ -30,7 +30,7 @@ export function NotificationSettings() {
         trailing={
           <Toggle
             label="Notifications from your computer"
-            value={state === 'on'}
+            value={state === "on"}
             disabled={change.busy}
             onValueChange={(next) => void change.run(next)}
           />

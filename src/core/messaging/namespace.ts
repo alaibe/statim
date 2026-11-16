@@ -1,26 +1,18 @@
 /** Chat ids carry their own routing: `<protocol>-<native id>`. */
-import { oneOf } from '@/lib/guards';
+import { oneOf } from "@/lib/guards";
 
-import type {
-  ChatMessage,
-  Chat,
-  ChatId,
-  ProtocolChatId,
-  ProtocolMessage,
-  ProtocolChat,
-} from './types';
+import type { Chat, ChatId, ChatMessage, ProtocolChat, ProtocolChatId, ProtocolMessage } from "./types";
 
-export const PROTOCOL_IDS = ['xmtp', 'nostr', 'status', 'telegram', 'matrix', 'local'] as const;
+export const PROTOCOL_IDS = ["xmtp", "nostr", "status", "telegram", "matrix", "local"] as const;
 export type ProtocolId = (typeof PROTOCOL_IDS)[number];
 
 export const NATIVE_ID = /^[A-Za-z0-9_-]+$/;
 
-export const LOCAL_PROTOCOL = 'local' satisfies ProtocolId;
+export const LOCAL_PROTOCOL = "local" satisfies ProtocolId;
 
 export const isProtocolId = oneOf(...PROTOCOL_IDS);
 
-export const protocolKeys = <T>(record: Partial<Record<ProtocolId, T>>) =>
-  Object.keys(record) as ProtocolId[];
+export const protocolKeys = <T>(record: Partial<Record<ProtocolId, T>>) => Object.keys(record) as ProtocolId[];
 
 export const protocolEntries = <T>(record: Partial<Record<ProtocolId, T>>) =>
   Object.entries(record) as [ProtocolId, T][];
@@ -33,7 +25,7 @@ export function namespacedId(protocol: ProtocolId, nativeId: ProtocolChatId): Ch
   if (!NATIVE_ID.test(nativeId)) {
     throw new Error(
       `Chat id "${nativeId}" is not URL-safe. ` +
-        'Adapters must hash or encode ids outside [A-Za-z0-9_-] before returning them.'
+        "Adapters must hash or encode ids outside [A-Za-z0-9_-] before returning them.",
     );
   }
   return `${protocol}-${nativeId}` as ChatId;
@@ -59,7 +51,7 @@ export function splitChatId(id: ChatId): SplitId {
 }
 
 function split(raw: string): SplitId | null {
-  const at = raw.indexOf('-');
+  const at = raw.indexOf("-");
   if (at <= 0) return null;
 
   const protocol = raw.slice(0, at);

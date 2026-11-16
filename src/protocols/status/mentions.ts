@@ -1,7 +1,7 @@
-import { decodeId, mentionLink } from '@/core/messaging/mentions';
-import type { ParticipantId } from '@/core/messaging/types';
+import { decodeId, mentionLink } from "@/core/messaging/mentions";
+import type { ParticipantId } from "@/core/messaging/types";
 
-import { parseChatKey } from './keys';
+import { parseChatKey } from "./keys";
 
 const MENTION_LINK = /\[((?:\\.|[^\\\]])*)\]\(mention:([^)\s]+)\)/g;
 const KEY_MENTION = /@(0x[0-9a-f]{130}(?=$|[\s.,:;!?])|zQ3[1-9A-HJ-NP-Za-km-z]+)/g;
@@ -11,7 +11,7 @@ export function toStatusMentions(text: string): string {
   return text.replace(MENTION_LINK, (_, name: string, encoded: string) => {
     const id = decodeId(encoded);
     const key = id && parseChatKey(id);
-    return key ? `@${key}` : name.replace(/\\(.)/g, '$1');
+    return key ? `@${key}` : name.replace(/\\(.)/g, "$1");
   });
 }
 

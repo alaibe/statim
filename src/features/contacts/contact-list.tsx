@@ -1,25 +1,15 @@
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ScrollView, View } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { ScrollView, View } from "react-native";
+import { useShallow } from "zustand/react/shallow";
+import { type ChatState, selfIdFor, useChatStore } from "@/core/messaging/chat-store";
+import { ActionSheet, Avatar, Button, Card, Icon, ListItem, Section, Text } from "@/design";
+import { useDisplayNames } from "@/features/chat/use-display-names";
+import { contactKey, contactNetwork, contactsOf, fromContactKey } from "@/features/contacts/contacts";
+import { type ContactAccess, currentAccess, manageLimitedAccess } from "@/features/contacts/device-contacts";
+import { openChat } from "@/features/navigation/open";
 
-import { ActionSheet, Avatar, Button, Card, Icon, ListItem, Section, Text } from '@/design';
-import { selfIdFor, useChatStore, type ChatState } from '@/core/messaging/chat-store';
-import { useDisplayNames } from '@/features/chat/use-display-names';
-import {
-  currentAccess,
-  manageLimitedAccess,
-  type ContactAccess,
-} from '@/features/contacts/device-contacts';
-import {
-  fromContactKey,
-  contactKey,
-  contactNetwork,
-  contactsOf,
-} from '@/features/contacts/contacts';
-import { openChat } from '@/features/navigation/open';
-
-export type ContactSort = 'name' | 'recent';
+export type ContactSort = "name" | "recent";
 
 interface ContactListProps {
   query: string;
@@ -33,8 +23,8 @@ interface ContactListProps {
 }
 
 let lastKeys: {
-  chats: ChatState['chats'];
-  sessions: ChatState['sessions'];
+  chats: ChatState["chats"];
+  sessions: ChatState["sessions"];
   byName: boolean;
   keys: string[];
 } | null = null;
@@ -50,24 +40,17 @@ function contactKeysOf(state: ChatState, byName: boolean): string[] {
 }
 
 /** Everyone you talk to: the Contacts tab on a phone, the sidebar on desktop. */
-export function ContactList({
-  query,
-  sortBy,
-  sorting,
-  onSort,
-  onCloseSort,
-  selectedChatId,
-}: ContactListProps) {
+export function ContactList({ query, sortBy, sorting, onSort, onCloseSort, selectedChatId }: ContactListProps) {
   const router = useRouter();
 
-  const keys = useChatStore(useShallow((s) => contactKeysOf(s, sortBy === 'name')));
+  const keys = useChatStore(useShallow((s) => contactKeysOf(s, sortBy === "name")));
 
-  const [access, setAccess] = useState<ContactAccess>('unknown');
+  const [access, setAccess] = useState<ContactAccess>("unknown");
 
   const refreshAccess = () => {
     currentAccess()
       .then(setAccess)
-      .catch(() => setAccess('none'));
+      .catch(() => setAccess("none"));
   };
 
   useEffect(refreshAccess, [refreshAccess]);
@@ -77,21 +60,17 @@ export function ContactList({
   const { nameFor } = useDisplayNames(contacts);
 
   const ordered =
-    sortBy === 'name'
-      ? [...contacts].sort((a, b) => nameFor(a.id).localeCompare(nameFor(b.id)))
-      : contacts;
+    sortBy === "name" ? [...contacts].sort((a, b) => nameFor(a.id).localeCompare(nameFor(b.id))) : contacts;
   const q = query.trim().toLowerCase();
   const visible = q ? ordered.filter((p) => nameFor(p.id).toLowerCase().includes(q)) : ordered;
 
   return (
     <>
       <ScrollView contentInsetAdjustmentBehavior="automatic">
-        {access === 'limited' && process.env.EXPO_OS === 'ios' ? (
+        {access === "limited" && process.env.EXPO_OS === "ios" ? (
           <Card className="mx-gutter mb-4 flex-row items-center gap-3">
             <View className="flex-1">
-              <Text variant="footnote">
-                You have shared only some of your contacts with Statim.
-              </Text>
+              <Text variant="footnote">You have shared only some of your contacts with Statim.</Text>
             </View>
             <Button
               label="Manage"
@@ -109,7 +88,7 @@ export function ContactList({
             testID="invite-contacts"
             title={<Text className="font-semibold text-brand">Invite contacts</Text>}
             leading={<Icon name="person-add-outline" size={22} tone="brand" />}
-            onPress={() => router.push('/invite')}
+            onPress={() => router.push("/invite")}
           />
         </Section>
 
@@ -118,10 +97,11 @@ export function ContactList({
           surface="list"
           empty={
             query
-              ? 'Nobody matches that search.'
-              : 'Nobody yet. Start a chat with an address or an ENS name and they will appear here.'
+              ? "Nobody matches that search."
+              : "Nobody yet. Start a chat with an address or an ENS name and they will appear here."
           }
-          className="mt-6">
+          className="mt-6"
+        >
           {visible.map((contact) => (
             <ListItem
               key={`${contact.protocol}-${contact.id}`}
@@ -139,11 +119,11 @@ export function ContactList({
         onClose={onCloseSort}
         title="Sort by"
         actions={[
-          { label: 'Name', selected: sortBy === 'name', onPress: () => onSort('name') },
+          { label: "Name", selected: sortBy === "name", onPress: () => onSort("name") },
           {
-            label: 'Recently active',
-            selected: sortBy === 'recent',
-            onPress: () => onSort('recent'),
+            label: "Recently active",
+            selected: sortBy === "recent",
+            onPress: () => onSort("recent"),
           },
         ]}
       />

@@ -1,4 +1,4 @@
-import { router, type Href } from 'expo-router';
+import { type Href, router } from "expo-router";
 
 // The desktop has no back button: the sidebar decides what the pane shows, so
 // whatever was stacked above the tabs goes first. Left in place, each click
@@ -23,5 +23,5 @@ export function openTab(href: Href): void {
 
 /** The pane goes back to Settings, whatever opened the page. */
 export function leaveSettingsPage(): void {
-  openTab('/settings');
+  openTab("/settings");
 }

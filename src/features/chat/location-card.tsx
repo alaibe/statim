@@ -1,12 +1,11 @@
-import { View } from 'react-native';
-
-import { cn, Icon, Pressable, Text } from '@/design';
-import { coordinatesLabel, type Location } from '@/core/messaging/locations';
-import { openInMaps } from './link-actions';
+import { View } from "react-native";
+import { coordinatesLabel, type Location } from "@/core/messaging/locations";
+import { cn, Icon, Pressable, Text } from "@/design";
+import { openInMaps } from "./link-actions";
 
 export function LocationCard({ location, fromMe }: { location: Location; fromMe: boolean }) {
   const coordinates = coordinatesLabel(location);
-  const title = location.label ?? coordinates ?? 'Shared place';
+  const title = location.label ?? coordinates ?? "Shared place";
 
   return (
     <Pressable
@@ -16,23 +15,22 @@ export function LocationCard({ location, fromMe }: { location: Location; fromMe:
         openInMaps(location.url).catch(() => {});
       }}
       className={cn(
-        'mt-1.5 flex-row items-center gap-2.5 rounded-md px-2 py-1.5',
-        fromMe ? 'bg-bubble-out-on/15' : 'bg-content/5'
+        "mt-1.5 flex-row items-center gap-2.5 rounded-md px-2 py-1.5",
+        fromMe ? "bg-bubble-out-on/15" : "bg-content/5",
       )}
-      style={{ borderCurve: 'continuous' }}>
-      <Icon name="location-outline" size={22} tone={fromMe ? 'bubble-out-on' : 'brand'} />
+      style={{ borderCurve: "continuous" }}
+    >
+      <Icon name="location-outline" size={22} tone={fromMe ? "bubble-out-on" : "brand"} />
       <View className="min-w-0 flex-1">
         <Text
           variant="footnote"
           numberOfLines={2}
-          className={cn('font-semibold', fromMe ? 'text-bubble-out-on' : 'text-bubble-in-on')}>
+          className={cn("font-semibold", fromMe ? "text-bubble-out-on" : "text-bubble-in-on")}
+        >
           {title}
         </Text>
-        <Text
-          variant="caption"
-          numberOfLines={1}
-          className={fromMe ? 'text-bubble-out-on/80' : undefined}>
-          {location.label && coordinates ? `${coordinates} · Open in Maps` : 'Open in Maps'}
+        <Text variant="caption" numberOfLines={1} className={fromMe ? "text-bubble-out-on/80" : undefined}>
+          {location.label && coordinates ? `${coordinates} · Open in Maps` : "Open in Maps"}
         </Text>
       </View>
     </Pressable>
