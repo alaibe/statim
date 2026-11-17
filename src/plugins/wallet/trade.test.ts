@@ -583,6 +583,14 @@ describe("/trade with an LCX Liberty DEX key", () => {
     expect(links).toContainEqual(expect.objectContaining({ label: "Powered by LI.FI" }));
   });
 
+  it("keeps LI.FI when both guarantee the same", async () => {
+    lcx.mockResolvedValue(lcxFor("1000000000000000", "2703363"));
+
+    const { rows } = await run(["0.001", "native", "usdc"], withAccount);
+
+    expect(rows).toEqual(expect.arrayContaining([{ label: "Route", value: "Layerswap" }]));
+  });
+
   it("still quotes through LI.FI when LCX Liberty DEX has no route", async () => {
     lcx.mockRejectedValue(new LcxError(400, "LCX Liberty DEX found no route for this trade.", "no_route"));
 

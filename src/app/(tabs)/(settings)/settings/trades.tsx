@@ -12,7 +12,7 @@ export default function TradeSettingsScreen() {
         placeholder="Your LI.FI key"
         load={loadTradeKey}
         save={saveTradeKey}
-        savedMessage="Trades use your key"
+        savedMessage="Trades use your LI.FI key"
         notes={[
           "/trade swaps and bridges through LI.FI, and works without a key: LI.FI allows this " +
             "device about 75 quotes every two hours, which is plenty for a personal wallet. A key " +
@@ -32,7 +32,7 @@ export default function TradeSettingsScreen() {
           placeholder="Your LCX Liberty DEX key"
           load={loadLcxKey}
           save={saveLcxKey}
-          savedMessage="Swaps also quote LCX Liberty DEX"
+          savedMessage="Swaps compare LI.FI and LCX Liberty DEX"
           notes={[
             "Optional, and off until you save a key. With one, a swap that stays on one chain also " +
               "asks LCX Liberty DEX for a quote and uses whichever guarantees you more of the token " +

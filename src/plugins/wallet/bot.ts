@@ -34,7 +34,7 @@ export function makeWalletBot(context: PluginContext): Bot {
               },
               {
                 title: "/trade",
-                subtitle: "Swap a token or bridge it to another chain, through LI.FI",
+                subtitle: "Swap a token or bridge it to another chain",
                 actions: [{ label: "Start one", command: "/trade" }],
               },
               {

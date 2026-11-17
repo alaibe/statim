@@ -3,11 +3,11 @@ import { type Address, decodeFunctionData, type Hex, zeroAddress } from "viem";
 import { HttpError } from "@/core/errors";
 
 const BASE = "https://swap-api.lcx.com/v1";
+const TIMEOUT_MS = 8_000;
 
 const ROUTER = "0x0000000000b1ae06c96aB73FF4360d7AeAaB56F0";
 const ROUTER_2 = "0x0000000000654902B6Ed6cC240cc81CB4c4a3dff";
 
-/** The router LCX Liberty DEX publishes for each chain; a build for any other contract is refused. */
 const ROUTERS: Record<number, Address> = {
   1: ROUTER,
   10: ROUTER,
@@ -51,7 +51,6 @@ const FEE_SWAP_ARGS = {
 
 const AMOUNT_OUT = [{ name: "amountOut", type: "uint256" }] as const;
 
-/** Every entrypoint the router exposes for a swap; calldata for anything else is refused. */
 export const LCX_ROUTER_ABI = [
   {
     name: "swapSplit",
@@ -137,7 +136,6 @@ export const LCX_ROUTER_ABI = [
   },
 ] as const;
 
-/** The only contracts a market-maker leg may call: Bebop's RFQ router and settlement. */
 const BEBOP = ["0xbeb0009aca35087ce7ccf11637e24dd1aad3bf2a", "0xbbbbbbb520d69a9775e85b458c58c648259fad5f"];
 
 export class LcxError extends HttpError {
@@ -157,16 +155,13 @@ export interface LcxQuote {
   output: { amount: string; minimumAmount: string; token: Address };
   usdValueIn?: number | null;
   usdValueOut?: number | null;
-  /** Swap gas only, in wei; null when the chain's gas price is unknown. */
   gasEstimateWei?: string | null;
   gasFeeUSD?: number | null;
-  /** The router to approve; null on a chain without one. */
   spender: Address | null;
 }
 
 export interface LcxBuild {
   swap: { chainId: number; to: Address; data: Hex; value: string };
-  /** The floor from the quote that was shown, enforced by the router. */
   minAmountOut: string;
   routerDeployed: boolean;
 }
@@ -178,11 +173,12 @@ export interface LcxSwap {
 
 const NO_ROUTE = new Set(["no_route", "insufficient_liquidity"]);
 
-async function post<T>(path: string, body: unknown, key: string): Promise<T> {
+async function post<T>(path: string, body: unknown, key: string, signal: AbortSignal): Promise<T> {
   const response = await fetch(`${BASE}${path}`, {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal,
   });
   const answer = (await response.json().catch(() => null)) as {
     data?: T;
@@ -216,9 +212,7 @@ interface LcxSwapParams {
   chainId: number;
   tokenIn: Address;
   tokenOut: Address;
-  /** In the token's base units. */
   amountIn: bigint;
-  /** Where the bought token lands. */
   recipient: Address;
   slippageBps: number;
 }
@@ -242,7 +236,6 @@ interface SwapFields {
   deadline: bigint;
 }
 
-/** What the router will actually do, read from the calldata; null when it is not a swap the router exposes. */
 function decodedSwap(data: Hex): SwapFields | null {
   let decoded: ReturnType<typeof decodeFunctionData<typeof LCX_ROUTER_ABI>>;
   try {
@@ -270,7 +263,6 @@ function decodedSwap(data: Hex): SwapFields | null {
   return same(a.integrator, zeroAddress) ? a : null;
 }
 
-/** Whether the answer is for exactly this request, so nothing else reaches the review card or the wallet. */
 function answersRequest(params: LcxSwapParams, { quote, build }: LcxSwap): boolean {
   const router = ROUTERS[params.chainId];
   const value = wei(build.swap.value);
@@ -296,12 +288,20 @@ function answersRequest(params: LcxSwapParams, { quote, build }: LcxSwap): boole
   );
 }
 
-/**
- * Quotes, then builds the transaction for that quote. Both answers are
- * refused unless they match the request: chain, router, tokens, amount, the
- * coin sent along and the floor.
- */
 export async function lcxSwap(params: LcxSwapParams, key: string): Promise<LcxSwap> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    return await quoteAndBuild(params, key, controller.signal);
+  } catch (error) {
+    if (controller.signal.aborted) throw new LcxError(504, "LCX Liberty DEX took too long to answer.");
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function quoteAndBuild(params: LcxSwapParams, key: string, signal: AbortSignal): Promise<LcxSwap> {
   const { quote } = await post<{ quote: LcxQuote }>(
     "/quote",
     {
@@ -312,11 +312,13 @@ export async function lcxSwap(params: LcxSwapParams, key: string): Promise<LcxSw
       slippageBps: params.slippageBps,
     },
     key,
+    signal,
   );
   const build = await post<LcxBuild>(
     "/build",
     { quoteId: quote.quoteId, recipient: params.recipient, slippageBps: params.slippageBps },
     key,
+    signal,
   );
 
   if (!answersRequest(params, { quote, build })) {

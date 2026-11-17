@@ -27,7 +27,6 @@ export function ApiKeyScreen({ title, ...section }: ApiKeySectionProps & { title
   );
 }
 
-/** One key's field and notes, for a screen that holds several keys. */
 export function ApiKeySection({
   sectionTitle,
   testIdPrefix,

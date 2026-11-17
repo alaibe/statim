@@ -232,6 +232,25 @@ describe("the LCX Liberty DEX client", () => {
     await expect(lcxSwap(params, "lbk_key")).rejects.toThrow(/does not match the request/);
   });
 
+  it("gives up when the answer takes too long", async () => {
+    jest.useFakeTimers();
+    try {
+      global.fetch = jest.fn(
+        (_, init) =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+          }),
+      ) as unknown as typeof fetch;
+
+      const attempt = lcxSwap(params, "lbk_key");
+      const refused = expect(attempt).rejects.toThrow("LCX Liberty DEX took too long to answer.");
+      await jest.advanceTimersByTimeAsync(8_000);
+      await refused;
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it("says when the key was rejected", async () => {
     stub(failure(401, "INVALID_API_KEY", "Unknown key"));
 

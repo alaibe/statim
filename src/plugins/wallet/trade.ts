@@ -43,7 +43,6 @@ const POWERED_BY: Record<Provider, Widget> = {
 
 interface TradeKeys {
   lifi: string | null;
-  /** Opt-in: same-chain swaps also ask LCX Liberty DEX only when this is set. */
   lcx: string | null;
 }
 
@@ -171,7 +170,7 @@ async function tradeForm(
         ),
         W.text(
           "The same chain on both sides is a swap; different chains, a bridge. LI.FI finds " +
-            "the route and quotes it. Nothing is signed until you confirm the quote.",
+            "the route and quotes it, and a swap also asks LCX Liberty DEX once you save its key. Nothing is signed until you confirm the quote.",
         ),
         POWERED_BY.lifi,
       ],
@@ -187,7 +186,6 @@ interface Quoted {
 }
 
 interface Trade extends Quoted {
-  /** The other provider's quote when both answered, shown for comparison. */
   other?: Quoted;
   fromToken: LifiToken;
   toToken: LifiToken;
@@ -240,15 +238,14 @@ function lcxAsQuote({ quote, build }: LcxSwap, chain: TradeChain): LifiQuote {
   };
 }
 
-/**
- * The quote that guarantees the most of the received token. One provider
- * failing leaves the other; only when every one fails is that an error.
- */
 async function bestQuote(requests: Promise<Quoted>[]): Promise<{ chosen: Quoted; other?: Quoted } | { error: string }> {
   const settled = await Promise.allSettled(requests);
   const quotes = settled
     .flatMap((result) => (result.status === "fulfilled" ? [result.value] : []))
-    .sort((a, b) => (BigInt(b.quote.estimate.toAmountMin) > BigInt(a.quote.estimate.toAmountMin) ? 1 : -1));
+    .sort((a, b) => {
+      const gain = BigInt(b.quote.estimate.toAmountMin) - BigInt(a.quote.estimate.toAmountMin);
+      return gain > 0n ? 1 : gain < 0n ? -1 : 0;
+    });
   if (quotes.length > 0) return { chosen: quotes[0], other: quotes[1] };
 
   const failure = (settled[0] as PromiseRejectedResult).reason;
@@ -363,8 +360,7 @@ async function prepare(
 
   if (quote.estimate.skipApproval) return { ...trade, needsApproval: false };
 
-  // Permit2 first: a plain approval costs a transaction and a wait. Only LI.FI
-  // has a Permit2 proxy; LCX Liberty DEX takes an approval of its router.
+  // Permit2 first: a plain approval costs a transaction and a wait.
   if (trade.provider === "lifi") {
     const targets = await lifiPermitTargets(from.evm.id).catch(() => null);
     const permit = await planPermit(from.evm.id, fromToken.address, address, fromAmount, targets, {
@@ -724,7 +720,7 @@ async function quoteOrTrade(
 export const tradeCommand: SlashCommand = {
   name: "trade",
   aliases: ["swap", "bridge"],
-  description: "Swap a token, or bridge it to another chain, through LI.FI",
+  description: "Swap a token, or bridge it to another chain",
   showIn: ["channel"],
   usage: "/trade <amount> <asset> <asset to receive> [--from base] [--to arbitrum] [--recipient 0x…]",
   async run({ args, context, respond }) {

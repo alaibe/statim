@@ -65,7 +65,7 @@ Everything a plugin does is a slash command. `/` in any chat opens a
 picker scoped to that chat; the chips above the composer run the same slash commands.
 `/chains` switches chains on and off, `/send` and `/request` move money inside
 the chat where it came up, `/trade` (also `/swap`, `/bridge`) quotes
-through LI.FI, `/scan` reads a WalletConnect code. Anything that signs shows a
+through LI.FI, and LCX Liberty DEX too once you save its key, `/scan` reads a WalletConnect code. Anything that signs shows a
 review step first.
 
 ## Platforms
@@ -77,16 +77,8 @@ On a Mac, `brew install --cask alaibe/tap/statim` installs the app and its
 `statim` command. Telegram on the phone needs TDLib in `modules/tdjson` first:
 `./scripts/tdlib.sh ios` or `./scripts/tdlib.sh android`.
 
-Releases are built on git.laibe.cc's Forgejo Actions, where this repository
-lives; this GitHub copy is its mirror. Every Sunday
-[`weekly.yml`](.forgejo/workflows/weekly.yml) tags main when the app changed
-since the last release, and the tag starts
-[`release.yml`](.forgejo/workflows/release.yml): the desktop apps for macOS,
-Windows and Linux, released here, then the Homebrew cask and the Android app.
-Every push runs [`ci.yml`](.forgejo/workflows/ci.yml): the formatting of the
-TypeScript, Rust, Swift and shell scripts, ESLint, swift-format's and
-shellcheck's lint, the type check and the Jest tests, then Clippy and the Rust
-tests when `src-tauri` changed.
+This repository lives on git.laibe.cc, which runs its checks and builds a
+release every Sunday when the app changed. The GitHub copy is a mirror.
 
 ## Quick start
 
@@ -120,6 +112,7 @@ Nothing secret ships in the repository, and the app works without any of it.
 | Telegram API id and hash | Settings → Protocols → Telegram, per account | Telegram sign-in ([my.telegram.org](https://my.telegram.org)) |
 | Matrix homeserver and ID | Settings → Protocols → Matrix, per account | Matrix sign-in |
 | LI.FI key | Settings → Trades, per account | optional; raises the quote rate limit |
+| LCX Liberty DEX key | Settings → Trades, per account | optional; swaps also compare its quote |
 | KLIPY key | Settings → GIFs, per account | GIF search |
 
 Token balances need no key at all. `src/lib/evm/token-list.json` is the Uniswap
