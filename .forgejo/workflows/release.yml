@@ -313,16 +313,9 @@ jobs:
         with:
           node-version-file: .node-version
 
-      # The Rust in rust-toolchain.toml, with its components and targets. The Linux image has no rustup: a minimal one
-      # goes in first, without a default toolchain, and on the PATH for the next steps.
+      # The Rust in rust-toolchain.toml, with its components and targets, through the VM's own rustup.
       - name: Rust
-        run: |
-          if ! command -v rustup > /dev/null; then
-            curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
-            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-            PATH="$HOME/.cargo/bin:$PATH"
-          fi
-          rustup show active-toolchain || rustup toolchain install
+        run: rustup show active-toolchain || rustup toolchain install
 
       - name: The VM's tools
         run: |
@@ -390,7 +383,7 @@ jobs:
       - name: SHA256SUMS
         working-directory: files
         run: |
-          find . -maxdepth 1 -type f ! -name '*.sig' ! -name '*.sparkle' -printf '%f\n' | sort |
+          find . -maxdepth 1 -type f ! -name '*.sig' -printf '%f\n' | sort |
             xargs sha256sum -- > "$RUNNER_TEMP/SHA256SUMS"
           cat "$RUNNER_TEMP/SHA256SUMS"
 
@@ -518,9 +511,9 @@ jobs:
           export PATH="$JAVA_HOME/bin:$PATH"
           eas whoami
           AAB="$(mktemp -d)/statim-$VERSION.aab"
+          trap 'rm -rf "$(dirname "$AAB")"' EXIT
           eas build --local --non-interactive --platform android --profile production --output "$AAB"
           eas submit --non-interactive --no-wait --platform android --profile production --path "$AAB"
-          rm -rf "$(dirname "$AAB")"
 
   # Off until the repository's IOS variable (Settings › Actions › Variables) is `true`: App Store Connect refuses
   # uploads until Apple's new agreement is accepted, as it refuses notarization. Xcode, CocoaPods and the EAS login
@@ -551,6 +544,6 @@ jobs:
         run: |
           eas whoami
           IPA="$(mktemp -d)/statim-$VERSION.ipa"
+          trap 'rm -rf "$(dirname "$IPA")"' EXIT
           eas build --local --non-interactive --platform ios --profile production --output "$IPA"
           eas submit --non-interactive --no-wait --platform ios --profile production --path "$IPA"
-          rm -rf "$(dirname "$IPA")"

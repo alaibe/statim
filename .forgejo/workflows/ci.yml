@@ -65,22 +65,11 @@ jobs:
           fi
           rustup show active-toolchain || rustup toolchain install
 
-      # On the PATH from the next step on.
+      # shellcheck and shfmt at the versions in env, on the PATH from the next step on.
       - name: Tools
-        run: |
-          BIN="$HOME/.local/bin"
-          mkdir -p "$BIN"
-          echo "$BIN" >> "$GITHUB_PATH"
-          SHELLCHECK="shellcheck-v$SHELLCHECK_VERSION"
-          URL="https://github.com/koalaman/shellcheck/releases/download/v$SHELLCHECK_VERSION"
-          curl -fsSL "$URL/$SHELLCHECK.linux.x86_64.tar.xz" |
-            tar -xJ --strip-components=1 -C "$BIN" "$SHELLCHECK/shellcheck"
-          URL="https://github.com/mvdan/sh/releases/download/v$SHFMT_VERSION"
-          curl -fsSL -o "$BIN/shfmt" "$URL/shfmt_v${SHFMT_VERSION}_linux_amd64"
-          chmod +x "$BIN/shfmt"
-          "$BIN/shellcheck" --version | sed -n 2p
-          "$BIN/shfmt" --version
-          cargo fmt --version
+        uses: https://github.com/taiki-e/install-action@v2
+        with:
+          tool: shellcheck@${{ env.SHELLCHECK_VERSION }},shfmt@${{ env.SHFMT_VERSION }}
 
       # Every tracked file with a bash or sh shebang: scripts/tdlib.sh and e2e/run.sh today.
       - name: Shell scripts
@@ -92,10 +81,6 @@ jobs:
 
       - name: JavaScript packages
         run: npm ci
-
-      # Expo writes expo-env.d.ts (gitignored) into a working checkout; without it TypeScript can't type the CSS import.
-      - name: Expo's type references
-        run: '[ -f expo-env.d.ts ] || echo ''/// <reference types="expo/types" />'' > expo-env.d.ts'
 
       # Biome (biome.json) and rustfmt (src-tauri/rustfmt.toml), then shfmt.
       - name: Format
@@ -113,9 +98,8 @@ jobs:
       - name: Types
         run: npm run typecheck
 
-      # 20 seconds a test, as in weekly.yml: a fresh node_modules on a busy runner is slower than a terminal.
       - name: Tests
-        run: npm test -- --testTimeout=20000
+        run: npm test
 
   swift:
     needs: check

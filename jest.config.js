@@ -1,6 +1,12 @@
 /** @type {import('jest').Config} */
 module.exports = {
   preset: "jest-expo",
+  /**
+   * 20 seconds a test instead of Jest's 5: CI starts from a fresh node_modules
+   * with every core busy, and the lock screen's first render went past 5 there
+   * while the whole suite takes 18 seconds in a terminal.
+   */
+  testTimeout: 20000,
   setupFiles: ["<rootDir>/jest.setup.js"],
   /**
    * Skips react-native-worklets' `.native.ts` variants, which bind to JSI on
