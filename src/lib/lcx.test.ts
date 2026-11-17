@@ -159,21 +159,23 @@ describe("the LCX Liberty DEX client", () => {
     await expect(lcxSwap(params, "lbk_key")).rejects.toThrow(/does not match the request/);
   });
 
-  it("accepts a route split with a market maker's pool", async () => {
+  it("accepts a route split with a market maker's pool, but not one that sends it more than the amount sold", async () => {
     const c = call();
-    const data = encodeFunctionData({
-      abi: LCX_ROUTER_ABI,
-      functionName: "swapSplitWithPropAMMSplit",
-      args: [
-        { ...c, integrator: NATIVE },
-        [],
-        [],
-        { venue: `0x${"0e".repeat(20)}`, venueIn: 10n ** 15n, venueMinOut: 1n },
-      ],
-    });
-    stub({ status: 200, body: { data: quoted } }, { status: 200, body: { data: built({ data }) } });
+    const split = (venueIn: bigint) =>
+      encodeFunctionData({
+        abi: LCX_ROUTER_ABI,
+        functionName: "swapSplitWithPropAMMSplit",
+        args: [{ ...c, integrator: NATIVE }, [], [], { venue: `0x${"0e".repeat(20)}`, venueIn, venueMinOut: 1n }],
+      });
 
+    stub({ status: 200, body: { data: quoted } }, { status: 200, body: { data: built({ data: split(10n ** 15n) }) } });
     await expect(lcxSwap(params, "lbk_key")).resolves.toEqual(expect.objectContaining({ quote: quoted.quote }));
+
+    stub(
+      { status: 200, body: { data: quoted } },
+      { status: 200, body: { data: built({ data: split(2n * 10n ** 16n) }) } },
+    );
+    await expect(lcxSwap(params, "lbk_key")).rejects.toThrow(/does not match the request/);
   });
 
   it("refuses a market-maker leg that calls anything but Bebop", async () => {

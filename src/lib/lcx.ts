@@ -261,6 +261,9 @@ function decodedSwap(data: Hex): SwapFields | null {
     if (!(bebop || none) || m.amountIn > a.amountIn) return null;
     return { ...a, totalIn: a.amountIn };
   }
+  if (decoded.functionName === "swapSplitWithPropAMMSplit" && decoded.args[3].venueIn > decoded.args[0].totalIn) {
+    return null;
+  }
   const [a] = decoded.args;
   // No integrator is asked for, so none may take a fee. A prop-AMM venue needs no
   // allowlist: the router reverts unless the recipient gets at least minAmountOut.
