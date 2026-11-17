@@ -156,7 +156,8 @@ jobs:
           # Whole outputs: `| head` would end a command early, and the pipe's SIGPIPE fails the step.
           xcodebuild -version; cargo --version; node --version; npm --version; gh --version
 
-      - run: npm ci
+      - name: JavaScript packages
+        run: npm ci
 
       # Relinked from Swiftgram's framework, cached in ~/.cache/statim from one release to the next.
       - name: TDLib
@@ -261,7 +262,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - run: npm ci
+      - name: JavaScript packages
+        run: npm ci
 
       - name: TDLib
         run: ./scripts/tdlib.sh desktop
@@ -328,7 +330,8 @@ jobs:
           node --version; cargo --version; gh --version
           "$PERL" -v
 
-      - run: npm ci
+      - name: JavaScript packages
+        run: npm ci
 
       - name: TDLib
         run: ./scripts/tdlib.sh desktop
@@ -507,7 +510,8 @@ jobs:
         with:
           node-version-file: .node-version
 
-      - run: npm ci
+      - name: JavaScript packages
+        run: npm ci
 
       - name: Build the Android bundle and send it to Google Play
         run: |
@@ -540,7 +544,8 @@ jobs:
         with:
           node-version-file: .node-version
 
-      - run: npm ci
+      - name: JavaScript packages
+        run: npm ci
 
       - name: Build the iPhone app and send it to TestFlight
         run: |

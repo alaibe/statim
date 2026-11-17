@@ -27,7 +27,7 @@ env:
   GH_HOST: github.com
 
 jobs:
-  mac:
+  macos:
     runs-on: mac
     timeout-minutes: 90
     env:

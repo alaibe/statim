@@ -61,18 +61,21 @@ jobs:
         with:
           node-version-file: .node-version
 
-      - run: npm ci
+      - name: JavaScript packages
+        run: npm ci
 
       # Expo writes expo-env.d.ts (gitignored) into a working checkout; a fresh clone has none, and without expo/types
       # TypeScript can't type `import '@/global.css'`. This is the line Expo writes.
       - name: Expo's type references
         run: '[ -f expo-env.d.ts ] || echo ''/// <reference types="expo/types" />'' > expo-env.d.ts'
 
-      - run: npm run typecheck
+      - name: Types
+        run: npm run typecheck
 
       # 20 seconds a test instead of Jest's 5: the runner starts from a fresh node_modules with every core busy, and
       # the lock screen's first render went past 5 there while the whole suite takes 18 seconds in a terminal.
-      - run: npm test -- --testTimeout=20000
+      - name: Tests
+        run: npm test -- --testTimeout=20000
 
       - name: Version, commit and tag
         run: |

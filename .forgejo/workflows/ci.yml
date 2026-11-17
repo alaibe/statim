@@ -53,9 +53,9 @@ jobs:
         with:
           node-version-file: .node-version
 
-      # rustfmt, for `npm run format:check`.
-      # The Rust in rust-toolchain.toml, with its components and targets. The Linux image has no rustup: a minimal one
-      # goes in first, without a default toolchain, and on the PATH for the next steps.
+      # The Rust in rust-toolchain.toml, with its components (rustfmt, for `npm run format:check`) and targets. The
+      # Linux image has no rustup: a minimal one goes in first, without a default toolchain, and on the PATH for the
+      # next steps.
       - name: Rust
         run: |
           if ! command -v rustup > /dev/null; then
@@ -90,7 +90,8 @@ jobs:
           done > "$RUNNER_TEMP/shell"
           tr '\0' '\n' < "$RUNNER_TEMP/shell"
 
-      - run: npm ci
+      - name: JavaScript packages
+        run: npm ci
 
       # Expo writes expo-env.d.ts (gitignored) into a working checkout; without it TypeScript can't type the CSS import.
       - name: Expo's type references
@@ -126,26 +127,19 @@ jobs:
       image: swift:6.4.2-noble
     steps:
       # The image has git but not the Node actions/checkout runs on.
-      - name: Checkout
-        env:
-          TOKEN: ${{ github.token }}
+      - name: Node
         run: |
-          git config --global --add safe.directory "$PWD"
-          git init -q .
-          AUTH=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w 0)
-          git -c http.extraHeader="Authorization: basic $AUTH" \
-            fetch -q --depth 1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$GITHUB_SHA"
-          git checkout -q FETCH_HEAD
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends nodejs > /dev/null
 
-      # .swift-format: four spaces, 120 columns. --strict fails on any finding, formatting included.
+      - uses: actions/checkout@v4
+
+      # Every Swift file in the checkout (the Expo modules' and targets' iPhone code, the desktop's src-tauri/swift),
+      # with .swift-format's four spaces and 120 columns. --strict fails on any finding, formatting included.
       - name: Lint
         run: |
           swift format --version
-          files=$(git ls-files '*.swift')
-          # With no path, swift format would lint its empty stdin and pass.
-          [ -n "$files" ] || { echo "No Swift file found." >&2; exit 1; }
-          echo "$files"
-          echo "$files" | tr '\n' '\0' | xargs -0 swift format lint --strict
+          swift format lint --strict --recursive .
 
   rust:
     needs: check
