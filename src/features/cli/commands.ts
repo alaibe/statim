@@ -533,8 +533,8 @@ export const COMMANDS = [
   {
     path: "apikey",
     group: "Settings",
-    summary: "Save an API key (gifs, trades or ai), read from stdin or a hidden prompt; empty removes it",
-    args: [{ name: "service", description: "gifs, trades or ai" }],
+    summary: "Save an API key (gifs, lifi, lcx or ai), read from stdin or a hidden prompt; empty removes it",
+    args: [{ name: "service", description: "gifs, lifi, lcx or ai" }],
   },
   {
     path: "plugins",

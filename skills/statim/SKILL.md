@@ -691,9 +691,9 @@ statim settings set read-receipts off
 
 `statim apikey <service>`
 
-Save an API key (gifs, trades or ai), read from stdin or a hidden prompt; empty removes it.
+Save an API key (gifs, lifi, lcx or ai), read from stdin or a hidden prompt; empty removes it.
 
-- `service`: gifs, trades or ai
+- `service`: gifs, lifi, lcx or ai
 
 ### Plugins
 

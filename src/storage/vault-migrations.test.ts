@@ -59,6 +59,20 @@ it("resumes at the step that failed", async () => {
   expect(await version()).toBe("3");
 });
 
+it("moves a saved LI.FI key from its old name, and leaves the other keys", async () => {
+  await SecureStore.setItemAsync(VaultKey.accountIndex, JSON.stringify([{ id: "a1" }, { id: "a2" }]));
+  await SecureStore.setItemAsync("account.a1.credentials", JSON.stringify({ trades: "lifi-key", gifs: "gif-key" }));
+
+  await migrateVault();
+  await migrateVault();
+
+  expect(JSON.parse((await SecureStore.getItemAsync("account.a1.credentials"))!)).toEqual({
+    lifi: "lifi-key",
+    gifs: "gif-key",
+  });
+  expect(await SecureStore.getItemAsync("account.a2.credentials")).toBeNull();
+});
+
 it("migrates before the first read", async () => {
   await vaultGet(VaultKey.accountIndex);
 

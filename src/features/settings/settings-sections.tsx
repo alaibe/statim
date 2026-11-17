@@ -54,8 +54,8 @@ export function useSettingsKeys(revision: unknown): Credentials {
 const NO_KEYS: Readonly<Credentials> = Object.freeze({});
 
 function tradesHint(keys: Credentials): string {
-  if (keys.lcx) return "Swaps also compare LCX Liberty DEX";
-  return keys.trades ? "Swaps and bridges use your LI.FI key" : "Swap and bridge through LI.FI";
+  if (keys.lcx) return "Swaps compare LI.FI and LCX Liberty DEX";
+  return keys.lifi ? "Swaps and bridges use your LI.FI key" : "Swap and bridge through LI.FI";
 }
 
 export function SettingsSections({
