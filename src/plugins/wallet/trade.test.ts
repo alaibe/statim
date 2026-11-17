@@ -1,9 +1,12 @@
+import { encodeFunctionData, erc20Abi } from "viem";
+import { loadLcxKey } from "@/core/account/trade-key";
 import { STATIM_LOCAL_ID } from "@/core/messaging/bots";
 import type { PluginContext } from "@/core/plugins/types";
 import type { Widget } from "@/design/widgets";
 import { publicClientFor } from "@/lib/evm/chains";
 import { permittedCall, planPermit } from "@/lib/evm/permit";
 import { walletClientFor } from "@/lib/evm/wallet";
+import { LcxError, type LcxSwap, lcxSwap } from "@/lib/lcx";
 import {
   LIFI_NATIVE,
   LifiError,
@@ -36,6 +39,11 @@ jest.mock("@/lib/evm/permit", () => ({
   permittedCall: jest.fn(),
 }));
 jest.mock("@/lib/evm/wallet", () => ({ walletClientFor: jest.fn() }));
+jest.mock("@/lib/lcx", () => ({ ...jest.requireActual("@/lib/lcx"), lcxSwap: jest.fn() }));
+jest.mock("@/core/account/trade-key", () => ({
+  loadTradeKey: jest.fn(async () => null),
+  loadLcxKey: jest.fn(async () => null),
+}));
 jest.mock("@/lib/evm/chains", () => ({
   ...jest.requireActual("@/lib/evm/chains"),
   publicClientFor: jest.fn(),
@@ -104,13 +112,13 @@ const context = {
   storage: { get: async () => null },
 } as unknown as PluginContext;
 
-async function run(args: string[]) {
+async function run(args: string[], runContext: PluginContext = context) {
   const widgets: Widget[] = [];
   const result = await tradeCommand.run({
     args,
     rest: args.join(" "),
     chatId: STATIM_LOCAL_ID,
-    context,
+    context: runContext,
     respond: async (content) => {
       if (typeof content !== "string" && content.kind === "widget") widgets.push(content.widget);
     },
@@ -498,5 +506,131 @@ describe("/trade", () => {
       { label: "Received", value: "2.716948 USDC on Arbitrum One" },
     ]);
     expect(actions).toBeUndefined();
+  });
+});
+
+describe("/trade with an LCX Liberty DEX key", () => {
+  const LCX_ROUTER = "0x0000000000b1ae06c96aB73FF4360d7AeAaB56F0" as const;
+  const withAccount = {
+    ...context,
+    account: { ...context.account, accountId: "account-1" },
+  } as unknown as PluginContext;
+  const lcx = jest.mocked(lcxSwap);
+
+  const lcxFor = (fromAmount: string, minAmountOut: string, tokenOut: `0x${string}` = USDC_BASE): LcxSwap => ({
+    quote: {
+      quoteId: "q_1",
+      input: { amount: fromAmount, token: LIFI_NATIVE },
+      output: { amount: minAmountOut, minimumAmount: minAmountOut, token: tokenOut },
+      usdValueIn: 2.728,
+      usdValueOut: 2.716,
+      gasEstimateWei: "30000000000000",
+      gasFeeUSD: 0.0082,
+      spender: LCX_ROUTER,
+    },
+    build: {
+      swap: { chainId: 8453, to: LCX_ROUTER, data: "0xfc54261d", value: "0" },
+      minAmountOut,
+      routerDeployed: true,
+    },
+  });
+
+  beforeEach(() => {
+    jest.mocked(loadLcxKey).mockResolvedValue("lbk_test");
+  });
+
+  afterEach(() => {
+    jest.mocked(loadLcxKey).mockResolvedValue(null);
+  });
+
+  it("asks LCX Liberty DEX too on a same-chain swap and takes the better floor", async () => {
+    lcx.mockResolvedValue(lcxFor("1000000000000000", "2710000"));
+
+    const { rows, links } = await run(["0.001", "native", "usdc"], withAccount);
+
+    expect(lcx).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chainId: 8453,
+        tokenIn: LIFI_NATIVE,
+        tokenOut: USDC_BASE,
+        amountIn: 10n ** 15n,
+        recipient: me,
+        slippageBps: 50,
+      }),
+      "lbk_test",
+    );
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        { label: "Route", value: "LCX Liberty DEX" },
+        { label: "LI.FI quote", value: "At least 2.703363 USDC" },
+      ]),
+    );
+    expect(rows?.some((row) => row.label === "Takes about")).toBe(false);
+    expect(links).toContainEqual(expect.objectContaining({ label: "Powered by LCX Liberty DEX" }));
+  });
+
+  it("keeps LI.FI when it guarantees more", async () => {
+    lcx.mockResolvedValue(lcxFor("1000000000000000", "2700000"));
+
+    const { rows, links } = await run(["0.001", "native", "usdc"], withAccount);
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        { label: "Route", value: "Layerswap" },
+        { label: "LCX Liberty DEX quote", value: "At least 2.7 USDC" },
+      ]),
+    );
+    expect(links).toContainEqual(expect.objectContaining({ label: "Powered by LI.FI" }));
+  });
+
+  it("still quotes through LI.FI when LCX Liberty DEX has no route", async () => {
+    lcx.mockRejectedValue(new LcxError(400, "LCX Liberty DEX found no route for this trade.", "no_route"));
+
+    const { result, rows } = await run(["0.001", "native", "usdc"], withAccount);
+
+    expect(result).toEqual({ type: "handled" });
+    expect(rows).toEqual(expect.arrayContaining([{ label: "Route", value: "Layerswap" }]));
+    expect(rows?.some((row) => row.label === "LCX Liberty DEX quote")).toBe(false);
+  });
+
+  it("uses LCX Liberty DEX when LI.FI has no route", async () => {
+    quote.mockRejectedValue(new LifiError(404, "LI.FI found no route for this trade.", 1002));
+    lcx.mockResolvedValue(lcxFor("1000000000000000", "2710000"));
+
+    const { result, rows } = await run(["0.001", "native", "usdc"], withAccount);
+
+    expect(result).toEqual({ type: "handled" });
+    expect(rows).toEqual(expect.arrayContaining([{ label: "Route", value: "LCX Liberty DEX" }]));
+  });
+
+  it("leaves bridges to LI.FI", async () => {
+    await run(["0.001", "native", "usdc", "--to", "arbitrum"], withAccount);
+
+    expect(lcx).not.toHaveBeenCalled();
+    expect(quote).toHaveBeenCalled();
+  });
+
+  it("approves the LCX Liberty DEX router for the exact amount, then sends its transaction", async () => {
+    quote.mockImplementation(usdcToEth);
+    lcx.mockResolvedValue(lcxFor("5000000", "2000000000000000", LIFI_NATIVE));
+    reads.readContract.mockImplementation(async ({ functionName }: { functionName: string }) =>
+      functionName === "balanceOf" ? 12_000_000n : 0n,
+    );
+
+    const { result, links } = await run(["5", USDC_BASE, "native", "--confirm"], withAccount);
+
+    expect(result).toEqual({ type: "handled" });
+    expect(plan).not.toHaveBeenCalled();
+    expect(sendTransaction).toHaveBeenCalledTimes(2);
+    expect(sendTransaction.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        to: USDC_BASE,
+        data: encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [LCX_ROUTER, 5_000_000n] }),
+      }),
+    );
+    expect(sendTransaction.mock.calls[1][0]).toEqual(
+      expect.objectContaining({ to: LCX_ROUTER, data: "0xfc54261d", value: 0n }),
+    );
+    expect(links.some((link) => link.label === "Track on LI.FI")).toBe(false);
   });
 });
