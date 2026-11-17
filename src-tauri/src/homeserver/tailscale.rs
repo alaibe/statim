@@ -139,18 +139,11 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn gives_up_on_a_script_whose_child_keeps_running() {
-        let dir = std::env::temp_dir().join("statim-tailscale-wrapper");
-        std::fs::create_dir_all(&dir).unwrap();
-        let script = dir.join("tailscale");
-        std::fs::write(
-            &script,
-            "#!/bin/sh\necho https://login.tailscale.com/f/serve?node=abc\nsleep 600\n",
-        )
-        .unwrap();
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        // Not a script written here: another test starting a process while the file is open for writing makes
+        // running it fail with ETXTBSY. The trailing `:` keeps sh from replacing itself with sleep.
+        let script = "echo https://login.tailscale.com/f/serve?node=abc; sleep 600; :";
         let started = Instant::now();
-        let output = run_within(&script, &[], Duration::from_millis(500)).unwrap();
+        let output = run_within(Path::new("/bin/sh"), &["-c", script], Duration::from_millis(500)).unwrap();
         assert!(started.elapsed() < Duration::from_secs(5));
         assert_eq!(
             enable_link(&output),
