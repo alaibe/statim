@@ -1,4 +1,6 @@
-import { LcxError, lcxSwap } from "./lcx";
+import { type Address, encodeFunctionData, type Hex } from "viem";
+
+import { LCX_ROUTER_ABI, LcxError, lcxSwap } from "./lcx";
 
 const me = "0x0000000000000000000000000000000000000002" as const;
 const NATIVE = "0x0000000000000000000000000000000000000000" as const;
@@ -23,8 +25,41 @@ const quoted = {
   },
 };
 
-const built = (swap: Partial<{ to: string; value: string; chainId: number }> = {}, minAmountOut = "18135819") => ({
-  swap: { chainId: 8453, to: ROUTER, data: "0xfc54261d", value: "10000000000000000", ...swap },
+const later = () => BigInt(Math.floor(Date.now() / 1000) + 300);
+
+interface Call {
+  tokenIn: Address;
+  tokenOut: Address;
+  totalIn: bigint;
+  minAmountOut: bigint;
+  recipient: Address;
+  deadline: bigint;
+}
+
+const call = (overrides: Partial<Call> = {}): Call => ({
+  tokenIn: NATIVE,
+  tokenOut: USDC,
+  totalIn: 10n ** 16n,
+  minAmountOut: 18135819n,
+  recipient: me,
+  deadline: later(),
+  ...overrides,
+});
+
+const swapSplit = (overrides: Partial<Call> = {}): Hex => {
+  const c = call(overrides);
+  return encodeFunctionData({
+    abi: LCX_ROUTER_ABI,
+    functionName: "swapSplit",
+    args: [c.tokenIn, c.tokenOut, c.totalIn, c.minAmountOut, c.recipient, c.deadline, []],
+  });
+};
+
+const built = (
+  swap: Partial<{ to: string; value: string; chainId: number; data: Hex }> = {},
+  minAmountOut = "18135819",
+) => ({
+  swap: { chainId: 8453, to: ROUTER, data: swapSplit(), value: "10000000000000000", ...swap },
   minAmountOut,
   routerDeployed: true,
 });
@@ -102,11 +137,77 @@ describe("the LCX Liberty DEX client", () => {
       },
     };
 
-    stub({ status: 200, body: { data: quote } }, { status: 200, body: { data: built({ value: "0" }) } });
+    const data = swapSplit({ tokenIn: USDC, tokenOut: NATIVE, totalIn: 5_000_000n });
+
+    stub({ status: 200, body: { data: quote } }, { status: 200, body: { data: built({ value: "0", data }) } });
     await expect(lcxSwap(usdcIn, "lbk_key")).resolves.toEqual(expect.objectContaining({ quote: quote.quote }));
 
-    stub({ status: 200, body: { data: quote } }, { status: 200, body: { data: built({ value: "5000000" }) } });
+    stub({ status: 200, body: { data: quote } }, { status: 200, body: { data: built({ value: "5000000", data }) } });
     await expect(lcxSwap(usdcIn, "lbk_key")).rejects.toThrow(/does not match the request/);
+  });
+
+  it.each([
+    ["sends the output to another address", swapSplit({ recipient: `0x${"0c".repeat(20)}` })],
+    ["enforces a lower floor than it quoted", swapSplit({ minAmountOut: 1n })],
+    ["spends more than the amount sold", swapSplit({ totalIn: 2n * 10n ** 16n })],
+    ["buys another token", swapSplit({ tokenOut: `0x${"0d".repeat(20)}` })],
+    ["has already expired", swapSplit({ deadline: 1n })],
+    ["is not a swap the router exposes", "0xdeadbeef" as Hex],
+  ])("refuses calldata that %s", async (_, data) => {
+    stub({ status: 200, body: { data: quoted } }, { status: 200, body: { data: built({ data }) } });
+
+    await expect(lcxSwap(params, "lbk_key")).rejects.toThrow(/does not match the request/);
+  });
+
+  it("accepts a route split with a market maker's pool", async () => {
+    const c = call();
+    const data = encodeFunctionData({
+      abi: LCX_ROUTER_ABI,
+      functionName: "swapSplitWithPropAMMSplit",
+      args: [
+        { ...c, integrator: NATIVE },
+        [],
+        [],
+        { venue: `0x${"0e".repeat(20)}`, venueIn: 10n ** 15n, venueMinOut: 1n },
+      ],
+    });
+    stub({ status: 200, body: { data: quoted } }, { status: 200, body: { data: built({ data }) } });
+
+    await expect(lcxSwap(params, "lbk_key")).resolves.toEqual(expect.objectContaining({ quote: quoted.quote }));
+  });
+
+  it("refuses a market-maker leg that calls anything but Bebop", async () => {
+    const c = call();
+    const maker = (target: Address) =>
+      encodeFunctionData({
+        abi: LCX_ROUTER_ABI,
+        functionName: "makerSwap",
+        args: [
+          {
+            tokenIn: c.tokenIn,
+            tokenOut: c.tokenOut,
+            amountIn: c.totalIn,
+            minAmountOut: c.minAmountOut,
+            recipient: c.recipient,
+            deadline: c.deadline,
+          },
+          [],
+          { target, spender: target, amountIn: 10n ** 15n, minOut: 1n, data: "0x" },
+          [],
+        ],
+      });
+
+    stub(
+      { status: 200, body: { data: quoted } },
+      { status: 200, body: { data: built({ data: maker("0xbeb0009aca35087ce7ccf11637e24dd1aad3bf2a") }) } },
+    );
+    await expect(lcxSwap(params, "lbk_key")).resolves.toBeDefined();
+
+    stub(
+      { status: 200, body: { data: quoted } },
+      { status: 200, body: { data: built({ data: maker(`0x${"0f".repeat(20)}`) }) } },
+    );
+    await expect(lcxSwap(params, "lbk_key")).rejects.toThrow(/does not match the request/);
   });
 
   it("says when the key was rejected", async () => {
