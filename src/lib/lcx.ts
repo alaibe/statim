@@ -256,12 +256,15 @@ function decodedSwap(data: Hex): SwapFields | null {
   }
   if (decoded.functionName === "makerSwap") {
     const [a, , m] = decoded.args;
-    const maker = m.amountIn === 0n || (BEBOP.some((b) => same(m.target, b)) && BEBOP.some((b) => same(m.spender, b)));
-    if (!maker || m.amountIn > a.amountIn) return null;
+    const bebop = BEBOP.some((b) => same(m.target, b)) && BEBOP.some((b) => same(m.spender, b));
+    const none = m.amountIn === 0n && same(m.target, zeroAddress) && same(m.spender, zeroAddress) && m.data === "0x";
+    if (!(bebop || none) || m.amountIn > a.amountIn) return null;
     return { ...a, totalIn: a.amountIn };
   }
   const [a] = decoded.args;
-  return a;
+  // No integrator is asked for, so none may take a fee. A prop-AMM venue needs no
+  // allowlist: the router reverts unless the recipient gets at least minAmountOut.
+  return same(a.integrator, zeroAddress) ? a : null;
 }
 
 /** Whether the answer is for exactly this request, so nothing else reaches the review card or the wallet. */

@@ -178,7 +178,7 @@ describe("the LCX Liberty DEX client", () => {
 
   it("refuses a market-maker leg that calls anything but Bebop", async () => {
     const c = call();
-    const maker = (target: Address) =>
+    const maker = (target: Address, amountIn = 10n ** 15n) =>
       encodeFunctionData({
         abi: LCX_ROUTER_ABI,
         functionName: "makerSwap",
@@ -192,7 +192,7 @@ describe("the LCX Liberty DEX client", () => {
             deadline: c.deadline,
           },
           [],
-          { target, spender: target, amountIn: 10n ** 15n, minOut: 1n, data: "0x" },
+          { target, spender: target, amountIn, minOut: 1n, data: "0x" },
           [],
         ],
       });
@@ -207,6 +207,26 @@ describe("the LCX Liberty DEX client", () => {
       { status: 200, body: { data: quoted } },
       { status: 200, body: { data: built({ data: maker(`0x${"0f".repeat(20)}`) }) } },
     );
+    await expect(lcxSwap(params, "lbk_key")).rejects.toThrow(/does not match the request/);
+
+    stub(
+      { status: 200, body: { data: quoted } },
+      { status: 200, body: { data: built({ data: maker(`0x${"0f".repeat(20)}`, 0n) }) } },
+    );
+    await expect(lcxSwap(params, "lbk_key")).rejects.toThrow(/does not match the request/);
+
+    stub({ status: 200, body: { data: quoted } }, { status: 200, body: { data: built({ data: maker(NATIVE, 0n) }) } });
+    await expect(lcxSwap(params, "lbk_key")).resolves.toBeDefined();
+  });
+
+  it("refuses a route that names an integrator to take a fee", async () => {
+    const data = encodeFunctionData({
+      abi: LCX_ROUTER_ABI,
+      functionName: "swapSplitWithFee",
+      args: [{ ...call(), integrator: `0x${"1a".repeat(20)}` }, []],
+    });
+    stub({ status: 200, body: { data: quoted } }, { status: 200, body: { data: built({ data }) } });
+
     await expect(lcxSwap(params, "lbk_key")).rejects.toThrow(/does not match the request/);
   });
 
