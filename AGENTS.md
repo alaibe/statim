@@ -58,8 +58,9 @@ check and the tests on every push, and also checks:
   generator in `priv/`: `src/global.css` from `src/design/tokens.ts`;
   `skills/statim/SKILL.md`, `src-tauri/cli/help.txt` and
   `src-tauri/cli/mcp.json` from `src/features/cli/commands.ts`;
-  `assets/brand/mark.svg` and every icon; `chat-pattern-tile.ts`; both token
-  lists. Editing the output is undone on the next build.
+  every icon from `assets/brand/mark.svg`, the one drawn by hand;
+  `chat-pattern-tile.ts`; both token lists. Editing the output is undone on
+  the next build.
 - `.web.ts` / `.web.tsx` is the desktop. There is no browser deployment.
   A platform file must have a non-platform neighbour, and Expo Router needs a
   non-platform file for every route.
