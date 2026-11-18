@@ -9,8 +9,6 @@ iOS, Android, macOS, Windows and Linux, from one Expo SDK 57 / React Native
 0.86 / React 19.2 codebase. The desktop app is the web export of that codebase
 running in a Tauri window.
 
-Statim is not affiliated with or endorsed by Status.
-
 <p align="center">
   <a href="https://statim.laibe.cc/promo/film-16x9.mp4"><img src="https://statim.laibe.cc/promo/film.webp" width="800" alt="The promo film: a twelve-word account, five protocols in one chat list, and an AI agent paying a friend back while you approve on the phone"></a>
 </p>
