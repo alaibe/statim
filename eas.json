@@ -61,7 +61,8 @@
         "appleTeamId": "8N3Z3WWTK7"
       },
       "android": {
-        "track": "beta"
+        "track": "beta",
+        "changesNotSentForReview": true
       }
     }
   }
