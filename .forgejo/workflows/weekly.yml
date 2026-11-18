@@ -1,4 +1,4 @@
-# Releases Statim every week when main has commits since the last release, in place of laibe's deploy:nightly.
+# Releases Statim every week when main has commits since the last release.
 #
 # On the home runner, `due` counts the commits since the last `v*` tag; with none, the run ends there. Otherwise the
 # Mac runs the type check and the tests, moves a version that's already tagged to its next patch in its six files

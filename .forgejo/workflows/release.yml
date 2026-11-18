@@ -480,7 +480,7 @@ jobs:
           git -C aur -c user.name="Anthony Laibe" -c user.email="anthony@laibe.cc" commit -am "statim $V"
           git -C aur push
 
-  # Laibe's statim:phones did this from the Mac; the Mac's EAS login and Android SDK do it here. EAS's pre-install hook
+  # Runs on the Mac for its EAS login and Android SDK. EAS's pre-install hook
   # (package.json) puts TDLib in place for the platform it builds.
   android:
     needs: [prepare, publish]

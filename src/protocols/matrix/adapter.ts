@@ -91,7 +91,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   private readonly names = new Map<string, string>();
   /**
    * A room keeps the bridge it once showed, even after the bridged users fall out of the
-   * summary. null means none showed yet; the room is looked at again once its roster arrives.
+   * summary.
    */
   /** Only networks found: a room seen before its bridge shows is looked at again. */
   private readonly networks = new Map<string, BridgedNetwork>();
