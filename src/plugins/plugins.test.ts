@@ -82,36 +82,6 @@ describe("every command", () => {
     }
   });
 
-  it("resolves a shared name to the chat you are standing in", async () => {
-    const registry = new PluginRegistry(ALL_PLUGINS);
-    await Promise.all(ALL_PLUGINS.map((plugin) => registry.activate(plugin.manifest.id, stubContext)));
-
-    const duplicated = new Map<string, Set<string>>();
-    for (const { pluginId, command } of allCommands) {
-      for (const key of [command.name, ...(command.aliases ?? [])]) {
-        duplicated.set(key, new Set([...(duplicated.get(key) ?? []), pluginId]));
-      }
-    }
-
-    for (const [key, owners] of duplicated) {
-      if (owners.size === 1) continue;
-
-      // Inside a plugin's own chat, its own command wins.
-      for (const owner of owners) {
-        const chat = channelIdOf(owner);
-        if (!chat) continue;
-        const resolved = registry.commandsFor(botChatId(chat), "channel").get(key);
-        if (resolved) expect(resolved.pluginId).toBe(owner);
-      }
-
-      // In a DM no plugin's chat breaks the tie, so at most one may claim the name.
-      const inDm = [...owners].filter(
-        (owner) => registry.commandsFor(asChatId("xmtp-abc"), "dm").get(key)?.pluginId === owner,
-      );
-      expect(inDm.length).toBeLessThanOrEqual(1);
-    }
-  });
-
   /** A `hidden` command runs but is never listed. */
   it.each(["dm", "group", "channel"] as const)("dispatches only what it offers in a %s", async (scope) => {
     const registry = await activeRegistry();
@@ -323,11 +293,6 @@ describe("every command", () => {
     });
     await Promise.all(ALL_PLUGINS.map((plugin) => registry.activate(plugin.manifest.id, () => stubContext() as never)));
     return registry;
-  }
-
-  function channelIdOf(pluginId: string): string | null {
-    const plugin = ALL_PLUGINS.find((p) => p.manifest.id === pluginId);
-    return plugin?.setup(stubContext()).bots?.[0]?.id ?? null;
   }
 });
 

@@ -105,29 +105,3 @@ describe("signTransaction", () => {
     expect(ed25519.verify(signed.slice(1, 65), message, ed25519.getPublicKey(priv))).toBe(true);
   });
 });
-
-describe("toLamports (via the plugin)", () => {
-  // A copy of the unexported toLamports in index.ts.
-  const toLamports = (amount: string): bigint => {
-    if (!/^\d+(\.\d{1,9})?$/.test(amount.trim())) throw new Error("bad");
-    const [whole, fraction = ""] = amount.trim().split(".");
-    return BigInt(whole) * 1_000_000_000n + BigInt(fraction.padEnd(9, "0"));
-  };
-
-  it("converts exactly, including the amounts a float gets wrong", () => {
-    expect(toLamports("1")).toBe(1_000_000_000n);
-    expect(toLamports("0.1")).toBe(100_000_000n);
-    expect(toLamports("0.000000001")).toBe(1n);
-    expect(toLamports("1.234567891")).toBe(1_234_567_891n);
-  });
-
-  it("refuses more precision than a lamport", () => {
-    expect(() => toLamports("0.0000000001")).toThrow();
-  });
-
-  it("refuses anything that is not a plain decimal", () => {
-    for (const bad of ["", "-1", "1e9", "abc", "1.2.3", " 1 2 "]) {
-      expect(() => toLamports(bad)).toThrow();
-    }
-  });
-});

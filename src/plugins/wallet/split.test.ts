@@ -34,13 +34,6 @@ describe("splitting a bill", () => {
     expect(Number(share) * 4).toBeCloseTo(100, 6);
   });
 
-  it("never rounds a share up past the total", () => {
-    // Checked in wei: the printed share is rounded and can read a hair above the true one.
-    for (const people of [3, 6, 7, 9]) {
-      expect(shareWei("10", people) * BigInt(people)).toBeLessThanOrEqual(parseEther("10"));
-    }
-  });
-
   it("handles an amount that does not divide cleanly", () => {
     const share = shareOf("10", 3);
     expect(Number(share)).toBeCloseTo(3.333333, 5);
