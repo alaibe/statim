@@ -1,4 +1,4 @@
-import { zeroAddress } from "viem";
+import { type Address, zeroAddress } from "viem";
 
 import { LcxError, lcxSwap } from "@/lib/lcx";
 
@@ -8,21 +8,21 @@ export const lcx: TradeProvider = {
   id: "lcx",
   name: "LCX Liberty DEX",
   site: "https://dex.lcx.com",
-  covers: ({ from, to, keys }) => keys.lcx !== null && from.id === to.id,
+  covers: ({ from, to, keys }) => keys.lcx !== null && from.evm !== undefined && from.id === to.id,
 
   async quote({ from, sell, buy, amount, recipient, slippage, keys }) {
     const { quote, build } = await lcxSwap(
       {
-        chainId: from.evm.id,
-        tokenIn: sell.address,
-        tokenOut: buy.address,
+        chainId: from.evm!.id,
+        tokenIn: sell.address as Address,
+        tokenOut: buy.address as Address,
         amountIn: amount,
-        recipient,
+        recipient: recipient as Address,
         slippageBps: Math.round(slippage * 10_000),
       },
       keys.lcx!,
     );
-    const { symbol, decimals } = from.evm.nativeCurrency;
+    const { symbol, decimals } = from.evm!.nativeCurrency;
     const native = { address: zeroAddress, symbol, decimals };
     return {
       provider: lcx,

@@ -1,8 +1,8 @@
-import type { Address, Chain, Hex } from "viem";
+import type { Address, Hex } from "viem";
 
 import type { ChainStrategy } from "../chains/strategy";
 
-export type TradeChain = ChainStrategy & { evm: Chain };
+export type TradeChain = ChainStrategy;
 
 export interface TradeKeys {
   lifi: string | null;
@@ -10,7 +10,8 @@ export interface TradeKeys {
 }
 
 export interface TradeAsset {
-  address: Address;
+  /** An EVM contract or a Solana mint. */
+  address: string;
   symbol: string;
   decimals: number;
 }
@@ -21,8 +22,8 @@ export interface TradeRequest {
   sell: TradeAsset;
   buy: TradeAsset;
   amount: bigint;
-  sender: Address;
-  recipient: Address;
+  sender: string;
+  recipient: string;
   slippage: number;
   keys: TradeKeys;
 }
@@ -44,6 +45,13 @@ export interface EvmPayment {
   skipApproval?: boolean;
 }
 
+/** A base64 transaction the provider assembles once the trade is confirmed, which must call `program`. */
+export interface SolanaPayment {
+  kind: "solana";
+  program: string;
+  transaction(): Promise<string>;
+}
+
 export interface TradeQuote {
   provider: TradeProvider;
   route: string;
@@ -55,7 +63,7 @@ export interface TradeQuote {
   gas?: Cost[];
   fees?: Cost[];
   usd?: { from?: number; to?: number };
-  payment: EvmPayment;
+  payment: EvmPayment | SolanaPayment;
 }
 
 export interface TradeProvider {
@@ -68,5 +76,5 @@ export interface TradeProvider {
   refusal(error: unknown): string | null;
   /** Lets a token go by signature through Permit2 instead of an approval per trade. */
   permitTargets?(chainId: number): Promise<{ permit2: Address; proxy: Address } | null>;
-  tracker?(hash: Hex): { label: string; url: string };
+  tracker?(hash: string): { label: string; url: string };
 }

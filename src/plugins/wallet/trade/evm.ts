@@ -8,7 +8,7 @@ import { explorerUrlFor } from "@/lib/evm/transactions";
 import { walletClientFor } from "@/lib/evm/wallet";
 import { LIFI_NATIVE, lifiToken } from "@/lib/lifi";
 
-import type { TradeAsset, TradeChain, TradeQuote, TradeRequest } from "./provider";
+import type { EvmPayment, TradeAsset, TradeChain, TradeQuote, TradeRequest } from "./provider";
 
 type Respond = CommandInvocation["respond"];
 
@@ -21,10 +21,10 @@ export async function resolveToken(
   key: string | null,
 ): Promise<TradeAsset | { error: string }> {
   if (given.toLowerCase() === "native") {
-    const { symbol, decimals } = chain.evm.nativeCurrency;
+    const { symbol, decimals } = chain.evm!.nativeCurrency;
     return { address: LIFI_NATIVE, symbol, decimals };
   }
-  const found = await lifiToken(chain.evm.id, given, key);
+  const found = await lifiToken(chain.evm!.id, given, key);
   return (
     found ?? {
       error: `"${given}" is not a token LI.FI knows on ${chain.name}. Use its symbol or contract address.`,
@@ -32,11 +32,17 @@ export async function resolveToken(
   );
 }
 
-export function heldBalance(chain: TradeChain, token: TradeAsset, owner: Address): Promise<bigint> {
-  const client = publicClientFor(chain.evm.id);
+export function heldBalance(chain: TradeChain, token: TradeAsset, owner: string): Promise<bigint> {
+  const client = publicClientFor(chain.evm!.id);
+  const address = owner as Address;
   return token.address === LIFI_NATIVE
-    ? client.getBalance({ address: owner })
-    : client.readContract({ address: token.address, abi: erc20Abi, functionName: "balanceOf", args: [owner] });
+    ? client.getBalance({ address })
+    : client.readContract({
+        address: token.address as Address,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [address],
+      });
 }
 
 export interface Approval {
@@ -49,24 +55,27 @@ export interface Approval {
 export async function planApproval(
   context: PluginContext,
   { from, sell, amount, sender }: TradeRequest,
-  { provider, payment }: TradeQuote,
+  { provider, payment }: TradeQuote & { payment: EvmPayment },
 ): Promise<Approval> {
   if (sell.address === LIFI_NATIVE || payment.skipApproval) return { needsApproval: false };
+  const chainId = from.evm!.id;
+  const token = sell.address as Address;
+  const owner = sender as Address;
 
   // Permit2 first: a plain approval costs a transaction and a wait.
   if (provider.permitTargets) {
-    const targets = await provider.permitTargets(from.evm.id).catch(() => null);
-    const permit = await planPermit(from.evm.id, sell.address, sender, amount, targets, {
+    const targets = await provider.permitTargets(chainId).catch(() => null);
+    const permit = await planPermit(chainId, token, owner, amount, targets, {
       canSignTypedData: canSign(context),
     }).catch(() => null);
     if (permit && targets) return { needsApproval: permit.approve !== undefined, permit, targets };
   }
 
-  const allowance = await publicClientFor(from.evm.id).readContract({
-    address: sell.address,
+  const allowance = await publicClientFor(chainId).readContract({
+    address: token,
     abi: erc20Abi,
     functionName: "allowance",
-    args: [sender, payment.spender],
+    args: [owner, payment.spender],
   });
   return { needsApproval: allowance < amount };
 }
@@ -93,12 +102,24 @@ export class ApprovalPending extends Error {
 export async function sendTrade(
   context: PluginContext,
   from: TradeChain,
-  { sell, quote, needsApproval, permit, targets }: Approval & { sell: TradeAsset; quote: TradeQuote },
+  {
+    sell,
+    quote,
+    payment,
+    needsApproval,
+    permit,
+    targets,
+  }: Approval & {
+    sell: TradeAsset;
+    quote: TradeQuote;
+    payment: EvmPayment;
+  },
   respond: Respond,
 ): Promise<{ approval?: Hex; hash: Hex }> {
-  const { payment } = quote;
+  const chainId = from.evm!.id;
+  const token = sell.address as Address;
   const account = context.account.signer();
-  const client = walletClientFor(account, from.evm.id);
+  const client = walletClientFor(account, chainId);
   let approval: Hex | undefined;
 
   if (needsApproval) {
@@ -110,11 +131,11 @@ export async function sendTrade(
     approval = await client.sendTransaction({
       account,
       chain: null,
-      to: sell.address,
+      to: token,
       data: encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [spender, allowed] }),
     });
 
-    const follow = explorerUrlFor(from.evm.id, approval);
+    const follow = explorerUrlFor(chainId, approval);
     await respond({
       kind: "widget",
       fallback: `Approving ${sell.symbol} on ${from.name}`,
@@ -134,7 +155,7 @@ export async function sendTrade(
 
     let receipt;
     try {
-      receipt = await publicClientFor(from.evm.id).waitForTransactionReceipt({ hash: approval, timeout: 120_000 });
+      receipt = await publicClientFor(chainId).waitForTransactionReceipt({ hash: approval, timeout: 120_000 });
     } catch {
       throw new ApprovalPending(sell.symbol, from.name);
     }
@@ -145,8 +166,8 @@ export async function sendTrade(
 
   const call =
     permit && targets
-      ? await permittedCall(from.evm.id, account, targets, permit, {
-          token: sell.address,
+      ? await permittedCall(chainId, account, targets, permit, {
+          token,
           amount: quote.sold,
           diamondCalldata: payment.data,
         })

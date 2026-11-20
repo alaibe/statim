@@ -31,6 +31,25 @@ export async function sendTransaction(url: string, signed: Uint8Array): Promise<
   return jsonRpc<string>(url, "sendTransaction", [base64, { encoding: "base64", preflightCommitment: "confirmed" }]);
 }
 
+export async function getTokenDecimals(url: string, mint: string): Promise<number> {
+  const result = await jsonRpc<{ value: { decimals: number } }>(url, "getTokenSupply", [mint]);
+  return result.value.decimals;
+}
+
+export type SignatureState = "pending" | "confirmed" | "failed";
+
+export async function signatureState(url: string, signature: string): Promise<SignatureState> {
+  const { value } = await jsonRpc<{ value: ({ err: unknown; confirmationStatus?: string } | null)[] }>(
+    url,
+    "getSignatureStatuses",
+    [[signature]],
+  );
+  const [status] = value;
+  if (!status) return "pending";
+  if (status.err) return "failed";
+  return status.confirmationStatus === "processed" ? "pending" : "confirmed";
+}
+
 export async function checkRpcUrl(url: string): Promise<RpcCheck> {
   if (!/^https?:\/\//.test(url)) return { ok: false, reason: "That needs to be an http(s) URL." };
   try {

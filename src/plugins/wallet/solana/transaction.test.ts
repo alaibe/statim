@@ -1,7 +1,7 @@
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { base58 } from "@scure/base";
 
-import { buildTransferMessage, encodeLength, signTransaction, transferData } from "./transaction";
+import { buildTransferMessage, encodeLength, signPrepared, signTransaction, transferData } from "./transaction";
 
 const FROM = new Uint8Array(32).fill(1);
 const TO = new Uint8Array(32).fill(2);
@@ -103,5 +103,55 @@ describe("signTransaction", () => {
 
   it("produces a signature the sender’s public key verifies", () => {
     expect(ed25519.verify(signed.slice(1, 65), message, ed25519.getPublicKey(priv))).toBe(true);
+  });
+});
+
+describe("signPrepared", () => {
+  /** A SOL to USDC swap Jupiter assembled on 2026-11-20 for a public example address. */
+  const JUPITER_SWAP =
+    "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQAGDAuCTCqj" +
+    "aZSF8mxm/xoStaH3VVnrhI150KK+4ItGNoTHFUndeQng/oU3d114NWrTmtixL163dcjo1FjBGYi3lyobi/oKacYXjcC+HMjXXxjC" +
+    "c1fq7YFs9qjkbeNVTYK0BDdmdeCl/KjoU+xBCPHY5j97ANu62VkAp9XI3wpAJN4WQ7K7VLSpbM0nstQrHQnRF+zzpGqF4x0l1s3O" +
+    "uQPlKnhYOWeWAxXI7DYA1SyrqdvRxL70tycJK2CxPu0DV91luwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwZGb+Uh" +
+    "FzL/7K26csOb57yM5bvF9xJrLEObOkAAAAAEedVb8jHAbu50xW7OaBUH/bGy3qP0jlECsc2iVrwTjwbd9uHXZaGT2cvhRs7reawc" +
+    "tIXtX1s3kTqM9YV+/wCpjJclj04kifG7PRApFI4NgwtaE5na/xCEBI572Nvp+Fm0P/on9df2SnTAmx8pWHneSwmrNt/J3VFLMhqn" +
+    "s4zl6COezN3bHkTsKw9OeP3X2imCjw74ZyJcuuK2Nb/1XSJtBwcABQJFMgEABwAJA84lAAAAAAAACgYAAQAPBgkBAQYCAAEMAgAA" +
+    "AICWmAAAAAAACQEBAREIFQkAAQQIEQgLCBAJAA0BDgQMAgUDEiTlF8uXeuOtKgEAAAARAWQAAYCWmAAAAAAAawcLAAAAAAAyAAAJ" +
+    "AwEAAAEJAXllEnP2pS43C4mFrbVuxJZ44MClBwYrnwSSXZQRuFVQA22QaQQSAGps";
+  const JUPITER = "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4";
+  const PAYER_AT = 1 + 64 + 1 + 3 + 1;
+
+  const privateKey = new Uint8Array(32).fill(7);
+  const key = { privateKey, publicKey: ed25519.getPublicKey(privateKey) };
+
+  function paidBy(publicKey: Uint8Array): Uint8Array {
+    const bytes = Uint8Array.from(atob(JUPITER_SWAP), (c) => c.charCodeAt(0));
+    bytes.set(publicKey, PAYER_AT);
+    return bytes;
+  }
+
+  it("fills the one signature slot with a signature of the message", () => {
+    const unsigned = paidBy(key.publicKey);
+    const signed = signPrepared(unsigned, key, JUPITER);
+    const message = unsigned.slice(65);
+    expect(signed.length).toBe(unsigned.length);
+    expect([...signed.slice(65)]).toEqual([...message]);
+    expect(ed25519.verify(signed.slice(1, 65), message, key.publicKey)).toBe(true);
+  });
+
+  it("refuses a transaction another address pays for", () => {
+    expect(() => signPrepared(paidBy(new Uint8Array(32).fill(9)), key, JUPITER)).toThrow(/another address/);
+  });
+
+  it("refuses one that does not call the program the quote came from", () => {
+    expect(() => signPrepared(paidBy(key.publicKey), key, base58.encode(new Uint8Array(32).fill(5)))).toThrow(
+      /program/,
+    );
+  });
+
+  it("refuses a legacy transaction", () => {
+    const legacy = paidBy(key.publicKey);
+    legacy[65] = 1;
+    expect(() => signPrepared(legacy, key, JUPITER)).toThrow(/v0/);
   });
 });

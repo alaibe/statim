@@ -68,3 +68,42 @@ export function signTransaction(message: Uint8Array, privateKey: Uint8Array): Ui
   const signature = ed25519.sign(message, privateKey);
   return concat([encodeLength(1), signature, message]);
 }
+
+function decodeLength(bytes: Uint8Array, at: number): [value: number, next: number] {
+  let value = 0;
+  for (let i = 0; i < 3; i++) {
+    const byte = bytes[at + i];
+    value |= (byte & 0x7f) << (7 * i);
+    if ((byte & 0x80) === 0) return [value, at + i + 1];
+  }
+  throw new Error("Length is out of range");
+}
+
+const V0 = 0x80;
+
+/**
+ * Signs a v0 transaction someone else assembled, after checking that it has one
+ * signer, that signer is `key` and so pays its fees, and `program` is among the
+ * programs it calls (a program is never loaded from a lookup table).
+ */
+export function signPrepared(
+  transaction: Uint8Array,
+  key: { publicKey: Uint8Array; privateKey: Uint8Array },
+  program: string,
+): Uint8Array {
+  const [signatures, start] = decodeLength(transaction, 0);
+  const message = transaction.slice(start + 64 * signatures);
+  if (message[0] !== V0) throw new Error("That is not a v0 Solana transaction.");
+  if (signatures !== 1 || message[1] !== 1) throw new Error("That transaction needs someone else to sign it too.");
+
+  const [count, keysAt] = decodeLength(message, 4);
+  const keys = Array.from({ length: count }, (_, i) => message.slice(keysAt + 32 * i, keysAt + 32 * (i + 1)));
+  if (base58.encode(keys[0]) !== base58.encode(key.publicKey)) {
+    throw new Error("That transaction is paid for by another address.");
+  }
+  if (!keys.some((k) => base58.encode(k) === program)) {
+    throw new Error("That transaction does not call the program it should.");
+  }
+
+  return concat([encodeLength(1), ed25519.sign(message, key.privateKey), message]);
+}

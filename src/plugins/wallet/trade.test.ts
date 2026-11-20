@@ -6,6 +6,7 @@ import type { Widget } from "@/design/widgets";
 import { publicClientFor } from "@/lib/evm/chains";
 import { permittedCall, planPermit } from "@/lib/evm/permit";
 import { walletClientFor } from "@/lib/evm/wallet";
+import { JupiterError, jupiterQuote, jupiterSwap, SOL_MINT } from "@/lib/jupiter";
 import { LcxError, type LcxSwap, lcxSwap } from "@/lib/lcx";
 import {
   LIFI_NATIVE,
@@ -18,7 +19,9 @@ import {
   lifiToken,
 } from "@/lib/lifi";
 import { EVM_CHAINS, evmStrategy } from "./chains/evm";
-import { registerChainStrategy } from "./chains/strategy";
+import { type ChainStrategy, registerChainStrategy } from "./chains/strategy";
+import { getBalance, getTokenDecimals, sendTransaction as sendSolana, signatureState } from "./solana/rpc";
+import { signPrepared } from "./solana/transaction";
 import { tradeCommand } from "./trade";
 
 jest.mock("./bitcoin/bot", () => ({ checkAddress: jest.fn() }));
@@ -43,6 +46,22 @@ jest.mock("@/lib/lcx", () => ({ ...jest.requireActual("@/lib/lcx"), lcxSwap: jes
 jest.mock("@/core/account/trade-key", () => ({
   loadTradeKey: jest.fn(async () => null),
   loadLcxKey: jest.fn(async () => null),
+}));
+jest.mock("@/lib/jupiter", () => ({
+  ...jest.requireActual("@/lib/jupiter"),
+  jupiterQuote: jest.fn(),
+  jupiterSwap: jest.fn(),
+}));
+jest.mock("./solana/rpc", () => ({
+  ...jest.requireActual("./solana/rpc"),
+  getBalance: jest.fn(),
+  getTokenDecimals: jest.fn(),
+  sendTransaction: jest.fn(),
+  signatureState: jest.fn(),
+}));
+jest.mock("./solana/transaction", () => ({
+  ...jest.requireActual("./solana/transaction"),
+  signPrepared: jest.fn(() => new Uint8Array([1])),
 }));
 jest.mock("@/lib/evm/chains", () => ({
   ...jest.requireActual("@/lib/evm/chains"),
@@ -233,7 +252,7 @@ describe("/trade", () => {
   });
 
   it("refuses a chain that is not EVM, and one that is off", async () => {
-    expect((await run(["--from", "bitcoin"])).message).toMatch(/EVM chains, and Bitcoin is not one/);
+    expect((await run(["--from", "bitcoin"])).message).toMatch(/EVM chains and on Solana, and Bitcoin is not one/);
     expect((await run(["--to", "polygon"])).message).toMatch(/not switched on/);
   });
 
@@ -640,5 +659,110 @@ describe("/trade with an LCX Liberty DEX key", () => {
       expect.objectContaining({ to: LCX_ROUTER, data: "0xfc54261d", value: 0n }),
     );
     expect(links.some((link) => link.label === "Track on LI.FI")).toBe(false);
+  });
+});
+
+describe("/trade on Solana", () => {
+  const SOL_ME = "mvines9iiHiQTysrwkJjGf2gb9Ex9jXJX8ns3qwf2kN";
+  const USDC_SOL = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+  const SIGNATURE = "5".repeat(88);
+  const solanaContext = {
+    ...context,
+    account: {
+      ...context.account,
+      deriveEd25519: () => ({ publicKey: new Uint8Array(32), privateKey: new Uint8Array(32) }),
+    },
+  } as unknown as PluginContext;
+
+  const answer = {
+    inputMint: SOL_MINT,
+    outputMint: USDC_SOL,
+    inAmount: "100000000",
+    outAmount: "7236079",
+    otherAmountThreshold: "7199899",
+    priceImpactPct: "0",
+    routePlan: [{ swapInfo: { label: "Raydium CLMM" } }, { swapInfo: { label: "Manifest" } }],
+  };
+
+  beforeEach(() => {
+    const solana = {
+      id: "solana",
+      name: "Solana",
+      icon: "sunny-outline",
+      selfAddress: () => SOL_ME,
+      isAddress: (value: string) => value.length >= 32,
+      addressHint: "",
+      explorer: { name: "Solscan", addressUrl: (address: string) => address },
+      transfer: { symbol: "SOL", quote: jest.fn(), commit: jest.fn() },
+    } as unknown as ChainStrategy;
+    disposers.push(registerChainStrategy(solana));
+    jest.mocked(getBalance).mockResolvedValue(10n ** 9n);
+    jest.mocked(getTokenDecimals).mockResolvedValue(6);
+    jest.mocked(jupiterQuote).mockResolvedValue(answer);
+    jest.mocked(jupiterSwap).mockResolvedValue({ swapTransaction: btoa("unsigned"), lastValidBlockHeight: 1 });
+    jest.mocked(sendSolana).mockResolvedValue(SIGNATURE);
+    jest.mocked(signatureState).mockResolvedValue("confirmed");
+  });
+
+  const swap = (...extra: string[]) => run(["0.1", "SOL", "USDC", "--from", "solana", ...extra], solanaContext);
+
+  it("quotes a swap through Jupiter without asking LI.FI", async () => {
+    const { title, stat, rows, links } = await swap();
+
+    expect(title).toBe("Swap on Solana");
+    expect(stat?.value).toBe("≈ 7.236079 USDC");
+    expect(stat?.caption).toMatch(/At least 7.199899 USDC/);
+    expect(rows).toContainEqual({ label: "Route", value: "Jupiter: Raydium CLMM, Manifest" });
+    expect(links.map((l) => l.label)).toContain("Powered by Jupiter");
+    expect(jupiterQuote).toHaveBeenCalledWith({
+      inputMint: SOL_MINT,
+      outputMint: USDC_SOL,
+      amount: 100_000_000n,
+      slippageBps: 50,
+    });
+    expect(quote).not.toHaveBeenCalled();
+    expect(jupiterSwap).not.toHaveBeenCalled();
+  });
+
+  it("refuses a trade that would leave too little SOL for its fees", async () => {
+    jest.mocked(getBalance).mockResolvedValue(100_000_000n);
+    expect((await swap()).message).toMatch(/about 0.005 SOL left over/);
+    expect(jupiterQuote).not.toHaveBeenCalled();
+  });
+
+  it("does not use an answer for another trade", async () => {
+    jest.mocked(jupiterQuote).mockResolvedValue({ ...answer, inAmount: "1" });
+    expect((await swap()).message).toMatch(/answered for a different trade/);
+  });
+
+  it("shows Jupiter's own words when it has no route", async () => {
+    jest.mocked(jupiterQuote).mockRejectedValue(new JupiterError(400, "Jupiter found no route for this trade."));
+    expect((await swap()).message).toMatch(/Jupiter found no route/);
+  });
+
+  it("signs the transaction Jupiter assembles on confirm, and calls it swapped once confirmed", async () => {
+    const { title, links } = await swap("--confirm");
+
+    expect(jupiterSwap).toHaveBeenCalledWith(answer, SOL_ME);
+    expect(signPrepared).toHaveBeenCalledWith(
+      expect.any(Uint8Array),
+      expect.anything(),
+      "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+    );
+    expect(sendSolana).toHaveBeenCalled();
+    expect(title).toBe("Swapped");
+    expect(links.map((l) => l.url)).toContain(`https://solscan.io/tx/${SIGNATURE}`);
+  });
+
+  it("says a swap that failed on chain traded nothing", async () => {
+    jest.mocked(signatureState).mockResolvedValue("failed");
+    expect((await swap("--confirm")).message).toMatch(/failed on Solana, so nothing was traded/);
+  });
+
+  it("keeps a Solana trade on Solana and in your own address", async () => {
+    expect((await swap("--to", "base")).message).toMatch(/Nothing in the app trades from Solana to Base/);
+    expect((await swap("--recipient", "11111111111111111111111111111112")).message).toMatch(
+      /lands in your own address/,
+    );
   });
 });

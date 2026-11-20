@@ -1,3 +1,4 @@
+import type { Address } from "viem";
 import { LifiError, type LifiToken, lifiExplorerUrl, lifiPermitTargets, lifiQuote } from "@/lib/lifi";
 
 import type { Cost, TradeProvider } from "./provider";
@@ -15,17 +16,17 @@ export const lifi: TradeProvider = {
   id: "lifi",
   name: "LI.FI",
   site: "https://li.fi",
-  covers: () => true,
+  covers: ({ from, to }) => from.evm !== undefined && to.evm !== undefined,
 
   async quote({ from, to, sell, buy, amount, sender, recipient, slippage, keys }) {
     const quote = await lifiQuote(
       {
-        fromChain: from.evm.id,
-        toChain: to.evm.id,
-        fromToken: sell.address,
-        toToken: buy.address,
-        fromAddress: sender,
-        toAddress: recipient,
+        fromChain: from.evm!.id,
+        toChain: to.evm!.id,
+        fromToken: sell.address as Address,
+        toToken: buy.address as Address,
+        fromAddress: sender as Address,
+        toAddress: recipient as Address,
         fromAmount: amount,
         slippage,
       },

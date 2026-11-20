@@ -22,6 +22,13 @@ export function mintSymbol(mint: string): string {
   return named().get(mint)?.[1] ?? shortAddress(mint, 4, 4);
 }
 
+/** The listed mint that goes by `symbol`, the first one when several do. */
+export function mintBySymbol(symbol: string): string | undefined {
+  const wanted = symbol.toLowerCase();
+  for (const [mint, entry] of named()) if (entry[1].toLowerCase() === wanted) return mint;
+  return undefined;
+}
+
 export interface SplBalance {
   mint: string;
   symbol: string;

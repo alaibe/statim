@@ -1,4 +1,4 @@
-import { type Address, type Hex, parseUnits } from "viem";
+import { type Hex, parseUnits } from "viem";
 import { shortAddress } from "@/core/account/keyring";
 import { loadLcxKey, loadTradeKey } from "@/core/account/trade-key";
 import { flagValue, withoutFlag } from "@/core/commands/flags";
@@ -9,27 +9,29 @@ import { popularTokens } from "@/lib/evm/token-list";
 import { explorerUrlFor } from "@/lib/evm/transactions";
 import { LIFI_NATIVE, LifiError, type LifiStatus, type LifiStatusValue, lifiExplorerUrl, lifiStatus } from "@/lib/lifi";
 import { activeChain, defaultChain, NO_CHAIN_ON, pickStrategy, walletChainById } from "../chain-list";
-import { chainStrategies, sendableChains, targetAddress } from "../chains/strategy";
+import { chainStrategies, selfAddressOf, sendableChains, targetAddress } from "../chains/strategy";
 import { assetField, withoutConfirm } from "../commands";
 import { sentPaymentErrorMessage, walletErrorMessage } from "../errors";
 import { type Approval, ApprovalPending, amountOf, heldBalance, planApproval, resolveToken, sendTrade } from "./evm";
+import { jupiter } from "./jupiter";
 import { lcx } from "./lcx";
 import { lifi } from "./lifi";
 import type { Cost, TradeAsset, TradeChain, TradeKeys, TradeProvider, TradeQuote, TradeRequest } from "./provider";
+import { resolveSolanaToken, sendSolanaTrade, solanaFeeProblem, solanaHeld, solanaReceive } from "./solana";
 
 type Respond = CommandInvocation["respond"];
 
 const SLIPPAGE = 0.005;
 
 /** Asked in this order, which settles a tie between equal quotes. */
-const PROVIDERS: TradeProvider[] = [lifi, lcx];
+const PROVIDERS: TradeProvider[] = [lifi, lcx, jupiter];
 
 const poweredBy = (provider: TradeProvider) => W.link(`Powered by ${provider.name}`, provider.site);
 
 /** One entry per label on a chain, so a held token does not repeat a listed one. */
 function receiveOptions(chains: TradeChain[], held: WidgetOption[]): WidgetOption[] {
   const common = chains.flatMap((c) =>
-    popularTokens(c.evm.id).map((token) => ({
+    (c.evm ? popularTokens(c.evm.id) : solanaReceive()).map((token) => ({
       label: token.symbol,
       value: token.address,
       when: { to: c.id },
@@ -44,12 +46,12 @@ function receiveOptions(chains: TradeChain[], held: WidgetOption[]): WidgetOptio
   });
 }
 
-const tradeChains = () => sendableChains().filter((c): c is TradeChain => c.evm !== undefined);
+const tradeChains = () => sendableChains().filter((c) => c.evm !== undefined || c.id === "solana");
 
 function chainNamed(chains: TradeChain[], named: string): TradeChain | { error: string } {
   const known = walletChainById(named);
-  if (known && !known.evm) {
-    return { error: `Trades run between EVM chains, and ${known.name} is not one.` };
+  if (known && !known.evm && known.id !== "solana") {
+    return { error: `Trades run between EVM chains and on Solana, and ${known.name} is not one of them.` };
   }
   const picked = pickStrategy(chains, named);
   return "error" in picked ? picked : picked.chain;
@@ -146,7 +148,8 @@ async function tradeForm(
         ),
         W.text(
           "The same chain on both sides is a swap; different chains, a bridge. LI.FI finds " +
-            "the route and quotes it, and a swap also asks LCX Liberty DEX once you save its key. Nothing is signed until you confirm the quote.",
+            "the route and quotes it, and a swap also asks LCX Liberty DEX once you save its key. " +
+            "On Solana, Jupiter quotes the swap. Nothing is signed until you confirm the quote.",
         ),
         poweredBy(lifi),
       ],
@@ -162,11 +165,20 @@ interface Trade extends Approval {
   fromToken: TradeAsset;
   toToken: TradeAsset;
   /** Where the bought token lands: the account's own address unless asked otherwise. */
-  recipient: Address;
+  recipient: string;
   sendsAway: boolean;
 }
 
 type Prepared = Trade | { error: string };
+
+interface Sent {
+  approval?: Hex;
+  hash: string;
+  /** False while a Solana swap has been sent but not yet confirmed. */
+  settled?: boolean;
+}
+
+const SOLSCAN_TX = "https://solscan.io/tx/";
 
 async function bestQuote(
   providers: TradeProvider[],
@@ -197,23 +209,27 @@ async function prepare(
 ): Promise<Prepared> {
   if (!/^\d*\.?\d+$/.test(amount)) return { error: `"${amount}" is not a valid amount.` };
 
-  const [fromToken, toToken] = await Promise.all([
-    resolveToken(from, token, keys.lifi),
-    resolveToken(to, receive, keys.lifi),
-  ]);
+  const lookUp = (chain: TradeChain, given: string) =>
+    chain.evm ? resolveToken(chain, given, keys.lifi) : resolveSolanaToken(given);
+  const [fromToken, toToken] = await Promise.all([lookUp(from, token), lookUp(to, receive)]);
   if ("error" in fromToken) return fromToken;
   if ("error" in toToken) return toToken;
 
   const fromAmount = parseUnits(amount, fromToken.decimals);
   if (fromAmount <= 0n) return { error: "The amount must be greater than 0." };
 
-  const address = context.account.address;
+  const own = selfAddressOf(from, context);
+  if ("error" in own) return own;
+  const address = own.address;
   const wanted = await targetAddress(from, context, recipient?.trim(), { resolve: true });
   if ("error" in wanted) return { error: wanted.error };
-  const landsIn = wanted.address as Address;
+  const landsIn = wanted.address;
+  if (!from.evm && landsIn !== address) {
+    return { error: "On Solana a trade lands in your own address. Send it on with /send once it has." };
+  }
 
   const symbol = fromToken.symbol;
-  const held = await heldBalance(from, fromToken, address);
+  const held = from.evm ? await heldBalance(from, fromToken, address) : await solanaHeld(fromToken, address);
   if (held < fromAmount) {
     return {
       error:
@@ -221,6 +237,9 @@ async function prepare(
         `want to trade ${amount} ${symbol}. Lower the amount or add ${symbol} on ${from.name}.`,
     };
   }
+
+  const short = from.evm ? null : await solanaFeeProblem(fromToken, fromAmount, held, address);
+  if (short) return { error: short };
 
   const request: TradeRequest = {
     from,
@@ -233,10 +252,9 @@ async function prepare(
     slippage: SLIPPAGE,
     keys,
   };
-  const best = await bestQuote(
-    PROVIDERS.filter((provider) => provider.covers({ from, to, keys })),
-    request,
-  );
+  const providers = PROVIDERS.filter((provider) => provider.covers({ from, to, keys }));
+  if (providers.length === 0) return { error: `Nothing in the app trades from ${from.name} to ${to.name}.` };
+  const best = await bestQuote(providers, request);
   if ("error" in best) return best;
   const quote = best.chosen;
 
@@ -252,8 +270,11 @@ async function prepare(
     }
   }
 
+  const { payment } = quote;
   return {
-    ...(await planApproval(context, request, quote)),
+    ...(payment.kind === "evm"
+      ? await planApproval(context, request, { ...quote, payment })
+      : { needsApproval: false }),
     quote,
     other: best.other,
     fromToken,
@@ -342,17 +363,21 @@ function sentCard(
   from: TradeChain,
   to: TradeChain,
   { quote, fromToken, toToken }: Trade,
-  { approval, hash }: { approval?: Hex; hash: Hex },
+  { approval, hash, settled = true }: Sent,
 ): Widget {
   const same = from.id === to.id;
   const amount = amountOf(quote.sold, fromToken);
   const tracker = quote.provider.tracker?.(hash);
-  const explorer = explorerUrlFor(from.evm.id, hash) ?? tracker?.url;
+  const explorer = (from.evm ? explorerUrlFor(from.evm.id, hash as Hex) : `${SOLSCAN_TX}${hash}`) ?? tracker?.url;
   return W.card(
     [
       W.stat(`${amount} ${fromToken.symbol} → ≈ ${amountOf(quote.receive, toToken)} ${toToken.symbol}`, {
-        label: same ? `Swapped on ${from.name}` : `Sent from ${from.name} to ${to.name}`,
-        tone: "success",
+        label: !settled
+          ? `Sent on ${from.name}, not confirmed yet`
+          : same
+            ? `Swapped on ${from.name}`
+            : `Sent from ${from.name} to ${to.name}`,
+        tone: settled ? "success" : "brand",
       }),
       ...(approval ? [W.code(approval, { label: "Approval" })] : []),
       W.code(hash, { label: "Transaction" }),
@@ -366,7 +391,9 @@ function sentCard(
           ]),
       poweredBy(quote.provider),
     ],
-    { title: same ? "Swapped" : "Bridge started", icon: "checkmark-circle", tone: "success" },
+    settled
+      ? { title: same ? "Swapped" : "Bridge started", icon: "checkmark-circle", tone: "success" }
+      : { title: "Swap sent", icon: "time-outline", tone: "brand" },
   );
 }
 
@@ -385,6 +412,12 @@ async function statusCard(
   key: string | null,
   respond: Respond,
 ): Promise<CommandResult> {
+  if (!from.evm || !to.evm) {
+    return {
+      type: "error",
+      message: `Only a bridge has a status to check. Follow a Solana swap at ${SOLSCAN_TX}${hash}`,
+    };
+  }
   try {
     const status = await lifiStatus({ txHash: hash, fromChain: from.evm.id, toChain: to.evm.id }, key);
     const { label, tone } = STATUS_LABEL[status.status] ?? STATUS_LABEL.INVALID;
@@ -481,9 +514,21 @@ async function quoteOrTrade(
     return { type: "handled" };
   }
 
-  let sent: { approval?: Hex; hash: Hex } | undefined;
+  let sent: Sent | undefined;
   try {
-    sent = await sendTrade(context, from, { ...prepared, sell: prepared.fromToken }, respond);
+    const { payment } = prepared.quote;
+    if (payment.kind === "evm") {
+      sent = await sendTrade(context, from, { ...prepared, payment, sell: prepared.fromToken }, respond);
+    } else {
+      const { hash, state } = await sendSolanaTrade(context, payment);
+      sent = { hash, settled: state === "confirmed" };
+      if (state === "failed") {
+        return {
+          type: "error",
+          message: `The swap failed on Solana, so nothing was traded and only its fee was spent. ${SOLSCAN_TX}${hash}`,
+        };
+      }
+    }
     await respond({
       kind: "widget",
       fallback: `Sent ${given.amount} ${prepared.fromToken.symbol} for ${prepared.toToken.symbol}`,
@@ -512,7 +557,7 @@ export const tradeCommand: SlashCommand = {
         type: "error",
         message:
           sendableChains().length > 0
-            ? "Trades run between EVM chains, and none is switched on. /chains turns one on."
+            ? "Trades run between EVM chains and on Solana, and none of them is switched on. /chains turns one on."
             : NO_CHAIN_ON,
       };
     }
@@ -521,6 +566,8 @@ export const tradeCommand: SlashCommand = {
     const route = await tradeRoute(chains, fromId, toId, context);
     if ("error" in route) return { type: "error", message: route.error };
     const { from, to } = route;
+    const blocked = from.unavailable?.(context) ?? null;
+    if (blocked) return blocked;
 
     if (!status && (!given.amount || !given.token || !given.receive)) {
       return tradeForm(chains, from, to, given, context, respond);
