@@ -46,6 +46,11 @@ describe("locateTransaction", () => {
     jest.mocked(publicClientFor).mockReturnValue({
       getTransaction: async () => ({ from: FROM, ...transaction }),
       getTransactionReceipt: async () => ({ status: "success", blockNumber: 1n }),
+      multicall: async () => [
+        { status: "success", result: "USDC" },
+        { status: "success", result: "USD Coin" },
+        { status: "success", result: 6 },
+      ],
     } as unknown as ReturnType<typeof publicClientFor>);
     return locateTransaction(hash, [1]);
   }
@@ -59,6 +64,13 @@ describe("locateTransaction", () => {
     const input = encodeFunctionData({ abi: erc20Abi, functionName: "transfer", args: [ALICE, 25_000_000n] });
     const summary = await onMainnet({ to: USDC, value: 0n, input }, `0x${"02".repeat(32)}`);
     expect(summary).toMatchObject({ amount: "25 USDC", to: ALICE });
+  });
+
+  it("names a token missing from the list by its contract, whatever symbol it claims", async () => {
+    const lookalike = "0x1111111111111111111111111111111111111111" as Address;
+    const input = encodeFunctionData({ abi: erc20Abi, functionName: "transfer", args: [ALICE, 25_000_000n] });
+    const summary = await onMainnet({ to: lookalike, value: 0n, input }, `0x${"04".repeat(32)}`);
+    expect(summary).toMatchObject({ amount: "25 0x1111…1111", to: ALICE });
   });
 
   it("names any other contract call without an amount", async () => {

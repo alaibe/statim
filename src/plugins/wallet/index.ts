@@ -16,6 +16,7 @@ import {
   walletChainById,
 } from "./chain-list";
 import { hydrateRpcOverrides } from "./chains/rpc";
+import { chainStrategies } from "./chains/strategy";
 import { watchCommands, watchedCard } from "./chains/watch-commands";
 import { channelCommands, endpointCard } from "./channel-commands";
 import { walletCommands } from "./commands";
@@ -69,6 +70,7 @@ export const walletPlugin: Plugin = {
         {
           view: "solana-transaction",
           match: (text) => {
+            if (!chainStrategies().some((chain) => chain.id === "solana")) return null;
             const signature = findSignature(text);
             return signature ? [signature] : null;
           },

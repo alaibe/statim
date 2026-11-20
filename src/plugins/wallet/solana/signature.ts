@@ -4,7 +4,6 @@ import { shortAddress } from "@/core/account/keyring";
 import type { WidgetContent } from "@/core/messaging/types";
 import { W, type WidgetRow } from "@/design/widgets";
 import { jsonRpc } from "@/lib/json-rpc";
-import { chainStrategies } from "../chains/strategy";
 import { formatSol } from "./address";
 import { rpcUrl } from "./rpc";
 import { mintSymbol } from "./tokens";
@@ -62,7 +61,17 @@ export function summarise(transaction: ParsedTransaction): SolanaTransaction {
   return { status };
 }
 
+const settled = new Map<string, SolanaTransaction>();
+
 async function readSignature(signature: string): Promise<SolanaTransaction | null> {
+  const known = settled.get(signature);
+  if (known) return known;
+  const found = await lookUp(signature);
+  if (found && found.status !== "pending") settled.set(signature, found);
+  return found;
+}
+
+async function lookUp(signature: string): Promise<SolanaTransaction | null> {
   const url = rpcUrl();
   const transaction = await jsonRpc<ParsedTransaction | null>(url, "getTransaction", [
     signature,
@@ -82,7 +91,6 @@ const STATUS = {
 } as const;
 
 export async function signatureCard(signature: string): Promise<Omit<WidgetContent, "live">> {
-  if (!chainStrategies().some((chain) => chain.id === "solana")) throw new Error("Solana is off.");
   const found = await readSignature(signature);
   if (!found) throw new Error("Solana has no transaction with that signature.");
 

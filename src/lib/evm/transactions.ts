@@ -1,7 +1,7 @@
 import { type Address, decodeFunctionData, erc20Abi, formatEther, formatUnits, type Hex } from "viem";
 
 import { chainById, publicClientFor, trimDecimals } from "./chains";
-import { describeToken } from "./tokens";
+import { displayToken } from "./tokens";
 
 interface TransactionSummary {
   hash: Hex;
@@ -69,7 +69,7 @@ async function tokenTransfer(
   try {
     const call = decodeFunctionData({ abi: erc20Abi, data: input });
     if (call.functionName !== "transfer") return null;
-    const token = await describeToken(chainId, contract);
+    const token = await displayToken(chainId, contract);
     if (!token) return null;
     const [to, units] = call.args;
     return { to, amount: `${trimDecimals(formatUnits(units, token.decimals))} ${token.symbol}` };

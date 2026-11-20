@@ -69,6 +69,13 @@ export async function describeToken(chainId: number, contract: Address): Promise
   };
 }
 
+/** A listed token under its symbol, any other under its contract: anyone can deploy a token that calls itself USDC. */
+export async function displayToken(chainId: number, contract: Address): Promise<ListedToken | null> {
+  const token = await describeToken(chainId, contract);
+  if (!token || listedToken(chainId, contract)) return token;
+  return { ...token, symbol: `${contract.slice(0, 6)}…${contract.slice(-4)}` };
+}
+
 /** Long enough that a card and the form opened from it cost one scan. */
 const FRESH_MS = 30_000;
 

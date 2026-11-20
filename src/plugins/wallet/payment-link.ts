@@ -4,7 +4,7 @@ import { shortAddress } from "@/core/account/keyring";
 import type { WidgetContent } from "@/core/messaging/types";
 import { W } from "@/design/widgets";
 import { looksLikeEnsName } from "@/lib/evm/ens";
-import { describeToken } from "@/lib/evm/tokens";
+import { displayToken } from "@/lib/evm/tokens";
 import { isBitcoinAddress } from "./bitcoin/address";
 import { EVM_CHAINS } from "./chains/evm";
 import type { ChainId } from "./chains/strategy";
@@ -148,7 +148,7 @@ export async function paymentRequest(link: PaymentLink): Promise<PaymentRequest>
   let symbol = coin.symbol;
 
   if (link.token && spec) {
-    const token = await describeToken(spec.chain.id, link.token);
+    const token = await displayToken(spec.chain.id, link.token);
     if (!token) throw new Error(`${shortAddress(link.token)} is not a token on ${spec.name}.`);
     symbol = token.symbol;
     if (link.units !== undefined) amount = formatUnits(link.units, token.decimals);
