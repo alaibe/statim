@@ -11,13 +11,13 @@ export const NOSTR_PROTOCOL = {
   folded: true,
   description: "Sealed DMs relayed by servers that never learn who sent them.",
   address: {
-    label: "Public key",
-    placeholder: "npub1… or 64-char hex",
-    noun: "a public key",
-    hint: "Add a public key: an npub or 64 hex characters.",
+    label: "Public key or name",
+    placeholder: "npub1…, 64-char hex or name@domain",
+    noun: "a public key or name",
+    hint: "Add a public key (an npub or 64 hex characters) or a name such as alice@example.com.",
     unreachable: (input) =>
-      `${input} is not a valid public key. ` +
-      "Paste an npub or 64 hex characters; there is no directory to look a name up in.",
+      `${input} is not a public key, and no domain vouches for it as a name. ` +
+      "Paste an npub or 64 hex characters, or a name@domain whose domain lists it.",
   },
   meta: {
     trustModel:

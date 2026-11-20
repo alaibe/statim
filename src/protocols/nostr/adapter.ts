@@ -17,6 +17,7 @@ import { npubFor, parsePublicKey } from "@/lib/bech32";
 import type { AccountStorage } from "@/storage/account";
 import { firstTagValue, type NostrEvent, nowSeconds, type Rumor, signEvent, tagValues } from "./events";
 import { keysFromDerivedKey, NOSTR_DERIVATION_PATH, type NostrKeys } from "./keys";
+import { resolveNip05 } from "./nip05";
 import {
   chatIdFor,
   KIND_DELETION,
@@ -299,7 +300,7 @@ class NostrTransport implements ChatTransport {
   }
 
   async resolveParticipant(addressOrId: string): Promise<ParticipantId | null> {
-    return parsePublicKey(addressOrId);
+    return parsePublicKey(addressOrId) ?? resolveNip05(addressOrId);
   }
 
   async resolveAddresses(ids: ParticipantId[]): Promise<Record<ParticipantId, string>> {
