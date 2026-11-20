@@ -1,4 +1,5 @@
 import { HttpError } from "@/core/errors";
+import { fetchJson, type JsonApi } from "./json-api";
 
 const BASE = "https://gateway.liquify.com/chain/thorchain_api/thorchain";
 
@@ -68,20 +69,18 @@ const REFUSALS: [RegExp, string][] = [
   [/dust threshold|less than .*min/, "That amount is too small for THORChain to swap."],
 ];
 
-async function get<T>(path: string): Promise<T> {
-  const response = await fetch(`${BASE}${path}`, { headers: HEADERS });
-  if (response.ok) return (await response.json()) as T;
-  if (response.status === 429) {
-    throw new ThorchainError(429, "THORChain is limiting quotes from this device. Wait a few seconds and try again.");
-  }
-  const body = (await response.json().catch(() => null)) as { message?: string } | null;
-  const message = body?.message ?? "";
-  const known = REFUSALS.find(([pattern]) => pattern.test(message));
-  throw new ThorchainError(
-    response.status,
-    known?.[1] ?? (message ? `THORChain: ${message}` : `THORChain could not be reached (HTTP ${response.status}).`),
-  );
-}
+const THORCHAIN: JsonApi<{ message?: string }> = {
+  name: "THORChain",
+  limited: "THORChain is limiting quotes from this device. Wait a few seconds and try again.",
+  explain: (_status, body) => {
+    const message = body?.message;
+    if (!message) return undefined;
+    return REFUSALS.find(([pattern]) => pattern.test(message))?.[1] ?? `THORChain: ${message}`;
+  },
+  error: (status, message) => new ThorchainError(status, message),
+};
+
+const get = <T>(path: string) => fetchJson<T, { message?: string }>(`${BASE}${path}`, { headers: HEADERS }, THORCHAIN);
 
 export function thorQuote(params: {
   fromAsset: string;

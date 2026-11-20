@@ -1,6 +1,7 @@
 import { type Address, decodeFunctionData, type Hex, zeroAddress } from "viem";
 
 import { HttpError } from "@/core/errors";
+import { apiFailure, fetchJson, type JsonApi } from "./json-api";
 
 const BASE = "https://swap-api.lcx.com/v1";
 const TIMEOUT_MS = 8_000;
@@ -173,39 +174,33 @@ export interface LcxSwap {
 
 const NO_ROUTE = new Set(["no_route", "insufficient_liquidity"]);
 
+interface LcxBody {
+  code?: string;
+  message?: string;
+}
+
+const LCX: JsonApi<LcxBody> = {
+  name: "LCX Liberty DEX",
+  limited: "LCX Liberty DEX is limiting quotes for this key. Wait a while.",
+  keyRejected: "That LCX Liberty DEX key was rejected. Check it under Settings → Trades.",
+  explain: (_status, body) =>
+    body?.code && NO_ROUTE.has(body.code) ? "LCX Liberty DEX found no route for this trade." : body?.message,
+  error: (status, message, body) => new LcxError(status, message, body?.code),
+};
+
 async function post<T>(path: string, body: unknown, key: string, signal: AbortSignal): Promise<T> {
-  const response = await fetch(`${BASE}${path}`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    signal,
-  });
-  const answer = (await response.json().catch(() => null)) as {
-    data?: T;
-    code?: string;
-    message?: string;
-  } | null;
-
-  if (response.ok && answer?.data) return answer.data;
-
-  if (response.status === 401 || response.status === 403) {
-    throw new LcxError(
-      response.status,
-      "That LCX Liberty DEX key was rejected. Check it under Settings → Trades.",
-      answer?.code,
-    );
-  }
-  if (response.status === 429) {
-    throw new LcxError(429, "LCX Liberty DEX is limiting quotes for this key. Wait a while.", answer?.code);
-  }
-  if (answer?.code && NO_ROUTE.has(answer.code)) {
-    throw new LcxError(response.status, "LCX Liberty DEX found no route for this trade.", answer.code);
-  }
-  throw new LcxError(
-    response.status,
-    answer?.message ?? `LCX Liberty DEX could not be reached (HTTP ${response.status}).`,
-    answer?.code,
+  const answer = await fetchJson<LcxBody & { data?: T }, LcxBody>(
+    `${BASE}${path}`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal,
+    },
+    LCX,
   );
+  if (answer?.data) return answer.data;
+  throw apiFailure(LCX, 200, answer);
 }
 
 interface LcxSwapParams {

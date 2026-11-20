@@ -1,4 +1,5 @@
 import { HttpError } from "@/core/errors";
+import { fetchJson, type JsonApi } from "./json-api";
 
 const BASE = "https://api.jup.ag/swap/v1";
 
@@ -31,22 +32,24 @@ export interface JupiterSwap {
   swapTransaction: string;
 }
 
-async function call<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${BASE}${path}`, init);
-  if (response.ok) return (await response.json()) as T;
+const NO_ROUTE = new Set(["NO_ROUTES_FOUND", "TOKEN_NOT_TRADABLE"]);
 
-  if (response.status === 429) {
-    throw new JupiterError(429, "Jupiter is limiting quotes from this device. Wait a minute and try again.");
-  }
-  const body = (await response.json().catch(() => null)) as { error?: string; errorCode?: string } | null;
-  if (body?.errorCode === "NO_ROUTES_FOUND" || body?.errorCode === "TOKEN_NOT_TRADABLE") {
-    throw new JupiterError(
-      response.status,
-      "Jupiter found no route for this trade. A larger amount or a different pair may have one.",
-    );
-  }
-  throw new JupiterError(response.status, body?.error ?? `Jupiter could not be reached (HTTP ${response.status}).`);
+interface JupiterBody {
+  error?: string;
+  errorCode?: string;
 }
+
+const JUPITER: JsonApi<JupiterBody> = {
+  name: "Jupiter",
+  limited: "Jupiter is limiting quotes from this device. Wait a minute and try again.",
+  explain: (_status, body) =>
+    body?.errorCode && NO_ROUTE.has(body.errorCode)
+      ? "Jupiter found no route for this trade. A larger amount or a different pair may have one."
+      : body?.error,
+  error: (status, message) => new JupiterError(status, message),
+};
+
+const call = <T>(path: string, init?: RequestInit) => fetchJson<T, JupiterBody>(`${BASE}${path}`, init, JUPITER);
 
 export function jupiterQuote(params: {
   inputMint: string;

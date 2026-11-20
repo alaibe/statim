@@ -1,6 +1,7 @@
 import { type Address, type Hex, zeroAddress } from "viem";
 
 import { HttpError } from "@/core/errors";
+import { fetchJson, type JsonApi } from "./json-api";
 
 const BASE = "https://li.quest/v1";
 
@@ -73,40 +74,26 @@ export class LifiError extends HttpError {
 const NO_ROUTE = 1002;
 const BAD_REQUEST = 1011;
 
-async function get<T>(path: string, params: Record<string, string | number>, key: string | null): Promise<T> {
+interface LifiBody {
+  message?: string;
+  code?: number;
+}
+
+const LIFI: JsonApi<LifiBody> = {
+  name: "LI.FI",
+  limited:
+    "LI.FI is limiting quotes from this device. Wait a while, or add your own LI.FI key under Settings → Trades.",
+  keyRejected: "That LI.FI key was rejected. Check it under Settings → Trades.",
+  explain: (_status, body) =>
+    body?.code === NO_ROUTE
+      ? "LI.FI found no route for this trade. A larger amount or a different pair may have one."
+      : body?.message,
+  error: (status, message, body) => new LifiError(status, message, body?.code),
+};
+
+function get<T>(path: string, params: Record<string, string | number>, key: string | null): Promise<T> {
   const query = new URLSearchParams(Object.entries(params).map(([name, value]) => [name, String(value)]));
-  const response = await fetch(`${BASE}${path}?${query}`, {
-    headers: key ? { "x-lifi-api-key": key } : undefined,
-  });
-
-  if (response.ok) return (await response.json()) as T;
-
-  if (response.status === 429) {
-    throw new LifiError(
-      429,
-      "LI.FI is limiting quotes from this device. Wait a while, or add your own LI.FI key under Settings → Trades.",
-    );
-  }
-  if (response.status === 401 || response.status === 403) {
-    throw new LifiError(response.status, "That LI.FI key was rejected. Check it under Settings → Trades.");
-  }
-
-  const body = (await response.json().catch(() => null)) as {
-    message?: string;
-    code?: number;
-  } | null;
-  if (body?.code === NO_ROUTE) {
-    throw new LifiError(
-      response.status,
-      "LI.FI found no route for this trade. A larger amount or a different pair may have one.",
-      NO_ROUTE,
-    );
-  }
-  throw new LifiError(
-    response.status,
-    body?.message ?? `LI.FI could not be reached (HTTP ${response.status}).`,
-    body?.code,
-  );
+  return fetchJson(`${BASE}${path}?${query}`, { headers: key ? { "x-lifi-api-key": key } : undefined }, LIFI);
 }
 
 const tokens = new Map<string, LifiToken>();
