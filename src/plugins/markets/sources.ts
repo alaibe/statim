@@ -80,6 +80,7 @@ export const chainlink: PriceSource = {
       ],
     });
     const [, answer, , updatedAt] = round;
+    if (answer <= 0n) throw new Error(`The ${found.base} / USD feed has no price right now.`);
     return { symbol, label: `${found.base}/USD`, price: Number(answer) / 10 ** decimals, updatedAt: Number(updatedAt) };
   },
 };

@@ -28,10 +28,12 @@ export const PAYMENT_SCHEMES = ["ethereum", "bitcoin", "solana"];
 
 const IN_TEXT = /\b(?:ethereum|bitcoin|solana):[^\s<>"'`]+/gi;
 
+/** A link in `text` the wallet can pay; one it cannot is left to the message's other cards. */
 export function findPaymentLink(text: string): string | null {
   for (const [candidate] of text.matchAll(IN_TEXT)) {
     const uri = candidate.replace(/[.,;!)]+$/, "");
-    if (parsePaymentLink(uri)) return uri;
+    const link = parsePaymentLink(uri);
+    if (link && !("error" in link)) return uri;
   }
   return null;
 }

@@ -48,6 +48,11 @@ describe("chainlink", () => {
     });
     expect(publicClientFor).toHaveBeenCalledWith(1);
   });
+
+  it("refuses a feed answering zero, which would fire every below alert", async () => {
+    jest.mocked(publicClientFor).mockReturnValue({ multicall: async () => [8, [1n, 0n, 0n, 1n, 1n]] } as never);
+    await expect(chainlink.ticker("ETHUSDT")).rejects.toThrow(/no price/);
+  });
 });
 
 describe("fetchPrices", () => {

@@ -235,7 +235,7 @@ async function prepare(
   if ("error" in wanted) return { error: wanted.error };
   const landsIn = wanted.address;
   if (from.id === "solana" && landsIn !== ownThere.address) {
-    return { error: "On Solana a trade lands in your own address. Send it on with /send once it has." };
+    return { error: "On Solana a trade lands in your own address, so leave Recipient empty." };
   }
 
   const symbol = fromToken.symbol;

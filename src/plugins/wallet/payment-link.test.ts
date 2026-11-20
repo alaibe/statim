@@ -97,6 +97,11 @@ describe("findPaymentLink", () => {
   it("ignores text that only looks like one", () => {
     expect(findPaymentLink("ethereum: the chain, not a link")).toBeNull();
   });
+
+  it("leaves a link the wallet cannot pay to the message's other cards", () => {
+    expect(findPaymentLink(`solana:${SOL}?amount=1&reference=82ZJ7nb`)).toBeNull();
+    expect(findPaymentLink(`ethereum:${ALICE}@56?value=1e18`)).toBeNull();
+  });
 });
 
 describe("paymentRequest", () => {
