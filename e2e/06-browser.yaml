@@ -25,6 +25,7 @@ appId: im.statim.app
     timeout: 10000
 - tapOn:
     id: "composer-input"
+- eraseText: 200
 - inputText: "/"
 - assertVisible:
     id: "command-commands"
@@ -40,6 +41,7 @@ appId: im.statim.app
     timeout: 10000
 - tapOn:
     id: "composer-input"
+- eraseText: 200
 - inputText: "/"
 - swipe:
     from:

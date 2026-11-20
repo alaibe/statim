@@ -1,0 +1,17 @@
+# Launches the app. The dev client sometimes stays on its server list instead of reopening the last bundle, from 12 s to
+# for good. Only once the app has had 30 s to appear does this tap this run's Metro (METRO_PORT, from run.sh): the list
+# also shows for a moment on a normal launch, and a tap then loads the bundle twice. Never another session's Metro.
+appId: im.statim.app
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Talk freely.|Chats"
+    timeout: 30000
+    optional: true
+- runFlow:
+    when:
+      visible: "Development Build"
+    commands:
+      - tapOn:
+          text: "http://.+:${METRO_PORT}"
+          optional: true

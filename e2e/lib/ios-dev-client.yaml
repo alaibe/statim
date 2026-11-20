@@ -1,0 +1,22 @@
+# Loads the development build from Metro and waits for its first screen, so the dev client reopens it on every later
+# launchApp. A simulator that has never opened the link first asks "Open in “Statim”?", and the first load opens the
+# dev menu over the app.
+appId: im.statim.app
+---
+- openLink: ${DEV_CLIENT_URL}
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"
+- extendedWaitUntil:
+    visible: "Talk freely.|Chats|Fast refresh"
+    timeout: 120000
+- runFlow:
+    when:
+      visible: "Fast refresh"
+    commands:
+      - tapOn: "Close"
+- extendedWaitUntil:
+    visible: "Talk freely.|Chats"
+    timeout: 30000

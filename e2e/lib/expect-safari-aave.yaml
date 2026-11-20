@@ -2,6 +2,10 @@
 appId: com.apple.mobilesafari
 ---
 - extendedWaitUntil:
+    visible: "Aave.*|View Bookmarks, Share Menu, and Open Tabs"
+    timeout: 30000
+- runFlow: safari-tip.yaml
+- extendedWaitUntil:
     visible: "Aave.*"
     timeout: 30000
 - openLink: "statim://chat/local-browser"

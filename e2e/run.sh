@@ -85,6 +85,12 @@ ios() {
         echo "→ Resetting the simulator keychain, so onboarding starts with no account."
         xcrun simctl keychain booted reset
     fi
+
+    # As on Android: the dev client reopens the last bundle it loaded, and a
+    # simulator that has never loaded one stays on the dev launcher.
+    "$MAESTRO" ${DEVICE[@]+"${DEVICE[@]}"} test --test-output-dir "$OUTPUT" \
+        -e DEV_CLIENT_URL="exp+statim://expo-development-client/?url=http%3A%2F%2Flocalhost%3A$PORT&disableOnboarding=1" \
+        e2e/lib/ios-dev-client.yaml
 }
 
 android() {
@@ -132,7 +138,7 @@ OUTPUT="$(mktemp -d -t statim-e2e)"
 
 FLOWS=(--exclude-tags "$OTHER-only" e2e)
 [ $# -eq 0 ] || FLOWS=("e2e/$1.yaml")
-if "$MAESTRO" ${DEVICE[@]+"${DEVICE[@]}"} test --test-output-dir "$OUTPUT" "${FLOWS[@]}"; then
+if "$MAESTRO" ${DEVICE[@]+"${DEVICE[@]}"} test --test-output-dir "$OUTPUT" -e METRO_PORT="$PORT" "${FLOWS[@]}"; then
     rm -rf "$OUTPUT"
 else
     echo "Maestro's screenshots and logs: $OUTPUT"

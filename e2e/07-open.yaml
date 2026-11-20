@@ -3,11 +3,7 @@ appId: im.statim.app
 tags:
   - ios-only
 ---
-- launchApp
-- extendedWaitUntil:
-    visible:
-      id: "chat-local-statim"
-    timeout: 15000
+- runFlow: lib/launch.yaml
 - waitForAnimationToEnd:
     timeout: 5000
 - openLink: "statim://chat/local-browser"
@@ -23,6 +19,7 @@ tags:
 
 - tapOn:
     id: "composer-input"
+- eraseText: 200
 - inputText: "/open uniswap"
 - tapOn:
     id: "composer-send"
@@ -39,6 +36,14 @@ tags:
 - extendedWaitUntil:
     visible: "Aave.*"
     timeout: 15000
+# The composer keeps the focus from /open. On a simulator that types with its
+# on-screen keyboard rather than the Mac's, the keyboard leaves the new list's
+# first rows above the chat's visible part; dragging the chat down shows them.
+- swipe:
+    start: 50%, 20%
+    end: 50%, 40%
+- waitForAnimationToEnd:
+    timeout: 3000
 - tapOn: "Aave.*"
 - extendedWaitUntil:
     visible: "Open Aave"
@@ -51,4 +56,5 @@ tags:
 - inputText: "hello"
 - assertVisible:
     id: "composer-send"
+- eraseText: 10
 - tapOn: "Back"

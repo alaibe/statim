@@ -1,0 +1,9 @@
+# Closes the tip Safari shows the first time it opens on a new simulator, which hides the page from Maestro.
+appId: com.apple.mobilesafari
+---
+- runFlow:
+    when:
+      visible: "View Bookmarks, Share Menu, and Open Tabs"
+    commands:
+      - tapOn:
+          id: "xmark.circle.fill"

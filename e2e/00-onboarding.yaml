@@ -1,7 +1,7 @@
 # Creates the account required by later flows after a fresh reset.
 appId: im.statim.app
 ---
-- launchApp
+- runFlow: lib/launch-app.yaml
 - extendedWaitUntil:
     visible: "Talk freely.|Chats"
     timeout: 60000

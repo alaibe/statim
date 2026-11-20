@@ -2,6 +2,10 @@
 appId: com.apple.mobilesafari
 ---
 - extendedWaitUntil:
+    visible: "Get started|View Bookmarks, Share Menu, and Open Tabs"
+    timeout: 30000
+- runFlow: safari-tip.yaml
+- extendedWaitUntil:
     visible: "Get started"
     timeout: 30000
 - openLink: "statim://chat/local-browser"

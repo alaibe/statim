@@ -31,11 +31,12 @@ and on iOS for Xcode, a stale native build and an unresponsive CoreSimulator.
 Each of those otherwise fails somewhere in the middle of a flow and looks like a
 bug in the app.
 
-On Android it forwards Metro's port to the device and loads the build from it
-once, because the dev client reopens the last bundle it loaded and every flow
-starts with `launchApp`. Give the emulator 4 GB of RAM: with the default 2 GB
-the low-memory killer takes down Maestro's driver while the app creates an
-account.
+It loads the build from Metro once before the flows, because the dev client
+reopens the last bundle it loaded and every flow starts with `launchApp`. On
+Android it forwards Metro's port to the device first; on iOS it confirms the
+"Open in “Statim”?" prompt a simulator shows the first time. Give the emulator
+4 GB of RAM: with the default 2 GB the low-memory killer takes down Maestro's
+driver while the app creates an account.
 
 ## The flows
 
@@ -50,9 +51,13 @@ account.
 | `06-browser` | `/commands` discovery and its chat-specific list, scrolls the full slash picker to Scan, opens Scan from each entry point, and keeps the swap providers in the Browser chat. |
 | `07-open` | Opens a bookmark with `/open` in Safari, comes back, checks the composer is free again. |
 
-Shared steps live in `e2e/lib/`: `launch` launches and waits for the chat list,
-`open-statim-chat` launches into the Statim chat, `send-command` sends its
-`TEXT` parameter from the composer, and `back` leaves a native stack screen. Maestro only
+Shared steps live in `e2e/lib/`: `launch-app` launches the app and, when the dev
+client stays on its server list instead of reopening the bundle, taps this run's
+Metro (`run.sh` passes its port as `METRO_PORT`); `launch` does that and waits
+for the chat list, `open-statim-chat` launches into the Statim chat,
+`send-command` sends its `TEXT` parameter from the composer, and `back` leaves a
+native stack screen. Every flow launches through `launch-app`, and the Safari
+checks close the tip Safari shows on a new simulator (`safari-tip`). Maestro only
 enumerates the top level of `e2e/`, so those never run as flows of their own.
 
 ## Rules the selectors follow
