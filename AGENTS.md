@@ -46,9 +46,13 @@ check and the tests on every push, and also checks:
 - Swift with `swift format lint --strict` (`.swift-format`); fix it with
   `swift format --in-place <files>`.
 - Shell scripts with `shfmt -d -i 4 -ci -bn` and `shellcheck -S warning`.
-- `src-tauri`, when a push changes it, with
+- `src-tauri`, on every push, with
   `cargo clippy --all-targets --locked -- -D warnings` and
-  `cargo test --locked`, run in that folder.
+  `cargo test --locked`, run in that folder. Run them too when you change it,
+  or `src/core/usage/usage-vectors.json`, which its tests read.
+
+Before tagging, the nightly runs the type check, both test suites and
+`./e2e/run.sh ios` on the Mac.
 
 ## Things that are not obvious from the code
 

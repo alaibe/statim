@@ -1,13 +1,13 @@
 # Checks every push to Statim against the shared code standard (homeserver's AGENTS.md › Code standards), on
 # git.laibe.cc's home runner (homeserver repository, `forgejo-runner/`). A failure reaches ntfy through the home
-# server's actions-alerts.sh; the desktop and phone builds stay in release.yml, and nightly.yml runs the type check and
-# the tests again on the Mac before tagging a release.
+# server's actions-alerts.sh; the desktop and phone builds stay in release.yml, and nightly.yml runs the type check,
+# the tests and the iPhone end-to-end suite again on the Mac before tagging a release.
 #
-# - check: the TypeScript's formatting (Biome) and lint (ESLint), its types and the Jest tests, the Rust's formatting,
-#   and the shell scripts' (shfmt, shellcheck, `bash -n`). Each npm script runs the same way in a terminal.
+# - check: one Format, Lint, Types, Tests sequence over every language: the TypeScript (Biome, ESLint, tsc, Jest), the
+#   desktop crate in src-tauri (rustfmt, Clippy, `cargo test`) and the shell scripts (shfmt, shellcheck, `bash -n`).
+#   The crate builds from scratch with TDLib and Tauri's Linux packages, so a push takes about 13 minutes longer than
+#   the TypeScript alone; the runner takes one job at a time, so a job of its own would only repeat the setup.
 # - swift: swift-format's lint of every Swift file, in Swift's official image, whose toolchain has swift-format.
-# - rust: Clippy and the tests of the desktop crate (src-tauri), which builds from scratch with TDLib and Tauri's Linux
-#   packages, so it runs after check and only when the push changed what it builds from.
 
 name: CI
 
@@ -28,34 +28,26 @@ env:
 jobs:
   check:
     runs-on: home-linux
-    timeout-minutes: 30
-    outputs:
-      rust: ${{ steps.rust.outputs.changed }}
+    timeout-minutes: 90
+    env:
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
     steps:
-      - uses: actions/checkout@v4
+      - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      # First, so the rust job learns it even when a check below fails. A new branch or a run by hand checks it.
-      - id: rust
-        name: Did the desktop crate change?
-        env:
-          BEFORE: ${{ github.event.before }}
+      # As release.yml's linux job: Tauri's own prerequisites, plus cmake for aws-lc (matrix-sdk), perl for OpenSSL
+      # (SQLCipher) and libudev for hidapi (Ledger).
+      - name: Linux packages
         run: |
-          changed=true
-          if [ "$GITHUB_EVENT_NAME" = push ] && [ -n "${BEFORE//0/}" ] \
-            && git fetch -q --depth 1 origin "$BEFORE" \
-            && git diff --quiet "$BEFORE" HEAD -- src-tauri scripts/tdlib.sh .forgejo/workflows/ci.yml; then
-            changed=false
-          fi
-          echo "src-tauri, scripts/tdlib.sh or ci.yml changed since ${BEFORE:-nothing}: $changed"
-          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev \
+            libssl-dev libayatana-appindicator3-dev librsvg2-dev \
+            cmake perl libudev-dev pkg-config patchelf xdg-utils
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .node-version
-
-      # The Rust in rust-toolchain.toml, with its components (rustfmt, for `npm run format:check`) and targets. The
-      # Linux image has no rustup: a minimal one goes in first, without a default toolchain, and on the PATH for the
-      # next steps.
+      # The Rust in rust-toolchain.toml, with its components (rustfmt, Clippy) and targets. The Linux image has no
+      # rustup: a minimal one goes in first, without a default toolchain, and on the PATH for the next steps.
       - name: Rust
         run: |
           if ! command -v rustup > /dev/null; then
@@ -67,9 +59,20 @@ jobs:
 
       # shellcheck and shfmt at the versions in env, on the PATH from the next step on.
       - name: Tools
-        uses: https://github.com/taiki-e/install-action@v2
+        uses: https://github.com/taiki-e/install-action@75a7c0f87bd666af3cdb75c5b9e9d03ab6044e6f # v2.90.6
         with:
           tool: shellcheck@${{ env.SHELLCHECK_VERSION }},shfmt@${{ env.SHFMT_VERSION }}
+
+      - uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+
+      - name: JavaScript packages
+        run: npm ci
+
+      # tdlib.sh fetches Linux's TDLib with npm. tauri.linux.conf.json bundles it, and tauri-build checks it's there.
+      - name: TDLib
+        run: ./scripts/tdlib.sh desktop
 
       # Every tracked file with a bash or sh shebang: scripts/tdlib.sh, scripts/sign-macos.sh and e2e/run.sh today.
       - name: Shell scripts
@@ -79,19 +82,18 @@ jobs:
           done > "$RUNNER_TEMP/shell"
           tr '\0' '\n' < "$RUNNER_TEMP/shell"
 
-      - name: JavaScript packages
-        run: npm ci
-
       # Biome (biome.json) and rustfmt (src-tauri/rustfmt.toml), then shfmt.
       - name: Format
         run: |
           npm run format:check
           xargs -0 -r shfmt -d -i 4 -ci -bn < "$RUNNER_TEMP/shell"
 
-      # ESLint with eslint-config-expo and the layer rules (eslint.config.js), then shellcheck and bash's own parse.
+      # ESLint with eslint-config-expo and the layer rules (eslint.config.js), Clippy, then shellcheck and bash's own
+      # parse.
       - name: Lint
         run: |
           npm run lint
+          cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings
           xargs -0 -r shellcheck -S warning < "$RUNNER_TEMP/shell"
           xargs -0 -r -n 1 bash -n < "$RUNNER_TEMP/shell"
 
@@ -99,7 +101,9 @@ jobs:
         run: npm run typecheck
 
       - name: Tests
-        run: npm test
+        run: |
+          npm test
+          cargo test --manifest-path src-tauri/Cargo.toml --locked
 
   swift:
     needs: check
@@ -116,7 +120,7 @@ jobs:
           apt-get update -qq
           apt-get install -y -qq --no-install-recommends nodejs > /dev/null
 
-      - uses: actions/checkout@v4
+      - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       # Every Swift file in the checkout (the Expo modules' and targets' iPhone code, the desktop's src-tauri/swift),
       # with .swift-format's four spaces and 120 columns. --strict fails on any finding, formatting included.
@@ -124,53 +128,3 @@ jobs:
         run: |
           swift format --version
           swift format lint --strict --recursive .
-
-  rust:
-    needs: check
-    if: ${{ !cancelled() && needs.check.outputs.rust == 'true' }}
-    runs-on: home-linux
-    timeout-minutes: 90
-    env:
-      CARGO_INCREMENTAL: 0
-      CARGO_PROFILE_DEV_DEBUG: 0
-      CARGO_PROFILE_TEST_DEBUG: 0
-    defaults:
-      run:
-        working-directory: src-tauri
-    steps:
-      - uses: actions/checkout@v4
-
-      # As release.yml's linux job: Tauri's own prerequisites, plus cmake for aws-lc (matrix-sdk), perl for OpenSSL
-      # (SQLCipher) and libudev for hidapi (Ledger).
-      - name: Linux packages
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev \
-            libssl-dev libayatana-appindicator3-dev librsvg2-dev \
-            cmake perl libudev-dev pkg-config patchelf xdg-utils
-
-      # The Rust in rust-toolchain.toml, with its components and targets. The Linux image has no rustup: a minimal one
-      # goes in first, without a default toolchain, and on the PATH for the next steps.
-      - name: Rust
-        run: |
-          if ! command -v rustup > /dev/null; then
-            curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
-            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-            PATH="$HOME/.cargo/bin:$PATH"
-          fi
-          rustup show active-toolchain || rustup toolchain install
-
-      # tdlib.sh fetches Linux's TDLib with npm. tauri.linux.conf.json bundles it, and tauri-build checks it's there.
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .node-version
-
-      - name: TDLib
-        run: ../scripts/tdlib.sh desktop
-
-      - name: Lint
-        run: cargo clippy --all-targets --locked -- -D warnings
-
-      - name: Tests
-        run: cargo test --locked
