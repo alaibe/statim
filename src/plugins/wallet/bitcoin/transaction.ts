@@ -113,8 +113,22 @@ export function buildTransaction(
   ]);
 }
 
-export function virtualSize(inputCount: number, outputCount: number): number {
-  const base = 10 + inputCount * 41 + outputCount * 31;
+/** `extraBytes` is any output that is not a 31-byte P2WPKH one, such as an OP_RETURN. */
+export function virtualSize(inputCount: number, outputCount: number, extraBytes = 0): number {
+  const base = 10 + inputCount * 41 + outputCount * 31 + extraBytes;
   const witness = 2 + inputCount * 108;
   return Math.ceil(base + witness / 4);
 }
+
+const OP_RETURN = 0x6a;
+const OP_PUSHDATA1 = 0x4c;
+
+/** Standard nodes relay one OP_RETURN of up to 80 bytes. */
+export function opReturn(data: Uint8Array): Uint8Array {
+  if (data.length > 80) throw new Error("An OP_RETURN holds at most 80 bytes.");
+  const push = data.length < OP_PUSHDATA1 ? [data.length] : [OP_PUSHDATA1, data.length];
+  return concat([Uint8Array.from([OP_RETURN, ...push]), data]);
+}
+
+/** The bytes an output with `script` adds: its 8-byte value, the script's length and the script. */
+export const outputSize = (script: Uint8Array) => 8 + varint(script.length).length + script.length;

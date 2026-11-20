@@ -1,4 +1,5 @@
-import { encodeFunctionData, erc20Abi } from "viem";
+import { secp256k1 } from "@noble/curves/secp256k1.js";
+import { decodeFunctionData, encodeFunctionData, erc20Abi } from "viem";
 import { loadLcxKey } from "@/core/account/trade-key";
 import { STATIM_LOCAL_ID } from "@/core/messaging/bots";
 import type { PluginContext } from "@/core/plugins/types";
@@ -18,6 +19,8 @@ import {
   lifiStatus,
   lifiToken,
 } from "@/lib/lifi";
+import { THORCHAIN_ROUTER_ABI, type ThorQuote, thorInbound, thorQuote, thorStatus } from "@/lib/thorchain";
+import { broadcast, fetchFeeRates, fetchUtxos } from "./bitcoin/api";
 import { EVM_CHAINS, evmStrategy } from "./chains/evm";
 import { type ChainStrategy, registerChainStrategy } from "./chains/strategy";
 import { getBalance, getTokenDecimals, sendTransaction as sendSolana, signatureState } from "./solana/rpc";
@@ -26,7 +29,19 @@ import { tradeCommand } from "./trade";
 
 jest.mock("./bitcoin/bot", () => ({ checkAddress: jest.fn() }));
 jest.mock("./bitcoin", () => ({ bitcoinStrategy: jest.fn() }));
-jest.mock("./bitcoin/config", () => ({ hydrateApiBase: jest.fn() }));
+jest.mock("./bitcoin/config", () => ({ hydrateApiBase: jest.fn(), apiBase: () => "https://mempool.test/api" }));
+jest.mock("./bitcoin/api", () => ({
+  ...jest.requireActual("./bitcoin/api"),
+  fetchUtxos: jest.fn(),
+  fetchFeeRates: jest.fn(),
+  broadcast: jest.fn(),
+}));
+jest.mock("@/lib/thorchain", () => ({
+  ...jest.requireActual("@/lib/thorchain"),
+  thorQuote: jest.fn(),
+  thorInbound: jest.fn(),
+  thorStatus: jest.fn(),
+}));
 jest.mock("./solana", () => ({ solanaStrategy: {} }));
 jest.mock("./chains/watcher", () => ({ checkBalances: jest.fn() }));
 jest.mock("@/lib/lifi", () => ({
@@ -251,8 +266,8 @@ describe("/trade", () => {
     expect(field(form, "to")?.value).toBe("arbitrum");
   });
 
-  it("refuses a chain that is not EVM, and one that is off", async () => {
-    expect((await run(["--from", "bitcoin"])).message).toMatch(/EVM chains and on Solana, and Bitcoin is not one/);
+  it("refuses a chain that is off", async () => {
+    expect((await run(["--from", "bitcoin"])).message).toMatch(/not switched on/);
     expect((await run(["--to", "polygon"])).message).toMatch(/not switched on/);
   });
 
@@ -764,5 +779,159 @@ describe("/trade on Solana", () => {
     expect((await swap("--recipient", "11111111111111111111111111111112")).message).toMatch(
       /lands in your own address/,
     );
+  });
+});
+
+describe("/trade between Bitcoin and Ethereum through THORChain", () => {
+  const BTC_ME = "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4";
+  const BTC_VAULT = "bc1qdr0ssmsgglm66nx2k2sfhz8mxy7rmvzu6qr9s3";
+  const ETH_VAULT = "0x7d715394d03c70675bc9309ca2d877479e6ae156";
+  const THOR_ROUTER = "0xD37BbE5744D730a1d98d8DC97c42F0Ca46aD7146";
+  const TXID = "cd".repeat(32);
+  const inbound = (chain: string, address: string, router?: string) => ({
+    chain,
+    address,
+    router,
+    halted: false,
+    chain_trading_paused: false,
+    global_trading_paused: false,
+  });
+
+  const btcToEth: ThorQuote = {
+    inbound_address: BTC_VAULT,
+    memo: `=:e:${me}:34953867`,
+    expected_amount_out: "35129515",
+    fees: { asset: "ETH.ETH", outbound: "14287", liquidity: "70411", total: "84698" },
+    expiry: 1795167804,
+    recommended_min_amount_in: "5907",
+    recommended_gas_rate: "3",
+    total_swap_seconds: 606,
+  };
+  const ethToBtc: ThorQuote = {
+    inbound_address: ETH_VAULT,
+    router: THOR_ROUTER,
+    memo: `=:b:${BTC_ME}:160209`,
+    expected_amount_out: "161015",
+    fees: { asset: "BTC.BTC", outbound: "969", liquidity: "324", total: "1293" },
+    expiry: 1795167804,
+    recommended_min_amount_in: "100000",
+    total_swap_seconds: 606,
+  };
+
+  beforeEach(() => {
+    const bitcoin = {
+      id: "bitcoin",
+      name: "Bitcoin",
+      icon: "logo-bitcoin",
+      selfAddress: () => BTC_ME,
+      isAddress: (value: string) => value.startsWith("bc1"),
+      addressHint: "bc1…",
+      explorer: { name: "mempool.space", addressUrl: (address: string) => address },
+      transfer: { symbol: "BTC", quote: jest.fn(), commit: jest.fn() },
+    } as unknown as ChainStrategy;
+    disposers.push(registerChainStrategy(bitcoin));
+    disposers.push(registerChainStrategy(evmStrategy(EVM_CHAINS.find((spec) => spec.id === "ethereum")!)));
+    jest.mocked(fetchUtxos).mockResolvedValue([{ txid: "ab".repeat(32), vout: 0, value: 2_000_000n }]);
+    jest.mocked(fetchFeeRates).mockResolvedValue({ fast: 9, medium: 5, slow: 2 });
+    jest.mocked(broadcast).mockResolvedValue(TXID);
+    jest
+      .mocked(thorInbound)
+      .mockImplementation(async (chain) =>
+        chain === "BTC" ? inbound("BTC", BTC_VAULT) : inbound("ETH", ETH_VAULT, THOR_ROUTER),
+      );
+    jest.mocked(thorQuote).mockImplementation(async ({ fromAsset }) => (fromAsset === "BTC.BTC" ? btcToEth : ethToBtc));
+  });
+
+  const privateKey = new Uint8Array(32).fill(1);
+  const bitcoinContext = {
+    ...context,
+    account: {
+      ...context.account,
+      derive: () => ({ privateKey, publicKey: secp256k1.getPublicKey(privateKey, true) }),
+    },
+  } as unknown as PluginContext;
+
+  const fromBitcoin = (...extra: string[]) =>
+    run(["0.01", "BTC", "native", "--from", "bitcoin", "--to", "ethereum", ...extra], bitcoinContext);
+
+  it("quotes Bitcoin to Ethereum with THORChain's own floor and fees", async () => {
+    const { title, stat, rows } = await fromBitcoin();
+
+    expect(title).toBe("Bridge Bitcoin → Ethereum");
+    expect(stat?.value).toBe("≈ 0.351295 ETH");
+    expect(stat?.caption).toMatch(/At least 0.349539 ETH/);
+    expect(rows).toContainEqual({ label: "Route", value: "THORChain" });
+    expect(rows?.find((r) => r.label === "Gas fee")?.value).toMatch(/BTC$/);
+    expect(rows?.find((r) => r.label === "Route fees")?.value).toBe("0.000847 ETH");
+    expect(thorQuote).toHaveBeenCalledWith({
+      fromAsset: "BTC.BTC",
+      toAsset: "ETH.ETH",
+      amount: 1_000_000n,
+      destination: me,
+      toleranceBps: 50,
+    });
+    expect(broadcast).not.toHaveBeenCalled();
+  });
+
+  it("sends the deposit with its memo on confirm, and offers to check on it", async () => {
+    const { title, actions } = await fromBitcoin("--confirm");
+
+    expect(broadcast).toHaveBeenCalledTimes(1);
+    expect(jest.mocked(broadcast).mock.calls[0][0]).toContain(Buffer.from(btcToEth.memo).toString("hex"));
+    expect(title).toBe("Bridge started");
+    expect(actions).toEqual([
+      { label: "Check status", command: `/trade --status ${TXID} --from bitcoin --to ethereum` },
+    ]);
+  });
+
+  it("does not deposit while THORChain has trading paused", async () => {
+    jest.mocked(thorInbound).mockResolvedValue({ ...inbound("BTC", BTC_VAULT), chain_trading_paused: true });
+    expect((await fromBitcoin("--confirm")).message).toMatch(/not taking deposits on Bitcoin/);
+    expect(broadcast).not.toHaveBeenCalled();
+  });
+
+  it("does not use a quote whose vault, memo or limit it cannot vouch for", async () => {
+    jest.mocked(thorQuote).mockResolvedValue({ ...btcToEth, inbound_address: "bc1qsomeoneelse" });
+    expect((await fromBitcoin()).message).toMatch(/vault THORChain does not list/);
+
+    jest.mocked(thorQuote).mockResolvedValue({ ...btcToEth, memo: "=:e:0x000000000000000000000000000000000000dEaD:1" });
+    expect((await fromBitcoin()).message).toMatch(/somewhere else/);
+
+    jest.mocked(thorQuote).mockResolvedValue({ ...btcToEth, memo: `=:e:${me}:0` });
+    expect((await fromBitcoin()).message).toMatch(/no price limit/);
+  });
+
+  it("refuses an amount below what THORChain could refund", async () => {
+    jest.mocked(thorQuote).mockResolvedValue({ ...btcToEth, recommended_min_amount_in: "2000000" });
+    expect((await fromBitcoin()).message).toMatch(/needs at least 0.02 BTC/);
+  });
+
+  it("deposits ETH through THORChain's router, with the vault and memo it quoted", async () => {
+    sendTransaction.mockReset().mockResolvedValueOnce(HASH);
+    await run(["0.1", "native", "BTC", "--from", "ethereum", "--to", "bitcoin", "--confirm"]);
+
+    const [{ to, value, data }] = sendTransaction.mock.calls[0];
+    expect(to).toBe(THOR_ROUTER);
+    expect(value).toBe(10n ** 17n);
+    expect(decodeFunctionData({ abi: THORCHAIN_ROUTER_ABI, data }).args).toEqual([
+      expect.stringMatching(/^0x7d71/i),
+      "0x0000000000000000000000000000000000000000",
+      10n ** 17n,
+      ethToBtc.memo,
+      BigInt(ethToBtc.expiry),
+    ]);
+  });
+
+  it("asks THORChain how a deposit is doing", async () => {
+    jest.mocked(thorStatus).mockResolvedValue({
+      stages: { inbound_observed: { completed: true }, outbound_signed: { completed: true } },
+      out_txs: [{ id: "AB".repeat(32), chain: "ETH", coins: [{ asset: "ETH.ETH", amount: "35000000" }] }],
+    });
+    const { title, stat, rows, links } = await run(["--status", TXID, "--from", "bitcoin", "--to", "ethereum"]);
+
+    expect(title).toBe("Bridge status");
+    expect(stat?.value).toBe("Done");
+    expect(rows).toEqual([{ label: "Received", value: "0.35 ETH" }]);
+    expect(links.map((l) => l.url)).toContain(`https://etherscan.io/tx/0x${"ab".repeat(32)}`);
   });
 });

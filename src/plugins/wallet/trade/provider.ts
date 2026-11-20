@@ -1,5 +1,7 @@
 import type { Address, Hex } from "viem";
 
+import type { WidgetRow, WidgetTone } from "@/design/widgets";
+import type { Deposit } from "../bitcoin/deposit";
 import type { ChainStrategy } from "../chains/strategy";
 
 export type TradeChain = ChainStrategy;
@@ -52,6 +54,25 @@ export interface SolanaPayment {
   transaction(): Promise<string>;
 }
 
+/** A Bitcoin payment to a vault, with a memo saying what to do with it. */
+export interface BitcoinPayment {
+  kind: "bitcoin";
+  deposit: Deposit;
+}
+
+export interface TradeStatus {
+  label: string;
+  tone: WidgetTone;
+  caption?: string;
+  rows: WidgetRow[];
+  links: { label: string; url: string }[];
+  /** Still under way, so asking again may say more. */
+  open: boolean;
+}
+
+/** A reason any provider gives for not quoting, shown as it is. */
+export class TradeRefusal extends Error {}
+
 export interface TradeQuote {
   provider: TradeProvider;
   route: string;
@@ -63,7 +84,7 @@ export interface TradeQuote {
   gas?: Cost[];
   fees?: Cost[];
   usd?: { from?: number; to?: number };
-  payment: EvmPayment | SolanaPayment;
+  payment: EvmPayment | SolanaPayment | BitcoinPayment;
 }
 
 export interface TradeProvider {
@@ -77,4 +98,6 @@ export interface TradeProvider {
   /** Lets a token go by signature through Permit2 instead of an approval per trade. */
   permitTargets?(chainId: number): Promise<{ permit2: Address; proxy: Address } | null>;
   tracker?(hash: string): { label: string; url: string };
+  /** How a trade between two chains is doing, by the hash of what left the first. */
+  status?(hash: string, route: { from: TradeChain; to: TradeChain; keys: TradeKeys }): Promise<TradeStatus>;
 }

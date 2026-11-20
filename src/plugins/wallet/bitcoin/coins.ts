@@ -16,7 +16,7 @@ export function planSpend(
   utxos: Utxo[],
   target: bigint,
   feeRate: number,
-  { sendMax = false }: { sendMax?: boolean } = {},
+  { sendMax = false, extraBytes = 0 }: { sendMax?: boolean; extraBytes?: number } = {},
 ): CoinResult {
   if (feeRate <= 0) return { ok: false, reason: "Fee rate must be positive." };
   if (!sendMax && target <= 0n) return { ok: false, reason: "That is nothing to send." };
@@ -27,7 +27,7 @@ export function planSpend(
 
   if (sendMax) {
     const total = sorted.reduce((sum, u) => sum + u.value, 0n);
-    const vsize = virtualSize(sorted.length, 1);
+    const vsize = virtualSize(sorted.length, 1, extraBytes);
     const fee = BigInt(vsize) * rate;
     const send = total - fee;
     if (send < DUST_LIMIT) {
@@ -43,7 +43,7 @@ export function planSpend(
     inputs.push(utxo);
     gathered += utxo.value;
 
-    const withChange = virtualSize(inputs.length, 2);
+    const withChange = virtualSize(inputs.length, 2, extraBytes);
     const feeWithChange = BigInt(withChange) * rate;
     const change = gathered - target - feeWithChange;
 
@@ -54,7 +54,7 @@ export function planSpend(
       };
     }
 
-    const withoutChange = virtualSize(inputs.length, 1);
+    const withoutChange = virtualSize(inputs.length, 1, extraBytes);
     const feeWithoutChange = BigInt(withoutChange) * rate;
     if (gathered >= target + feeWithoutChange) {
       return {

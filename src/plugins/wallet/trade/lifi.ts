@@ -1,7 +1,33 @@
 import type { Address } from "viem";
-import { LifiError, type LifiToken, lifiExplorerUrl, lifiPermitTargets, lifiQuote } from "@/lib/lifi";
-
+import type { WidgetRow, WidgetTone } from "@/design/widgets";
+import {
+  LifiError,
+  type LifiStatus,
+  type LifiStatusValue,
+  type LifiToken,
+  lifiExplorerUrl,
+  lifiPermitTargets,
+  lifiQuote,
+  lifiStatus,
+} from "@/lib/lifi";
+import { chainStrategies } from "../chains/strategy";
+import { amountOf } from "./evm";
 import type { Cost, TradeProvider } from "./provider";
+
+const STATUS_LABEL: Record<LifiStatusValue, { label: string; tone: WidgetTone }> = {
+  DONE: { label: "Done", tone: "success" },
+  PENDING: { label: "In progress", tone: "brand" },
+  FAILED: { label: "Failed", tone: "danger" },
+  NOT_FOUND: { label: "Not seen yet", tone: "warning" },
+  INVALID: { label: "Not recognised", tone: "danger" },
+};
+
+const chainName = (chainId: number) => chainStrategies().find((c) => c.evm?.id === chainId)?.name ?? `chain ${chainId}`;
+
+const leg = (name: string, l: LifiStatus["sending"]): WidgetRow[] =>
+  l?.token && l.amount
+    ? [{ label: name, value: `${amountOf(l.amount, l.token)} ${l.token.symbol} on ${chainName(l.chainId)}` }]
+    : [];
 
 const costs = (list: { amount: string; amountUSD?: string; token: LifiToken }[] | undefined): Cost[] | undefined =>
   list?.map(({ amount, amountUSD, token }) => ({
@@ -58,4 +84,19 @@ export const lifi: TradeProvider = {
   refusal: (error) => (error instanceof LifiError ? error.message : null),
   permitTargets: lifiPermitTargets,
   tracker: (hash) => ({ label: "Track on LI.FI", url: lifiExplorerUrl(hash) }),
+
+  async status(hash, { from, to, keys }) {
+    const status = await lifiStatus({ txHash: hash, fromChain: from.evm!.id, toChain: to.evm!.id }, keys.lifi);
+    const { receiving } = status;
+    return {
+      ...(STATUS_LABEL[status.status] ?? STATUS_LABEL.INVALID),
+      caption: status.substatusMessage,
+      rows: [...leg("Sent", status.sending), ...leg("Received", receiving)],
+      links: [
+        ...(receiving?.txLink ? [{ label: `View on ${chainName(receiving.chainId)}`, url: receiving.txLink }] : []),
+        { label: "Track on LI.FI", url: status.lifiExplorerLink ?? lifiExplorerUrl(hash) },
+      ],
+      open: status.status === "PENDING" || status.status === "NOT_FOUND",
+    };
+  },
 };

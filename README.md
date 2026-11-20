@@ -62,8 +62,9 @@ Everything a plugin does is a slash command. `/` in any chat opens a
 picker scoped to that chat; the chips above the composer run the same slash commands.
 `/chains` switches chains on and off, `/send` and `/request` move money inside
 the chat where it came up, `/trade` (also `/swap`, `/bridge`) quotes
-through LI.FI, and LCX Liberty DEX too once you save its key, or Jupiter on
-Solana, `/scan` reads a WalletConnect code. Anything that signs shows a
+through LI.FI, and LCX Liberty DEX too once you save its key, Jupiter on
+Solana, or THORChain between Bitcoin and Ethereum, `/scan` reads a
+WalletConnect code. Anything that signs shows a
 review step first.
 
 ## Platforms
