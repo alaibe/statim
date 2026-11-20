@@ -1,24 +1,32 @@
-import { type Hex, parseUnits } from "viem";
+import { parseUnits } from "viem";
 import { shortAddress } from "@/core/account/keyring";
 import { loadLcxKey, loadTradeKey } from "@/core/account/trade-key";
 import { flagValue, withoutFlag } from "@/core/commands/flags";
 import type { CommandInvocation, CommandResult, PluginContext, SlashCommand } from "@/core/plugins/types";
 import { W, type Widget, type WidgetOption, type WidgetRow } from "@/design/widgets";
 import type { PermitPlan } from "@/lib/evm/permit";
-import { popularTokens } from "@/lib/evm/token-list";
-import { explorerUrlFor } from "@/lib/evm/transactions";
-import { LIFI_NATIVE } from "@/lib/lifi";
 import { activeChain, defaultChain, NO_CHAIN_ON, pickStrategy } from "../chain-list";
-import { selfAddressOf, sendableChains, targetAddress } from "../chains/strategy";
+import { type ChainStrategy, selfAddressOf, sendableChains, targetAddress } from "../chains/strategy";
 import { assetField, withoutConfirm } from "../commands";
 import { sentPaymentErrorMessage, walletErrorMessage } from "../errors";
-import { bitcoinHeld, resolveBitcoinToken, sendBitcoinTrade } from "./bitcoin";
-import { type Approval, ApprovalPending, amountOf, heldBalance, planApproval, resolveToken, sendTrade } from "./evm";
+import { bitcoinLeg } from "./bitcoin";
+import { ApprovalPending, amountOf, evmLeg } from "./evm";
 import { jupiter } from "./jupiter";
 import { lcx } from "./lcx";
 import { lifi } from "./lifi";
-import type { Cost, TradeAsset, TradeChain, TradeKeys, TradeProvider, TradeQuote, TradeRequest } from "./provider";
-import { resolveSolanaToken, sendSolanaTrade, solanaFeeProblem, solanaHeld, solanaReceive } from "./solana";
+import {
+  type Cost,
+  type Sent,
+  type Trade,
+  type TradeAsset,
+  type TradeKeys,
+  type TradeLeg,
+  type TradeProvider,
+  type TradeQuote,
+  TradeRefusal,
+  type TradeRequest,
+} from "./provider";
+import { solanaLeg } from "./solana";
 import { thorchain } from "./thorchain";
 
 type Respond = CommandInvocation["respond"];
@@ -30,19 +38,18 @@ const PROVIDERS: TradeProvider[] = [lifi, lcx, jupiter, thorchain];
 
 const poweredBy = (provider: TradeProvider) => W.link(`Powered by ${provider.name}`, provider.site);
 
+const legOf = (chain: ChainStrategy): TradeLeg => (chain.evm ? evmLeg : chain.id === "solana" ? solanaLeg : bitcoinLeg);
+
 /** One entry per label on a chain, so a held token does not repeat a listed one. */
-function receiveOptions(chains: TradeChain[], held: WidgetOption[]): WidgetOption[] {
+function receiveOptions(chains: ChainStrategy[], held: WidgetOption[]): WidgetOption[] {
   const common = chains.flatMap((c) =>
-    (c.evm
-      ? popularTokens(c.evm.id)
-      : c.id === "solana"
-        ? solanaReceive()
-        : [{ symbol: "BTC", address: "native" }]
-    ).map((token) => ({
-      label: token.symbol,
-      value: token.address,
-      when: { to: c.id },
-    })),
+    legOf(c)
+      .receivable(c)
+      .map((token) => ({
+        label: token.symbol,
+        value: token.address,
+        when: { to: c.id },
+      })),
   );
   const seen = new Set<string>();
   return [...common, ...held].filter((option) => {
@@ -53,14 +60,12 @@ function receiveOptions(chains: TradeChain[], held: WidgetOption[]): WidgetOptio
   });
 }
 
-const tradeChains = sendableChains;
-
-function chainNamed(chains: TradeChain[], named: string): TradeChain | { error: string } {
+function chainNamed(chains: ChainStrategy[], named: string): ChainStrategy | { error: string } {
   const picked = pickStrategy(chains, named);
   return "error" in picked ? picked : picked.chain;
 }
 
-const statusCommand = (hash: string, from: TradeChain, to: TradeChain) =>
+const statusCommand = (hash: string, from: ChainStrategy, to: ChainStrategy) =>
   `/trade --status ${hash} --from ${from.id} --to ${to.id}`;
 
 const usd = (value: number | undefined) =>
@@ -92,9 +97,9 @@ interface Given {
 }
 
 async function tradeForm(
-  chains: TradeChain[],
-  from: TradeChain,
-  to: TradeChain,
+  chains: ChainStrategy[],
+  from: ChainStrategy,
+  to: ChainStrategy,
   given: Given,
   context: PluginContext,
   respond: Respond,
@@ -161,26 +166,12 @@ async function tradeForm(
   return { type: "handled" };
 }
 
-interface Trade extends Approval {
-  quote: TradeQuote;
-  other?: TradeQuote;
-  fromToken: TradeAsset;
-  toToken: TradeAsset;
-  /** Where the bought token lands: the account's own address unless asked otherwise. */
-  recipient: string;
-  sendsAway: boolean;
-}
-
 type Prepared = Trade | { error: string };
 
-interface Sent {
-  approval?: Hex;
-  hash: string;
-  /** False while a Solana swap has been sent but not yet confirmed. */
-  settled?: boolean;
-}
-
-const SOLSCAN_TX = "https://solscan.io/tx/";
+const refusalOf = (error: unknown, providers: TradeProvider[]) =>
+  error instanceof TradeRefusal
+    ? error.message
+    : (providers.map((provider) => provider.refusal(error)).find((message) => message !== null) ?? null);
 
 async function bestQuote(
   providers: TradeProvider[],
@@ -193,7 +184,7 @@ async function bestQuote(
   if (quotes.length > 0) return { chosen: quotes[0], other: quotes[1] };
 
   const failure = (settled[0] as PromiseRejectedResult).reason;
-  const refusal = providers.map((provider) => provider.refusal(failure)).find((message) => message !== null);
+  const refusal = refusalOf(failure, providers);
   if (refusal) return { error: refusal };
   throw failure;
 }
@@ -204,8 +195,8 @@ async function bestQuote(
  */
 async function prepare(
   context: PluginContext,
-  from: TradeChain,
-  to: TradeChain,
+  from: ChainStrategy,
+  to: ChainStrategy,
   { amount = "", token = "", receive = "", recipient }: Given,
   keys: TradeKeys,
 ): Promise<Prepared> {
@@ -213,13 +204,8 @@ async function prepare(
   const providers = PROVIDERS.filter((provider) => provider.covers({ from, to, keys }));
   if (providers.length === 0) return { error: `Nothing in the app trades from ${from.name} to ${to.name}.` };
 
-  const lookUp = async (chain: TradeChain, given: string) =>
-    chain.evm
-      ? resolveToken(chain, given, keys.lifi)
-      : chain.id === "solana"
-        ? resolveSolanaToken(given)
-        : resolveBitcoinToken(given);
-  const [fromToken, toToken] = await Promise.all([lookUp(from, token), lookUp(to, receive)]);
+  const leg = legOf(from);
+  const [fromToken, toToken] = await Promise.all([leg.token(from, token, keys), legOf(to).token(to, receive, keys)]);
   if ("error" in fromToken) return fromToken;
   if ("error" in toToken) return toToken;
 
@@ -234,16 +220,9 @@ async function prepare(
   const wanted = await targetAddress(to, context, recipient?.trim(), { resolve: true });
   if ("error" in wanted) return { error: wanted.error };
   const landsIn = wanted.address;
-  if (from.id === "solana" && landsIn !== ownThere.address) {
-    return { error: "On Solana a trade lands in your own address, so leave Recipient empty." };
-  }
 
   const symbol = fromToken.symbol;
-  const held = from.evm
-    ? await heldBalance(from, fromToken, address)
-    : from.id === "solana"
-      ? await solanaHeld(fromToken, address)
-      : await bitcoinHeld(address);
+  const held = await leg.held(from, fromToken, address);
   if (held < fromAmount) {
     return {
       error:
@@ -251,9 +230,6 @@ async function prepare(
         `want to trade ${amount} ${symbol}. Lower the amount or add ${symbol} on ${from.name}.`,
     };
   }
-
-  const short = from.id === "solana" ? await solanaFeeProblem(fromToken, fromAmount, held, address) : null;
-  if (short) return { error: short };
 
   const request: TradeRequest = {
     from,
@@ -269,24 +245,11 @@ async function prepare(
   const best = await bestQuote(providers, request);
   if ("error" in best) return best;
   const quote = best.chosen;
+  const short = await leg.shortfall(request, held, quote);
+  if (short) return { error: short };
 
-  if (from.evm && fromToken.address === LIFI_NATIVE) {
-    const gas = (quote.gas ?? []).reduce((sum, cost) => sum + cost.amount, 0n);
-    if (held < fromAmount + gas) {
-      return {
-        error:
-          `Not enough ${symbol} on ${from.name}. You hold ${amountOf(held, fromToken)} ${symbol} and ` +
-          `this trade needs ${amount} ${symbol} plus about ${amountOf(gas, fromToken)} ${symbol} in fees. ` +
-          `Lower the amount or add ${symbol} on ${from.name}.`,
-      };
-    }
-  }
-
-  const { payment } = quote;
   return {
-    ...(payment.kind === "evm"
-      ? await planApproval(context, request, { ...quote, payment })
-      : { needsApproval: false }),
+    ...((await leg.approval?.(context, request, quote)) ?? { needsApproval: false }),
     quote,
     other: best.other,
     fromToken,
@@ -310,8 +273,8 @@ function approvalNote(symbol: string, chain: string, needsApproval: boolean, per
 }
 
 function reviewCard(
-  from: TradeChain,
-  to: TradeChain,
+  from: ChainStrategy,
+  to: ChainStrategy,
   given: Given,
   { quote, other, fromToken, toToken, needsApproval, permit, recipient, sendsAway }: Trade,
 ): Widget {
@@ -372,20 +335,16 @@ function reviewCard(
 }
 
 function sentCard(
-  from: TradeChain,
-  to: TradeChain,
+  from: ChainStrategy,
+  to: ChainStrategy,
   { quote, fromToken, toToken }: Trade,
-  { approval, hash, settled = true }: Sent,
+  { approval, hash, state }: Sent,
 ): Widget {
   const same = from.id === to.id;
+  const settled = state === "done";
   const amount = amountOf(quote.sold, fromToken);
   const tracker = quote.provider.tracker?.(hash);
-  const explorer =
-    (from.evm
-      ? explorerUrlFor(from.evm.id, hash as Hex)
-      : from.id === "solana"
-        ? `${SOLSCAN_TX}${hash}`
-        : `https://mempool.space/tx/${hash}`) ?? tracker?.url;
+  const explorer = from.explorer.transactionUrl(hash) ?? tracker?.url;
   return W.card(
     [
       W.stat(`${amount} ${fromToken.symbol} → ≈ ${amountOf(quote.receive, toToken)} ${toToken.symbol}`, {
@@ -419,8 +378,8 @@ function sentCard(
 
 async function statusCard(
   hash: string,
-  from: TradeChain,
-  to: TradeChain,
+  from: ChainStrategy,
+  to: ChainStrategy,
   keys: TradeKeys,
   respond: Respond,
 ): Promise<CommandResult> {
@@ -449,7 +408,7 @@ async function statusCard(
     });
     return { type: "handled" };
   } catch (error) {
-    return { type: "error", message: provider.refusal(error) ?? walletErrorMessage(error, from, "status") };
+    return { type: "error", message: refusalOf(error, [provider]) ?? walletErrorMessage(error, from, "status") };
   }
 }
 
@@ -468,11 +427,11 @@ function tradeArgs(args: string[]) {
 }
 
 async function tradeRoute(
-  chains: TradeChain[],
+  chains: ChainStrategy[],
   fromId: string | undefined,
   toId: string | undefined,
   context: PluginContext,
-): Promise<{ from: TradeChain; to: TradeChain } | { error: string }> {
+): Promise<{ from: ChainStrategy; to: ChainStrategy } | { error: string }> {
   const from = fromId ? chainNamed(chains, fromId) : defaultChain(chains, undefined, (await activeChain(context))?.id);
   if ("error" in from) return from;
   const to = toId ? chainNamed(chains, toId) : from;
@@ -482,7 +441,7 @@ async function tradeRoute(
 
 async function quoteOrTrade(
   context: PluginContext,
-  { from, to }: { from: TradeChain; to: TradeChain },
+  { from, to }: { from: ChainStrategy; to: ChainStrategy },
   given: Given,
   keys: TradeKeys,
   confirmed: boolean,
@@ -507,20 +466,14 @@ async function quoteOrTrade(
 
   let sent: Sent | undefined;
   try {
-    const { payment } = prepared.quote;
-    if (payment.kind === "evm") {
-      sent = await sendTrade(context, from, { ...prepared, payment, sell: prepared.fromToken }, respond);
-    } else if (payment.kind === "bitcoin") {
-      sent = { hash: await sendBitcoinTrade(context, payment) };
-    } else {
-      const { hash, state } = await sendSolanaTrade(context, payment);
-      sent = { hash, settled: state === "confirmed" };
-      if (state === "failed") {
-        return {
-          type: "error",
-          message: `The swap failed on Solana, so nothing was traded and only its fee was spent. ${SOLSCAN_TX}${hash}`,
-        };
-      }
+    sent = await legOf(from).send(context, from, prepared, respond);
+    if (sent.state === "failed") {
+      return {
+        type: "error",
+        message:
+          `The trade failed on ${from.name}, so nothing was traded and only its fee was spent. ` +
+          (from.explorer.transactionUrl(sent.hash) ?? sent.hash),
+      };
     }
     await respond({
       kind: "widget",
@@ -544,16 +497,8 @@ export const tradeCommand: SlashCommand = {
   showIn: ["channel"],
   usage: "/trade <amount> <asset> <asset to receive> [--from base] [--to arbitrum] [--recipient 0x…]",
   async run({ args, context, respond }) {
-    const chains = tradeChains();
-    if (chains.length === 0) {
-      return {
-        type: "error",
-        message:
-          sendableChains().length > 0
-            ? "Trades run between EVM chains and on Solana, and none of them is switched on. /chains turns one on."
-            : NO_CHAIN_ON,
-      };
-    }
+    const chains = sendableChains();
+    if (chains.length === 0) return { type: "error", message: NO_CHAIN_ON };
 
     const { fromId, toId, status, confirmed, given } = tradeArgs(args);
     const route = await tradeRoute(chains, fromId, toId, context);

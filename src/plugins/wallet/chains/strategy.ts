@@ -71,6 +71,7 @@ export interface ChainStrategy {
   explorer: {
     name: string;
     addressUrl(address: string): string;
+    transactionUrl(hash: string): string | null;
   };
 
   transfer?: {
@@ -96,6 +97,8 @@ export function registerChainStrategy(strategy: ChainStrategy): () => void {
     if (registered.get(strategy.id) === strategy) registered.delete(strategy.id);
   };
 }
+
+export const isChainOn = (id: ChainId) => registered.has(id);
 
 export function chainStrategies(): ChainStrategy[] {
   return [...registered.values()];

@@ -30,7 +30,7 @@ function chain(id: string, symbol: string, amount: string | null, holdings?: Hol
         }
       : undefined,
     transfer: { symbol },
-    explorer: { name: id, addressUrl: () => "" },
+    explorer: { name: id, addressUrl: () => "", transactionUrl: () => null },
   } as unknown as ChainStrategy;
 }
 

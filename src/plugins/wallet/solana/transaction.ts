@@ -105,5 +105,5 @@ export function signPrepared(
     throw new Error("That transaction does not call the program it should.");
   }
 
-  return concat([encodeLength(1), ed25519.sign(message, key.privateKey), message]);
+  return signTransaction(message, key.privateKey);
 }

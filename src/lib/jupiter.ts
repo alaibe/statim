@@ -24,13 +24,11 @@ export interface JupiterQuote {
   outAmount: string;
   /** The least the swap pays out once slippage is counted; the program enforces it. */
   otherAmountThreshold: string;
-  priceImpactPct: string;
   routePlan: { swapInfo: { label?: string } }[];
 }
 
 export interface JupiterSwap {
   swapTransaction: string;
-  lastValidBlockHeight: number;
 }
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {

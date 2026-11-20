@@ -1,4 +1,4 @@
-import type { Chain } from "viem";
+import type { Chain, Hex } from "viem";
 import { formatEther, formatGwei } from "viem";
 import {
   arbitrum,
@@ -17,6 +17,7 @@ import type { IconName } from "@/design";
 import { publicClientFor, rpcOverrideFor, trimDecimals } from "@/lib/evm/chains";
 import { looksLikeEnsName, resolveName } from "@/lib/evm/ens";
 import { encodeTransfer, fetchTokens, supportsTokens, type TokenBalance, toTokenUnits } from "@/lib/evm/tokens";
+import { explorerUrlFor } from "@/lib/evm/transactions";
 import { estimateTransfer, sendNative, walletClientFor } from "@/lib/evm/wallet";
 
 import { checkRpcUrl, saveRpcOverride } from "./rpc";
@@ -142,6 +143,7 @@ export function evmStrategy(spec: ChainSpec): ChainStrategy {
     explorer: {
       name: chain.blockExplorers?.default.name ?? "the explorer",
       addressUrl: (address) => explorerUrl(chain, address) ?? "",
+      transactionUrl: (hash) => explorerUrlFor(chain.id, hash as Hex) ?? null,
     },
     transfer: {
       symbol: native,

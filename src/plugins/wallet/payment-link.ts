@@ -15,7 +15,6 @@ export interface PaymentLink {
   to: string;
   /** In the coin's or token's own units, as /send takes it. */
   amount?: string;
-  /** An ERC-20 contract. */
   token?: Address;
   /** A token amount in its smallest unit, which the token's decimals turn into `amount`. */
   units?: bigint;
@@ -30,6 +29,7 @@ const IN_TEXT = /\b(?:ethereum|bitcoin|solana):[^\s<>"'`]+/gi;
 
 /** A link in `text` the wallet can pay; one it cannot is left to the message's other cards. */
 export function findPaymentLink(text: string): string | null {
+  if (!text.includes(":")) return null;
   for (const [candidate] of text.matchAll(IN_TEXT)) {
     const uri = candidate.replace(/[.,;!)]+$/, "");
     const link = parsePaymentLink(uri);

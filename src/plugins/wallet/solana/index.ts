@@ -25,7 +25,7 @@ function toLamports(amount: string): bigint {
   return BigInt(whole) * LAMPORTS_PER_SOL + BigInt(fraction.padEnd(9, "0"));
 }
 
-const EXPLORER = "https://solscan.io/account";
+const EXPLORER = "https://solscan.io";
 
 export const solanaStrategy: ChainStrategy = {
   id: "solana",
@@ -57,7 +57,11 @@ export const solanaStrategy: ChainStrategy = {
     return tokens.map((token) => ({ symbol: token.symbol, amount: token.amount }));
   },
 
-  explorer: { name: "Solscan", addressUrl: (address) => `${EXPLORER}/${address}` },
+  explorer: {
+    name: "Solscan",
+    addressUrl: (address) => `${EXPLORER}/account/${address}`,
+    transactionUrl: (hash) => `${EXPLORER}/tx/${hash}`,
+  },
 
   transfer: {
     symbol: "SOL",

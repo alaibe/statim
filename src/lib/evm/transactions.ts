@@ -1,4 +1,12 @@
-import { type Address, decodeFunctionData, erc20Abi, formatEther, formatUnits, type Hex } from "viem";
+import {
+  type Address,
+  decodeFunctionData,
+  erc20Abi,
+  formatEther,
+  formatUnits,
+  type Hex,
+  toFunctionSelector,
+} from "viem";
 
 import { chainById, publicClientFor, trimDecimals } from "./chains";
 import { displayToken } from "./tokens";
@@ -15,6 +23,8 @@ interface TransactionSummary {
   blockNumber?: bigint;
   explorerUrl?: string;
 }
+
+const TRANSFER_SELECTOR = toFunctionSelector("transfer(address,uint256)");
 
 const HASH_PATTERN = /\b0x[0-9a-fA-F]{64}\b/;
 
@@ -65,7 +75,7 @@ async function tokenTransfer(
   contract: Address | null,
   input: Hex,
 ): Promise<{ to: Address; amount: string } | null> {
-  if (!contract) return null;
+  if (!contract || !input.startsWith(TRANSFER_SELECTOR)) return null;
   try {
     const call = decodeFunctionData({ abi: erc20Abi, data: input });
     if (call.functionName !== "transfer") return null;

@@ -3,8 +3,9 @@ import { type Address, encodeFunctionData, formatUnits, zeroAddress } from "viem
 import { LIFI_NATIVE } from "@/lib/lifi";
 import { THORCHAIN_ROUTER_ABI, ThorchainError, thorInbound, thorQuote, thorStatus } from "@/lib/thorchain";
 import { planDeposit } from "../bitcoin/deposit";
+import type { ChainStrategy } from "../chains/strategy";
 import { BTC } from "./bitcoin";
-import { type TradeAsset, type TradeChain, type TradeProvider, TradeRefusal } from "./provider";
+import { type TradeAsset, type TradeProvider, TradeRefusal, type TradeStatus } from "./provider";
 
 /** THORChain's name for each chain it shares with the wallet. Arbitrum, Optimism and Polygon are not on it. */
 const PREFIX: Record<string, string> = { bitcoin: "BTC", ethereum: "ETH", base: "BASE" };
@@ -14,7 +15,14 @@ const SHORT: Record<string, string> = { b: "BTC.BTC", e: "ETH.ETH", f: "BASE.ETH
 
 const MEMO_BYTES = 80;
 
-export function thorAsset(chain: TradeChain, token: TradeAsset): string | null {
+const PROGRESS: Record<"done" | "refunded" | "underway" | "unseen", Pick<TradeStatus, "label" | "tone">> = {
+  done: { label: "Done", tone: "success" },
+  refunded: { label: "Refunded", tone: "warning" },
+  underway: { label: "In progress", tone: "brand" },
+  unseen: { label: "Not seen yet", tone: "warning" },
+};
+
+function thorAsset(chain: ChainStrategy, token: TradeAsset): string | null {
   const prefix = PREFIX[chain.id];
   if (!prefix) return null;
   if (!chain.evm) return `${prefix}.${prefix}`;
@@ -46,10 +54,9 @@ function namesAsset(named: string, wanted: string): boolean {
   return base === wantedBase && (tail === undefined || wantedTail.endsWith(tail));
 }
 
-const untrusted = (what: string) => new ThorchainError(0, `THORChain's quote ${what}, so it was not used.`);
+const untrusted = (what: string) => new TradeRefusal(`THORChain's quote ${what}, so it was not used.`);
 
 export const thorchain: TradeProvider = {
-  id: "thorchain",
   name: "THORChain",
   site: "https://thorchain.org",
   covers: ({ from, to }) =>
@@ -59,7 +66,7 @@ export const thorchain: TradeProvider = {
   async quote({ from, to, sell, buy, amount, sender, recipient, slippage }) {
     const fromAsset = thorAsset(from, sell);
     const toAsset = thorAsset(to, buy);
-    if (!fromAsset || !toAsset) throw new ThorchainError(0, "THORChain does not trade that pair.");
+    if (!fromAsset || !toAsset) throw new TradeRefusal("THORChain does not trade that pair.");
     const units = to1e8(amount, sell.decimals);
     const sold = from1e8(units, sell.decimals);
 
@@ -74,7 +81,7 @@ export const thorchain: TradeProvider = {
       thorInbound(PREFIX[from.id]),
     ]);
     if (!inbound || inbound.halted || inbound.chain_trading_paused || inbound.global_trading_paused) {
-      throw new ThorchainError(0, `THORChain is not taking deposits on ${from.name} right now. Try again later.`);
+      throw new TradeRefusal(`THORChain is not taking deposits on ${from.name} right now. Try again later.`);
     }
     const vault = quote.inbound_address;
     if (inbound.address.toLowerCase() !== vault.toLowerCase()) throw untrusted("named a vault THORChain does not list");
@@ -138,39 +145,36 @@ export const thorchain: TradeProvider = {
     return {
       ...common,
       gas: [{ amount: planned.plan.fee, token: BTC }],
-      payment: { kind: "bitcoin", deposit },
+      payment: { kind: "bitcoin", deposit: planned },
     };
   },
 
-  refusal: (error) => (error instanceof ThorchainError || error instanceof TradeRefusal ? error.message : null),
+  refusal: (error) => (error instanceof ThorchainError ? error.message : null),
 
-  async status(hash, { to }) {
+  async status(hash, { from, to }) {
     const { stages = {}, planned_out_txs = [], out_txs = [] } = await thorStatus(hash);
     const [out] = out_txs;
-    const done = stages.outbound_signed?.completed === true && out !== undefined;
     const refund = planned_out_txs.some((tx) => tx.refund);
-    const outUrl = !out
-      ? null
-      : out.chain === "BTC"
-        ? `https://mempool.space/tx/${out.id.toLowerCase()}`
-        : to.evm?.blockExplorers?.default
-          ? `${to.evm.blockExplorers.default.url}/tx/0x${out.id.toLowerCase()}`
-          : null;
+    const state: keyof typeof PROGRESS =
+      stages.outbound_signed?.completed && out
+        ? refund
+          ? "refunded"
+          : "done"
+        : stages.inbound_observed?.completed
+          ? "underway"
+          : "unseen";
+    const paidOn = refund ? from : to;
+    const payout =
+      out && paidOn.explorer.transactionUrl(paidOn.evm ? `0x${out.id.toLowerCase()}` : out.id.toLowerCase());
 
     return {
-      ...(done
-        ? refund
-          ? { label: "Refunded", tone: "warning" as const }
-          : { label: "Done", tone: "success" as const }
-        : stages.inbound_observed?.completed
-          ? { label: "In progress", tone: "brand" as const }
-          : { label: "Not seen yet", tone: "warning" as const }),
+      ...PROGRESS[state],
       rows: (out?.coins ?? []).map((coin) => ({
         label: refund ? "Refunded" : "Received",
         value: `${formatUnits(BigInt(coin.amount), 8)} ${coin.asset.split(".")[1]?.split("-")[0] ?? coin.asset}`,
       })),
-      links: outUrl ? [{ label: "View the payout", url: outUrl }] : [],
-      open: !done,
+      links: payout ? [{ label: "View the payout", url: payout }] : [],
+      open: state === "underway" || state === "unseen",
     };
   },
 };

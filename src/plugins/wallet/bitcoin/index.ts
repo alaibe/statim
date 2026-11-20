@@ -136,6 +136,7 @@ export function bitcoinStrategy(context: PluginContext): ChainStrategy {
     explorer: {
       name: "mempool.space",
       addressUrl: (address) => `${EXPLORER}/address/${address}`,
+      transactionUrl: (hash) => `${EXPLORER}/tx/${hash}`,
     },
     transfer: {
       symbol: "BTC",

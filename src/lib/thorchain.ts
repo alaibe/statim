@@ -33,14 +33,14 @@ export interface ThorQuote {
   router?: string;
   memo: string;
   expected_amount_out: string;
-  fees: { asset: string; outbound: string; liquidity: string; total: string };
+  fees: { total: string };
   expiry: number;
   recommended_min_amount_in?: string;
   recommended_gas_rate?: string;
   total_swap_seconds?: number;
 }
 
-export interface ThorInbound {
+interface ThorInbound {
   chain: string;
   address: string;
   router?: string;
@@ -53,10 +53,9 @@ interface Stage {
   completed?: boolean;
 }
 
-export interface ThorStatus {
+interface ThorStatus {
   stages?: {
     inbound_observed?: Stage;
-    swap_finalised?: Stage;
     outbound_signed?: Stage;
   };
   planned_out_txs?: { refund?: boolean }[];

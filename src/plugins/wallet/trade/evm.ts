@@ -3,20 +3,20 @@ import { type Address, encodeFunctionData, erc20Abi, formatUnits, type Hex } fro
 import type { CommandInvocation, PluginContext } from "@/core/plugins/types";
 import { W } from "@/design/widgets";
 import { publicClientFor, trimDecimals } from "@/lib/evm/chains";
-import { type PermitPlan, type PermitTargets, permittedCall, planPermit } from "@/lib/evm/permit";
-import { explorerUrlFor } from "@/lib/evm/transactions";
+import { permittedCall, planPermit } from "@/lib/evm/permit";
+import { popularTokens } from "@/lib/evm/token-list";
 import { walletClientFor } from "@/lib/evm/wallet";
 import { LIFI_NATIVE, lifiToken } from "@/lib/lifi";
-
-import type { EvmPayment, TradeAsset, TradeChain, TradeQuote, TradeRequest } from "./provider";
+import type { ChainStrategy } from "../chains/strategy";
+import type { Approval, EvmPayment, Trade, TradeAsset, TradeLeg, TradeQuote, TradeRequest } from "./provider";
 
 type Respond = CommandInvocation["respond"];
 
 export const amountOf = (units: string | bigint, token: Pick<TradeAsset, "decimals">) =>
   trimDecimals(formatUnits(BigInt(units), token.decimals));
 
-export async function resolveToken(
-  chain: TradeChain,
+async function resolveToken(
+  chain: ChainStrategy,
   given: string,
   key: string | null,
 ): Promise<TradeAsset | { error: string }> {
@@ -32,7 +32,7 @@ export async function resolveToken(
   );
 }
 
-export function heldBalance(chain: TradeChain, token: TradeAsset, owner: string): Promise<bigint> {
+function heldBalance(chain: ChainStrategy, token: TradeAsset, owner: string): Promise<bigint> {
   const client = publicClientFor(chain.evm!.id);
   const address = owner as Address;
   return token.address === LIFI_NATIVE
@@ -45,14 +45,8 @@ export function heldBalance(chain: TradeChain, token: TradeAsset, owner: string)
       });
 }
 
-export interface Approval {
-  needsApproval: boolean;
-  permit?: PermitPlan;
-  targets?: PermitTargets;
-}
-
 /** Whether the sold token has to be approved, or can go by a Permit2 signature, before the quote's transaction. */
-export async function planApproval(
+async function planApproval(
   context: PluginContext,
   { from, sell, amount, sender }: TradeRequest,
   { provider, payment }: TradeQuote & { payment: EvmPayment },
@@ -99,21 +93,11 @@ export class ApprovalPending extends Error {
   }
 }
 
-export async function sendTrade(
+async function sendTrade(
   context: PluginContext,
-  from: TradeChain,
-  {
-    sell,
-    quote,
-    payment,
-    needsApproval,
-    permit,
-    targets,
-  }: Approval & {
-    sell: TradeAsset;
-    quote: TradeQuote;
-    payment: EvmPayment;
-  },
+  from: ChainStrategy,
+  { fromToken: sell, quote, needsApproval, permit, targets }: Trade,
+  payment: EvmPayment,
   respond: Respond,
 ): Promise<{ approval?: Hex; hash: Hex }> {
   const chainId = from.evm!.id;
@@ -135,7 +119,7 @@ export async function sendTrade(
       data: encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [spender, allowed] }),
     });
 
-    const follow = explorerUrlFor(chainId, approval);
+    const follow = from.explorer.transactionUrl(approval);
     await respond({
       kind: "widget",
       fallback: `Approving ${sell.symbol} on ${from.name}`,
@@ -184,3 +168,32 @@ export async function sendTrade(
   });
   return { approval, hash };
 }
+
+export const evmLeg: TradeLeg = {
+  receivable: (chain) => popularTokens(chain.evm!.id),
+  token: (chain, given, keys) => resolveToken(chain, given, keys.lifi),
+  held: heldBalance,
+
+  async shortfall({ from, sell, amount }, held, quote) {
+    if (sell.address !== LIFI_NATIVE) return null;
+    const gas = (quote.gas ?? []).reduce((sum, cost) => sum + cost.amount, 0n);
+    if (held >= amount + gas) return null;
+    const { symbol } = sell;
+    return (
+      `Not enough ${symbol} on ${from.name}. You hold ${amountOf(held, sell)} ${symbol} and ` +
+      `this trade needs ${amountOf(amount, sell)} ${symbol} plus about ${amountOf(gas, sell)} ${symbol} in fees. ` +
+      `Lower the amount or add ${symbol} on ${from.name}.`
+    );
+  },
+
+  approval: async (context, request, quote) =>
+    quote.payment.kind === "evm"
+      ? planApproval(context, request, { ...quote, payment: quote.payment })
+      : { needsApproval: false },
+
+  async send(context, chain, trade, respond) {
+    const { payment } = trade.quote;
+    if (payment.kind !== "evm") throw new Error("An EVM trade needs an EVM transaction.");
+    return { ...(await sendTrade(context, chain, trade, payment, respond)), state: "done" };
+  },
+};

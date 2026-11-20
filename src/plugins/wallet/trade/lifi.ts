@@ -39,7 +39,6 @@ const costs = (list: { amount: string; amountUSD?: string; token: LifiToken }[] 
 const dollars = (value: string | undefined) => (value ? Number(value) : undefined);
 
 export const lifi: TradeProvider = {
-  id: "lifi",
   name: "LI.FI",
   site: "https://li.fi",
   covers: ({ from, to }) => from.evm !== undefined && to.evm !== undefined,

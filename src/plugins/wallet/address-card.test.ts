@@ -26,7 +26,11 @@ const ethereum: ChainStrategy = {
   isAddress: (value) => /^0x[0-9a-fA-F]{40}$/.test(value),
   addressHint: "0x…",
   balance: async () => "1.5",
-  explorer: { name: "Etherscan", addressUrl: (a) => `https://etherscan.io/address/${a}` },
+  explorer: {
+    name: "Etherscan",
+    addressUrl: (a) => `https://etherscan.io/address/${a}`,
+    transactionUrl: (h) => `https://etherscan.io/tx/${h}`,
+  },
   transfer: { symbol: "ETH", quote: async () => ({ error: "no" }), commit: async () => "" },
   endpoint: {
     current: async () => "",

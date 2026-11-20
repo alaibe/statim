@@ -1,10 +1,10 @@
 import type { Address, Hex } from "viem";
 
+import type { CommandInvocation, PluginContext } from "@/core/plugins/types";
 import type { WidgetRow, WidgetTone } from "@/design/widgets";
-import type { Deposit } from "../bitcoin/deposit";
+import type { PermitPlan, PermitTargets } from "@/lib/evm/permit";
+import type { DepositPlan } from "../bitcoin/deposit";
 import type { ChainStrategy } from "../chains/strategy";
-
-export type TradeChain = ChainStrategy;
 
 export interface TradeKeys {
   lifi: string | null;
@@ -12,15 +12,15 @@ export interface TradeKeys {
 }
 
 export interface TradeAsset {
-  /** An EVM contract or a Solana mint. */
+  /** An EVM contract, a Solana mint, or BTC. */
   address: string;
   symbol: string;
   decimals: number;
 }
 
 export interface TradeRequest {
-  from: TradeChain;
-  to: TradeChain;
+  from: ChainStrategy;
+  to: ChainStrategy;
   sell: TradeAsset;
   buy: TradeAsset;
   amount: bigint;
@@ -54,10 +54,10 @@ export interface SolanaPayment {
   transaction(): Promise<string>;
 }
 
-/** A Bitcoin payment to a vault, with a memo saying what to do with it. */
+/** A Bitcoin payment to a vault, with a memo saying what to do with it, planned when it was quoted. */
 export interface BitcoinPayment {
   kind: "bitcoin";
-  deposit: Deposit;
+  deposit: DepositPlan;
 }
 
 export interface TradeStatus {
@@ -88,10 +88,9 @@ export interface TradeQuote {
 }
 
 export interface TradeProvider {
-  id: string;
   name: string;
   site: string;
-  covers(route: { from: TradeChain; to: TradeChain; keys: TradeKeys }): boolean;
+  covers(route: { from: ChainStrategy; to: ChainStrategy; keys: TradeKeys }): boolean;
   quote(request: TradeRequest): Promise<TradeQuote>;
   /** The provider's own words for an answer that is not a quote, such as no route. */
   refusal(error: unknown): string | null;
@@ -99,5 +98,44 @@ export interface TradeProvider {
   permitTargets?(chainId: number): Promise<{ permit2: Address; proxy: Address } | null>;
   tracker?(hash: string): { label: string; url: string };
   /** How a trade between two chains is doing, by the hash of what left the first. */
-  status?(hash: string, route: { from: TradeChain; to: TradeChain; keys: TradeKeys }): Promise<TradeStatus>;
+  status?(hash: string, route: { from: ChainStrategy; to: ChainStrategy; keys: TradeKeys }): Promise<TradeStatus>;
+}
+
+export interface Approval {
+  needsApproval: boolean;
+  permit?: PermitPlan;
+  targets?: PermitTargets;
+}
+
+export interface Trade extends Approval {
+  quote: TradeQuote;
+  other?: TradeQuote;
+  fromToken: TradeAsset;
+  toToken: TradeAsset;
+  /** Where the bought token lands: the account's own address unless asked otherwise. */
+  recipient: string;
+  sendsAway: boolean;
+}
+
+export interface Sent {
+  approval?: Hex;
+  hash: string;
+  /** "pending" while a trade has been sent but its chain has not confirmed it yet. */
+  state: "done" | "pending" | "failed";
+}
+
+/** What trading needs from the chain a trade leaves: its tokens, balances, fees and signing. */
+export interface TradeLeg {
+  receivable(chain: ChainStrategy): { symbol: string; address: string }[];
+  token(chain: ChainStrategy, given: string, keys: TradeKeys): Promise<TradeAsset | { error: string }>;
+  held(chain: ChainStrategy, token: TradeAsset, owner: string): Promise<bigint>;
+  /** Why the account cannot also pay the fees `quote` needs, if it cannot. */
+  shortfall(request: TradeRequest, held: bigint, quote: TradeQuote): Promise<string | null>;
+  approval?(context: PluginContext, request: TradeRequest, quote: TradeQuote): Promise<Approval>;
+  send(
+    context: PluginContext,
+    chain: ChainStrategy,
+    trade: Trade,
+    respond: CommandInvocation["respond"],
+  ): Promise<Sent>;
 }

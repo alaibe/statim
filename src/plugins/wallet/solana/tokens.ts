@@ -88,7 +88,7 @@ export async function fetchSplTokens(url: string, owner: string): Promise<SplBal
       const entry = byMint.get(mint);
       return {
         mint,
-        symbol: entry?.[1] ?? shortAddress(mint, 4, 4),
+        symbol: mintSymbol(mint),
         name: entry?.[2] ?? "Unknown token",
         decimals,
         amount: formatUnits(raw, decimals),

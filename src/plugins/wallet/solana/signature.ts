@@ -5,12 +5,14 @@ import type { WidgetContent } from "@/core/messaging/types";
 import { W, type WidgetRow } from "@/design/widgets";
 import { jsonRpc } from "@/lib/json-rpc";
 import { formatSol } from "./address";
-import { rpcUrl } from "./rpc";
+import { solanaStrategy } from "./index";
+import { rpcUrl, signatureStatus } from "./rpc";
 import { mintSymbol } from "./tokens";
 
 const SIGNATURE = /\b[1-9A-HJ-NP-Za-km-z]{86,88}\b/g;
 
 export function findSignature(text: string): string | null {
+  if (text.length < 86) return null;
   for (const [candidate] of text.matchAll(SIGNATURE)) {
     try {
       if (base58.decode(candidate).length === 64) return candidate;
@@ -61,14 +63,23 @@ export function summarise(transaction: ParsedTransaction): SolanaTransaction {
   return { status };
 }
 
-const settled = new Map<string, SolanaTransaction>();
+/** How long a pending or unseen signature's answer is reused before the node is asked again. */
+const RECHECK_MS = 30_000;
 
-async function readSignature(signature: string): Promise<SolanaTransaction | null> {
-  const known = settled.get(signature);
+const lookups = new Map<string, Promise<SolanaTransaction | null>>();
+
+function readSignature(signature: string): Promise<SolanaTransaction | null> {
+  const known = lookups.get(signature);
   if (known) return known;
-  const found = await lookUp(signature);
-  if (found && found.status !== "pending") settled.set(signature, found);
-  return found;
+  const lookup = lookUp(signature);
+  lookups.set(signature, lookup);
+  lookup.then(
+    (found) => {
+      if (!found || found.status === "pending") setTimeout(() => lookups.delete(signature), RECHECK_MS);
+    },
+    () => lookups.delete(signature),
+  );
+  return lookup;
 }
 
 async function lookUp(signature: string): Promise<SolanaTransaction | null> {
@@ -79,8 +90,7 @@ async function lookUp(signature: string): Promise<SolanaTransaction | null> {
   ]);
   if (transaction) return summarise(transaction);
 
-  const { value } = await jsonRpc<{ value: ({ err: unknown } | null)[] }>(url, "getSignatureStatuses", [[signature]]);
-  const [seen] = value;
+  const seen = await signatureStatus(url, signature);
   return seen ? { status: seen.err ? "failed" : "pending" } : null;
 }
 
@@ -95,6 +105,7 @@ export async function signatureCard(signature: string): Promise<Omit<WidgetConte
   if (!found) throw new Error("Solana has no transaction with that signature.");
 
   const { label, tone } = STATUS[found.status];
+  const explorer = solanaStrategy.explorer.transactionUrl(signature);
   const rows: WidgetRow[] = [
     ...(found.from ? [{ label: "From", value: shortAddress(found.from) }] : []),
     ...(found.to ? [{ label: "To", value: shortAddress(found.to) }] : []),
@@ -106,7 +117,7 @@ export async function signatureCard(signature: string): Promise<Omit<WidgetConte
       [
         W.stat(found.amount ?? "Transaction", { label, tone }),
         ...(rows.length ? [W.rows(rows)] : []),
-        W.link("View on Solscan", `https://solscan.io/tx/${signature}`, "open-outline"),
+        ...(explorer ? [W.link(`View on ${solanaStrategy.explorer.name}`, explorer, "open-outline")] : []),
       ],
       { title: "Solana transaction", icon: "sunny-outline" },
     ),

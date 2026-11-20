@@ -1,14 +1,16 @@
 import { JUPITER_PROGRAM, JupiterError, jupiterQuote, jupiterSwap } from "@/lib/jupiter";
 
-import type { TradeProvider } from "./provider";
+import { type TradeProvider, TradeRefusal } from "./provider";
 
 export const jupiter: TradeProvider = {
-  id: "jupiter",
   name: "Jupiter",
   site: "https://jup.ag",
   covers: ({ from, to }) => from.id === "solana" && to.id === "solana",
 
-  async quote({ sell, buy, amount, sender, slippage }) {
+  async quote({ sell, buy, amount, sender, recipient, slippage }) {
+    if (recipient !== sender) {
+      throw new TradeRefusal("A Jupiter swap lands in your own address, so leave Recipient empty.");
+    }
     const quote = await jupiterQuote({
       inputMint: sell.address,
       outputMint: buy.address,
@@ -16,7 +18,7 @@ export const jupiter: TradeProvider = {
       slippageBps: Math.round(slippage * 10_000),
     });
     if (quote.inputMint !== sell.address || quote.outputMint !== buy.address || BigInt(quote.inAmount) !== amount) {
-      throw new JupiterError(0, "Jupiter answered for a different trade, so it was not used.");
+      throw new TradeRefusal("Jupiter answered for a different trade, so it was not used.");
     }
     const hops = [...new Set(quote.routePlan.flatMap((step) => (step.swapInfo.label ? [step.swapInfo.label] : [])))];
     return {

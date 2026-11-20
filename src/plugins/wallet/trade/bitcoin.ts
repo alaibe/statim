@@ -1,18 +1,20 @@
-import type { PluginContext } from "@/core/plugins/types";
 import { fetchUtxos } from "../bitcoin/api";
 import { apiBase } from "../bitcoin/config";
 import { sendDeposit } from "../bitcoin/deposit";
-import type { BitcoinPayment, TradeAsset } from "./provider";
+import type { TradeAsset, TradeLeg } from "./provider";
 
 export const BTC: TradeAsset = { address: "BTC", symbol: "BTC", decimals: 8 };
 
-export function resolveBitcoinToken(given: string): TradeAsset | { error: string } {
-  return ["native", "btc"].includes(given.toLowerCase()) ? BTC : { error: "On Bitcoin there is only BTC to trade." };
-}
+export const bitcoinLeg: TradeLeg = {
+  receivable: () => [{ symbol: "BTC", address: "native" }],
+  token: async (_chain, given) =>
+    ["native", "btc"].includes(given.toLowerCase()) ? BTC : { error: "On Bitcoin there is only BTC to trade." },
+  held: async (_chain, _token, owner) =>
+    (await fetchUtxos(owner, apiBase())).reduce((sum, utxo) => sum + utxo.value, 0n),
+  shortfall: async () => null,
 
-export async function bitcoinHeld(owner: string): Promise<bigint> {
-  const utxos = await fetchUtxos(owner, apiBase());
-  return utxos.reduce((sum, utxo) => sum + utxo.value, 0n);
-}
-
-export const sendBitcoinTrade = (context: PluginContext, { deposit }: BitcoinPayment) => sendDeposit(context, deposit);
+  async send(context, _chain, { quote: { payment } }) {
+    if (payment.kind !== "bitcoin") throw new Error("A Bitcoin trade needs a Bitcoin deposit.");
+    return { hash: await sendDeposit(context, payment.deposit), state: "done" };
+  },
+};

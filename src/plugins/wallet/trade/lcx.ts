@@ -5,7 +5,6 @@ import { LcxError, lcxSwap } from "@/lib/lcx";
 import type { TradeProvider } from "./provider";
 
 export const lcx: TradeProvider = {
-  id: "lcx",
   name: "LCX Liberty DEX",
   site: "https://dex.lcx.com",
   covers: ({ from, to, keys }) => keys.lcx !== null && from.evm !== undefined && from.id === to.id,

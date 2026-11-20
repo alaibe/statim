@@ -23,7 +23,7 @@ import { THORCHAIN_ROUTER_ABI, type ThorQuote, thorInbound, thorQuote, thorStatu
 import { broadcast, fetchFeeRates, fetchUtxos } from "./bitcoin/api";
 import { EVM_CHAINS, evmStrategy } from "./chains/evm";
 import { type ChainStrategy, registerChainStrategy } from "./chains/strategy";
-import { getBalance, getTokenDecimals, sendTransaction as sendSolana, signatureState } from "./solana/rpc";
+import { getBalance, getTokenDecimals, sendTransaction as sendSolana, signatureStatus } from "./solana/rpc";
 import { signPrepared } from "./solana/transaction";
 import { tradeCommand } from "./trade";
 
@@ -72,7 +72,7 @@ jest.mock("./solana/rpc", () => ({
   getBalance: jest.fn(),
   getTokenDecimals: jest.fn(),
   sendTransaction: jest.fn(),
-  signatureState: jest.fn(),
+  signatureStatus: jest.fn(),
 }));
 jest.mock("./solana/transaction", () => ({
   ...jest.requireActual("./solana/transaction"),
@@ -181,6 +181,26 @@ async function run(args: string[], runContext: PluginContext = context) {
 
 const field = (form: Extract<Widget, { kind: "form" }> | undefined, id: string) =>
   form?.fields.find((f) => f.id === id);
+
+function stubChain(id: string, name: string, self: string, explorer: string): ChainStrategy {
+  return {
+    id,
+    name,
+    icon: "ellipse",
+    selfAddress: () => self,
+    isAddress: (value: string) => value.length >= 26 && !value.startsWith("0x"),
+    addressHint: "",
+    explorer: {
+      name,
+      addressUrl: (address: string) => address,
+      transactionUrl: (hash: string) => `${explorer}${hash}`,
+    },
+    transfer: { symbol: name, quote: jest.fn(), commit: jest.fn() },
+  } as unknown as ChainStrategy;
+}
+
+const withAccount = (account: Record<string, unknown>) =>
+  ({ ...context, account: { ...context.account, ...account } }) as unknown as PluginContext;
 
 const usdcToEth = async (params: { fromChain: number; fromAmount: bigint }) =>
   quoteFor(usdc(params.fromChain, USDC_BASE), params.fromAmount.toString());
@@ -681,13 +701,9 @@ describe("/trade on Solana", () => {
   const SOL_ME = "mvines9iiHiQTysrwkJjGf2gb9Ex9jXJX8ns3qwf2kN";
   const USDC_SOL = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
   const SIGNATURE = "5".repeat(88);
-  const solanaContext = {
-    ...context,
-    account: {
-      ...context.account,
-      deriveEd25519: () => ({ publicKey: new Uint8Array(32), privateKey: new Uint8Array(32) }),
-    },
-  } as unknown as PluginContext;
+  const solanaContext = withAccount({
+    deriveEd25519: () => ({ publicKey: new Uint8Array(32), privateKey: new Uint8Array(32) }),
+  });
 
   const answer = {
     inputMint: SOL_MINT,
@@ -695,28 +711,17 @@ describe("/trade on Solana", () => {
     inAmount: "100000000",
     outAmount: "7236079",
     otherAmountThreshold: "7199899",
-    priceImpactPct: "0",
     routePlan: [{ swapInfo: { label: "Raydium CLMM" } }, { swapInfo: { label: "Manifest" } }],
   };
 
   beforeEach(() => {
-    const solana = {
-      id: "solana",
-      name: "Solana",
-      icon: "sunny-outline",
-      selfAddress: () => SOL_ME,
-      isAddress: (value: string) => value.length >= 32,
-      addressHint: "",
-      explorer: { name: "Solscan", addressUrl: (address: string) => address },
-      transfer: { symbol: "SOL", quote: jest.fn(), commit: jest.fn() },
-    } as unknown as ChainStrategy;
-    disposers.push(registerChainStrategy(solana));
+    disposers.push(registerChainStrategy(stubChain("solana", "Solana", SOL_ME, "https://solscan.io/tx/")));
     jest.mocked(getBalance).mockResolvedValue(10n ** 9n);
     jest.mocked(getTokenDecimals).mockResolvedValue(6);
     jest.mocked(jupiterQuote).mockResolvedValue(answer);
-    jest.mocked(jupiterSwap).mockResolvedValue({ swapTransaction: btoa("unsigned"), lastValidBlockHeight: 1 });
+    jest.mocked(jupiterSwap).mockResolvedValue({ swapTransaction: btoa("unsigned") });
     jest.mocked(sendSolana).mockResolvedValue(SIGNATURE);
-    jest.mocked(signatureState).mockResolvedValue("confirmed");
+    jest.mocked(signatureStatus).mockResolvedValue({ err: null, confirmationStatus: "confirmed" });
   });
 
   const swap = (...extra: string[]) => run(["0.1", "SOL", "USDC", "--from", "solana", ...extra], solanaContext);
@@ -741,8 +746,8 @@ describe("/trade on Solana", () => {
 
   it("refuses a trade that would leave too little SOL for its fees", async () => {
     jest.mocked(getBalance).mockResolvedValue(100_000_000n);
-    expect((await swap()).message).toMatch(/about 0.005 SOL left over/);
-    expect(jupiterQuote).not.toHaveBeenCalled();
+    expect((await swap("--confirm")).message).toMatch(/about 0.005 SOL left over/);
+    expect(sendSolana).not.toHaveBeenCalled();
   });
 
   it("does not use an answer for another trade", async () => {
@@ -770,7 +775,9 @@ describe("/trade on Solana", () => {
   });
 
   it("says a swap that failed on chain traded nothing", async () => {
-    jest.mocked(signatureState).mockResolvedValue("failed");
+    jest
+      .mocked(signatureStatus)
+      .mockResolvedValue({ err: { InstructionError: [0, "Custom"] }, confirmationStatus: "confirmed" });
     expect((await swap("--confirm")).message).toMatch(/failed on Solana, so nothing was traded/);
   });
 
@@ -801,7 +808,7 @@ describe("/trade between Bitcoin and Ethereum through THORChain", () => {
     inbound_address: BTC_VAULT,
     memo: `=:e:${me}:34953867`,
     expected_amount_out: "35129515",
-    fees: { asset: "ETH.ETH", outbound: "14287", liquidity: "70411", total: "84698" },
+    fees: { total: "84698" },
     expiry: 1795167804,
     recommended_min_amount_in: "5907",
     recommended_gas_rate: "3",
@@ -812,24 +819,14 @@ describe("/trade between Bitcoin and Ethereum through THORChain", () => {
     router: THOR_ROUTER,
     memo: `=:b:${BTC_ME}:160209`,
     expected_amount_out: "161015",
-    fees: { asset: "BTC.BTC", outbound: "969", liquidity: "324", total: "1293" },
+    fees: { total: "1293" },
     expiry: 1795167804,
     recommended_min_amount_in: "100000",
     total_swap_seconds: 606,
   };
 
   beforeEach(() => {
-    const bitcoin = {
-      id: "bitcoin",
-      name: "Bitcoin",
-      icon: "logo-bitcoin",
-      selfAddress: () => BTC_ME,
-      isAddress: (value: string) => value.startsWith("bc1"),
-      addressHint: "bc1…",
-      explorer: { name: "mempool.space", addressUrl: (address: string) => address },
-      transfer: { symbol: "BTC", quote: jest.fn(), commit: jest.fn() },
-    } as unknown as ChainStrategy;
-    disposers.push(registerChainStrategy(bitcoin));
+    disposers.push(registerChainStrategy(stubChain("bitcoin", "Bitcoin", BTC_ME, "https://mempool.space/tx/")));
     disposers.push(registerChainStrategy(evmStrategy(EVM_CHAINS.find((spec) => spec.id === "ethereum")!)));
     jest.mocked(fetchUtxos).mockResolvedValue([{ txid: "ab".repeat(32), vout: 0, value: 2_000_000n }]);
     jest.mocked(fetchFeeRates).mockResolvedValue({ fast: 9, medium: 5, slow: 2 });
@@ -843,13 +840,9 @@ describe("/trade between Bitcoin and Ethereum through THORChain", () => {
   });
 
   const privateKey = new Uint8Array(32).fill(1);
-  const bitcoinContext = {
-    ...context,
-    account: {
-      ...context.account,
-      derive: () => ({ privateKey, publicKey: secp256k1.getPublicKey(privateKey, true) }),
-    },
-  } as unknown as PluginContext;
+  const bitcoinContext = withAccount({
+    derive: () => ({ privateKey, publicKey: secp256k1.getPublicKey(privateKey, true) }),
+  });
 
   const fromBitcoin = (...extra: string[]) =>
     run(["0.01", "BTC", "native", "--from", "bitcoin", "--to", "ethereum", ...extra], bitcoinContext);

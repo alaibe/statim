@@ -1,6 +1,6 @@
 import type { PluginContext } from "@/core/plugins/types";
 import { toHex } from "@/lib/bytes";
-import { BIP84_ACCOUNT_PATH, p2wpkhAddress } from "./address";
+import { BIP84_ACCOUNT_PATH } from "./address";
 import { broadcast, fetchFeeRates, fetchUtxos } from "./api";
 import { type CoinPlan, planSpend } from "./coins";
 import { apiBase } from "./config";
@@ -40,10 +40,8 @@ export async function planDeposit(from: string, deposit: Deposit): Promise<Depos
   return { plan, feeRate, outputs };
 }
 
-export async function sendDeposit(context: PluginContext, deposit: Deposit): Promise<string> {
+/** Signs a deposit planned from the account's own address, and broadcasts it. */
+export async function sendDeposit(context: PluginContext, { plan, outputs }: DepositPlan): Promise<string> {
   const key = context.account.derive(BIP84_ACCOUNT_PATH);
-  const planned = await planDeposit(p2wpkhAddress(key.publicKey), deposit);
-  if ("error" in planned) throw new Error(planned.error);
-  const raw = buildTransaction(planned.plan.inputs, planned.outputs, key.privateKey, key.publicKey);
-  return broadcast(toHex(raw), apiBase());
+  return broadcast(toHex(buildTransaction(plan.inputs, outputs, key.privateKey, key.publicKey)), apiBase());
 }

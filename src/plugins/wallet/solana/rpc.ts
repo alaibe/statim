@@ -36,18 +36,23 @@ export async function getTokenDecimals(url: string, mint: string): Promise<numbe
   return result.value.decimals;
 }
 
-export type SignatureState = "pending" | "confirmed" | "failed";
+/** What `owner` holds of `mint`, across every account it has for it. */
+export async function getTokenBalance(url: string, owner: string, mint: string): Promise<bigint> {
+  const { value } = await jsonRpc<{
+    value: { account: { data: { parsed: { info: { tokenAmount: { amount: string } } } } } }[];
+  }>(url, "getTokenAccountsByOwner", [owner, { mint }, { encoding: "jsonParsed" }]);
+  return value.reduce((sum, { account }) => sum + BigInt(account.data.parsed.info.tokenAmount.amount), 0n);
+}
 
-export async function signatureState(url: string, signature: string): Promise<SignatureState> {
-  const { value } = await jsonRpc<{ value: ({ err: unknown; confirmationStatus?: string } | null)[] }>(
-    url,
-    "getSignatureStatuses",
-    [[signature]],
-  );
-  const [status] = value;
-  if (!status) return "pending";
-  if (status.err) return "failed";
-  return status.confirmationStatus === "processed" ? "pending" : "confirmed";
+export interface SignatureStatus {
+  err: unknown;
+  confirmationStatus?: "processed" | "confirmed" | "finalized";
+}
+
+/** Null while the node has not seen the signature. */
+export async function signatureStatus(url: string, signature: string): Promise<SignatureStatus | null> {
+  const { value } = await jsonRpc<{ value: (SignatureStatus | null)[] }>(url, "getSignatureStatuses", [[signature]]);
+  return value[0] ?? null;
 }
 
 export async function checkRpcUrl(url: string): Promise<RpcCheck> {

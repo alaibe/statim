@@ -44,10 +44,25 @@ async function balancesOf(
   );
 }
 
-export async function describeToken(chainId: number, contract: Address): Promise<ListedToken | null> {
-  const listed = listedToken(chainId, contract);
-  if (listed) return listed;
+const described = new Map<string, Promise<ListedToken | null>>();
 
+/** A token's symbol, name and decimals, read from its contract once and remembered. */
+export function describeToken(chainId: number, contract: Address): Promise<ListedToken | null> {
+  const listed = listedToken(chainId, contract);
+  if (listed) return Promise.resolve(listed);
+  const key = `${chainId}:${contract.toLowerCase()}`;
+  const known = described.get(key);
+  if (known) return known;
+  const reading = readToken(chainId, contract);
+  described.set(key, reading);
+  reading.then(
+    (token) => token ?? described.delete(key),
+    () => described.delete(key),
+  );
+  return reading;
+}
+
+async function readToken(chainId: number, contract: Address): Promise<ListedToken | null> {
   const client = publicClientFor(chainId);
   const token = { address: contract, abi: erc20Abi } as const;
 
@@ -71,8 +86,10 @@ export async function describeToken(chainId: number, contract: Address): Promise
 
 /** A listed token under its symbol, any other under its contract: anyone can deploy a token that calls itself USDC. */
 export async function displayToken(chainId: number, contract: Address): Promise<ListedToken | null> {
+  const listed = listedToken(chainId, contract);
+  if (listed) return listed;
   const token = await describeToken(chainId, contract);
-  if (!token || listedToken(chainId, contract)) return token;
+  if (!token) return null;
   return { ...token, symbol: `${contract.slice(0, 6)}…${contract.slice(-4)}` };
 }
 

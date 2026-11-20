@@ -130,5 +130,4 @@ export function opReturn(data: Uint8Array): Uint8Array {
   return concat([Uint8Array.from([OP_RETURN, ...push]), data]);
 }
 
-/** The bytes an output with `script` adds: its 8-byte value, the script's length and the script. */
 export const outputSize = (script: Uint8Array) => 8 + varint(script.length).length + script.length;
