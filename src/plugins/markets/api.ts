@@ -4,12 +4,17 @@ const DEFAULT_QUOTE = "USDT";
 
 const QUOTE_ASSETS = ["USDT", "USDC", "FDUSD", "BUSD", "TUSD", "BTC", "ETH", "BNB", "EUR", "TRY"];
 
-interface Ticker {
+export interface Ticker {
   symbol: string;
   price: number;
-  changePercent: number;
-  high: number;
-  low: number;
+  /** What to call the market when it is not the symbol asked for. */
+  label?: string;
+  /** The last 24 hours, where the source keeps them. */
+  changePercent?: number;
+  high?: number;
+  low?: number;
+  /** When an oracle last wrote the price, in seconds. */
+  updatedAt?: number;
 }
 
 export function normaliseSymbol(input: string): string {
@@ -67,21 +72,4 @@ export async function fetchTicker(symbol: string, apiBase: string = DEFAULT_API_
     high: Number(body.highPrice),
     low: Number(body.lowPrice),
   };
-}
-
-export async function fetchPrices(
-  symbols: string[],
-  apiBase: string = DEFAULT_API_BASE,
-): Promise<Record<string, number>> {
-  const results = await Promise.all(
-    symbols.map(async (symbol) => {
-      try {
-        return [symbol, (await fetchTicker(symbol, apiBase)).price] as const;
-      } catch {
-        return null;
-      }
-    }),
-  );
-
-  return Object.fromEntries(results.filter((r): r is readonly [string, number] => r !== null && Number.isFinite(r[1])));
 }

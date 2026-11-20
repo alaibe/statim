@@ -3,10 +3,36 @@ import type { PluginContext, PluginView, SlashCommand } from "@/core/plugins/typ
 import { W } from "@/design/widgets";
 
 import { describeAlert, parseAlert, toAlert } from "./alerts";
-import { DEFAULT_API_BASE, displaySymbol, fetchTicker, formatPercent, formatPrice, normaliseSymbol } from "./api";
+import { DEFAULT_API_BASE, displaySymbol, formatPercent, formatPrice, normaliseSymbol, type Ticker } from "./api";
+import { CHAINLINK_FEEDS, chainlink, choosePriceSource, exchange, type PriceSource, priceSource } from "./sources";
 import { apiBase, isDefaultApiBase, readAlerts, saveApiBase, writeAlerts } from "./storage";
 
 const DEFAULT_MARKETS = ["BTCUSDT", "ETHUSDT"];
+
+const nameOf = (t: Ticker) => t.label ?? displaySymbol(t.symbol);
+
+const ago = (seconds: number) => {
+  const minutes = Math.max(0, Math.round((Date.now() / 1000 - seconds) / 60));
+  return minutes < 1 ? "just now" : minutes < 120 ? `${minutes} min ago` : `${Math.round(minutes / 60)} h ago`;
+};
+
+function caption(t: Ticker, source: PriceSource): string | undefined {
+  if (t.changePercent !== undefined) {
+    return [
+      `${formatPercent(t.changePercent)} over 24h`,
+      ...(t.high !== undefined ? [`high ${formatPrice(t.high)}`] : []),
+      ...(t.low !== undefined ? [`low ${formatPrice(t.low)}`] : []),
+    ].join(" · ");
+  }
+  return t.updatedAt !== undefined ? `${source.name} feed, updated ${ago(t.updatedAt)}` : undefined;
+}
+
+const toneOf = (t: Ticker) =>
+  t.changePercent === undefined
+    ? ("neutral" as const)
+    : t.changePercent >= 0
+      ? ("success" as const)
+      : ("danger" as const);
 
 export async function alertsCard(context: PluginContext) {
   const alerts = await readAlerts(context);
@@ -54,35 +80,39 @@ export function marketsCommands(
       usage: "/price [btc | eth | SOLUSDT]",
       async run({ args, respond }) {
         const symbols = args[0] ? [normaliseSymbol(args[0])] : DEFAULT_MARKETS;
+        const source = priceSource();
 
         try {
-          const tickers = await Promise.all(symbols.map((s) => fetchTicker(s, apiBase())));
+          const tickers = await Promise.all(symbols.map((s) => source.ticker(s)));
 
           await respond({
             kind: "widget",
-            fallback: tickers.map((t) => `${displaySymbol(t.symbol)} ${formatPrice(t.price)}`).join(" · "),
+            fallback: tickers.map((t) => `${nameOf(t)} ${formatPrice(t.price)}`).join(" · "),
             widget: W.card(
               [
                 ...(tickers.length === 1
                   ? [
                       W.stat(formatPrice(tickers[0].price), {
-                        label: displaySymbol(tickers[0].symbol),
-                        caption: `${formatPercent(tickers[0].changePercent)} over 24h · high ${formatPrice(tickers[0].high)} · low ${formatPrice(tickers[0].low)}`,
-                        tone: tickers[0].changePercent >= 0 ? "success" : "danger",
+                        label: nameOf(tickers[0]),
+                        caption: caption(tickers[0], source),
+                        tone: toneOf(tickers[0]),
                       }),
                     ]
                   : [
                       W.rows(
                         tickers.map((t) => ({
-                          label: displaySymbol(t.symbol),
-                          value: `${formatPrice(t.price)}  ${formatPercent(t.changePercent)}`,
-                          tone: t.changePercent >= 0 ? ("success" as const) : ("danger" as const),
+                          label: nameOf(t),
+                          value:
+                            t.changePercent === undefined
+                              ? formatPrice(t.price)
+                              : `${formatPrice(t.price)}  ${formatPercent(t.changePercent)}`,
+                          tone: toneOf(t),
                         })),
                       ),
                     ]),
                 W.actions(
                   tickers.map((t) => ({
-                    label: `Alert on ${displaySymbol(t.symbol)}`,
+                    label: `Alert on ${nameOf(t)}`,
                     command: `/draft /alert ${t.symbol} above `,
                     tone: "neutral" as const,
                   })),
@@ -113,7 +143,7 @@ export function marketsCommands(
 
         let price: number;
         try {
-          price = (await fetchTicker(spec.symbol, apiBase())).price;
+          price = (await priceSource().ticker(spec.symbol)).price;
         } catch (error) {
           return { type: "error", message: errorMessage(error, "Could not price that market.") };
         }
@@ -182,8 +212,8 @@ export function marketsCommands(
     {
       name: "marketapi",
       showIn: ["channel"],
-      description: "Point price lookups at a different venue",
-      usage: "/marketapi <url | reset>",
+      description: "Point price lookups at a different venue, or at Chainlink's feeds",
+      usage: "/marketapi <url | chainlink | reset>",
       async run({ args, respond }) {
         const [value] = args;
 
@@ -192,8 +222,17 @@ export function marketsCommands(
           return { type: "handled" };
         }
 
+        if (value.toLowerCase() === "chainlink") {
+          await choosePriceSource(context, chainlink);
+          return {
+            type: "notice",
+            tone: "success",
+            message: "Prices come from Chainlink's feeds on Ethereum now, read through your Ethereum endpoint",
+          };
+        }
+
         if (value === "reset") {
-          await saveApiBase(context, null);
+          await Promise.all([saveApiBase(context, null), choosePriceSource(context, exchange)]);
           return {
             type: "notice",
             tone: "success",
@@ -205,7 +244,7 @@ export function marketsCommands(
           return { type: "error", message: "The endpoint must start with https://." };
         }
 
-        await saveApiBase(context, value.replace(/\/$/, ""));
+        await Promise.all([saveApiBase(context, value.replace(/\/$/, "")), choosePriceSource(context, exchange)]);
         return { type: "notice", tone: "success", message: `Prices come from ${value} now` };
       },
     },
@@ -213,6 +252,24 @@ export function marketsCommands(
 }
 
 export function marketApiCard() {
+  if (priceSource() === chainlink) {
+    return {
+      kind: "widget" as const,
+      fallback: "Market data: Chainlink feeds on Ethereum",
+      widget: W.card(
+        [
+          W.rows([{ label: "Now using", value: "Chainlink feeds on Ethereum" }]),
+          W.text(
+            `Prices are read from Chainlink's US dollar feeds through your Ethereum endpoint, so no exchange ` +
+              `learns which markets you watch. Feeds: ${Object.keys(CHAINLINK_FEEDS).join(", ")}. A feed is ` +
+              "written when the price moves past a threshold or a set time passes, so it can lag an exchange. " +
+              "/marketapi reset goes back to the exchange.",
+          ),
+        ],
+        { title: "Market data", icon: "server-outline" },
+      ),
+    };
+  }
   return {
     kind: "widget" as const,
     fallback: `Market data: ${apiBase()}`,
@@ -223,8 +280,8 @@ export function marketApiCard() {
         }),
         W.text(
           "Any host exposing a Binance-compatible /ticker/24hr works. No API key is " +
-            "used or stored. Change it with /marketapi https://your-host/api/v3, or " +
-            "/marketapi reset.",
+            "used or stored. Change it with /marketapi https://your-host/api/v3, read Chainlink's " +
+            "feeds on Ethereum with /marketapi chainlink, or go back with /marketapi reset.",
         ),
       ],
       { title: "Market data", icon: "server-outline" },

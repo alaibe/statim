@@ -3,8 +3,9 @@ import { type Bot, type BotContext, type PluginContext, poll } from "@/core/plug
 import { W } from "@/design/widgets";
 
 import { afterFiring, describeAlert, type FiredAlert, firedAlerts, symbolsToPoll } from "./alerts";
-import { displaySymbol, fetchPrices, formatPrice } from "./api";
-import { apiBase, readAlerts, writeAlerts } from "./storage";
+import { displaySymbol, formatPrice } from "./api";
+import { fetchPrices, priceSource } from "./sources";
+import { readAlerts, writeAlerts } from "./storage";
 
 const MARKETS_BOT_ID = "markets";
 
@@ -25,7 +26,8 @@ export function makeMarketsBot(context: PluginContext): Bot {
         "/alert sol 5%: tell me about every 5% move\n" +
         "/price btc: where it is right now\n" +
         "/alerts: what I am watching",
-      "Prices come from a public exchange endpoint that needs no account. Point me at your own with /marketapi.",
+      "Prices come from a public exchange endpoint that needs no account. Point me at your own with /marketapi, " +
+        "or read Chainlink's feeds on Ethereum with /marketapi chainlink.",
     ],
 
     activate: poll(POLL_MS, async (ctx) => {
@@ -47,7 +49,7 @@ async function checkAlerts(context: PluginContext, ctx: BotContext): Promise<voi
   const alerts = await readAlerts(context);
   if (alerts.length === 0) return;
 
-  const prices = await fetchPrices(symbolsToPoll(alerts), apiBase());
+  const prices = await fetchPrices(symbolsToPoll(alerts), priceSource());
   const fired = firedAlerts(alerts, prices);
   if (fired.length === 0) return;
 

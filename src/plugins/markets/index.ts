@@ -3,6 +3,7 @@ import type { Plugin } from "@/core/plugins/types";
 
 import { makeMarketsBot } from "./bot";
 import { alertsCard, marketApiCard, marketsCommands } from "./commands";
+import { hydratePriceSource } from "./sources";
 import { hydrateApiBase } from "./storage";
 
 export const marketsPlugin: Plugin = {
@@ -43,7 +44,7 @@ export const marketsPlugin: Plugin = {
       ],
 
       async start() {
-        await hydrateApiBase(context);
+        await Promise.all([hydrateApiBase(context), hydratePriceSource(context)]);
       },
     };
   },
