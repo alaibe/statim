@@ -18,6 +18,10 @@ function named(): Map<string, Entry> {
 
 const MOST = 25;
 
+export function mintSymbol(mint: string): string {
+  return named().get(mint)?.[1] ?? shortAddress(mint, 4, 4);
+}
+
 export interface SplBalance {
   mint: string;
   symbol: string;

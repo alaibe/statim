@@ -43,9 +43,7 @@ export function TransactionPreview({ hash, fromMe }: { hash: `0x${string}`; from
         <Text variant="micro">· {summary.chainName}</Text>
       </View>
 
-      <Text className={cn("font-semibold", fromMe && "text-bubble-out-on")}>
-        {summary.value} {summary.symbol}
-      </Text>
+      <Text className={cn("font-semibold", fromMe && "text-bubble-out-on")}>{summary.amount ?? "Contract call"}</Text>
 
       <Text variant="micro" numberOfLines={1}>
         {shortAddress(summary.from)} → {summary.to ? shortAddress(summary.to) : "contract creation"}

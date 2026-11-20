@@ -21,6 +21,7 @@ import { channelCommands, endpointCard } from "./channel-commands";
 import { walletCommands } from "./commands";
 import { walletContentTypes } from "./content-types";
 import { findPaymentLink, PAYMENT_SCHEMES, parsePaymentLink, paymentCard, paymentRequest } from "./payment-link";
+import { findSignature, signatureCard } from "./solana/signature";
 import { tokensCommand } from "./tokens";
 import { tradeCommand } from "./trade";
 
@@ -40,6 +41,7 @@ export const walletPlugin: Plugin = {
       address: ([value, mode]) => addressCard(context, value, { offerSend: mode !== "no-send" }),
       chains: () => chainsCard(context),
       payment: ([uri]) => paymentCard(uri),
+      "solana-transaction": ([signature]) => signatureCard(signature),
       endpoint: ([id]) => {
         const chain = walletChainById(id);
         if (!chain) throw new Error(`No chain called "${id}".`);
@@ -62,6 +64,13 @@ export const walletPlugin: Plugin = {
           match: (text) => {
             const uri = findPaymentLink(text);
             return uri ? [uri] : null;
+          },
+        },
+        {
+          view: "solana-transaction",
+          match: (text) => {
+            const signature = findSignature(text);
+            return signature ? [signature] : null;
           },
         },
       ],

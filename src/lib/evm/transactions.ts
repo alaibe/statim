@@ -1,6 +1,7 @@
-import { type Address, formatEther, type Hex } from "viem";
+import { type Address, decodeFunctionData, erc20Abi, formatEther, formatUnits, type Hex } from "viem";
 
 import { chainById, publicClientFor, trimDecimals } from "./chains";
+import { describeToken } from "./tokens";
 
 interface TransactionSummary {
   hash: Hex;
@@ -8,8 +9,8 @@ interface TransactionSummary {
   chainName: string;
   from: Address;
   to: Address | null;
-  value: string;
-  symbol: string;
+  /** What it moved, such as "25 USDC"; null for a contract call that moved no coin. */
+  amount: string | null;
   status: "success" | "reverted" | "pending";
   blockNumber?: bigint;
   explorerUrl?: string;
@@ -38,18 +39,40 @@ async function readTransaction(hash: Hex, chainId: number): Promise<TransactionS
       client.getTransactionReceipt({ hash }).catch(() => null),
     ]);
 
+    const token = await tokenTransfer(chainId, transaction.to, transaction.input);
+    const coin = transaction.value > 0n || transaction.input === "0x";
+
     return {
       hash,
       chainId,
       chainName: chain.name,
       from: transaction.from,
-      to: transaction.to ?? null,
-      value: trimDecimals(formatEther(transaction.value)),
-      symbol: chain.nativeCurrency.symbol,
+      to: token?.to ?? transaction.to ?? null,
+      amount:
+        token?.amount ??
+        (coin ? `${trimDecimals(formatEther(transaction.value))} ${chain.nativeCurrency.symbol}` : null),
       status: receipt ? (receipt.status === "success" ? "success" : "reverted") : "pending",
       blockNumber: receipt?.blockNumber,
       explorerUrl: explorerUrlFor(chainId, hash),
     };
+  } catch {
+    return null;
+  }
+}
+
+async function tokenTransfer(
+  chainId: number,
+  contract: Address | null,
+  input: Hex,
+): Promise<{ to: Address; amount: string } | null> {
+  if (!contract) return null;
+  try {
+    const call = decodeFunctionData({ abi: erc20Abi, data: input });
+    if (call.functionName !== "transfer") return null;
+    const token = await describeToken(chainId, contract);
+    if (!token) return null;
+    const [to, units] = call.args;
+    return { to, amount: `${trimDecimals(formatUnits(units, token.decimals))} ${token.symbol}` };
   } catch {
     return null;
   }
