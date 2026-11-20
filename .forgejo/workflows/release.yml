@@ -1,24 +1,30 @@
-# Builds the desktop apps when a `v*` tag is pushed to git.laibe.cc (weekly.yml pushes it), on Forgejo Actions, and
-# releases them on the public GitHub repository alaibe/statim, which mirrors this one: the site's download links,
-# the Homebrew cask and the installed apps' updater all read its releases. A tag run also builds the Android app and
-# sends it to Google Play and, once the IOS variable is on, the iPhone app to TestFlight.
+# Builds the desktop apps when a `v*` tag is pushed to git.laibe.cc (nightly.yml pushes it), on Forgejo Actions, and
+# releases them on the public GitHub repository alaibe/statim, which mirrors this one, as Grenier's release does: the
+# site's download links, the Homebrew cask and the installed apps' updater all read its releases. A tag run also builds
+# the Android app and sends it to Google Play and, once the IOS variable is on, the iPhone app to TestFlight.
 #
 # Runners (the homeserver repository has their setup):
-#   mac         forgejo-runner on the Mac, steps on the Mac itself with its Xcode, Rust, Node, EAS and Android SDK
-#   home-linux  forgejo-runner on the home server, Ubuntu containers with nothing cached
+#   mac         forgejo-runner on the Mac, steps on the Mac itself with its Xcode, rustup, Node, gh, EAS and Android SDK
+#   home-linux  forgejo-runner on the home server, Ubuntu 22.04 containers with nothing cached
 #   windows     a Windows 11 VM on the home server, steps on Windows itself
 #
-# - macOS (`mac`): the universal app, signed with a throwaway keychain and notarized when the NOTARIZE variable is
-#   `true` (off while Apple's new agreement waits), its DMG, and its update bundle.
-# - Linux (`home-linux`): the deb, rpm and AppImage.
-# - Windows (`windows`): the MSI and NSIS installers.
-# - publish (`home-linux`): SHA256SUMS and the updater's latest.json from what the jobs attached, then the release
-#   leaves draft, only once every build passed.
-# - Then the Homebrew cask, the AUR package (once its key is set), the Android build and the iPhone build (once the
-#   IOS variable is `true`), on tag runs only.
+# - prepare (`home-linux`): the version files agree with the tag, the app carries the update key, GitHub has the tag
+#   at this commit, and a draft release carries the commits since the last one.
+# - macOS (`mac`): the universal app built unsigned, signed inside out by scripts/sign-macos.sh, then put in a DMG
+#   (Statim-<version>.dmg), notarized and stapled when the NOTARIZE variable is `true` (off while Apple's new agreement
+#   waits), and packed as the update bundle Tauri's updater installs (Statim_<version>_universal.app.tar.gz, signed
+#   with the Tauri key).
+# - Linux (`home-linux`): the deb, rpm and AppImage, each with its update signature.
+# - Windows (`windows`): the MSI and NSIS installers, each with its update signature, built on Windows itself: OpenSSL
+#   and TDLib link natively there, which a cross-build can't do.
+# - publish (`home-linux`): SHA256SUMS and latest.json, the feed every installed copy's updater reads, built as
+#   Kestrel's and Grenier's are; then, on a tag's run only, the release leaves draft.
+# - Then, on a tag's run only: the Homebrew cask (alaibe/homebrew-tap, Casks/statim.rb) moves to the DMG, the AUR
+#   package follows (once its key is set), the Android build goes to Google Play's beta track and the iPhone build to
+#   TestFlight (once the IOS variable is `true`).
 #
-# A run by hand builds the branch it's started on into a draft and goes no further. It refuses a version whose
-# release is already published, so it can't overwrite one.
+# A run by hand builds the branch it's started on into a draft and goes no further. It refuses a version whose release
+# is already published, so it can't overwrite one.
 #
 # Secrets on git.laibe.cc: the APPLE_* ones and RELEASES_TOKEN are shared by every repository (user level, set with
 # the homeserver repository's ci-secrets.sh, whose AGENTS.md maps every credential); the others are statim's own:
@@ -28,8 +34,11 @@
 #   APPLE_CERTIFICATE_PASSWORD  its password
 #   APPLE_SIGNING_IDENTITY      "Developer ID Application: … (8N3Z3WWTK7)"
 #   APPLE_API_KEY, APPLE_API_ISSUER, APPLE_API_PRIVATE_KEY   notarization, read only when NOTARIZE is true
-#   TAURI_SIGNING_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY_PASSWORD   the updater key (~/.tauri/status-original.key)
+#   TAURI_SIGNING_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY_PASSWORD   the update key (~/.tauri/status-original.key;
+#                               ci-secrets.sh tauri-key statim sets them), whose public half is plugins.updater.pubkey
 #   AUR_SSH_PRIVATE_KEY         optional: statim-bin on the AUR stays as it is without it
+#
+# Actions are pinned to a commit, with their tag beside it, as in nightly.yml; gh is checked against its SHA-256.
 
 name: Release
 
@@ -47,14 +56,18 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   RELEASES_REPOSITORY: alaibe/statim
-  # gh talks to GitHub, not to the Forgejo the job runs for.
+  # gh talks to GitHub, not to the Forgejo the job runs for; the home runner's image has no gh of its own.
   GH_HOST: github.com
   GH_VERSION: 2.104.0
+  GH_SHA256: 98cb101ad87dbbd3f6b2f2bfcbd43197ccd07643140121d8a9cfaa91eadbc24e
 
 jobs:
   prepare:
     runs-on: home-linux
-    timeout-minutes: 10
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
     outputs:
       version: ${{ steps.version.outputs.version }}
       release_id: ${{ steps.release.outputs.id }}
@@ -64,13 +77,22 @@ jobs:
           RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: '[ -n "$RELEASES_TOKEN" ] || { echo "The RELEASES_TOKEN secret is not set." >&2; exit 1; }'
 
-      - uses: actions/checkout@v4
+      - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
 
       - name: gh
-        run: curl -fsSL "https://github.com/cli/cli/releases/download/v$GH_VERSION/gh_${GH_VERSION}_linux_amd64.tar.gz" | sudo tar -xz -C /usr/local --strip-components=1
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/gh.tar.gz" "https://github.com/cli/cli/releases/download/v$GH_VERSION/gh_${GH_VERSION}_linux_amd64.tar.gz"
+          echo "$GH_SHA256  $RUNNER_TEMP/gh.tar.gz" | sha256sum -c -
+          sudo tar -xzf "$RUNNER_TEMP/gh.tar.gz" -C /usr/local --strip-components=1
 
       - id: version
-        name: Manifests agree with the tag
+        name: Version files agree with the tag
         run: |
           V=$(jq -r .expo.version app.json)
           case "${{ github.ref }}" in
@@ -82,6 +104,12 @@ jobs:
           done
           grep -q "^version = \"$V\"" src-tauri/Cargo.toml || { echo "src-tauri/Cargo.toml is not $V" >&2; exit 1; }
           echo "version=$V" >> "$GITHUB_OUTPUT"
+
+      # A copy released without the key's public half could never update itself.
+      - name: The app carries the update key
+        run: |
+          node -e 'const c = require("./src-tauri/tauri.conf.json"); process.exit(c.plugins?.updater?.pubkey ? 0 : 1)' ||
+            { echo "plugins.updater.pubkey is empty in tauri.conf.json: ci-secrets.sh tauri-key statim prints it" >&2; exit 1; }
 
       # The mirror pushes the tag to GitHub within seconds of the push here. Publishing a release whose tag GitHub
       # doesn't have would make one from GitHub's main, and the mirror would then overwrite it.
@@ -102,6 +130,20 @@ jobs:
           echo "After ten minutes GitHub's $TAG is '${ref:-missing}', not $GITHUB_SHA: is the push mirror to GitHub working?" >&2
           exit 1
 
+      - name: Release notes
+        run: |
+          # The commits since the last release; the first release has none to list.
+          PREVIOUS=$(git describe --tags --abbrev=0 --match 'v*' HEAD^ 2>/dev/null || true)
+          if [ -n "$PREVIOUS" ]; then
+            git log --no-merges --format='- %s' "$PREVIOUS..HEAD" > "$RUNNER_TEMP/all-notes"
+            COUNT=$(wc -l < "$RUNNER_TEMP/all-notes")
+            head -n 50 "$RUNNER_TEMP/all-notes" > "$RUNNER_TEMP/notes"
+            [ "$COUNT" -le 50 ] || echo "- And $((COUNT - 50)) more changes" >> "$RUNNER_TEMP/notes"
+          else
+            echo "The first release of Statim." > "$RUNNER_TEMP/notes"
+          fi
+          cat "$RUNNER_TEMP/notes"
+
       - id: release
         name: Draft release
         env:
@@ -117,7 +159,8 @@ jobs:
             id=${release%% *}
           else
             id=$(gh api "repos/$RELEASES_REPOSITORY/releases" \
-              -f tag_name="$TAG" -f name="Statim $V" -F draft=true -F prerelease=false --jq .id)
+              -f tag_name="$TAG" -f name="Statim $V" \
+              -F body=@"$RUNNER_TEMP/notes" -F draft=true -F prerelease=false --jq .id)
           fi
           [[ "$id" =~ ^[0-9]+$ ]] || { echo "no release id: $id" >&2; exit 1; }
           echo "id=$id" >> "$GITHUB_OUTPUT"
@@ -130,11 +173,11 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
       # actions/checkout adds a safe.directory to the global git config: a throwaway one, not Anthony's ~/.gitconfig.
-      - uses: actions/checkout@v4
+      - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         env:
           GIT_CONFIG_GLOBAL: ${{ runner.temp }}/gitconfig
 
-      - uses: actions/setup-node@v4
+      - uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .node-version
 
@@ -148,13 +191,15 @@ jobs:
             [ -n "${!name}" ] || { echo "The $name secret is not set." >&2; exit 1; }
           done
 
+      # The Rust in rust-toolchain.toml, with its targets, through the Mac's own rustup.
       - name: The Mac's tools
         run: |
           WORK=$(mktemp -d)
           echo "WORK=$WORK" >> "$GITHUB_ENV"
-          rustup show active-toolchain || rustup toolchain install
+          rustup install --no-self-update
+          cargo --version
           # Whole outputs: `| head` would end a command early, and the pipe's SIGPIPE fails the step.
-          xcodebuild -version; cargo --version; node --version; npm --version; gh --version
+          xcodebuild -version; node --version; npm --version; gh --version
 
       - name: JavaScript packages
         run: npm ci
@@ -162,6 +207,15 @@ jobs:
       # Relinked from Swiftgram's framework, cached in ~/.cache/statim from one release to the next.
       - name: TDLib
         run: ./scripts/tdlib.sh desktop
+
+      - name: Build the universal app, unsigned
+        run: |
+          npx tauri build --target universal-apple-darwin --bundles app --no-sign -- --locked
+          APP="$PWD/src-tauri/target/universal-apple-darwin/release/bundle/macos/Statim.app"
+          [ -d "$APP" ] || { echo "no app at $APP" >&2; exit 1; }
+          found=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$APP/Contents/Info.plist")
+          [ "$found" = "$VERSION" ] || { echo "the app says $found, expected $VERSION" >&2; exit 1; }
+          echo "APP=$APP" >> "$GITHUB_ENV"
 
       - name: Signing keychain
         env:
@@ -181,47 +235,58 @@ jobs:
           rm "$WORK/certificate.p12"
           echo "KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
 
-      - name: Notarization, when NOTARIZE is on
+      - name: Sign inside out
+        run: scripts/sign-macos.sh "$APP" "${{ secrets.APPLE_SIGNING_IDENTITY }}" "$KEYCHAIN"
+
+      - name: DMG, notarized and stapled when NOTARIZE is on
         env:
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
           # The repository's NOTARIZE variable (Settings › Actions › Variables) set to `true`. Off while Apple refuses
-          # the team's requests until its new agreement is accepted; an un-notarized app asks "Open Anyway" on its
+          # the team's requests until its new agreement is accepted; an un-notarized DMG asks "Open Anyway" on the
           # first launch from a download.
           NOTARIZE: ${{ vars.NOTARIZE }}
         run: |
+          STAGE="$WORK/dmg"
+          mkdir -p "$STAGE" && cp -R "$APP" "$STAGE/" && ln -s /Applications "$STAGE/Applications"
+          DMG="$WORK/Statim-$VERSION.dmg"
+          hdiutil create -volname Statim -srcfolder "$STAGE" -ov -format UDZO "$DMG"
+          codesign --force --sign "${{ secrets.APPLE_SIGNING_IDENTITY }}" --keychain "$KEYCHAIN" --timestamp "$DMG"
+          echo "DMG=$DMG" >> "$GITHUB_ENV"
           if [ "$NOTARIZE" != true ]; then
             echo "Not notarized: NOTARIZE isn't true."
             exit 0
           fi
           printf '%s\n' "$APPLE_API_PRIVATE_KEY" > "$WORK/AuthKey.p8"
-          # Tauri notarizes and staples the app when these are set.
-          {
-            echo "APPLE_API_KEY=$APPLE_API_KEY"
-            echo "APPLE_API_ISSUER=$APPLE_API_ISSUER"
-            echo "APPLE_API_KEY_PATH=$WORK/AuthKey.p8"
-          } >> "$GITHUB_ENV"
+          xcrun notarytool submit "$DMG" --key "$WORK/AuthKey.p8" --key-id "$APPLE_API_KEY" \
+            --issuer "$APPLE_API_ISSUER" --wait
+          rm "$WORK/AuthKey.p8"
+          xcrun stapler staple "$DMG"
+          spctl --assess --type open --context context:primary-signature --verbose "$DMG"
 
-      - name: Build the universal app, its DMG and update bundle
+      # What Tauri's updater unpacks over an installed Statim: the signed app, packed without macOS's ._ files, its
+      # signature bound to this version (requireSignedVersion).
+      - name: Update bundle
         env:
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: npx tauri build --target universal-apple-darwin --config src-tauri/tauri.release.conf.json
+        run: |
+          UPDATE="$WORK/Statim_${VERSION}_universal.app.tar.gz"
+          COPYFILE_DISABLE=1 tar -czf "$UPDATE" -C "$(dirname "$APP")" "$(basename "$APP")"
+          npx tauri signer sign --app-version "$VERSION" "$UPDATE"
+          [ -s "$UPDATE.sig" ] || { echo "no signature beside $UPDATE" >&2; exit 1; }
+          # The key that signed it must be the one whose public half the app carries: a copy out with another never updates.
+          key_id() { base64 -d | sed -n 2p | base64 -d | head -c 10 | tail -c 8 | xxd -p; }
+          signed=$(key_id < "$UPDATE.sig")
+          trusted=$(node -p 'require("./src-tauri/tauri.conf.json").plugins.updater.pubkey' | key_id)
+          [ "$signed" = "$trusted" ] || { echo "signed with key $signed, but the app trusts $trusted" >&2; exit 1; }
+          echo "UPDATE=$UPDATE" >> "$GITHUB_ENV"
 
       - name: Attach to the release
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
-        run: |
-          bundle=src-tauri/target/universal-apple-darwin/release/bundle
-          codesign --verify --deep --strict "$bundle/macos/Statim.app"
-          # The names tauri-action gave them, which the site and the cask link to.
-          cp "$bundle/macos/Statim.app.tar.gz" "$WORK/Statim_${VERSION}_universal.app.tar.gz"
-          cp "$bundle/macos/Statim.app.tar.gz.sig" "$WORK/Statim_${VERSION}_universal.app.tar.gz.sig"
-          gh release upload "v$VERSION" "$bundle/dmg/Statim_${VERSION}_universal.dmg" \
-            "$WORK/Statim_${VERSION}_universal.app.tar.gz" "$WORK/Statim_${VERSION}_universal.app.tar.gz.sig" \
-            --clobber --repo "$RELEASES_REPOSITORY"
+        run: gh release upload "v$VERSION" "$DMG" "$UPDATE" "$UPDATE.sig" --clobber --repo "$RELEASES_REPOSITORY"
 
       - name: Remove the signing keychain and the work folder
         if: always()
@@ -233,10 +298,13 @@ jobs:
     needs: prepare
     runs-on: home-linux
     timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       # Tauri's own prerequisites, plus cmake for aws-lc (matrix-sdk), perl for OpenSSL (SQLCipher) and libudev for
       # hidapi (Ledger).
@@ -247,7 +315,9 @@ jobs:
             libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev \
             libssl-dev libayatana-appindicator3-dev librsvg2-dev \
             cmake perl libudev-dev pkg-config patchelf xdg-utils
-          curl -fsSL "https://github.com/cli/cli/releases/download/v$GH_VERSION/gh_${GH_VERSION}_linux_amd64.tar.gz" | sudo tar -xz -C /usr/local --strip-components=1
+          curl -fsSL -o "$RUNNER_TEMP/gh.tar.gz" "https://github.com/cli/cli/releases/download/v$GH_VERSION/gh_${GH_VERSION}_linux_amd64.tar.gz"
+          echo "$GH_SHA256  $RUNNER_TEMP/gh.tar.gz" | sha256sum -c -
+          sudo tar -xzf "$RUNNER_TEMP/gh.tar.gz" -C /usr/local --strip-components=1
 
       # The Rust in rust-toolchain.toml, with its components and targets. The Linux image has no rustup: a minimal one
       # goes in first, without a default toolchain, and on the PATH for the next steps.
@@ -258,8 +328,10 @@ jobs:
             echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
             PATH="$HOME/.cargo/bin:$PATH"
           fi
-          rustup show active-toolchain || rustup toolchain install
-      - uses: actions/setup-node@v4
+          rustup install --no-self-update
+          cargo --version
+
+      - uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .node-version
       - name: JavaScript packages
@@ -272,11 +344,12 @@ jobs:
       # the one set here, which GitHub refuses.
       - name: Build the deb, rpm and AppImage
         env:
+          # Signs the update files an installed copy checks before applying them.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           # linuxdeploy is an AppImage itself, and the job container has no FUSE to mount it.
           APPIMAGE_EXTRACT_AND_RUN: 1
-        run: npx tauri build --config src-tauri/tauri.release.conf.json
+        run: npx tauri build --config src-tauri/tauri.release.conf.json -- --locked
 
       - name: Attach to the release
         env:
@@ -307,9 +380,9 @@ jobs:
         # Git's bash: the runner's own default on Windows is PowerShell.
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .node-version
 
@@ -362,13 +435,19 @@ jobs:
     needs: [prepare, macos, linux, windows]
     runs-on: home-linux
     timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
       RELEASE: repos/alaibe/statim/releases/${{ needs.prepare.outputs.release_id }}
       GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
     steps:
       - name: gh
-        run: curl -fsSL "https://github.com/cli/cli/releases/download/v$GH_VERSION/gh_${GH_VERSION}_linux_amd64.tar.gz" | sudo tar -xz -C /usr/local --strip-components=1
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/gh.tar.gz" "https://github.com/cli/cli/releases/download/v$GH_VERSION/gh_${GH_VERSION}_linux_amd64.tar.gz"
+          echo "$GH_SHA256  $RUNNER_TEMP/gh.tar.gz" | sha256sum -c -
+          sudo tar -xzf "$RUNNER_TEMP/gh.tar.gz" -C /usr/local --strip-components=1
 
       - name: The release's files
         run: |
@@ -379,15 +458,18 @@ jobs:
               gh api -H "Accept: application/octet-stream" "repos/$RELEASES_REPOSITORY/releases/assets/$id" > "$name"
             done
           ls -l
+          [ "$(find . -maxdepth 1 -type f ! -name '*.sig' | wc -l)" -eq 7 ] ||
+            { echo "expected the DMG, the Mac's update bundle, deb, rpm, AppImage, MSI and NSIS .exe" >&2; exit 1; }
+          [ "$(find . -maxdepth 1 -type f -name '*.sig' | wc -l)" -eq 6 ] ||
+            { echo "expected an update signature beside each of the six update files" >&2; exit 1; }
 
       - name: SHA256SUMS
         working-directory: files
         run: |
-          find . -maxdepth 1 -type f ! -name '*.sig' -printf '%f\n' | sort |
-            xargs sha256sum -- > "$RUNNER_TEMP/SHA256SUMS"
+          find . -maxdepth 1 -type f ! -name '*.sig' -printf '%f\n' | sort | xargs sha256sum -- > "$RUNNER_TEMP/SHA256SUMS"
           cat "$RUNNER_TEMP/SHA256SUMS"
 
-      # The feed Tauri's updater reads, built alike in Kestrel's and Statim's release.yml: each key an installed copy
+      # The feed Tauri's updater reads, built alike in Kestrel's and Grenier's release.yml: each key an installed copy
       # looks up (its own installer's first, then the bare one) points at a file of this release, with that file's
       # signature. FEED lists them, a key and a file name with {v} for the version.
       - name: latest.json
@@ -431,24 +513,63 @@ jobs:
 
   homebrew:
     needs: [prepare, publish]
+    # As publish's Leave draft: the cask follows only a published release.
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: home-linux
     timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
     steps:
+      # The cask is written whole from here, as Grenier's is, so its url follows the DMG's name.
       - name: Move the cask to this release
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: |
-          curl -fsSL "https://github.com/cli/cli/releases/download/v$GH_VERSION/gh_${GH_VERSION}_linux_amd64.tar.gz" | sudo tar -xz -C /usr/local --strip-components=1
+          curl -fsSL -o "$RUNNER_TEMP/gh.tar.gz" "https://github.com/cli/cli/releases/download/v$GH_VERSION/gh_${GH_VERSION}_linux_amd64.tar.gz"
+          echo "$GH_SHA256  $RUNNER_TEMP/gh.tar.gz" | sha256sum -c -
+          sudo tar -xzf "$RUNNER_TEMP/gh.tar.gz" -C /usr/local --strip-components=1
           V="${{ needs.prepare.outputs.version }}"
-          DMG="Statim_${V}_universal.dmg"
+          DMG="Statim-$V.dmg"
           curl -fsSL -o "$DMG" "https://github.com/$RELEASES_REPOSITORY/releases/download/v$V/$DMG"
           SHA=$(sha256sum "$DMG" | cut -d' ' -f1)
           gh repo clone alaibe/homebrew-tap tap -- --depth 1
-          sed -i -E "s/^  version \".*\"/  version \"$V\"/; s/^  sha256 \".*\"/  sha256 \"$SHA\"/" tap/Casks/statim.rb
+          cat > tap/Casks/statim.rb <<EOF
+          cask "statim" do
+            version "$V"
+            sha256 "$SHA"
+
+            url "https://github.com/alaibe/statim/releases/download/v#{version}/Statim-#{version}.dmg"
+            name "Statim"
+            desc "Messenger for XMTP, Matrix, Telegram, Nostr and Status"
+            homepage "https://statim.laibe.cc/"
+
+            livecheck do
+              url :url
+              strategy :github_latest
+            end
+
+            auto_updates true
+            depends_on macos: :sequoia
+
+            app "Statim.app"
+            binary "#{appdir}/Statim.app/Contents/MacOS/statim"
+
+            zap trash: [
+              "~/Library/Application Support/im.statim.app",
+              "~/Library/Caches/im.statim.app",
+              "~/Library/Caches/statim",
+              "~/Library/Preferences/im.statim.app.plist",
+              "~/Library/WebKit/im.statim.app",
+              "~/Library/WebKit/statim",
+            ]
+          end
+          EOF
+          cat tap/Casks/statim.rb
           gh auth setup-git
+          git -C tap add Casks/statim.rb
           git -C tap -c user.name="github-actions[bot]" \
-            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -am "statim $V"
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "statim $V"
           git -C tap push
 
   aur:
@@ -495,11 +616,11 @@ jobs:
       JAVA_HOME: /opt/homebrew/opt/openjdk@21
     steps:
       # actions/checkout adds a safe.directory to the global git config: a throwaway one, not Anthony's ~/.gitconfig.
-      - uses: actions/checkout@v4
+      - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         env:
           GIT_CONFIG_GLOBAL: ${{ runner.temp }}/gitconfig
 
-      - uses: actions/setup-node@v4
+      - uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .node-version
 
@@ -529,11 +650,11 @@ jobs:
       LC_ALL: en_US.UTF-8
     steps:
       # actions/checkout adds a safe.directory to the global git config: a throwaway one, not Anthony's ~/.gitconfig.
-      - uses: actions/checkout@v4
+      - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         env:
           GIT_CONFIG_GLOBAL: ${{ runner.temp }}/gitconfig
 
-      - uses: actions/setup-node@v4
+      - uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .node-version
 

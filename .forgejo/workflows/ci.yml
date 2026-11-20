@@ -1,6 +1,6 @@
 # Checks every push to Statim against the shared code standard (homeserver's AGENTS.md › Code standards), on
 # git.laibe.cc's home runner (homeserver repository, `forgejo-runner/`). A failure reaches ntfy through the home
-# server's actions-alerts.sh; the desktop and phone builds stay in release.yml, and weekly.yml runs the type check and
+# server's actions-alerts.sh; the desktop and phone builds stay in release.yml, and nightly.yml runs the type check and
 # the tests again on the Mac before tagging a release.
 #
 # - check: the TypeScript's formatting (Biome) and lint (ESLint), its types and the Jest tests, the Rust's formatting,
@@ -71,7 +71,7 @@ jobs:
         with:
           tool: shellcheck@${{ env.SHELLCHECK_VERSION }},shfmt@${{ env.SHFMT_VERSION }}
 
-      # Every tracked file with a bash or sh shebang: scripts/tdlib.sh and e2e/run.sh today.
+      # Every tracked file with a bash or sh shebang: scripts/tdlib.sh, scripts/sign-macos.sh and e2e/run.sh today.
       - name: Shell scripts
         run: |
           git ls-files -z | while IFS= read -r -d '' file; do

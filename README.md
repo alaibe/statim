@@ -75,7 +75,7 @@ On a Mac, `brew install --cask alaibe/tap/statim` installs the app and its
 `./scripts/tdlib.sh ios` or `./scripts/tdlib.sh android`.
 
 This repository lives on git.laibe.cc, which runs its checks and builds a
-release every Sunday when the app changed. The GitHub copy is a mirror.
+release every night when the app changed. The GitHub copy is a mirror.
 
 ## Quick start
 

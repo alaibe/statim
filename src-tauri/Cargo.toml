@@ -34,7 +34,7 @@ tauri-plugin-dialog = "2"
 tauri-plugin-autostart = "~2.5"
 tauri-plugin-notification = "2"
 tauri-plugin-window-state = "2"
-tauri-plugin-updater = { version = "2", optional = true }
+tauri-plugin-updater = { version = "2.14", optional = true }
 tauri-plugin-process = "~2.3"
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
 aes-gcm = "0.10"

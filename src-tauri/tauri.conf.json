@@ -82,7 +82,8 @@
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMzQzJDRUYzMjYzQjhGNkEKUldScWp6c204ODdDdzUrb1k3QmtnT1ZmM1AvcDVUMmN2aUxCaFFLTjJoblkxd3k0Um5pT01pMWIK",
       "endpoints": [
         "https://github.com/alaibe/statim/releases/latest/download/latest.json"
-      ]
+      ],
+      "requireSignedVersion": true
     }
   }
 }

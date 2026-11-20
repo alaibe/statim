@@ -28,8 +28,8 @@ guide's screenshots, the sticker pack and the promo film (`php artisan
 statim:screenshots`, `statim:stickers`, `statim:promo`). When a change alters
 how the app is used or what it sends, update the guide or the privacy policy
 there. This repository holds the app and its release, on git.laibe.cc's Forgejo
-Actions: every Sunday `.forgejo/workflows/weekly.yml` tags main when the app
-changed since the last release, and the tag starts
+Actions: every morning at 07:30 (Paris) `.forgejo/workflows/nightly.yml` tags
+main when the app changed since the last release, and the tag starts
 `.forgejo/workflows/release.yml`, which builds the desktop and phone apps.
 
 ## Before you finish

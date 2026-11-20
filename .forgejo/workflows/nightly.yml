@@ -1,23 +1,24 @@
-# Releases Statim every week when main has commits since the last release.
+# Releases Statim every night when main has commits since the last release, as Grenier's and Kestrel's nightlies do.
 #
-# On the home runner, `due` counts the commits since the last `v*` tag; with none, the run ends there. Otherwise the
-# Mac runs the type check and the tests, moves a version that's already tagged to its next patch in its six files
-# and commits it, then tags `v<version>` and pushes both over SSH with the Mac's own key. A tag pushed with the job's
-# own token starts no workflow; this one starts release.yml.
+# On the home runner, `due` counts the commits since the last `v*` tag that change the app (not only the workflows,
+# docs/ or the top-level notes); with none, the run ends there. Otherwise the Mac runs the type check and the tests,
+# moves a version that's already tagged to its next patch in its six files and commits it, then tags `v<version>` and
+# pushes both over SSH with the Mac's own key. A tag pushed with the job's own token starts no workflow; this one
+# starts release.yml. Its "Run workflow" button does the same at once.
 #
-# Sundays at 21:00 in Paris in winter, 22:00 in summer, an hour before Kestrel's nightly; the job waits for the Mac
-# when it's asleep.
+# 07:30 in Paris all year (the TZ= prefix: Forgejo reads a bare cron as UTC). Statim goes last, after Grenier's 05:30
+# and Kestrel's 06:30, because its release takes 45 to 85 minutes and the Windows VM's build is its longest part.
 
-name: Weekly release
+name: Nightly release
 
 on:
   schedule:
-    - cron: '0 20 * * 0'
+    - cron: 'TZ=Europe/Paris 30 7 * * *'
   workflow_dispatch:
 
 # One run at a time, never cancelled: a cancelled one could stop between its version commit and its tag.
 concurrency:
-  group: weekly
+  group: nightly
   cancel-in-progress: false
 
 env:
@@ -27,10 +28,13 @@ jobs:
   due:
     runs-on: home-linux
     timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
     outputs:
       due: ${{ steps.due.outputs.due }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
 
@@ -51,13 +55,13 @@ jobs:
     timeout-minutes: 60
     steps:
       # actions/checkout adds a safe.directory to the global git config: a throwaway one, not Anthony's ~/.gitconfig.
-      - uses: actions/checkout@v4
+      - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
         env:
           GIT_CONFIG_GLOBAL: ${{ runner.temp }}/gitconfig
 
-      - uses: actions/setup-node@v4
+      - uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .node-version
 
@@ -72,6 +76,7 @@ jobs:
 
       - name: Version, commit and tag
         run: |
+          [ -z "$(git status --porcelain)" ] || { git status --short; echo "the checkout isn't clean" >&2; exit 1; }
           V=$(jq -r .expo.version app.json)
           if git rev-parse -q --verify "refs/tags/v$V" > /dev/null; then
             NEXT="${V%.*}.$((${V##*.} + 1))"
@@ -91,7 +96,7 @@ jobs:
               || { echo "src-tauri/Cargo.lock isn't $NEXT" >&2; exit 1; }
             [ "$(git diff --numstat -- $FILES | wc -l)" -eq 6 ] || { git diff --stat; echo "not all six files moved" >&2; exit 1; }
             git add $FILES
-            git -c user.name="Statim weekly" -c user.email="weekly@git.laibe.cc" commit -q -m "Release $NEXT"
+            git -c user.name="Statim nightly" -c user.email="nightly@git.laibe.cc" commit -q -m "Release $NEXT"
             git push "$ORIGIN" HEAD:main
             V=$NEXT
           fi

@@ -1,9 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "bundle": {
-    "createUpdaterArtifacts": true,
-    "macOS": {
-      "entitlements": "./Entitlements.release.plist"
-    }
+    "createUpdaterArtifacts": true
   }
 }
