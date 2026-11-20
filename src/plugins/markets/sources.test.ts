@@ -78,11 +78,11 @@ describe("/marketapi", () => {
   it("switches to Chainlink and back", async () => {
     await run(["chainlink"]);
     expect(priceSource()).toBe(chainlink);
-    expect(stored.get("price-source")).toBe("chainlink");
+    expect(stored.get("api-base")).toBe("chainlink");
 
     await run(["reset"]);
     expect(priceSource()).toBe(exchange);
-    expect(stored.has("price-source")).toBe(false);
+    expect(stored.has("api-base")).toBe(false);
   });
 
   it("goes back to an exchange when given one", async () => {

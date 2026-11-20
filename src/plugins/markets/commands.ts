@@ -1,10 +1,10 @@
 import { errorMessage } from "@/core/errors";
 import type { PluginContext, PluginView, SlashCommand } from "@/core/plugins/types";
-import { W } from "@/design/widgets";
+import { W, type WidgetTone } from "@/design/widgets";
 
 import { describeAlert, parseAlert, toAlert } from "./alerts";
 import { DEFAULT_API_BASE, displaySymbol, formatPercent, formatPrice, normaliseSymbol, type Ticker } from "./api";
-import { CHAINLINK_FEEDS, chainlink, choosePriceSource, exchange, type PriceSource, priceSource } from "./sources";
+import { CHAINLINK, CHAINLINK_FEEDS, chainlink, type PriceSource, priceSource } from "./sources";
 import { apiBase, isDefaultApiBase, readAlerts, saveApiBase, writeAlerts } from "./storage";
 
 const DEFAULT_MARKETS = ["BTCUSDT", "ETHUSDT"];
@@ -27,12 +27,8 @@ function caption(t: Ticker, source: PriceSource): string | undefined {
   return t.updatedAt !== undefined ? `${source.name} feed, updated ${ago(t.updatedAt)}` : undefined;
 }
 
-const toneOf = (t: Ticker) =>
-  t.changePercent === undefined
-    ? ("neutral" as const)
-    : t.changePercent >= 0
-      ? ("success" as const)
-      : ("danger" as const);
+const toneOf = (t: Ticker): WidgetTone =>
+  t.changePercent === undefined ? "neutral" : t.changePercent >= 0 ? "success" : "danger";
 
 export async function alertsCard(context: PluginContext) {
   const alerts = await readAlerts(context);
@@ -222,8 +218,8 @@ export function marketsCommands(
           return { type: "handled" };
         }
 
-        if (value.toLowerCase() === "chainlink") {
-          await choosePriceSource(context, chainlink);
+        if (value.toLowerCase() === CHAINLINK) {
+          await saveApiBase(context, CHAINLINK);
           return {
             type: "notice",
             tone: "success",
@@ -232,7 +228,7 @@ export function marketsCommands(
         }
 
         if (value === "reset") {
-          await Promise.all([saveApiBase(context, null), choosePriceSource(context, exchange)]);
+          await saveApiBase(context, null);
           return {
             type: "notice",
             tone: "success",
@@ -244,7 +240,7 @@ export function marketsCommands(
           return { type: "error", message: "The endpoint must start with https://." };
         }
 
-        await Promise.all([saveApiBase(context, value.replace(/\/$/, "")), choosePriceSource(context, exchange)]);
+        await saveApiBase(context, value.replace(/\/$/, ""));
         return { type: "notice", tone: "success", message: `Prices come from ${value} now` };
       },
     },

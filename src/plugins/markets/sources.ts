@@ -1,19 +1,15 @@
 import type { Address } from "viem";
 
-import { createEndpointSetting } from "@/core/plugins/endpoint-setting";
-import type { PluginContext } from "@/core/plugins/types";
 import { publicClientFor } from "@/lib/evm/chains";
 import { fetchTicker, type Ticker } from "./api";
 import { apiBase } from "./storage";
 
 export interface PriceSource {
-  id: "exchange" | "chainlink";
   name: string;
   ticker(symbol: string): Promise<Ticker>;
 }
 
 export const exchange: PriceSource = {
-  id: "exchange",
   name: "Exchange",
   ticker: (symbol) => fetchTicker(symbol, apiBase()),
 };
@@ -65,8 +61,10 @@ export function chainlinkFeed(symbol: string): { base: string; feed: Address } |
   return { base, feed };
 }
 
+/** What /marketapi stores in place of an exchange's URL to read Chainlink instead. */
+export const CHAINLINK = "chainlink";
+
 export const chainlink: PriceSource = {
-  id: "chainlink",
   name: "Chainlink",
   async ticker(symbol) {
     const found = chainlinkFeed(symbol);
@@ -85,14 +83,7 @@ export const chainlink: PriceSource = {
   },
 };
 
-const setting = createEndpointSetting({ key: "price-source", fallback: exchange.id });
-
-export const hydratePriceSource = setting.hydrate;
-
-export const priceSource = (): PriceSource => (setting.current() === chainlink.id ? chainlink : exchange);
-
-export const choosePriceSource = (context: PluginContext, source: PriceSource) =>
-  setting.save(context, source === exchange ? null : source.id);
+export const priceSource = (): PriceSource => (apiBase() === CHAINLINK ? chainlink : exchange);
 
 /** The markets that could be priced; one that failed is left out rather than read as zero. */
 export async function fetchPrices(symbols: string[], source: PriceSource): Promise<Record<string, number>> {
