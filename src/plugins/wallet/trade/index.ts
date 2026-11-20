@@ -1,50 +1,30 @@
-import { type Address, type Chain, encodeFunctionData, erc20Abi, formatUnits, type Hex, parseUnits, toHex } from "viem";
+import { type Address, type Hex, parseUnits } from "viem";
 import { shortAddress } from "@/core/account/keyring";
 import { loadLcxKey, loadTradeKey } from "@/core/account/trade-key";
 import { flagValue, withoutFlag } from "@/core/commands/flags";
 import type { CommandInvocation, CommandResult, PluginContext, SlashCommand } from "@/core/plugins/types";
 import { W, type Widget, type WidgetOption, type WidgetRow, type WidgetTone } from "@/design/widgets";
-import { publicClientFor, trimDecimals } from "@/lib/evm/chains";
-import { type PermitPlan, type PermitTargets, permittedCall, planPermit } from "@/lib/evm/permit";
+import type { PermitPlan } from "@/lib/evm/permit";
 import { popularTokens } from "@/lib/evm/token-list";
 import { explorerUrlFor } from "@/lib/evm/transactions";
-import { walletClientFor } from "@/lib/evm/wallet";
-import { LcxError, type LcxSwap, lcxSwap } from "@/lib/lcx";
-import {
-  LIFI_NATIVE,
-  LifiError,
-  type LifiQuote,
-  type LifiStatus,
-  type LifiStatusValue,
-  type LifiToken,
-  lifiExplorerUrl,
-  lifiPermitTargets,
-  lifiQuote,
-  lifiStatus,
-  lifiToken,
-} from "@/lib/lifi";
-import { activeChain, defaultChain, NO_CHAIN_ON, pickStrategy, walletChainById } from "./chain-list";
-import { type ChainStrategy, chainStrategies, sendableChains, targetAddress } from "./chains/strategy";
-import { assetField, withoutConfirm } from "./commands";
-import { sentPaymentErrorMessage, walletErrorMessage } from "./errors";
+import { LIFI_NATIVE, LifiError, type LifiStatus, type LifiStatusValue, lifiExplorerUrl, lifiStatus } from "@/lib/lifi";
+import { activeChain, defaultChain, NO_CHAIN_ON, pickStrategy, walletChainById } from "../chain-list";
+import { chainStrategies, sendableChains, targetAddress } from "../chains/strategy";
+import { assetField, withoutConfirm } from "../commands";
+import { sentPaymentErrorMessage, walletErrorMessage } from "../errors";
+import { type Approval, ApprovalPending, amountOf, heldBalance, planApproval, resolveToken, sendTrade } from "./evm";
+import { lcx } from "./lcx";
+import { lifi } from "./lifi";
+import type { Cost, TradeAsset, TradeChain, TradeKeys, TradeProvider, TradeQuote, TradeRequest } from "./provider";
 
 type Respond = CommandInvocation["respond"];
 
 const SLIPPAGE = 0.005;
 
-type Provider = "lifi" | "lcx";
+/** Asked in this order, which settles a tie between equal quotes. */
+const PROVIDERS: TradeProvider[] = [lifi, lcx];
 
-const PROVIDER_NAME: Record<Provider, string> = { lifi: "LI.FI", lcx: "LCX Liberty DEX" };
-
-const POWERED_BY: Record<Provider, Widget> = {
-  lifi: W.link("Powered by LI.FI", "https://li.fi"),
-  lcx: W.link("Powered by LCX Liberty DEX", "https://dex.lcx.com"),
-};
-
-interface TradeKeys {
-  lifi: string | null;
-  lcx: string | null;
-}
+const poweredBy = (provider: TradeProvider) => W.link(`Powered by ${provider.name}`, provider.site);
 
 /** One entry per label on a chain, so a held token does not repeat a listed one. */
 function receiveOptions(chains: TradeChain[], held: WidgetOption[]): WidgetOption[] {
@@ -64,8 +44,6 @@ function receiveOptions(chains: TradeChain[], held: WidgetOption[]): WidgetOptio
   });
 }
 
-type TradeChain = ChainStrategy & { evm: Chain };
-
 const tradeChains = () => sendableChains().filter((c): c is TradeChain => c.evm !== undefined);
 
 function chainNamed(chains: TradeChain[], named: string): TradeChain | { error: string } {
@@ -82,23 +60,21 @@ const chainName = (chainId: number) => chainStrategies().find((c) => c.evm?.id =
 const statusCommand = (hash: string, from: TradeChain, to: TradeChain) =>
   `/trade --status ${hash} --from ${from.id} --to ${to.id}`;
 
-const amountOf = (units: string | bigint, token: LifiToken) => trimDecimals(formatUnits(BigInt(units), token.decimals));
+const usd = (value: number | undefined) =>
+  value !== undefined && Number.isFinite(value) ? `$${value.toFixed(2)}` : null;
 
-const usd = (value: string | undefined) =>
-  value && Number.isFinite(Number(value)) ? `$${Number(value).toFixed(2)}` : null;
-
-function costLine(costs: LifiQuote["estimate"]["gasCosts"]): string | null {
+function costLine(costs: Cost[] | undefined): string | null {
   if (!costs?.length) return null;
-  const byToken = new Map<string, { units: bigint; token: LifiToken }>();
+  const byToken = new Map<string, { units: bigint; token: TradeAsset }>();
   for (const cost of costs) {
     const entry = byToken.get(cost.token.symbol) ?? { units: 0n, token: cost.token };
-    entry.units += BigInt(cost.amount);
+    entry.units += cost.amount;
     byToken.set(cost.token.symbol, entry);
   }
   const amounts = [...byToken.values()]
     .map(({ units, token }) => `${amountOf(units, token)} ${token.symbol}`)
     .join(" + ");
-  const total = costs.reduce((sum, cost) => sum + Number(cost.amountUSD ?? NaN), 0);
+  const total = costs.reduce((sum, cost) => sum + (cost.usd ?? NaN), 0);
   return Number.isFinite(total) ? `${amounts} (≈ $${total.toFixed(2)})` : amounts;
 }
 
@@ -172,7 +148,7 @@ async function tradeForm(
           "The same chain on both sides is a swap; different chains, a bridge. LI.FI finds " +
             "the route and quotes it, and a swap also asks LCX Liberty DEX once you save its key. Nothing is signed until you confirm the quote.",
         ),
-        POWERED_BY.lifi,
+        poweredBy(lifi),
       ],
       { title: "Trade", icon: "swap-horizontal-outline" },
     ),
@@ -180,18 +156,11 @@ async function tradeForm(
   return { type: "handled" };
 }
 
-interface Quoted {
-  provider: Provider;
-  quote: LifiQuote;
-}
-
-interface Trade extends Quoted {
-  other?: Quoted;
-  fromToken: LifiToken;
-  toToken: LifiToken;
-  needsApproval: boolean;
-  permit?: PermitPlan;
-  targets?: PermitTargets;
+interface Trade extends Approval {
+  quote: TradeQuote;
+  other?: TradeQuote;
+  fromToken: TradeAsset;
+  toToken: TradeAsset;
   /** Where the bought token lands: the account's own address unless asked otherwise. */
   recipient: Address;
   sendsAway: boolean;
@@ -199,57 +168,19 @@ interface Trade extends Quoted {
 
 type Prepared = Trade | { error: string };
 
-async function resolveToken(
-  chain: TradeChain,
-  given: string,
-  key: string | null,
-): Promise<LifiToken | { error: string }> {
-  if (given.toLowerCase() === "native") {
-    const { symbol, decimals } = chain.evm.nativeCurrency;
-    return { address: LIFI_NATIVE, chainId: chain.evm.id, symbol, decimals };
-  }
-  const found = await lifiToken(chain.evm.id, given, key);
-  return (
-    found ?? {
-      error: `"${given}" is not a token LI.FI knows on ${chain.name}. Use its symbol or contract address.`,
-    }
-  );
-}
-
-function lcxAsQuote({ quote, build }: LcxSwap, chain: TradeChain): LifiQuote {
-  const { symbol, decimals } = chain.evm.nativeCurrency;
-  const gasToken: LifiToken = { address: LIFI_NATIVE, chainId: chain.evm.id, symbol, decimals };
-  const text = (value: number | null | undefined) => (value == null ? undefined : String(value));
-  return {
-    toolDetails: { name: PROVIDER_NAME.lcx },
-    action: { fromAmount: quote.input.amount },
-    estimate: {
-      approvalAddress: build.swap.to,
-      toAmount: quote.output.amount,
-      toAmountMin: build.minAmountOut,
-      executionDuration: 0,
-      fromAmountUSD: text(quote.usdValueIn),
-      toAmountUSD: text(quote.usdValueOut),
-      gasCosts: quote.gasEstimateWei
-        ? [{ amount: quote.gasEstimateWei, amountUSD: text(quote.gasFeeUSD), token: gasToken }]
-        : undefined,
-    },
-    transactionRequest: { to: build.swap.to, data: build.swap.data, value: toHex(BigInt(build.swap.value || "0")) },
-  };
-}
-
-async function bestQuote(requests: Promise<Quoted>[]): Promise<{ chosen: Quoted; other?: Quoted } | { error: string }> {
-  const settled = await Promise.allSettled(requests);
+async function bestQuote(
+  providers: TradeProvider[],
+  request: TradeRequest,
+): Promise<{ chosen: TradeQuote; other?: TradeQuote } | { error: string }> {
+  const settled = await Promise.allSettled(providers.map((provider) => provider.quote(request)));
   const quotes = settled
     .flatMap((result) => (result.status === "fulfilled" ? [result.value] : []))
-    .sort((a, b) => {
-      const gain = BigInt(b.quote.estimate.toAmountMin) - BigInt(a.quote.estimate.toAmountMin);
-      return gain > 0n ? 1 : gain < 0n ? -1 : 0;
-    });
+    .sort((a, b) => (b.receiveMin > a.receiveMin ? 1 : b.receiveMin < a.receiveMin ? -1 : 0));
   if (quotes.length > 0) return { chosen: quotes[0], other: quotes[1] };
 
   const failure = (settled[0] as PromiseRejectedResult).reason;
-  if (failure instanceof LifiError || failure instanceof LcxError) return { error: failure.message };
+  const refusal = providers.map((provider) => provider.refusal(failure)).find((message) => message !== null);
+  if (refusal) return { error: refusal };
   throw failure;
 }
 
@@ -281,18 +212,8 @@ async function prepare(
   if ("error" in wanted) return { error: wanted.error };
   const landsIn = wanted.address as Address;
 
-  const client = publicClientFor(from.evm.id);
-  const native = fromToken.address === LIFI_NATIVE;
   const symbol = fromToken.symbol;
-
-  const held = native
-    ? await client.getBalance({ address })
-    : await client.readContract({
-        address: fromToken.address,
-        abi: erc20Abi,
-        functionName: "balanceOf",
-        args: [address],
-      });
+  const held = await heldBalance(from, fromToken, address);
   if (held < fromAmount) {
     return {
       error:
@@ -301,52 +222,26 @@ async function prepare(
     };
   }
 
-  const requests: Promise<Quoted>[] = [
-    lifiQuote(
-      {
-        fromChain: from.evm.id,
-        toChain: to.evm.id,
-        fromToken: fromToken.address,
-        toToken: toToken.address,
-        fromAddress: address,
-        toAddress: landsIn,
-        fromAmount,
-        slippage: SLIPPAGE,
-      },
-      keys.lifi,
-    ).then((quote) => ({ provider: "lifi" as const, quote })),
-  ];
-  if (keys.lcx && from.id === to.id) {
-    requests.push(
-      lcxSwap(
-        {
-          chainId: from.evm.id,
-          tokenIn: fromToken.address,
-          tokenOut: toToken.address,
-          amountIn: fromAmount,
-          recipient: landsIn,
-          slippageBps: Math.round(SLIPPAGE * 10_000),
-        },
-        keys.lcx,
-      ).then((swap) => ({ provider: "lcx" as const, quote: lcxAsQuote(swap, from) })),
-    );
-  }
-
-  const best = await bestQuote(requests);
-  if ("error" in best) return best;
-  const { quote } = best.chosen;
-
-  const trade = {
-    ...best.chosen,
-    other: best.other,
-    fromToken,
-    toToken,
+  const request: TradeRequest = {
+    from,
+    to,
+    sell: fromToken,
+    buy: toToken,
+    amount: fromAmount,
+    sender: address,
     recipient: landsIn,
-    sendsAway: landsIn !== address,
+    slippage: SLIPPAGE,
+    keys,
   };
+  const best = await bestQuote(
+    PROVIDERS.filter((provider) => provider.covers({ from, to, keys })),
+    request,
+  );
+  if ("error" in best) return best;
+  const quote = best.chosen;
 
-  if (native) {
-    const gas = (quote.estimate.gasCosts ?? []).reduce((sum, cost) => sum + BigInt(cost.amount), 0n);
+  if (fromToken.address === LIFI_NATIVE) {
+    const gas = (quote.gas ?? []).reduce((sum, cost) => sum + cost.amount, 0n);
     if (held < fromAmount + gas) {
       return {
         error:
@@ -355,38 +250,17 @@ async function prepare(
           `Lower the amount or add ${symbol} on ${from.name}.`,
       };
     }
-    return { ...trade, needsApproval: false };
   }
 
-  if (quote.estimate.skipApproval) return { ...trade, needsApproval: false };
-
-  // Permit2 first: a plain approval costs a transaction and a wait.
-  if (trade.provider === "lifi") {
-    const targets = await lifiPermitTargets(from.evm.id).catch(() => null);
-    const permit = await planPermit(from.evm.id, fromToken.address, address, fromAmount, targets, {
-      canSignTypedData: canSign(context),
-    }).catch(() => null);
-
-    if (permit && targets) {
-      return { ...trade, needsApproval: permit.approve !== undefined, permit, targets };
-    }
-  }
-
-  const allowance = await client.readContract({
-    address: fromToken.address,
-    abi: erc20Abi,
-    functionName: "allowance",
-    args: [address, quote.estimate.approvalAddress],
-  });
-  return { ...trade, needsApproval: allowance < fromAmount };
-}
-
-function canSign(context: PluginContext): boolean {
-  try {
-    return typeof context.account.signer().signTypedData === "function";
-  } catch {
-    return false;
-  }
+  return {
+    ...(await planApproval(context, request, quote)),
+    quote,
+    other: best.other,
+    fromToken,
+    toToken,
+    recipient: landsIn,
+    sendsAway: landsIn !== address,
+  };
 }
 
 /** What the trade still has to send before it can swap, in plain words. */
@@ -406,28 +280,27 @@ function reviewCard(
   from: TradeChain,
   to: TradeChain,
   given: Given,
-  { provider, quote, other, fromToken, toToken, needsApproval, permit, recipient, sendsAway }: Trade,
+  { quote, other, fromToken, toToken, needsApproval, permit, recipient, sendsAway }: Trade,
 ): Widget {
-  const { estimate } = quote;
   const same = from.id === to.id;
-  const amount = amountOf(quote.action.fromAmount, fromToken);
-  const [fromUsd, toUsd] = [usd(estimate.fromAmountUSD), usd(estimate.toAmountUSD)];
-  const gas = costLine(estimate.gasCosts);
-  const fees = costLine(estimate.feeCosts);
+  const amount = amountOf(quote.sold, fromToken);
+  const [fromUsd, toUsd] = [usd(quote.usd?.from), usd(quote.usd?.to)];
+  const gas = costLine(quote.gas);
+  const fees = costLine(quote.fees);
 
   const rows: WidgetRow[] = [
     { label: "You send", value: `${amount} ${fromToken.symbol} on ${from.name}` },
     ...(sendsAway ? [{ label: "Lands in", value: shortAddress(recipient), tone: "warning" as const }] : []),
-    { label: "Route", value: quote.toolDetails.name },
-    ...(estimate.executionDuration > 0 ? [{ label: "Takes about", value: duration(estimate.executionDuration) }] : []),
+    { label: "Route", value: quote.route },
+    ...(quote.seconds > 0 ? [{ label: "Takes about", value: duration(quote.seconds) }] : []),
     ...(gas ? [{ label: "Gas fee", value: gas }] : []),
     ...(fees ? [{ label: "Route fees", value: fees }] : []),
     ...(fromUsd && toUsd ? [{ label: "Value", value: `${fromUsd} → ${toUsd}` }] : []),
     ...(other
       ? [
           {
-            label: `${PROVIDER_NAME[other.provider]} quote`,
-            value: `At least ${amountOf(other.quote.estimate.toAmountMin, toToken)} ${toToken.symbol}`,
+            label: `${other.provider.name} quote`,
+            value: `At least ${amountOf(other.receiveMin, toToken)} ${toToken.symbol}`,
           },
         ]
       : []),
@@ -435,9 +308,9 @@ function reviewCard(
 
   return W.card(
     [
-      W.stat(`≈ ${amountOf(estimate.toAmount, toToken)} ${toToken.symbol}`, {
+      W.stat(`≈ ${amountOf(quote.receive, toToken)} ${toToken.symbol}`, {
         label: `You receive on ${to.name}`,
-        caption: `At least ${amountOf(estimate.toAmountMin, toToken)} ${toToken.symbol} after ${SLIPPAGE * 100}% slippage`,
+        caption: `At least ${amountOf(quote.receiveMin, toToken)} ${toToken.symbol} after ${SLIPPAGE * 100}% slippage`,
         tone: "brand",
       }),
       W.rows(rows),
@@ -455,7 +328,7 @@ function reviewCard(
           "market. Nothing is signed until then." +
           approvalNote(fromToken.symbol, from.name, needsApproval, permit),
       ),
-      POWERED_BY[provider],
+      poweredBy(quote.provider),
     ],
     {
       title: same ? `Swap on ${from.name}` : `Bridge ${from.name} → ${to.name}`,
@@ -465,124 +338,33 @@ function reviewCard(
   );
 }
 
-/** Thrown while an approval is still in flight: the trade has not started. */
-class ApprovalPending extends Error {
-  constructor(symbol: string, chain: string) {
-    super(
-      `The ${symbol} approval is still waiting to confirm on ${chain}, so nothing was traded. ` +
-        "Run the trade again once it has.",
-    );
-    this.name = "ApprovalPending";
-  }
-}
-
-async function execute(
-  context: PluginContext,
-  from: TradeChain,
-  { quote, fromToken, needsApproval, permit, targets }: Trade,
-  respond: Respond,
-): Promise<{ approval?: Hex; hash: Hex }> {
-  const account = context.account.signer();
-  const client = walletClientFor(account, from.evm.id);
-  let approval: Hex | undefined;
-
-  if (needsApproval) {
-    // Permit2 is approved once, for everything: the allowance after this is
-    // spent only against a signature naming the amount and a deadline.
-    const spender = permit?.approve?.spender ?? quote.estimate.approvalAddress;
-    const allowed = permit?.approve?.amount ?? BigInt(quote.action.fromAmount);
-
-    approval = await client.sendTransaction({
-      account,
-      chain: null,
-      to: fromToken.address,
-      data: encodeFunctionData({
-        abi: erc20Abi,
-        functionName: "approve",
-        args: [spender, allowed],
-      }),
-    });
-
-    const follow = explorerUrlFor(from.evm.id, approval);
-    await respond({
-      kind: "widget",
-      fallback: `Approving ${fromToken.symbol} on ${from.name}`,
-      widget: W.card(
-        [
-          W.stat(`Approving ${fromToken.symbol}`, {
-            label: `On ${from.name}`,
-            caption: "The swap goes out as soon as this confirms, usually within a minute.",
-            tone: "brand",
-          }),
-          W.code(approval, { label: "Approval" }),
-          ...(follow ? [W.link(`View on ${from.explorer.name}`, follow)] : []),
-        ],
-        { title: "Approval sent", icon: "time-outline", tone: "brand" },
-      ),
-    });
-
-    let receipt;
-    try {
-      receipt = await publicClientFor(from.evm.id).waitForTransactionReceipt({
-        hash: approval,
-        timeout: 120_000,
-      });
-    } catch {
-      throw new ApprovalPending(fromToken.symbol, from.name);
-    }
-    if (receipt.status === "reverted") {
-      throw new Error(`The ${fromToken.symbol} approval was rejected on ${from.name}. Nothing was traded.`);
-    }
-  }
-
-  const tx = quote.transactionRequest;
-  const call =
-    permit && targets
-      ? await permittedCall(from.evm.id, account, targets, permit, {
-          token: fromToken.address,
-          amount: BigInt(quote.action.fromAmount),
-          diamondCalldata: tx.data,
-        })
-      : { to: tx.to, data: tx.data };
-
-  const hash = await client.sendTransaction({
-    account,
-    chain: null,
-    to: call.to,
-    data: call.data,
-    value: tx.value ? BigInt(tx.value) : undefined,
-    // The proxy adds its own work, so the router's estimate no longer covers it.
-    gas: permit ? undefined : tx.gasLimit ? BigInt(tx.gasLimit) : undefined,
-  });
-  return { approval, hash };
-}
-
 function sentCard(
   from: TradeChain,
   to: TradeChain,
-  { provider, quote, fromToken, toToken }: Trade,
+  { quote, fromToken, toToken }: Trade,
   { approval, hash }: { approval?: Hex; hash: Hex },
 ): Widget {
   const same = from.id === to.id;
-  const amount = amountOf(quote.action.fromAmount, fromToken);
-  const explorer = explorerUrlFor(from.evm.id, hash) ?? (provider === "lifi" ? lifiExplorerUrl(hash) : null);
+  const amount = amountOf(quote.sold, fromToken);
+  const tracker = quote.provider.tracker?.(hash);
+  const explorer = explorerUrlFor(from.evm.id, hash) ?? tracker?.url;
   return W.card(
     [
-      W.stat(`${amount} ${fromToken.symbol} → ≈ ${amountOf(quote.estimate.toAmount, toToken)} ${toToken.symbol}`, {
+      W.stat(`${amount} ${fromToken.symbol} → ≈ ${amountOf(quote.receive, toToken)} ${toToken.symbol}`, {
         label: same ? `Swapped on ${from.name}` : `Sent from ${from.name} to ${to.name}`,
         tone: "success",
       }),
       ...(approval ? [W.code(approval, { label: "Approval" })] : []),
       W.code(hash, { label: "Transaction" }),
       ...(explorer ? [W.link(`View on ${from.explorer.name}`, explorer)] : []),
-      ...(provider === "lifi" ? [W.link("Track on LI.FI", lifiExplorerUrl(hash))] : []),
+      ...(tracker ? [W.link(tracker.label, tracker.url)] : []),
       ...(same
         ? []
         : [
             W.actions([{ label: "Check status", command: statusCommand(hash, from, to) }]),
             W.text("Bridges take a few minutes. Check status asks LI.FI how far along it is."),
           ]),
-      POWERED_BY[provider],
+      poweredBy(quote.provider),
     ],
     { title: same ? "Swapped" : "Bridge started", icon: "checkmark-circle", tone: "success" },
   );
@@ -633,7 +415,7 @@ async function statusCard(
             : []),
           W.link("Track on LI.FI", status.lifiExplorerLink ?? lifiExplorerUrl(hash)),
           ...(open ? [W.actions([{ label: "Check again", command: statusCommand(hash, from, to) }])] : []),
-          POWERED_BY.lifi,
+          poweredBy(lifi),
         ],
         { title: "Bridge status", icon: "swap-horizontal-outline", tone },
       ),
@@ -701,7 +483,7 @@ async function quoteOrTrade(
 
   let sent: { approval?: Hex; hash: Hex } | undefined;
   try {
-    sent = await execute(context, from, prepared, respond);
+    sent = await sendTrade(context, from, { ...prepared, sell: prepared.fromToken }, respond);
     await respond({
       kind: "widget",
       fallback: `Sent ${given.amount} ${prepared.fromToken.symbol} for ${prepared.toToken.symbol}`,
