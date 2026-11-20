@@ -53,6 +53,10 @@ jobs:
     if: needs.due.outputs.due == 'true'
     runs-on: mac
     timeout-minutes: 150
+    env:
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
     steps:
       # actions/checkout adds a safe.directory to the global git config: a throwaway one, not Anthony's ~/.gitconfig.
       - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -88,10 +92,12 @@ jobs:
         run: |
           npm test
           cargo test --manifest-path src-tauri/Cargo.toml --locked
+          rm -rf src-tauri/target
 
       # e2e/run.sh against a development build of this commit, on a simulator kept for it from one night to the next
       # (so 00-onboarding makes its account once, not every night) and a Metro on a port of its own, away from the
-      # simulators and servers in use on the Mac. Metro stops and the simulator shuts down whatever the result.
+      # simulators and servers in use on the Mac. Whatever the result, Metro stops, the simulator shuts down, and Xcode's
+      # build of this checkout goes: its DerivedData folder is named after the checkout's path, a new one every night.
       - name: E2e
         env:
           E2E_METRO_PORT: '8090'
@@ -102,7 +108,14 @@ jobs:
           UDID=$(xcrun simctl list devices -j | jq -r --arg name "$SIMULATOR" '[.devices[][] | select(.name == $name)][0].udid // empty')
           [ -n "$UDID" ] || UDID=$(xcrun simctl create "$SIMULATOR" com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro)
           METRO=
-          trap '[ -z "$METRO" ] || kill "$METRO"; xcrun simctl shutdown "$UDID" || true' EXIT
+          clean() {
+            [ -z "$METRO" ] || kill "$METRO"
+            xcrun simctl shutdown "$UDID" || true
+            for built in "$HOME"/Library/Developer/Xcode/DerivedData/Statim-*; do
+              if grep -qF "$PWD/" "$built/info.plist" 2> /dev/null; then rm -rf "$built"; fi
+            done
+          }
+          trap clean EXIT
           xcrun simctl bootstatus "$UDID" -b > /dev/null
           ./node_modules/.bin/expo start --dev-client --port "$E2E_METRO_PORT" > "$RUNNER_TEMP/metro.log" 2>&1 &
           METRO=$!
