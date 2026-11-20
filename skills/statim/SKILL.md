@@ -748,7 +748,7 @@ statim run alice /send 0.01 ETH
 
 `statim link <uri>`
 
-Open a link a plugin handles, such as a WalletConnect wc: pairing link.
+Open a link a plugin handles: a WalletConnect wc: pairing link, or an ethereum:, bitcoin: or solana: payment link.
 
 - `uri`: The link
 

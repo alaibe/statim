@@ -1,8 +1,11 @@
+import { errorMessage } from "@/core/errors";
+import { botChatId } from "@/core/messaging/bots";
+import { useChatStore } from "@/core/messaging/chat-store";
 import { liveViews } from "@/core/plugins/live";
-import type { Plugin, PluginContext } from "@/core/plugins/types";
+import type { Plugin, PluginContext, UriHandler } from "@/core/plugins/types";
 
 import { addressCard } from "./address-card";
-import { makeWalletBot } from "./bot";
+import { makeWalletBot, WALLET_BOT_ID } from "./bot";
 import {
   chainsCard,
   chainsCommand,
@@ -17,6 +20,7 @@ import { watchCommands, watchedCard } from "./chains/watch-commands";
 import { channelCommands, endpointCard } from "./channel-commands";
 import { walletCommands } from "./commands";
 import { walletContentTypes } from "./content-types";
+import { findPaymentLink, PAYMENT_SCHEMES, parsePaymentLink, paymentCard, paymentRequest } from "./payment-link";
 import { tokensCommand } from "./tokens";
 import { tradeCommand } from "./trade";
 
@@ -35,6 +39,7 @@ export const walletPlugin: Plugin = {
     const views = liveViews(context, {
       address: ([value, mode]) => addressCard(context, value, { offerSend: mode !== "no-send" }),
       chains: () => chainsCard(context),
+      payment: ([uri]) => paymentCard(uri),
       endpoint: ([id]) => {
         const chain = walletChainById(id);
         if (!chain) throw new Error(`No chain called "${id}".`);
@@ -51,6 +56,16 @@ export const walletPlugin: Plugin = {
       bots: [makeWalletBot(context)],
       contentTypes: walletContentTypes,
       views,
+      textPreviews: [
+        {
+          view: "payment",
+          match: (text) => {
+            const uri = findPaymentLink(text);
+            return uri ? [uri] : null;
+          },
+        },
+      ],
+      uriHandlers: [paymentLinks],
 
       commands: [
         ...walletCommands,
@@ -112,6 +127,24 @@ export const walletPlugin: Plugin = {
         return disposeStrategies;
       },
     };
+  },
+};
+
+const paymentLinks: UriHandler = {
+  schemes: PAYMENT_SCHEMES,
+  async handle(url, context) {
+    const link = parsePaymentLink(url);
+    if (!link) return false;
+    try {
+      if ("error" in link) throw new Error(link.error);
+      const { command } = await paymentRequest(link);
+      const chatId = botChatId(WALLET_BOT_ID);
+      useChatStore.getState().setDraft(chatId, command);
+      context.ui.openChat(chatId);
+    } catch (error) {
+      context.ui.notify(errorMessage(error, "Could not read that payment link"), "error");
+    }
+    return true;
   },
 };
 

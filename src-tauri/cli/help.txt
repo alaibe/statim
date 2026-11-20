@@ -91,7 +91,7 @@ Plugins
   plugins disable    Turn a plugin off
   commands           List the slash commands plugins offer, everywhere or in one chat
   run                Run a plugin slash command; with no chat it runs in the chat of the plugin that owns it. Anything that signs asks you in the app first
-  link               Open a link a plugin handles, such as a WalletConnect wc: pairing link
+  link               Open a link a plugin handles: a WalletConnect wc: pairing link, or an ethereum:, bitcoin: or solana: payment link
 
 Live
   watch              Print new messages as they arrive, one JSON object per line with --json

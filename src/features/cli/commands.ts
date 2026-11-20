@@ -577,7 +577,8 @@ export const COMMANDS = [
   {
     path: "link",
     group: "Plugins",
-    summary: "Open a link a plugin handles, such as a WalletConnect wc: pairing link",
+    summary:
+      "Open a link a plugin handles: a WalletConnect wc: pairing link, or an ethereum:, bitcoin: or solana: payment link",
     args: [{ name: "uri", description: "The link" }],
   },
   {

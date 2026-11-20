@@ -1376,7 +1376,7 @@
     },
     {
       "name": "link",
-      "description": "Open a link a plugin handles, such as a WalletConnect wc: pairing link.",
+      "description": "Open a link a plugin handles: a WalletConnect wc: pairing link, or an ethereum:, bitcoin: or solana: payment link.",
       "inputSchema": {
         "type": "object",
         "properties": {
