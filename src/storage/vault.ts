@@ -14,6 +14,7 @@ export const VaultKey = {
   icloudSession: "notifications.icloudSession",
   pin: "security.pin",
   pinAttempts: "security.pinAttempts",
+  usageStore: "usage.store",
   version: "vault.version",
 } as const;
 

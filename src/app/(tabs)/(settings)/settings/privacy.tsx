@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react";
+
 import { useAppearanceStore } from "@/core/app/appearance";
+import { usage } from "@/core/usage/usage";
 import { Icon, ListItem, Section, Text, Toggle } from "@/design";
 import { SettingsScreen } from "@/features/settings/settings-screen";
 
@@ -9,6 +12,19 @@ export default function PrivacyScreen() {
   const setTypingIndicators = useAppearanceStore((s) => s.setTypingIndicators);
   const linkPreviews = useAppearanceStore((s) => s.linkPreviews);
   const setLinkPreviews = useAppearanceStore((s) => s.setLinkPreviews);
+  const [usageStatistics, setUsageStatisticsShown] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    usage
+      .isEnabled()
+      .then(setUsageStatisticsShown)
+      .catch(() => {});
+  }, []);
+
+  async function toggleUsageStatistics(next: boolean) {
+    setUsageStatisticsShown(next);
+    await usage.setEnabled(next).catch(() => setUsageStatisticsShown(!next));
+  }
 
   return (
     <SettingsScreen title="Privacy">
@@ -43,6 +59,25 @@ export default function PrivacyScreen() {
           numberOfLinesSubtitle={6}
           leading={<Icon name="link-outline" size={20} tone="muted" />}
           trailing={<Toggle label="Show link previews" value={linkPreviews} onValueChange={setLinkPreviews} />}
+        />
+      </Section>
+
+      <Section title="Usage statistics" surface="card" className="mb-4">
+        <ListItem
+          testID="usage-statistics"
+          title="Share anonymous usage statistics"
+          subtitle="Sends which screens you open, Statim's version and your system to stats.laibe.cc, to count how Statim is used. Nothing you write or read. On by default."
+          numberOfLinesSubtitle={5}
+          leading={<Icon name="pie-chart-outline" size={20} tone="muted" />}
+          trailing={
+            usageStatistics !== null && (
+              <Toggle
+                label="Share anonymous usage statistics"
+                value={usageStatistics}
+                onValueChange={toggleUsageStatistics}
+              />
+            )
+          }
         />
       </Section>
 

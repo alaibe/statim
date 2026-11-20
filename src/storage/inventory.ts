@@ -8,7 +8,7 @@ export type Medium = "vault" | "files" | "database";
 const STORAGE_INVENTORY = {
   vault: {
     account: ["account."],
-    device: ["accounts.", "security."],
+    device: ["accounts.", "security.", "usage."],
   },
   files: {
     account: ["attachments", "gifs", "stickers", "tdlib", "matrix"],

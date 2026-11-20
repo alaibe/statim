@@ -8,6 +8,10 @@ const ALLOWED: Record<string, string> = {
   "src/storage/media: mediaDirectory is native only":
     "An expo-file-system handle for media-store.ts, whose desktop neighbour does not use it",
   "src/storage/media: mediaFile is native only": "The same, for a single file",
+  "src/core/usage/platform: userAgent is native only":
+    "The phones' User-Agents, exported for platform.test's U07; the desktop's are in src-tauri/src/usage.rs",
+  "src/core/usage/platform: device is native only":
+    "Mobile or tablet, exported for platform.test's U06; the desktop is always desktop",
 };
 
 const pairs = readdirSync(path.join(ROOT, "src"), { recursive: true, encoding: "utf8" })

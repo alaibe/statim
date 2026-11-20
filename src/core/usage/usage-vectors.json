@@ -1,0 +1,380 @@
+{
+  "about": "Shared test vectors for the usage statistics of Kestrel, Grenier and Statim. Copied byte for byte into each repository; change all three together.",
+  "format": 1,
+  "endpoint": "https://stats.laibe.cc/api/send",
+  "idLifetimeSeconds": 31536000,
+  "timeoutSeconds": 5,
+  "maxBrowser": 20,
+  "maxScreen": 11,
+  "tabletShortSide": 600,
+  "offText": "{\"off\":true}",
+  "idText": {
+    "id": "00112233445566778899aabbccddeeff",
+    "made": 1795168800,
+    "text": "{\"id\":\"00112233445566778899aabbccddeeff\",\"made\":1795168800}"
+  },
+  "visitor": [
+    {
+      "install": "00112233445566778899aabbccddeeff",
+      "at": 1795168800,
+      "utc": "2026-11-20T10:00:00Z",
+      "month": "2026-11",
+      "visitor": "0fbbcde9af2c73b45391c29e99910df3"
+    },
+    {
+      "install": "00112233445566778899aabbccddeeff",
+      "at": 1793491200,
+      "utc": "2026-11-01T00:00:00Z",
+      "month": "2026-11",
+      "visitor": "0fbbcde9af2c73b45391c29e99910df3"
+    },
+    {
+      "install": "00112233445566778899aabbccddeeff",
+      "at": 1793491199,
+      "utc": "2026-10-31T23:59:59Z",
+      "month": "2026-10",
+      "visitor": "bffde6a34e8f5e5b4e2f3c170b2302ab"
+    },
+    {
+      "install": "00112233445566778899aabbccddeeff",
+      "at": 1793489400,
+      "utc": "2026-10-31T23:30:00Z",
+      "month": "2026-10",
+      "visitor": "bffde6a34e8f5e5b4e2f3c170b2302ab"
+    },
+    {
+      "install": "0123456789abcdef0123456789abcdef",
+      "at": 1795167000,
+      "utc": "2026-11-20T09:30:00Z",
+      "month": "2026-11",
+      "visitor": "43ba01c52608898f29c28ae6cc02f7e7"
+    },
+    {
+      "install": "0123456789abcdef0123456789abcdef",
+      "at": 1798761599,
+      "utc": "2026-12-31T23:59:59Z",
+      "month": "2026-12",
+      "visitor": "ba2b5c5b635b06ed4795131d94120c97"
+    },
+    {
+      "install": "0123456789abcdef0123456789abcdef",
+      "at": 1798761600,
+      "utc": "2027-01-01T00:00:00Z",
+      "month": "2027-01",
+      "visitor": "ae20b05eddbbbeeefb8900e098641bd7"
+    },
+    {
+      "install": "fedcba9876543210fedcba9876543210",
+      "at": 1709208000,
+      "utc": "2024-02-29T12:00:00Z",
+      "month": "2024-02",
+      "visitor": "885e7b0cf8f7c520e24e5cc568671d22"
+    },
+    {
+      "install": "fedcba9876543210fedcba9876543210",
+      "at": 1709251200,
+      "utc": "2024-03-01T00:00:00Z",
+      "month": "2024-03",
+      "visitor": "5715c0d1c045fe22cf5260349cd52940"
+    },
+    {
+      "install": "fedcba9876543210fedcba9876543210",
+      "at": 0,
+      "utc": "1970-01-01T00:00:00Z",
+      "month": "1970-01",
+      "visitor": "84826293f31a23f48b50ec527eeb1e6a"
+    }
+  ],
+  "lifetime": [
+    {
+      "case": "made this second",
+      "made": 1795168800,
+      "now": 1795168800,
+      "replace": false
+    },
+    {
+      "case": "11 months old",
+      "made": 1766224800,
+      "now": 1795168800,
+      "replace": false
+    },
+    {
+      "case": "1 s short of 365 days",
+      "made": 1763632801,
+      "now": 1795168800,
+      "replace": false
+    },
+    {
+      "case": "exactly 365 days",
+      "made": 1763632800,
+      "now": 1795168800,
+      "replace": true
+    },
+    {
+      "case": "12 months and a day",
+      "made": 1763546400,
+      "now": 1795168800,
+      "replace": true
+    },
+    {
+      "case": "1 s in the future",
+      "made": 1795168801,
+      "now": 1795168800,
+      "replace": true
+    },
+    {
+      "case": "next month",
+      "made": 1796083200,
+      "now": 1795168800,
+      "replace": true
+    }
+  ],
+  "store": [
+    {
+      "case": "nothing stored",
+      "text": null,
+      "state": "missing"
+    },
+    {
+      "case": "off",
+      "text": "{\"off\":true}",
+      "state": "off"
+    },
+    {
+      "case": "an id with its date",
+      "text": "{\"id\":\"00112233445566778899aabbccddeeff\",\"made\":1795168800}",
+      "state": "id",
+      "id": "00112233445566778899aabbccddeeff",
+      "made": 1795168800
+    },
+    {
+      "case": "off wins over an id",
+      "text": "{\"off\":true,\"id\":\"00112233445566778899aabbccddeeff\",\"made\":1795168800}",
+      "state": "off"
+    },
+    {
+      "case": "an id without a date",
+      "text": "{\"id\":\"00112233445566778899aabbccddeeff\"}",
+      "state": "damaged"
+    },
+    {
+      "case": "uppercase hex",
+      "text": "{\"id\":\"00112233445566778899AABBCCDDEEFF\",\"made\":1795168800}",
+      "state": "damaged"
+    },
+    {
+      "case": "too short",
+      "text": "{\"id\":\"0011\",\"made\":1795168800}",
+      "state": "damaged"
+    },
+    {
+      "case": "a date as text",
+      "text": "{\"id\":\"00112233445566778899aabbccddeeff\",\"made\":\"2026-11-20T10:00:00Z\"}",
+      "state": "damaged"
+    },
+    {
+      "case": "a negative date",
+      "text": "{\"id\":\"00112233445566778899aabbccddeeff\",\"made\":-1}",
+      "state": "damaged"
+    },
+    {
+      "case": "off set to false",
+      "text": "{\"off\":false}",
+      "state": "damaged"
+    },
+    {
+      "case": "the bare word off",
+      "text": "off",
+      "state": "damaged"
+    },
+    {
+      "case": "empty",
+      "text": "",
+      "state": "damaged"
+    },
+    {
+      "case": "not an object",
+      "text": "[]",
+      "state": "damaged"
+    },
+    {
+      "case": "Grenier's first format",
+      "text": "{\"enabled\":true,\"install\":\"00112233445566778899aabbccddeeff\",\"made\":1795168800}",
+      "state": "damaged"
+    }
+  ],
+  "browser": [
+    {
+      "app": "Kestrel",
+      "version": "1.4.2",
+      "browser": "Kestrel 1.4.2"
+    },
+    {
+      "app": "Kestrel",
+      "version": "10.20.30-beta.4",
+      "browser": "Kestrel 10.20.30-bet"
+    },
+    {
+      "app": "Grenier",
+      "version": "1.4.2",
+      "browser": "Grenier 1.4.2"
+    },
+    {
+      "app": "Grenier",
+      "version": "10.20.30-beta.4",
+      "browser": "Grenier 10.20.30-bet"
+    },
+    {
+      "app": "Statim",
+      "version": "1.4.2",
+      "browser": "Statim 1.4.2"
+    },
+    {
+      "app": "Statim",
+      "version": "10.20.30-beta.4",
+      "browser": "Statim 10.20.30-beta"
+    }
+  ],
+  "screen": [
+    {
+      "width": 1512,
+      "height": 982,
+      "screen": "1512x982"
+    },
+    {
+      "width": 393,
+      "height": 852,
+      "screen": "393x852"
+    },
+    {
+      "width": 99999,
+      "height": 99999,
+      "screen": "99999x99999"
+    },
+    {
+      "width": 100000,
+      "height": 1,
+      "screen": "100000x1"
+    },
+    {
+      "width": 123456,
+      "height": 78901,
+      "screen": null
+    },
+    {
+      "width": 0,
+      "height": 982,
+      "screen": null
+    }
+  ],
+  "device": [
+    {
+      "width": 393,
+      "height": 852,
+      "device": "mobile"
+    },
+    {
+      "width": 599,
+      "height": 900,
+      "device": "mobile"
+    },
+    {
+      "width": 600,
+      "height": 960,
+      "device": "tablet"
+    },
+    {
+      "width": 1180,
+      "height": 820,
+      "device": "tablet"
+    }
+  ],
+  "userAgent": {
+    "macOS": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+    "Windows": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Linux": "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0",
+    "iOS": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+    "Android": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+  },
+  "payload": {
+    "input": {
+      "install": "00112233445566778899aabbccddeeff",
+      "at": 1795168800,
+      "url": "/settings",
+      "title": "Settings",
+      "version": "1.4.2",
+      "os": "macOS",
+      "device": "desktop",
+      "width": 1512,
+      "height": 982
+    },
+    "apps": {
+      "kestrel": {
+        "name": "Kestrel",
+        "website": "149e2b7d-2755-4376-8040-5d40650c4cda",
+        "hostname": "kestrel-app.laibe.cc",
+        "expected": {
+          "type": "event",
+          "payload": {
+            "website": "149e2b7d-2755-4376-8040-5d40650c4cda",
+            "hostname": "kestrel-app.laibe.cc",
+            "url": "/settings",
+            "title": "Settings",
+            "id": "0fbbcde9af2c73b45391c29e99910df3",
+            "ip": "127.0.0.1",
+            "tag": "1.4.2",
+            "browser": "Kestrel 1.4.2",
+            "os": "macOS",
+            "device": "desktop",
+            "screen": "1512x982",
+            "language": "en-US"
+          }
+        }
+      },
+      "grenier": {
+        "name": "Grenier",
+        "website": "8703a1e3-cc65-40ba-b060-558c647c959f",
+        "hostname": "grenier-app.laibe.cc",
+        "expected": {
+          "type": "event",
+          "payload": {
+            "website": "8703a1e3-cc65-40ba-b060-558c647c959f",
+            "hostname": "grenier-app.laibe.cc",
+            "url": "/settings",
+            "title": "Settings",
+            "id": "0fbbcde9af2c73b45391c29e99910df3",
+            "ip": "127.0.0.1",
+            "tag": "1.4.2",
+            "browser": "Grenier 1.4.2",
+            "os": "macOS",
+            "device": "desktop",
+            "screen": "1512x982",
+            "language": "en-US"
+          }
+        }
+      },
+      "statim": {
+        "name": "Statim",
+        "website": "58e49091-a4c1-4c64-afe4-c2806ee75458",
+        "hostname": "statim-app.laibe.cc",
+        "expected": {
+          "type": "event",
+          "payload": {
+            "website": "58e49091-a4c1-4c64-afe4-c2806ee75458",
+            "hostname": "statim-app.laibe.cc",
+            "url": "/settings",
+            "title": "Settings",
+            "id": "0fbbcde9af2c73b45391c29e99910df3",
+            "ip": "127.0.0.1",
+            "tag": "1.4.2",
+            "browser": "Statim 1.4.2",
+            "os": "macOS",
+            "device": "desktop",
+            "screen": "1512x982",
+            "language": "en-US"
+          }
+        }
+      }
+    }
+  }
+}

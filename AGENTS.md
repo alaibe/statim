@@ -86,6 +86,20 @@ check and the tests on every push, and also checks:
   to the running app over a local socket; the page runs the command
   (`src/features/cli`). A new store action fails typecheck until
   `src/features/cli/coverage.ts` names its command or why it has none.
+- `src/core/usage` is the only code that reports to the developer: a page
+  view to stats.laibe.cc (Umami) per screen, from release builds, unless
+  Settings → Privacy turns it off. A screen is sent by its route pattern from
+  the list in `screens.ts`, and a new route fails `screens.test.ts` until it
+  is listed or left out on purpose. A screen counts once it has stayed a
+  second in front, and nothing is sent while the app is behind other apps,
+  before onboarding or while locked. The vault key `usage.store` holds the
+  switch and the install id: `{"id":…,"made":…}` (replaced at 365 days),
+  `{"off":true}`, or nothing (on, no id yet); anything else counts as off. A
+  wake from sleep with the app in front sends no return hit until the next
+  screen change or app switch, a known limit. `tracker.ts`, `use-usage.ts`
+  and `usage-vectors.json` are byte-for-byte copies of the ones in Kestrel and
+  Grenier: change all three together. A change to what it sends is a change
+  to the privacy policy and both stores' privacy answers.
 - `patches/` is load-bearing too. Every patch is documented in
   `patches/README.md` with its symptom, cause and removal condition. Add one
   only with that entry.

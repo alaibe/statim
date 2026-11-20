@@ -14,6 +14,7 @@ import { useAppearanceStore } from "@/core/app/appearance";
 import { useAppBoot, useAppLock, useDeepLinkRouter } from "@/core/app/boot";
 import { useMessageNotifications } from "@/core/app/use-notifications";
 import { type HostUi, PluginProvider, usePluginHost } from "@/core/plugins/host";
+import { UsageStatistics } from "@/core/usage/usage-statistics";
 import { DevicePromptHost } from "@/features/account/device-prompt";
 import { LockGate } from "@/features/account/lock-gate";
 import { CliApprovals } from "@/features/cli/approvals";
@@ -177,6 +178,7 @@ function AppShell() {
       <CliApprovals />
       <DevicePromptHost />
       <ToastHost />
+      <UsageStatistics />
 
       {lockStatus === "open" ? null : lockStatus === "locked" ? (
         <LockGate />

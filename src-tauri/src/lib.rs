@@ -16,6 +16,7 @@ mod probe;
 mod sign_in;
 mod tdlib;
 mod tray;
+mod usage;
 mod vault;
 mod web_login;
 
@@ -112,6 +113,7 @@ pub fn run() {
             vault::vault_get,
             vault::vault_set,
             vault::vault_delete,
+            usage::usage_post,
             ledger::ledger_list,
             ledger::ledger_open,
             ledger::ledger_exchange,

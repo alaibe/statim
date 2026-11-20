@@ -121,6 +121,10 @@ where it matters:
 - **Link previews are fetched by your device**, so the linked site learns your
   network address as soon as the message arrives. On by default, with a switch
   under Settings → Privacy.
+- **Usage statistics go to the developer**: which screens are opened, by
+  route and never by chat or address, with the app version and the system,
+  under an id that changes every month. On by default in release builds, with
+  a switch under Settings → Privacy.
 - **Blockchain reads go to an endpoint** that then knows which addresses you
   look at. `/rpc` points a chain at one you run instead.
 - Android has not been security-reviewed. The key storage, database and
