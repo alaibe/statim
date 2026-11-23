@@ -337,7 +337,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
       before: opts?.before?.id,
     });
     const room = this.rooms.get(roomId);
-    if (room && !room.isDm) void this.membersOf(roomId);
+    if (room && !room.isDm) this.membersOf(roomId).catch(() => {});
     return events.map((event) => this.toMessage(event, false));
   }
 
@@ -717,7 +717,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     const lacks = network ? this.features.lacks(room.id) : undefined;
     const humans = network && !room.isDm ? humansIn(room, roster) : undefined;
     // A bot at default power, such as mautrix-discord's or Slackbot, shows only in the roster.
-    if (humans === 3 && !roster && room.membership === "joined") void this.membersOf(room.id);
+    if (humans === 3 && !roster && room.membership === "joined") this.membersOf(room.id).catch(() => {});
     const isDm = room.isDm || (humans === 2 && !room.name.startsWith("#"));
     const participant = this.participantOf(room, roster ?? []);
     const memberIds = isDm
