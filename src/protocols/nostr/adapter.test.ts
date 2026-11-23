@@ -353,6 +353,21 @@ describe("sending", () => {
     expect(await session.getMessages(chat.id)).toHaveLength(1);
   });
 
+  it("sends the next message when no wrap of a failed one was accepted", async () => {
+    const { session, factory } = await connect();
+    const relay = factory.relays[0];
+    relay.autoAcceptPublications = false;
+    const chat = await session.createDm(bob.publicKey);
+
+    const failed = session.send(chat.id, { kind: "text", text: "lost" });
+    await settleDeliveries();
+    relay.acknowledge(relay.published[0].id, false, "offline");
+    await expect(failed).rejects.toThrow("offline");
+
+    relay.autoAcceptPublications = true;
+    await expect(session.send(chat.id, { kind: "text", text: "next" })).resolves.toBeDefined();
+  });
+
   it("retries failed local persistence without publishing a second logical message", async () => {
     class FlakyStore extends InMemoryMessageStore {
       attempts = 0;

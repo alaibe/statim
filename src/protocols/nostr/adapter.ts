@@ -271,12 +271,12 @@ class NostrTransport implements ChatTransport {
     if (!pending) {
       const wrapped = wrapForRecipients(this.keys, { recipients, subject: chat.title, ...rumor });
       pending = { key, rumor: wrapped.rumor, remaining: wrapped.wraps };
-      this.pendingSends.set(chat.id, pending);
     }
 
     while (pending.remaining.length > 0) {
       await this.pool.publish(pending.remaining[0]);
       pending.remaining.shift();
+      this.pendingSends.set(chat.id, pending);
     }
     const sent = pending.rumor;
     // Handed back at once rather than waiting for the self-addressed wrap to come back.
