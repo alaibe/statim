@@ -35,7 +35,7 @@ jobs:
       TAG: homeserver-${{ inputs.tuwunel }}
     steps:
       # actions/checkout adds a safe.directory to the global git config: a throwaway one, not Anthony's ~/.gitconfig.
-      - uses: actions/checkout@v4
+      - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         env:
           GIT_CONFIG_GLOBAL: ${{ runner.temp }}/gitconfig
 
