@@ -13,6 +13,7 @@ import { headerSubtitle } from "./header-subtitle";
 
 const desktop = process.env.EXPO_OS === "web";
 const android = process.env.EXPO_OS === "android";
+const ios = process.env.EXPO_OS === "ios";
 
 interface ChatHeaderProps {
   chat: Chat;
@@ -103,8 +104,25 @@ function HeaderBar({ children }: { children: React.ReactNode }) {
       }
       style={{ paddingTop: insets.top + frame.top + 6, paddingBottom: 8 }}
     >
+      {ios ? <ScrollEdge /> : null}
       {children}
     </View>
+  );
+}
+
+/** Fades messages out before they reach the clock and the header, as iOS bars do over scrolled content. */
+function ScrollEdge() {
+  const { canvas } = useThemeColors();
+  const fade = (alpha: number) => canvas.replace(")", ` / ${alpha})`);
+  return (
+    <View
+      style={{
+        position: "absolute",
+        inset: 0,
+        pointerEvents: "none",
+        experimental_backgroundImage: `linear-gradient(to bottom, ${canvas} 0%, ${canvas} 55%, ${fade(0.85)} 75%, ${fade(0)} 100%)`,
+      }}
+    />
   );
 }
 
