@@ -1,4 +1,4 @@
-import { type Address, type Hex, hexToString, isHex } from "viem";
+import { type Address, type Hex, hexToString, isHex, type SignableMessage } from "viem";
 
 import type { PluginContext } from "@/core/plugins/types";
 import { fromCaip2 } from "@/lib/evm/chains";
@@ -18,14 +18,12 @@ export async function handleSessionRequest(
 
     case "personal_sign": {
       const [rawMessage] = item.params as [Hex | string, Address];
-      const message = isHex(rawMessage) ? hexToString(rawMessage) : String(rawMessage);
-      return account.signMessage({ message });
+      return account.signMessage({ message: signable(rawMessage) });
     }
 
     case "eth_sign": {
       const [, rawMessage] = item.params as [Address, Hex | string];
-      const message = isHex(rawMessage) ? hexToString(rawMessage) : String(rawMessage);
-      return account.signMessage({ message });
+      return account.signMessage({ message: signable(rawMessage) });
     }
 
     case "eth_signTypedData":
@@ -91,6 +89,10 @@ export function describeRequest(item: Extract<PendingItem, { kind: "request" }>)
     default:
       return { title: item.method, detail: "Unrecognised request" };
   }
+}
+
+function signable(message: Hex | string): SignableMessage {
+  return isHex(message) ? { raw: message } : String(message);
 }
 
 function resolveChainId(caip2: string): number {
