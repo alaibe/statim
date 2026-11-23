@@ -21,7 +21,6 @@ function connectedProtocols(flag: string | true | undefined) {
   return connected;
 }
 
-/** The first protocol, in the app's order, that resolves the address. */
 export async function resolveOn(
   flag: string | true | undefined,
   address: string,

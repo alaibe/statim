@@ -312,7 +312,6 @@ describe("PluginRegistry", () => {
 });
 
 describe("channel scoping", () => {
-  /** A plugin that owns a channel and contributes one command and one chip. */
   const channelPlugin = (id: string, extra: Partial<ReturnType<Plugin["setup"]>> = {}) =>
     makePlugin(id, {
       bots: [{ id, name: id, tagline: "", greeting: () => [] }],

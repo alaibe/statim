@@ -11,7 +11,6 @@ const WIDTH = 380;
 const HEIGHT = 460;
 const MARGIN = 12;
 
-/** On the desktop the panel is a popover above the button that opened it. */
 export function MediaPanel({ tab: initialTab, anchor, onClose, ...content }: MediaPanelProps) {
   const window = useWindowDimensions();
   const [tab, setTab] = useState<MediaTab>(initialTab);

@@ -45,7 +45,6 @@ function heldBalance(chain: ChainStrategy, token: TradeAsset, owner: string): Pr
       });
 }
 
-/** Whether the sold token has to be approved, or can go by a Permit2 signature, before the quote's transaction. */
 async function planApproval(
   context: PluginContext,
   { from, sell, amount, sender }: TradeRequest,
@@ -107,8 +106,7 @@ async function sendTrade(
   let approval: Hex | undefined;
 
   if (needsApproval) {
-    // Permit2 is approved once, for everything: the allowance after this is
-    // spent only against a signature naming the amount and a deadline.
+    // Permit2 is approved once for everything; it then moves funds only against a signed amount and deadline.
     const spender = permit?.approve?.spender ?? payment.spender;
     const allowed = permit?.approve?.amount ?? quote.sold;
 
@@ -163,7 +161,7 @@ async function sendTrade(
     to: call.to,
     data: call.data,
     value: payment.value,
-    // The proxy adds its own work, so the router's estimate no longer covers it.
+    // The proxy adds its own work, which the router's estimate does not cover.
     gas: permit ? undefined : payment.gas,
   });
   return { approval, hash };

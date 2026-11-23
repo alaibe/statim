@@ -30,7 +30,6 @@ export function MessageText({
   className?: string;
   /** The time, at the end of a one-paragraph text; `label` is what it reads, to keep its room free. */
   footer?: { node: ReactNode; label: string };
-  /** With `onCommand`, an address offers to send funds where /send can run. */
   chatId?: ChatId;
   onCommand?: (command: string) => void;
 }) {

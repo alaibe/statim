@@ -69,10 +69,7 @@ interface FileWaiter {
 }
 const PHONE_HINT = "The number your Telegram account uses, with the country code.";
 
-/**
- * A Telegram user client over TDLib, which owns history, contacts and files
- * in its own database.
- */
+/** TDLib owns history, contacts and files in its own database. */
 export class TelegramSession implements ChatSession {
   readonly sendsImages = true;
   readonly sendsVideo = true;
@@ -107,7 +104,7 @@ export class TelegramSession implements ChatSession {
   private readonly stickerSets = new TelegramStickers(this.host);
   private readonly awaitedFiles = new Map<number, FileWaiter[]>();
   private readonly refetching = new Map<string, Promise<void>>();
-  /** When the message a chat's read marker stands on was sent, where the last message cannot tell; unset while fetching or after it failed. */
+  /** When the message under each read marker was sent; unset while fetching or after a failure. */
   private readonly readDates = new Map<number, { messageId: number; at?: number }>();
   private readonly typing = new TypingTracker((chatId) => {
     const chat = this.td.chats.get(chatId);
@@ -167,7 +164,7 @@ export class TelegramSession implements ChatSession {
     return this.link.subscribe(listener);
   }
 
-  /** Reopens TDLib's connections, which may have died while the app was suspended; TDLib then catches up by itself. */
+  /** TDLib's connections may have died while suspended; poking them makes it reconnect and catch up. */
   async resume(): Promise<boolean> {
     if (this.me) await this.api.send({ "@type": "setNetworkType", type: { "@type": "networkTypeOther" } });
     return false;

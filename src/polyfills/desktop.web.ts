@@ -15,9 +15,7 @@ document.addEventListener("contextmenu", (event) => {
   if (!editable(event.target)) event.preventDefault();
 });
 
-// Closing the window leaves the app running; Ctrl+Q quits, as Quit Statim
-// does in the menu and the tray. Alt on its own shows a hidden menu bar until
-// the next click.
+// Ctrl+Q quits, as Quit Statim does in the menu and tray; Alt alone shows a hidden menu bar until the next click.
 if (!/Mac/.test(navigator.userAgent)) {
   let altAlone = false;
   let peeking = false;

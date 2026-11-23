@@ -6,7 +6,6 @@ import { MediaPanelContent, type MediaPanelProps, type MediaTab } from "./media-
 
 export type { MediaAnchor, MediaPanelProps } from "./media-panel-content";
 
-/** On a phone the panel rises from the bottom, where the keyboard would be. */
 export function MediaPanel({ tab: initialTab, onClose, ...content }: MediaPanelProps) {
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();

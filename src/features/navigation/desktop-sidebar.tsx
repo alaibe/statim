@@ -31,11 +31,6 @@ const TABS: {
 /** The traffic lights sit inside the card's top-left corner; the title row clears them. */
 const TRAFFIC_LIGHTS_WIDTH = 64;
 
-/**
- * The left column of the desktop window: the list for the active tab, with
- * search above it and the tab strip below. Settings opens in the pane, so the
- * list stays where it was.
- */
 export function DesktopSidebar() {
   const router = useRouter();
   const segments = useSegments() as string[];

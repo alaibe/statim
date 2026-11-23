@@ -7,8 +7,7 @@ import type { StoredMedia } from "./media-store";
 
 export type { StoredMedia } from "./media-store";
 
-// Files this session has already handed to the Rust side, so a message that
-// is converted again (every chat open lists its attachments) skips the copy.
+// Files already handed to the Rust side this session, since every chat open converts its attachments again.
 const stored = new Map<string, string>();
 
 const storedKey = (area: FileArea, name: string, accountId: string) => `${accountId}/${area}/${name}`;

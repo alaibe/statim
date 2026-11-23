@@ -26,10 +26,8 @@ export interface CliIo {
   stdin(): Promise<Uint8Array>;
   readFile(path: string): Promise<Uint8Array>;
   writeFile(path: string, data: Uint8Array): Promise<void>;
-  /** Asks the person at the app; resolves false when they decline. */
   approve(request: string): Promise<boolean>;
   showWindow(): Promise<void>;
-  /** Settles when the terminal goes away. */
   closed: Promise<void>;
 }
 
@@ -60,7 +58,6 @@ export function waitFor<S>(store: Store<S>, done: (state: S) => boolean, timeout
   });
 }
 
-/** Waits out startup: the lock check, then the account. */
 export async function whenSettled(): Promise<void> {
   await waitFor(useLockStore, (s) => s.status !== "checking", 10_000);
   await waitFor(useAccountStore, (s) => s.status !== "loading", 30_000);
@@ -89,10 +86,7 @@ export async function whenAccountReady(): Promise<void> {
   settledFor = accountId;
 }
 
-/**
- * The account already waited for. Its protocols get one chance to connect and list their chats,
- * so a stuck one does not slow every command.
- */
+/** Its protocols get one chance to connect and list their chats, so a stuck one does not slow every command. */
 let settledFor: string | null = null;
 
 function describeChoices(items: string[]): string {
@@ -134,7 +128,6 @@ const participantCache = new Map<string, { name?: string; address?: string }>();
 
 let namingRegistry: PluginRegistry | undefined;
 
-/** Later commands show the names these plugins give people, such as bots you named. */
 export function nameWith(registry: PluginRegistry): void {
   namingRegistry = registry;
 }
@@ -156,7 +149,6 @@ async function participants(protocol: ProtocolId, ids: ParticipantId[]) {
   };
 }
 
-/** Titles as the app shows them: a DM is named after the other person. */
 export async function chatLabels(chats: readonly Chat[]): Promise<Map<ChatId, ChatLabel>> {
   const { sessions } = useChatStore.getState();
   const byProtocol = new Map<ProtocolId, Chat[]>();

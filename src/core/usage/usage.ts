@@ -214,7 +214,6 @@ export const usage = createUsage({
   device: started.device,
 });
 
-/** Fire and forget. */
 export async function sendPageView(screen: ScreenUrl): Promise<void> {
   try {
     const { width, height } = system();

@@ -5,7 +5,6 @@ import type { ProtocolId } from "@/core/messaging/namespace";
 import { accountDatabaseGeneration, type Database, runAccountDatabaseOperation } from "./database";
 import { protocolState } from "./schema";
 
-/** What a protocol keeps beside its chats, in the account's encrypted database. */
 export interface ProtocolState {
   get<T>(key: string): Promise<T | null>;
   set<T>(key: string, value: T): Promise<void>;

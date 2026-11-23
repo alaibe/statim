@@ -11,7 +11,6 @@ export interface WakuMessage {
   timestamp?: number;
 }
 
-/** A message as nwaku's REST API carries it. */
 export interface RestMessage {
   payload: string;
   contentTopic: string;
@@ -52,11 +51,7 @@ function fromRest(message: RestMessage): WakuMessage {
   };
 }
 
-/**
- * An nwaku node's REST API on the Status shard. Relay and store are asked by
- * pubsub topic: the Status network uses static sharding, so the `/auto/`
- * endpoints would derive a shard no Status client listens on.
- */
+/** Asked by pubsub topic: Status uses static sharding, so `/auto/` endpoints would pick a shard nobody uses. */
 export class StatusNode implements WakuNode {
   private readonly base: string;
   private readonly fetchImpl: typeof fetch;

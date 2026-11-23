@@ -43,16 +43,14 @@ class TdJsonModule : Module() {
       if (clientId == id) clientId = null
     }
 
-    // A reload starts a new JS runtime against the same database, which TDLib
-    // keeps locked until the old client has closed.
+    // A reload starts a new JS runtime on the same database, which TDLib locks until the old client closes.
     OnDestroy {
       clientId?.let { JsonClient.send(it, """{"@type":"close"}""") }
     }
   }
 
   companion object {
-    // Every AsyncFunction of every module shares one thread and receive blocks,
-    // while TDLib allows one receive at a time per process, across reloads too.
+    // All AsyncFunctions share one thread and receive blocks; TDLib allows one receive per process.
     private val receiver = Executors.newSingleThreadExecutor()
   }
 }

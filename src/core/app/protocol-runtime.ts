@@ -400,10 +400,7 @@ function configsFor(input: ProtocolAccount) {
   return input.createSession ? undefined : loadProtocolConfigs(input.accountId);
 }
 
-/**
- * While a session's link is down: shows it once the drop lasts, and asks the
- * session to resume on the protocol's backoff until the link is back.
- */
+/** Shows a dropped link once the drop lasts and asks the session to resume on the protocol's backoff. */
 class Reconnection {
   private down = false;
   private shown = false;

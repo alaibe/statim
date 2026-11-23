@@ -10,10 +10,7 @@ import { forgetEns } from "@/lib/evm/ens-cache";
 import { openInBrowser } from "@/lib/open-url";
 import { useKeyedLoad } from "@/lib/use-keyed-load";
 
-/**
- * Looked up again whenever `revision` changes. The ENS button forgets the kept name, so one
- * claimed there shows on the way back.
- */
+/** The ENS button forgets the kept name, so one claimed there shows on the way back. */
 export function useEnsName(revision: unknown): string | null {
   const address = useAccountStore((s) => s.keyring?.address);
   const loaded = useKeyedLoad(address ?? null, lookupName, revision);
@@ -21,7 +18,6 @@ export function useEnsName(revision: unknown): string | null {
   return loaded.value !== undefined ? loaded.value : (cachedEnsName(address) ?? null);
 }
 
-/** The account at the top of Settings: who you are, and whether you are connected. */
 export function SettingsAccount({ ensName }: { ensName: string | null }) {
   const router = useRouter();
   const keyring = useAccountStore((s) => s.keyring);
@@ -34,11 +30,7 @@ export function SettingsAccount({ ensName }: { ensName: string | null }) {
     <View className="items-center gap-2 px-gutter pb-6 pt-2">
       <View className="w-full flex-row items-center justify-between">
         <IconButton testID="settings-qr" icon="qr-code-outline" label="My QR code" onPress={() => router.push("/qr")} />
-        {/*
-          The name other people see is an ENS record this app reads and never
-          writes, so it is changed on the ENS site. The label under the avatar
-          is edited in Accounts.
-        */}
+        {/* The ENS name is a record this app reads and never writes, so it is changed on the ENS site. */}
         <IconButton
           testID="settings-ens"
           icon={ensName ? "create-outline" : "add-circle-outline"}

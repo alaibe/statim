@@ -1,9 +1,3 @@
-/**
- * The login half of the mautrix bridgev2 provisioning API, reached at
- * `<homeserver>/_matrix/provision/<bridge>/` with the user's Matrix token.
- * https://github.com/mautrix/go/blob/main/bridgev2/matrix/provisioning.yaml
- */
-
 interface LoginFlow {
   id: string;
   name: string;
@@ -80,7 +74,7 @@ export interface Whoami {
   }[];
 }
 
-/** What starting a chat on the far network allows (mautrix `ProvisioningCapabilities`). */
+/** What starting a chat on the far network allows. */
 export interface ProvisioningCapabilities {
   resolve_identifier: {
     create_dm: boolean;
@@ -187,11 +181,7 @@ export function webFieldsComplete(params: CookiesParams, values: Record<string, 
   return params.fields.every((field) => !field.required || Boolean(values[field.id]));
 }
 
-/**
- * The values to submit once every required field is there. The window may
- * close itself only after `wait_for_url_pattern` matches too; a user who
- * closes it first still gets whatever was complete.
- */
+/** The window closes itself only once `wait_for_url_pattern` matches; closed early, what is complete is used. */
 export function readyWebFields(
   params: CookiesParams,
   snapshot: WebSnapshot,

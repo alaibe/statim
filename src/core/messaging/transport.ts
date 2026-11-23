@@ -35,10 +35,7 @@ export interface SendMeta {
 
 export interface SendResult {
   id: MessageId;
-  /**
-   * Required only when a transport cannot read its own published message back.
-   * Supplying it as well as a self-addressed wire copy would duplicate the send.
-   */
+  /** Only for a transport that cannot read its own message back; with a self-addressed copy it duplicates. */
   localMessage?: IncomingMessage;
 }
 
@@ -48,10 +45,7 @@ export interface ChatTransport {
 
   chatIdFor(participants: ParticipantId[]): ProtocolChatId;
 
-  /**
-   * `since` is the newest persisted message time, not the last delivery time.
-   * It is undefined when the chat has no local history.
-   */
+  /** `since` is the newest persisted message time, not the last delivery; unset without local history. */
   openChat?(chat: TransportChat, opts?: { since?: number }): Promise<void>;
 
   send(chat: TransportChat, content: MessageContent, meta?: SendMeta): Promise<SendResult>;

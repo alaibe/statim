@@ -46,7 +46,6 @@ interface WalletConnectState {
   setScanning(scanning: boolean): void;
   init(): Promise<void>;
   pair(uri: string): Promise<void>;
-  /** Ends one pairing. The site has to pair again to ask for anything. */
   disconnectSession(topic: string): Promise<void>;
   approveHead(context: PluginContext): Promise<void>;
   rejectHead(): Promise<void>;

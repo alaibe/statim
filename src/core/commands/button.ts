@@ -1,8 +1,4 @@
-/**
- * `/draft` and `/reply` are button contracts rather than commands: nobody
- * types them, and `/reply <text>` is the published shape third-party bots
- * build inline keyboards from.
- */
+/** Button contracts, not typed commands: third-party bots build inline keyboards on `/reply <text>`. */
 type ButtonCommand =
   | { kind: "draft"; text: string }
   | { kind: "reply"; text: string }

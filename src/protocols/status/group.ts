@@ -1,8 +1,4 @@
-/**
- * A Status group is its signed event log: who created it, who was added or
- * removed and what it is called. Every member replays the log with these
- * rules, so an event a member could not have made is rejected everywhere.
- */
+/** Every member replays the signed event log with these rules, so an invalid event is rejected everywhere. */
 import { utf8ToBytes } from "@noble/hashes/utils";
 
 import type { GroupRole, ParticipantId } from "@/core/messaging/types";

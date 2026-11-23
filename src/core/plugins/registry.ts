@@ -1,10 +1,4 @@
-/**
- * Two independent gates decide what a chat offers: `showIn` asks what
- * *kind* of place this is, ownership asks *whose chat* it is. Both must pass.
- *
- * Gating happens before de-duplication, which is what lets every protocol
- * define its own `/balance`: in any one chat at most one survives.
- */
+/** `showIn` and ownership gate before de-duplication, so each protocol can have its own `/balance`. */
 import { reportError } from "../app/report-error";
 import { type Bot, botChatId } from "../messaging/bots";
 import { supports } from "../messaging/capability";

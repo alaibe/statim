@@ -10,18 +10,13 @@ const SOURCES = Object.fromEntries(
   ]),
 ) as Record<ChatPatternName, ImageURISource>;
 
-/**
- * Equal opacities do not look equal: near-black on white shows at 5%, while near-white on the dark
- * canvas needs about twice that. A desktop window shows far more wallpaper and reads as flat grey
- * at `subtle`, hence `vivid`.
- */
+/** Near-white on the dark canvas needs about twice the opacity of near-black on white to look as strong. */
 const PATTERN_OPACITY = {
   subtle: { light: 0.05, dark: 0.12 },
   vivid: { light: 0.16, dark: 0.18 },
 };
 
-// `surface-sunken` sits only five values from the canvas in dark, so a
-// gradient to it reads as a flat black rectangle.
+// A gradient to `surface-sunken` reads as a flat black rectangle in dark: it is five values from the canvas.
 const GRADIENTS = {
   subtle: {
     light: (c: ThemeColors) => `linear-gradient(141deg, ${c["brand-soft"]} 0%, ${c.canvas} 55%, ${c.surface} 100%)`,
@@ -35,7 +30,6 @@ const GRADIENTS = {
   },
 };
 
-// The browser wants the CSS property; React Native has its own name for it.
 const GRADIENT_PROP = (
   process.env.EXPO_OS === "web" ? "backgroundImage" : "experimental_backgroundImage"
 ) as "experimental_backgroundImage";

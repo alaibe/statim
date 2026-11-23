@@ -16,11 +16,6 @@ import {
   user,
 } from "./testing/fake-tdlib";
 
-/**
- * The Telegram adapter against a scripted TDLib. What matters here is the
- * mapping and the sign-in state machine; TDLib itself is not under test.
- */
-
 const ME = user(100, "Me", "", "me_user");
 const BOB = user(200, "Bob", "Builder", "bob");
 const CAROL = user(300, "Carol");

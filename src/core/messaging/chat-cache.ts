@@ -10,13 +10,7 @@ function lasting({ typing: _typing, online: _online, lastSeenAt: _lastSeenAt, dr
   return rest;
 }
 
-/**
- * The chat list as each protocol last listed it in full, shown at launch
- * before any protocol connects. A protocol's chats are written only once it has
- * listed everything, and a restored chat its full listing lacks is dropped.
- * The newest messages of each chat that was opened are kept too, for opening
- * it again before its protocol connects.
- */
+/** Each protocol's last full chat listing, shown at launch; a later full listing drops what it lacks. */
 export class ChatCache {
   private readonly written = new Map<ChatId, { source: Chat; json?: string }>();
   private readonly restored = new Map<ChatId, ProtocolId>();

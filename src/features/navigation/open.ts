@@ -1,11 +1,9 @@
 import { type Href, router } from "expo-router";
 
-/** Opens a chat from a list; see open.web.ts for the desktop. */
 export function openChat(id: string): void {
   router.navigate(`/chat/${id}`);
 }
 
-/** From the new-chat sheet: the sheet goes and the chat takes its place. */
 export function openChatFromSheet(id: string): void {
   router.dismissTo(`/chat/${id}`);
 }

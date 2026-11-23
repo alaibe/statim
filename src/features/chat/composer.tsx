@@ -52,7 +52,6 @@ import { useTypingAnnouncer } from "./use-typing-announcer";
 interface ComposerProps {
   chatId: ChatId;
   kind: ChatKind;
-  /** Writes into this thread, with a draft of its own. */
   thread?: MessageId;
   onSendText(text: string): Promise<string>;
   onSendContent(content: MessageContent): Promise<void>;

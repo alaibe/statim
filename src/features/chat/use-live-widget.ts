@@ -9,7 +9,6 @@ export function useLiveWidget(content: WidgetContent): Widget {
   return usePluginView(content.live) ?? content.widget;
 }
 
-/** The view's widget, rebuilt whenever its plugin writes unless `once`; null until it is built. */
 export function usePluginView(live: LiveView | null | undefined, { once = false } = {}): Widget | null {
   const { registry, enabledIds } = usePluginHost();
   const key = live ? JSON.stringify(live) : null;

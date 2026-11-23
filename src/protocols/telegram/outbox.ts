@@ -10,11 +10,7 @@ interface Pending {
 export class Outbox {
   private readonly pending = new Map<number, Pending>();
 
-  /**
-   * TDLib answers sendMessage with a placeholder id and reports the real one
-   * later. Waiting for it turns a rejected send into a failed message instead
-   * of a phantom one; if the network is slow the placeholder is good enough.
-   */
+  /** Waiting for the real id turns a rejected send into a failed message; when slow, the placeholder will do. */
   await(sent: TdMessage): Promise<TdMessage> {
     if (!sent.sending_state) return Promise.resolve(sent);
     return new Promise((resolve, reject) => {

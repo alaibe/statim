@@ -72,10 +72,7 @@ function inboxOf(account: LocalAccount, env: XMTPEnvironment): Promise<InboxId> 
   return Client.getOrCreateInboxId(new PublicIdentity(account.address, "ETHEREUM"), env);
 }
 
-/**
- * The inbox's installations when this one is no longer among them. `build` cannot tell: it only
- * reads the local database, which still opens after another device revoked this one.
- */
+/** `build` reads only the local database, which still opens after another device revoked this one. */
 async function installationsIfRevoked(client: Client<any>) {
   const state = await client.inboxState(true).catch(() => undefined);
   if (!state || state.installations.some((i) => i.id === client.installationId)) return undefined;

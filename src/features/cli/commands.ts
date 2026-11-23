@@ -32,7 +32,6 @@ export interface CliCommandSpec {
   args?: readonly CliArg[];
   flags?: readonly CliFlag[];
   examples?: readonly string[];
-  /** Asks the person at the app before it runs; the reason is shown to them. */
   approval?: boolean;
   /** Changes nothing, so an AI app may run it without asking. */
   readOnly?: boolean;

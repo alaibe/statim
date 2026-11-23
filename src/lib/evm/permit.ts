@@ -13,18 +13,6 @@ import {
 
 import { publicClientFor } from "./chains";
 
-/**
- * An EIP-712 signature in place of an `approve` transaction, taken by LI.FI's
- * Permit2Proxy:
- *
- *   eip2612  the token itself understands `permit`; no approval at all.
- *   permit2  any ERC-20, after one approval per token to the immutable Permit2
- *            contract, which moves funds only against a fresh signature
- *            naming the amount, the spender and a deadline.
- *
- * A trade with no plan falls back to a plain approval: a chain with no proxy,
- * or a signer that cannot sign typed data.
- */
 type PermitKind = "eip2612" | "permit2";
 
 /** Canonical on most chains; LI.FI reports the exception per chain. */
@@ -69,7 +57,6 @@ const EIP2612_TYPES = {
 } as const;
 
 export interface PermitTargets {
-  /** The Permit2Proxy for this chain, from LI.FI's own chain list. */
   proxy: Address;
   permit2: Address;
 }
@@ -91,11 +78,6 @@ interface NativePermit {
 /** A token's name and version never change, so the answer is kept. */
 const probed = new Map<string, Promise<Omit<NativePermit, "nonce"> | null>>();
 
-/**
- * Checked by rebuilding the token's domain and comparing it with the separator
- * the token reports, so a token that disagrees gets no signature it would only
- * reject.
- */
 export async function supportsEip2612(chainId: number, token: Address, owner: Address): Promise<NativePermit | null> {
   const client = publicClientFor(chainId);
   const contract = { address: token, abi: PERMIT_ABI } as const;
@@ -153,10 +135,7 @@ async function permit2Allowance(chainId: number, token: Address, owner: Address,
   });
 }
 
-/**
- * `eip2612` when the token supports it, otherwise `permit2`, whose one-off
- * approval goes to Permit2, never to the router. Null means a plain approval.
- */
+/** The one-off approval goes to Permit2, never to the router. Null means a plain approval. */
 export async function planPermit(
   chainId: number,
   token: Address,
@@ -179,7 +158,6 @@ export async function planPermit(
   };
 }
 
-/** The transaction that puts a trade through the proxy with a signature. */
 export async function permittedCall(
   chainId: number,
   account: LocalAccount,

@@ -2,21 +2,7 @@ const { withDangerousMod, withPodfileProperties } = require("expo/config-plugins
 const fs = require("fs");
 const path = require("path");
 
-/**
- * Lets a target use the system SQLite while SQLCipher is also linked.
- *
- * SQLCipher, pulled in by the XMTP SDK, is an sqlite3 amalgamation, and
- * CocoaPods propagates its include guards (`_SQLITE3_H_`, `_SQLITE3RTREE_H_`)
- * to every target that links it, the app target included. With those already
- * defined, the iOS SDK's own `sqlite3.h` expands to nothing, so any target that
- * builds the system `SQLite3` module (expo-app-metrics does) gets
- * `sqlite3ext.h` with no `sqlite3` type behind it and fails with "unknown type
- * name" errors.
- *
- * Stripping the guards from the *app* target is safe: they exist to stop
- * SQLCipher's amalgamation re-including itself while SQLCipher is compiled,
- * which happens in SQLCipher's own target and is untouched here.
- */
+/** SQLCipher's include guards reach the app target and blank the iOS SDK's sqlite3.h; strip them there. */
 const HOOK = `
     # Added by plugins/with-sqlcipher-sqlite-fix.js — see that file for why.
     installer.aggregate_targets.each do |aggregate_target|
@@ -37,11 +23,7 @@ const HOOK = `
 
 const MARKER = "with-sqlcipher-sqlite-fix.js";
 
-// Expo prefixes its public SQLite functions with `ex`, but SDK 57's SQLCipher
-// amalgamation still exports these unprefixed symbols. XMTP carries a different
-// SQLCipher version: sharing codec/pager functions crosses private struct layouts
-// and crashes in sqlite3_step. Isolate the remaining exports in Expo's pod only.
-// Verified against `nm -gU libExpoSQLite.a`; recheck when upgrading expo-sqlite.
+// Expo's SQLCipher exports these unprefixed; sharing them with XMTP's SQLCipher crashes in sqlite3_step.
 const EXPO_SQLCIPHER_EXPORTS = `
 sqlcipherCodecAttach sqlcipherCodecGetKey sqlcipherPagerCodec
 sqlcipherPagerGetCodec sqlcipherPagerSetCodec sqlcipher_cc_setup
@@ -84,8 +66,7 @@ module.exports = function withSqlcipherSqliteFix(config) {
         );
       }
 
-      // At the end of post_install: `react_native_post_install` rewrites the
-      // same xcconfigs and would undo a strip that ran before it.
+      // At the end: `react_native_post_install` rewrites the same xcconfigs and would undo an earlier strip.
       const closer = contents.lastIndexOf("\n  end");
       if (closer === -1 || closer < contents.indexOf(opener)) {
         throw new Error("with-sqlcipher-sqlite-fix: could not find the end of the post_install block.");

@@ -1,46 +1,3 @@
-# Builds the desktop apps when a `v*` tag is pushed to git.laibe.cc (nightly.yml pushes it), on Forgejo Actions, and
-# releases them on the public GitHub repository alaibe/statim, which mirrors this one, as Grenier's release does: the
-# site's download links, the Homebrew cask and the installed apps' updater all read its releases. A tag run also builds
-# the Android app and sends it to Google Play and, once the IOS variable is on, the iPhone app to TestFlight.
-#
-# Runners (the homeserver repository has their setup):
-#   mac         forgejo-runner on the Mac, steps on the Mac itself with its Xcode, rustup, Node, gh, EAS and Android SDK
-#   home-linux  forgejo-runner on the home server, Ubuntu 22.04 containers, two at a time, with the runner's /cache
-#               volume (homeserver AGENTS.md, "ci-cache"), which the linux job keeps its build and packages in
-#   windows     a Windows 11 VM on the home server, steps on Windows itself
-#
-# - prepare (`home-linux`): the version files agree with the tag, the app carries the update key, GitHub has the tag
-#   at this commit, and a draft release carries the commits since the last one.
-# - macOS (`mac`): the universal app built unsigned, signed inside out by scripts/sign-macos.sh, then put in a DMG
-#   (Statim-<version>.dmg), notarized and stapled when the NOTARIZE variable is `true` (off while Apple's new agreement
-#   waits), and packed as the update bundle Tauri's updater installs (Statim_<version>_universal.app.tar.gz, signed
-#   with the Tauri key).
-# - Linux (`home-linux`): the deb, rpm and AppImage, each with its update signature.
-# - Windows (`windows`): the MSI and NSIS installers, each with its update signature, built on Windows itself: OpenSSL
-#   and TDLib link natively there, which a cross-build can't do.
-# - publish (`home-linux`): SHA256SUMS and latest.json, the feed every installed copy's updater reads, built as
-#   Kestrel's and Grenier's are; then, on a tag's run only, the release leaves draft.
-# - Then, on a tag's run only: the Homebrew cask (alaibe/homebrew-tap, Casks/statim.rb) moves to the DMG, the AUR
-#   package follows (once its key is set), the Android build goes to Google Play's beta track and the iPhone build to
-#   TestFlight (once the IOS variable is `true`).
-#
-# A run by hand builds the branch it's started on into a draft and goes no further. It refuses a version whose release
-# is already published, so it can't overwrite one.
-#
-# Secrets on git.laibe.cc: the APPLE_* ones and RELEASES_TOKEN are shared by every repository (user level, set with
-# the homeserver repository's ci-secrets.sh, whose AGENTS.md maps every credential); the others are statim's own:
-#   RELEASES_TOKEN              a GitHub fine-grained token with Contents read and write on alaibe/statim and
-#                               alaibe/homebrew-tap
-#   APPLE_CERTIFICATE           base64 of the Developer ID Application .p12
-#   APPLE_CERTIFICATE_PASSWORD  its password
-#   APPLE_SIGNING_IDENTITY      "Developer ID Application: … (8N3Z3WWTK7)"
-#   APPLE_API_KEY, APPLE_API_ISSUER, APPLE_API_PRIVATE_KEY   notarization, read only when NOTARIZE is true
-#   TAURI_SIGNING_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY_PASSWORD   the update key (~/.tauri/status-original.key;
-#                               ci-secrets.sh tauri-key statim sets them), whose public half is plugins.updater.pubkey
-#   AUR_SSH_PRIVATE_KEY         optional: statim-bin on the AUR stays as it is without it
-#
-# Actions are pinned to a commit, with their tag beside it, as in nightly.yml; gh is checked against its SHA-256.
-
 name: Release
 
 on:
@@ -48,7 +5,6 @@ on:
     tags: ['v*']
   workflow_dispatch:
 
-# One release at a time per tag, never cancelled halfway through an upload.
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
@@ -57,7 +13,7 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   RELEASES_REPOSITORY: alaibe/statim
-  # gh talks to GitHub, not to the Forgejo the job runs for; the home runner's image has no gh of its own.
+  # gh talks to GitHub, not to the Forgejo the job runs for.
   GH_HOST: github.com
   GH_VERSION: 2.104.0
   GH_SHA256: 98cb101ad87dbbd3f6b2f2bfcbd43197ccd07643140121d8a9cfaa91eadbc24e
@@ -112,8 +68,7 @@ jobs:
           node -e 'const c = require("./src-tauri/tauri.conf.json"); process.exit(c.plugins?.updater?.pubkey ? 0 : 1)' ||
             { echo "plugins.updater.pubkey is empty in tauri.conf.json: ci-secrets.sh tauri-key statim prints it" >&2; exit 1; }
 
-      # The mirror pushes the tag to GitHub within seconds of the push here. Publishing a release whose tag GitHub
-      # doesn't have would make one from GitHub's main, and the mirror would then overwrite it.
+      # A release whose tag GitHub lacks is made from GitHub's main, which the mirror then overwrites.
       - name: GitHub has the tag, at this commit
         if: startsWith(github.ref, 'refs/tags/')
         env:
@@ -133,7 +88,6 @@ jobs:
 
       - name: Release notes
         run: |
-          # The commits since the last release; the first release has none to list.
           PREVIOUS=$(git describe --tags --abbrev=0 --match 'v*' HEAD^ 2>/dev/null || true)
           if [ -n "$PREVIOUS" ]; then
             git log --no-merges --format='- %s' "$PREVIOUS..HEAD" > "$RUNNER_TEMP/all-notes"
@@ -192,7 +146,6 @@ jobs:
             [ -n "${!name}" ] || { echo "The $name secret is not set." >&2; exit 1; }
           done
 
-      # The Rust in rust-toolchain.toml, and the universal build's two targets, through the Mac's own rustup.
       - name: The Mac's tools
         run: |
           WORK=$(mktemp -d)
@@ -200,13 +153,12 @@ jobs:
           rustup install --no-self-update
           rustup target add aarch64-apple-darwin x86_64-apple-darwin
           cargo --version
-          # Whole outputs: `| head` would end a command early, and the pipe's SIGPIPE fails the step.
+          # No `| head`: its SIGPIPE fails the step.
           xcodebuild -version; node --version; npm --version; gh --version
 
       - name: JavaScript packages
         run: npm ci
 
-      # Relinked from Swiftgram's framework, cached in ~/.cache/statim from one release to the next.
       - name: TDLib
         run: ./scripts/tdlib.sh desktop
 
@@ -245,9 +197,7 @@ jobs:
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
-          # The repository's NOTARIZE variable (Settings › Actions › Variables) set to `true`. Off while Apple refuses
-          # the team's requests until its new agreement is accepted; an un-notarized DMG asks "Open Anyway" on the
-          # first launch from a download.
+          # NOTARIZE stays off until Apple's new developer agreement is accepted.
           NOTARIZE: ${{ vars.NOTARIZE }}
         run: |
           STAGE="$WORK/dmg"
@@ -267,8 +217,7 @@ jobs:
           xcrun stapler staple "$DMG"
           spctl --assess --type open --context context:primary-signature --verbose "$DMG"
 
-      # What Tauri's updater unpacks over an installed Statim: the signed app, packed without macOS's ._ files, its
-      # signature bound to this version (requireSignedVersion).
+      # Packed without macOS's ._ files, which Tauri's updater would unpack over the app.
       - name: Update bundle
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -278,7 +227,7 @@ jobs:
           COPYFILE_DISABLE=1 tar -czf "$UPDATE" -C "$(dirname "$APP")" "$(basename "$APP")"
           npx tauri signer sign --app-version "$VERSION" "$UPDATE"
           [ -s "$UPDATE.sig" ] || { echo "no signature beside $UPDATE" >&2; exit 1; }
-          # The key that signed it must be the one whose public half the app carries: a copy out with another never updates.
+          # A copy signed with a key other than the one it carries never updates.
           key_id() { base64 -d | sed -n 2p | base64 -d | head -c 10 | tail -c 8 | xxd -p; }
           signed=$(key_id < "$UPDATE.sig")
           trusted=$(node -p 'require("./src-tauri/tauri.conf.json").plugins.updater.pubkey' | key_id)
@@ -308,8 +257,7 @@ jobs:
     steps:
       - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      # Tauri's own prerequisites, plus cmake for aws-lc (matrix-sdk), perl for OpenSSL (SQLCipher) and libudev for
-      # hidapi (Ledger). The .debs come from the runner's cache, one job at a time, since apt refuses a locked one.
+      # cmake for aws-lc, perl for OpenSSL, libudev for hidapi; flock because apt refuses a cache another job holds.
       - name: Linux packages and gh
         run: |
           # Ubuntu's main servers crawl from the home server; its French mirror is fast and carries -security too.
@@ -325,8 +273,7 @@ jobs:
           echo "$GH_SHA256  $RUNNER_TEMP/gh.tar.gz" | sha256sum -c -
           sudo tar -xzf "$RUNNER_TEMP/gh.tar.gz" -C /usr/local --strip-components=1
 
-      # The Rust in rust-toolchain.toml, with its components. The Linux image has no rustup: a minimal one goes in first,
-      # without a default toolchain, and on the PATH for the next steps.
+      # The Linux image has no rustup.
       - name: Rust
         run: |
           if ! command -v rustup > /dev/null; then
@@ -341,9 +288,7 @@ jobs:
         with:
           node-version-file: .node-version
 
-      # The runner's /cache volume (homeserver AGENTS.md, "ci-cache"): Cargo's registry, this job's build and npm's
-      # cache stay from one release to the next. Set after rustup, whose binaries stay in the job's own ~/.cargo. Only
-      # this version's packages in the bundle folder.
+      # After rustup, whose binaries stay in the job's own ~/.cargo.
       - name: Caches
         run: |
           echo "CARGO_HOME=/cache/cargo" >> "$GITHUB_ENV"
@@ -357,11 +302,9 @@ jobs:
       - name: TDLib
         run: ./scripts/tdlib.sh desktop
 
-      # A plain build and gh, not tauri-action: the runner gives JavaScript actions git.laibe.cc's GITHUB_TOKEN over
-      # the one set here, which GitHub refuses.
+      # Not tauri-action: the runner hands JavaScript actions git.laibe.cc's GITHUB_TOKEN, which GitHub refuses.
       - name: Build the deb, rpm and AppImage
         env:
-          # Signs the update files an installed copy checks before applying them.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           # linuxdeploy is an AppImage itself, and the job container has no FUSE to mount it.
@@ -389,8 +332,7 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
       # The perl OpenSSL's build runs (openssl-src reads PERL): Strawberry's, never the MSYS one in Git's bash.
       PERL: C:\Strawberry\perl\bin\perl.exe
-      # Outside the job's folder, which the runner deletes after every job: compiled crates, and Tauri's WiX and NSIS
-      # (useLocalToolsDir below), stay from one release to the next. One job at a time on the VM, so one folder.
+      # Outside the job's folder, which the runner deletes, so crates and Tauri's WiX and NSIS stay between releases.
       CARGO_TARGET_DIR: C:\runner\target\statim
     defaults:
       run:
@@ -403,7 +345,6 @@ jobs:
         with:
           node-version-file: .node-version
 
-      # The Rust in rust-toolchain.toml, with its components, through the VM's own rustup.
       - name: Rust
         run: rustup show active-toolchain || rustup toolchain install
 
@@ -419,9 +360,7 @@ jobs:
       - name: TDLib
         run: ./scripts/tdlib.sh desktop
 
-      # In PowerShell, not bash, so nothing in the build sees Git's MSYS tools first. useLocalToolsDir keeps WiX and
-      # NSIS in CARGO_TARGET_DIR's .tauri: the runner's service is LocalSystem, whose profile is under System32, where
-      # Windows redirects 32-bit programs like WiX's candle.exe to SysWOW64 and they can't find their own files.
+      # PowerShell keeps Git's MSYS tools out; useLocalToolsDir keeps WiX out of LocalSystem's redirected System32.
       - name: Build the MSI and NSIS installer
         shell: powershell
         env:
@@ -430,7 +369,6 @@ jobs:
         run: |
           # A file, not inline JSON: PowerShell 5.1 mangles quotes in arguments to programs. ASCII, so no BOM.
           '{"bundle":{"useLocalToolsDir":true}}' | Set-Content -Encoding ascii "$env:RUNNER_TEMP\local-tools.json"
-          # Only this version's installers in the bundle folder.
           Remove-Item -Recurse -Force "$env:CARGO_TARGET_DIR\release\bundle" -ErrorAction SilentlyContinue
           npx tauri build --config src-tauri/tauri.release.conf.json --config "$env:RUNNER_TEMP\local-tools.json"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -486,9 +424,7 @@ jobs:
           find . -maxdepth 1 -type f ! -name '*.sig' -printf '%f\n' | sort | xargs sha256sum -- > "$RUNNER_TEMP/SHA256SUMS"
           cat "$RUNNER_TEMP/SHA256SUMS"
 
-      # The feed Tauri's updater reads, built alike in Kestrel's and Grenier's release.yml: each key an installed copy
-      # looks up (its own installer's first, then the bare one) points at a file of this release, with that file's
-      # signature. FEED lists them, a key and a file name with {v} for the version.
+      # An installed copy looks up its own installer's key first, then the bare platform.
       - name: latest.json
         working-directory: files
         env:
@@ -523,14 +459,12 @@ jobs:
       - name: Attach them
         run: gh release upload "v$VERSION" "$RUNNER_TEMP/SHA256SUMS" "$RUNNER_TEMP/latest.json" --clobber --repo "$RELEASES_REPOSITORY"
 
-      # Only a tag's run publishes; a run by hand leaves its draft for a look.
       - name: Leave draft
         if: startsWith(github.ref, 'refs/tags/')
         run: gh api -X PATCH "$RELEASE" -F draft=false --silent
 
   homebrew:
     needs: [prepare, publish]
-    # As publish's Leave draft: the cask follows only a published release.
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: home-linux
     timeout-minutes: 10
@@ -538,7 +472,6 @@ jobs:
       run:
         shell: bash
     steps:
-      # The cask is written whole from here, as Grenier's is, so its url follows the DMG's name.
       - name: Move the cask to this release
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
@@ -618,8 +551,7 @@ jobs:
           git -C aur -c user.name="Anthony Laibe" -c user.email="anthony@laibe.cc" commit -am "statim $V"
           git -C aur push
 
-  # Runs on the Mac for its EAS login and Android SDK. EAS's pre-install hook
-  # (package.json) puts TDLib in place for the platform it builds.
+  # On the Mac for its EAS login and Android SDK.
   android:
     needs: [prepare, publish]
     if: startsWith(github.ref, 'refs/tags/')
@@ -653,9 +585,7 @@ jobs:
           eas build --local --non-interactive --platform android --profile production --output "$AAB"
           eas submit --non-interactive --no-wait --platform android --profile production --path "$AAB"
 
-  # Off until the repository's IOS variable (Settings › Actions › Variables) is `true`: App Store Connect refuses
-  # uploads until Apple's new agreement is accepted, as it refuses notarization. Xcode, CocoaPods and the EAS login
-  # are the Mac's own; EAS keeps the signing certificate and profile, and the App Store Connect key for the upload.
+  # IOS stays off until Apple's new developer agreement is accepted.
   ios:
     needs: [prepare, publish]
     if: startsWith(github.ref, 'refs/tags/') && vars.IOS == 'true'

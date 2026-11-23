@@ -84,8 +84,7 @@ pub(super) fn reply(event_id: OwnedEventId) -> Reply {
     }
 }
 
-/// In a thread, a message that replies to nothing still points at the root, as the fallback for
-/// clients without threads.
+/// In a thread, a message replying to nothing still points at the root, for clients without threads.
 fn relation(reply_to: Option<OwnedEventId>, thread_root: Option<OwnedEventId>) -> Option<Reply> {
     let Some(root) = thread_root else {
         return reply_to.map(reply);
@@ -102,8 +101,7 @@ fn relation(reply_to: Option<OwnedEventId>, thread_root: Option<OwnedEventId>) -
     })
 }
 
-/// The same fallback as `relation`, written into the event, since stickers skip the SDK's reply
-/// helper.
+/// `relation`'s fallback, written by hand because stickers skip the SDK's reply helper.
 fn sticker_relation(
     reply_to: Option<OwnedEventId>,
     thread_root: Option<OwnedEventId>,

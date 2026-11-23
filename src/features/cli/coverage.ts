@@ -12,12 +12,7 @@ type Actions<S> = {
   [K in keyof S]-?: NonNullable<S[K]> extends (...args: never[]) => unknown ? K : never;
 }[keyof S];
 
-/**
- * Where each thing the app can do lives on the command line. A new store
- * action fails typecheck until it is given a command here, or a reason why it
- * has none: `internal` for plumbing no one triggers, `app:` for what needs the
- * window or a device in hand.
- */
+/** `internal` is plumbing no one triggers; `app:` is what needs the window or a device in hand. */
 type Covered = CommandPath | "internal" | `app: ${string}`;
 
 export const CHAT_STORE: Record<Actions<ChatState>, Covered> = {

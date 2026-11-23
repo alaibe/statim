@@ -8,7 +8,6 @@ export interface StoredMedia {
   size: number;
 }
 
-/** Bytes of a picked, recorded or already stored file, as base64. */
 export async function readMediaBase64(uri: string): Promise<{ data: string; size: number }> {
   const file = new File(uri);
   return { data: await file.base64(), size: file.size ?? 0 };
@@ -18,7 +17,6 @@ export function readMediaBytes(uri: string): Promise<Uint8Array> {
   return new File(uri).bytes();
 }
 
-/** Keeps `base64` under the account's media unless that name is already there. */
 export async function storeMedia(area: FileArea, name: string, accountId: string, base64: string): Promise<string> {
   const file = mediaFile(area, name, accountId);
   if (!file.exists) {

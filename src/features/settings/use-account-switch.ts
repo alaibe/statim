@@ -4,7 +4,6 @@ import { useAccountStore } from "@/core/account/account-store";
 import { useAction } from "@/features/use-action";
 import { useKeyedLoad } from "@/lib/use-keyed-load";
 
-/** An on/off setting of the active account, reloaded after each change. */
 export function useAccountSwitch<State>(
   load: (accountId: string) => Promise<State>,
   turnOn: (accountId: string) => Promise<void>,

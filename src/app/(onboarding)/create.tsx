@@ -36,11 +36,6 @@ export default function CreateAccount() {
 
   return (
     <Screen className="px-gutter">
-      {/*
-        Pushed from the welcome screen and from Settings › Accounts, and only
-        the first leaves a previous screen inside the onboarding stack for a
-        header back button to come from.
-      */}
       <View className="-ml-2 flex-row pt-1">
         <IconButton icon="chevron-back" label="Back" onPress={goBack} />
       </View>

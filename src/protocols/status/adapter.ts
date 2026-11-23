@@ -1270,11 +1270,7 @@ export class StatusSession implements ChatSession {
     };
   }
 
-  /**
-   * Sent apart from the message itself: status-go drops a contact request from
-   * someone it already counts as mutual, which a key brought over from the
-   * Status app often is.
-   */
+  /** Sent on its own: status-go drops a contact request from someone it already counts as mutual. */
   private async requestContact(peer: ProtocolChatId): Promise<Outgoing> {
     const { clock } = await this.nextClock(peer);
     await this.saveContact(peer, requestSent(this.contact(peer), clock).contact);

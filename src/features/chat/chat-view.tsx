@@ -45,7 +45,6 @@ import { usePinnedMessages } from "./use-pinned-messages";
 
 interface ChatViewProps {
   id: ChatId;
-  /** Shows this thread: the message that started it and the replies to it. */
   thread?: MessageId;
   onOpenThread?(root: MessageId): void;
   onBack(): void;
@@ -53,7 +52,6 @@ interface ChatViewProps {
 
 export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
   const wallpaper = useAppearanceStore((s) => s.wallpaper);
-  // On desktop the frame draws the wallpaper and the sidebar does the navigating.
   const desktop = process.env.EXPO_OS === "web";
   useEscapeKey(Boolean(thread), onBack);
   const insets = useSafeAreaInsets();

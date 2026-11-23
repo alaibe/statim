@@ -16,7 +16,6 @@ import type { MatrixCapabilities } from "@/protocols/matrix/provisioning";
 import { type BridgeAddBy, type BridgeLink, bridgeLinks, type Candidate, candidateOf } from "./bridged-networks";
 import { useDisplayNames } from "./use-display-names";
 
-/** A chip on the screen: a protocol, or a network one of your Matrix bridges reaches. */
 export interface Destination {
   id: NetworkId;
   label: string;

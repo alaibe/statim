@@ -57,7 +57,6 @@ export function MessageRow({
   replies: number;
   newReplies: number;
   onOpenThread?: (root: MessageId) => void;
-  /** A line above this message that starts a new part of the transcript. */
   divider?: string;
   endsRun?: boolean;
 }) {

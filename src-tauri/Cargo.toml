@@ -61,8 +61,7 @@ rpassword = "7"
 interprocess = "2"
 ruzstd = "0.8.2"
 
-# SQLCipher from source. macOS gets CommonCrypto; everything else compiles its
-# own OpenSSL so the build has no system dependency.
+# SQLCipher from source: CommonCrypto on macOS, its own OpenSSL elsewhere, so no system dependency.
 [target.'cfg(target_os = "macos")'.dependencies]
 block2 = "0.6"
 objc2 = "0.6"

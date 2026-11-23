@@ -1,8 +1,4 @@
-/**
- * Every screen usage statistics may name, by route pattern and never by what
- * fills it. A route missing here sends nothing; `screens.test.ts` keeps the
- * list in step with `src/app`.
- */
+/** Screens by route pattern, never by what fills them; a route missing here sends nothing. */
 export const SCREENS = {
   "/chats": "Chats",
   "/requests": "Requests",

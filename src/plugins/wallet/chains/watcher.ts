@@ -67,7 +67,6 @@ function watchTargetsOf(context: PluginContext, watched: { address: Address; lab
   return targets;
 }
 
-// The same EVM address exists on every chain, so a reading is keyed by both.
 function balanceKey(chainId: number, address: Address): string {
   return `${chainId}:${address.toLowerCase()}`;
 }

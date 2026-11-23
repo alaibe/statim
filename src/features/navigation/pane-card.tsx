@@ -2,7 +2,6 @@ import { View } from "react-native";
 
 import { Text } from "@/design";
 
-/** A desktop page in the pane: a card with its title, in place of a navigation header. */
 export function PaneCard({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
     <View

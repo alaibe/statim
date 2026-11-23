@@ -1,7 +1,4 @@
-/**
- * The layers between a Waku message and an application message, in the order
- * status-go peels them: payload codec, segments, encryption, data sync (MVDS).
- */
+/** status-go peels a Waku message in this order: payload codec, segments, encryption, data sync (MVDS). */
 import { bytesToNumberBE } from "@noble/curves/utils";
 import { sha256 } from "@noble/hashes/sha2";
 import { utf8ToBytes } from "@noble/hashes/utils";

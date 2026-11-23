@@ -48,11 +48,9 @@ const NO_IDS: ReadonlySet<string> = new Set();
 
 interface ChatListProps {
   query: string;
-  /** The chat open beside the list, on layouts that show both. */
   selectedId?: string;
 }
 
-/** The chat list: the Chats tab on a phone, the sidebar on desktop. */
 export function ChatList({ query, selectedId }: ChatListProps) {
   const colors = useThemeColors();
   const focused = useIsFocused();

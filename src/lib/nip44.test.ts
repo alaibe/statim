@@ -4,10 +4,7 @@ import { bytesToHex } from "@noble/hashes/utils";
 import { base64ToBytes } from "@/lib/bytes";
 import { calcPaddedLen, conversationKey, decrypt, decryptWithKey, encrypt, encryptWithKey } from "@/lib/nip44";
 
-/**
- * NIP-44 v2, round trip and payload shape only. Interoperability with other
- * Nostr clients needs the official test vectors, not invented ones.
- */
+// NIP-44 v2 round trip and payload shape only: interoperability needs the official test vectors.
 
 const ALICE_SECRET = new Uint8Array(32).fill(1);
 const BOB_SECRET = new Uint8Array(32).fill(2);
@@ -39,8 +36,7 @@ describe("round trip", () => {
   });
 
   it("handles the padding boundaries", () => {
-    // 32 is the floor; 33 forces the first bucket jump; 256/257 crosses the
-    // point where the chunk size changes from 32 to nextPower/8.
+    // 32 is the floor, 33 the first bucket jump, 256/257 where the chunk size goes from 32 to nextPower/8.
     for (const length of [1, 31, 32, 33, 255, 256, 257, 1000]) {
       const text = "x".repeat(length);
       expect(decrypt(encrypt(text, ALICE_SECRET, BOB_PUB), BOB_SECRET, ALICE_PUB)).toBe(text);
@@ -89,8 +85,7 @@ describe("tampering", () => {
   });
 
   it("rejects a rewritten nonce", () => {
-    // The MAC covers nonce || ciphertext precisely so this fails. A MAC over
-    // the ciphertext alone would let the nonce be swapped.
+    // The MAC covers nonce || ciphertext; one over the ciphertext alone would let the nonce be swapped.
     const bytes = base64ToBytes(encryptWithKey("hello", key));
     bytes[1] ^= 0xff;
     expect(() => decryptWithKey(toBase64(bytes), key)).toThrow(/MAC mismatch/);

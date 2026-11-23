@@ -189,10 +189,7 @@ async function bestQuote(
   throw failure;
 }
 
-/**
- * The balance is read before quoting, so a short balance spends none of LI.FI's small
- * unauthenticated request budget.
- */
+/** The balance is read before quoting, so a short balance spends none of LI.FI's small request budget. */
 async function prepare(
   context: PluginContext,
   from: ChainStrategy,
@@ -259,7 +256,6 @@ async function prepare(
   };
 }
 
-/** What the trade still has to send before it can swap, in plain words. */
 function approvalNote(symbol: string, chain: string, needsApproval: boolean, permit: PermitPlan | undefined): string {
   if (!needsApproval) {
     return permit

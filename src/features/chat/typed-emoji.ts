@@ -49,10 +49,7 @@ export interface TypedEmoji {
   emoji: string;
 }
 
-/**
- * The emoji that the text up to the caret has just closed: an emoticon once a
- * space follows it, a `:shortcode:` at its closing colon. Never inside code.
- */
+/** An emoticon closes once a space follows it, a `:shortcode:` at its closing colon; never inside code. */
 export function typedEmoji(before: string): TypedEmoji | null {
   const found = closed(before);
   if (!found || (before.slice(0, found.from).match(/`/g)?.length ?? 0) % 2 === 1) return null;
@@ -74,7 +71,6 @@ function closed(before: string): TypedEmoji | null {
 /** Commands take their arguments as typed. */
 export const isCommand = (text: string) => text.trimStart().startsWith("/");
 
-/** `next` with the emoji its one newly typed character closed, for a field that only reports its whole text. */
 export function withTypedEmoji(previous: string, next: string): string {
   if (next.length !== previous.length + 1 || isCommand(next)) return next;
   let at = 0;
@@ -83,7 +79,6 @@ export function withTypedEmoji(previous: string, next: string): string {
   return replaced(next, typedEmoji(next.slice(0, at + 1)));
 }
 
-/** `text` with the emoticon it ends on as its emoji, for sending. */
 export function withFinalEmoji(text: string): string {
   return isCommand(text) ? text : replaced(text, typedEmoji(`${text} `));
 }

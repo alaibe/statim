@@ -37,7 +37,6 @@ export const to1e8 = (amount: bigint, decimals: number) =>
 export const from1e8 = (amount: bigint, decimals: number) =>
   decimals >= 8 ? amount * 10n ** BigInt(decimals - 8) : amount / 10n ** BigInt(8 - decimals);
 
-/** What a swap memo pays out, to whom, and the least it accepts, or null when it is not one. */
 export function readMemo(memo: string): { asset: string; destination: string; limit: bigint } | null {
   const [action = "", asset, destination, limit = ""] = memo.split(":");
   const least = limit.split("/")[0];

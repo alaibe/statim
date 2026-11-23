@@ -13,13 +13,11 @@ interface ChatHistoryState {
   /** Newest first, each chat once. */
   recent: ChatId[];
   visit(id: ChatId): void;
-  /** Moves to the nearest chat that still exists that way, and returns it. */
   step(direction: "back" | "forward", exists: (id: ChatId) => boolean): ChatId | null;
 }
 
 const withRecent = (recent: ChatId[], id: ChatId) => [id, ...recent.filter((entry) => entry !== id)].slice(0, KEEP);
 
-/** The chats opened in the desktop pane, for Back, Forward and the History menu. */
 export const useChatHistory = create<ChatHistoryState>((set, get) => ({
   back: [],
   current: null,

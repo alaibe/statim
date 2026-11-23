@@ -16,11 +16,7 @@ export interface Note {
   body: string;
 }
 
-/**
- * Both devices holding an account derive the same key from its secret, so they
- * agree without pairing. The tag names the account in iCloud without giving
- * away its address.
- */
+/** Both devices derive the same key from the account's secret; the tag names it without its address. */
 export interface NoteKey {
   key: string;
   tag: string;

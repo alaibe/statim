@@ -36,7 +36,6 @@ export interface AvatarProps {
   seed: string;
   size?: keyof typeof SIZE;
   label?: string;
-  /** A bundled image or a picture's URI; shown instead of initials or the identicon. */
   image?: number | string;
   emoji?: string;
 }

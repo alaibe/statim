@@ -1,9 +1,6 @@
 import { type Href, router } from "expo-router";
 
-// The desktop has no back button: the sidebar decides what the pane shows, so
-// whatever was stacked above the tabs goes first. Left in place, each click
-// would add a screen, and a dismissed dialog would keep the pane beneath it
-// visible under the chat.
+// Left stacked, each click would add a screen and a dismissed dialog would leave its pane under the chat.
 function fresh(): void {
   if (router.canDismiss()) router.dismissAll();
 }
@@ -21,7 +18,6 @@ export function openTab(href: Href): void {
   router.navigate(href);
 }
 
-/** The pane goes back to Settings, whatever opened the page. */
 export function leaveSettingsPage(): void {
   openTab("/settings");
 }

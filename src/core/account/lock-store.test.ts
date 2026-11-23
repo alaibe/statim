@@ -22,8 +22,7 @@ beforeEach(() => {
 
 describe("arming the lock", () => {
   it("requires passing the prompt first", async () => {
-    // Otherwise a user whose enrolled biometric does not actually work only
-    // finds out on next launch, locked out of the app holding their phrase.
+    // Otherwise a biometric that does not work is found out at next launch, locked out of the app.
     authenticateAsync.mockResolvedValue({ success: false } as never);
 
     expect(await setLockEnabled(true)).toBe(false);
@@ -159,8 +158,7 @@ describe("unlock", () => {
   });
 
   it("refuses to stack a second prompt", async () => {
-    // iOS cancels both when two prompts race, which reads to the user as
-    // biometrics being broken.
+    // iOS cancels both when two prompts race, which looks like broken biometrics.
     useLockStore.setState({ status: "locked", prompting: true });
 
     expect(await useLockStore.getState().unlock()).toBe("failed");
@@ -181,8 +179,7 @@ describe("when the lock setting cannot be read", () => {
 
 describe("noteJustAuthenticated", () => {
   it("opens the gate without a second prompt", async () => {
-    // Arming the lock in settings already required passing it. Re-evaluating
-    // would lock the user out of the screen they are standing on.
+    // Arming the lock already passed the prompt; another would lock the user out of the screen they are on.
     await SecureStore.setItemAsync(VaultKey.biometricLock, "1");
     useLockStore.setState({ status: "checking" });
 

@@ -1,10 +1,6 @@
 import { isValidMnemonic, keyringFromMnemonic, normalizeMnemonic, shortAddress } from "./keyring";
 
-/**
- * Vectors from the BIP-39 spec / Trezor test suite, with the Ethereum address
- * at the standard path m/44'/60'/0'/0/x. These pin down the exact derivation
- * the account depends on: if this changes, every existing account breaks.
- */
+/** If these vectors stop matching, every existing account breaks. */
 const VECTOR = {
   mnemonic: "legal winner thank year wave sausage worth useful legal winner thank yellow",
   address0: "0x58A57ed9d8d624cBD12e2C467D34787555bB1b25",
@@ -35,9 +31,7 @@ describe("keyringFromMnemonic", () => {
   });
 
   it("exposes a signing account for the XMTP signer", () => {
-    // The adapter builds XMTP's Signer from this account rather than a viem
-    // WalletClient: Client.create hands the unconverted value to its signature
-    // handler, which calls signMessage(string), a shape WalletClient rejects.
+    // XMTP's Client.create calls signMessage(string) on what it gets, a shape a viem WalletClient rejects.
     const { account } = keyringFromMnemonic(VECTOR.mnemonic);
     expect(account.address).toBe(VECTOR.address0);
     expect(typeof account.signMessage).toBe("function");
@@ -72,7 +66,6 @@ describe("shortAddress", () => {
 
 describe("derive", () => {
   it("matches the BIP-84 test vector for the first native-segwit key", () => {
-    // From the BIP-84 spec's "Test vectors" section, m/84'/0'/0'/0/0.
     const { wallet } = keyringFromMnemonic(
       "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
     );

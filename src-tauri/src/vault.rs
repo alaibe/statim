@@ -1,7 +1,4 @@
-//! Secrets live in one AES-256-GCM encrypted file under the app data
-//! directory. Its key is the only item in the operating system's credential
-//! store (release builds) or a user-only file beside it (debug builds; see
-//! `debug_key`).
+//! Secrets live in one AES-256-GCM file whose key is in the OS credential store, or a file in debug builds.
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -68,11 +65,7 @@ fn file_key(app: &AppHandle) -> Result<Option<Vec<u8>>, String> {
     }
 }
 
-/// Debug builds keep the key in a file next to the vault, readable by this
-/// user only. The credential store grants access per code signature, and an
-/// unsigned development binary has a new one after every compile, so it would
-/// prompt on every run. The key moves between the two stores whichever build
-/// runs first, so the accounts survive either way.
+/// The credential store trusts a code signature, which an unsigned debug binary changes on every compile.
 fn debug_key(app: &AppHandle) -> Result<Vec<u8>, String> {
     if let Some(key) = file_key(app)? {
         return Ok(key);

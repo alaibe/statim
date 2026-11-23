@@ -2,11 +2,7 @@ import type { ParticipantId } from "./types";
 
 const SCHEME = "mention:";
 
-/**
- * A mention of someone by name rather than by address, as Markdown the app
- * stores and renders: `[Name](mention:<participant id>)`. Each protocol turns
- * it into its own form (a Telegram entity, a Matrix pill) and back.
- */
+/** Stored as `[Name](mention:<participant id>)`; each protocol turns it into its own form and back. */
 export function mentionLink(name: string, id: ParticipantId): string {
   return `[${name.replace(/[[\]\\]/g, "\\$&")}](${mentionHref(id)})`;
 }

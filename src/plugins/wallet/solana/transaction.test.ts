@@ -52,8 +52,7 @@ describe("buildTransferMessage", () => {
   });
 
   it("declares one signer and one read-only account", () => {
-    // [numRequiredSignatures, numReadonlySigned, numReadonlyUnsigned]: the sender signs and pays,
-    // the recipient is written to, and the System Program is read-only.
+    // The sender signs and pays, the recipient is written to, and the System Program is read-only.
     expect([...message.slice(0, 3)]).toEqual([1, 0, 1]);
   });
 
@@ -107,7 +106,7 @@ describe("signTransaction", () => {
 });
 
 describe("signPrepared", () => {
-  /** A SOL to USDC swap Jupiter assembled on 2026-11-20 for a public example address. */
+  /** A SOL to USDC swap Jupiter assembled for a public example address. */
   const JUPITER_SWAP =
     "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQAGDAuCTCqj" +
     "aZSF8mxm/xoStaH3VVnrhI150KK+4ItGNoTHFUndeQng/oU3d114NWrTmtixL163dcjo1FjBGYi3lyobi/oKacYXjcC+HMjXXxjC" +

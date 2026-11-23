@@ -6,8 +6,7 @@ impl Session {
         if let Some(existing) = self.touch_live(room_id).await {
             return Ok(existing);
         }
-        // Built without holding the lock: the SDK may need the sync tasks, which also announce
-        // rooms.
+        // Built without holding the lock: the SDK may need the sync tasks, which also announce rooms.
         let room = self.room(room_id.as_str())?;
         let timeline = Arc::new(
             room.timeline_builder()
@@ -134,8 +133,7 @@ impl Session {
     }
 }
 
-/// Where the page ends: at the event `before` names, or after the newest item. `None` while
-/// that event is not loaded yet.
+/// At the event `before` names, or after the newest item; `None` while that event is not loaded yet.
 fn anchor_end(items: &Vector<Arc<TimelineItem>>, before: Option<&str>) -> Option<usize> {
     let Some(id) = before else {
         return Some(items.len());

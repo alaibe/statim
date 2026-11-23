@@ -17,9 +17,7 @@ export function contactsOf(
   chats: readonly Chat[],
   selfFor: (protocol: ProtocolId) => ParticipantId | undefined,
 ): Contact[] {
-  // Keyed by protocol *and* id: the same person on Nostr and on XMTP is two
-  // participants with two different keys, and merging them would claim a link
-  // this app cannot verify.
+  // Keyed by protocol and id: merging one person across protocols would claim a link this app cannot verify.
   const byContact = new Map<string, Contact>();
   const { accepted, requests } = splitRequests(chats);
 

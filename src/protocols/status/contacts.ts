@@ -1,9 +1,4 @@
-/**
- * Status's contact requests: each side keeps its own state and the other
- * side's last known state, each with a Lamport clock, and every DM message
- * carries both so the two converge. A DM only shows in the Status app once
- * both sides have added each other.
- */
+/** Each DM message carries both sides' states; Status shows a DM only once both sides have added each other. */
 import type { PropagatedState } from "./messages";
 
 export const RequestState = {

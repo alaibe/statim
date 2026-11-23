@@ -1,8 +1,4 @@
-/**
- * A widget is data, so it can be stored, sent to another participant and drawn by an app
- * that lacks the plugin that made it. Keep the union additive: an older build must skip a
- * node it does not recognise without losing the message.
- */
+// Keep the union additive: a build without the plugin must skip a node it does not know, not lose the message.
 import { arrayOf, type Guard, isBoolean, isRecord, isString, oneOf, optional, shape } from "@/lib/guards";
 
 import type { IconName } from "../icon";

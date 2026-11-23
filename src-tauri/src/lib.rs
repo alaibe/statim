@@ -46,8 +46,7 @@ fn paint_canvas(app: &AppHandle) {
     }
 }
 
-/// An app opened from Finder gets launchd's soft limit of 256 open files, too
-/// few for TDLib, Matrix and SQLCipher together. 10240 is the most macOS allows.
+/// An app opened from Finder gets 256 open files, too few for TDLib, Matrix and SQLCipher; 10240 is the max.
 #[cfg(unix)]
 fn raise_open_file_limit() {
     let mut limit = libc::rlimit {

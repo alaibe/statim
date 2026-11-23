@@ -8,8 +8,7 @@ import { openExternal, openInBrowser } from "@/lib/open-url";
 import { PlayOverlay } from "./attachments/video-bubble";
 import { useLinkPreview } from "./use-link-preview";
 
-// A fixed width: a short message then grows to fit the card, instead of the
-// picture spilling out of a bubble sized to the text.
+// Fixed, so a short message grows to fit the card instead of the picture spilling out of a text-sized bubble.
 const MAX_WIDTH_RATIO = 0.7;
 const MAX_WIDTH = 300;
 const MAX_IMAGE_HEIGHT = 220;
@@ -73,8 +72,7 @@ export function LinkPreviewCard({ url, fromMe }: { url: string; fromMe: boolean 
 function PreviewImage({ image, video }: { image: NonNullable<LinkPreview["image"]>; video?: boolean }) {
   const [loaded, setLoaded] = useState<{ width: number; height: number } | null>(null);
 
-  // Declared dimensions win over the file's own: a poster frame is cropped to
-  // the shape the site declared, which removes letterbox bars.
+  // Declared dimensions win: a poster frame cropped to the site's declared shape loses its letterbox bars.
   const declared = image.width && image.height ? image.width / image.height : null;
   const ratio = declared ?? (loaded ? loaded.width / loaded.height : DEFAULT_RATIO);
 

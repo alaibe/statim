@@ -20,11 +20,7 @@ export interface DepositPlan {
   outputs: TxOutput[];
 }
 
-/**
- * A payment to `to` that carries `memo` in an OP_RETURN, laid out as THORChain
- * reads one: the payment first, change back to the sending address second, the
- * memo last.
- */
+/** Laid out as THORChain reads it: the payment first, change to the sending address second, the memo last. */
 export async function planDeposit(from: string, deposit: Deposit): Promise<DepositPlan | { error: string }> {
   const memo = opReturn(new TextEncoder().encode(deposit.memo));
   const [utxos, fees] = await Promise.all([fetchUtxos(from, apiBase()), fetchFeeRates(apiBase())]);
@@ -40,7 +36,6 @@ export async function planDeposit(from: string, deposit: Deposit): Promise<Depos
   return { plan, feeRate, outputs };
 }
 
-/** Signs a deposit planned from the account's own address, and broadcasts it. */
 export async function sendDeposit(context: PluginContext, { plan, outputs }: DepositPlan): Promise<string> {
   const key = context.account.derive(BIP84_ACCOUNT_PATH);
   return broadcast(toHex(buildTransaction(plan.inputs, outputs, key.privateKey, key.publicKey)), apiBase());

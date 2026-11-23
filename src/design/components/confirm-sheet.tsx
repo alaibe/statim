@@ -6,25 +6,19 @@ import { Sheet, type SheetProps } from "./sheet";
 import { Text } from "./text";
 
 export interface ConfirmSheetProps extends Omit<SheetProps, "children"> {
-  /** One paragraph, or several. Each becomes its own line of body copy. */
   body?: string | (string | undefined)[];
   confirm: {
     label: string;
     busyLabel?: string;
-    /** `danger` for anything that destroys something. */
     tone?: "brand" | "danger";
     testID?: string;
     onPress: PressHandler;
   };
   cancelLabel?: string;
-  /** Disables both buttons and puts the confirm button in its loading state. */
   busy?: boolean;
 }
 
-/**
- * Cancel is `neutral`, never ghost: beside a button that destroys something, the safe way out
- * should not be the faintest thing on screen.
- */
+/** Cancel is `neutral`, never ghost: beside a destructive button the way out must not be the faintest thing. */
 export function ConfirmSheet({
   body,
   confirm,

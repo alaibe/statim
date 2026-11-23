@@ -6,10 +6,7 @@ const SLIDING_SYNC = "/_matrix/client/unstable/org.matrix.simplified_msc3575";
 const ROOM_FEATURES = "com.beeper.room_features";
 const PER_REQUEST = 100;
 
-/**
- * What a mautrix bridge says its network can do in a room. A level runs from
- * -2 (rejected) to 2 (fully supported), and a level left out is 0.
- */
+/** A level runs from -2 (rejected) to 2 (fully supported); a level left out is 0. */
 export interface RoomFeatures {
   edit?: number;
   delete?: number;
@@ -50,10 +47,7 @@ export function lacksOf(features: RoomFeatures): ChatFeature[] {
   ];
 }
 
-/**
- * Sliding sync leaves the event out of the room list, so bridged rooms are
- * asked about once, together, as they appear.
- */
+/** Sliding sync leaves the room features out of the room list, so bridged rooms are asked about in batches. */
 export class RoomFeatureStore {
   private readonly known = new Map<string, readonly ChatFeature[] | null>();
   private batch: string[] | null = null;

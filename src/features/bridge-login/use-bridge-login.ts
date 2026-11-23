@@ -5,7 +5,6 @@ import type { BridgeProvisioning, LoginStep, Whoami } from "@/protocols/matrix/p
 
 type BridgeLoginPhase = "loading" | "unavailable" | "flows" | "step" | "done";
 
-/** A bridge's sign-in, one provisioning step at a time; an open step is cancelled on leaving or starting over. */
 export function useBridgeLogin(provisioning: BridgeProvisioning | null) {
   const [whoami, setWhoami] = useState<Whoami | null>(null);
   const [unavailable, setUnavailable] = useState(false);

@@ -98,7 +98,6 @@ function get<T>(path: string, params: Record<string, string | number>, key: stri
 
 const tokens = new Map<string, LifiToken>();
 
-/** `token` is a symbol or contract address; null when LI.FI does not know it on that chain. */
 export async function lifiToken(chainId: number, token: string, key: string | null): Promise<LifiToken | null> {
   const cacheKey = `${chainId}:${token.toLowerCase()}`;
   const cached = tokens.get(cacheKey);
@@ -121,10 +120,7 @@ interface LifiChain {
 
 let chains: Promise<Map<number, LifiChain>> | null = null;
 
-/**
- * Where a chain keeps Permit2 and LI.FI's proxy for it. Fetched once, and
- * never fatal: without it a trade falls back to a plain approval.
- */
+/** Never fatal: without it a trade falls back to a plain approval. */
 export async function lifiPermitTargets(chainId: number): Promise<{ permit2: Address; proxy: Address } | null> {
   chains ??= get<{ chains: LifiChain[] }>("/chains", { chainTypes: "EVM" }, null)
     .then((answer) => new Map(answer.chains.map((chain) => [chain.id, chain])))
@@ -140,7 +136,6 @@ interface LifiQuoteParams {
   fromToken: Address;
   toToken: Address;
   fromAddress: Address;
-  /** Where the bought token lands. Always sent, and the sender's own by default. */
   toAddress: Address;
   /** In the token's base units. */
   fromAmount: bigint;

@@ -55,8 +55,7 @@ describe("enabling key protection", () => {
   });
 
   it("flips the setting only after every account has moved", async () => {
-    // A half-migrated device that believed its keys were sealed would read
-    // through the protected path and find nothing.
+    // A half-migrated device that thought its keys sealed would read the protected path and find nothing.
     const accounts = await withTwoAccounts();
     await enableKeyProtection(accounts.map((a) => a.id));
 
@@ -94,8 +93,7 @@ describe("disabling key protection", () => {
 
 describe("when the system discards sealed keys", () => {
   it("reports invalidated rather than absent for a known account", async () => {
-    // SecureStore resolves null in both cases; only the caller knows the
-    // account is in the registry, and confusing the two would silently drop it.
+    // SecureStore resolves null for both; mistaking one for the other would silently drop the account.
     const accounts = await withTwoAccounts();
     await enableKeyProtection(accounts.map((a) => a.id));
 
@@ -117,9 +115,7 @@ describe("when the system discards sealed keys", () => {
   });
 
   it("repairs an account when its phrase is imported again", async () => {
-    // The record, database and local data are all intact. Merely selecting the
-    // account would read the missing key and bounce back to recovery, so the
-    // import path has to rewrite it.
+    // Selecting the account alone would read the missing key and bounce to recovery; the import rewrites it.
     const accounts = await withTwoAccounts();
     await enableKeyProtection(accounts.map((a) => a.id));
     keychain.__invalidateProtected();

@@ -1169,8 +1169,7 @@ describe("consent", () => {
 
   it("says so when the protocol has no notion of consent", async () => {
     const session = await withRequest();
-    // Assigned rather than deleted: the method lives on the prototype, which `delete` on the
-    // instance does not touch.
+    // Assigned, not deleted: the method is on the prototype, which `delete` on the instance leaves alone.
     (session as { setConsent?: unknown }).setConsent = undefined;
 
     await expect(useChatStore.getState().setConsent(ns("spam"), "declined")).rejects.toThrow(/no way to decline/);

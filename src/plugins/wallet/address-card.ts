@@ -8,10 +8,6 @@ import { looksLikeEnsName, lookupName, resolveName } from "@/lib/evm/ens";
 import { activeChain, defaultChain } from "./chain-list";
 import { type ChainStrategy, chainStrategies } from "./chains/strategy";
 
-/**
- * Who an address or ENS name in a message belongs to, and what it holds.
- * `offerSend` is off in chats where /send cannot run.
- */
 export async function addressCard(
   context: PluginContext,
   value: string,

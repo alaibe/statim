@@ -12,7 +12,7 @@ export interface PageState {
   localStorage: Record<string, string>;
 }
 
-/** The readback script's answer; some webviews hand it over JSON-encoded a second time. */
+/** Some webviews hand the readback script's answer over JSON-encoded a second time. */
 export function parsePage(raw: string | null | undefined): PageState | null {
   if (!raw) return null;
   try {

@@ -78,7 +78,6 @@ export default function AccountsScreen() {
               }
               numberOfLinesSubtitle={2}
               leading={<Avatar seed={account.address} size="md" />}
-              // Only state on the right: tapping switches, holding manages, swiping erases.
               trailing={<Checkmark selected={account.id === activeAccountId} />}
               onLongPress={() => setManaging(account)}
               onContextMenu={() => setManaging(account)}

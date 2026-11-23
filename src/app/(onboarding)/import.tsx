@@ -40,11 +40,6 @@ export default function ImportAccount() {
 
   return (
     <Screen className="px-gutter">
-      {/*
-        Pushed from three places (the welcome screen, Settings › Accounts and
-        the recovery route), and only the first leaves a previous screen inside
-        the onboarding stack for a header back button to come from.
-      */}
       <View className="-ml-2 flex-row pt-1">
         <IconButton icon="chevron-back" label="Back" onPress={goBack} />
       </View>

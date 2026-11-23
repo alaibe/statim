@@ -22,7 +22,6 @@ export function cachedLinkPreview(url: string): LinkPreview | null | undefined {
   return previews.peek(url);
 }
 
-/** One request per URL, remembered across launches for a week. */
 export function loadLinkPreview(url: string): Promise<LinkPreview | null> {
   return previews.load(url, () => fetchLinkPreview(url));
 }

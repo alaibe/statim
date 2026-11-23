@@ -3,10 +3,7 @@ import { useChatStore } from "@/core/messaging/chat-store";
 import type { Chat, ChatId, ChatMessage } from "@/core/messaging/types";
 import { moveInviteText } from "@/plugins/profile/move-invite";
 
-/**
- * `statim://fixture/<name>` opens a made-up chat in a debug build, for the
- * guide's screenshots of what a fresh account cannot have yet.
- */
+/** In a debug build, `statim://fixture/<name>` opens a made-up chat for the guide's screenshots. */
 export function redirectSystemPath({ path }: { path: string; initial: boolean }): string | null {
   if (path.startsWith("statim://expo-sharing")) return "/share";
   if (isTrezorCallback(path)) return null;

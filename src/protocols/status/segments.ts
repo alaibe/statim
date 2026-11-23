@@ -1,8 +1,4 @@
-/**
- * status-go splits a payload too big for one Waku message into segments, each
- * sealed on its own, and puts them back together before decrypting. Parity
- * segments only help when a data segment is lost, so this side ignores them.
- */
+/** Parity segments only help when a data segment is lost, so this side ignores them. */
 import { concat, timingSafeEqual, toHex } from "@/lib/bytes";
 
 import { keccak256 } from "./crypto";

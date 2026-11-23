@@ -13,8 +13,6 @@ const ADDRESS = "0x1111111111111111111111111111111111111111" as const;
 
 function client(overrides: Partial<Record<string, unknown>> = {}) {
   return {
-    // Expiry lives on the registrar, so it is a contract read rather than a
-    // resolver call.
     readContract: jest.fn(async () => 1893456000n), // 2030-01-01
     getEnsAvatar: jest.fn(async () => "https://example.com/a.png"),
     getEnsText: jest.fn(async ({ key }: { key: string }) =>

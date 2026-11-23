@@ -27,7 +27,6 @@ export function searchGifs(key: string, query: string, limit = 24): Promise<Gif[
   return fetchGifs(key, `search?q=${encodeURIComponent(query)}&per_page=${limit}`);
 }
 
-/** What KLIPY is showing everyone right now: the grid before a search. */
 export function featuredGifs(key: string, limit = 30): Promise<Gif[]> {
   return fetchGifs(key, `trending?per_page=${limit}`);
 }

@@ -1,7 +1,6 @@
 import { toast } from "@/design";
 
-// The write starts inside the click, as WebKit requires, and the picture follows.
-// PNG is the one image type webviews put on the clipboard.
+// WebKit needs the write started inside the click, and PNG is the one image type webviews put on the clipboard.
 export function copyImage(uri: string): Promise<void> {
   return navigator.clipboard.write([new ClipboardItem({ "image/png": asPng(uri) })]).then(
     () => void toast.success("Copied"),

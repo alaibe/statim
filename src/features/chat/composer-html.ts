@@ -1,7 +1,4 @@
-/**
- * The composer field's HTML with each newline character as a line break: WebKit
- * types a line break into the pre-wrap field as one, and HTML reads it as a space.
- */
+/** WebKit types a line break into the pre-wrap field as a newline character, which HTML reads as a space. */
 export function htmlWithBreaks(el: HTMLElement): string {
   const copy = el.cloneNode(true) as HTMLElement;
   const walker = document.createTreeWalker(copy, NodeFilter.SHOW_TEXT);

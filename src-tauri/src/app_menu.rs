@@ -249,8 +249,7 @@ fn mac_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     )
 }
 
-/// Windows and Linux have no app menu, so Settings and Quit move to File and
-/// About to Help. Close and Quit are our own items because GTK has neither.
+/// Windows and Linux have no app menu, so Settings and Quit go in File; GTK has no Close or Quit.
 fn window_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     let [new_message, new_group] = new_chat_items(app)?;
     let [guide, report] = help_items(app)?;

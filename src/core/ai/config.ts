@@ -4,11 +4,7 @@ import { accountAiConfigKey, vaultGet, vaultSet } from "@/storage/vault";
 
 const AI_SOURCES = ["auto", "openai", "anthropic"] as const;
 
-/**
- * `auto` is the model on this device, or on a computer an Ollama server on
- * localhost. `openai` is any server that speaks OpenAI's chat completions:
- * Ollama, llama.cpp, LM Studio, OpenAI, OpenRouter.
- */
+/** `auto`: this device's model, or Ollama on localhost on a computer; `openai`: any OpenAI-compatible server. */
 export type AiSource = (typeof AI_SOURCES)[number];
 
 export interface AiConfig {

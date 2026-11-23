@@ -1,6 +1,4 @@
-//! A program the server runs beside the app. Its pid is written down, so one
-//! left behind by a Statim that crashed is stopped before the next start
-//! needs its port.
+//! Pids are written down, so a program left by a Statim that crashed is stopped before its port is needed.
 
 use std::fs::File;
 use std::path::{Path, PathBuf};
@@ -78,8 +76,7 @@ fn terminate(pid: u32) {
 #[cfg(not(unix))]
 fn terminate(_pid: u32) {}
 
-/// Stops the process a pidfile names, but only if it still runs `program`:
-/// a pid can be reused by something else once its process is gone.
+/// Only if the pid still runs `program`: a pid can be reused once its process is gone.
 #[cfg(unix)]
 pub fn stop_left_behind(pidfile: &Path, program: &Path) {
     let Some(pid) = std::fs::read_to_string(pidfile)

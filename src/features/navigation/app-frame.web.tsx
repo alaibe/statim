@@ -9,10 +9,7 @@ import { HistoryMenu } from "./history-menu";
 import { QuickSwitcher } from "./quick-switcher";
 import { FULL_WINDOW_ROUTES } from "./routes";
 
-/**
- * The window has no title bar, so its top edge moves it instead. Header
- * controls start below this line; the traffic lights are drawn over it.
- */
+/** The window has no title bar, so this strip drags it; the traffic lights are drawn over it. */
 const DRAG_STRIP_HEIGHT = 24;
 
 const FRAME_INSETS = { left: 8 + 320, top: DRAG_STRIP_HEIGHT };
@@ -33,10 +30,7 @@ function DragStrip() {
   );
 }
 
-/**
- * The wallpaper covers the whole window and the sidebar floats on it; the
- * chat draws straight onto it, so the chat screen skips its own copy.
- */
+/** The chat draws straight onto the frame's wallpaper, so the chat screen skips its own copy. */
 export function AppFrame({ children }: PropsWithChildren) {
   const segments = useSegments();
   const wallpaper = useAppearanceStore((s) => s.wallpaper);

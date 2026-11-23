@@ -6,7 +6,6 @@ import { View } from "react-native";
 
 import { Button, Text, toast } from "@/design";
 
-/** Downloads a newer release in the background and offers to restart into it. */
 export function UpdateBar() {
   const [update, setUpdate] = useState<Update | null>(null);
   const looking = useRef(false);

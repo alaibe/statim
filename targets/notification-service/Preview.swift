@@ -27,8 +27,7 @@ struct Preview {
     }
 }
 
-/// The zone the desktop leaves notes in. iCloud does not wake a phone for its own changes,
-/// so deleting what it read here costs no push.
+/// iCloud does not wake a phone for its own changes, so deleting what it read here costs no push.
 actor Inbox {
     static let zoneName = "notes"
     static let shared = Inbox()
@@ -38,8 +37,7 @@ actor Inbox {
     private var last: Task<Preview?, Never>?
     private var shown: (preview: Preview, at: Date)?
 
-    /// The newest note waiting, after deleting every note read. One push at a time, so two never show the same note;
-    /// a push that finds nothing new repeats the last one, which then replaces its earlier notification.
+    /// One push at a time, so two never show one note; a push finding nothing new repeats the last one.
     func take(_ zone: CKRecordZone.ID, in container: String) async -> Preview? {
         let previous = last
         let next = Task { () -> Preview? in

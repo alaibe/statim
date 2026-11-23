@@ -1,22 +1,16 @@
-//! The programs the server runs, downloaded once and checked against the
-//! SHA-256 pinned here before anything executes them.
-
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use sha2::{Digest, Sha256};
 
-/// One file and where it comes from. `sha256` is the hash of the file that
-/// runs, after a `.zst` download is unpacked.
+/// `sha256` is the hash of the file that runs, after a `.zst` download is unpacked.
 pub struct Pin {
     pub file: &'static str,
     pub url: &'static str,
     pub sha256: &'static str,
 }
 
-/// Which of a release's builds this computer runs: an Apple-silicon Mac,
-/// Linux on x86-64, or Linux on ARM.
 pub fn build_index() -> Option<usize> {
     if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
         Some(0)
@@ -29,8 +23,7 @@ pub fn build_index() -> Option<usize> {
     }
 }
 
-/// Per `build_index`. `.forgejo/workflows/homeserver-release.yml` builds the Mac's, with the
-/// libolm its mautrix bridges link.
+/// Indexed by `build_index`; the Mac's is our own build, with the libolm its mautrix bridges link.
 const SERVER: [Option<&[Pin]>; 3] = [
     Some(&[
         Pin {

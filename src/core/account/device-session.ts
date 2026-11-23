@@ -24,7 +24,6 @@ export function releaseDevice(accountId: string): void {
   live.delete(accountId);
 }
 
-/** Connects to `deviceId` and makes sure it holds the account. */
 export async function connectTo(wallet: LinkedVendor, deviceId: string, key: HardwareKey): Promise<HardwareSigner> {
   const signer = await wallet.connect(deviceId);
   if ((await signer.getAddress(key.path)).toLowerCase() !== key.address.toLowerCase()) {

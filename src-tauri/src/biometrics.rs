@@ -1,6 +1,3 @@
-//! Touch ID, through the LocalAuthentication framework on macOS. Other systems
-//! report it as unavailable.
-
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -9,8 +6,7 @@ pub struct Capability {
     enrolled: bool,
 }
 
-/// Errors use the names expo-local-authentication gives them on a phone, so
-/// the page reads both the same way.
+/// Errors use expo-local-authentication's names, so the page reads phone and desktop alike.
 #[derive(Serialize)]
 pub struct Outcome {
     success: bool,
@@ -65,8 +61,7 @@ mod platform {
         }
     }
 
-    /// With an app PIN, the Mac's password must not open the app, so only
-    /// Touch ID is accepted and the fallback button asks for the PIN.
+    /// With an app PIN only Touch ID is accepted, so the Mac's password cannot open the app.
     pub fn authenticate(reason: String, pin_fallback: bool) -> Result<Outcome, String> {
         let context = unsafe { LAContext::new() };
         let policy = if pin_fallback {

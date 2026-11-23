@@ -1,8 +1,4 @@
-//! tuwunel's RocksDB sometimes loses a run of records from a write-ahead log
-//! while it runs (tuwunel issue #653). Every later record then sits off the
-//! 32 KB blocks RocksDB reads the log in, and the next start either spins
-//! forever replaying it or drops those records. Writing the records that are
-//! there back onto proper blocks lets the server open with all of them.
+//! RocksDB can lose bytes mid-log, putting later records off its 32 KB blocks; reframing lets tuwunel open.
 
 use std::fs::File;
 use std::io::Write;
@@ -15,8 +11,6 @@ const FIRST: u8 = 2;
 const MIDDLE: u8 = 3;
 const LAST: u8 = 4;
 
-/// Realigns every log of the database at `db` that lost its blocks, unless a
-/// process has the database open.
 pub fn repair(db: &Path) {
     if !db.join("LOCK").exists() {
         return;
@@ -55,8 +49,7 @@ fn realign_logs(db: &Path) {
     }
 }
 
-/// Whether the log reads as RocksDB writes it. A record cut short by the end
-/// of the file counts: RocksDB drops it itself.
+/// A record cut short by the end of the file counts as aligned: RocksDB drops it itself.
 fn aligned(data: &[u8]) -> bool {
     let mut at = 0;
     while at < data.len() {
@@ -82,8 +75,7 @@ fn aligned(data: &[u8]) -> bool {
     true
 }
 
-/// The log's write batches framed again, and how many sequence numbers were
-/// already missing between them. Refuses what it cannot account for.
+/// Also counts the sequence numbers already missing between batches; refuses what it cannot account for.
 fn realign(data: &[u8]) -> Result<(Vec<u8>, u64), String> {
     let mut batches = Vec::new();
     let mut partial: Option<Vec<u8>> = None;
@@ -217,8 +209,7 @@ fn replace(path: &Path, data: &[u8]) -> std::io::Result<()> {
     std::fs::rename(&realigned, path)
 }
 
-/// RocksDB's own lock on the database, held until it is dropped, if no
-/// process has the database open.
+/// RocksDB's own lock on the database, held until dropped; `None` while a process has it open.
 #[cfg(unix)]
 fn unused(db: &Path) -> Option<File> {
     use std::os::fd::AsRawFd;
@@ -265,8 +256,7 @@ mod tests {
         out
     }
 
-    /// A log whose writer counted `lost` bytes after `kept` that never reached
-    /// the file: the batches after it are framed out of phase.
+    /// A log missing `lost` bytes after `kept`, so the batches after it are framed out of phase.
     fn losing(kept: &[Vec<u8>], lost: usize, after: &[Vec<u8>]) -> Vec<u8> {
         let mut log = framed(kept);
         let mut shifted = vec![0; log.len() + lost];

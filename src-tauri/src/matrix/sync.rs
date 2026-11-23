@@ -70,8 +70,7 @@ impl Session {
             Box::new(new_filter_non_left()),
             Box::new(new_filter_not(Box::new(new_filter_space()))),
         ])));
-        // Any change the SDK considers notable shows up here as a `Set`, so nothing else
-        // needs watching.
+        // Any change the SDK considers notable arrives as a `Set`, so nothing else needs watching.
         let mut entries: Vector<Room> = Vector::new();
         let mut subscribed: HashSet<OwnedRoomId> = HashSet::new();
         let mut listed = false;
@@ -102,8 +101,7 @@ impl Session {
         }
     }
 
-    /// Applies one batch to `entries`, announcing the rooms that left; returns the rooms it
-    /// touched and whether the list grew.
+    /// Announces the rooms that left; returns the rooms touched and whether the list grew.
     fn apply_room_diffs(
         &self,
         entries: &mut Vector<Room>,
@@ -115,8 +113,7 @@ impl Session {
             let diff = diff.map(|item| item.into_inner());
             grew |= matches!(diff, VectorDiff::Append { .. } | VectorDiff::Reset { .. });
             let changed = changed_by(&diff);
-            // A `Set` or `Reset` brings fresh handles for the same rooms; only rooms that
-            // left the list are gone.
+            // `Set` and `Reset` bring fresh handles for the same rooms; only rooms that left the list go.
             for room in removed_by(entries, &diff) {
                 if changed.iter().any(|kept| kept.room_id() == room.room_id()) {
                     continue;
@@ -186,8 +183,7 @@ impl Session {
             seen.insert(id.clone(), preview.timestamp);
             previous
         };
-        // The first sighting is not a new message, and a live timeline reports its own;
-        // otherwise the latest event stands in, with its real id.
+        // No event on a first sighting, or when a live timeline reports its own; else the latest stands in.
         if seen.is_none() || self.touch_live(&id).await.is_some() {
             return Some((mapped, None));
         }

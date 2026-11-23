@@ -162,7 +162,7 @@ export class RelayPool {
     };
   }
 
-  /** Opens relays that are down now instead of when their backoff ends, leaving open ones alone; whether any was down. */
+  /** Skips the backoff for relays that are down, leaving open ones alone; whether any was down. */
   reconnectNow(): boolean {
     if (this.closed) return false;
     let reopened = false;

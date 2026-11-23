@@ -27,7 +27,6 @@ export default function ChatScreen() {
     );
   }
 
-  // The desktop keeps the chat in view and opens the thread beside it.
   const root = open?.id === id ? open.root : undefined;
   return (
     <View className="flex-1 flex-row">

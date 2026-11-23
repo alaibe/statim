@@ -64,7 +64,6 @@ function parseGeo(url: string): Location | null {
   return location.lat === undefined && !location.label ? null : location;
 }
 
-/** Links a device can hand to its maps app. */
 export function mapsLinks(location: Location): { apple: string; geo: string } {
   const { lat, lng, label, url } = location;
   const q = label ? encodeURIComponent(label) : undefined;

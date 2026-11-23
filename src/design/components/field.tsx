@@ -16,7 +16,6 @@ interface FieldProps extends TextInputProps {
 
 export const FIELD_BOX = "min-h-tap rounded-field border bg-surface-raised px-3 py-2.5";
 
-/** The control is the input below, or a pressable where a value is chosen. */
 export function FieldShell({
   label,
   hint,

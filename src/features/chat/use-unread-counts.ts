@@ -10,10 +10,7 @@ interface Counted {
   count?: number;
 }
 
-/**
- * Unread counts for chats whose protocol reports none, asked of the session.
- * A chat is recounted only when its last message or read time changes.
- */
+/** For chats whose protocol reports no unread count; recounted when the last message or read time changes. */
 export function useUnreadCounts(chats: readonly Chat[]): Chat[] {
   const readAt = useChatStore((s) => s.readAt);
   const [counted, setCounted] = useState<Record<string, Counted>>({});

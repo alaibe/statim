@@ -12,7 +12,6 @@ import { useChatPermissions } from "./use-chat-permissions";
 const RETRY_MS = 700;
 const RETRIES = 15;
 
-/** The chat's network's own packs, then Statim's, each source failing on its own. */
 export function useStickerPacks(chatId: ChatId) {
   const { networkStickers } = useChatPermissions(chatId);
   const accountId = useAccountStore((s) => s.activeAccountId);
@@ -39,7 +38,6 @@ export function useStickerPacks(chatId: ChatId) {
   };
 }
 
-/** Loads again every so often until `done`, for pictures still downloading, then gives up. */
 export function useLoadUntil<T, K extends string>(
   key: K | null,
   load: (key: K) => Promise<T>,

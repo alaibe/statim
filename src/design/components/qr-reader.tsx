@@ -8,17 +8,13 @@ import { ErrorText } from "./error-text";
 import { Text } from "./text";
 
 export interface QrReaderProps {
-  /** Shown until the camera is allowed: what the camera is for. */
   purpose: string;
-  /**
-   * Resolves to what went wrong, which keeps the camera open, to null when the
-   * scan is used, or to undefined to keep reading, as for one frame of several.
-   */
+  /** An error keeps the camera open, null means the scan was used, undefined keeps reading for more frames. */
   onScanned(data: string): Promise<string | null | undefined>;
   className?: string;
 }
 
-/** A camera that reads QR codes. A scanned code is a string a stranger may control. */
+/** A scanned code is a string a stranger may control. */
 export function QrReader({ purpose, onScanned, className }: QrReaderProps) {
   const [permission, requestPermission, getPermission] = useCameraPermissions();
   const [error, setError] = useState<string | null>(null);

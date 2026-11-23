@@ -25,15 +25,10 @@ type Entry = {
 const RECENT = 6;
 const MOD = /Mac/.test(navigator.userAgent) ? "⌘" : "Ctrl+";
 
-// A shortcut the menu also shows can arrive twice: once as the page's keydown
-// and once as the menu item.
+// A shortcut the menu also shows can arrive twice: as the page's keydown and as the menu item.
 let last = { command: "", at: 0 };
 
-/**
- * The desktop's keyboard shortcuts and app menu commands, ⌘K (Ctrl+K off the
- * Mac) among them for a search over chats and a few commands. Only the
- * shortcuts live here, so nothing is computed while the palette is closed.
- */
+/** Only the shortcuts live here, so nothing is computed while the palette is closed. */
 export function QuickSwitcher() {
   const segments = useSegments() as string[];
   const { id } = useGlobalSearchParams<{ id?: string }>();

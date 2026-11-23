@@ -23,7 +23,6 @@ const list = (): Bundled => (bundled ??= require("./token-list.json") as Bundled
 
 const byChain = new Map<number, ListedToken[]>();
 
-/** Alphabetical, and empty for a chain the list does not cover. */
 export function listedTokens(chainId: number): ListedToken[] {
   const cached = byChain.get(chainId);
   if (cached) return cached;
@@ -39,10 +38,7 @@ export function listedTokens(chainId: number): ListedToken[] {
   return tokens;
 }
 
-/**
- * An order, not a source: each symbol is looked up in the bundled list, and
- * one the list does not carry is not offered.
- */
+/** An order, not a source: a symbol the bundled list does not carry is not offered. */
 const POPULAR: Record<number, string[]> = {
   1: ["USDC", "USDT", "DAI", "WETH", "WBTC"],
   10: ["USDC", "USDT", "DAI", "WETH", "WBTC", "OP"],

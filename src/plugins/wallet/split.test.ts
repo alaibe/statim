@@ -13,12 +13,10 @@ jest.mock("./bitcoin/config", () => ({ hydrateApiBase: jest.fn() }));
 jest.mock("./solana", () => ({ solanaStrategy: {} }));
 jest.mock("./chains/watcher", () => ({ checkBalances: jest.fn() }));
 
-/** Wei per person, the exact figure the card asks each member for. */
 function shareWei(total: string, people: number): bigint {
   return parseEther(total) / BigInt(people);
 }
 
-/** What the card prints, rounded for legibility. */
 function shareOf(total: string, people: number): string {
   return trimDecimals(formatEther(shareWei(total, people)));
 }

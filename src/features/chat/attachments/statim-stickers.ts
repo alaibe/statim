@@ -35,7 +35,6 @@ const isIndex = shape<{ packs: HostedPack[] }>({
 
 let index: Promise<HostedPack[]> | undefined;
 
-/** Statim's own packs, read from the site once per launch; a failed read is tried again next time. */
 export function statimPacks(accountId: string): Promise<PickerPack[]> {
   index ??= readIndex().catch((error: unknown) => {
     index = undefined;

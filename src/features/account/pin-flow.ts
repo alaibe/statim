@@ -1,6 +1,5 @@
 import { PIN_LENGTH, type PinCheck } from "@/core/account/pin";
 
-/** Unlocking is the lock screen; the other three are the screens in Settings. */
 export type PinFlowKind = "unlock" | "set" | "change" | "off";
 
 export type SettingsPinFlow = Exclude<PinFlowKind, "unlock">;
@@ -12,7 +11,6 @@ export type PinStage =
   | { name: "confirm"; chosen: string }
   | { name: "done" };
 
-/** What the screen has to go and do before the flow can move on. */
 export type PinTask = { run: "check"; pin: string } | { run: "save"; pin: string } | { run: "remove" };
 
 export type PinNote =
@@ -40,7 +38,6 @@ export type PinFlowEvent =
   | { type: "finished" }
   | { type: "failed"; message: string };
 
-/** Without a PIN there is only setting one; with one, changing it unless turning it off was asked for. */
 export function pinFlowKind(requested: "change" | "off", pinSet: boolean): SettingsPinFlow {
   if (!pinSet) return "set";
   return requested === "off" ? "off" : "change";

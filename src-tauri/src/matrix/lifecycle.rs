@@ -9,8 +9,7 @@ pub(super) async fn build_session(app: AppHandle, params: StartParams) -> Result
     std::fs::create_dir_all(&data_directory).map_err(err)?;
     let client = Client::builder()
         .homeserver_url(&params.homeserver_url)
-        // The default pool is four connections per physical core for each of four
-        // databases, which alone exhausts macOS's 256 open files on a large Mac.
+        // Four connections per core for each of four databases by default exhausts macOS's 256 open files.
         .sqlite_store_with_config_and_cache_path(
             SqliteStoreConfig::new(data_directory.join("store"))
                 .key(Some(params.store_key.as_bytes()))

@@ -1,6 +1,4 @@
-//! The bridges the server can run, from their projects' own releases, pinned
-//! by SHA-256. Each gets a short config: the bridge fills in every
-//! default it leaves out when it starts.
+//! Each bridge gets a short config: it fills in every default left out when it starts.
 
 use std::path::Path;
 
@@ -9,8 +7,7 @@ use super::config::Appservice;
 use super::{users::random_hex, OWNER, SERVER_NAME};
 use crate::paths::write_private;
 
-/// A bridge whose bot is `<id>bot` and whose users for people on the other
-/// network start with `<id>_`.
+/// Its bot is `<id>bot`, and its users for people on the other network start with `<id>_`.
 pub struct Bridge {
     /// Its appservice id, and the name its login API sits under in the router.
     pub id: &'static str,
@@ -226,8 +223,7 @@ impl Bridge {
         let permissions =
             format!("    permissions:\n        \"{SERVER_NAME}\": user\n        \"@{OWNER}:{SERVER_NAME}\": admin\n");
         let database = |indent: &str| format!("type: sqlite3-fk-wal\n{indent}uri: file:{id}.db?_txlock=immediate\n");
-        // Encryption, because Statim starts every DM encrypted, the one with the bot included;
-        // backfill, so a chat arrives with its latest messages instead of empty.
+        // Encryption: Statim encrypts every DM, the bot's too. Backfill: a chat arrives with recent messages.
         if self.legacy {
             format!(
                 "{homeserver}{appservice}    database:\n        {database}bridge:\n    username_template: {id}_{{{{.}}}}\n{permissions}    login_shared_secret_map:\n        {SERVER_NAME}: \"as_token:{double_puppet}\"\n    encryption:\n        allow: true\n    backfill:\n        forward_limits:\n            initial:\n                dm: 50\n                channel: 50\n                thread: 50\n            missed:\n                dm: 500\n                channel: 500\n                thread: 500\n",
@@ -243,8 +239,7 @@ impl Bridge {
     }
 }
 
-/// Lets each bridge post as the owner, so what they send from the other
-/// network's own app shows as them. It owns no users and gets no traffic.
+/// Lets each bridge post as the owner, so what they send from the other network's own app shows as them.
 pub fn double_puppet(tokens: &Tokens) -> Appservice {
     Appservice {
         id: "doublepuppet".into(),

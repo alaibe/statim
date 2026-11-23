@@ -11,8 +11,7 @@ use serde_json::{json, Value};
 
 use super::{client, transport};
 
-/// Revisions with the `initialize` handshake, newest first; a client asking
-/// for another one gets the newest.
+/// Revisions with the `initialize` handshake, newest first; a client asking for another gets the newest.
 const LEGACY_VERSIONS: &[&str] = &["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 
 /// Revisions where every request names its version in `_meta`.
@@ -30,9 +29,7 @@ fn spec() -> &'static Value {
     SPEC.get_or_init(|| serde_json::from_str(include_str!("../../cli/mcp.json")).expect("mcp.json is valid"))
 }
 
-/// An MCP server on stdin and stdout: each tool call is one command run in the
-/// app. A request naming its version in `_meta` is answered as 2026-07-28 and
-/// later; anything else as the revision `initialize` agreed on.
+/// A request naming its version in `_meta` is answered as 2026-07-28, any other as `initialize` agreed.
 pub fn serve() -> i32 {
     for line in io::stdin().lock().lines() {
         let Ok(line) = line else { break };
@@ -174,8 +171,7 @@ fn call_tool(params: &Value, cancelled: &AtomicBool) -> Reply {
         Ok(stream) => stream,
         Err(error) => return Ok(result(&format!("Could not start Statim: {error}"), true)),
     };
-    // Lets a cancelled call stop waiting; Windows pipes have no timeout, so there
-    // it waits for the app and its answer is dropped.
+    // Lets a cancelled call stop waiting; Windows pipes have no timeout, so there the late answer is dropped.
     let _ = stream.set_recv_timeout(Some(Duration::from_millis(250)));
     let request = json!({
         "type": "request",
@@ -196,8 +192,7 @@ fn call_tool(params: &Value, cancelled: &AtomicBool) -> Reply {
     })
 }
 
-/// One at a time: dialling changes the working directory, and two calls
-/// finding the app closed would otherwise start it twice.
+/// One at a time: dialling changes the working directory, and two calls could each start the app.
 fn connect() -> io::Result<Stream> {
     static CONNECTING: Mutex<()> = Mutex::new(());
     let _turn = CONNECTING.lock().unwrap();
@@ -208,8 +203,7 @@ fn result(text: &str, is_error: bool) -> Value {
     json!({ "content": [{ "type": "text", "text": text }], "isError": is_error })
 }
 
-/// The command line a tool call stands for. Flags come first and inline, and
-/// `--` keeps an argument that starts with `--` from reading as one.
+/// Flags come first and inline; `--` keeps an argument that starts with `--` from reading as a flag.
 fn argv(call: &Value, arguments: &Value) -> Vec<String> {
     let mut argv = words(&call["path"]);
     for (property, flag) in call["flags"].as_object().into_iter().flatten() {

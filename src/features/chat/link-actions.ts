@@ -21,7 +21,6 @@ export function openLink(link: LinkSegment) {
 const isPlace = (link: LinkSegment) =>
   link.kind === "location" || (link.kind === "url" && parseLocation(link.href) !== null);
 
-/** Hands a place to the device's maps app rather than a web page. */
 export function openInMaps(url: string): Promise<unknown> {
   const location = parseLocation(url);
   if (!location) return openExternal(url);

@@ -1,4 +1,3 @@
-/** A vector diff from the SDK, as both the room list and timelines deliver them. */
 export type VectorDiff<T> =
   | { tag: "Append" | "Reset"; inner: { values: T[] } }
   | { tag: "PushFront" | "PushBack"; inner: { value: T } }
@@ -7,7 +6,6 @@ export type VectorDiff<T> =
   | { tag: "Truncate"; inner: { length: number } }
   | { tag: "Clear" | "PopFront" | "PopBack" };
 
-/** Every item a diff brings, as `changed_by` lists them on the desktop. */
 export function valuesOf<T>(diff: VectorDiff<T>): T[] {
   switch (diff.tag) {
     case "Append":
@@ -23,10 +21,7 @@ export function valuesOf<T>(diff: VectorDiff<T>): T[] {
   }
 }
 
-/**
- * Applies one diff in place. `changed` holds items worth reporting; with
- * `newOnly`, bulk loads (initial items, pagination) are applied silently.
- */
+/** With `newOnly`, bulk loads (initial items, pagination) are applied without reporting them as changed. */
 export function applyDiff<T>(items: T[], diff: VectorDiff<T>, newOnly = false): { changed: T[]; removed: T[] } {
   switch (diff.tag) {
     case "Append":

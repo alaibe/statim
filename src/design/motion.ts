@@ -35,8 +35,7 @@ export function springLayout() {
   return LinearTransition.springify().damping(damping).stiffness(stiffness).mass(mass).reduceMotion(R);
 }
 
-// Easing.out(Easing.cubic) as a curve: web layout animations take only named
-// or bezier easings and quietly fall back to linear for anything else.
+// Easing.out(Easing.cubic) as a bezier: web layout animations fall back to linear for any other easing.
 const EASE_OUT = Easing.bezier(0.33, 1, 0.68, 1);
 
 export const Duration = {

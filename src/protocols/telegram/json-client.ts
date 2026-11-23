@@ -19,14 +19,7 @@ const EXTRA_PREFIX = "so-";
 
 let active: TdJsonClient | null = null;
 
-/**
- * Drives `td_json_client` directly instead of through a wrapper's high-level
- * API, which would pin the database to one shared directory with no
- * encryption key. Requests are correlated by `@extra`; everything else TDLib
- * emits is an update.
- *
- * Each platform holds one client, so creating a new one closes the last.
- */
+/** Each platform holds one client, so creating a new one closes the last. */
 export class TdJsonClient implements TdApi {
   private nextId = 1;
   private readonly pending = new Map<string, Pending>();
@@ -108,10 +101,7 @@ export class TdJsonClient implements TdApi {
     }
   }
 
-  /**
-   * Only safe once TDLib has reported `authorizationStateClosed`: the receive
-   * loop is the sole caller, so no receive is in flight on the freed client.
-   */
+  /** Only after `authorizationStateClosed`: the receive loop is its sole caller, so no receive is in flight. */
   private async finishClose(): Promise<void> {
     if (this.state === "closed") return;
     this.state = "closed";

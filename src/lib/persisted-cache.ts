@@ -15,7 +15,7 @@ type Entry<T> = { value: T; at: number };
 
 const FLUSH_DELAY_MS = 500;
 
-/** Answers kept in memory and saved under one storage name. A fetch that throws is not kept. */
+/** A fetch that throws is not kept. */
 export function persistedCache<T>({ name, limit, ttlMs, missTtlMs }: PersistedCacheOptions) {
   let storage: CacheStorage | null = null;
   let entries = new Map<string, Entry<T>>();

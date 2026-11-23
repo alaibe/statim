@@ -69,7 +69,6 @@ function StickerVideo({ uri, box, onError }: { uri: string; box: Box; onError():
   );
 }
 
-/** The emoji in place of a sticker that is still downloading, or that this device cannot decode. */
 export function StickerEmoji({ emoji, box }: { emoji?: string; box: Box }) {
   return (
     <View style={box} className="items-center justify-center">

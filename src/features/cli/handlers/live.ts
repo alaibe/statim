@@ -13,7 +13,6 @@ import {
   whenAccountReady,
 } from "../context";
 
-/** What an update brought: the chats whose lists or latest message changed, nothing else. */
 function changed(state: ChatState, previous: ChatState): ChatMessage[] {
   const out: ChatMessage[] = [];
   if (state.messages !== previous.messages) {

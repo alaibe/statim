@@ -2,11 +2,7 @@ import type { AccountStorage } from "@/storage/account";
 import type { ChatId, ChatMessage, MessageId } from "./types";
 import { countsAsUnread, MARKED_UNREAD } from "./unread";
 
-/**
- * Opening a chat reads its timeline but not its threads, so a chat with threads
- * keeps the read time its threads had before: `since` for every thread, or the
- * time a thread was last opened.
- */
+/** Opening a chat does not read its threads: they keep `since`, or the time each was last opened. */
 export interface ThreadReads {
   readonly since: number;
   readonly threads: Readonly<Record<MessageId, number>>;

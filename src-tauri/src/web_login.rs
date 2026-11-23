@@ -1,5 +1,4 @@
-//! The window where the user signs in to a website for a Matrix bridge. The page
-//! gets no IPC: the capabilities only cover `main`.
+//! The bridge sign-in window gets no IPC: the capabilities only cover `main`.
 
 use std::sync::Mutex;
 use std::time::Duration;
@@ -11,8 +10,7 @@ use tokio::sync::oneshot;
 
 const LABEL: &str = "web-login";
 
-/// Sites like Slack refuse a web view they take for an old or unknown browser,
-/// so the window says it is the browser this system ships.
+/// Sites like Slack refuse a web view they take for an unknown browser, so it poses as the system's browser.
 #[cfg(target_os = "macos")]
 fn browser_user_agent() -> Option<String> {
     let version = std::process::Command::new("sw_vers")

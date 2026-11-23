@@ -19,10 +19,7 @@ export function fallbackFilename(uri: string, kind: "image" | "voice"): string {
   return kind === "image" ? "photo.jpg" : "voice.m4a";
 }
 
-/**
- * Per chat, the newest read mark announced and a time none of your messages
- * was sent after, so that a receipt rebuilds its chat only when a tick can change.
- */
+/** Per chat, so that a receipt rebuilds its chat only when a tick can change. */
 export class ReadMarks {
   private readonly read = new Map<string, number>();
   private readonly sentUpTo = new Map<string, number>();
@@ -56,11 +53,7 @@ export function newestReadByOthers<T>(
   return newest;
 }
 
-/**
- * The SDK does not open a stream again once it ends. `reopen` opens the ones
- * that ended; a failure leaves the link down for the next resume rather than
- * giving up on the session.
- */
+/** The SDK never reopens an ended stream; a failed reopen leaves the link down for the next resume. */
 export async function reopenEnded(
   link: LinkTracker,
   reopen: () => Promise<boolean>,

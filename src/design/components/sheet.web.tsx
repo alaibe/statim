@@ -28,7 +28,6 @@ export function closeSheetThen(sheet: Pick<SheetProps, "onClose">, action: () =>
 const WIDTH = 320;
 const MARGIN = 12;
 
-/** On desktop a sheet is a popover: at `anchor` when there is one, else centred. */
 export function Sheet({ visible, title, subtitle, leading, anchor, children, onClose }: SheetProps) {
   const window = useWindowDimensions();
   const insets = useLayoutInsets();

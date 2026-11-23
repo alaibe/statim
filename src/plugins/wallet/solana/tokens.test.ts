@@ -20,7 +20,6 @@ const account = ({ mint, amount, decimals }: Held) => ({
   },
 });
 
-/** Answers getTokenAccountsByOwner per token program, and records what was asked. */
 function stubRpc(byProgram: Record<string, Held[]>) {
   const asked: { method: string; programId?: string }[] = [];
 

@@ -1,8 +1,4 @@
-/**
- * The slice of TDLib's JSON API this adapter reads. Field names follow TDLib
- * (https://core.telegram.org/tdlib/docs/td__api_8h.html), so they are
- * snake_case on purpose.
- */
+/** Field names follow TDLib's JSON API, so they are snake_case on purpose. */
 import type { TdObject } from "./api";
 
 export interface TdUser extends TdObject {

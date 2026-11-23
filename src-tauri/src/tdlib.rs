@@ -1,11 +1,4 @@
-//! Telegram through TDLib's JSON interface. `scripts/tdlib.sh desktop` puts the
-//! library where the bundle can reach it, and it is opened on first use:
-//! `libtdjson.dylib` in the macOS bundle's Frameworks directory, `tdjson.dll`
-//! or `libtdjson.so` as a bundled resource elsewhere. The prebuilt Linux and
-//! Windows builds export their static OpenSSL, so `Library::new` must stay on
-//! the default RTLD_LOCAL or it would interpose on SQLCipher's.
-//! The page drives `td_json_client_*` with one client at a time, and correlates
-//! requests and replies by `@extra` itself.
+//! Keep `Library::new` RTLD_LOCAL: prebuilt TDLib exports OpenSSL, which would interpose on SQLCipher's.
 
 use std::ffi::{c_char, c_void, CStr, CString};
 use std::path::PathBuf;
@@ -55,8 +48,7 @@ fn library_path(app: &AppHandle) -> Option<PathBuf> {
         candidates.push(dir.join("../Frameworks").join(name));
         candidates.push(dir.join(name));
     }
-    // Where the bundler puts it on Linux and Windows, which differs per package
-    // format, so ask Tauri rather than guess.
+    // The bundler's location differs per package format on Linux and Windows, so ask Tauri rather than guess.
     if let Ok(dir) = app.path().resource_dir() {
         candidates.push(dir.join(name));
     }
@@ -88,8 +80,7 @@ fn load(app: &AppHandle) -> Result<Api, String> {
 
 struct Client {
     ptr: *mut c_void,
-    /// Held while TDLib blocks in receive, and set once the client is gone:
-    /// destroying underneath a receive, or receiving after, is undefined.
+    /// Held during receive, set once destroyed: destroying mid-receive, or receiving after, is undefined.
     gone: Mutex<bool>,
 }
 

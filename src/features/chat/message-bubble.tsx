@@ -358,7 +358,6 @@ interface FooterProps {
   reactions: ReactNode;
 }
 
-/** `overlay` sits the time on a photo that has no bubble around it; `inline` at the end of the text's last line. */
 function Footer({ message, read, reactions, place = "row" }: FooterProps & { place?: "row" | "overlay" | "inline" }) {
   const overlay = place === "overlay";
   const time = (

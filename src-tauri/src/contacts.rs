@@ -1,6 +1,3 @@
-//! The address book, read through the Contacts framework on macOS. Other
-//! systems report it as unavailable.
-
 use serde::Serialize;
 
 #[derive(Serialize)]

@@ -1,13 +1,11 @@
 import type { HttpError } from "@/core/errors";
 
-/** How a public JSON API says no: its name, its own words for a refusal, and the error it throws. */
 export interface JsonApi<Body> {
   name: string;
   /** Said for HTTP 429. */
   limited: string;
   /** Said for HTTP 401 and 403, for an API that takes a key. */
   keyRejected?: string;
-  /** The API's explanation of a refusal, or undefined to fall back on the status. */
   explain(status: number, body: Body | null): string | undefined;
   error(status: number, message: string, body: Body | null): HttpError;
 }

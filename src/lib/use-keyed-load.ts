@@ -6,10 +6,7 @@ interface Loaded<T> {
   error?: unknown;
 }
 
-/**
- * What `load` returned for `key`, or the error it threw. A result that arrives
- * after the key changed is dropped; `version` reloads the same key.
- */
+/** A result that arrives after the key changed is dropped; `version` reloads the same key. */
 export function useKeyedLoad<T, K extends string = string>(
   key: K | null,
   load: (key: K, signal: AbortSignal) => Promise<T>,

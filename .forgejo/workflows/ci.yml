@@ -1,16 +1,3 @@
-# Checks every push to Statim against the shared code standard (homeserver's AGENTS.md › Code standards), on
-# git.laibe.cc's runners (homeserver repository, `forgejo-runner/`). A failure reaches ntfy through the home server's
-# actions-alerts.sh; the desktop and phone builds stay in release.yml, and nightly.yml runs the type check and the
-# tests again on the Mac before tagging a release. The nightly's version commit isn't checked: nightly.yml has just
-# run them on that tree, and the release it tags needs the runner.
-#
-# - check (`home-linux`): one Format, Lint, Types, Tests sequence over every language: the TypeScript (Biome, ESLint,
-#   tsc, Jest), the desktop crate in src-tauri (rustfmt, Clippy, `cargo test`) and the shell scripts (shfmt,
-#   shellcheck, `bash -n`). Cargo's registry and this job's build, npm's cache and the Linux packages stay on the
-#   runner's /cache volume (homeserver AGENTS.md, "ci-cache"), so a push compiles only the crates that changed.
-# - swift (`home-linux`): swift-format's lint of every Swift file, in Swift's official image, whose toolchain has
-#   swift-format. It runs beside check, in the runner's second slot.
-
 name: CI
 
 on:
@@ -29,7 +16,7 @@ env:
 
 jobs:
   check:
-    # Not the nightly's version commit (nightly@git.laibe.cc in all three apps); a run by hand has no head_commit.
+    # nightly.yml checked its own version commit just before making it.
     if: ${{ github.event.head_commit.author.email != 'nightly@git.laibe.cc' }}
     runs-on: home-linux
     timeout-minutes: 90
@@ -40,9 +27,7 @@ jobs:
     steps:
       - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      # As release.yml's linux job: Tauri's own prerequisites, plus cmake for aws-lc (matrix-sdk), perl for OpenSSL
-      # (SQLCipher) and libudev for hidapi (Ledger). The .debs come from the runner's cache, one job at a time, since
-      # apt refuses a locked one.
+      # cmake for aws-lc, perl for OpenSSL, libudev for hidapi; flock because apt refuses a cache another job holds.
       - name: Linux packages
         run: |
           # Ubuntu's main servers crawl from the home server; its French mirror is fast and carries -security too.
@@ -55,8 +40,7 @@ jobs:
             libssl-dev libayatana-appindicator3-dev librsvg2-dev \
             cmake perl libudev-dev pkg-config patchelf xdg-utils
 
-      # The Rust in rust-toolchain.toml, with its components (rustfmt, Clippy). The Linux image has no rustup: a minimal
-      # one goes in first, without a default toolchain, and on the PATH for the next steps.
+      # The Linux image has no rustup.
       - name: Rust
         run: |
           if ! command -v rustup > /dev/null; then
@@ -66,7 +50,6 @@ jobs:
           fi
           rustup show active-toolchain || rustup toolchain install
 
-      # shellcheck and shfmt at the versions in env, on the PATH from the next step on.
       - name: Tools
         uses: https://github.com/taiki-e/install-action@75a7c0f87bd666af3cdb75c5b9e9d03ab6044e6f # v2.90.6
         with:
@@ -76,9 +59,7 @@ jobs:
         with:
           node-version-file: .node-version
 
-      # The runner's /cache volume (homeserver AGENTS.md, "ci-cache"): Cargo's registry, this job's build and npm's
-      # cache stay from one push to the next. Set after rustup and install-action, whose binaries stay in the job's
-      # own ~/.cargo.
+      # After rustup and install-action, whose binaries stay in the job's own ~/.cargo.
       - name: Caches
         run: |
           echo "CARGO_HOME=/cache/cargo" >> "$GITHUB_ENV"
@@ -88,11 +69,10 @@ jobs:
       - name: JavaScript packages
         run: npm ci
 
-      # tdlib.sh fetches Linux's TDLib with npm. tauri.linux.conf.json bundles it, and tauri-build checks it's there.
+      # tauri-build checks that the bundled TDLib is there.
       - name: TDLib
         run: ./scripts/tdlib.sh desktop
 
-      # Every tracked file with a bash or sh shebang: scripts/tdlib.sh, scripts/sign-macos.sh and e2e/run.sh today.
       - name: Shell scripts
         run: |
           git ls-files -z | while IFS= read -r -d '' file; do
@@ -100,14 +80,11 @@ jobs:
           done > "$RUNNER_TEMP/shell"
           tr '\0' '\n' < "$RUNNER_TEMP/shell"
 
-      # Biome (biome.json) and rustfmt (src-tauri/rustfmt.toml), then shfmt.
       - name: Format
         run: |
           npm run format:check
           xargs -0 -r shfmt -d -i 4 -ci -bn < "$RUNNER_TEMP/shell"
 
-      # ESLint with eslint-config-expo and the layer rules (eslint.config.js), Clippy, then shellcheck and bash's own
-      # parse.
       - name: Lint
         run: |
           npm run lint
@@ -127,7 +104,7 @@ jobs:
     if: ${{ github.event.head_commit.author.email != 'nightly@git.laibe.cc' }}
     runs-on: home-linux
     timeout-minutes: 15
-    # Not a -slim tag, whose toolchain has no swift-format. The release nearest Xcode 27.2's swift format (6.4.4).
+    # Not -slim, which has no swift-format; the release nearest Xcode 27.2's swift format.
     container:
       image: swift:6.4.2-noble
     steps:
@@ -141,8 +118,6 @@ jobs:
 
       - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      # Every Swift file in the checkout (the Expo modules' and targets' iPhone code, the desktop's src-tauri/swift),
-      # with .swift-format's four spaces and 120 columns. --strict fails on any finding, formatting included.
       - name: Lint
         run: |
           swift format --version

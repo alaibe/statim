@@ -94,10 +94,7 @@ export type ProtectedRead =
   | { status: "invalidated" }
   | { status: "denied" };
 
-/**
- * Runs the steps this vault has not had yet. A vault with no version and no
- * accounts is new, or was wiped, and already holds the current formats.
- */
+/** A vault with no version and no accounts is new or wiped, and already holds the current formats. */
 export async function migrateVault(steps: readonly VaultStep[] = VAULT_MIGRATIONS): Promise<void> {
   const stored = await store.get(VaultKey.version);
   let done = Number(stored);
@@ -162,7 +159,6 @@ export async function vaultDelete(key: VaultKeyName): Promise<void> {
   return store.remove(key);
 }
 
-/** A random secret under `name`, created on first use. */
 async function accountSecret(name: AccountScopedKey, fresh: () => string): Promise<string> {
   const existing = await vaultGet(name);
   if (existing) return existing;

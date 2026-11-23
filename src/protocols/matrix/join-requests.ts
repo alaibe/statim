@@ -23,10 +23,7 @@ export async function knocks(homeserver: Homeserver, roomId: string): Promise<Jo
   }));
 }
 
-/**
- * A matrix.to link to the room. A link that needs approval turns the room's
- * join rule to "knock"; a plain one works only where anyone may join.
- */
+/** A link that needs approval turns the join rule to "knock"; a plain one works only where anyone may join. */
 export async function inviteLink(
   homeserver: Homeserver,
   room: MxRoom,

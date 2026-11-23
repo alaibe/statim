@@ -53,14 +53,10 @@ function greeting(): ReturnType<Bot["greeting"]> {
 
 interface LockDevice {
   kind: "phone" | "computer";
-  /** What unlocks it besides a PIN, if anything. */
   biometrics: string | null;
 }
 
-/**
- * The greeting is built synchronously, before the device can report its biometrics, so they are
- * named by platform. Most Macs have Touch ID.
- */
+/** The greeting is built before the device can report its biometrics, so they are named by platform. */
 function thisDevice(os = process.env.EXPO_OS): LockDevice {
   if (os === "ios") return { kind: "phone", biometrics: "Face ID or Touch ID" };
   if (os === "android") return { kind: "phone", biometrics: "fingerprint or face unlock" };

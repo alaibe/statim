@@ -1,6 +1,3 @@
-//! Attachments and other downloaded media, one directory per account under
-//! the app data directory. The page displays them through the asset protocol.
-
 use std::path::{Path, PathBuf};
 
 use base64::prelude::*;

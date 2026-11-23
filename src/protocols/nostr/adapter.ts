@@ -35,12 +35,7 @@ const NOSTR_PROTOCOL_ID = "nostr";
 /** How far back relays are asked to go when this device has no history yet. */
 const HISTORY_WINDOW_SECONDS = 30 * 24 * 60 * 60;
 
-/**
- * NIP-59 jitters a gift wrap's `created_at` backwards by up to two days to
- * blur when it was sent, so a filter starting exactly at the last seen rumor
- * misses wraps that were already in flight. Re-asking for a few days of
- * overlap is cheap; they dedupe on arrival.
- */
+/** NIP-59 backdates a wrap's `created_at` by up to two days, so a filter at the last rumor would miss some. */
 const JITTER_SLACK_SECONDS = 3 * 24 * 60 * 60;
 
 interface NostrConnectOptions {
@@ -186,10 +181,7 @@ class NostrTransport implements ChatTransport {
     this.sink = sink;
   }
 
-  /**
-   * One subscription for every chat: a gift wrap is addressed to a pubkey, not to a chat, so
-   * there is no `openChat`.
-   */
+  /** One subscription for every chat: a gift wrap is addressed to a pubkey, not to a chat. */
   listen(newestSeenAt?: number): void {
     this.historyCursor = newestSeenAt;
     this.eosed.clear();

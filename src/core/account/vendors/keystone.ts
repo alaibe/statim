@@ -16,8 +16,7 @@ import {
   typedDataForDevice,
 } from "../hardware";
 
-// `require`, not `import()`: both defer evaluation, but `import()` needs ESM
-// support Jest does not have, so this way the deferral stays testable.
+// `require`, not `import()`: both defer evaluation, but Jest cannot run `import()` without ESM support.
 function registry(): typeof import("@keystonehq/bc-ur-registry-eth") {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   return require("@keystonehq/bc-ur-registry-eth");

@@ -1,5 +1,4 @@
-//! A Ledger over USB. The window's WebKit has no WebHID, so the APDUs travel
-//! through here; the Ethereum app protocol itself stays in JavaScript.
+//! WebKit has no WebHID, so Ledger APDUs travel through here; the Ethereum app protocol stays in JavaScript.
 
 use std::sync::{Arc, Mutex};
 
@@ -46,9 +45,7 @@ pub async fn ledger_open(ledger: State<'_, Ledger>, path: String) -> Result<(), 
     Ok(())
 }
 
-/// `apdu` is what `@ledgerhq/hw-transport` builds: class, instruction, two
-/// parameters, a length byte, then the data. The answer comes back the same
-/// way it does there: data followed by the two status bytes.
+/// APDUs in and out as `@ledgerhq/hw-transport` frames them; the answer is data then two status bytes.
 #[tauri::command]
 pub async fn ledger_exchange(ledger: State<'_, Ledger>, apdu: Vec<u8>) -> Result<Vec<u8>, String> {
     if apdu.len() < 4 {

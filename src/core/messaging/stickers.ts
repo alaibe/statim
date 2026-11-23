@@ -18,7 +18,6 @@ export interface StickerChoice {
   preview?: string;
 }
 
-/** A pack in the picker, whichever source it comes from. */
 export interface PickerPack {
   key: string;
   title: string;

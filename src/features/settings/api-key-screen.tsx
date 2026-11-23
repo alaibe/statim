@@ -13,7 +13,6 @@ interface ApiKeySectionProps {
   placeholder: string;
   load(accountId: string): Promise<string | null>;
   save(accountId: string, key: string): Promise<void>;
-  /** Toasted after a non-empty key is saved. */
   savedMessage: string;
   notes: string[];
   link: { label: string; url: string };

@@ -19,7 +19,6 @@ interface VideoBubbleProps {
   onSave?: () => void;
 }
 
-/** A GIF or a video sticker loops silently from the start; any other video waits to be opened. */
 export function useMessagePlayer(uri: string, looping: boolean, autoplay = looping) {
   const player = useVideoPlayer(uri, (player) => {
     player.loop = looping;

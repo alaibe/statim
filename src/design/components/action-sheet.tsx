@@ -17,7 +17,6 @@ export interface SheetAction {
   label: string;
   tone?: WidgetTone;
   icon?: IconName;
-  /** Shows a checkmark, for sheets that pick one of several. */
   selected?: boolean;
   onPress: PressHandler;
 }
@@ -28,13 +27,8 @@ export interface ActionSheetProps extends Omit<SheetProps, "children"> {
   searchFor?: string;
 }
 
-/**
- * Below this a list is quicker to read than to filter, and short enough to
- * wear as chips rather than hide behind a picker.
- */
 export const MANY_OPTIONS = 8;
 
-/** Enough to show there is more, without the sheet taking the screen. */
 const LIST_MAX = 360;
 
 export function ActionSheet({ actions, searchFor, ...sheet }: ActionSheetProps) {
@@ -93,10 +87,7 @@ export function ActionSheet({ actions, searchFor, ...sheet }: ActionSheetProps) 
   );
 }
 
-/**
- * A sheet sizes itself to its contents, and a ScrollView has no size of its
- * own to give it, so only a list long enough to need scrolling gets one.
- */
+/** A sheet sizes to its contents and a ScrollView has no size of its own, so only a long list gets one. */
 function Scroller({ searchable, children }: { searchable: boolean; children: React.ReactNode }) {
   if (!searchable) return children;
   return (

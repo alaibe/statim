@@ -1,6 +1,4 @@
-# The Rust every build of the desktop shell uses, CI's and the releases' alike (rustup reads it from any folder
-# below this one). Bumped by hand: Renovate doesn't cover this repository. No targets here, or every Linux and Windows
-# run would download them too: release.yml's macos job adds the two halves of the universal build.
+# Bumped by hand. No targets, or every run would download them: release.yml's macos job adds its own.
 [toolchain]
 channel = "1.100.0"
 components = ["rustfmt", "clippy"]

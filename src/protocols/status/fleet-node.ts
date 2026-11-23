@@ -17,7 +17,6 @@ import { fromHex, toHex } from "@/lib/bytes";
 import type { HistoryOptions, WakuMessage, WakuNode } from "./node";
 import { STATUS_PUBSUB_TOPIC } from "./topics";
 
-/** status.prod's WebSocket entry points, as fleets.status.im lists them. */
 const STATUS_FLEET = [
   "/dns4/boot-01.do-ams3.status.prod.status.im/tcp/443/wss/p2p/16Uiu2HAmAR24Mbb6VuzoyUiGx42UenDkshENVDj4qnmmbabLvo31",
   "/dns4/boot-01.gc-us-central1-a.status.prod.status.im/tcp/443/wss/p2p/16Uiu2HAm8mUZ18tBWPXDQsaF7PbCKYA35z7WB2xNZH2EVq1qS8LJ",
@@ -136,7 +135,7 @@ export class FleetNode implements WakuNode {
     }
   }
 
-  /** libp2p refuses a reply over 4 MiB, and Status sends photos inline at up to 1 MiB, so a page may have to shrink. */
+  /** libp2p refuses a reply over 4 MiB and Status sends photos inline up to 1 MiB, so a page may shrink. */
   private async page(
     contentTopics: string[],
     opts: HistoryOptions,

@@ -19,10 +19,7 @@ export interface PinKdf {
   dkLen: number;
 }
 
-/**
- * Hermes runs this without a JIT, so a phone gets a lower cost than the
- * desktop to keep one check well under a second.
- */
+/** Hermes has no JIT, so a phone gets a lower cost to keep one check well under a second. */
 export const PIN_KDF: PinKdf =
   process.env.EXPO_OS === "web"
     ? { name: "scrypt", N: 2 ** 15, r: 8, p: 1, dkLen: 32 }
@@ -97,10 +94,7 @@ export async function deletePin(): Promise<void> {
   await vaultDelete(VaultKey.pinAttempts);
 }
 
-/**
- * The try is counted before the PIN is hashed, so quitting the app while a
- * wrong PIN is being checked does not win another one.
- */
+/** The try is counted before hashing, so quitting mid-check does not win another one. */
 export async function checkPin(pin: string, now = Date.now()): Promise<PinCheck> {
   const sealed = await readSealed();
   const attempts = await readAttempts();

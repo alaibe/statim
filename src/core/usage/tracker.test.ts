@@ -1,7 +1,6 @@
 import { AWAY_MS, type Clock, createTracker, SETTLE_MS } from "./tracker";
 
-// T01–T11 of the usage statistics' shared suite: the same cases in Kestrel, Grenier and Statim, apart from the import
-// lines, on a clock moved by hand so that Vitest and Jest run them alike.
+// T01–T11 of the suite shared with Kestrel and Grenier, on a hand-moved clock so Vitest and Jest agree.
 
 interface ManualClock extends Clock {
   /** Moves to `at`, running each timer that falls due on the way, in order. Moving back runs nothing. */

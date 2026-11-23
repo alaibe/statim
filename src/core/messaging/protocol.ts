@@ -13,10 +13,7 @@ import type {
   Unsubscribe,
 } from "./types";
 
-/**
- * A protocol that signs in interactively (a phone number, a one-time code)
- * reports the step it is waiting on; null once signed in.
- */
+/** The step an interactive sign-in waits on; null once signed in. */
 export interface LoginState {
   step: "phone" | "code" | "password";
   /** Replaces the generic "Sign in to …" heading when the step means something more specific. */
@@ -25,10 +22,7 @@ export interface LoginState {
   error?: string;
 }
 
-/**
- * Whether a session still reaches its protocol. A session that is "lost" cannot
- * come back by itself and is replaced.
- */
+/** A "lost" session cannot come back by itself and is replaced. */
 export type LinkState = "online" | "reconnecting" | "lost";
 
 export interface GroupInfo {
@@ -141,13 +135,7 @@ export interface ChatSession {
   sync(): Promise<void>;
   subscribeHistory?(listener: (state: HistoryState) => void): Unsubscribe;
   subscribeLink?(listener: (link: LinkState) => void): Unsubscribe;
-  /**
-   * Called when the app comes back to the foreground, the device is back
-   * online or wakes from sleep: re-opens whatever dropped meanwhile. Resolves
-   * true when something was reopened and may have missed messages, so the
-   * chats are fetched again. Throwing means the session cannot recover and
-   * is replaced.
-   */
+  /** Re-opens what dropped while away; true means messages may be missed, and throwing replaces the session. */
   resume?(): Promise<boolean>;
 
   subscribeLogin?(listener: (login: LoginState | null) => void): Unsubscribe;

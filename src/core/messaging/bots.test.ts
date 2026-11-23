@@ -161,10 +161,7 @@ describe("isLocalChat", () => {
 });
 
 describe("registering several bots", () => {
-  /**
-   * One commit per chat re-sorts the list after each row, so a tap can open a chat that slid
-   * under it. The final list is the same either way; only the commit count shows it.
-   */
+  /** One commit per chat re-sorts the list after each row, so a tap could open a chat that slid under it. */
   it("adds them in a single commit", async () => {
     const session = new InMemoryChatSession({ participantId: "a".repeat(64) });
     await connectFake(session);

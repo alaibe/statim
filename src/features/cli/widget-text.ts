@@ -6,7 +6,7 @@ function actionLines(actions: WidgetAction[] | undefined, indent: string, run: (
   return (actions ?? []).map((a) => `${indent}→ ${a.label}: ${run(a.command)}`);
 }
 
-/** A widget as terminal lines. Buttons become the command that pressing them would run. */
+/** Buttons become the command that pressing them would run. */
 function widgetLines(widget: Widget, run: (command: string) => string, indent = ""): string[] {
   switch (widget.kind) {
     case "stat":

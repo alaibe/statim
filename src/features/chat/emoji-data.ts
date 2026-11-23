@@ -68,7 +68,6 @@ export function searchEmoji(query: string, limit = 120): string[] {
   return found;
 }
 
-/** The grid's rows at `columns` wide: search results, or recents then every category with headers. */
 export function emojiRows(query: string, recent: readonly string[], columns: number) {
   const rows: EmojiRow[] = [];
   if (query) {

@@ -81,11 +81,7 @@ function decodeLength(bytes: Uint8Array, at: number): [value: number, next: numb
 
 const V0 = 0x80;
 
-/**
- * Signs a v0 transaction someone else assembled, after checking that it has one
- * signer, that signer is `key` and so pays its fees, and `program` is among the
- * programs it calls (a program is never loaded from a lookup table).
- */
+/** One signer, `key`, so it pays the fees, and `program` is called; a program never comes from a lookup table. */
 export function signPrepared(
   transaction: Uint8Array,
   key: { publicKey: Uint8Array; privateKey: Uint8Array },

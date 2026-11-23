@@ -8,9 +8,7 @@ const IDENTIFIER: &str = "im.statim.app";
 
 const NAME: &str = "cli.sock";
 
-/// Unix: a 0600 socket file in the app's data directory. Its full path can
-/// outgrow `sun_path` (104 bytes on macOS) inside the App Store container, so
-/// it is bound and dialled relative to that directory.
+/// A 0600 socket in the data directory, dialled relatively: the App Store container outgrows `sun_path`.
 #[cfg(unix)]
 fn with_name<T>(f: impl FnOnce(Name) -> io::Result<T>) -> io::Result<T> {
     use interprocess::local_socket::GenericFilePath;

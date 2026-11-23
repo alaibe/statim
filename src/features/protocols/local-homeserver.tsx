@@ -23,7 +23,6 @@ import { DEVICE_NAME, normaliseHomeserver } from "@/protocols/matrix/descriptor"
 import { adoptMatrixSession } from "./matrix-session";
 import { phoneLinkCode } from "./phone-link";
 
-/** Where this account's Matrix lives: on this computer, on a server it names, or nowhere yet. */
 type Here = "unavailable" | "elsewhere" | "off" | "on";
 
 async function hereState(accountId: string): Promise<Here> {
@@ -39,7 +38,6 @@ async function runHere(accountId: string): Promise<void> {
   await adoptMatrixSession(accountId, await homeserverSession(accountId, DEVICE_NAME));
 }
 
-/** What a bridge is called where people see it: Messenger for `facebook`. */
 export function networkOf(bridge: string): string {
   const known = knownBridge(`${bridge}bot`);
   return known ? BRIDGED_NETWORKS[known.network] : bridge;

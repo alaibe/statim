@@ -48,8 +48,7 @@ describe("signing", () => {
   });
 
   it("rejects an event whose content was rewritten after signing", () => {
-    // The id is recomputed from the body before the signature is checked, so a
-    // relay cannot swap the content of an otherwise valid event.
+    // The id is recomputed before the signature is checked, so a relay cannot swap the content.
     const event = signEvent(
       { pubkey: alice.publicKey, created_at: 1, kind: 1, tags: [], content: "hi" },
       alice.secretKey,
@@ -68,8 +67,7 @@ describe("signing", () => {
 
 describe("gift wrapping a DM", () => {
   it("produces one wrap per participant, including the sender", () => {
-    // Without a self-addressed copy you cannot read your own outbox on another
-    // device or after a reinstall.
+    // Without a self-addressed copy you cannot read your own outbox on another device.
     const { wraps } = wrapForRecipients(alice, {
       recipients: [bob.publicKey],
       content: "hello",
@@ -86,8 +84,7 @@ describe("gift wrapping a DM", () => {
 
     const authors = wraps.map((w) => w.pubkey);
     expect(authors).not.toContain(alice.publicKey);
-    // Distinct per wrap: reusing one ephemeral key across recipients would let
-    // a relay link them back into one message.
+    // One ephemeral key across recipients would let a relay link the wraps into one message.
     expect(new Set(authors).size).toBe(authors.length);
     expect(wraps.every(verifyEvent)).toBe(true);
   });
@@ -164,9 +161,7 @@ describe("gift wrapping a DM", () => {
 
 describe("unwrapping refuses forgeries", () => {
   it("rejects a seal signed by someone other than the rumor author", () => {
-    // Mallory wraps a rumor claiming to be from Alice. The seal is hers, so
-    // the pubkey check catches it; without that check, anyone could
-    // impersonate anyone by wrapping a rumor they made up.
+    // Mallory's seal wraps a rumor claiming to be Alice's; only the pubkey check stops it.
     const forged = buildRumor(alice, { recipients: [bob.publicKey], content: "transfer funds" });
     const seal = signEvent(
       {

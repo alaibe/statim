@@ -39,8 +39,7 @@ export async function setBadgeCount(count: number): Promise<void> {
   } catch {}
 }
 
-// The desktop plugin only posts: it has no tap event, so a click brings the
-// window forward and no further.
+// The desktop plugin has no tap event: a click only brings the window forward.
 export function onNotificationTapped(_handler: (chatId: ChatId) => void): () => void {
   return () => {};
 }

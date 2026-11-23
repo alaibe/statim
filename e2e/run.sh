@@ -1,11 +1,5 @@
 #!/usr/bin/env bash
-# Runs the Maestro suite on a booted iOS simulator or Android device.
-#
-#   ./e2e/run.sh ios|android              the whole suite
-#   ./e2e/run.sh ios|android 01-launch    one flow
-#   ./e2e/run.sh ios|android --fresh      wipe the account first, then the whole suite
-#   E2E_DEVICE=<udid|serial> ...          pick the device when more than one is booted
-#   E2E_METRO_PORT=8084 ...               Metro's port, 8081 by default
+# Runs the Maestro suite; E2E_DEVICE picks the device when several are booted, E2E_METRO_PORT Metro's port.
 set -euo pipefail
 
 PLATFORM="${1:-}"
@@ -86,8 +80,7 @@ ios() {
         xcrun simctl keychain booted reset
     fi
 
-    # As on Android: the dev client reopens the last bundle it loaded, and a
-    # simulator that has never loaded one stays on the dev launcher.
+    # The dev client reopens its last bundle; a simulator that never loaded one stays on the dev launcher.
     "$MAESTRO" ${DEVICE[@]+"${DEVICE[@]}"} test --test-output-dir "$OUTPUT" \
         -e DEV_CLIENT_URL="exp+statim://expo-development-client/?url=http%3A%2F%2Flocalhost%3A$PORT&disableOnboarding=1" \
         e2e/lib/ios-dev-client.yaml
@@ -120,8 +113,7 @@ android() {
         "${adb[@]}" shell pm clear "$APP_ID" >/dev/null
     fi
 
-    # The dev client reopens the last bundle it loaded, so every later launchApp
-    # lands in the app only once it has loaded this one.
+    # The dev client reopens the last bundle it loaded, so load this one before any later launchApp.
     "${adb[@]}" reverse "tcp:$PORT" "tcp:$PORT" >/dev/null
     "$MAESTRO" "${DEVICE[@]}" test --test-output-dir "$OUTPUT" \
         -e DEV_CLIENT_URL="exp+statim://expo-development-client/?url=http%3A%2F%2Flocalhost%3A$PORT&disableOnboarding=1" \

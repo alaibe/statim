@@ -9,7 +9,6 @@ export interface SheetProps {
   onClose: () => void;
   title?: string;
   subtitle?: string;
-  /** Sits before the title, the size of an avatar. */
   leading?: React.ReactNode;
   /** Where a pointer opened it. Desktop places the menu there; a phone ignores it. */
   anchor?: MenuAnchor | null;
@@ -25,17 +24,11 @@ interface SheetState {
   afterClose: (() => void) | null;
 }
 
-/**
- * How long the native dismissal takes. UIKit refuses to present anything (a
- * browser, another sheet) while it runs, and nothing reports when it is over:
- * the route unmounts at once and a form sheet triggers no appearance callback
- * on the screen beneath.
- */
+/** UIKit presents nothing while a sheet dismisses and nothing reports when that ends, so this is a fixed wait. */
 export const SHEET_DISMISS_MS = 500;
 
 export const useSheetStore = create<SheetState>(() => ({ current: null, afterClose: null }));
 
-/** Closes the sheet and runs `action` once it is off screen. */
 export function closeSheetThen(sheet: Pick<SheetProps, "onClose">, action: () => void) {
   useSheetStore.setState({ afterClose: action });
   sheet.onClose();

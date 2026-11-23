@@ -16,11 +16,7 @@ export interface TokenBalance {
   amount: string;
 }
 
-/**
- * viem splits the calls by this and runs the parts together. Its default of
- * 1024 bytes would make dozens of requests per chain; this is about a hundred
- * calls apiece.
- */
+/** viem's default of 1024 bytes would make dozens of requests per chain; this is about a hundred calls each. */
 const BATCH_BYTES = 24_000;
 
 async function balancesOf(
@@ -46,7 +42,6 @@ async function balancesOf(
 
 const described = new Map<string, Promise<ListedToken | null>>();
 
-/** A token's symbol, name and decimals, read from its contract once and remembered. */
 export function describeToken(chainId: number, contract: Address): Promise<ListedToken | null> {
   const listed = listedToken(chainId, contract);
   if (listed) return Promise.resolve(listed);
@@ -96,7 +91,6 @@ export async function displayToken(chainId: number, contract: Address): Promise<
 /** Long enough that a card and the form opened from it cost one scan. */
 const FRESH_MS = 30_000;
 
-/** The most held tokens a balance card lists. */
 const MOST = 25;
 
 function withoutAny(listed: ListedToken[], extra: ListedToken[]): ListedToken[] {
@@ -110,7 +104,6 @@ export function clearTokenCache(): void {
   recent.clear();
 }
 
-/** `extra` is what the account added by hand, on top of the bundled list. */
 export async function fetchTokens(
   chainId: number,
   address: Address,

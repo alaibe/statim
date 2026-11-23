@@ -45,12 +45,7 @@ interface MappedItem {
   receipts: MxReceipt[];
 }
 
-/**
- * matrix-rust-sdk through its React Native bindings. Rooms come from the
- * sliding-sync room list; a room's messages come from an SDK timeline that
- * stays live for the most recently opened rooms, so edits and reactions in
- * them arrive as updates too.
- */
+/** Timelines stay live for the most recently opened rooms, so their edits and reactions arrive as updates. */
 class RnMatrixClient implements MatrixApi {
   private client!: sdk.ClientLike;
   private params!: MxStartParams;
@@ -494,10 +489,7 @@ class RnMatrixClient implements MatrixApi {
     }
   }
 
-  /**
-   * Text and stickers go straight to the homeserver, so a rejection rejects here.
-   * Attachments go through the SDK's send queue, which resolves once queued.
-   */
+  /** Text and stickers reject here when the homeserver does; attachments resolve once queued. */
   async send(roomId: string, content: MxOutgoing, replyTo?: string, threadRoot?: string): Promise<undefined> {
     const room = this.requireRoom(roomId);
     if (content.kind === "text") {

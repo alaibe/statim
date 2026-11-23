@@ -136,7 +136,6 @@ function copyableText(content: ChatMessage["content"]): string | undefined {
   }
 }
 
-/** Undefined on phones, for other kinds of message, and until the file has arrived. */
 export function mediaSaver(message: ChatMessage): (() => void) | undefined {
   // An imported binding is not narrowed inside the closure below.
   const save = saveMedia;

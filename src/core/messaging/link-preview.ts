@@ -21,10 +21,7 @@ const MAX_BYTES = 512 * 1024;
 const TITLE_LIMIT = 200;
 const DESCRIPTION_LIMIT = 400;
 
-/**
- * Only public hosts are fetched. A link to a LAN address or a bare IP would
- * otherwise turn the receiving device into a probe for whoever sent it.
- */
+/** Only public hosts: a LAN address or bare IP would make the receiving device a probe for the sender. */
 export function isPreviewable(url: string): boolean {
   const host = hostOf(url);
   if (!host) return false;
@@ -74,8 +71,7 @@ export async function fetchLinkPreview(
   }
 }
 
-// YouTube's watch page is over a megabyte and ignores byte ranges; its oEmbed
-// answer is a few hundred bytes and carries the title, channel and poster.
+// YouTube's watch page is over a megabyte and ignores byte ranges; its oEmbed answer is a few hundred bytes.
 export function youtubeId(url: string): string | null {
   const match = url.match(
     /^https?:\/\/(?:(?:www\.|m\.)?youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})(?![\w-])/i,

@@ -8,8 +8,7 @@ const TABLET_SHORT_SIDE = 600;
 
 const OS = Platform.OS === "android" ? "Android" : "iOS";
 
-// Umami drops React Native's own `okhttp/…` as a bot, and hashes this into the
-// session, so it names a browser and never the app or its version.
+// Umami drops `okhttp/…` as a bot and hashes this into the session, so it names a browser, never the app.
 export function userAgent(os: "iOS" | "Android"): string {
   return os === "Android"
     ? "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"

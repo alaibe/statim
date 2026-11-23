@@ -98,8 +98,6 @@ export function locateTransaction(hash: Hex, chainIds: number[]): Promise<Transa
     (results) => results.find((summary) => summary !== null) ?? null,
   );
   located.set(hash, lookup);
-  // Only a settled transaction is worth remembering; a pending or missing one
-  // may look different on the next mount.
   void lookup.then((summary) => {
     if (!summary || summary.status === "pending") located.delete(hash);
   });

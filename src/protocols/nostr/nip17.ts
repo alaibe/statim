@@ -1,14 +1,4 @@
-/**
- * NIP-17 private messages over NIP-59 gift wrapping. Three layers: an
- * unsigned rumor (unsigned so it cannot be republished as proof you said
- * something), a kind 13 seal that proves authorship, and a kind 1059
- * wrap under a throwaway key, which is all a relay ever sees. One wrap per
- * recipient including yourself, or you cannot read your own outbox.
- *
- * What it does NOT give you, and the UI must not imply: a roster, membership
- * enforcement, or deniable delivery: relays still see one wrap per
- * recipient, so a chat's size leaks.
- */
+/** One wrap per recipient, yourself included; NIP-17 has no roster or membership, and a chat's size leaks. */
 import { sha256 } from "@noble/hashes/sha2";
 import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils";
 import { decrypt, encrypt } from "@/lib/nip44";

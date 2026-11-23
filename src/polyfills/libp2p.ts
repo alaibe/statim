@@ -1,10 +1,6 @@
 import { sha256, sha512 } from "@noble/hashes/sha2";
 
-/**
- * What libp2p's browser build needs that Hermes lacks. Of WebCrypto that is only
- * `crypto.subtle.digest`, which multiformats hashes through; for keys the browser
- * code falls back to pure JS.
- */
+/** libp2p's browser build needs only `crypto.subtle.digest` of WebCrypto; for keys it falls back to pure JS. */
 const signal = AbortSignal.prototype as AbortSignal & { throwIfAborted?: () => void };
 if (!signal.throwIfAborted) {
   signal.throwIfAborted = function throwIfAborted(this: AbortSignal) {

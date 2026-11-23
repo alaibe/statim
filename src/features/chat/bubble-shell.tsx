@@ -35,13 +35,11 @@ export function BubbleShell({
 }: {
   fromMe: boolean;
   grouped: boolean;
-  /** The last bubble of a run from one sender, which points at them. */
   tail: boolean;
   senderName: string;
   showSender: boolean;
   bare?: boolean;
   privateToMe?: boolean;
-  /** Under the bubble, for content drawn without one. */
   below: React.ReactNode;
   onReact?: (emoji: string) => void;
   actions: () => MessageAction[];
@@ -72,9 +70,7 @@ export function BubbleShell({
       ref={held ? undefined : bubbleRef}
       onLongPress={held ? undefined : open}
       onStartShouldSetResponderCapture={held ? () => true : undefined}
-      // The desktop counterpart of the long-press. Spelled out rather than
-      // through `contextMenu()`: react-hooks/refs treats passing `open` to a
-      // call made during render as a ref read during render.
+      // Spelled out, not `contextMenu()`: react-hooks/refs reads passing `open` to a call during render as a ref read.
       {...(process.env.EXPO_OS === "web" && !held
         ? {
             onContextMenu: (event: { preventDefault(): void }) => {
@@ -130,7 +126,6 @@ export function BubbleShell({
   );
 }
 
-/** Telegram Web's tail (tweb `message-tail-filled`), drawn against the bubble's square corner. */
 const TAIL = {
   in: "M3 19H9V2C8.807 4.84 8.124 7.767 6.95 10.782C6.046 13.107 4.504 15.267 2.325 17.262A1 1 0 0 0 3 19Z",
   out: "M8 19H2V2C2.193 4.84 2.876 7.767 4.05 10.782C4.954 13.107 6.496 15.267 8.675 17.262A1 1 0 0 1 8 19Z",
@@ -183,7 +178,6 @@ function bubbleClass({
   grouped: boolean;
 }): string {
   return cn(
-    // A wide window would otherwise stretch a bubble across the pane.
     !held && (process.env.EXPO_OS === "web" ? "max-w-[min(82%,560px)]" : "max-w-[82%]"),
     !bare &&
       cn("rounded-bubble px-2.5 py-1.5", side.fill, pointed ? side.pointed : side.corner, grouped && side.grouped),

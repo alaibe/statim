@@ -108,8 +108,7 @@ describe("subscriptions", () => {
   });
 
   it("replays subscriptions on a relay that connects later", () => {
-    // A relay that was down at subscribe time must still get the REQ, or its
-    // messages are silently missing for the life of the session.
+    // Without the replay, a relay down at subscribe time misses its messages for the whole session.
     const factory = fakeRelayFactory();
     const pool = new RelayPool({ urls: ["wss://a.example"], createSocket: factory.create });
 
@@ -354,8 +353,7 @@ describe("reconnecting", () => {
     expect(pool.states[0].status).toBe("closed");
     expect(factory.relays).toHaveLength(1);
 
-    // Backoff is jittered between half and all of the ceiling, so advance past
-    // the whole first window.
+    // Backoff is jittered between half and all of the ceiling, so advance past the whole window.
     jest.advanceTimersByTime(5_000);
     expect(factory.relays).toHaveLength(2);
 

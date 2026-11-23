@@ -22,11 +22,7 @@ interface AacConfig {
 
 const AMR_MAGIC = Uint8Array.of(0x23, 0x21, 0x41, 0x4d, 0x52, 0x0a);
 
-/**
- * Status plays a voice note as bare ADTS AAC or as an AMR file, which is what
- * its own recorder writes. Phones and browsers record into MP4 or 3GP, so the
- * frames come out of that container.
- */
+/** Status plays only bare ADTS AAC or AMR, so the frames come out of the MP4 or 3GP that phones record. */
 export function statusAudio(bytes: Uint8Array): StatusAudio | null {
   if (bytes[0] === 0xff && (bytes[1] === 0xf1 || bytes[1] === 0xf9)) {
     return { payload: bytes, type: AudioType.AAC };

@@ -22,7 +22,6 @@ export function mintSymbol(mint: string): string {
   return named().get(mint)?.[1] ?? shortAddress(mint, 4, 4);
 }
 
-/** The listed mint that goes by `symbol`, the first one when several do. */
 export function mintBySymbol(symbol: string): string | undefined {
   const wanted = symbol.toLowerCase();
   for (const [mint, entry] of named()) if (entry[1].toLowerCase() === wanted) return mint;
@@ -52,10 +51,7 @@ interface ParsedAccount {
   };
 }
 
-/**
- * Solana keeps an account per mint, so the chain reports everything held and
- * the bundled list only puts a name to it.
- */
+/** The chain reports everything held; the bundled list only puts a name to it. */
 export async function fetchSplTokens(url: string, owner: string): Promise<SplBalance[]> {
   const answers = await Promise.all(
     PROGRAMS.map((programId) =>

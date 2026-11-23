@@ -49,7 +49,6 @@ const FEED_ABI = [
   },
 ] as const;
 
-/** The feed a market reads from, which is always in US dollars. */
 export function chainlinkFeed(symbol: string): { base: string; feed: Address } | { error: string } {
   const quote = DOLLARS.find((q) => symbol.endsWith(q) && symbol.length > q.length);
   if (!quote) return { error: `Chainlink prices here are in US dollars, so ask for ${symbol.slice(0, 3)} on its own.` };

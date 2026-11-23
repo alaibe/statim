@@ -47,7 +47,6 @@ function tool(spec: CliCommandSpec) {
   };
 }
 
-/** How the binary turns a tool's arguments back into a command line. */
 function call(spec: CliCommandSpec) {
   return {
     path: spec.path.split(" "),

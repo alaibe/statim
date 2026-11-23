@@ -34,8 +34,7 @@ public class TdJsonModule: Module {
             if clientId == id { clientId = nil }
         }
 
-        // A reload starts a new JS runtime against the same database, which TDLib
-        // keeps locked until the old client has closed.
+        // A reload starts a new JS runtime on the same database, locked by TDLib until the old client closes.
         OnDestroy {
             if let id = clientId { Library.shared?.send(Int32(id), #"{"@type":"close"}"#) }
         }

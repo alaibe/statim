@@ -14,11 +14,9 @@ export type ContactSort = "name" | "recent";
 interface ContactListProps {
   query: string;
   sortBy: ContactSort;
-  /** Opens the sort picker; the caller owns the trigger. */
   sorting: boolean;
   onSort: (sortBy: ContactSort) => void;
   onCloseSort: () => void;
-  /** The chat open beside the list, on layouts that show both. */
   selectedChatId?: string;
 }
 
@@ -39,7 +37,6 @@ function contactKeysOf(state: ChatState, byName: boolean): string[] {
   return lastKeys.keys;
 }
 
-/** Everyone you talk to: the Contacts tab on a phone, the sidebar on desktop. */
 export function ContactList({ query, sortBy, sorting, onSort, onCloseSort, selectedChatId }: ContactListProps) {
   const router = useRouter();
 

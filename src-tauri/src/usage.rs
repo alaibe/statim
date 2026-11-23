@@ -1,5 +1,4 @@
-//! The desktop's part of usage statistics: the page (`src/core/usage`) builds each page view, and this sends it to
-//! Umami at stats.laibe.cc under a plain browser's User-Agent. A debug build sends nothing.
+//! Posts the page's usage page views to Umami at stats.laibe.cc; a debug build sends nothing.
 
 use std::time::Duration;
 
@@ -27,8 +26,7 @@ impl Os {
         }
     }
 
-    /// A plain browser's, the same in every version: Umami hashes it into the session, and drops as a bot one that
-    /// names the app.
+    /// A plain browser's, fixed: Umami hashes it into the session and drops one naming the app as a bot.
     pub fn user_agent(self) -> &'static str {
         match self {
             Os::MacOs => {
@@ -42,7 +40,7 @@ impl Os {
     }
 }
 
-/// reqwest's `rustls` feature brings its own crypto provider, so unlike Grenier's nothing is installed here.
+/// reqwest's `rustls` feature brings its own crypto provider, so none is installed here.
 fn client(agent: &str) -> reqwest::Result<reqwest::Client> {
     reqwest::Client::builder()
         .user_agent(agent)

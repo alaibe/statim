@@ -5,10 +5,7 @@ import { HDKey } from "viem/accounts";
 
 import { deriveKey, type Keyring } from "./keyring";
 
-/**
- * What a hardware wallet signs once per account. Its devices sign
- * deterministically, so the same wallet gives the same seed on every device.
- */
+/** Signed once per account; wallets sign deterministically, so every device derives the same seed. */
 export const CHAT_KEY_MESSAGE =
   "Statim chat keys\n\n" +
   "Sign to create the keys Statim uses for Nostr, Status and notifications with this account. " +

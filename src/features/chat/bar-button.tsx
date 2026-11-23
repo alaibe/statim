@@ -1,6 +1,5 @@
 import { cn, Icon, type IconName, Pressable, Text } from "@/design";
 
-/** The wide button that stands where the composer would. */
 export function BarButton({
   icon,
   label,

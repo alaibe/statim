@@ -2,7 +2,6 @@ import { invoke } from "@tauri-apps/api/core";
 
 import type { SqliteConnection } from "./sqlite-connection";
 
-/** One SQLCipher connection per database, owned by the Rust side and addressed by name. */
 export async function openConnection(name: string): Promise<SqliteConnection> {
   await invoke("db_open", { name });
   return {

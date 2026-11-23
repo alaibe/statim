@@ -1,6 +1,3 @@
-//! What tuwunel reads at start: one server per account, reachable only from this
-//! computer, closed to federation, with registration by a token the app keeps.
-
 use std::fmt::Write as _;
 use std::path::Path;
 

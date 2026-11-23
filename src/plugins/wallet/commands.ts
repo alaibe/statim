@@ -44,7 +44,6 @@ const SPLIT_FALLBACK = splitSpec("base")!;
 const SPLIT_NAMES = SPLIT_CHAINS.map((spec) => spec.name);
 const SPLITS_ON = `/split works on ${SPLIT_NAMES.slice(0, -1).join(", ")} and ${SPLIT_NAMES.at(-1)}.`;
 
-/** The chain `--chain` names, else the active chain if /split works there, else Base. */
 async function splitChain(context: PluginContext, named: string | undefined): Promise<ChainSpec | { error: string }> {
   if (!named) return splitSpec((await activeChain(context))?.id) ?? SPLIT_FALLBACK;
   const chain = walletChainById(named);
@@ -71,11 +70,7 @@ function tokenMismatch(chain: ChainStrategy, token: string | undefined): string 
 
 export const withoutConfirm = (rest: string[]) => rest.filter((a) => a !== "--confirm");
 
-/**
- * What a form can offer to send: each chain's coin, then the tokens held
- * there. Balances are read once, and `options` then follows whichever form
- * field names the chain.
- */
+/** Balances are read once; `options` then follows whichever form field names the chain. */
 export async function assetField(chains: ChainStrategy[], context: PluginContext) {
   const assets = await Promise.all(
     chains.map(async (c) => ({
@@ -90,7 +85,6 @@ export async function assetField(chains: ChainStrategy[], context: PluginContext
         { label: c.transfer!.symbol, value: "native", when: { [chainField]: c.id } },
         ...extra.map((a) => ({ label: a.symbol, value: a.id!, when: { [chainField]: c.id } })),
       ]),
-    /** The held token `given` names on `chainId`, by id or symbol. */
     held: (chainId: string, given: string | undefined) => {
       const wanted = given?.toLowerCase();
       return assets

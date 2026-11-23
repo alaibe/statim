@@ -1,8 +1,3 @@
-/**
- * The 26/WAKU2-PAYLOAD codec status-go wraps every message in: a flags byte,
- * the payload size, the payload, random padding to a multiple of 256 and a
- * signature, then ECIES to one public key.
- */
 import { concat } from "@/lib/bytes";
 import { randomBytes } from "@/lib/random";
 

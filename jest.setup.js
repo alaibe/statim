@@ -1,9 +1,6 @@
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-/**
- * The keychain, in memory. Biometric-sealed values live under their own
- * `keychainService`, so each service gets a store the others cannot read.
- */
+/** An in-memory keychain with a store per `keychainService`, since biometric-sealed values use their own. */
 jest.mock("expo-secure-store", () => {
   const stores = new Map();
   let denyProtected = false;
@@ -45,8 +42,7 @@ jest.mock("expo-secure-store", () => {
 
 jest.mock("expo-crypto", () => ({
   getRandomBytes: (size) => {
-    // Deterministic but distinct per call, so generated ids do not collide
-    // within a test the way a constant fill would.
+    // Deterministic but distinct per call, so ids generated within a test do not collide.
     let seed = (globalThis.__cryptoSeed = (globalThis.__cryptoSeed ?? 0) + 1);
     const out = new Uint8Array(size);
     for (let i = 0; i < size; i++) {
@@ -70,16 +66,10 @@ jest.mock("expo-local-authentication", () => ({
   authenticateAsync: jest.fn(async () => ({ success: true })),
 }));
 
-/**
- * For core commands that push a screen. The real expo-router pulls in the
- * whole navigator, which Jest cannot transform.
- */
+/** The real expo-router pulls in the whole navigator, which Jest cannot transform. */
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
 }));
 
-/**
- * SQLite on Node's own engine: real SQLite, not SQLCipher. See
- * src/storage/testing/expo-sqlite-mock.js.
- */
+/** Real SQLite on Node's own engine, not SQLCipher. */
 jest.mock("expo-sqlite", () => require("./src/storage/testing/expo-sqlite-mock"));

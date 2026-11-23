@@ -38,10 +38,7 @@ const HOST_UI: HostUi = {
   openSettings: (page) => openTab(page === "pin" ? "/settings/pin" : "/settings"),
 };
 
-/**
- * On desktop every screen sits on the frame's wallpaper, so the navigator must
- * not paint its own background behind them.
- */
+/** On desktop the frame's wallpaper shows through, so the navigator paints no background. */
 function navigationTheme(theme: typeof DefaultTheme): typeof DefaultTheme {
   if (process.env.EXPO_OS !== "web") return theme;
   return { ...theme, colors: { ...theme.colors, background: "transparent" } };
@@ -52,9 +49,7 @@ function RootLayout() {
   const choice = useAppearanceStore((s) => s.theme);
 
   const scheme = choice === "system" ? system : choice;
-  // On a phone NativeWind's `set` also overrides React Native's Appearance, so handed the
-  // resolved scheme it would pin it and stop following the device. The desktop draws dark
-  // mode from a class, which only a resolved scheme sets.
+  // Given a resolved scheme, NativeWind pins Appearance on a phone; the desktop's dark class needs one.
   const applied = process.env.EXPO_OS === "web" ? (scheme === "dark" ? "dark" : "light") : choice;
   useEffect(() => {
     nativewindColorScheme.set(applied);

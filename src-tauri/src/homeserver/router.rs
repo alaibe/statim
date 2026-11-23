@@ -1,6 +1,4 @@
-//! The server's one address. The app finds a bridge's login API at
-//! `/_matrix/provision/<bridge>/` on its homeserver, as a reverse proxy puts it
-//! on a server people host themselves; here this router does.
+//! Serves each bridge's login API at `/_matrix/provision/<bridge>/`, as a self-hosted server's proxy would.
 
 use std::convert::Infallible;
 use std::net::{Ipv4Addr, SocketAddr, TcpListener as StdListener};

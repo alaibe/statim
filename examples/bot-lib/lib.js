@@ -46,10 +46,7 @@ function loadOrCreate(file, make) {
   return value;
 }
 
-/**
- * `onMessage(text, reply)` only ever sees the owner's messages. `reply` takes
- * a string or a `card(...)`.
- */
+/** `onMessage(text, reply)` sees only the owner's messages; `reply` takes a string or a `card(...)`. */
 export async function runBot({ id, name, description, onMessage, onReady }) {
   const dataDir = process.env.DATA_DIR || "./data";
   const env = process.env.XMTP_ENV || "production";

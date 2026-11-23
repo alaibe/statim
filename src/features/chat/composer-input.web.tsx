@@ -12,7 +12,6 @@ const ZERO_WIDTH = "​";
 
 const SHORTCUTS: Record<string, string> = { b: "bold", i: "italic", x: "strikeThrough" };
 
-/** Closing a Markdown pair while typing turns it into the formatting it stands for. */
 const TYPED: [RegExp, string][] = [
   [/(\*\*|__)(\S(?:.*?\S)?)\1$/, "strong"],
   [/(?<![*\w])([*_])([^*_\s](?:[^*_]*[^*_\s])?)\1$/, "em"],
@@ -35,10 +34,6 @@ const STYLE = `
 .composer-rich a { color: rgb(var(--color-brand)); }
 `;
 
-/**
- * A rich-text field: the formatting shows as formatting, never as markers.
- * It speaks Markdown to the composer, as the phone's plain field does.
- */
 export function ComposerInput({
   ref,
   value,
@@ -288,7 +283,6 @@ function applyTypedEmoji(closing = "") {
   selection.collapse(node, offset - (found.to - found.from) + found.emoji.length);
 }
 
-/** Files dropped anywhere in the window go to `onFile`; true while some are dragged over it. */
 function useWindowFileDrop(onFile: ((file: File) => void) | undefined): boolean {
   const [dragging, setDragging] = useState(false);
   const depth = useRef(0);

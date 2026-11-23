@@ -77,8 +77,7 @@ export const groupCommands: SlashCommand[] = [
     usage: "/profile [member]",
     async run({ args, chatId }) {
       const [member] = args;
-      // Core commands are handed a context that throws on any access, so this
-      // goes through the imperative router.
+      // Core commands get a context that throws on any access, so this uses the imperative router.
       router.push({
         pathname: "/profile/[id]",
         params: member ? { id: chatId, member } : { id: chatId },

@@ -1,14 +1,4 @@
-# Releases Statim every night when main has commits since the last release, as Grenier's and Kestrel's nightlies do.
-#
-# On the home runner, `due` counts the commits since the last `v*` tag that change the app (not only the workflows
-# or the top-level notes); with none, the run ends there. Otherwise the Mac runs the type check and the tests
-# (Jest, then the desktop crate's), checks that the iPhone app builds, installs and starts on a simulator, moves a
-# version that's already tagged to its next patch in its six files and commits it, then tags `v<version>` and pushes both over SSH with the Mac's own key. A tag pushed with the job's own token starts no workflow; this one
-# starts release.yml. Its "Run workflow" button does the same at once.
-#
-# 07:30 in Paris all year (the TZ= prefix: Forgejo reads a bare cron as UTC). Statim goes last, after Grenier's 05:30
-# and Kestrel's 06:30, because its release takes 45 to 85 minutes and the Windows VM's build is its longest part.
-
+# 07:30 in Paris, after Grenier's and Kestrel's nightlies; Forgejo reads a bare cron as UTC.
 name: Nightly release
 
 on:
@@ -16,7 +6,7 @@ on:
     - cron: 'TZ=Europe/Paris 30 7 * * *'
   workflow_dispatch:
 
-# One run at a time, never cancelled: a cancelled one could stop between its version commit and its tag.
+# Never cancelled: a cancelled run could stop between its version commit and its tag.
 concurrency:
   group: nightly
   cancel-in-progress: false
@@ -43,7 +33,6 @@ jobs:
         run: |
           LAST=$(git describe --tags --abbrev=0 --match 'v*' HEAD)
           COUNT=$(git rev-list --count "$LAST..HEAD")
-          # Commits that only touch the workflows or the top-level notes (README.md, AGENTS.md…) make no release.
           APP=$(git rev-list --count "$LAST..HEAD" -- . ':(exclude).forgejo' ':(exclude).github' ':(exclude,glob)*.md')
           echo "$COUNT commits since $LAST, $APP of them changing the app"
           if [ "$APP" -gt 0 ]; then echo "due=true" >> "$GITHUB_OUTPUT"; else echo "due=false" >> "$GITHUB_OUTPUT"; fi
@@ -65,7 +54,6 @@ jobs:
         env:
           GIT_CONFIG_GLOBAL: ${{ runner.temp }}/gitconfig
 
-      # The Rust in rust-toolchain.toml, through the Mac's own rustup, as release.yml's macos job.
       - name: Rust
         run: |
           rustup install --no-self-update
@@ -78,8 +66,6 @@ jobs:
       - name: JavaScript packages
         run: npm ci
 
-      # The desktop's TDLib, which tauri-build checks is there, and the iPhone's, which the E2e build links.
-      # Both are cached in ~/.cache/statim from one run to the next.
       - name: TDLib
         run: |
           ./scripts/tdlib.sh desktop
@@ -94,11 +80,7 @@ jobs:
           cargo test --manifest-path src-tauri/Cargo.toml --locked
           rm -rf src-tauri/target
 
-      # The smoke check: a development build of this commit installs and starts on a simulator kept for it from one
-      # night to the next; e2e/run.sh's two Maestro flows are run by hand. Built with xcodebuild and installed with simctl, not `expo run:ios`:
-      # that one then asks System Events through osascript whether Simulator is open, which needs macOS's Automation
-      # permission, and its prompt waits for someone at the Mac. The build goes in the job's temporary folder, deleted
-      # with it.
+      # Not `expo run:ios`: it asks System Events whether Simulator is open, and that permission prompt waits forever.
       - name: E2e
         env:
           SIMULATOR: Statim nightly

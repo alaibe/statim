@@ -155,7 +155,6 @@ describe("every command", () => {
     expect(respond).not.toHaveBeenCalled();
   });
 
-  /** Greetings are built at setup, so their buttons can be checked statically. */
   it("never offers a button its own chat cannot run", async () => {
     const registry = await activeRegistry();
     const wrong: string[] = [];
@@ -169,8 +168,7 @@ describe("every command", () => {
         for (const line of bot.greeting()) {
           if (typeof line === "string" || line.kind !== "widget") continue;
           for (const command of commandsIn(line.widget)) {
-            // `/draft /x ` hands `/x` to the composer; that is the one that
-            // has to run here.
+            // `/draft /x ` hands `/x` to the composer, so `/x` is the one that has to run here.
             const name = command
               .replace(/^\/draft\s+/, "")
               .replace(/^\//, "")
@@ -367,10 +365,7 @@ describe("every chain", () => {
     expect(strategyOf("bitcoin").isAddress(evm)).toBe(false);
   });
 
-  /**
-   * ENSIP-9 gives a name one record per coin, so Bitcoin must not share the EVM resolver.
-   * Comparing what they return would need a chain, so this compares the functions.
-   */
+  /** ENSIP-9 gives a name one record per coin, so Bitcoin must not share the EVM resolver. */
   it("resolves names its own way, or not at all", () => {
     const resolvers = Object.fromEntries(CHAINS.map((n) => [n.id, n.strategy(stub()).resolve]));
 

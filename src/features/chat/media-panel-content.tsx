@@ -27,7 +27,6 @@ export interface MediaPanelProps {
   chatId: ChatId;
   tabs: MediaTab[];
   tab: MediaTab;
-  /** Where the button that opened it sits; the desktop docks the panel to it. */
   anchor?: MediaAnchor | null;
   onClose(): void;
   onEmoji(emoji: string): void;

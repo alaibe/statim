@@ -92,7 +92,6 @@ describe("detecting a token that signs its own permits", () => {
   });
 
   it("refuses a token whose separator does not match, rather than signing something it rejects", async () => {
-    // A salt or a chainless domain lands here.
     stubChain({
       nonces: 0n,
       name: "Odd",

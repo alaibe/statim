@@ -1,6 +1,4 @@
-# Loads the development build from Metro and waits for its first screen, so the dev client reopens it on every later
-# launchApp. A simulator that has never opened the link first asks "Open in “Statim”?", and the first load opens the
-# dev menu over the app.
+# Loads the dev build so later launchApps reopen it; a new simulator asks to open it, then shows the dev menu.
 appId: im.statim.app
 ---
 - openLink: ${DEV_CLIENT_URL}

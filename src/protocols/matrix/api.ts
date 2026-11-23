@@ -1,9 +1,4 @@
-/**
- * What the adapter needs from matrix-rust-sdk, in plain data. The phone
- * driver (`client.ts`) builds it on the SDK's uniffi bindings and the desktop
- * driver (`client.web.ts`) on Tauri commands over the same crate, so every
- * shape here has to survive JSON.
- */
+/** The desktop driver passes these shapes through Tauri commands, so every one has to survive JSON. */
 
 export interface MxStartParams {
   dataDirectory: string;
@@ -232,7 +227,6 @@ export interface MatrixApi {
   invite(roomId: string, userId: string): Promise<void>;
   kick(roomId: string, userId: string): Promise<void>;
   ban(roomId: string, userId: string): Promise<void>;
-  /** Whose events the homeserver holds back from this account. */
   ignoredUsers(): Promise<string[]>;
   setIgnored(userId: string, ignored: boolean): Promise<void>;
   setPowerLevel(roomId: string, userId: string, level: number): Promise<void>;
@@ -240,11 +234,7 @@ export interface MatrixApi {
   join(roomId: string): Promise<void>;
   leave(roomId: string): Promise<void>;
 
-  /**
-   * Resolves once the homeserver has the message, which then arrives as an `event` update; on
-   * the phone an attachment resolves once queued. Returns the new event's id where the SDK
-   * gives it back, which the phone's does not.
-   */
+  /** Resolves once the homeserver has it, or on the phone once an attachment is queued; no id on the phone. */
   send(roomId: string, content: MxOutgoing, replyTo?: string, threadRoot?: string): Promise<string | undefined>;
   edit(roomId: string, eventId: string, content: MxTextOutgoing): Promise<void>;
   redact(roomId: string, eventId: string): Promise<void>;

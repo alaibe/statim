@@ -1,6 +1,4 @@
-//! How a phone reaches the server: Tailscale Serve gives it an HTTPS address
-//! that only the person's own devices can open. Port 8448 leaves whatever
-//! they already serve on 443 alone.
+//! Tailscale Serve on port 8448 leaves whatever the person already serves on 443 alone.
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -77,10 +75,7 @@ fn host_of(status: &str) -> Result<String, String> {
     Ok(name.to_string())
 }
 
-/// Runs a Tailscale command, giving up after a while: one that waits for the
-/// person to enable something in the admin console prints a link and blocks.
-/// The command can be a script around the real binary, as on a Mac, so the
-/// whole process group goes, or the binary would hold the output open.
+/// Times out: a command waiting on a change in the admin console prints a link and blocks.
 fn run(cli: &Path, args: &[&str]) -> Result<String, String> {
     run_within(cli, args, Duration::from_secs(15))
 }
@@ -102,8 +97,7 @@ fn run_within(cli: &Path, args: &[&str], limit: Duration) -> Result<String, Stri
         }
         std::thread::sleep(Duration::from_millis(100));
     }
-    // The whole group, the script's children too. Not with the kill program: procps-ng 3.3.17's (Ubuntu 22.04) takes
-    // `kill -KILL -<group>` for `kill -KILL -1`, every process the user has.
+    // The whole group, as the CLI may be a script; not via `kill`, which procps-ng 3.3.17 misreads as `-1`.
     #[cfg(unix)]
     let _ = unsafe { libc::kill(-(child.id() as i32), libc::SIGKILL) };
     let _ = child.kill();

@@ -24,10 +24,7 @@ export const SHORTCUTS: Record<string, string> = {
 
 const FILTERS: readonly ChatFilter[] = ["all", "unread", "mentions", "dms", "groups"];
 
-/**
- * Runs a command from the keyboard or the app menu, given where the window is.
- * The switcher is the caller's, since it is component state.
- */
+/** The switcher is the caller's, since it is component state. */
 export function runCommand(command: string, segments: readonly string[], chatId?: string): void {
   const list = useChatListStore.getState();
   const showList = () => {

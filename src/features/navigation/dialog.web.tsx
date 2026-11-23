@@ -4,10 +4,6 @@ import { Pressable, View } from "react-native";
 
 import { useEscapeKey } from "@/design";
 
-/**
- * A route shown over the pane as a centred card. The backdrop and Esc go back,
- * which is what a phone's swipe-down does.
- */
 export function Dialog({ children }: PropsWithChildren) {
   const router = useRouter();
   useEscapeKey(true, () => router.back());

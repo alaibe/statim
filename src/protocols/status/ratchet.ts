@@ -1,8 +1,4 @@
-/**
- * The receiving half of status-go's X3DH and Double Ratchet, which peers use
- * once they hold a bundle for this device. Replies still go out as DH
- * messages, so this side never sends on a ratchet: it only follows theirs.
- */
+/** Receiving half only: replies go out as DH messages, so this side never sends on a ratchet. */
 import { ctr } from "@noble/ciphers/aes";
 import { hkdf } from "@noble/hashes/hkdf";
 import { hmac } from "@noble/hashes/hmac";

@@ -7,11 +7,7 @@ export interface IcloudSetup extends Container {
   callback: string;
 }
 
-/**
- * The CloudKit environment an iPhone build of the same kind uses. Each API
- * token identifies the app, not a person. Apple accepts a localhost callback
- * only in development; production comes back through the app's URL scheme.
- */
+/** Each API token names the app, not a person; Apple takes a localhost callback only in development. */
 export function icloudContainer(): IcloudSetup | null {
   if (!__DEV__) {
     return {

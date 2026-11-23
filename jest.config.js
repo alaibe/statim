@@ -1,17 +1,10 @@
 /** @type {import('jest').Config} */
 module.exports = {
   preset: "jest-expo",
-  /**
-   * 20 seconds a test instead of Jest's 5: CI starts from a fresh node_modules
-   * with every core busy, and the lock screen's first render went past 5 there
-   * while the whole suite takes 18 seconds in a terminal.
-   */
+  /** On CI a cold node_modules and busy cores push the lock screen's first render past Jest's 5 s. */
   testTimeout: 20000,
   setupFiles: ["<rootDir>/jest.setup.js"],
-  /**
-   * Skips react-native-worklets' `.native.ts` variants, which bind to JSI on
-   * import. Without it no module that touches Reanimated loads in Node.
-   */
+  /** Skips react-native-worklets' `.native.ts` files, which bind to JSI on import and break Node. */
   resolver: "<rootDir>/node_modules/react-native-worklets/jest/resolver.js",
   /** Agent worktrees under .claude/ hold full copies of the project. */
   testPathIgnorePatterns: ["/node_modules/", "/.claude/"],

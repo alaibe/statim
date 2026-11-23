@@ -8,10 +8,7 @@ interface ResolvedBot {
   description?: string;
 }
 
-/**
- * `weather@bots.example.org` is read from
- * `https://bots.example.org/.well-known/status-bot/weather.json`.
- */
+/** `weather@bots.example.org` is read from `https://bots.example.org/.well-known/status-bot/weather.json`. */
 export async function resolveBot(input: string): Promise<ResolvedBot | null> {
   const value = input.trim();
 

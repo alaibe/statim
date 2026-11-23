@@ -1,7 +1,3 @@
-/**
- * The status-go protobufs this adapter reads and writes, by field number.
- * Only the fields DMs and groups use; anything else is skipped on read.
- */
 import { ProtoFields, ProtoWriter } from "./proto";
 
 export const AppType = {

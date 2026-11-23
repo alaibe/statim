@@ -1,8 +1,4 @@
-/**
- * Polyfills must be installed before expo-router builds its route tree:
- * requiring the route modules pulls in viem and WalletConnect, which capture
- * `globalThis.crypto` as they evaluate.
- */
+/** Polyfills first: viem and WalletConnect capture `globalThis.crypto` as expo-router's routes load. */
 import "./src/polyfills";
 
 import "expo-router/entry";

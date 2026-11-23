@@ -10,10 +10,7 @@ interface LedgerDevice {
   name: string;
 }
 
-/**
- * APDUs travel through the Rust side, which holds the Ledger open on USB;
- * the window's WebKit has no WebHID.
- */
+/** APDUs go through the Rust side, which holds the Ledger open on USB; WebKit has no WebHID. */
 class TauriHidTransport extends Transport {
   override async exchange(apdu: Buffer): Promise<Buffer> {
     const response = await invoke<number[]>("ledger_exchange", { apdu: Array.from(apdu) });

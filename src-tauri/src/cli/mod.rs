@@ -67,9 +67,7 @@ pub fn is_link(arg: &str) -> bool {
     arg.contains("://")
 }
 
-/// Dev and release builds share one data directory, so only one copy may run: a
-/// second launch of either brings the running one forward and quits. On Windows
-/// and Linux a link to the app's URL scheme arrives this way too.
+/// Dev and release share one data directory, so a second launch raises the running copy and quits.
 pub fn show_running_copy() -> bool {
     let Ok(mut stream) = transport::connect() else {
         return false;
@@ -169,13 +167,11 @@ pub struct Install {
     installed: bool,
     /// What to run in a terminal to put `statim` on the PATH.
     command: Option<String>,
-    /// What an AI app's MCP settings point at, since apps opened from the
-    /// Dock do not see the terminal's PATH.
+    /// What an AI app's MCP settings point at: apps opened from the Dock do not see the terminal's PATH.
     path: Option<String>,
 }
 
-/// The Windows, .deb and .rpm installers put the command on the PATH. On macOS
-/// and in an AppImage `cli_link` does, and `command` is the fallback.
+/// Installers put it on the PATH on Windows, .deb and .rpm; on macOS and in an AppImage `cli_link` does.
 #[tauri::command]
 pub fn cli_install() -> Install {
     let exe = std::env::current_exe()

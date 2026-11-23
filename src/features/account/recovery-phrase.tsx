@@ -23,7 +23,6 @@ function RecoveryPhrase({ phrase }: { phrase: string }) {
   );
 }
 
-/** The phrase behind a tap, with `children` shown under it once it is revealed. */
 export function RevealablePhrase({
   phrase,
   revealed,

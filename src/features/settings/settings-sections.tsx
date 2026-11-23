@@ -34,7 +34,6 @@ const SETTINGS_PAGES = [
   "command-line",
 ] as const;
 
-/** The pages the sections open, so a layout showing both can mark the open one. */
 type SettingsPage = (typeof SETTINGS_PAGES)[number] | `protocol/${ProtocolId}`;
 
 export function settingsPageFor(segments: readonly string[], id: string | undefined): SettingsPage | undefined {
@@ -42,10 +41,7 @@ export function settingsPageFor(segments: readonly string[], id: string | undefi
   return segments.find((segment): segment is SettingsPage => (SETTINGS_PAGES as readonly string[]).includes(segment));
 }
 
-/**
- * Which optional keys the account has. Reloaded whenever `revision` changes,
- * which a screen ties to focus and the desktop sidebar to navigation.
- */
+/** Reloaded whenever `revision` changes, which a screen ties to focus and the desktop sidebar to navigation. */
 export function useSettingsKeys(revision: unknown): Credentials {
   const activeAccountId = useAccountStore((s) => s.activeAccountId);
   return useKeyedLoad(activeAccountId, readCredentials, revision).value ?? NO_KEYS;

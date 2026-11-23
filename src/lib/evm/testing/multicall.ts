@@ -29,7 +29,6 @@ const AGGREGATE3 = [
   },
 ] as const;
 
-/** Answers Multicall3 with `holds` for the addresses it names, zero for the rest. */
 export function stubMulticall(holds: Record<string, bigint> = {}): string[] {
   const calls: string[] = [];
 

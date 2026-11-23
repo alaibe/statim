@@ -17,7 +17,6 @@ export function NetworkMark({
   network: NetworkId;
   label: string;
   size?: number;
-  /** A folder's mark, set apart from a chat's round avatar. */
   square?: boolean;
 }) {
   const mark = NETWORK_MARKS[network];

@@ -1,7 +1,3 @@
-//! A Matrix homeserver on this computer, for an account that uses it instead
-//! of a homeserver it names. tuwunel and the bridges run beside the app while
-//! it runs, behind one local address the account's Matrix session keeps.
-
 mod artifacts;
 mod bridges;
 mod config;
@@ -23,8 +19,7 @@ use bridges::Bridge;
 use process::Process;
 use router::{Router, Routes};
 
-/// Every ID on the server ends with it. It can never be a hostname, and it is
-/// permanent: changing it means starting again from an empty server.
+/// Permanent: every ID on the server ends with it, so changing it means starting from an empty server.
 pub const SERVER_NAME: &str = "statim";
 /// The person's own user on their server: `@me:statim`.
 pub const OWNER: &str = "me";
@@ -84,8 +79,6 @@ pub fn homeserver_url() -> Option<String> {
     available().then(url)
 }
 
-/// Starts the server of `account_id`, stopping another account's, and returns
-/// its address once it answers.
 #[tauri::command]
 pub async fn homeserver_start(
     app: AppHandle,
@@ -113,8 +106,6 @@ pub async fn homeserver_start(
     Ok(url())
 }
 
-/// Signs the owner in on the account's running server as a new device,
-/// creating the owner on the first call.
 #[tauri::command]
 pub async fn homeserver_session(
     state: State<'_, Homeserver>,
@@ -137,8 +128,7 @@ pub struct PhoneLink {
     expires_in_ms: u64,
 }
 
-/// What another device of the owner needs to sign in to the account's server:
-/// its Tailscale address, served from now on, and a one-time code.
+/// Serves the account's server on the tailnet from now on; the code lets another device sign in once.
 #[tauri::command]
 pub async fn homeserver_phone_link(state: State<'_, Homeserver>, account_id: String) -> Result<PhoneLink, String> {
     let mut running = state.0.lock().await;
@@ -184,8 +174,6 @@ pub async fn homeserver_bridges(app: AppHandle, account_id: String) -> Result<Ve
         .collect())
 }
 
-/// Turns a bridge on or off for the account, downloading it the first time,
-/// and restarts the account's server if it runs.
 #[tauri::command]
 pub async fn homeserver_set_bridge(
     app: AppHandle,

@@ -1,11 +1,4 @@
-/**
- * `expo-sqlite`, backed by Node's own SQLite (`node:sqlite`, Node 22+).
- *
- * Node's build has no SQLCipher codec, so `PRAGMA key` is ignored. What this
- * does model is that a SQLCipher connection reads nothing until it has the
- * key: every other statement on a connection that has not run `PRAGMA key`
- * fails, the way an encrypted file does on a device.
- */
+/** As with SQLCipher, every statement fails until the connection runs `PRAGMA key`; the key is ignored. */
 const { DatabaseSync } = require("node:sqlite");
 const fs = require("node:fs");
 const os = require("node:os");

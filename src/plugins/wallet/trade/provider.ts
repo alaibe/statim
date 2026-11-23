@@ -36,7 +36,6 @@ export interface Cost {
   usd?: number;
 }
 
-/** A transaction on the sell chain, after an approval of `spender` when it holds too little allowance. */
 export interface EvmPayment {
   kind: "evm";
   to: Address;
@@ -54,7 +53,6 @@ export interface SolanaPayment {
   transaction(): Promise<string>;
 }
 
-/** A Bitcoin payment to a vault, with a memo saying what to do with it, planned when it was quoted. */
 export interface BitcoinPayment {
   kind: "bitcoin";
   deposit: DepositPlan;
@@ -92,9 +90,7 @@ export interface TradeProvider {
   site: string;
   covers(route: { from: ChainStrategy; to: ChainStrategy; keys: TradeKeys }): boolean;
   quote(request: TradeRequest): Promise<TradeQuote>;
-  /** The provider's own words for an answer that is not a quote, such as no route. */
   refusal(error: unknown): string | null;
-  /** Lets a token go by signature through Permit2 instead of an approval per trade. */
   permitTargets?(chainId: number): Promise<{ permit2: Address; proxy: Address } | null>;
   tracker?(hash: string): { label: string; url: string };
   /** How a trade between two chains is doing, by the hash of what left the first. */
@@ -112,7 +108,6 @@ export interface Trade extends Approval {
   other?: TradeQuote;
   fromToken: TradeAsset;
   toToken: TradeAsset;
-  /** Where the bought token lands: the account's own address unless asked otherwise. */
   recipient: string;
   sendsAway: boolean;
 }
@@ -120,11 +115,9 @@ export interface Trade extends Approval {
 export interface Sent {
   approval?: Hex;
   hash: string;
-  /** "pending" while a trade has been sent but its chain has not confirmed it yet. */
   state: "done" | "pending" | "failed";
 }
 
-/** What trading needs from the chain a trade leaves: its tokens, balances, fees and signing. */
 export interface TradeLeg {
   receivable(chain: ChainStrategy): { symbol: string; address: string }[];
   token(chain: ChainStrategy, given: string, keys: TradeKeys): Promise<TradeAsset | { error: string }>;

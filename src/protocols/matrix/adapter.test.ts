@@ -16,11 +16,6 @@ import {
   textEvent,
 } from "./testing/fake-matrix";
 
-/**
- * The Matrix adapter against a scripted SDK. What matters here is the
- * mapping and the sign-in state machine; matrix-rust-sdk is not under test.
- */
-
 const realFetch = global.fetch;
 beforeEach(() => {
   global.fetch = jest.fn(async () => ({

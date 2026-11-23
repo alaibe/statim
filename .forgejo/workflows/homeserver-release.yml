@@ -1,8 +1,4 @@
-# Builds tuwunel and libolm for Apple silicon on the Mac and releases them on alaibe/statim as homeserver-<tuwunel
-# tag>, where the desktop app downloads them when Matrix runs on the computer (src-tauri/src/homeserver/artifacts.rs
-# names the release and the files' checksums).
-#
-# The tag goes to git.laibe.cc first: GitHub's copy is a push mirror, which deletes any tag that exists only there.
+# The tag goes to git.laibe.cc first: GitHub's push mirror deletes any tag that exists only there.
 
 name: Homeserver release
 
@@ -16,7 +12,6 @@ on:
         description: libolm tag
         default: 3.2.16
 
-# One build at a time, never cancelled.
 concurrency:
   group: homeserver-release
   cancel-in-progress: false

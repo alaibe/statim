@@ -24,7 +24,6 @@ async function respondIn(chatId: ChatId, content: MessageContent | string) {
 
 const CONVERSATIONS: Record<Exclude<ChatScope, "channel">, string> = { dm: "DMs", group: "groups" };
 
-/** Why a command that `home` contributes does not run in this chat. */
 export function elsewhereMessage(
   name: string,
   showIn: readonly ChatScope[] | undefined,

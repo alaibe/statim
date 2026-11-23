@@ -1,6 +1,4 @@
-//! One SQLCipher connection per database file, addressed by name. The
-//! JavaScript side serialises its own work per account, so plain
-//! `BEGIN`/`COMMIT` statements are real transactions.
+//! One connection per file; the page serialises work per account, so `BEGIN`/`COMMIT` are real transactions.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -84,8 +82,7 @@ async fn query<T: Send + 'static>(
     .map_err(|e| e.to_string())?
 }
 
-/// Closes now when nothing else holds the connection; otherwise it closes
-/// with its last user.
+/// Closes now when nothing else holds the connection, otherwise with its last user.
 fn close_named(open: &mut HashMap<String, Shared>, name: &str) -> Result<(), String> {
     if let Some(shared) = open.remove(name) {
         if let Ok(mutex) = Arc::try_unwrap(shared) {

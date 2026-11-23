@@ -5,10 +5,7 @@ import type { ScreenProps } from "./screen";
 
 export type { ScreenProps } from "./screen";
 
-/**
- * On desktop a screen sits in a pane or dialog that has its own background, so this only centres
- * the content column. `edges` is for a phone's notch and home indicator.
- */
+/** A desktop pane or dialog has its own background and no notch, so this only centres the content column. */
 export function Screen({ className, children, edges: _edges, ...props }: ScreenProps) {
   return (
     <View className="flex-1">

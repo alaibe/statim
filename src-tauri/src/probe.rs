@@ -1,6 +1,4 @@
-//! Debug builds only: JavaScript written to `probe.js` in the app data
-//! directory runs in the window. Its console output reaches the Metro log,
-//! which is the only console the desktop build has during development.
+//! Debug only: `probe.js` in the app data directory runs in the window; its console goes to the Metro log.
 
 use std::time::{Duration, SystemTime};
 

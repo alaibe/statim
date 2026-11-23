@@ -7,7 +7,6 @@ import { stackScreenOptions } from "./stack-options";
 
 const desktop = process.env.EXPO_OS === "web";
 
-/** Panes that only wait for the sidebar to pick something. */
 const PLACEHOLDERS = new Set(["chats", "contacts", "settings/index"]);
 
 export function TabStack() {

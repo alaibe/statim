@@ -16,14 +16,12 @@ export interface ListItemProps {
   trailing?: React.ReactNode;
   onPress?: PressHandler;
   onLongPress?: () => void;
-  /** A right-click on desktop; the long-press's counterpart. */
   onContextMenu?: (anchor: MenuAnchor) => void;
   /** The row whose content is open beside the list. */
   selected?: boolean;
   unread?: boolean;
   className?: string;
   numberOfLinesSubtitle?: number;
-  /** Overrides the label built from `title` and `subtitle`. */
   accessibilityLabel?: string;
 }
 
@@ -86,11 +84,7 @@ export function ListItem({
 
   if (!pressable) return body;
 
-  /**
-   * A pressable row is one accessibility element, so iOS hides the `Text` inside it from
-   * VoiceOver and the label is rebuilt from the parts. A `title` that is a node has nothing to
-   * read out, so it gets only the caller's label.
-   */
+  // iOS hides the `Text` inside a pressable row from VoiceOver, so the label is rebuilt from its parts.
   const label =
     accessibilityLabel ?? (typeof title === "string" ? [title, subtitle].filter(Boolean).join(", ") : undefined);
 

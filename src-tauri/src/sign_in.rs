@@ -1,6 +1,4 @@
-//! Signing in through the browser. The page comes back to this computer, to a
-//! port on it or through the app's URL scheme, so what it hands over passes
-//! through no website.
+//! Sign-in comes back to a local port or the URL scheme, so what it hands over passes through no website.
 
 use std::io::{BufRead, BufReader, ErrorKind, Write};
 use std::net::{Ipv4Addr, Ipv6Addr, TcpListener, TcpStream};
@@ -19,17 +17,14 @@ Signed in. You can close this tab and go back to Statim.</p>";
 
 type Waiting = Mutex<Option<(String, oneshot::Sender<String>)>>;
 
-/// Counts sign-ins, so a newer one takes over from one left waiting, and holds
-/// the callback a URL-scheme sign-in waits for.
+/// Counts sign-ins so a newer one takes over from one left waiting; holds a URL-scheme sign-in's callback.
 #[derive(Default)]
 pub struct SignIn {
     turns: Arc<AtomicU64>,
     waiting: Waiting,
 }
 
-/// Opens `url` in the browser and returns where the sign-in ended: the request
-/// for a `http://localhost:<port>/<path>` callback, or the URL the system
-/// handed back for any other.
+/// Returns the `http://localhost:<port>/<path>` callback request, or the URL the system handed back.
 #[tauri::command]
 pub async fn browser_sign_in(
     app: AppHandle,
@@ -126,8 +121,7 @@ fn wait(listeners: &[TcpListener], path: &str, current: impl Fn() -> bool) -> Re
     Err(UNFINISHED.into())
 }
 
-/// The request's target when it is for `path`; anything else, such as the
-/// browser asking for an icon, is turned away.
+/// The request's target when it is for `path`; anything else, such as a favicon request, is turned away.
 fn answer(mut stream: TcpStream, path: &str) -> Option<String> {
     stream.set_nonblocking(false).ok()?;
     stream.set_read_timeout(Some(Duration::from_secs(5))).ok()?;

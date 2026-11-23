@@ -11,11 +11,7 @@ export type PromptOutcome = "passed" | "use-pin" | "failed";
 
 export type PromptPurpose = "unlock" | "turn-on";
 
-/**
- * With an app PIN, the phone's passcode must not open the app, so the prompt
- * turns the device fallback off. Android shows no fallback button of its own;
- * its one button becomes the way to the PIN.
- */
+/** With an app PIN the phone's passcode must not open the app; on Android the one button leads to the PIN. */
 export function promptOptions(
   reason: string,
   fallback: PromptFallback,

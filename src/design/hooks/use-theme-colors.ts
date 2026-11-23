@@ -9,10 +9,7 @@ const THEMES: Record<ThemeName, ThemeColors> = {
   dark: { ...colorsFor("dark"), scheme: "dark" },
 };
 
-/**
- * Colours for props that cannot take a class. NativeWind's `useColorScheme` follows the in-app
- * theme; React Native's reports only the OS setting.
- */
+/** NativeWind's `useColorScheme` follows the in-app theme; React Native's reports only the OS setting. */
 export function useThemeColors(): ThemeColors {
   const { colorScheme } = useColorScheme();
   return THEMES[colorScheme === "dark" ? "dark" : "light"];

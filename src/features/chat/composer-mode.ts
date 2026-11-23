@@ -78,7 +78,6 @@ export class ComposerModeController {
   }
 }
 
-/** The composer's mode for one chat or thread; opening another starts it fresh. */
 export function useComposerMode(id: ChatId, onSend?: () => void, thread?: MessageId) {
   const key = draftKey(id, thread);
   const [state, setState] = useState({ key, mode: COMPOSE });

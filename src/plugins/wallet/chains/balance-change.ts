@@ -24,7 +24,6 @@ export function balanceChangeCard({
   caption: string;
   tone: "success" | "warning";
   address: string;
-  /** The `--chain` value the card's buttons pass back. */
   chain: ChainId;
   short: (address: string) => string;
 }): MessageContent {

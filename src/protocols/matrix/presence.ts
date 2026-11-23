@@ -14,11 +14,7 @@ interface Watched {
   timer: ReturnType<typeof setInterval>;
 }
 
-/**
- * Sliding sync carries no presence, so a user's status is asked of the
- * homeserver while someone is looking at it. A server with presence off
- * answers "offline" with no time, which shows nothing.
- */
+/** Sliding sync carries no presence, so the homeserver is asked while someone is looking. */
 export class PresenceWatcher {
   private readonly known = new Map<string, Presence>();
   private readonly watched = new Map<string, Watched>();

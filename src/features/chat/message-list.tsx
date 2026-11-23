@@ -15,7 +15,6 @@ export interface MessageListProps {
   renderMessage(message: ChatMessage, index: number): ReactElement;
   header: ReactElement;
   footer: ReactElement | null;
-  /** Room above the first message for the header floating over the list. */
   topInset: number;
   onStartReached(): void;
 }

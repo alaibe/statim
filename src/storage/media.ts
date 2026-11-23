@@ -15,7 +15,6 @@ export function mediaFile(area: FileArea, name: string, accountId: string): File
   return new File(mediaDirectory(area, accountId), name);
 }
 
-/** A protocol's own data directory (an `OWNED_DIRECTORIES` area), as a plain path for a native SDK. */
 export async function accountDirectory(area: FileArea, accountId: string): Promise<string> {
   return pathOfFileUri(mediaDirectory(area, accountId).uri);
 }
@@ -25,7 +24,6 @@ export async function eraseAccountDirectory(area: FileArea, accountId: string): 
   if (dir.exists) dir.delete();
 }
 
-/** How the app displays a file a native SDK has on disk. */
 export function localFileUri(path: string): string {
   return `file://${path}`;
 }

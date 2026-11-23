@@ -7,9 +7,7 @@ import { Text } from "./text";
 interface SectionProps extends ViewProps {
   title?: string;
   surface?: "plain" | "list" | "card";
-  /** False when the card already sits inside padding, as in a sheet. */
   inset?: boolean;
-  /** Shown in place of the rows when there are none. */
   empty?: string;
   className?: string;
 }

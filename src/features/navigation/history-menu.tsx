@@ -15,10 +15,7 @@ const LONGEST_TITLE = 48;
 
 const clip = (title: string) => (title.length > LONGEST_TITLE ? `${title.slice(0, LONGEST_TITLE - 1)}…` : title);
 
-/**
- * Keeps the app menu's History in step with the chats opened in the pane. The
- * menu bar stays readable while the app is locked, so it lists nothing then.
- */
+/** The menu bar stays readable while the app is locked, so History lists nothing then. */
 export function HistoryMenu() {
   const segments = useSegments() as string[];
   const { id } = useGlobalSearchParams<{ id?: string }>();

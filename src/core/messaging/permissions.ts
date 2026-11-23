@@ -28,7 +28,6 @@ export interface ChatPermissions {
   vote: boolean;
   thread: boolean;
   answerRequest: boolean;
-  /** Block the other participant of a DM. */
   block: boolean;
   seeGroupInfo: boolean;
   addMembers: boolean;

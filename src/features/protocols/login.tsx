@@ -37,10 +37,7 @@ const COPY: Record<
   },
 };
 
-/**
- * One step of an interactive sign-in, driven by whatever the session is
- * waiting on. Key it by step so the field starts empty at each one.
- */
+/** Key it by step so the field starts empty at each one. */
 export function LoginStep({
   login,
   session,

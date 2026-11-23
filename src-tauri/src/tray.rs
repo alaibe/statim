@@ -14,7 +14,6 @@ const ICON: Image<'static> = include_image!("icons/tray/icon.png");
 #[cfg(not(target_os = "macos"))]
 const UNREAD: Image<'static> = include_image!("icons/tray/unread.png");
 
-/// With the window closed, this is where the app is: Open brings it back and
 /// Quit is the way out on Windows and Linux, which have no app menu.
 pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let menu = Menu::with_items(
@@ -53,8 +52,7 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     Ok(())
 }
 
-/// The count shows beside the icon where the system draws text there (macOS,
-/// some Linux desktops); elsewhere the icon gains a dot.
+/// The count shows beside the icon where the system draws text (macOS, some Linux); elsewhere it gains a dot.
 pub fn show_unread<R: Runtime>(app: &AppHandle<R>, count: i64) {
     let Some(tray) = app.tray_by_id(ID) else {
         return;

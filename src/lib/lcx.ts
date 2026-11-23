@@ -253,8 +253,7 @@ function decodedSwap(data: Hex): SwapFields | null {
     return null;
   }
   const [a] = decoded.args;
-  // No integrator is asked for, so none may take a fee. A prop-AMM venue needs no
-  // allowlist: the router reverts unless the recipient gets at least minAmountOut.
+  // No integrator may take a fee; a prop-AMM venue needs no allowlist as the router enforces minAmountOut.
   return same(a.integrator, zeroAddress) ? a : null;
 }
 

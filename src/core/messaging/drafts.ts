@@ -29,10 +29,7 @@ export function withDraft(drafts: Drafts, key: DraftKey, text: string): Drafts {
 
 const PUSH_DELAY_MS = 1_500;
 
-/**
- * What the protocol last had is remembered, so its echo of our own save changes
- * nothing and a draft typed elsewhere replaces ours only while ours is unchanged.
- */
+/** Our save's echo changes nothing; a draft typed elsewhere replaces ours only while ours is unchanged. */
 export class DraftSync {
   private readonly remote = new Map<ChatId, string>();
   private readonly timers = new Map<ChatId, ReturnType<typeof setTimeout>>();

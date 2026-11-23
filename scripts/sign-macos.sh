@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
-# Signs an unsigned Statim.app for Developer ID, inside out, under the hardened runtime with a timestamp: every Mach-O
-# and bundle nested in it first, TDLib's libtdjson.dylib among them (scripts/tdlib.sh signs it only ad hoc), then the
-# app with src-tauri/Entitlements.release.plist. Notarization refuses a bundle with anything unsigned, and the hardened
-# runtime won't load a library another team signed.
-#
-#   scripts/sign-macos.sh <path/to/Statim.app> "<Developer ID Application: …>" [<keychain>]
-#
-# The identity must be in the default keychain search list, or in the keychain passed third.
+# Signs inside out for notarization; the identity must be in the keychain search list or the one passed.
 set -euo pipefail
 
 usage="usage: sign-macos.sh <Statim.app> <identity> [keychain]"
@@ -31,8 +24,7 @@ sign() {
     exit 1
 }
 
-# -depth lists what a folder holds before the folder, so a nested bundle is signed after its own files. The main
-# executable is left to the app's own signature, which carries the entitlements.
+# -depth signs a bundle's files before the bundle; the main executable takes the app's own signature.
 while IFS= read -r -d '' path; do
     if [ -d "$path" ]; then
         sign "$path"

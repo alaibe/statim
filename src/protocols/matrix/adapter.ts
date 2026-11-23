@@ -57,15 +57,10 @@ const LINK: Record<Extract<MxUpdate, { type: "link" }>["state"], LinkState> = {
 interface MatrixConnectOptions {
   createApi(): Promise<MatrixApi>;
   parameters: MxStartParams;
-  /** Called with the session after sign-in and with null after sign-out. */
   persistSession(session: MxSession | null): Promise<void>;
 }
 
-/**
- * A Matrix client over matrix-rust-sdk, which owns history, keys and media
- * in its own store. Joined rooms and invitations are surfaced; spaces are
- * not chats.
- */
+/** matrix-rust-sdk keeps history, keys and media in its own store; spaces are not chats. */
 export class MatrixSession implements ChatSession, MatrixCapabilities {
   readonly sendsImages = true;
   readonly sendsVideo = true;
@@ -89,11 +84,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   private readonly members = new Map<string, MxMember[]>();
   private readonly pendingMembers = new Map<string, Promise<MxMember[]>>();
   private readonly names = new Map<string, string>();
-  /**
-   * A room keeps the bridge it once showed, even after the bridged users fall out of the
-   * summary.
-   */
-  /** Only networks found: a room seen before its bridge shows is looked at again. */
+  /** A room keeps the bridge it once showed; a room without one yet is looked at again. */
   private readonly networks = new Map<string, BridgedNetwork>();
   private readonly mediaPaths = new Map<string, string>();
   private readonly awaitedMedia = new Map<string, MxEvent[]>();
@@ -134,7 +125,6 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     else this.askForPassword();
   }
 
-  /** A session that ended, however it ended, leaves nothing worth keeping. */
   private async restart(error?: string): Promise<void> {
     this.userId = null;
     this.options.parameters.session = null;
@@ -860,10 +850,7 @@ function describeLoginError(error: unknown): string {
   return message;
 }
 
-/**
- * A bridge that doesn't mark its one-to-one portals as direct still leaves
- * just you, the other person and its bots in them. Slack channels keep their `#`.
- */
+/** A bridge's one-to-one portal not marked direct holds just you, the other person and its bots. */
 function humansIn(room: MxRoom, roster: readonly string[] = []): number {
   const bots = new Set([...room.elevated, ...room.heroes, ...roster].filter(isBridgeBot));
   return (room.memberCount ?? 0) - bots.size;

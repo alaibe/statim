@@ -48,8 +48,7 @@ module.exports = {
         pill: "999px",
       },
       fontFamily: {
-        // React Native's `fontFamily` takes one concrete family name and rejects
-        // a CSS variable or a stack ("Value is an object, expected a String").
+        // React Native's `fontFamily` takes one family name, not a CSS variable or a stack.
         sans: platformSelect({
           ios: "System",
           android: "sans-serif",
@@ -68,8 +67,7 @@ module.exports = {
         }),
       },
       fontSize: {
-        // Body is 16px, the minimum for readable body copy on a phone. Only
-        // metadata (timestamps, counts, labels) sits below it.
+        // Body copy never goes below 16px on a phone; only metadata (timestamps, counts, labels) does.
         micro: ["11px", { lineHeight: "14px" }],
         caption: ["13px", { lineHeight: "17px" }],
         footnote: ["15px", { lineHeight: "20px" }],

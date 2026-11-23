@@ -19,9 +19,7 @@ describe("capabilitiesOf", () => {
   });
 
   it("lets a hardware account chat", () => {
-    // The signature XMTP asks for registers an installation. After that the
-    // installation key signs, and `Client.build` reopens it with no signer,
-    // so a Ledger signs once at setup and never per message or per launch.
+    // XMTP's signature registers an installation whose key signs from then on, so a Ledger signs only at setup.
     expect(capabilitiesOf(WALLET).chat).toBe(true);
   });
 

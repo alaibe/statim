@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
-#
-# Puts TDLib where an app opens it. Every app runs this version; bump it here,
-# then rebuild all three.
-#
-#   scripts/tdlib.sh desktop            this machine's desktop app
-#   scripts/tdlib.sh ios                the iPhone app
-#   scripts/tdlib.sh android [abi...]   the Android app, from source, for the ABIs
-#                                       Gradle packages unless named
+# Every app runs this TDLib version: bump it here, then rebuild all three.
 set -euo pipefail
 
 COMMIT="d1085f9cebc5a62379991ae1652673954f229c1f"
@@ -26,9 +19,7 @@ current() {
     fi
 }
 
-# Swiftgram's static archives carry OpenSSL and SQLite, so each is relinked into
-# a library exporting only TDLib's JSON entry points, or it would clash with
-# the app's SQLCipher.
+# Swiftgram's archives carry OpenSSL and SQLite: relink exporting only TDLib's JSON API, or SQLCipher clashes.
 relink() {
     local slice="$1" out="$2" name="$3" symbols="$4" zip="$CACHE/TDLibFramework-$VERSION.zip"
     shift 4
@@ -127,8 +118,7 @@ ios() {
     echo "Put TDLib $VERSION in $dest/libtdjson.xcframework"
 }
 
-# TDLib's own Android scripts with the JSONJava interface: td_json behind a small
-# JNI class, so Android speaks the same JSON as the other apps.
+# TDLib's Android scripts with JSONJava: td_json behind a small JNI class, the same JSON as the other apps.
 android() {
     local default="${ORG_GRADLE_PROJECT_reactNativeArchitectures:-arm64-v8a armeabi-v7a x86_64 x86}"
     local abis="${*:-${default//,/ }}" openssl="openssl-3.5.9" ndk="27.1.12297006"

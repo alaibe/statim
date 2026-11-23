@@ -21,7 +21,6 @@ async function setHidden(context: PluginContext, id: string, on: boolean): Promi
   await context.storage.set(STORAGE_HIDDEN, [...ids]);
 }
 
-/** Suggested ones the user has not hidden, then their own. */
 export async function bookmarks(context: PluginContext): Promise<Bookmark[]> {
   const off = await hidden(context);
   return [...SUGGESTED_BOOKMARKS.filter((b) => !off.has(b.id)), ...(await custom(context))];
@@ -40,7 +39,6 @@ export async function findBookmark(context: PluginContext, query: string): Promi
 
 type AddResult = { bookmark: Bookmark; restored?: boolean } | { error: string };
 
-/** Adds a site, or brings back a suggested one that was removed. */
 export async function addBookmark(context: PluginContext, rawUrl: string, rawName?: string): Promise<AddResult> {
   const suggested = await findBookmark(context, rawUrl);
   if (suggested && !suggested.custom) {
@@ -85,7 +83,6 @@ export async function addBookmark(context: PluginContext, rawUrl: string, rawNam
   return { bookmark };
 }
 
-/** Removes one of the user's own, or hides a suggested one. */
 export async function removeBookmark(context: PluginContext, bookmark: Bookmark): Promise<void> {
   if (!bookmark.custom) {
     await setHidden(context, bookmark.id, true);

@@ -1,7 +1,4 @@
-/**
- * `babel-preset-expo` already resolves and injects `react-native-worklets/plugin`
- * (Reanimated 4) on its own, so it must not be listed manually here.
- */
+/** `babel-preset-expo` already injects `react-native-worklets/plugin`, so do not list it here. */
 module.exports = function (api) {
   api.cache(true);
   return {

@@ -5,8 +5,7 @@ private let translated: Int32 = 0
 private let languageMissing: Int32 = 1
 private let failed: Int32 = 2
 
-/// Blocks until Apple Translation answers; call it off the main thread.
-/// `out` receives the translation, or an error message, as a malloc'd string.
+/// Blocks, so call it off the main thread; `out` gets the translation or an error as a malloc'd string.
 @_cdecl("statim_translate")
 public func statimTranslate(
     _ text: UnsafePointer<CChar>,

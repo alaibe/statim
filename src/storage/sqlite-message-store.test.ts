@@ -33,7 +33,6 @@ afterEach(async () => {
   accounts.clear();
 });
 
-/** Runs `before` ahead of every statement matching `pattern`, however the store sends it. */
 async function beforeStatement(id: string, pattern: RegExp, before: () => Promise<void>) {
   const { connection } = await openAccountDatabase(id);
   const { run, rows } = connection;

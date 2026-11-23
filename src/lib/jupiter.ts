@@ -5,7 +5,6 @@ const BASE = "https://api.jup.ag/swap/v1";
 
 export const SOL_MINT = "So11111111111111111111111111111111111111112";
 
-/** The program every Jupiter swap goes through. */
 export const JUPITER_PROGRAM = "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4";
 
 /** The most a swap may add as a priority fee: 0.001 SOL. */

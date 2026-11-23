@@ -1,8 +1,4 @@
-/**
- * The vault's entries as they are stored, under the names they had when the
- * step was written. Protected entries (a recovery phrase behind biometrics)
- * are out of reach: reading one needs the user.
- */
+/** Entries keep the names they had when the step was written; protected ones need the user to read. */
 interface VaultEntries {
   get(key: string): Promise<string | null>;
   set(key: string, value: string): Promise<void>;
@@ -11,11 +7,7 @@ interface VaultEntries {
 
 export type VaultStep = (vault: VaultEntries) => Promise<void>;
 
-/**
- * One step per change to what a vault entry holds, oldest first. A step can
- * run again if the app stops halfway through it, so it must leave entries it
- * already moved as they are.
- */
+/** Oldest first; a step can rerun if the app stops halfway, so it must leave entries it already moved alone. */
 export const VAULT_MIGRATIONS: readonly VaultStep[] = [
   (vault) => vault.remove("notifications.icloudNotes"),
   renameTradesCredential,

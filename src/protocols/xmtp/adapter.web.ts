@@ -120,10 +120,7 @@ async function inboxOf(account: LocalAccount, env: XmtpEnv) {
   return { backend, inboxId };
 }
 
-/**
- * The inbox's installations when this one is no longer among them. `isRegistered` cannot tell:
- * it only reads the local database, which still says yes after another device revoked this one.
- */
+/** `isRegistered` reads only the local database, which still says yes after another device revoked this one. */
 async function installationsIfRevoked(client: Client<any>) {
   const state = await client.preferences.fetchInboxState().catch(() => undefined);
   if (!state || state.installations.some((i) => i.id === client.installationId)) return undefined;
@@ -191,8 +188,7 @@ export class XmtpSession implements ChatSession {
       codecs,
     };
 
-    // `build` needs no signature, so a registered account never touches its
-    // key. Anything else registers through `create`.
+    // `build` needs no signature, so a registered account never touches its key.
     let client = await Client.build(identifierFor(opts.account.address), options).catch(() => undefined);
     const others = client && (await client.isRegistered()) && (await installationsIfRevoked(client));
     if (client && others) {
@@ -782,11 +778,7 @@ function describeGroupUpdate(update: GroupUpdated): string {
 
 type Stream<T> = AsyncIterable<T> & { end(): Promise<unknown> };
 
-/**
- * A stream drained as it comes, since the SDK queues every value until
- * something reads it. `ended` is called when it ends on its own rather than
- * by `stop`.
- */
+/** The SDK queues every value until something reads it; `ended` fires only when it ends without `stop`. */
 class FollowedStream<T> {
   private current: Stream<T> | null = null;
   private stopped = false;

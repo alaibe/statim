@@ -18,8 +18,7 @@ const HELP: &str = include_str!("../../cli/help.txt");
 /// How long a copy started for the command line gets to open its socket.
 const START_TIMEOUT: Duration = Duration::from_secs(90);
 
-/// `Some(exit code)` when this process was asked to run a command rather than
-/// to be the app.
+/// `Some(exit code)` when this process runs a command instead of being the app.
 pub fn run() -> Option<i32> {
     let args: Vec<String> = env::args().skip(1).collect();
     let app_launch = args.is_empty()
@@ -128,9 +127,7 @@ fn remote(args: Vec<String>) -> i32 {
     })
 }
 
-/// Runs one command in the app: its `out` and `err` text goes to `output`,
-/// its questions to `answer`. `None` when the app hung up first, or when
-/// `stop` says to give up while a read timeout set on `stream` lets it look.
+/// `None` when the app hung up first, or when `stop` says to give up, which needs a read timeout on `stream`.
 pub(super) fn exchange(
     stream: Stream,
     request: &Value,

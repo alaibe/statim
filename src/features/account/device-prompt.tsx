@@ -211,11 +211,7 @@ export function DevicePromptBody({ prompt }: { prompt: DevicePrompt }) {
   );
 }
 
-/**
- * Shows what a hardware wallet asks for in a sheet of its own. While another
- * sheet is up, the sheet route shows it there instead, since one sheet at a
- * time is all a phone presents.
- */
+/** While another sheet is up, the sheet route shows the prompt instead: a phone presents one sheet at a time. */
 export function DevicePromptHost() {
   const [hosted, setHosted] = useState<DevicePrompt | null>(null);
 

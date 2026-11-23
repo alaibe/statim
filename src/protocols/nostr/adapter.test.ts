@@ -74,8 +74,7 @@ describe("the self participant", () => {
     const { session } = await connect();
 
     expect(session.self.participantId).toBe(alice.publicKey);
-    // There is no Ethereum address on this protocol; the npub is the
-    // human-facing identifier, so the UI has something to render.
+    // No Ethereum address on Nostr: the npub is the human-facing identifier.
     expect(session.self.address).toBe(encodeNpub(Uint8Array.from(hexBytes(alice.publicKey))));
     expect(session.self.address.startsWith("npub1")).toBe(true);
   });
@@ -304,8 +303,7 @@ describe("sending", () => {
 
     await session.send(chat.id, { kind: "text", text: "hi bob" });
 
-    // Alice and Bob: without the self-addressed copy she cannot read her own
-    // outbox on another device.
+    // Alice and Bob: without the self-addressed copy she cannot read her own outbox on another device.
     expect(factory.relays[0].published).toHaveLength(2);
     expect(factory.relays[0].published.every((e) => e.kind === 1059)).toBe(true);
 
@@ -601,8 +599,7 @@ describe("groups, honestly", () => {
 
     const members = await session.getMembers(group.id);
     expect(members.map((m) => m.role)).toEqual(["member", "member", "member"]);
-    // Claiming an owner would make the UI offer destructive actions that do
-    // nothing.
+    // Claiming an owner would make the UI offer destructive actions that do nothing.
     expect(group.selfRole).toBeUndefined();
   });
 
@@ -663,8 +660,7 @@ describe("groups, honestly", () => {
     await session.renameGroup(group.id, "New");
     await session.send(group.id, { kind: "text", text: "renamed" });
 
-    // The rename travels as a `subject` tag on the next message; there is no
-    // rename event in NIP-17.
+    // The rename travels as a `subject` tag on the next message; NIP-17 has no rename event.
     expect(factory.relays[0].published[0].kind).toBe(1059);
     const [chat] = await session.listChats();
     expect(chat.title).toBe("New");

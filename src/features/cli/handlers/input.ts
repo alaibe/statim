@@ -8,7 +8,6 @@ export async function stdinText(io: CliIo): Promise<string | undefined> {
   return io.stdinTty ? undefined : new TextDecoder().decode(await io.stdin());
 }
 
-/** Piped input when there is some, a prompt at a terminal otherwise. */
 export async function readText(io: CliIo, prompt: string, secret = false): Promise<string> {
   return (await stdinText(io))?.trim() ?? io.prompt(prompt, secret);
 }

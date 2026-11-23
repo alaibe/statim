@@ -4,11 +4,7 @@ import type { SqliteRemoteDatabase } from "drizzle-orm/sqlite-proxy";
 
 import { MIGRATIONS } from "./migrations";
 
-/**
- * Drizzle's own migration, over the bundled files: what is newer than the last one recorded, in one
- * transaction. One whose SQL is already recorded under an earlier timestamp, as when drizzle-kit
- * generates it again, is recorded without running twice.
- */
+/** A migration whose SQL is recorded under an earlier timestamp (drizzle-kit regenerated it) is not rerun. */
 export async function migrate(
   db: SqliteRemoteDatabase,
   migrations: readonly MigrationMeta[] = MIGRATIONS,

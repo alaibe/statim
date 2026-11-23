@@ -11,7 +11,6 @@ import { cn, Enter, Exit, Icon, Pressable, Text } from "@/design";
 
 import { useChatSession } from "./use-chat-permissions";
 
-/** The buttons plugins offer above the composer, minus those whose command this protocol lacks. */
 export function QuickActions({
   chatId,
   scope,

@@ -2,7 +2,6 @@ import { hexToBytes } from "@noble/hashes/utils.js";
 
 import { deriveEd25519 } from "./slip10";
 
-/** SLIP-0010 test vector 1, ed25519. */
 const SEED = hexToBytes("000102030405060708090a0b0c0d0e0f");
 
 describe("deriveEd25519", () => {
@@ -23,8 +22,7 @@ describe("deriveEd25519", () => {
   });
 
   it("refuses an unhardened segment instead of quietly hardening it", () => {
-    // The curve cannot do unhardened derivation. Hardening the path silently would hand back a
-    // different key than the path names.
+    // The curve has no unhardened derivation; hardening silently would return a key the path does not name.
     expect(() => deriveEd25519(SEED, "m/44'/501'/0'/0")).toThrow(/hardened-only/);
   });
 

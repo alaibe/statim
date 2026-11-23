@@ -10,7 +10,6 @@ export function QrCode({ value, size = 220 }: { value: string; size?: number }) 
   );
 }
 
-/** Cycles through the frames of a payload too big for one code. */
 export function AnimatedQrCode({ parts }: { parts: string[] }) {
   const [tick, setTick] = useState(0);
 

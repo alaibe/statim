@@ -11,8 +11,7 @@ type Segment =
 
 export type LinkSegment = Exclude<Segment, { kind: "text" }>;
 
-// Bare domains (no scheme, no www.) only count with one of these endings, so
-// "index.ts" and "e.g." stay prose while "github.com/foo" becomes a link.
+// Bare domains count only with one of these endings, so "index.ts" and "e.g." stay prose.
 const BARE_TLDS =
   "com|net|org|io|dev|app|co|me|xyz|info|ai|gg|tv|fm|so|sh|to|cc|ly|link|tech|site|" +
   "online|store|shop|blog|news|page|cloud|design|studio|agency|finance|fr|de|uk|us|eu|" +

@@ -21,7 +21,6 @@ export interface WalletChain {
   icon: IconName;
   description: string;
   evm?: Chain;
-  /** A test chain: its coin comes from a faucet and is worth nothing. */
   testnet?: boolean;
   strategy(context: PluginContext): ChainStrategy;
   poll?(context: PluginContext, say: Say): Promise<void>;
@@ -81,7 +80,6 @@ export async function enabledChains(context: PluginContext): Promise<WalletChain
   return chainsOf(await enabledIds(context));
 }
 
-/** Pass `enabled` when the caller has already read the enabled ids. */
 export async function activeChain(context: PluginContext, enabled?: ChainId[]): Promise<WalletChain | null> {
   const [ids, saved] = await Promise.all([enabled ?? enabledIds(context), context.storage.get<string>(STORAGE_ACTIVE)]);
   const on = chainsOf(ids);
@@ -157,7 +155,6 @@ export function defaultChain<T extends ChainStrategy>(chains: T[], recipient?: s
   return from.find((c) => c.id === configuredDefault) ?? from.find((c) => c.id === "ethereum") ?? from[0];
 }
 
-/** The strategy `--chain` names, from those switched on. */
 export function pickStrategy<T extends ChainStrategy>(chains: T[], named: string): { chain: T } | { error: string } {
   const chain = chains.find((c) => c.id === named);
   return chain ? { chain } : { error: notSwitchedOn(named) };
@@ -165,17 +162,11 @@ export function pickStrategy<T extends ChainStrategy>(chains: T[], named: string
 
 export type PickedSendable = {
   chain: ChainStrategy;
-  /** Every chain that can send, for the forms to offer. */
   chains: ChainStrategy[];
   token?: string;
   rest: string[];
 };
 
-/**
- * A chain to send on: the one `--chain` names, else the default for the
- * recipient `recipientOf` finds among the positional args. Preferences are
- * only read when nothing was named.
- */
 export async function pickSendable(
   context: PluginContext,
   args: string[],

@@ -140,7 +140,6 @@ interface PaymentRequest {
 
 const COINS = { bitcoin: { name: "Bitcoin", symbol: "BTC" }, solana: { name: "Solana", symbol: "SOL" } };
 
-/** The /send that pays `link`, which for a token first reads its decimals. */
 export async function paymentRequest(link: PaymentLink): Promise<PaymentRequest> {
   const spec = EVM_CHAINS.find((c) => c.id === link.chain);
   const coin = spec

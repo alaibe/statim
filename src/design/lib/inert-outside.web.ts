@@ -8,11 +8,7 @@ export function useInertOutside(ref: RefObject<View | null>): void {
   }, [ref]);
 }
 
-/**
- * Marks every element outside `inside` inert, which also blurs a focused
- * field behind it. Portals hung off the body, such as an open popover, are
- * hidden as well, since they would otherwise paint above. Returns the undo.
- */
+/** Portals hung off the body, such as an open popover, are hidden too, or they would paint above. */
 function inertOutside(inside: HTMLElement): () => void {
   const undo: (() => void)[] = [];
   for (let node = inside; node.parentElement; node = node.parentElement) {

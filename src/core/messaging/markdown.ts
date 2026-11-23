@@ -36,8 +36,7 @@ export type Block = (
   readonly spaced?: boolean;
 };
 
-// Chat text is not a document: indentation and underlined lines are not code
-// or headings there, so those two CommonMark rules are off.
+// Chat text is not a document: indented code and underlined headings are off.
 const marked = new Marked({
   gfm: true,
   breaks: true,
@@ -52,8 +51,7 @@ const marked = new Marked({
 
 const MARKUP = /[*_~`>#[\\]|^\s*(?:[-+]|\d+[.)])\s/m;
 
-// GFM's own rule for a bare address. Outside a link label marked takes it as
-// written, so a backslash escape there would stay in the link.
+// GFM's bare-address rule; outside a link label marked takes it as written, backslash escapes included.
 const AUTOLINK = /(?:(?:https?|ftp):\/\/|www\.)[a-z0-9-][^\s<]*/gi;
 
 export function hasMarkup(text: string): boolean {
