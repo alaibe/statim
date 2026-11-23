@@ -146,6 +146,8 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     this.members.clear();
     this.pendingMembers.clear();
     this.awaitedMedia.clear();
+    this.mediaPaths.clear();
+    this.unfetched.clear();
     this.avatars.clear();
     this.presence.clear();
     this.features.clear();
