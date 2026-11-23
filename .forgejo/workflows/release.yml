@@ -5,7 +5,8 @@
 #
 # Runners (the homeserver repository has their setup):
 #   mac         forgejo-runner on the Mac, steps on the Mac itself with its Xcode, rustup, Node, gh, EAS and Android SDK
-#   home-linux  forgejo-runner on the home server, Ubuntu 22.04 containers with nothing cached
+#   home-linux  forgejo-runner on the home server, Ubuntu 22.04 containers, two at a time, with the runner's /cache
+#               volume (homeserver AGENTS.md, "ci-cache"), which the linux job keeps its build and packages in
 #   windows     a Windows 11 VM on the home server, steps on Windows itself
 #
 # - prepare (`home-linux`): the version files agree with the tag, the app carries the update key, GitHub has the tag
@@ -191,12 +192,13 @@ jobs:
             [ -n "${!name}" ] || { echo "The $name secret is not set." >&2; exit 1; }
           done
 
-      # The Rust in rust-toolchain.toml, with its targets, through the Mac's own rustup.
+      # The Rust in rust-toolchain.toml, and the universal build's two targets, through the Mac's own rustup.
       - name: The Mac's tools
         run: |
           WORK=$(mktemp -d)
           echo "WORK=$WORK" >> "$GITHUB_ENV"
           rustup install --no-self-update
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
           cargo --version
           # Whole outputs: `| head` would end a command early, and the pipe's SIGPIPE fails the step.
           xcodebuild -version; node --version; npm --version; gh --version
@@ -307,11 +309,13 @@ jobs:
       - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       # Tauri's own prerequisites, plus cmake for aws-lc (matrix-sdk), perl for OpenSSL (SQLCipher) and libudev for
-      # hidapi (Ledger).
+      # hidapi (Ledger). The .debs come from the runner's cache, one job at a time, since apt refuses a locked one.
       - name: Linux packages and gh
         run: |
+          sudo mkdir -p /cache/apt/archives/partial
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
+          sudo flock /cache/apt/lock apt-get install -y --no-install-recommends \
+            -o Dir::Cache::Archives=/cache/apt/archives \
             libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev \
             libssl-dev libayatana-appindicator3-dev librsvg2-dev \
             cmake perl libudev-dev pkg-config patchelf xdg-utils
@@ -319,8 +323,8 @@ jobs:
           echo "$GH_SHA256  $RUNNER_TEMP/gh.tar.gz" | sha256sum -c -
           sudo tar -xzf "$RUNNER_TEMP/gh.tar.gz" -C /usr/local --strip-components=1
 
-      # The Rust in rust-toolchain.toml, with its components and targets. The Linux image has no rustup: a minimal one
-      # goes in first, without a default toolchain, and on the PATH for the next steps.
+      # The Rust in rust-toolchain.toml, with its components. The Linux image has no rustup: a minimal one goes in first,
+      # without a default toolchain, and on the PATH for the next steps.
       - name: Rust
         run: |
           if ! command -v rustup > /dev/null; then
@@ -334,6 +338,17 @@ jobs:
       - uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .node-version
+
+      # The runner's /cache volume (homeserver AGENTS.md, "ci-cache"): Cargo's registry, this job's build and npm's
+      # cache stay from one release to the next. Set after rustup, whose binaries stay in the job's own ~/.cargo. Only
+      # this version's packages in the bundle folder.
+      - name: Caches
+        run: |
+          echo "CARGO_HOME=/cache/cargo" >> "$GITHUB_ENV"
+          echo "CARGO_TARGET_DIR=/cache/target/statim/linux" >> "$GITHUB_ENV"
+          echo "npm_config_cache=/cache/npm" >> "$GITHUB_ENV"
+          rm -rf /cache/target/statim/linux/release/bundle
+
       - name: JavaScript packages
         run: npm ci
 
@@ -356,7 +371,7 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: |
           shopt -s nullglob
-          bundle=src-tauri/target/release/bundle
+          bundle="$CARGO_TARGET_DIR/release/bundle"
           files=($bundle/deb/*.deb $bundle/rpm/*.rpm $bundle/appimage/*.AppImage)
           [ ${#files[@]} -eq 3 ] || { echo "the deb, rpm and AppImage weren't all built: ${files[*]}" >&2; exit 1; }
           for file in "${files[@]}"; do
