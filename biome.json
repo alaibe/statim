@@ -9,7 +9,6 @@
       "!android/**",
       "!dist/**",
       "!src-tauri/**",
-      "!public/**",
       "!priv/**",
       "!patches/**",
       "!src/global.css",

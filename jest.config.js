@@ -25,6 +25,6 @@ module.exports = {
   },
   // These packages ship untranspiled ESM/Flow and must go through Babel.
   transformIgnorePatterns: [
-    "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|@xmtp/.*|@scure/.*|@noble/.*|viem|nativewind|react-native-css-interop|@ngraveio/.*|@keystonehq/.*|uuid))",
+    "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-native-svg|@xmtp/.*|@scure/.*|@noble/.*|viem|nativewind|react-native-css-interop|@ngraveio/.*|@keystonehq/.*|uuid))",
   ],
 };
