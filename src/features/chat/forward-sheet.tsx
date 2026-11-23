@@ -1,27 +1,20 @@
 import { FlashList } from "@shopify/flash-list";
 import { View } from "react-native";
 import { errorMessage } from "@/core/errors";
-import { selfIdFor, useChatStore } from "@/core/messaging/chat-store";
-import { chatTitle } from "@/core/messaging/display-names";
+import { sessionFor, useChatStore } from "@/core/messaging/chat-store";
+import { chatPermissions } from "@/core/messaging/permissions";
 import { contentPreview } from "@/core/messaging/preview";
-import type { ChatId, ChatMessage, ParticipantId } from "@/core/messaging/types";
+import type { ChatId, ChatMessage } from "@/core/messaging/types";
 import { ListItem, Sheet, toast } from "@/design";
 import { ChatAvatar } from "./chat-avatar";
+import { useChatTitles } from "./use-display-names";
 
-export function ForwardSheet({
-  message,
-  from,
-  nameFor,
-  onClose,
-}: {
-  message: ChatMessage;
-  from: ChatId;
-  nameFor: (id: ParticipantId) => string;
-  onClose: () => void;
-}) {
+export function ForwardSheet({ message, from, onClose }: { message: ChatMessage; from: ChatId; onClose: () => void }) {
   const chats = useChatStore((s) => s.chats);
   const sessions = useChatStore((s) => s.sessions);
   const sendMessage = useChatStore((s) => s.sendMessage);
+  const targets = chats.filter((c) => c.id !== from && chatPermissions(c, sessionFor({ sessions }, c.id)).send);
+  const { titleOf, selfIdOf } = useChatTitles(targets);
 
   return (
     <Sheet visible onClose={onClose} title="Forward to" subtitle={contentPreview(message.content)}>
@@ -30,24 +23,21 @@ export function ForwardSheet({
         className="max-h-[420px] overflow-hidden rounded-card bg-surface-raised"
       >
         <FlashList
-          data={chats.filter((c) => c.id !== from)}
+          data={targets}
           keyExtractor={(c) => c.id}
-          renderItem={({ item }) => {
-            const selfId = selfIdFor({ sessions }, item.protocol);
-            return (
-              <ListItem
-                testID={`forward-to-${item.id}`}
-                title={chatTitle(item, selfId, nameFor)}
-                leading={<ChatAvatar chat={item} selfId={selfId} size="sm" />}
-                onPress={() => {
-                  onClose();
-                  sendMessage(item.id, message.content)
-                    .then(() => toast.success("Forwarded"))
-                    .catch((e) => toast.error(errorMessage(e, "Could not forward")));
-                }}
-              />
-            );
-          }}
+          renderItem={({ item }) => (
+            <ListItem
+              testID={`forward-to-${item.id}`}
+              title={titleOf(item)}
+              leading={<ChatAvatar chat={item} selfId={selfIdOf(item)} size="sm" />}
+              onPress={() => {
+                onClose();
+                sendMessage(item.id, message.content)
+                  .then(() => toast.success("Forwarded"))
+                  .catch((e) => toast.error(errorMessage(e, "Could not forward")));
+              }}
+            />
+          )}
         />
       </View>
     </Sheet>
