@@ -41,7 +41,8 @@ npm run format && npm run typecheck && npm run lint && npm test
 Biome formats TypeScript and JSON and sorts imports, rustfmt formats
 `src-tauri`. Neither lints; `expo lint` (ESLint) does that. CI
 (`.forgejo/workflows/ci.yml`) runs `npm run format:check`, the lint, the type
-check and the tests on every push, and also checks:
+check and the tests on every push but the nightly's version commit, and also
+checks:
 
 - Swift with `swift format lint --strict` (`.swift-format`); fix it with
   `swift format --in-place <files>`.

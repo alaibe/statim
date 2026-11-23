@@ -1,13 +1,15 @@
 # Checks every push to Statim against the shared code standard (homeserver's AGENTS.md › Code standards), on
-# git.laibe.cc's home runner (homeserver repository, `forgejo-runner/`). A failure reaches ntfy through the home
-# server's actions-alerts.sh; the desktop and phone builds stay in release.yml, and nightly.yml runs the type check,
-# the tests and the iPhone end-to-end suite again on the Mac before tagging a release.
+# git.laibe.cc's runners (homeserver repository, `forgejo-runner/`). A failure reaches ntfy through the home server's
+# actions-alerts.sh; the desktop and phone builds stay in release.yml, and nightly.yml runs the type check and the
+# tests again on the Mac before tagging a release. The nightly's version commit isn't checked: nightly.yml has just
+# run them on that tree, and the release it tags needs the runner.
 #
-# - check: one Format, Lint, Types, Tests sequence over every language: the TypeScript (Biome, ESLint, tsc, Jest), the
-#   desktop crate in src-tauri (rustfmt, Clippy, `cargo test`) and the shell scripts (shfmt, shellcheck, `bash -n`).
-#   The crate builds from scratch with TDLib and Tauri's Linux packages, so a push takes about 13 minutes longer than
-#   the TypeScript alone; the runner takes one job at a time, so a job of its own would only repeat the setup.
-# - swift: swift-format's lint of every Swift file, in Swift's official image, whose toolchain has swift-format.
+# - check (`home-linux`): one Format, Lint, Types, Tests sequence over every language: the TypeScript (Biome, ESLint,
+#   tsc, Jest), the desktop crate in src-tauri (rustfmt, Clippy, `cargo test`) and the shell scripts (shfmt,
+#   shellcheck, `bash -n`). Cargo's registry and this job's build, npm's cache and the Linux packages stay on the
+#   runner's /cache volume (homeserver AGENTS.md, "ci-cache"), so a push compiles only the crates that changed.
+# - swift (`home-linux`): swift-format's lint of every Swift file, in Swift's official image, whose toolchain has
+#   swift-format. It runs beside check, in the runner's second slot.
 
 name: CI
 
@@ -27,6 +29,8 @@ env:
 
 jobs:
   check:
+    # Not the nightly's version commit (nightly@git.laibe.cc in all three apps); a run by hand has no head_commit.
+    if: ${{ github.event.head_commit.author.email != 'nightly@git.laibe.cc' }}
     runs-on: home-linux
     timeout-minutes: 90
     env:
@@ -37,17 +41,20 @@ jobs:
       - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       # As release.yml's linux job: Tauri's own prerequisites, plus cmake for aws-lc (matrix-sdk), perl for OpenSSL
-      # (SQLCipher) and libudev for hidapi (Ledger).
+      # (SQLCipher) and libudev for hidapi (Ledger). The .debs come from the runner's cache, one job at a time, since
+      # apt refuses a locked one.
       - name: Linux packages
         run: |
+          sudo mkdir -p /cache/apt/archives/partial
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
+          sudo flock /cache/apt/lock apt-get install -y --no-install-recommends \
+            -o Dir::Cache::Archives=/cache/apt/archives \
             libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev \
             libssl-dev libayatana-appindicator3-dev librsvg2-dev \
             cmake perl libudev-dev pkg-config patchelf xdg-utils
 
-      # The Rust in rust-toolchain.toml, with its components (rustfmt, Clippy) and targets. The Linux image has no
-      # rustup: a minimal one goes in first, without a default toolchain, and on the PATH for the next steps.
+      # The Rust in rust-toolchain.toml, with its components (rustfmt, Clippy). The Linux image has no rustup: a minimal
+      # one goes in first, without a default toolchain, and on the PATH for the next steps.
       - name: Rust
         run: |
           if ! command -v rustup > /dev/null; then
@@ -66,6 +73,15 @@ jobs:
       - uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .node-version
+
+      # The runner's /cache volume (homeserver AGENTS.md, "ci-cache"): Cargo's registry, this job's build and npm's
+      # cache stay from one push to the next. Set after rustup and install-action, whose binaries stay in the job's
+      # own ~/.cargo.
+      - name: Caches
+        run: |
+          echo "CARGO_HOME=/cache/cargo" >> "$GITHUB_ENV"
+          echo "CARGO_TARGET_DIR=/cache/target/statim/check" >> "$GITHUB_ENV"
+          echo "npm_config_cache=/cache/npm" >> "$GITHUB_ENV"
 
       - name: JavaScript packages
         run: npm ci
@@ -106,8 +122,7 @@ jobs:
           cargo test --manifest-path src-tauri/Cargo.toml --locked
 
   swift:
-    needs: check
-    if: ${{ !cancelled() }}
+    if: ${{ github.event.head_commit.author.email != 'nightly@git.laibe.cc' }}
     runs-on: home-linux
     timeout-minutes: 15
     # Not a -slim tag, whose toolchain has no swift-format. The release nearest Xcode 27.2's swift format (6.4.4).
