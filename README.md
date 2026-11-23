@@ -81,7 +81,7 @@ release every night when the app changed. The GitHub copy is a mirror.
 
 ## Quick start
 
-Node.js 24, Xcode 26.3 with an iPhone simulator, and CocoaPods. Rust as
+Node.js 24, Xcode 27.2 with an iPhone simulator, and CocoaPods. Rust as
 well for the desktop app, and for Android its SDK and a JDK from 17 to 21.
 Expo Go cannot run this: XMTP, TDLib, SQLCipher and the hardware wallet
 transports are all native modules.
