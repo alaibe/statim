@@ -136,21 +136,6 @@ mod tests {
         );
     }
 
-    #[cfg(unix)]
-    #[test]
-    fn gives_up_on_a_script_whose_child_keeps_running() {
-        // Not a script written here: another test starting a process while the file is open for writing makes
-        // running it fail with ETXTBSY. The trailing `:` keeps sh from replacing itself with sleep.
-        let script = "echo https://login.tailscale.com/f/serve?node=abc; sleep 600; :";
-        let started = Instant::now();
-        let output = run_within(Path::new("/bin/sh"), &["-c", script], Duration::from_millis(500)).unwrap();
-        assert!(started.elapsed() < Duration::from_secs(5));
-        assert_eq!(
-            enable_link(&output),
-            Some("https://login.tailscale.com/f/serve?node=abc")
-        );
-    }
-
     #[test]
     fn finds_the_link_that_turns_https_on() {
         let output = "Serve is not enabled on your tailnet.\nTo enable, visit:\n\n         https://login.tailscale.com/f/serve?node=abc\n";

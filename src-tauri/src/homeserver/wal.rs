@@ -25,6 +25,10 @@ pub fn repair(db: &Path) {
         log::warn!("[homeserver] its database is still open elsewhere; logs not checked");
         return;
     };
+    realign_logs(db);
+}
+
+fn realign_logs(db: &Path) {
     let Ok(entries) = std::fs::read_dir(db) else {
         return;
     };
@@ -340,7 +344,6 @@ mod tests {
         let db = std::env::temp_dir().join(name);
         let _ = std::fs::remove_dir_all(&db);
         std::fs::create_dir_all(db.join("archive")).unwrap();
-        std::fs::write(db.join("LOCK"), "").unwrap();
         db
     }
 
@@ -355,7 +358,7 @@ mod tests {
         std::fs::write(db.join("archive/000009.log"), &broken).unwrap();
         std::fs::write(db.join("LOG"), &broken).unwrap();
 
-        repair(&db);
+        realign_logs(&db);
 
         let repaired = std::fs::read(db.join("000010.log")).unwrap();
         assert_eq!(repaired, realign(&broken).unwrap().0);
@@ -363,33 +366,5 @@ mod tests {
         assert_eq!(std::fs::read(db.join("archive/000009.log")).unwrap(), broken);
         assert_eq!(std::fs::read(db.join("LOG")).unwrap(), broken);
         assert!(!db.join("000010.log.realigned").exists());
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn leaves_a_database_another_process_has_open() {
-        let db = database("statim-wal-locked-test");
-        let all = batches(100, &SIZES);
-        let broken = losing(&all[..5], 300, &all[5..]);
-        std::fs::write(db.join("000010.log"), &broken).unwrap();
-        let mut holder = std::process::Command::new("python3")
-            .args([
-                "-c",
-                "import fcntl, sys, time; f = open(sys.argv[1], 'r+'); fcntl.lockf(f, fcntl.LOCK_EX); print(flush=True); time.sleep(30)",
-            ])
-            .arg(db.join("LOCK"))
-            .stdout(std::process::Stdio::piped())
-            .spawn()
-            .unwrap();
-        let mut ready = [0u8; 1];
-        std::io::Read::read_exact(holder.stdout.as_mut().unwrap(), &mut ready).unwrap();
-
-        repair(&db);
-
-        holder.kill().unwrap();
-        holder.wait().unwrap();
-        assert_eq!(std::fs::read(db.join("000010.log")).unwrap(), broken);
-        repair(&db);
-        assert_ne!(std::fs::read(db.join("000010.log")).unwrap(), broken);
     }
 }

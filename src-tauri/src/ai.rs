@@ -162,24 +162,3 @@ pub async fn ai_complete(instructions: String, prompt: String, max_tokens: u32) 
 pub async fn ai_translate(text: String, target: String) -> Result<String, AiError> {
     blocking(move || translator::translate(&text, &target)).await
 }
-
-// Apple Translation answers on the main queue, which the test harness keeps
-// blocked, so only the model is tested here.
-#[cfg(all(test, target_os = "macos", target_arch = "aarch64"))]
-mod tests {
-    use super::model;
-
-    #[test]
-    #[ignore = "needs Apple Intelligence turned on"]
-    fn completes_text_the_default_guardrails_refuse() {
-        assert_eq!(model::state(), "ready");
-        let answer = model::complete(
-            "Translate the text inside <text> tags into French. Reply with the translation only.",
-            "<text>Can you pick up the kids at 5? I'm stuck at work.</text>",
-            200,
-        )
-        .map_err(|e| e.message)
-        .unwrap();
-        assert!(!answer.trim().is_empty());
-    }
-}

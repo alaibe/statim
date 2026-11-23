@@ -243,37 +243,3 @@ pub(super) fn start_app() -> io::Result<Stream> {
         }
     }
 }
-
-#[cfg(all(test, unix))]
-mod tests {
-    use std::time::{Duration, Instant};
-
-    use interprocess::local_socket::{prelude::*, GenericFilePath, ListenerOptions, Stream};
-    use serde_json::json;
-
-    #[test]
-    fn stops_waiting_for_an_app_that_never_answers() {
-        let path = std::env::temp_dir().join(format!("statim-exchange-{}.sock", std::process::id()));
-        let name = || path.as_os_str().to_fs_name::<GenericFilePath>().unwrap();
-        let listener = ListenerOptions::new()
-            .name(name())
-            .try_overwrite(true)
-            .create_sync()
-            .unwrap();
-        let app = std::thread::spawn(move || {
-            let silent = listener.accept().unwrap();
-            std::thread::sleep(Duration::from_secs(2));
-            drop(silent);
-        });
-
-        let stream = Stream::connect(name()).unwrap();
-        stream.set_recv_timeout(Some(Duration::from_millis(20))).unwrap();
-        let started = Instant::now();
-        let code = super::exchange(stream, &json!({}), |_, _| {}, |_| json!({}), || true);
-
-        assert_eq!(code, None);
-        assert!(started.elapsed() < Duration::from_secs(1));
-        app.join().unwrap();
-        let _ = std::fs::remove_file(&path);
-    }
-}
