@@ -1,4 +1,4 @@
-import { type Address, type Hex, hexToString, isHex, type SignableMessage } from "viem";
+import { type Address, type Hex, hexToString, isHex, type SignableMessage, toHex } from "viem";
 
 import type { PluginContext } from "@/core/plugins/types";
 import { fromCaip2 } from "@/lib/evm/chains";
@@ -15,6 +15,9 @@ export async function handleSessionRequest(
   switch (item.method) {
     case "eth_accounts":
       return [account.address];
+
+    case "eth_chainId":
+      return toHex(resolveChainId(item.chainId));
 
     case "personal_sign": {
       const [rawMessage] = item.params as [Hex | string, Address];
