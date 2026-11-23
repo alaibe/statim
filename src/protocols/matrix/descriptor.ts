@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import { localHomeserverUrl, startHomeserver } from "@/core/homeserver";
 import type { ProtocolDescriptor } from "@/core/messaging/registry";
 import { guideUrl } from "@/lib/guide";
+import { PLATFORM_NAME } from "@/lib/platform-name";
 import { accountDirectory, eraseAccountDirectory } from "@/storage/media";
 import { accountMatrixSessionKey, accountMatrixStoreKey, vaultDelete, vaultGet, vaultSet } from "@/storage/vault";
 
@@ -10,7 +11,11 @@ import type { MxSession } from "./api";
 import { USER_ID } from "./ids";
 
 /** What the homeserver lists for this app under Sessions. */
-export const DEVICE_NAME = `Statim on ${Platform.select({ ios: "iPhone", android: "Android", default: "Mac" })}`;
+export const DEVICE_NAME = `Statim on ${Platform.select({
+  ios: "iPhone",
+  android: "Android",
+  default: PLATFORM_NAME === "macOS" ? "Mac" : PLATFORM_NAME,
+})}`;
 
 export const MATRIX_PROTOCOL = {
   id: "matrix",
