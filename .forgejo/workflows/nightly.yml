@@ -1,4 +1,5 @@
 # 07:30 in Paris, after Grenier's and Kestrel's nightlies; Forgejo reads a bare cron as UTC.
+
 name: Nightly release
 
 on:
@@ -26,16 +27,22 @@ jobs:
     steps:
       - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          ref: main
           fetch-depth: 0
 
       - id: due
         name: Commits since the last release
         run: |
-          LAST=$(git describe --tags --abbrev=0 --match 'v*' HEAD)
+          LAST=$(git describe --tags --abbrev=0 --match 'v*' HEAD 2>/dev/null || true)
+          if [ -z "$LAST" ]; then
+            echo "No release yet: the first is due."
+            echo "due=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           COUNT=$(git rev-list --count "$LAST..HEAD")
           APP=$(git rev-list --count "$LAST..HEAD" -- . ':(exclude).forgejo' ':(exclude).github' ':(exclude,glob)*.md')
           echo "$COUNT commits since $LAST, $APP of them changing the app"
-          if [ "$APP" -gt 0 ]; then echo "due=true" >> "$GITHUB_OUTPUT"; else echo "due=false" >> "$GITHUB_OUTPUT"; fi
+          [ "$APP" -eq 0 ] || echo "due=true" >> "$GITHUB_OUTPUT"
 
   tag:
     needs: due
@@ -50,6 +57,7 @@ jobs:
       # actions/checkout adds a safe.directory to the global git config: a throwaway one, not Anthony's ~/.gitconfig.
       - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          ref: main
           fetch-depth: 0
         env:
           GIT_CONFIG_GLOBAL: ${{ runner.temp }}/gitconfig

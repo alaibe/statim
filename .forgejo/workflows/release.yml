@@ -153,7 +153,7 @@ jobs:
           rustup install --no-self-update
           rustup target add aarch64-apple-darwin x86_64-apple-darwin
           cargo --version
-          # No `| head`: its SIGPIPE fails the step.
+          # Whole outputs: `| head` would end a command early, and the pipe's SIGPIPE fails the step.
           xcodebuild -version; node --version; npm --version; gh --version
 
       - name: JavaScript packages
@@ -197,7 +197,7 @@ jobs:
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
-          # NOTARIZE stays off until Apple's new developer agreement is accepted.
+          # A repository variable, off until Apple's new developer agreement is accepted.
           NOTARIZE: ${{ vars.NOTARIZE }}
         run: |
           STAGE="$WORK/dmg"
@@ -260,7 +260,7 @@ jobs:
       # cmake for aws-lc, perl for OpenSSL, libudev for hidapi; flock because apt refuses a cache another job holds.
       - name: Linux packages and gh
         run: |
-          # Ubuntu's main servers crawl from the home server; its French mirror is fast and carries -security too.
+          # archive.ubuntu.com crawls from the home server and security.ubuntu.com doesn't answer: Ubuntu's French mirror.
           sudo sed -i -E 's#https?://(archive|security)\.ubuntu\.com/ubuntu#http://fr.archive.ubuntu.com/ubuntu#g' /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
           sudo mkdir -p /cache/apt/archives/partial
           sudo apt-get update
@@ -288,13 +288,16 @@ jobs:
         with:
           node-version-file: .node-version
 
-      # After rustup, whose binaries stay in the job's own ~/.cargo.
+      # The last release's bundles go first, or they'd be attached again.
       - name: Caches
         run: |
-          echo "CARGO_HOME=/cache/cargo" >> "$GITHUB_ENV"
-          echo "CARGO_TARGET_DIR=/cache/target/statim/linux" >> "$GITHUB_ENV"
-          echo "npm_config_cache=/cache/npm" >> "$GITHUB_ENV"
-          rm -rf /cache/target/statim/linux/release/bundle
+          target=/cache/target/statim/linux
+          rm -rf "$target/release/bundle"
+          {
+            echo "CARGO_HOME=/cache/cargo"
+            echo "CARGO_TARGET_DIR=$target"
+            echo "npm_config_cache=/cache/npm"
+          } >> "$GITHUB_ENV"
 
       - name: JavaScript packages
         run: npm ci
@@ -302,7 +305,7 @@ jobs:
       - name: TDLib
         run: ./scripts/tdlib.sh desktop
 
-      # Not tauri-action: the runner hands JavaScript actions git.laibe.cc's GITHUB_TOKEN, which GitHub refuses.
+      # Not tauri-action: the runner gives JavaScript actions git.laibe.cc's GITHUB_TOKEN, which GitHub refuses.
       - name: Build the deb, rpm and AppImage
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -316,8 +319,8 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: |
           shopt -s nullglob
-          bundle="$CARGO_TARGET_DIR/release/bundle"
-          files=($bundle/deb/*.deb $bundle/rpm/*.rpm $bundle/appimage/*.AppImage)
+          bundle=$CARGO_TARGET_DIR/release/bundle
+          files=("$bundle"/deb/*.deb "$bundle"/rpm/*.rpm "$bundle"/appimage/*.AppImage)
           [ ${#files[@]} -eq 3 ] || { echo "the deb, rpm and AppImage weren't all built: ${files[*]}" >&2; exit 1; }
           for file in "${files[@]}"; do
             [ -f "$file.sig" ] || { echo "$file has no update signature" >&2; exit 1; }
@@ -379,7 +382,7 @@ jobs:
         run: |
           shopt -s nullglob
           bundle="$(cygpath -u "$CARGO_TARGET_DIR")/release/bundle"
-          files=($bundle/msi/*.msi $bundle/nsis/*-setup.exe)
+          files=("$bundle"/msi/*.msi "$bundle"/nsis/*-setup.exe)
           [ ${#files[@]} -eq 2 ] || { echo "the MSI and NSIS installer weren't both built: ${files[*]}" >&2; exit 1; }
           for file in "${files[@]}"; do
             [ -f "$file.sig" ] || { echo "$file has no update signature" >&2; exit 1; }
@@ -424,7 +427,7 @@ jobs:
           find . -maxdepth 1 -type f ! -name '*.sig' -printf '%f\n' | sort | xargs sha256sum -- > "$RUNNER_TEMP/SHA256SUMS"
           cat "$RUNNER_TEMP/SHA256SUMS"
 
-      # An installed copy looks up its own installer's key first, then the bare platform.
+      # FEED: each updater key, an installer's own before the bare one, and its file ({v} is the version).
       - name: latest.json
         working-directory: files
         env:

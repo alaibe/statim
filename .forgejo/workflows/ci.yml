@@ -10,9 +10,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: 0
+  CARGO_PROFILE_TEST_DEBUG: 0
   SHELLCHECK_VERSION: 0.11.0
   SHFMT_VERSION: 3.14.1
-  CARGO_TERM_COLOR: always
 
 jobs:
   check:
@@ -20,17 +23,16 @@ jobs:
     if: ${{ github.event.head_commit.author.email != 'nightly@git.laibe.cc' }}
     runs-on: home-linux
     timeout-minutes: 90
-    env:
-      CARGO_INCREMENTAL: 0
-      CARGO_PROFILE_DEV_DEBUG: 0
-      CARGO_PROFILE_TEST_DEBUG: 0
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       # cmake for aws-lc, perl for OpenSSL, libudev for hidapi; flock because apt refuses a cache another job holds.
       - name: Linux packages
         run: |
-          # Ubuntu's main servers crawl from the home server; its French mirror is fast and carries -security too.
+          # archive.ubuntu.com crawls from the home server and security.ubuntu.com doesn't answer: Ubuntu's French mirror.
           sudo sed -i -E 's#https?://(archive|security)\.ubuntu\.com/ubuntu#http://fr.archive.ubuntu.com/ubuntu#g' /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
           sudo mkdir -p /cache/apt/archives/partial
           sudo apt-get update
@@ -48,7 +50,8 @@ jobs:
             echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
             PATH="$HOME/.cargo/bin:$PATH"
           fi
-          rustup show active-toolchain || rustup toolchain install
+          rustup install --no-self-update
+          cargo --version
 
       - name: Tools
         uses: https://github.com/taiki-e/install-action@75a7c0f87bd666af3cdb75c5b9e9d03ab6044e6f # v2.90.6
@@ -59,12 +62,14 @@ jobs:
         with:
           node-version-file: .node-version
 
-      # After rustup and install-action, whose binaries stay in the job's own ~/.cargo.
+      # CARGO_HOME is set only now, so rustup's and install-action's binaries stay in the job's ~/.cargo.
       - name: Caches
         run: |
-          echo "CARGO_HOME=/cache/cargo" >> "$GITHUB_ENV"
-          echo "CARGO_TARGET_DIR=/cache/target/statim/check" >> "$GITHUB_ENV"
-          echo "npm_config_cache=/cache/npm" >> "$GITHUB_ENV"
+          {
+            echo "CARGO_HOME=/cache/cargo"
+            echo "CARGO_TARGET_DIR=/cache/target/statim/check"
+            echo "npm_config_cache=/cache/npm"
+          } >> "$GITHUB_ENV"
 
       - name: JavaScript packages
         run: npm ci
@@ -82,15 +87,15 @@ jobs:
 
       - name: Format
         run: |
-          npm run format:check
           xargs -0 -r shfmt -d -i 4 -ci -bn < "$RUNNER_TEMP/shell"
+          npm run format:check
 
       - name: Lint
         run: |
-          npm run lint
-          cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings
           xargs -0 -r shellcheck -S warning < "$RUNNER_TEMP/shell"
           xargs -0 -r -n 1 bash -n < "$RUNNER_TEMP/shell"
+          npm run lint
+          cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings
 
       - name: Types
         run: npm run typecheck
@@ -103,15 +108,15 @@ jobs:
   swift:
     if: ${{ github.event.head_commit.author.email != 'nightly@git.laibe.cc' }}
     runs-on: home-linux
-    timeout-minutes: 15
-    # Not -slim, which has no swift-format; the release nearest Xcode 27.2's swift format.
+    # Swift 6.4, as Xcode's swift-format on the Mac; the slim images have no toolchain.
     container:
       image: swift:6.4.2-noble
+    timeout-minutes: 15
     steps:
       # The image has git but not the Node actions/checkout runs on.
       - name: Node
         run: |
-          # Ubuntu's main servers crawl from the home server; its French mirror is fast and carries -security too.
+          # archive.ubuntu.com crawls from the home server and security.ubuntu.com doesn't answer: Ubuntu's French mirror.
           sed -i -E 's#https?://(archive|security)\.ubuntu\.com/ubuntu#http://fr.archive.ubuntu.com/ubuntu#g' /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
           apt-get update -qq
           apt-get install -y -qq --no-install-recommends nodejs > /dev/null
