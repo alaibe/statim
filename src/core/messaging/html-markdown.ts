@@ -208,7 +208,7 @@ function link(node: Element, label: string): string {
     return label.trim() && user ? `[${label}](${mentionHref(user)})` : label;
   }
   if (!label.trim() || textContent(node) === href) return href;
-  return `[${label}](${href.replace(/[()\s]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)})`;
+  return `[${label}](${href.replace(/[()\s]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`)})`;
 }
 
 function wrap(text: string, marker: string): string {
