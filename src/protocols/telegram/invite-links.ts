@@ -1,4 +1,4 @@
-import { TdRequestError } from "./api";
+import type { TdObject } from "./api";
 
 const INVITE_PREFIX = /^(?:https?:\/\/)?t\.me\/(?:\+|joinchat\/)/i;
 
@@ -13,12 +13,12 @@ export function normalizeInviteLink(value: string): string {
   return /^https?:\/\//i.test(link) ? link : `https://${link}`;
 }
 
-/** Null when the chat asks an administrator to approve the join first. */
-export async function joinOrRequest<T>(request: Promise<T>): Promise<T | null> {
-  try {
-    return await request;
-  } catch (error) {
-    if (error instanceof TdRequestError && error.message.includes("INVITE_REQUEST_SENT")) return null;
-    throw error;
-  }
+/** The joined chat's id, or null while its administrators review the request. */
+export async function joinedChatId(result: Promise<TdObject>): Promise<number | null> {
+  const { "@type": type, chat_id } = await result;
+  if (type === "chatJoinResultSuccess") return chat_id as number;
+  if (type === "chatJoinResultRequestSent") return null;
+  if (type === "chatJoinResultGuardBotApprovalRequired")
+    throw new Error("This chat's guard bot has to approve you. Join it from Telegram's own app.");
+  throw new Error("The chat declined the request to join.");
 }

@@ -6,7 +6,7 @@ import { inMainList, isCurrentMember } from "./chats";
 import { localUriOf } from "./files";
 import type { TelegramGroups } from "./groups";
 import { chatIdOf } from "./ids";
-import { isInviteLink, joinOrRequest, normalizeInviteLink } from "./invite-links";
+import { isInviteLink, joinedChatId, normalizeInviteLink } from "./invite-links";
 import type { TelegramHost } from "./service-host";
 import type { TdChat, TdFile, TdSupergroup } from "./types";
 import { nameOf } from "./users";
@@ -65,9 +65,13 @@ export class TelegramJoining {
       }));
     if (
       !isCurrentMember(group.status["@type"]) &&
-      (await joinOrRequest(this.host.api().send({ "@type": "joinChat", chat_id: chatId }))) === null
+      (await joinedChatId(this.host.api().send({ "@type": "joinChat", chat_id: chatId }))) === null
     )
       return null;
+    return this.joined(chatId);
+  }
+
+  private async joined(chatId: number): Promise<ProtocolChat> {
     const chat = await this.host.api().send<TdChat>({ "@type": "getChat", chat_id: chatId });
     this.host.td.chats.set(chatId, chat);
     return this.host.toChat(chat);
@@ -98,15 +102,10 @@ export class TelegramJoining {
   }
 
   private async joinInviteLink(link: string): Promise<ProtocolChat | null> {
-    const chat = await joinOrRequest(
-      this.host.api().send<TdChat>({
-        "@type": "joinChatByInviteLink",
-        invite_link: normalizeInviteLink(link),
-      }),
+    const chatId = await joinedChatId(
+      this.host.api().send({ "@type": "joinChatByInviteLink", invite_link: normalizeInviteLink(link) }),
     );
-    if (!chat) return null;
-    this.host.td.chats.set(chat.id, chat);
-    return this.host.toChat(chat);
+    return chatId === null ? null : this.joined(chatId);
   }
 
   async createInviteLink(id: ProtocolChatId, requiresApproval: boolean): Promise<string> {

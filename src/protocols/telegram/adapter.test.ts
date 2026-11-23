@@ -377,9 +377,9 @@ describe("TelegramSession chats", () => {
       description: "Daily updates",
     });
     expect(td().requests("searchPublicChat")[0]).toMatchObject({ username: "newsfeed" });
-    td().answer("joinChat", tdError(400, "INVITE_REQUEST_SENT"));
+    td().answer("joinChat", { "@type": "chatJoinResultRequestSent" });
     expect(await session.joinPublicChat("-1000000000009")).toBeNull();
-    td().answer("joinChat", { "@type": "ok" });
+    td().answer("joinChat", { "@type": "chatJoinResultSuccess", chat_id: -1_000_000_000_009 });
     expect(await session.joinPublicChat("-1000000000009")).toMatchObject({
       id: "-1000000000009",
       kind: "channel",
@@ -405,13 +405,14 @@ describe("TelegramSession chats", () => {
       memberCount: 12,
       requiresApproval: true,
     });
-    td().answer("joinChatByInviteLink", tdError(400, "INVITE_REQUEST_SENT"));
+    td().answer("joinChatByInviteLink", { "@type": "chatJoinResultRequestSent" });
     expect(await session.joinPublicChat("https://t.me/+abc123")).toBeNull();
     expect(td().requests("joinChatByInviteLink")[0]).toMatchObject({
       invite_link: "https://t.me/+abc123",
     });
 
-    td().answer("joinChatByInviteLink", channelChat(10, "Members only"));
+    td().answer("joinChatByInviteLink", { "@type": "chatJoinResultSuccess", chat_id: -1_000_000_000_010 });
+    td().answer("getChat", channelChat(10, "Members only"));
     expect(await session.joinPublicChat("https://t.me/+abc123")).toMatchObject({
       id: "-1000000000010",
       kind: "channel",
