@@ -338,19 +338,21 @@ export const walletCommands: SlashCommand[] = [
         }
 
         const sent = await commitTransfer(chain, context, params, {
-          onSent: (id) =>
-            respond({
+          onSent: (id) => {
+            const explorer = chain.explorer.transactionUrl(id);
+            return respond({
               kind: "widget",
               fallback: `Sent ${amount} ${symbol} to ${recipient}`,
               widget: W.card(
                 [
                   W.stat(`${amount} ${symbol}`, { label: `Sent to ${recipient}`, tone: "success" }),
                   W.code(id, { label: "Transaction" }),
-                  W.link(`View on ${chain.explorer.name}`, chain.explorer.addressUrl(recipient)),
+                  ...(explorer ? [W.link(`View on ${chain.explorer.name}`, explorer)] : []),
                 ],
                 { title: "Sent", icon: "checkmark-circle", tone: "success" },
               ),
-            }),
+            });
+          },
         });
         return sent.ok ? { type: "handled" } : { type: "error", message: sent.message };
       } catch (error) {
