@@ -403,7 +403,7 @@ jobs:
         with:
           node-version-file: .node-version
 
-      # The Rust in rust-toolchain.toml, with its components and targets, through the VM's own rustup.
+      # The Rust in rust-toolchain.toml, with its components, through the VM's own rustup.
       - name: Rust
         run: rustup show active-toolchain || rustup toolchain install
 

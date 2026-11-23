@@ -2,7 +2,7 @@
 # Runs the Maestro suite on a booted iOS simulator or Android device.
 #
 #   ./e2e/run.sh ios|android              the whole suite
-#   ./e2e/run.sh ios|android 03-plugins   one flow
+#   ./e2e/run.sh ios|android 01-launch    one flow
 #   ./e2e/run.sh ios|android --fresh      wipe the account first, then the whole suite
 #   E2E_DEVICE=<udid|serial> ...          pick the device when more than one is booted
 #   E2E_METRO_PORT=8084 ...               Metro's port, 8081 by default

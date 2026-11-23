@@ -18,7 +18,7 @@ import type {
 
 const UPDATE_EVENT = "matrix://update";
 
-/** The same crate as the phone, driven through `src-tauri/src/matrix.rs`. */
+/** The same crate as the phone, driven through `src-tauri/src/matrix/`. */
 class TauriMatrixClient implements MatrixApi {
   private readonly listeners = new Set<(update: MxUpdate) => void>();
   private unlisten: Promise<UnlistenFn> | null = null;

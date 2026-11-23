@@ -82,8 +82,6 @@ export function decryptNonceFirst(key: Uint8Array, data: Uint8Array): Uint8Array
   return gcm(key, data.subarray(0, NONCE_LENGTH)).decrypt(data.subarray(NONCE_LENGTH));
 }
 
-/** Waku's password-derived symmetric keys: PBKDF2-SHA256, no salt, 65356 rounds. */
-
 const ECIES_KEY_LENGTH = 16;
 const ECIES_BLOCK = 16;
 const ECIES_TAG = 32;

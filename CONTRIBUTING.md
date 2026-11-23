@@ -41,8 +41,7 @@ npm run format && npm run typecheck && npm run lint && npm test
 
 CI runs the same checks on every push, and also lints the Swift with
 swift-format and the shell scripts with shfmt and shellcheck, and runs Clippy
-and the Rust tests when `src-tauri` changes. [AGENTS.md](AGENTS.md) has their
-commands.
+and the Rust tests. [AGENTS.md](AGENTS.md) has their commands.
 
 For changes to a screen or user flow, also run `npm run test:e2e` with Metro and
 an iOS simulator running. See [e2e/README.md](e2e/README.md) for setup and
