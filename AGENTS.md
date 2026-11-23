@@ -1,217 +1,29 @@
 # Working in this repository
 
-## Expo HAS CHANGED
+Expo SDK 57 differs from what you remember: read https://docs.expo.dev/versions/v57.0.0/ before writing Expo, Expo Router or React Native code.
 
-Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before
-writing any code. What you remember about Expo, Expo Router or React Native is
-probably from an older SDK and probably wrong.
+## Checks
 
-## Comments
+Run `npm run format && npm run typecheck && npm run lint && npm test` before you finish. CI also runs these on what you touched:
 
-Keep comments to the minimum. Add one only when it explains something the code
-cannot make clear; never restate the code or add tautological commentary.
+- `src-tauri` or `src/core/usage/usage-vectors.json`: `cargo clippy --all-targets --locked -- -D warnings` and `cargo test --locked` in `src-tauri`.
+- Swift: `swift format lint --strict`. Shell: `shfmt -d -i 4 -ci -bn` and `shellcheck -S warning`.
 
-## Internal material goes in `priv/`
+The nightly ships main every morning, so every commit on main passes them.
 
-`priv/` is gitignored except its `.gitkeep`. The maintainer's own material and
-tooling live there: store listings and screenshots, the release process,
-compliance filings, marketing, code generators, screenshot capture, the local
-Nostr and Status networks, build artifacts. New material of that kind goes
-there too. `priv/` documents itself, including how each tool runs. A worktree
-has no `priv/`; use the main checkout's.
+## Rules
 
-## Website
-
-statim.laibe.cc lives in the laibe repository: the user guide, FAQ, privacy
-policy and disclaimer (`content/statim/`), and the commands that make the
-guide's screenshots, the sticker pack and the promo film (`php artisan
-statim:screenshots`, `statim:stickers`, `statim:promo`). When a change alters
-how the app is used or what it sends, update the guide or the privacy policy
-there. This repository holds the app and its release, on git.laibe.cc's Forgejo
-Actions: every morning at 07:30 (Paris) `.forgejo/workflows/nightly.yml` tags
-main when the app changed since the last release, and the tag starts
-`.forgejo/workflows/release.yml`, which builds the desktop and phone apps.
-
-## Before you finish
-
-```bash
-npm run format && npm run typecheck && npm run lint && npm test
-```
-
-Biome formats TypeScript and JSON and sorts imports, rustfmt formats
-`src-tauri`. Neither lints; `expo lint` (ESLint) does that. CI
-(`.forgejo/workflows/ci.yml`) runs `npm run format:check`, the lint, the type
-check and the tests on every push but the nightly's version commit, and also
-checks:
-
-- Swift with `swift format lint --strict` (`.swift-format`); fix it with
-  `swift format --in-place <files>`.
-- Shell scripts with `shfmt -d -i 4 -ci -bn` and `shellcheck -S warning`.
-- `src-tauri`, on every push, with
-  `cargo clippy --all-targets --locked -- -D warnings` and
-  `cargo test --locked`, run in that folder. Run them too when you change it,
-  or `src/core/usage/usage-vectors.json`, which its tests read.
-
-Before tagging, the nightly runs the type check and both test suites on the
-Mac, and checks that the iPhone app builds, installs and starts on a
-simulator. The Maestro suite, `./e2e/run.sh`, is run by hand.
-
-## Things that are not obvious from the code
-
-- Generated output is not editable. `ios/` and `android/` come from
-  `app.json` (`npx expo prebuild`); `src/storage/migrations/index.ts` from the
-  SQL files beside it (`npm run db:bundle`). Everything else comes from a
-  generator in `priv/`: `src/global.css` from `src/design/tokens.ts`;
-  `skills/statim/SKILL.md`, `src-tauri/cli/help.txt` and
-  `src-tauri/cli/mcp.json` from `src/features/cli/commands.ts`;
-  every icon from `assets/brand/mark.svg`, the one drawn by hand;
-  `chat-pattern-tile.ts`; both token lists. Editing the output is undone on
-  the next build.
-- `.web.ts` / `.web.tsx` is the desktop. There is no browser deployment.
-  A platform file must have a non-platform neighbour, and Expo Router needs a
-  non-platform file for every route.
-- Polyfill order in `index.js` is load-bearing. viem and WalletConnect
-  capture `globalThis.crypto` as they evaluate, so `src/polyfills` must run
-  before Expo Router builds the route tree. Biome's import sorting leaves
-  side-effect imports (`import "./crypto";`) where they are.
-- Protocols go in `src/protocols/<name>/` and implement `ChatSession`.
-  Persistence is `src/storage`. Do not mix the two.
-- Stored data moves forward by migration. For the account database, edit
-  `src/storage/schema.ts`, run `npm run db:generate` and commit the SQL it
-  writes. A shipped migration stays as it is; the next change is a new one.
-  SQL drizzle-kit cannot write, such as moving data, goes in a
-  `npm run db:generate -- --custom` migration; run `npm run db:bundle` once
-  its SQL is in. A change to what a vault entry holds is a step appended to
-  `VAULT_MIGRATIONS` in `src/storage/vault-migrations.ts`.
-- User-typed `/commands` are `SlashCommand`s contributed by a plugin, or
-  core commands in `src/core/commands`. Core commands get no plugin context.
-- Chat widgets are data, not components (`src/design/widgets/schema.ts`),
-  because a message is stored, forwarded and rendered by clients that may not
-  have the plugin that made it. Keep the union additive.
-- `statim <command>` is the desktop binary in client mode, talking
-  to the running app over a local socket; the page runs the command
-  (`src/features/cli`). A new store action fails typecheck until
-  `src/features/cli/coverage.ts` names its command or why it has none.
-- `src/core/usage` is the only code that reports to the developer: a page
-  view to stats.laibe.cc (Umami) per screen, from release builds, unless
-  Settings → Privacy turns it off. A screen is sent by its route pattern from
-  the list in `screens.ts`, and a new route fails `screens.test.ts` until it
-  is listed or left out on purpose. A screen counts once it has stayed a
-  second in front, and nothing is sent while the app is behind other apps,
-  before onboarding or while locked. The vault key `usage.store` holds the
-  switch and the install id: `{"id":…,"made":…}` (replaced at 365 days),
-  `{"off":true}`, or nothing (on, no id yet); anything else counts as off. A
-  wake from sleep with the app in front sends no return hit until the next
-  screen change or app switch, a known limit. `tracker.ts`, `use-usage.ts`
-  and `usage-vectors.json` are byte-for-byte copies of the ones in Kestrel and
-  Grenier: change all three together. A change to what it sends is a change
-  to the privacy policy and both stores' privacy answers.
-- `patches/` is load-bearing too.
+- Delete obsolete code outright, with no compatibility layer, fallback, shim, legacy path or migration of old data, config or formats.
+- The account database changes only through `src/storage/schema.ts` and `npm run db:generate`; commit the SQL and leave shipped migrations as they are.
+- Comments are one line, and only where the reason isn't obvious from the code.
+- Change generated files at their source: `ios/` and `android/` from `app.json`; `src/storage/migrations/index.ts` with `npm run db:bundle`; `src/global.css`, `skills/statim/SKILL.md`, `src-tauri/cli/help.txt`, `src-tauri/cli/mcp.json`, the icons, `chat-pattern-tile.ts` and the token lists with the generators in `priv/`.
+- `priv/` is gitignored and holds the maintainer's material and tooling; a worktree has none, so use the main checkout's.
+- `.web.ts(x)` is the desktop app, never a browser build, and each platform file needs a non-platform neighbour.
+- `index.js` loads `src/polyfills` before Expo Router: viem and WalletConnect capture `globalThis.crypto` as they evaluate.
+- Protocols live in `src/protocols/<name>/` behind `ChatSession`; persistence lives in `src/storage`.
+- `src/core/usage/tracker.ts`, `use-usage.ts` and `usage-vectors.json` are byte-for-byte copies of Kestrel's and Grenier's: change all three repositories together.
+- When a change alters how the app is used or what it sends, update the guide or privacy policy in the laibe repository (`content/statim/`).
 
 ## Words
 
-Use these words in code, UI text, the CLI and the guide. Code in `src/protocols/<name>/` that mirrors that protocol's own API keeps the protocol's words (a Matrix room, an XMTP inbox).
-
-### Messaging
-
-**Protocol**: A messaging system the app speaks itself: XMTP, Matrix, Telegram, Nostr or Status.
-_Avoid_: network, transport, service
-
-**Transport**: The part of a protocol that only moves messages, where the app keeps the chats and their history itself, as for Nostr and Status.
-
-**Network**: The service a chat lives on. It is the chat's protocol, or for a bridged chat, the service at the far end of the bridge, such as Slack or WhatsApp.
-_Avoid_: platform, service
-
-**Bridge**: A bot on a Matrix homeserver that carries chats between Matrix and another network.
-
-**Chat**: A place where participants exchange messages: a DM, a group or a channel.
-_Avoid_: conversation, room, dialog
-
-**DM**: A chat between you and one other participant.
-_Avoid_: direct chat, private chat, 1:1
-
-**Group**: A chat with several members where every member can post, unless an admin restricts it.
-_Avoid_: room, supergroup
-
-**Channel**: A chat where only some members post and everyone else reads.
-_Avoid_: broadcast
-
-**Message**: One item posted in a chat: text, media, a poll, a widget.
-_Avoid_: event, post
-
-**Reply**: A message that answers an earlier message and quotes it.
-
-**Sticker**: A message that is one picture or short animation, drawn large and without a bubble.
-
-**Sticker pack**: A named set of stickers you pick from: your packs on a network, or Statim's own, which statim.laibe.cc serves.
-
-**Thread**: The messages posted under one message, shown apart from the rest of the chat.
-_Avoid_: topic, sub-chat
-
-**Call**: A live voice or video conversation in a chat.
-_Avoid_: huddle, video chat
-
-**Request**: A chat someone started with you that you have not accepted yet. You accept it or decline it.
-_Avoid_: invite, message request, pending chat
-
-**Decline**: Refuse a request. The chat leaves your list; the sender is not blocked.
-_Avoid_: deny, ignore, reject, block
-
-**Block**: Stop the other participant of a DM from reaching you. Nothing they send arrives and you cannot write to them; the chat waits in the Blocked folder until you unblock them.
-_Avoid_: ban, ignore, mute, deny
-
-**Join request**: Someone asking to join a group or channel you manage.
-
-**Invite link**: A link that lets whoever opens it join a group or channel.
-
-### People
-
-**User**: The person holding the device.
-
-**Account**: A set of keys you hold in this app, with its own chats, settings and protocol logins. You can have several.
-_Avoid_: identity, profile, user
-
-**Participant**: Someone who can take part in chats on one protocol, known by that protocol's id. One person on two protocols is two participants.
-_Avoid_: peer, user, inbox, recipient
-
-**Address**: What someone gives you so you can reach them on a protocol: an Ethereum address, an ENS name, a Matrix ID, a Telegram username. The protocol resolves it to a participant.
-_Avoid_: handle
-
-**Member**: A participant in a group or channel, with a role.
-
-**Role**: What a member may do in a group or channel: owner, admin or member.
-
-**Contact**: Someone listed in Contacts: a participant you have a DM with, or a person from your phone's address book.
-_Avoid_: peer, friend
-
-**Bot**: A participant run by a program instead of a person.
-
-### Chat list
-
-**Chat list**: Every chat of the active account, across all its protocols, in one list.
-_Avoid_: inbox
-
-**Filter**: One of the tabs above the chat list that narrows it: All, Unread, Mentions, DMs, Groups.
-_Avoid_: tab, folder
-
-**Folder**: A row in the chat list that holds a set of chats: the archive, blocked DMs, or every chat on one network.
-_Avoid_: directory
-
-**Archive**: The folder for chats you have moved out of the main list.
-
-### Extending the app
-
-**Plugin**: A package that adds slash commands, message types, bots or screens to the app.
-_Avoid_: extension, mini-app
-
-**Slash command**: A `/name` typed in a chat's composer.
-_Avoid_: command (on its own), action
-
-**CLI command**: A `statim <name>` run in a terminal against the running desktop app.
-
-**Widget**: A message whose layout and buttons are described by data and drawn by the app.
-
-### Wallet
-
-**Chain**: A blockchain the wallet works with, such as Ethereum or Base.
-_Avoid_: network
+Say chat (not conversation or room), participant (not peer or user), account (not identity or profile), request with accept and decline (not invite or reject; declining never blocks), plugin (not extension), slash command and CLI command (not just command). Protocol is XMTP, Matrix, Telegram, Nostr or Status; network is where a chat lives, such as a bridged WhatsApp; chain is a blockchain. Code that mirrors a protocol's API keeps its words.
