@@ -1,3 +1,4 @@
+import { Backoff } from "@/core/messaging/backoff";
 import type { NostrEvent } from "./events";
 
 type RelayStatus = "connecting" | "open" | "closed";
@@ -42,8 +43,6 @@ export interface WebSocketLike {
   onmessage: ((event: { data: unknown }) => void) | null;
 }
 
-const BASE_BACKOFF_MS = 1_000;
-const MAX_BACKOFF_MS = 60_000;
 const SEEN_LIMIT = 5_000;
 const PUBLISH_TIMEOUT_MS = 15_000;
 
@@ -62,7 +61,7 @@ interface Connection {
   socket: WebSocketLike | null;
   status: RelayStatus;
   error?: string;
-  attempts: number;
+  backoff: Backoff;
   timer: ReturnType<typeof setTimeout> | null;
   authChallenge?: string;
   authEventId?: string;
@@ -112,7 +111,7 @@ export class RelayPool {
       url,
       socket: null,
       status: "connecting",
-      attempts: 0,
+      backoff: new Backoff(),
       timer: null,
     };
     this.connections.set(url, connection);
@@ -138,7 +137,7 @@ export class RelayPool {
 
     socket.onopen = () => {
       connection.status = "open";
-      connection.attempts = 0;
+      connection.backoff.up();
       connection.error = undefined;
       this.statusChanged();
       for (const subscription of this.subscriptions.values()) {
@@ -171,7 +170,6 @@ export class RelayPool {
       if (connection.status === "open" || connection.socket) continue;
       if (connection.timer) clearTimeout(connection.timer);
       connection.timer = null;
-      connection.attempts = 0;
       this.open(connection);
       reopened = true;
     }
@@ -182,9 +180,7 @@ export class RelayPool {
     if (this.closed) return;
     if (connection.timer) clearTimeout(connection.timer);
 
-    const ceiling = Math.min(MAX_BACKOFF_MS, BASE_BACKOFF_MS * 2 ** connection.attempts);
-    connection.attempts = Math.min(connection.attempts + 1, 10);
-    const delay = Math.round(ceiling * (0.5 + Math.random() * 0.5));
+    const delay = Math.round(connection.backoff.next() * (0.5 + Math.random() * 0.5));
 
     connection.timer = setTimeout(() => {
       connection.timer = null;

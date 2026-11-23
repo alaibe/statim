@@ -449,6 +449,52 @@ describe("AccountRuntime recovery", () => {
     await runtime.synchronize(null);
   });
 
+  it("waits longer each time a replaced session is lost again soon after", async () => {
+    jest.useFakeTimers();
+    const runtime = new AccountRuntime(PROTOCOLS);
+    const sessions = [new InMemoryChatSession(), new InMemoryChatSession(), new InMemoryChatSession()];
+    const reports = sessions.map(linked);
+    let starts = 0;
+    await runtime.synchronize(input("account-a", new PluginRegistry(), async () => sessions[starts++]));
+
+    reports[0]("lost");
+    await jest.advanceTimersByTimeAsync(0);
+    await runtime["transition"];
+    expect(useChatStore.getState().sessions.xmtp).toBe(sessions[1]);
+
+    reports[1]("lost");
+    await jest.advanceTimersByTimeAsync(14_999);
+    expect(useChatStore.getState().sessions.xmtp).toBe(sessions[1]);
+    await jest.advanceTimersByTimeAsync(1);
+    await runtime["transition"];
+    expect(useChatStore.getState().sessions.xmtp).toBe(sessions[2]);
+    await runtime.synchronize(null);
+  });
+
+  it("keeps lengthening the wait while a link drops right after it comes back", async () => {
+    jest.useFakeTimers();
+    const runtime = new AccountRuntime(PROTOCOLS);
+    const session = new InMemoryChatSession();
+    const resume = jest.fn(async () => {
+      report("online");
+      return false;
+    });
+    Object.assign(session, { resume });
+    const report = linked(session);
+    await runtime.synchronize(input("account-a", new PluginRegistry(), async () => session));
+
+    report("reconnecting");
+    await jest.advanceTimersByTimeAsync(5_000);
+    expect(resume).toHaveBeenCalledTimes(1);
+    await jest.advanceTimersByTimeAsync(1_000);
+    report("reconnecting");
+    await jest.advanceTimersByTimeAsync(14_999);
+    expect(resume).toHaveBeenCalledTimes(1);
+    await jest.advanceTimersByTimeAsync(1);
+    expect(resume).toHaveBeenCalledTimes(2);
+    await runtime.synchronize(null);
+  });
+
   it("shows a protocol as connecting only when its link stays down", async () => {
     jest.useFakeTimers();
     const runtime = new AccountRuntime(PROTOCOLS);

@@ -2,6 +2,7 @@ import type { LocalAccount } from "viem";
 import type { AccountStorage } from "@/storage/account";
 import { chatKeys, type DerivedKey, type Keyring } from "../account/keyring";
 import { errorMessage } from "../errors";
+import { Backoff } from "../messaging/backoff";
 import type { ChatCache } from "../messaging/chat-cache";
 import { connectionFor, NO_CONNECTION, type ProtocolConnection, useChatStore } from "../messaging/chat-store";
 import { loadProtocolConfigs } from "../messaging/config";
@@ -41,8 +42,6 @@ interface Connecting {
   active: () => boolean;
 }
 
-const RETRY_DELAYS_MS = [5_000, 15_000, 60_000, 300_000];
-
 const RESUME_GAP_MS = 10_000;
 
 /** TDLib and the Matrix SDK drop and restore their link often; only a drop that lasts shows. */
@@ -52,7 +51,8 @@ export class ProtocolRuntime {
   private subscriptions = new Map<ProtocolId, Unsubscribe[]>();
   private sessions = new Map<ProtocolId, ChatSession>();
   private context: Connecting | null = null;
-  private retries = new Map<ProtocolId, { attempt: number; timer: ReturnType<typeof setTimeout> | null }>();
+  private readonly backoffs = new Map<ProtocolId, Backoff>();
+  private readonly retries = new Map<ProtocolId, { timer: ReturnType<typeof setTimeout>; lost?: ChatSession }>();
   private resumedAt = -Infinity;
   private readonly resuming = new Set<ProtocolId>();
 
@@ -104,11 +104,10 @@ export class ProtocolRuntime {
     this.resumedAt = now;
     for (const [protocolId, session] of this.sessions) void this.resumeOne(protocolId, session);
     for (const [protocolId, retry] of this.retries) {
-      if (!retry.timer) continue;
       clearTimeout(retry.timer);
-      retry.timer = null;
-      this.recover(protocolId);
+      this.recover(protocolId, retry.lost);
     }
+    this.retries.clear();
   }
 
   /** Asks a session to reopen what dropped and fetches its chats again if it missed something; a session that cannot is replaced. */
@@ -159,13 +158,13 @@ export class ProtocolRuntime {
       for (const stop of streams) if (stop) subscriptions.push(stop);
       await this.list(protocolId, current, live);
       if (!live()) return;
-      this.retries.delete(protocolId);
+      this.backoff(protocolId).up();
       await useChatStore.getState().syncProtocol(protocolId);
     } catch (error) {
       if (!active()) return;
       if (session && this.sessions.get(protocolId) === session) await this.dropSession(protocolId);
       this.setProtocol(protocolId, { ...NO_CONNECTION, status: "error", error: errorMessage(error) });
-      this.scheduleRetry(protocolId);
+      this.retry(protocolId, this.backoff(protocolId).next());
     }
   }
 
@@ -214,19 +213,30 @@ export class ProtocolRuntime {
     });
   }
 
-  private scheduleRetry(protocolId: ProtocolId): void {
-    const attempt = this.retries.get(protocolId)?.attempt ?? 0;
-    const retry = { attempt: attempt + 1, timer: null as ReturnType<typeof setTimeout> | null };
-    retry.timer = setTimeout(() => {
-      retry.timer = null;
-      this.recover(protocolId);
-    }, retryDelay(attempt));
-    this.retries.set(protocolId, retry);
+  private backoff(protocolId: ProtocolId): Backoff {
+    let backoff = this.backoffs.get(protocolId);
+    if (!backoff) {
+      backoff = new Backoff();
+      this.backoffs.set(protocolId, backoff);
+    }
+    return backoff;
+  }
+
+  /** Connects `protocolId` again after `wait`, replacing `lost` if it is still the protocol's session. */
+  private retry(protocolId: ProtocolId, wait: number, lost?: ChatSession): void {
+    this.cancelRetry(protocolId);
+    if (wait === 0) return this.recover(protocolId, lost);
+    const timer = setTimeout(() => {
+      this.retries.delete(protocolId);
+      this.recover(protocolId, lost);
+    }, wait);
+    this.retries.set(protocolId, { timer, lost });
   }
 
   private cancelRetry(protocolId: ProtocolId): void {
-    const timer = this.retries.get(protocolId)?.timer;
-    if (timer) clearTimeout(timer);
+    const retry = this.retries.get(protocolId);
+    if (retry) clearTimeout(retry.timer);
+    this.retries.delete(protocolId);
   }
 
   private watch(protocolId: ProtocolId, session: ChatSession, live: () => boolean): Unsubscribe[] {
@@ -257,7 +267,8 @@ export class ProtocolRuntime {
     if (session.subscribeLink) {
       const status = (status: ProtocolConnection["status"]) =>
         this.setProtocol(protocolId, { ...connectionFor(useChatStore.getState().protocols, protocolId), status });
-      const reconnection = new Reconnection({
+      const backoff = this.backoff(protocolId);
+      const reconnection = new Reconnection(backoff, {
         show: (connection) => {
           if (live()) status(connection);
         },
@@ -266,7 +277,7 @@ export class ProtocolRuntime {
           if (live()) void useChatStore.getState().syncProtocol(protocolId);
         },
         lost: () => {
-          if (live()) this.recover(protocolId, session);
+          if (live()) this.retry(protocolId, backoff.next(0), session);
         },
       });
       subscriptions.push(
@@ -324,7 +335,7 @@ export class ProtocolRuntime {
     for (const protocol of only ?? this.sessions.keys()) this.cache?.pause(protocol);
     for (const protocol of only ?? []) {
       this.cancelRetry(protocol);
-      this.retries.delete(protocol);
+      this.backoffs.delete(protocol);
     }
     await this.disconnect(only);
     const state = useChatStore.getState();
@@ -361,8 +372,9 @@ export class ProtocolRuntime {
     }
     if (!only) {
       this.context = null;
-      for (const id of this.retries.keys()) this.cancelRetry(id);
+      for (const retry of this.retries.values()) clearTimeout(retry.timer);
       this.retries.clear();
+      this.backoffs.clear();
     }
     await Promise.all(sessions.map((session) => session.disconnect().catch(() => {})));
   }
@@ -389,23 +401,19 @@ function configsFor(input: ProtocolAccount) {
   return input.createSession ? undefined : loadProtocolConfigs(input.accountId);
 }
 
-function retryDelay(attempt: number): number {
-  return RETRY_DELAYS_MS[Math.min(attempt, RETRY_DELAYS_MS.length - 1)];
-}
-
 /**
  * While a session's link is down: shows it once the drop lasts, and asks the
- * session to resume on the retry schedule until the link is back.
+ * session to resume on the protocol's backoff until the link is back.
  */
 class Reconnection {
   private down = false;
   private shown = false;
-  private attempt = 0;
   private grace: ReturnType<typeof setTimeout> | null = null;
   private retry: ReturnType<typeof setTimeout> | null = null;
   private disposed = false;
 
   constructor(
+    private readonly backoff: Backoff,
     private readonly hooks: {
       show(status: ProtocolConnection["status"]): void;
       resume(): Promise<void>;
@@ -420,9 +428,9 @@ class Reconnection {
       this.hooks.show("connecting");
       this.hooks.lost();
     } else if (link === "online") {
+      if (this.down) this.backoff.up();
       this.clearTimers();
       this.down = false;
-      this.attempt = 0;
       if (!this.shown) return;
       this.shown = false;
       this.hooks.show("ready");
@@ -444,15 +452,12 @@ class Reconnection {
   }
 
   private scheduleRetry(): void {
-    this.retry = setTimeout(
-      () => {
-        this.retry = null;
-        void this.hooks.resume().then(() => {
-          if (this.down && !this.disposed && !this.retry) this.scheduleRetry();
-        });
-      },
-      retryDelay(this.attempt++),
-    );
+    this.retry = setTimeout(() => {
+      this.retry = null;
+      void this.hooks.resume().then(() => {
+        if (this.down && !this.disposed && !this.retry) this.scheduleRetry();
+      });
+    }, this.backoff.next());
   }
 
   private clearTimers(): void {

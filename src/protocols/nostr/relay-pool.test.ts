@@ -356,7 +356,7 @@ describe("reconnecting", () => {
 
     // Backoff is jittered between half and all of the ceiling, so advance past
     // the whole first window.
-    jest.advanceTimersByTime(1_100);
+    jest.advanceTimersByTime(5_000);
     expect(factory.relays).toHaveLength(2);
 
     factory.relays[1].open();
@@ -364,18 +364,20 @@ describe("reconnecting", () => {
     expect(factory.relays[1].sent).toContainEqual(["REQ", "sub1", { kinds: [1] }]);
   });
 
-  it("lengthens the delay on repeated failures", () => {
+  it("lengthens the delay on repeated drops, even when the relay opened in between", () => {
     const factory = fakeRelayFactory();
     new RelayPool({ urls: ["wss://a.example"], createSocket: factory.create });
 
+    factory.relays[0].open();
     factory.relays[0].close();
-    jest.advanceTimersByTime(1_100);
+    jest.advanceTimersByTime(5_000);
+    factory.relays[1].open();
     factory.relays[1].close();
 
-    // The second delay falls between 1s and 2s.
-    jest.advanceTimersByTime(900);
+    // The second delay falls between 7.5s and 15s.
+    jest.advanceTimersByTime(7_400);
     expect(factory.relays).toHaveLength(2);
-    jest.advanceTimersByTime(1_200);
+    jest.advanceTimersByTime(7_700);
     expect(factory.relays).toHaveLength(3);
   });
 
