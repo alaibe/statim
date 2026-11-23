@@ -1,4 +1,5 @@
 import { createEndpointSetting } from "@/core/plugins/endpoint-setting";
+import { bytesToBase64 } from "@/lib/bytes";
 import { jsonRpc } from "@/lib/json-rpc";
 import type { RpcCheck } from "../chains/strategy";
 
@@ -27,8 +28,10 @@ export async function getLatestBlockhash(url: string): Promise<string> {
 }
 
 export async function sendTransaction(url: string, signed: Uint8Array): Promise<string> {
-  const base64 = btoa(String.fromCharCode(...signed));
-  return jsonRpc<string>(url, "sendTransaction", [base64, { encoding: "base64", preflightCommitment: "confirmed" }]);
+  return jsonRpc<string>(url, "sendTransaction", [
+    bytesToBase64(signed),
+    { encoding: "base64", preflightCommitment: "confirmed" },
+  ]);
 }
 
 export async function getTokenDecimals(url: string, mint: string): Promise<number> {

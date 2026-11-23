@@ -1,6 +1,6 @@
 import * as Crypto from "expo-crypto";
 
-import { toHex } from "@/lib/bytes";
+import { bytesToBase64, toHex } from "@/lib/bytes";
 
 import * as store from "./secure-store";
 import { VAULT_MIGRATIONS, type VaultStep } from "./vault-migrations";
@@ -180,9 +180,7 @@ export function accountDatabaseKey(accountId: string): Promise<string> {
 
 /** Base64, which is how TDLib's JSON interface takes bytes. */
 export function accountTdlibDatabaseKey(accountId: string): Promise<string> {
-  return accountSecret(accountTdlibDbKeyName(accountId), () =>
-    globalThis.btoa(String.fromCharCode(...Crypto.getRandomBytes(32))),
-  );
+  return accountSecret(accountTdlibDbKeyName(accountId), () => bytesToBase64(Crypto.getRandomBytes(32)));
 }
 
 export function accountMatrixStoreKey(accountId: string): Promise<string> {
