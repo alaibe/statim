@@ -228,13 +228,15 @@ describe("StatusSession", () => {
 
     it("declining hides the chat and drops what follows", async () => {
       await alice.session.createDm(BOB.public);
-      await alice.session.send(chat(BOB.public), { kind: "text", text: "hi" });
+      const hi = await alice.session.send(chat(BOB.public), { kind: "text", text: "hi" });
       await bob.session.pollOnce();
       await bob.session.setConsent(chat(ALICE.public), "declined");
       expect(await bob.session.listChats()).toEqual([]);
 
       await alice.session.send(chat(BOB.public), { kind: "text", text: "hello?" });
+      await alice.session.send(chat(BOB.public), { kind: "reaction", targetId: hi, emoji: "👍", action: "added" });
       await bob.session.pollOnce();
+      expect(await bob.session.listChats()).toEqual([]);
       expect(texts(await bob.session.getMessages(chat(ALICE.public)))).toEqual([
         "Please add me to your contacts",
         "hi",

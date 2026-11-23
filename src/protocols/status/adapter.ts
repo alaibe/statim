@@ -840,7 +840,7 @@ export class StatusSession implements ChatSession {
     const chatId = this.chatOf(reaction.messageType, reaction.chatId, author);
     if (!code || !chatId) return;
     const group = this.groups.get(chatId)?.state;
-    if (group && !this.bothMembers(group, author)) return;
+    if (group ? !this.bothMembers(group, author) : dismissed(this.contact(author))) return;
     await this.observeClock(chatId, reaction.clock);
     await this.insert({
       id: message.id,
