@@ -31,6 +31,7 @@ import {
 } from "@xmtp/browser-sdk";
 import type { ContentCodec } from "@xmtp/content-type-primitives";
 import { hexToBytes, isAddress, type LocalAccount } from "viem";
+import { UnsupportedError } from "@/core/errors";
 
 import {
   classifyAttachment,
@@ -337,7 +338,7 @@ export class XmtpSession implements ChatSession {
 
   private async requireDm(id: ProtocolChatId): Promise<Dm<any>> {
     const conversation = await this.requireConversation(id);
-    if (conversation instanceof Group) throw new Error("That only works in a DM.");
+    if (conversation instanceof Group) throw new UnsupportedError("That only works in a DM.");
     return conversation as Dm<any>;
   }
 

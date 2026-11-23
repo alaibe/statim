@@ -816,9 +816,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return;
     }
 
-    const route = routeOrNull(get(), chatId);
-    if (!route) throw new Error("Not connected");
-
+    const route = requireRoute(get(), chatId);
     const self = selfIdFor(get(), route.protocol);
     const action = reactionAction(target, emoji, self);
 

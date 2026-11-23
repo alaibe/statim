@@ -16,6 +16,7 @@ import {
   type ConversationId as XmtpConversationId,
 } from "@xmtp/react-native-sdk";
 import { isAddress, type LocalAccount } from "viem";
+import { UnsupportedError } from "@/core/errors";
 
 import {
   classifyAttachment,
@@ -325,7 +326,7 @@ export class XmtpSession implements ChatSession {
   private async requireDm(id: ProtocolChatId): Promise<Dm<any>> {
     const conversation = await this.requireConversation(id);
     if (conversation.version === ConversationVersion.GROUP) {
-      throw new Error("That only works in a DM.");
+      throw new UnsupportedError("That only works in a DM.");
     }
     return conversation as unknown as Dm<any>;
   }
