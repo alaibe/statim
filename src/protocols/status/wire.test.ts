@@ -84,7 +84,7 @@ describe("primitives", () => {
     expect(hex(sharedSecret(fromHex(vectors.ecdh.private), fromHex(vectors.ecdh.public)))).toBe(vectors.ecdh.shared);
   });
 
-  it("derives a negotiated topic and its key from a shared secret", () => {
+  it("derives a negotiated topic from a shared secret", () => {
     const password = vectors.negotiated.secret.slice(2);
     expect(contentTopic(password)).toBe(vectors.negotiated.contentTopic);
   });
@@ -97,14 +97,6 @@ describe("payload codec", () => {
     });
     expect(hex(decoded!.data)).toBe(vectors.rfc26Asymmetric.data);
     expect(hex(decoded!.signer)).toBe(vectors.rfc26Asymmetric.signer);
-  });
-
-  it("opens what status-go sealed under a topic key", () => {
-    const decoded = decodePayload(fromHex(vectors.rfc26Symmetric.payload), {
-      symmetricKey: fromHex(vectors.rfc26Symmetric.symKey),
-    });
-    expect(hex(decoded!.data)).toBe(vectors.rfc26Symmetric.data);
-    expect(hex(decoded!.signer)).toBe(vectors.rfc26Symmetric.signer);
   });
 
   it("round-trips, pads to 256 bytes and refuses the wrong key", () => {

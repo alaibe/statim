@@ -1,27 +1,17 @@
 /**
  * The 26/WAKU2-PAYLOAD codec status-go wraps every message in: a flags byte,
  * the payload size, the payload, random padding to a multiple of 256 and a
- * signature, then ECIES to one public key or AES-GCM under a topic key.
+ * signature, then ECIES to one public key.
  */
 import { concat } from "@/lib/bytes";
 import { randomBytes } from "@/lib/random";
 
-import {
-  decryptSymmetric,
-  eciesDecrypt,
-  eciesEncrypt,
-  encryptSymmetric,
-  keccak256,
-  recoverPublicKey,
-  sign,
-} from "./crypto";
+import { eciesDecrypt, eciesEncrypt, keccak256, recoverPublicKey, sign } from "./crypto";
 
 const SIGNATURE_FLAG = 4;
 const SIZE_MASK = 3;
 const SIGNATURE_LENGTH = 65;
 const PADDING_BLOCK = 256;
-
-type PayloadKey = { recipient: Uint8Array } | { symmetricKey: Uint8Array };
 
 interface DecodedPayload {
   data: Uint8Array;
@@ -38,22 +28,19 @@ function sizeField(length: number): Uint8Array {
   return Uint8Array.from(bytes);
 }
 
-export function encodePayload(data: Uint8Array, key: PayloadKey, signer: Uint8Array): Uint8Array {
+export function encodePayload(data: Uint8Array, key: { recipient: Uint8Array }, signer: Uint8Array): Uint8Array {
   const size = sizeField(data.length);
   const unpadded = 1 + size.length + data.length + SIGNATURE_LENGTH;
   const padding = randomBytes(PADDING_BLOCK - (unpadded % PADDING_BLOCK));
   const frame = concat([Uint8Array.of(size.length | SIGNATURE_FLAG), size, data, padding]);
   const signed = concat([frame, sign(keccak256(frame), signer)]);
-  return "recipient" in key ? eciesEncrypt(key.recipient, signed) : encryptSymmetric(key.symmetricKey, signed);
+  return eciesEncrypt(key.recipient, signed);
 }
 
-export function decodePayload(
-  bytes: Uint8Array,
-  key: { privateKey: Uint8Array } | { symmetricKey: Uint8Array },
-): DecodedPayload | null {
+export function decodePayload(bytes: Uint8Array, key: { privateKey: Uint8Array }): DecodedPayload | null {
   let frame: Uint8Array;
   try {
-    frame = "privateKey" in key ? eciesDecrypt(key.privateKey, bytes) : decryptSymmetric(key.symmetricKey, bytes);
+    frame = eciesDecrypt(key.privateKey, bytes);
   } catch {
     return null;
   }
