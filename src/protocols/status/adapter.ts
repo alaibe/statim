@@ -569,13 +569,14 @@ export class StatusSession implements ChatSession {
   }
 
   private async onChatIdentity(author: ParticipantId, identity: WireChatIdentity): Promise<void> {
-    const contact = this.contact(author);
-    if (!identity.clock || (contact.identityClock ?? 0) >= identity.clock) return;
+    if (!identity.clock || (this.contact(author).identityClock ?? 0) >= identity.clock) return;
     const image = this.pictureOf(author, identity.images);
+    const picture = image && (await this.savePicture(image.payload, IMAGE_FORMATS[image.format]));
+    const contact = this.contact(author);
     await this.saveContact(author, {
       ...contact,
       displayName: identity.displayName || contact.displayName,
-      picture: image && (await this.savePicture(image.payload, IMAGE_FORMATS[image.format])),
+      picture,
       identityClock: identity.clock,
     });
     this.refreshDm(author);
