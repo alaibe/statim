@@ -197,7 +197,7 @@ async function togglePlugin(
   if (!id) {
     return {
       type: "error",
-      message: `Which plugin? Try /${verb} ethereum, or /plugins to see them.`,
+      message: `Which plugin? Try /${verb} wallet, or /plugins to see them.`,
     };
   }
 
