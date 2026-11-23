@@ -223,11 +223,17 @@ export class XmtpSession implements ChatSession {
     return (await this.client.preferences.inboxIdConsentState(inboxId)) === "denied";
   }
 
-  async getMessages(id: ProtocolChatId, opts?: { limit?: number }): Promise<ProtocolMessage[]> {
+  async getMessages(
+    id: ProtocolChatId,
+    opts?: { limit?: number; before?: { sentAt: number } },
+  ): Promise<ProtocolMessage[]> {
     const conversation = await this.client.conversations.findConversation(toXmtpId(id));
     if (!conversation) return [];
 
-    const messages = await conversation.messages({ limit: opts?.limit ?? 100 });
+    const messages = await conversation.messages({
+      limit: opts?.limit ?? 100,
+      beforeNs: opts?.before ? (opts.before.sentAt + 1) * 1_000_000 : undefined,
+    });
     const isDm = conversation.version === ConversationVersion.DM;
     const shown = messages.filter((m) => !isReadReceipt(m) && !(isDm && isGroupUpdate(m)));
     return (await Promise.all(shown.map((m) => this.toMessage(m, id)))).reverse();

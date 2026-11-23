@@ -250,12 +250,16 @@ export class XmtpSession implements ChatSession {
     return state === ConsentState.Denied;
   }
 
-  async getMessages(id: ProtocolChatId, opts?: { limit?: number }): Promise<ProtocolMessage[]> {
+  async getMessages(
+    id: ProtocolChatId,
+    opts?: { limit?: number; before?: { sentAt: number } },
+  ): Promise<ProtocolMessage[]> {
     const conversation = await this.client.conversations.getConversationById(id);
     if (!conversation) return [];
 
     const messages = await conversation.messages({
       limit: BigInt(opts?.limit ?? 100),
+      sentBeforeNs: opts?.before ? BigInt(opts.before.sentAt + 1) * 1_000_000n : undefined,
       direction: SortDirection.Descending,
     });
     const isDm = conversation instanceof Dm;
