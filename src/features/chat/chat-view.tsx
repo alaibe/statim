@@ -166,7 +166,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
         visible={showPinned}
         onOpen={() => setShowPinned(true)}
         onClose={() => setShowPinned(false)}
-        onUnpin={(message) => void togglePin(message)}
+        onUnpin={permissions.pin ? (message) => void togglePin(message) : undefined}
         top={headerHeight}
       />
 

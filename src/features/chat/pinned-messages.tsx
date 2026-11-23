@@ -15,7 +15,7 @@ export function PinnedMessages({
   visible: boolean;
   onOpen(): void;
   onClose(): void;
-  onUnpin(message: ChatMessage): void;
+  onUnpin?: (message: ChatMessage) => void;
   top: number;
 }) {
   const newest = messages[0];
@@ -49,7 +49,9 @@ export function PinnedMessages({
               <Text selectable>
                 {message.content.kind === "text" ? message.content.text : contentPreview(message.content)}
               </Text>
-              <Button label="Unpin" tone="ghost" size="sm" onPress={() => onUnpin(message)} className="self-start" />
+              {onUnpin && (
+                <Button label="Unpin" tone="ghost" size="sm" onPress={() => onUnpin(message)} className="self-start" />
+              )}
             </View>
           ))}
         </ScrollView>
