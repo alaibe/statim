@@ -163,7 +163,7 @@ const MAPPERS: Record<string, (input: Input) => MessageContent> = {
       question: TdFormattedText;
       options: { text: TdFormattedText; vote_percentage: number; is_chosen: boolean }[];
       total_voter_count: number;
-      type: { "@type": string; allow_multiple_answers?: boolean };
+      allows_multiple_answers: boolean;
       is_closed: boolean;
     };
     return {
@@ -175,7 +175,7 @@ const MAPPERS: Record<string, (input: Input) => MessageContent> = {
         chosen: option.is_chosen,
       })),
       totalVoters: poll.total_voter_count,
-      multiple: poll.type["@type"] === "pollTypeRegular" && !!poll.type.allow_multiple_answers,
+      multiple: poll.allows_multiple_answers,
       closed: poll.is_closed,
     };
   },

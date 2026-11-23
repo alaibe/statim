@@ -114,9 +114,10 @@ export class TelegramMessages {
       input_message_content: {
         "@type": "inputMessagePoll",
         question: plainFormatted(question),
-        options: options.map((option) => plainFormatted(option)),
+        options: options.map((option) => ({ "@type": "inputPollOption", text: plainFormatted(option) })),
         is_anonymous: true,
-        type: { "@type": "pollTypeRegular", allow_multiple_answers: false },
+        allows_multiple_answers: false,
+        type: { "@type": "inputPollTypeRegular", allow_adding_options: false },
         open_period: 0,
         close_date: 0,
         is_closed: false,

@@ -980,7 +980,8 @@ describe("TelegramSession messages", () => {
           is_chosen: false,
         })),
         total_voter_count: 0,
-        type: { "@type": "pollTypeRegular", allow_multiple_answers: false },
+        allows_multiple_answers: false,
+        type: { "@type": "pollTypeRegular" },
         is_closed: false,
       },
     };
@@ -1025,9 +1026,13 @@ describe("TelegramSession messages", () => {
       input_message_content: {
         "@type": "inputMessagePoll",
         question: { text: "Lunch?", entities: [] },
-        options: [{ text: "Pizza" }, { text: "Soup" }],
+        options: [
+          { "@type": "inputPollOption", text: { text: "Pizza" } },
+          { "@type": "inputPollOption", text: { text: "Soup" } },
+        ],
         is_anonymous: true,
-        type: { "@type": "pollTypeRegular", allow_multiple_answers: false },
+        allows_multiple_answers: false,
+        type: { "@type": "inputPollTypeRegular" },
       },
     });
   });
