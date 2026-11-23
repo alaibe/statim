@@ -6,7 +6,6 @@ export interface PaymentRequest {
   amount: string;
   symbol: string;
   chain?: string;
-  chainId?: number;
   to: string;
   note?: string;
 }
@@ -24,7 +23,6 @@ export interface SplitRequest {
 export interface PaymentReceipt {
   hash: string;
   chain?: string;
-  chainId?: number;
   amount: string;
   symbol: string;
   to: string;
@@ -34,7 +32,6 @@ export const isPaymentRequest = shape<PaymentRequest>({
   amount: isString,
   symbol: isString,
   chain: optional(isString),
-  chainId: optional(isNumber),
   to: isString,
   note: optional(isString),
 });
@@ -52,7 +49,6 @@ export const isSplitRequest = shape<SplitRequest>({
 export const isPaymentReceipt = shape<PaymentReceipt>({
   hash: isString,
   chain: optional(isString),
-  chainId: optional(isNumber),
   amount: isString,
   symbol: isString,
   to: isString,

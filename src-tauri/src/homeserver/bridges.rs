@@ -160,12 +160,6 @@ impl Tokens {
                     pickle_key,
                 })
             }
-            (Some(as_token), Some(hs_token), Some(sender), None) => Self {
-                as_token,
-                hs_token,
-                sender,
-                pickle_key: random_hex(32)?,
-            },
             _ => Self {
                 as_token: random_hex(32)?,
                 hs_token: random_hex(32)?,
@@ -310,25 +304,6 @@ mod tests {
         assert_eq!(first.as_token, again.as_token);
         assert_eq!(first.pickle_key, again.pickle_key);
         assert_eq!(first.as_token.len(), 64);
-    }
-
-    #[test]
-    fn gives_tokens_made_before_encryption_a_pickle_key_and_keeps_the_rest() {
-        let dir = std::env::temp_dir().join("statim-bridge-tokens-old");
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        std::fs::write(dir.join("tokens"), "as\nhs\nsender\n").unwrap();
-        let upgraded = Tokens::of(&dir).unwrap();
-        assert_eq!(
-            (
-                upgraded.as_token.as_str(),
-                upgraded.hs_token.as_str(),
-                upgraded.sender.as_str()
-            ),
-            ("as", "hs", "sender")
-        );
-        assert_eq!(upgraded.pickle_key.len(), 64);
-        assert_eq!(Tokens::of(&dir).unwrap().pickle_key, upgraded.pickle_key);
     }
 
     #[test]

@@ -3,7 +3,6 @@ import * as Crypto from "expo-crypto";
 import { bytesToBase64, toHex } from "@/lib/bytes";
 
 import * as store from "./secure-store";
-import { VAULT_MIGRATIONS, type VaultStep } from "./vault-migrations";
 
 export const VaultKey = {
   accountIndex: "accounts.index",
@@ -15,7 +14,6 @@ export const VaultKey = {
   pin: "security.pin",
   pinAttempts: "security.pinAttempts",
   usageStore: "usage.store",
-  version: "vault.version",
 } as const;
 
 type VaultKeyName = (typeof VaultKey)[keyof typeof VaultKey] | AccountScopedKey;
@@ -94,37 +92,11 @@ export type ProtectedRead =
   | { status: "invalidated" }
   | { status: "denied" };
 
-/** A vault with no version and no accounts is new or wiped, and already holds the current formats. */
-export async function migrateVault(steps: readonly VaultStep[] = VAULT_MIGRATIONS): Promise<void> {
-  const stored = await store.get(VaultKey.version);
-  let done = Number(stored);
-  if (stored === null) {
-    done = (await store.get(VaultKey.accountIndex)) === null ? steps.length : 0;
-    await store.set(VaultKey.version, String(done));
-  }
-  for (; done < steps.length; done += 1) {
-    await steps[done](store);
-    await store.set(VaultKey.version, String(done + 1));
-  }
-}
-
-let migrated: Promise<void> | undefined;
-
-/** Every read and write waits for the migration, whichever reaches the vault first. */
-function migratedVault(): Promise<void> {
-  migrated ??= migrateVault().catch((error) => {
-    migrated = undefined;
-    throw error;
-  });
-  return migrated;
-}
-
 export async function vaultGetProtected(
   key: VaultKeyName,
   prompt: string,
   expectExisting: boolean,
 ): Promise<ProtectedRead> {
-  await migratedVault();
   try {
     const value = await store.getProtected(key, prompt);
     if (value !== null) return { status: "ok", value };
@@ -135,27 +107,22 @@ export async function vaultGetProtected(
 }
 
 export async function vaultSetProtected(key: VaultKeyName, value: string): Promise<void> {
-  await migratedVault();
   return store.setProtected(key, value, "Confirm to save your keys");
 }
 
 export async function vaultDeleteProtected(key: VaultKeyName): Promise<void> {
-  await migratedVault();
   return store.removeProtected(key);
 }
 
 export async function vaultGet(key: VaultKeyName): Promise<string | null> {
-  await migratedVault();
   return store.get(key);
 }
 
 export async function vaultSet(key: VaultKeyName, value: string): Promise<void> {
-  await migratedVault();
   return store.set(key, value);
 }
 
 export async function vaultDelete(key: VaultKeyName): Promise<void> {
-  await migratedVault();
   return store.remove(key);
 }
 

@@ -23,7 +23,7 @@ describe("payment payloads from another participant", () => {
     ["an amount that is an object", { ...request, amount: {} }],
     ["a recipient that is a number", { ...request, to: 42 }],
     ["a note that is not text", { ...request, note: ["x"] }],
-    ["a chain id that is not a number", { ...request, chainId: "1" }],
+    ["a chain that is not text", { ...request, chain: 1 }],
     ["null", null],
     ["an array", [request]],
     ["a string", JSON.stringify(request)],

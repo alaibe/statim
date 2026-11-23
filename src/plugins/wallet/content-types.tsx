@@ -39,8 +39,8 @@ function strategyFor(data: { chain?: string; chainId?: number }): ChainStrategy 
   const chains = chainStrategies();
   if (data.chain) return chains.find((c) => c.id === data.chain);
   if (data.chainId === undefined) return undefined;
-  const legacy = chainById(data.chainId);
-  return legacy ? chains.find((c) => c.name === legacy.name) : undefined;
+  const evm = chainById(data.chainId);
+  return evm ? chains.find((c) => c.name === evm.name) : undefined;
 }
 
 function chainLabel(data: { chain?: string; chainId?: number }): string {
@@ -213,9 +213,6 @@ function SplitRequestCard({ data, fromMe, context, message }: MessageRendererPro
 }
 
 function PaymentReceiptCard({ data, fromMe }: MessageRendererProps<PaymentReceipt>) {
-  const legacy = data.chainId === undefined ? undefined : chainById(data.chainId);
-  const explorer = legacy?.blockExplorers?.default.url;
-
   return (
     <CardShell fromMe={fromMe}>
       <View className="flex-row items-center gap-2">
@@ -230,8 +227,6 @@ function PaymentReceiptCard({ data, fromMe }: MessageRendererProps<PaymentReceip
       <Text variant="caption">
         {shortAddress(data.hash, 10, 8)} on {chainLabel(data)}
       </Text>
-
-      {explorer ? <Text variant="micro">View on {new URL(explorer).hostname}</Text> : null}
     </CardShell>
   );
 }
