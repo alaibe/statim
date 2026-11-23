@@ -1,6 +1,5 @@
 export {
   isWidget,
-  summariseWidget,
   W,
   type Widget,
   type WidgetAction,

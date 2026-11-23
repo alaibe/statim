@@ -1,7 +1,7 @@
 /**
- * A widget is data, so it can be stored, summarised for the chat list, sent to another
- * participant and drawn by an app that lacks the plugin that made it. Keep the union additive: an
- * older build must skip a node it does not recognise without losing the message.
+ * A widget is data, so it can be stored, sent to another participant and drawn by an app
+ * that lacks the plugin that made it. Keep the union additive: an older build must skip a
+ * node it does not recognise without losing the message.
  */
 import { arrayOf, type Guard, isBoolean, isRecord, isString, oneOf, optional, shape } from "@/lib/guards";
 
@@ -190,31 +190,6 @@ export function isWidget(value: unknown): value is Widget {
     return false;
   }
   return WIDGET_FIELDS[value.kind as Widget["kind"]](value);
-}
-
-export function summariseWidget(widget: Widget): string {
-  switch (widget.kind) {
-    case "stat":
-      return [widget.label, widget.value].filter(Boolean).join(": ");
-    case "rows":
-      return widget.rows.map((r) => `${r.label}: ${r.value}`).join(" · ");
-    case "list":
-      return widget.items.map((i) => i.title).join(" · ");
-    case "text":
-      return widget.text;
-    case "code":
-      return widget.label ? `${widget.label}: ${widget.value}` : widget.value;
-    case "card":
-      return [widget.title, ...widget.children.map(summariseWidget)].filter(Boolean).join(" · ");
-    case "badges":
-      return widget.badges.map((b) => b.label).join(" · ");
-    case "actions":
-      return widget.actions.map((a) => a.label).join(" · ");
-    case "link":
-      return widget.label;
-    case "form":
-      return [widget.submit.label, ...widget.fields.map((f) => f.label)].join(" · ");
-  }
 }
 
 export function fillCommand(command: string, values: Record<string, string>): string {
