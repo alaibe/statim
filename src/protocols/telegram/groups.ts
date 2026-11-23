@@ -5,7 +5,7 @@ import type { TdObject } from "./api";
 import { localFile } from "./files";
 import { userSender } from "./ids";
 import type { TelegramHost } from "./service-host";
-import type { TdBasicGroup, TdBasicGroupFullInfo, TdChat, TdChatMembers, TdSupergroup } from "./types";
+import type { TdBasicGroup, TdBasicGroupFullInfo, TdChatMembers, TdSupergroup } from "./types";
 import { nameOf } from "./users";
 
 const NO_PERMISSIONS = {
@@ -37,8 +37,7 @@ export class TelegramGroups {
       user_ids: participants.map(Number),
       title,
     });
-    const chatId = created["@type"] === "chat" ? (created as TdChat).id : (created.chat_id as number);
-    return this.host.toChat(await this.host.td.requireChat(chatId));
+    return this.host.toChat(await this.host.td.requireChat(created.chat_id as number));
   }
 
   async getMembers(id: ProtocolChatId): Promise<GroupMember[]> {

@@ -90,9 +90,6 @@ export const botsPlugin: Plugin = {
         async run({ args }) {
           if (args.length === 0) return { type: "setComposer", text: "/addbot " };
           const [input, ...nameParts] = args;
-          if (!input) {
-            return { type: "error", message: "Which bot? /addbot pricebot.eth Prices" };
-          }
 
           const session = xmtpSessionFor(useChatStore.getState());
           if (!session) return { type: "error", message: "Not connected to XMTP yet." };

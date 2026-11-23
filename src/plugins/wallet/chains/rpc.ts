@@ -17,10 +17,6 @@ export async function checkRpcUrl(chainId: number, url: string): Promise<RpcChec
   const chain = chainById(chainId);
   if (!chain) return { ok: false, reason: `Unsupported chain ${chainId}.` };
 
-  if (!/^https?:\/\//i.test(url) && !/^wss?:\/\//i.test(url)) {
-    return { ok: false, reason: "The endpoint must start with https:// or wss://." };
-  }
-
   try {
     const probe = createPublicClient({ chain, transport: http(url) });
     const reported = await probe.getChainId();

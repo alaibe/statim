@@ -55,7 +55,6 @@ interface WalletConnectState {
 
 let onProposal: ((p: WalletKitTypes.SessionProposal) => void) | null = null;
 let onRequest: ((e: WalletKitTypes.SessionRequest) => void) | null = null;
-let onDelete: (() => void) | null = null;
 
 function redirectOf(peer: SessionTypes.Struct["peer"]["metadata"]) {
   return peer.redirect?.native || peer.redirect?.universal;
@@ -163,11 +162,8 @@ export const useWalletConnectStore = create<WalletConnectState>((set, get) => ({
         }));
       };
 
-      onDelete = () => {};
-
       kit.on("session_proposal", onProposal);
       kit.on("session_request", onRequest);
-      kit.on("session_delete", onDelete);
 
       set({ kit, initializing: false });
     } catch (error) {
@@ -275,9 +271,8 @@ export const useWalletConnectStore = create<WalletConnectState>((set, get) => ({
     if (kit) {
       if (onProposal) kit.off("session_proposal", onProposal);
       if (onRequest) kit.off("session_request", onRequest);
-      if (onDelete) kit.off("session_delete", onDelete);
     }
-    onProposal = onRequest = onDelete = null;
+    onProposal = onRequest = null;
     set({ kit: null, queue: [] });
   },
 }));
