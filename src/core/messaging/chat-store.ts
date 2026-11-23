@@ -76,7 +76,6 @@ export function connectionFor(
 
 export interface ChatState {
   status: ConnectionStatus;
-  error: string | null;
   sessions: Partial<Record<ProtocolId, ChatSession>>;
   protocols: Partial<Record<ProtocolId, ProtocolConnection>>;
   accountId: string | null;
@@ -175,7 +174,6 @@ const NONE = Object.freeze([]);
 
 const EMPTY_PROJECTION = Object.freeze({
   status: "idle",
-  error: null,
   sessions: EMPTY,
   protocols: EMPTY,
   accountId: null,

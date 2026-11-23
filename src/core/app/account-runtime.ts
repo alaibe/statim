@@ -334,7 +334,6 @@ export class AccountRuntime {
     draftSync.clear();
     useChatStore.setState({
       status,
-      error: null,
       sessions: {},
       protocols: {},
       syncing: false,

@@ -151,7 +151,6 @@ describe("independent failure", () => {
     });
 
     expect(useChatStore.getState().status).toBe("error");
-    expect(useChatStore.getState().error).toBe("nothing works");
   });
 
   it("does not let one protocol failing to list blank the others", async () => {

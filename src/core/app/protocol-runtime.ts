@@ -74,7 +74,7 @@ export class ProtocolRuntime {
   ): Promise<void> {
     if (!active()) return;
     this.context = { input, storage, active };
-    useChatStore.setState({ status: "connecting", error: null });
+    useChatStore.setState({ status: "connecting" });
     const selected = input.only ?? (input.createSession ? ["xmtp" as const] : undefined);
     const descriptors = connectableProtocols(this.descriptors).filter(
       (descriptor) => (!selected || selected.includes(descriptor.id)) && (!only || only.includes(descriptor.id)),
@@ -345,7 +345,6 @@ export class ProtocolRuntime {
     const ownProtocol = (key: ProtocolId) => key;
     useChatStore.setState({
       status: only ? state.status : "idle",
-      error: only ? state.error : null,
       sessions: keep(state.sessions, ownProtocol),
       protocols: keep(state.protocols, ownProtocol),
       syncing: only ? state.syncing : false,
@@ -388,11 +387,11 @@ export class ProtocolRuntime {
     const connections = Object.values(state.protocols);
     const failures = connections.filter((connection) => connection.status === "error");
     if (this.sessions.size > 0) {
-      useChatStore.setState({ status: "ready", error: failures[0]?.error ?? null });
+      useChatStore.setState({ status: "ready" });
     } else if (failures.length > 0) {
-      useChatStore.setState({ status: "error", error: failures[0].error });
+      useChatStore.setState({ status: "error" });
     } else {
-      useChatStore.setState({ status: "idle", error: null });
+      useChatStore.setState({ status: "idle" });
     }
   }
 }

@@ -24,7 +24,6 @@ beforeEach(async () => {
   });
   useChatStore.setState({
     status: "idle",
-    error: null,
     sessions: {},
     protocols: {},
     accountId: null,

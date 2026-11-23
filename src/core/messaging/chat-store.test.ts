@@ -70,7 +70,6 @@ describe("connecting", () => {
     });
 
     expect(useChatStore.getState().status).toBe("error");
-    expect(useChatStore.getState().error).toBe("network down");
   });
 });
 
