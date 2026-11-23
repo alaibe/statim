@@ -110,19 +110,24 @@ function HeaderBar({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Fades messages out before they reach the clock and the header, as iOS bars do over scrolled content. */
+/** Hides messages behind the clock and the header, and fades them out just below it, as iOS bars do over scrolled content. */
 function ScrollEdge() {
   const { canvas } = useThemeColors();
-  const fade = (alpha: number) => canvas.replace(")", ` / ${alpha})`);
   return (
-    <View
-      style={{
-        position: "absolute",
-        inset: 0,
-        pointerEvents: "none",
-        experimental_backgroundImage: `linear-gradient(to bottom, ${canvas} 0%, ${canvas} 55%, ${fade(0.85)} 75%, ${fade(0)} 100%)`,
-      }}
-    />
+    <>
+      <View className="absolute inset-0 bg-canvas" style={{ pointerEvents: "none" }} />
+      <View
+        style={{
+          position: "absolute",
+          top: "100%",
+          left: 0,
+          right: 0,
+          height: 24,
+          pointerEvents: "none",
+          experimental_backgroundImage: `linear-gradient(to bottom, ${canvas}, ${canvas.replace(")", " / 0)")})`,
+        }}
+      />
+    </>
   );
 }
 
