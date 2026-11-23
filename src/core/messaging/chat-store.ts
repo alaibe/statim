@@ -16,7 +16,6 @@ import { HYDRATE_LIMIT, type MessageStore } from "./message-store";
 import {
   LOCAL_PROTOCOL,
   namespaceChat,
-  namespacedId,
   namespaceMessage,
   type ProtocolId,
   protocolEntries,
@@ -1290,5 +1289,3 @@ export function clearChatProjection(status: ConnectionStatus = "idle"): void {
   sentAs.clear();
   useChatStore.setState({ ...EMPTY_PROJECTION, status });
 }
-
-export { namespacedId };

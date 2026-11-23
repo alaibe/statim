@@ -2,7 +2,6 @@ import { Image } from "expo-image";
 
 import { View } from "react-native";
 
-import { cn } from "../lib/cn";
 import { Text } from "./text";
 
 const SIZE = { sm: 32, md: 44, lg: 64, xl: 96 } as const;
@@ -40,10 +39,9 @@ export interface AvatarProps {
   /** A bundled image or a picture's URI; shown instead of initials or the identicon. */
   image?: number | string;
   emoji?: string;
-  className?: string;
 }
 
-export function Avatar({ seed, size = "md", label, image, emoji, className }: AvatarProps) {
+export function Avatar({ seed, size = "md", label, image, emoji }: AvatarProps) {
   const px = SIZE[size];
   const { bg, fg, cells } = identicon(seed || "anon");
 
@@ -68,7 +66,7 @@ export function Avatar({ seed, size = "md", label, image, emoji, className }: Av
         accessibilityRole="image"
         accessibilityLabel={label ? `Avatar for ${label}` : "Avatar"}
         style={{ width: px, height: px }}
-        className={cn("items-center justify-center rounded-pill bg-brand-soft", className)}
+        className="items-center justify-center rounded-pill bg-brand-soft"
       >
         <Text style={{ fontSize: px * 0.52, lineHeight: px, textAlign: "center" }}>{emoji}</Text>
       </View>
@@ -82,7 +80,7 @@ export function Avatar({ seed, size = "md", label, image, emoji, className }: Av
         accessibilityRole="image"
         accessibilityLabel={`Avatar for ${label}`}
         style={{ width: px, height: px, backgroundColor: bg }}
-        className={cn("items-center justify-center rounded-pill", className)}
+        className="items-center justify-center rounded-pill"
       >
         <Text className="font-semibold text-white" style={{ fontSize: px * 0.36 }}>
           {initials}
@@ -97,7 +95,7 @@ export function Avatar({ seed, size = "md", label, image, emoji, className }: Av
       accessibilityRole="image"
       accessibilityLabel="Identicon"
       style={{ width: px, height: px, backgroundColor: bg }}
-      className={cn("flex-row flex-wrap overflow-hidden rounded-pill", className)}
+      className="flex-row flex-wrap overflow-hidden rounded-pill"
     >
       {cells.map((on, i) => (
         <View key={i} style={{ width: cell, height: cell, backgroundColor: on ? fg : "transparent" }} />

@@ -11,7 +11,7 @@ export function QrCode({ value, size = 220 }: { value: string; size?: number }) 
 }
 
 /** Cycles through the frames of a payload too big for one code. */
-export function AnimatedQrCode({ parts, size = 220 }: { parts: string[]; size?: number }) {
+export function AnimatedQrCode({ parts }: { parts: string[] }) {
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export function AnimatedQrCode({ parts, size = 220 }: { parts: string[]; size?: 
     <View>
       {parts.map((part, i) => (
         <View key={part} style={i === tick % parts.length ? undefined : HIDDEN}>
-          <QrCode value={part.toUpperCase()} size={size} />
+          <QrCode value={part.toUpperCase()} />
         </View>
       ))}
     </View>

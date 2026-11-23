@@ -4,22 +4,16 @@ export const PLUGIN_AUTHORITY = "statim.plugin";
 
 interface PluginContentType<T> {
   typeId: string;
-  versionMajor?: number;
-  versionMinor?: number;
   fallback: (content: T) => string;
 }
 
-function contentTypeIdFor(typeId: string, major = 1, minor = 0): ContentTypeId {
-  return {
-    authorityId: PLUGIN_AUTHORITY,
-    typeId,
-    versionMajor: major,
-    versionMinor: minor,
-  };
-}
-
 export function createPluginCodec<T>(spec: PluginContentType<T>): JSContentCodec<T> {
-  const contentType = contentTypeIdFor(spec.typeId, spec.versionMajor ?? 1, spec.versionMinor ?? 0);
+  const contentType: ContentTypeId = {
+    authorityId: PLUGIN_AUTHORITY,
+    typeId: spec.typeId,
+    versionMajor: 1,
+    versionMinor: 0,
+  };
 
   return {
     contentType,

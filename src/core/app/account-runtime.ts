@@ -27,8 +27,6 @@ import { BotRuntime } from "./bot-runtime";
 import { ProtocolRuntime, type SessionFactory } from "./protocol-runtime";
 import { reportError } from "./report-error";
 
-export type { SessionFactory } from "./protocol-runtime";
-
 const BOTS_WAIT_MS = 15_000;
 
 export interface RuntimeAccount {

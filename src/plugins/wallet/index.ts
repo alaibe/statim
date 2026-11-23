@@ -6,15 +6,7 @@ import type { Plugin, PluginContext, UriHandler } from "@/core/plugins/types";
 
 import { addressCard } from "./address-card";
 import { makeWalletBot, WALLET_BOT_ID } from "./bot";
-import {
-  chainsCard,
-  chainsCommand,
-  disposeStrategies,
-  enabledChains,
-  pickEvm,
-  syncStrategies,
-  walletChainById,
-} from "./chain-list";
+import { chainsCard, chainsCommand, disposeStrategies, pickEvm, syncStrategies, walletChainById } from "./chain-list";
 import { hydrateRpcOverrides } from "./chains/rpc";
 import { isChainOn } from "./chains/strategy";
 import { watchCommands, watchedCard } from "./chains/watch-commands";
@@ -158,5 +150,3 @@ const paymentLinks: UriHandler = {
     return true;
   },
 };
-
-export { enabledChains };

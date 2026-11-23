@@ -22,12 +22,11 @@ const LABEL = {
 interface BadgeProps {
   label: string;
   tone?: keyof typeof TONE;
-  className?: string;
 }
 
-export function Badge({ label, tone = "neutral", className }: BadgeProps) {
+export function Badge({ label, tone = "neutral" }: BadgeProps) {
   return (
-    <View className={cn("self-start rounded-pill px-2 py-0.5", TONE[tone], className)}>
+    <View className={cn("self-start rounded-pill px-2 py-0.5", TONE[tone])}>
       <Text className={cn("text-micro font-semibold uppercase tracking-wide", LABEL[tone])}>{label}</Text>
     </View>
   );

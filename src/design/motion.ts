@@ -2,7 +2,6 @@ import {
   Easing,
   FadeIn,
   FadeInDown,
-  FadeInUp,
   FadeOut,
   LinearTransition,
   ReduceMotion,
@@ -31,12 +30,9 @@ export const Spring = {
   } satisfies WithSpringConfig,
 } as const;
 
-export function springLayout(preset: WithSpringConfig = Spring.layout) {
-  return LinearTransition.springify()
-    .damping(preset.damping!)
-    .stiffness(preset.stiffness!)
-    .mass(preset.mass!)
-    .reduceMotion(R);
+export function springLayout() {
+  const { damping, stiffness, mass } = Spring.layout;
+  return LinearTransition.springify().damping(damping).stiffness(stiffness).mass(mass).reduceMotion(R);
 }
 
 // Easing.out(Easing.cubic) as a curve: web layout animations take only named
@@ -57,20 +53,7 @@ export const Enter = {
       .delay(delay)
       .reduceMotion(R),
 
-  row: (delay = 0) =>
-    FadeInDown.duration(Duration.fast)
-      .easing(EASE_OUT)
-      .withInitialValues({ transform: [{ translateY: 5 }] })
-      .delay(delay)
-      .reduceMotion(R),
-
   fade: (delay = 0) => FadeIn.duration(Duration.base).easing(EASE_OUT).delay(delay).reduceMotion(R),
-
-  fromTop: () =>
-    FadeInUp.duration(Duration.base)
-      .easing(EASE_OUT)
-      .withInitialValues({ transform: [{ translateY: -12 }] })
-      .reduceMotion(R),
 
   fromBottom: () =>
     FadeInDown.duration(Duration.base)
