@@ -149,7 +149,7 @@ pub struct MxMediaOut {
 }
 
 #[derive(Clone, PartialEq, Serialize)]
-#[serde(tag = "kind", rename_all = "camelCase")]
+#[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum MxContent {
     Text {
         body: String,
@@ -205,7 +205,6 @@ pub enum MxContent {
         question: String,
         answers: Vec<MxPollAnswer>,
         votes: HashMap<String, Vec<String>>,
-        #[serde(rename = "maxSelections")]
         max_selections: u64,
         closed: bool,
     },
