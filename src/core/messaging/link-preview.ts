@@ -1,4 +1,5 @@
 import { appFetch } from "@/lib/http";
+import { decodeEntities } from "./html-markdown";
 
 export interface LinkPreview {
   url: string;
@@ -19,15 +20,6 @@ const USER_AGENT = "Mozilla/5.0 (compatible; Statim; like TwitterBot)";
 const MAX_BYTES = 512 * 1024;
 const TITLE_LIMIT = 200;
 const DESCRIPTION_LIMIT = 400;
-
-const ENTITIES: Record<string, string> = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  apos: "'",
-  nbsp: " ",
-};
 
 /**
  * Only public hosts are fetched. A link to a LAN address or a bare IP would
@@ -183,17 +175,6 @@ function attributesOf(tag: string): Record<string, string> {
 
 function clean(value: string): string {
   return decodeEntities(value).replace(/\s+/g, " ").trim();
-}
-
-function decodeEntities(value: string): string {
-  return value.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, entity: string) => {
-    if (entity[0] === "#") {
-      const code =
-        entity[1] === "x" || entity[1] === "X" ? parseInt(entity.slice(2), 16) : parseInt(entity.slice(1), 10);
-      return code >= 0 && code <= 0x10ffff ? String.fromCodePoint(code) : whole;
-    }
-    return ENTITIES[entity.toLowerCase()] ?? whole;
-  });
 }
 
 function truncate(value: string, limit: number): string {

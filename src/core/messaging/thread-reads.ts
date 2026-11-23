@@ -1,7 +1,6 @@
 import type { AccountStorage } from "@/storage/account";
-import { canBeUnread } from "./message-rules";
 import type { ChatId, ChatMessage, MessageId } from "./types";
-import { MARKED_UNREAD } from "./unread";
+import { countsAsUnread, MARKED_UNREAD } from "./unread";
 
 /**
  * Opening a chat reads its timeline but not its threads, so a chat with threads
@@ -50,10 +49,6 @@ export function threadReadAt(reads: ThreadReads | undefined, readAt: number | un
   return reads?.threads[root] ?? reads?.since ?? Math.max(readAt ?? 0, 0);
 }
 
-export function isNewReply(message: ChatMessage, since: number): boolean {
-  return canBeUnread(message) && message.sentAt > since;
-}
-
 /** Replies not yet seen in each thread, by the message that started it. */
 export function newReplyCounts(
   messages: readonly ChatMessage[],
@@ -63,7 +58,7 @@ export function newReplyCounts(
   const counts = new Map<MessageId, number>();
   for (const message of messages) {
     const root = message.threadRoot;
-    if (root && isNewReply(message, threadReadAt(reads, readAt, root))) {
+    if (root && countsAsUnread(message, threadReadAt(reads, readAt, root))) {
       counts.set(root, (counts.get(root) ?? 0) + 1);
     }
   }

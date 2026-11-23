@@ -3,9 +3,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { reportError } from "@/core/app/report-error";
 import { useChatStore } from "@/core/messaging/chat-store";
 import type { ChatSession } from "@/core/messaging/protocol";
-import { isNewReply, newReplyCounts, threadReadAt } from "@/core/messaging/thread-reads";
+import { newReplyCounts, threadReadAt } from "@/core/messaging/thread-reads";
 import type { ChatId, ChatMessage, MessageId } from "@/core/messaging/types";
-import { unreadState } from "@/core/messaging/unread";
+import { countsAsUnread, unreadState } from "@/core/messaging/unread";
 import { toast } from "@/design";
 import { useJumpStore } from "./jump-store";
 import type { MessageListHandle } from "./message-list";
@@ -51,7 +51,7 @@ export function useChatTimeline(
   const threadSince = thread ? threadReadAt(threadReads, readUpTo, thread) : 0;
   const [seenWhenOpened] = useState(threadSince);
   const repliesIn = (since: number) =>
-    thread ? messages.filter((m) => m.threadRoot === thread && isNewReply(m, since)) : NO_MESSAGES;
+    thread ? messages.filter((m) => m.threadRoot === thread && countsAsUnread(m, since)) : NO_MESSAGES;
   const unseenReplies = repliesIn(seenWhenOpened);
   const threadUnread = repliesIn(threadSince).length > 0;
   useEffect(() => {

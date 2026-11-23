@@ -1,3 +1,4 @@
+import { isRecord } from "@/lib/guards";
 import { accountCredentialsKey, vaultDelete, vaultGet, vaultSet } from "@/storage/vault";
 
 export type CredentialId = "gifs" | "lifi" | "lcx" | "ai" | "typesafe";
@@ -10,7 +11,7 @@ export async function readCredentials(accountId: string): Promise<Credentials> {
   if (!raw) return {};
   try {
     const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    if (!isRecord(parsed)) return {};
     return Object.fromEntries(Object.entries(parsed).filter(([, value]) => typeof value === "string")) as Credentials;
   } catch {
     return {};

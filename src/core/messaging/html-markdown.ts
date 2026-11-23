@@ -50,7 +50,7 @@ function parse(html: string): Element {
     const [whole, closing, rawTag, rawAttrs, selfClosing, text] = match;
     const top = stack[stack.length - 1];
     if (text !== undefined) {
-      top.children.push(decode(text));
+      top.children.push(decodeEntities(text));
       continue;
     }
     if (!rawTag) continue;
@@ -70,7 +70,7 @@ function parse(html: string): Element {
 function attributes(raw: string): Record<string, string> {
   const attrs: Record<string, string> = {};
   for (const m of raw.matchAll(/([a-zA-Z-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g)) {
-    attrs[m[1].toLowerCase()] = decode(m[2] ?? m[3] ?? m[4] ?? "");
+    attrs[m[1].toLowerCase()] = decodeEntities(m[2] ?? m[3] ?? m[4] ?? "");
   }
   return attrs;
 }
@@ -84,7 +84,7 @@ const ENTITIES: Record<string, string> = {
   nbsp: " ",
 };
 
-function decode(text: string): string {
+export function decodeEntities(text: string): string {
   return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, name: string) => {
     if (name[0] === "#") {
       const code = name[1] === "x" || name[1] === "X" ? parseInt(name.slice(2), 16) : +name.slice(1);
