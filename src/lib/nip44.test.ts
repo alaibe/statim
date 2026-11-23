@@ -1,15 +1,8 @@
 import { schnorr } from "@noble/curves/secp256k1";
 import { bytesToHex } from "@noble/hashes/utils";
 
-import {
-  base64ToBytes,
-  calcPaddedLen,
-  conversationKey,
-  decrypt,
-  decryptWithKey,
-  encrypt,
-  encryptWithKey,
-} from "@/lib/nip44";
+import { base64ToBytes } from "@/lib/bytes";
+import { calcPaddedLen, conversationKey, decrypt, decryptWithKey, encrypt, encryptWithKey } from "@/lib/nip44";
 
 /**
  * NIP-44 v2, round trip and payload shape only. Interoperability with other

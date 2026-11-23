@@ -111,5 +111,3 @@ export function encrypt(plaintext: string, secretKey: Uint8Array, publicKeyHex: 
 export function decrypt(payload: string, secretKey: Uint8Array, publicKeyHex: string): string {
   return decryptWithKey(payload, conversationKey(secretKey, publicKeyHex));
 }
-
-export { base64ToBytes, bytesToBase64 };
