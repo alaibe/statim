@@ -1,155 +1,37 @@
 # Statim
 
-An encrypted messenger whose account is a key you hold. Twelve words, generated
-on the device. No sign-up, no phone number, no email, and no backend of ours for
-anyone to subpoena, sell or breach. The same phrase is also an Ethereum, Bitcoin
-and Solana wallet.
+An encrypted messenger whose account is a key you hold: twelve words generated
+on the device, with no sign-up, phone number or server of ours. XMTP, Nostr,
+Status, Telegram and Matrix chats share one list, and the same phrase is an
+Ethereum, Bitcoin and Solana wallet. It runs on iOS, Android, macOS, Windows
+and Linux from one Expo codebase; the desktop app is its web export in a Tauri
+window.
 
-iOS, Android, macOS, Windows and Linux, from one Expo SDK 57 / React Native
-0.86 / React 19.2 codebase. The desktop app is the web export of that codebase
-running in a Tauri window.
-
-<p align="center">
-  <a href="https://statim.laibe.cc/promo/film-16x9.mp4"><img src="https://statim.laibe.cc/promo/film.webp" width="800" alt="The promo film: a twelve-word account, five protocols in one chat list, and an AI agent paying a friend back while you approve on the phone"></a>
-</p>
-
-<p align="center">
-  <img src="https://statim.laibe.cc/screenshots/welcome.png" width="196" alt="Welcome screen: create an account, restore a phrase or connect a hardware wallet">
-  <img src="https://statim.laibe.cc/screenshots/statim-chat.png" width="196" alt="The Statim chat, with slash command chips above the composer">
-  <img src="https://statim.laibe.cc/screenshots/message-actions.png" width="196" alt="Long-pressing a message: reactions, reply, copy and forward">
-  <img src="https://statim.laibe.cc/screenshots/plugins.png" width="196" alt="Plugins screen: assistant, names, bots, wallet, browser and markets">
-</p>
-
-**[User guide](https://statim.laibe.cc/)** ·
-[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) ·
+[User guide](https://statim.laibe.cc/) · [Security](SECURITY.md) ·
 [Privacy](https://statim.laibe.cc/privacy) · [Disclaimer](https://statim.laibe.cc/disclaimer)
 
-## Five protocols, one chat list
+## Install
 
-Every chat says which protocol it is on and what that protocol actually
-protects, because the honest answers differ:
+iPhone: [TestFlight](https://testflight.apple.com/join/kQGUUDUv). Android:
+[Google Play](https://play.google.com/apps/testing/im.statim.app). Mac:
+`brew install --cask alaibe/tap/statim`.
 
-| Protocol | Confidentiality | Reach someone by | Runs on |
-| --- | --- | --- | --- |
-| **XMTP** | MLS, forward secret | Ethereum address or ENS name | Your recovery phrase |
-| **Nostr** | NIP-17 sealed DMs; relays never learn the sender | `npub…` public key | Your recovery phrase |
-| **Status** | Status's chat protocol, through Status's nodes or a Status node you run | `zQ3sh…` chat key | Your recovery phrase |
-| **Telegram** | None. Telegram holds and can read it | `@username`, `t.me` link, phone number | Your Telegram account, over TDLib |
-| **Matrix** | Olm/Megolm in chats with encryption on | `@user:server` | Your Matrix account, over matrix-rust-sdk |
+## Run from source
 
-Telegram and Matrix are real client implementations, not bridges we operate:
-sign in with your own credentials and those chats land in the same list. A
-Matrix homeserver running a [mautrix](https://github.com/mautrix) bridge brings
-WhatsApp, Signal, Slack, iMessage or Discord along with it, with no code for
-any of them in this app.
-
-## What else is in it
-
-- Requests, folders, search, replies, reactions, forwarding, pin,
-  archive and mute. Photos, files, GIFs and voice notes. Groups where the
-  protocol has them.
-- Links unfurl into cards fetched by your device, not a server. Phone numbers,
-  email addresses, map coordinates, wallet addresses and ENS names are tappable
-  with no request at all.
-- Per-account SQLCipher history. Several accounts per device, each from a
-  recovery phrase or a hardware wallet (Ledger, Trezor, Keystone), with optional
-  biometric unlock and key protection.
-- A fresh install is a messenger and nothing else. Wallet, dapp browser, market
-  alerts, bots and name lookups are plugins that ship switched off, each
-  declaring its permissions before you enable it.
-
-Everything a plugin does is a slash command. `/` in any chat opens a
-picker scoped to that chat; the chips above the composer run the same slash commands.
-`/chains` switches chains on and off, `/send` and `/request` move money inside
-the chat where it came up, `/trade` (also `/swap`, `/bridge`) quotes
-through LI.FI, and LCX Liberty DEX too once you save its key, Jupiter on
-Solana, or THORChain between Bitcoin and Ethereum, `/scan` reads a
-WalletConnect code. Anything that signs shows a
-review step first.
-
-## Platforms
-
-iOS, Android, macOS, Windows and Linux. The iPhone app is in beta on
-[TestFlight](https://testflight.apple.com/join/kQGUUDUv), and Android in
-open testing on [Google Play](https://play.google.com/apps/testing/im.statim.app).
-On a Mac, `brew install --cask alaibe/tap/statim` installs the app and its
-`statim` command. Telegram on the phone needs TDLib in `modules/tdjson` first:
-`./scripts/tdlib.sh ios` or `./scripts/tdlib.sh android`.
-
-This repository lives on git.laibe.cc, which runs its checks and builds a
-release every night when the app changed. The GitHub copy is a mirror.
-
-## Quick start
-
-Node.js 24, Xcode 27.2 with an iPhone simulator, and CocoaPods. Rust as
-well for the desktop app, and for Android its SDK and a JDK from 17 to 21.
-Expo Go cannot run this: XMTP, TDLib, SQLCipher and the hardware wallet
-transports are all native modules.
+Node.js 24, Xcode 27.2 with an iPhone simulator, and CocoaPods; Rust for the
+desktop app; for Android, its SDK and a JDK from 17 to 21. Expo Go cannot run
+it.
 
 ```bash
-npm install                 # also applies patches/
+npm install
 ./scripts/tdlib.sh ios
-npx expo run:ios
+npx expo run:ios     # or: npm run desktop
 ```
-
-```bash
-npm start            # Metro
-npm run desktop      # Metro on 8082 plus a Tauri window that reloads on save
-npm run format       # Biome and rustfmt rewrite what they check
-npm run format:check && npm run lint && npm run typecheck && npm test
-npm run test:e2e     # Maestro, against a booted simulator with Metro running
-npm run test:all     # the four checks above, then the e2e tests
-```
-
-### Keys and configuration
-
-Nothing secret ships in the repository, and the app works without any of it.
-
-| What | Where | Needed for |
-| --- | --- | --- |
-| WalletConnect project id | `expo.extra.walletConnectProjectId` in `app.json` | connecting dapps |
-| Telegram API id and hash | Settings → Protocols → Telegram, per account | Telegram sign-in ([my.telegram.org](https://my.telegram.org)) |
-| Matrix homeserver and ID | Settings → Protocols → Matrix, per account | Matrix sign-in |
-| LI.FI key | Settings → Trades, per account | optional; raises the quote rate limit |
-| LCX Liberty DEX key | Settings → Trades, per account | optional; swaps also compare its quote |
-| KLIPY key | Settings → GIFs, per account | GIF search |
-
-Token balances need no key at all. `src/lib/evm/token-list.json` is the Uniswap
-Labs Default list trimmed to the five chains the wallet sends on (829 entries),
-read with one multicall against the endpoint already in use; `/tokens add
-<contract>` covers anything it misses. Solana enumerates its own holdings
-through `getTokenAccountsByOwner`, with Jupiter's verified list bundled only to
-put a name to a mint.
-
-## Documentation
-
-| For | Where |
-| --- | --- |
-| Using the app | [statim.laibe.cc](https://statim.laibe.cc/guide) |
-| Working on the code | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
-| Reporting a vulnerability | [`SECURITY.md`](SECURITY.md) |
-| What leaves your device | [Privacy policy](https://statim.laibe.cc/privacy) |
-| What the developer is not responsible for | [Disclaimer](https://statim.laibe.cc/disclaimer) |
-| Why each dependency is patched | [`patches/README.md`](patches/README.md) |
-| End-to-end tests | [`e2e/README.md`](e2e/README.md) |
-| Running your own bots | [Your own bots](https://statim.laibe.cc/guide/bots) |
 
 ## Code signing policy
 
-Release builds come only from the release workflow
-([`release.yml`](.forgejo/workflows/release.yml)), on git.laibe.cc's Forgejo
-Actions runners, at the tagged commit. Each release lists every file's SHA-256
-in `SHA256SUMS`, and the desktop app installs an update only when it carries a
-signature from the key built into the app. The macOS app is signed with the
-maintainer's Apple Developer ID. Apple's notarization is paused until its new
-developer agreement is accepted, so for now a downloaded copy asks for "Open
-Anyway" on its first launch.
-
-- Committers and reviewers: [Anthony Laibe](https://github.com/alaibe)
-- Approvers: [Anthony Laibe](https://github.com/alaibe)
-
-What the app sends, and where, is in the [privacy policy](https://statim.laibe.cc/privacy).
-
-## License
+Release builds come only from `.forgejo/workflows/release.yml` at the tagged
+commit, with every file's SHA-256 in `SHA256SUMS`. Committers, reviewers and
+approvers: [Anthony Laibe](https://github.com/alaibe).
 
 MIT. See [`LICENSE`](LICENSE).

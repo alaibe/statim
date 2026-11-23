@@ -106,9 +106,7 @@ simulator. The Maestro suite, `./e2e/run.sh`, is run by hand.
   and `usage-vectors.json` are byte-for-byte copies of the ones in Kestrel and
   Grenier: change all three together. A change to what it sends is a change
   to the privacy policy and both stores' privacy answers.
-- `patches/` is load-bearing too. Every patch is documented in
-  `patches/README.md` with its symptom, cause and removal condition. Add one
-  only with that entry.
+- `patches/` is load-bearing too.
 
 ## Words
 
@@ -217,5 +215,3 @@ _Avoid_: command (on its own), action
 
 **Chain**: A blockchain the wallet works with, such as Ethereum or Base.
 _Avoid_: network
-
-`CONTRIBUTING.md` covers setup and the contribution workflow.

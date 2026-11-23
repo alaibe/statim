@@ -1,12 +1,6 @@
 {
   "version": 1,
   "skills": {
-    "documentation-and-adrs": {
-      "source": "addyosmani/agent-skills",
-      "sourceType": "github",
-      "skillPath": "skills/documentation-and-adrs/SKILL.md",
-      "computedHash": "f13054e8bd32a432df3e0e68240758cf61a9e8817aa8540f9d9831f427c47e0e"
-    },
     "eas-app-stores": {
       "source": "expo/skills",
       "sourceType": "github",
@@ -30,24 +24,6 @@
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-upgrade/SKILL.md",
       "computedHash": "2e7f5ffbeeb8e4d1e6d8441c30abe9d3817b6ab59bd19106bede903581680144"
-    },
-    "humanizer": {
-      "source": "blader/humanizer",
-      "sourceType": "github",
-      "skillPath": "SKILL.md",
-      "computedHash": "0a4518725b506f6c83e65f2d6d87cb56fbc042ba92de5eecb1ef8b995ec69d70"
-    },
-    "ponytail": {
-      "source": "dietrichgebert/ponytail",
-      "sourceType": "github",
-      "skillPath": "skills/ponytail/SKILL.md",
-      "computedHash": "210fa0831f649ce9f8a305f7b7c8cf2a0dd09ac4dd53067109941b96e7811d4e"
-    },
-    "ponytail-review": {
-      "source": "dietrichgebert/ponytail",
-      "sourceType": "github",
-      "skillPath": "skills/ponytail-review/SKILL.md",
-      "computedHash": "4646594fcd75455533f7ff1425f4f1c5ba0fa65f88241bf262b1c4fc275f049a"
     },
     "react-native-best-practices": {
       "source": "callstackincubator/agent-skills",
