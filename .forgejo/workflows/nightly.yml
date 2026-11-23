@@ -1,7 +1,7 @@
 # Releases Statim every night when main has commits since the last release, as Grenier's and Kestrel's nightlies do.
 #
-# On the home runner, `due` counts the commits since the last `v*` tag that change the app (not only the workflows,
-# docs/ or the top-level notes); with none, the run ends there. Otherwise the Mac runs the type check and the tests
+# On the home runner, `due` counts the commits since the last `v*` tag that change the app (not only the workflows
+# or the top-level notes); with none, the run ends there. Otherwise the Mac runs the type check and the tests
 # (Jest, then the desktop crate's), checks that the iPhone app builds, installs and starts on a simulator, moves a
 # version that's already tagged to its next patch in its six files and commits it, then tags `v<version>` and pushes both over SSH with the Mac's own key. A tag pushed with the job's own token starts no workflow; this one
 # starts release.yml. Its "Run workflow" button does the same at once.
@@ -43,8 +43,8 @@ jobs:
         run: |
           LAST=$(git describe --tags --abbrev=0 --match 'v*' HEAD)
           COUNT=$(git rev-list --count "$LAST..HEAD")
-          # Commits that only touch the workflows, docs/ or the top-level notes (README.md, AGENTS.md…) make no release.
-          APP=$(git rev-list --count "$LAST..HEAD" -- . ':(exclude).forgejo' ':(exclude).github' ':(exclude)docs' ':(exclude,glob)*.md')
+          # Commits that only touch the workflows or the top-level notes (README.md, AGENTS.md…) make no release.
+          APP=$(git rev-list --count "$LAST..HEAD" -- . ':(exclude).forgejo' ':(exclude).github' ':(exclude,glob)*.md')
           echo "$COUNT commits since $LAST, $APP of them changing the app"
           if [ "$APP" -gt 0 ]; then echo "due=true" >> "$GITHUB_OUTPUT"; else echo "due=false" >> "$GITHUB_OUTPUT"; fi
 
