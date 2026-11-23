@@ -458,7 +458,7 @@ export class XmtpSession implements ChatSession {
 
   async revokeInstallations(ids: string[]): Promise<void> {
     await Client.revokeInstallations(
-      xmtpEnvironment(),
+      this.client.environment,
       signerForAccount(this.account),
       this.client.inboxId,
       ids as Parameters<typeof Client.revokeInstallations>[3],

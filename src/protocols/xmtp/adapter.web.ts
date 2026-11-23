@@ -172,6 +172,7 @@ export class XmtpSession implements ChatSession {
     private readonly codecsByTypeId: Map<string, ContentCodec<any>>,
     private readonly account: LocalAccount,
     private readonly accountId: string,
+    private readonly env: XmtpEnvironment,
   ) {
     this.self = {
       participantId: requireValue(client.inboxId, "inbox id"),
@@ -211,7 +212,7 @@ export class XmtpSession implements ChatSession {
     const byTypeId = new Map<string, ContentCodec<any>>();
     for (const codec of codecs) byTypeId.set(codec.contentType.typeId, codec);
 
-    return new XmtpSession(client, byTypeId, opts.account, opts.accountId);
+    return new XmtpSession(client, byTypeId, opts.account, opts.accountId, env);
   }
 
   async whenListed(first: ProtocolChat[]): Promise<ProtocolChat[]> {
@@ -483,7 +484,7 @@ export class XmtpSession implements ChatSession {
       signerForAccount(this.account),
       this.self.participantId,
       ids.map(fromHex),
-      xmtpEnvironment(),
+      this.env,
     );
   }
 
