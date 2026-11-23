@@ -51,8 +51,9 @@ check and the tests on every push, and also checks:
   `cargo test --locked`, run in that folder. Run them too when you change it,
   or `src/core/usage/usage-vectors.json`, which its tests read.
 
-Before tagging, the nightly runs the type check, both test suites and
-`./e2e/run.sh ios` on the Mac.
+Before tagging, the nightly runs the type check and both test suites on the
+Mac, and checks that the iPhone app builds, installs and starts on a
+simulator. The Maestro suite, `./e2e/run.sh`, is run by hand.
 
 ## Things that are not obvious from the code
 
