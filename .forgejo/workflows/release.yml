@@ -312,6 +312,8 @@ jobs:
       # hidapi (Ledger). The .debs come from the runner's cache, one job at a time, since apt refuses a locked one.
       - name: Linux packages and gh
         run: |
+          # Ubuntu's main servers crawl from the home server; its French mirror is fast and carries -security too.
+          sudo sed -i -E 's#https?://(archive|security)\.ubuntu\.com/ubuntu#http://fr.archive.ubuntu.com/ubuntu#g' /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
           sudo mkdir -p /cache/apt/archives/partial
           sudo apt-get update
           sudo flock /cache/apt/lock apt-get install -y --no-install-recommends \
