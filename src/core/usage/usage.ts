@@ -15,7 +15,7 @@ export const APP_NAME = "Statim";
 const LANGUAGE = "en-US";
 const IP = "127.0.0.1";
 /** 365 days: never more than 12 months, inside the 13 months CNIL lets an audience-measurement tracker live without consent. */
-export const ID_LIFETIME_SECONDS = 31_536_000;
+const ID_LIFETIME_SECONDS = 31_536_000;
 const MAX_BROWSER = 20;
 const MAX_SCREEN = 11;
 export const OFF_TEXT = '{"off":true}';

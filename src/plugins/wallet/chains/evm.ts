@@ -40,11 +40,7 @@ export function explorerUrl(chain: Chain, address: string): string | null {
   return base ? `${base}/address/${address}` : null;
 }
 
-export async function tokensFor(
-  chainId: number,
-  address: `0x${string}`,
-  context: PluginContext,
-): Promise<TokenBalance[]> {
+async function tokensFor(chainId: number, address: `0x${string}`, context: PluginContext): Promise<TokenBalance[]> {
   if (!supportsTokens(chainId)) return [];
   const extra = await readCustomTokens(context, chainId).catch(() => []);
   return fetchTokens(chainId, address, { extra });

@@ -40,6 +40,6 @@ export function useMentionSuggestions(chatId: ChatId, value: string, enabled: bo
   };
 }
 
-export function applyMention(value: string, person: MentionCandidate): string {
+function applyMention(value: string, person: MentionCandidate): string {
   return value.replace(/@[^\s@]*$/, `${person.address ?? mentionLink(person.name, person.id)} `);
 }

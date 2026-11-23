@@ -58,7 +58,7 @@ const isSealedPin = shape<SealedPin>({
 
 const isAttempts = shape<Attempts>({ failures: isNumber, lockedUntil: isNumber });
 
-export function isPinShaped(pin: string): boolean {
+function isPinShaped(pin: string): boolean {
   return new RegExp(`^\\d{${PIN_LENGTH}}$`).test(pin);
 }
 

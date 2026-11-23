@@ -105,7 +105,7 @@ export class RoomFeatureStore {
   }
 }
 
-export async function fetchRoomFeatures(homeserver: Homeserver, roomIds: string[]): Promise<Map<string, RoomFeatures>> {
+async function fetchRoomFeatures(homeserver: Homeserver, roomIds: string[]): Promise<Map<string, RoomFeatures>> {
   const subscription = { required_state: [[ROOM_FEATURES, "*"]], timeline_limit: 0 };
   const response = await homeserver.at(SLIDING_SYNC).request<SyncResponse>("POST", "/sync?timeout=0", {
     conn_id: "statim-room-features",

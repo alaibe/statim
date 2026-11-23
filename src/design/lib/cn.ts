@@ -3,7 +3,7 @@ import { extendTailwindMerge } from "tailwind-merge";
 
 import { Palette } from "../tokens";
 
-export const FONT_SIZE_NAMES = ["micro", "caption", "footnote", "body", "title", "headline", "display"] as const;
+const FONT_SIZE_NAMES = ["micro", "caption", "footnote", "body", "title", "headline", "display"] as const;
 
 const COLOR_NAMES = Object.keys(Palette.light);
 

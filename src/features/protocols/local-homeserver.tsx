@@ -26,7 +26,7 @@ import { phoneLinkCode } from "./phone-link";
 /** Where this account's Matrix lives: on this computer, on a server it names, or nowhere yet. */
 type Here = "unavailable" | "elsewhere" | "off" | "on";
 
-export async function hereState(accountId: string): Promise<Here> {
+async function hereState(accountId: string): Promise<Here> {
   const [url, config] = await Promise.all([localHomeserverUrl(), loadProtocolConfig(accountId, "matrix")]);
   if (!url) return "unavailable";
   const homeserver = normaliseHomeserver(config.homeserver ?? "");
@@ -34,7 +34,7 @@ export async function hereState(accountId: string): Promise<Here> {
   return homeserver === url ? "on" : "elsewhere";
 }
 
-export async function runHere(accountId: string): Promise<void> {
+async function runHere(accountId: string): Promise<void> {
   await startHomeserver(accountId);
   await adoptMatrixSession(accountId, await homeserverSession(accountId, DEVICE_NAME));
 }

@@ -61,14 +61,14 @@ interface LockDevice {
  * The greeting is built synchronously, before the device can report its biometrics, so they are
  * named by platform. Most Macs have Touch ID.
  */
-export function thisDevice(os = process.env.EXPO_OS): LockDevice {
+function thisDevice(os = process.env.EXPO_OS): LockDevice {
   if (os === "ios") return { kind: "phone", biometrics: "Face ID or Touch ID" };
   if (os === "android") return { kind: "phone", biometrics: "fingerprint or face unlock" };
   const mac = /Mac/.test(globalThis.navigator?.userAgent ?? "");
   return { kind: "computer", biometrics: mac ? "Touch ID" : null };
 }
 
-export function lockCard({ kind, biometrics }: LockDevice = thisDevice()): Omit<WidgetContent, "live"> {
+function lockCard({ kind, biometrics }: LockDevice = thisDevice()): Omit<WidgetContent, "live"> {
   const who =
     kind === "phone"
       ? "Anyone holding your phone can open your chats."
