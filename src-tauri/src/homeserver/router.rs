@@ -57,8 +57,10 @@ impl Router {
         })))
     }
 
-    pub fn stop(self) {
+    /// Returns once the listener is closed, so the port can be bound again straight away.
+    pub async fn stop(self) {
         self.0.abort();
+        let _ = self.0.await;
     }
 }
 
@@ -98,6 +100,20 @@ mod tests {
             server: 47281,
             bridges: vec![("whatsapp", 47290), ("slack", 47291)],
         }
+    }
+
+    #[test]
+    fn binds_its_port_again_as_soon_as_it_stops() {
+        let port = StdListener::bind((Ipv4Addr::LOCALHOST, 0))
+            .unwrap()
+            .local_addr()
+            .unwrap()
+            .port();
+        tauri::async_runtime::block_on(async {
+            for _ in 0..20 {
+                Router::start(port, routes()).unwrap().stop().await;
+            }
+        });
     }
 
     #[test]

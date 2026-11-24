@@ -44,15 +44,15 @@ struct Running {
 
 impl Running {
     /// Stops the programs; Tailscale keeps serving the port for a restart.
-    fn stop(self) -> Option<PathBuf> {
-        self.router.stop();
+    async fn stop(self) -> Option<PathBuf> {
+        self.router.stop().await;
         process::stop_all(self.bridges);
         self.server.stop();
         self.served
     }
 
-    fn close(self) {
-        if let Some(cli) = self.stop() {
+    async fn close(self) {
+        if let Some(cli) = self.stop().await {
             tailscale::stop(&cli);
         }
     }
@@ -91,7 +91,7 @@ pub async fn homeserver_start(
         return Ok(url());
     }
     if let Some(previous) = running.take() {
-        previous.close();
+        previous.close().await;
     }
     let mut started = start(account_id, dir, &bin_dir(&app).await?).await?;
     if started.dir.join("served").exists() {
@@ -197,7 +197,10 @@ pub async fn homeserver_set_bridge(
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     std::fs::write(dir.join("enabled-bridges"), ids.join("\n")).map_err(|e| e.to_string())?;
     if running_for(&mut running, &account_id).is_ok() {
-        let served = running.take().and_then(Running::stop);
+        let served = match running.take() {
+            Some(previous) => previous.stop().await,
+            None => None,
+        };
         match start(account_id, dir, &bin_dir(&app).await?).await {
             Ok(mut restarted) => {
                 restarted.served = served;
@@ -220,7 +223,7 @@ pub async fn homeserver_erase(app: AppHandle, state: State<'_, Homeserver>, acco
     let mut running = state.0.lock().await;
     if running_for(&mut running, &account_id).is_ok() {
         if let Some(run) = running.take() {
-            run.close();
+            run.close().await;
         }
     }
     crate::paths::remove_dir(&dir)
@@ -228,7 +231,7 @@ pub async fn homeserver_erase(app: AppHandle, state: State<'_, Homeserver>, acco
 
 pub fn stop_on_exit(app: &AppHandle) {
     if let Some(running) = app.state::<Homeserver>().0.blocking_lock().take() {
-        running.close();
+        tauri::async_runtime::block_on(running.close());
     }
 }
 
@@ -305,12 +308,12 @@ async fn start(account: String, dir: PathBuf, bin: &Path) -> Result<Running, Str
     let mut server = match Process::spawn("tuwunel", &tuwunel, &dir, &[("TUWUNEL_CONFIG", &config)], &[]) {
         Ok(server) => server,
         Err(error) => {
-            router.stop();
+            router.stop().await;
             return Err(error);
         }
     };
     if let Err(error) = answering(&mut server, &dir).await {
-        router.stop();
+        router.stop().await;
         server.stop();
         return Err(error);
     }
@@ -341,7 +344,7 @@ async fn start(account: String, dir: PathBuf, bin: &Path) -> Result<Running, Str
         match spawned {
             Ok(process) => running.bridges.push(process),
             Err(error) => {
-                running.stop();
+                running.stop().await;
                 return Err(error);
             }
         }
