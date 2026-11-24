@@ -16,11 +16,16 @@ iPhone: [TestFlight](https://testflight.apple.com/join/kQGUUDUv). Android:
 [Google Play](https://play.google.com/apps/testing/im.statim.app). Mac:
 `brew install --cask alaibe/tap/statim`.
 
-## Run from source
+## Development
 
-Node.js 24, Xcode 27.2 with an iPhone simulator, and CocoaPods; Rust for the
-desktop app, and on Linux [Tauri's system libraries](https://v2.tauri.app/start/prerequisites/#linux);
-for Android, its SDK and a JDK from 17 to 21. Expo Go cannot run it.
+Requirements:
+
+- Node.js 24 (`.node-version`)
+- Rust (`rust-toolchain.toml`) for the desktop app, and on Linux
+  [Tauri's system libraries](https://v2.tauri.app/start/prerequisites/#linux)
+- For iOS, Xcode 27.2 with an iPhone simulator, and CocoaPods; for Android, its SDK and a JDK from 17 to 21
+
+Expo Go cannot run it.
 
 ```bash
 npm install
@@ -30,7 +35,7 @@ npx expo run:ios     # or: npm run desktop, which fetches TDLib itself
 
 npm runs a dependency's install script only when `allowScripts` in
 `package.json` approves it; after a new one, `npm install-scripts ls` lists it
-for `approve` or `deny`.
+for `approve` or `deny`. `AGENTS.md` lists the checks CI runs.
 
 ## Code signing policy
 
@@ -38,4 +43,6 @@ Release builds come only from `.forgejo/workflows/release.yml` at the tagged
 commit, with every file's SHA-256 in `SHA256SUMS`. Committers, reviewers and
 approvers: [Anthony Laibe](https://github.com/alaibe).
 
-MIT. See [`LICENSE`](LICENSE).
+## License
+
+[MIT](LICENSE).

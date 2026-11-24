@@ -1,15 +1,16 @@
-# Working in this repository
+# Statim
 
-Expo SDK 57 differs from what you remember: read https://docs.expo.dev/versions/v57.0.0/ before writing Expo, Expo Router or React Native code.
+An encrypted messenger for iOS, Android and the desktop from one Expo SDK 57 codebase in TypeScript; the desktop app is
+its web export in a Tauri window (`src-tauri`, Rust). Expo SDK 57 differs from what you remember: read
+https://docs.expo.dev/versions/v57.0.0/ before writing Expo, Expo Router or React Native code.
 
 ## Checks
 
-Run `npm run format && npm run typecheck && npm run lint && npm test` before you finish. CI also runs these on what you touched:
-
-- `src-tauri` or `src/core/usage/usage-vectors.json`: `cargo clippy --all-targets --locked -- -D warnings` and `cargo test --locked` in `src-tauri`.
-- Swift: `swift format lint --strict`. Shell: `shfmt -d -i 4 -ci -bn` and `shellcheck -S warning`.
-
-The nightly ships main every morning, so every commit on main passes them.
+- Before you finish: `npm run format && npm run typecheck && npm run lint && npm test`.
+- CI also runs these on what you touched: for `src-tauri` or `src/core/usage/usage-vectors.json`,
+  `cargo clippy --all-targets --locked -- -D warnings` and `cargo test --locked` in `src-tauri`; for Swift,
+  `swift format lint --strict`; for shell, `shfmt -d -i 4 -ci -bn` and `shellcheck -S warning`.
+- The nightly ships main every morning, so every commit on main passes them.
 
 ## Rules
 
