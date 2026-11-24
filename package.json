@@ -145,5 +145,14 @@
     "react-dom": "19.2.3",
     "react": "19.2.3",
     "expo-modules-jsi": "57.0.7"
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "@unomed/react-native-matrix-sdk": true,
+    "unrs-resolver": true,
+    "keccak": true,
+    "secp256k1": true,
+    "protobufjs": false,
+    "postinstall-postinstall": false
   }
 }

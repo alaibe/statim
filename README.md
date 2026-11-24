@@ -19,14 +19,18 @@ iPhone: [TestFlight](https://testflight.apple.com/join/kQGUUDUv). Android:
 ## Run from source
 
 Node.js 24, Xcode 27.2 with an iPhone simulator, and CocoaPods; Rust for the
-desktop app; for Android, its SDK and a JDK from 17 to 21. Expo Go cannot run
-it.
+desktop app, and on Linux [Tauri's system libraries](https://v2.tauri.app/start/prerequisites/#linux);
+for Android, its SDK and a JDK from 17 to 21. Expo Go cannot run it.
 
 ```bash
 npm install
 ./scripts/tdlib.sh ios
-npx expo run:ios     # or: npm run desktop
+npx expo run:ios     # or: npm run desktop, which fetches TDLib itself
 ```
+
+npm runs a dependency's install script only when `allowScripts` in
+`package.json` approves it; after a new one, `npm install-scripts ls` lists it
+for `approve` or `deny`.
 
 ## Code signing policy
 
