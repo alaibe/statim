@@ -68,6 +68,14 @@
     "linux": {
       "appimage": {
         "bundleMediaFramework": true
+      },
+      "deb": {
+        "depends": ["gstreamer1.0-plugins-base", "gstreamer1.0-plugins-good"],
+        "recommends": ["gstreamer1.0-libav"]
+      },
+      "rpm": {
+        "depends": ["gstreamer1-plugins-base", "gstreamer1-plugins-good"],
+        "recommends": ["gstreamer1-plugin-libav", "gstreamer1-plugin-openh264"]
       }
     },
     "macOS": {
