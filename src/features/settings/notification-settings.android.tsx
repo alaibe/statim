@@ -26,7 +26,7 @@ function StayConnected() {
         title="Stay connected"
         subtitle="Keeps Statim running after you leave it, so messages arrive and notify. While it is on, Android shows a Connected notification, and it uses more battery. Off by default."
         numberOfLinesSubtitle={5}
-        leading={<Icon name="flash-outline" size={20} tone="muted" />}
+        leading={<Icon name="zap" size={20} tone="muted" />}
         trailing={<Toggle label="Stay connected" value={on} onValueChange={toggle} />}
       />
     </Section>

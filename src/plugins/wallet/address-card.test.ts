@@ -21,7 +21,7 @@ const context = { storage: { get: async () => null } } as unknown as PluginConte
 const ethereum: ChainStrategy = {
   id: "ethereum",
   name: "Ethereum",
-  icon: "diamond-outline",
+  icon: "gem",
   selfAddress: () => "0x0",
   isAddress: (value) => /^0x[0-9a-fA-F]{40}$/.test(value),
   addressHint: "0x…",
@@ -66,12 +66,12 @@ describe("addressCard", () => {
             {
               title: "vitalik.eth",
               subtitle: "0xd8dA…6045 · 1.5 ETH · Ethereum",
-              icon: "diamond-outline",
+              icon: "gem",
               actions: [
                 {
                   label: "Send ETH",
                   command: `/send vitalik.eth --chain ethereum`,
-                  icon: "arrow-up-circle-outline",
+                  icon: "circle-arrow-up",
                 },
               ],
             },
@@ -81,7 +81,7 @@ describe("addressCard", () => {
           kind: "link",
           label: "View on Etherscan",
           url: `https://etherscan.io/address/${vitalik}`,
-          icon: "open-outline",
+          icon: "arrow-up-right",
         },
       ],
     });

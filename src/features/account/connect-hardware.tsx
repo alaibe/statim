@@ -82,7 +82,7 @@ export function ConnectHardware({ visible, onClose }: { visible: boolean; onClos
     if (!chosen) {
       return (
         <>
-          <Note icon="hardware-chip-outline">
+          <Note icon="cpu">
             <Text variant="footnote">
               The key stays on the device. Every payment is confirmed on the wallet itself, so Statim can ask but never
               sign on its own.

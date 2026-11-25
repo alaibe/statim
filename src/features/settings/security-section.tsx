@@ -63,7 +63,7 @@ export function SecuritySection({
                 : "Asked for when the app opens",
             )}
             numberOfLinesSubtitle={2}
-            leading={<RowIcon name="keypad-outline" />}
+            leading={<RowIcon name="grid-3x3" />}
             trailing={chevron}
             selected={pinSelected}
             onPress={() => openTab("/settings/pin")}
@@ -71,7 +71,7 @@ export function SecuritySection({
           <ListItem
             testID="settings-turn-off-pin"
             title="Turn off PIN"
-            leading={<RowIcon name="close-circle-outline" />}
+            leading={<RowIcon name="circle-x" />}
             trailing={chevron}
             selected={pinOffSelected}
             onPress={() => openTab("/settings/pin-off")}
@@ -83,7 +83,7 @@ export function SecuritySection({
           title="Set PIN"
           subtitle={hint("Ask for a PIN of its own whenever the app opens")}
           numberOfLinesSubtitle={2}
-          leading={<RowIcon name="keypad-outline" />}
+          leading={<RowIcon name="grid-3x3" />}
           trailing={chevron}
           selected={pinSelected}
           onPress={() => openTab("/settings/pin")}
@@ -151,7 +151,7 @@ function BiometricRows({
         title={`Require ${label}`}
         subtitle={hint(enrolled ? "Asks before showing your accounts" : `Set up ${label} on this device first`)}
         numberOfLinesSubtitle={2}
-        leading={<RowIcon name="finger-print-outline" />}
+        leading={<RowIcon name="fingerprint-pattern" />}
         trailing={
           <Toggle
             label={`Require ${label}`}
@@ -175,7 +175,7 @@ function BiometricRows({
           title="Also protect keys"
           subtitle={hint(`Your recovery phrase is sealed in the keychain and cannot be read without ${label}`)}
           numberOfLinesSubtitle={2}
-          leading={<RowIcon name="lock-closed-outline" />}
+          leading={<RowIcon name="lock" />}
           trailing={
             <Toggle
               label="Also protect keys"

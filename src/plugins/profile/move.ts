@@ -100,7 +100,7 @@ export function moveViews(context: PluginContext) {
               },
             ]),
           ],
-          { title: "Continue on XMTP", icon: "lock-closed-outline" },
+          { title: "Continue on XMTP", icon: "lock" },
         ),
       };
     },

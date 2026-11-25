@@ -36,7 +36,7 @@ export default function RecoveryPhraseScreen() {
             className="flex-row items-center justify-between"
           >
             <Text variant="mono">{shortAddress(keyring.address, 12, 10)}</Text>
-            <Icon name="copy-outline" size={16} tone="muted" />
+            <Icon name="copy" size={16} tone="muted" />
           </Pressable>
         </Card>
 

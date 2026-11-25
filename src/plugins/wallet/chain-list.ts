@@ -43,7 +43,7 @@ export const CHAINS: WalletChain[] = [
   {
     id: "bitcoin",
     name: "Bitcoin",
-    icon: "logo-bitcoin",
+    icon: "bitcoin",
     description: "A native SegWit address from your recovery phrase.",
     strategy: bitcoinStrategy,
     poll: bitcoinPoll,
@@ -52,7 +52,7 @@ export const CHAINS: WalletChain[] = [
   {
     id: "solana",
     name: "Solana",
-    icon: "sunny-outline",
+    icon: "sun",
     description: "An ed25519 address from the same recovery phrase.",
     strategy: () => solanaStrategy,
     hydrate: hydrateSolanaRpc,
@@ -257,7 +257,7 @@ export async function chainsCard(context: PluginContext) {
                       {
                         label: "Make default",
                         command: `/chains ${chain.id} default`,
-                        icon: "star-outline" as const,
+                        icon: "star" as const,
                       },
                       {
                         label: "Turn off",
@@ -280,7 +280,7 @@ export async function chainsCard(context: PluginContext) {
             "Choose another default before turning off the current one.",
         ),
       ],
-      { title: "Chains", icon: "git-network-outline" },
+      { title: "Chains", icon: "network" },
     ),
   };
 }

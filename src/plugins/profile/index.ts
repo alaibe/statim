@@ -11,7 +11,7 @@ export const profilePlugin: Plugin = {
     name: "Names & addresses",
     description: "Share your address in a chat, look up what an ENS name points at, and continue a DM on XMTP.",
     version: "1.0.0",
-    icon: "person-circle-outline",
+    icon: "circle-user",
     permissions: ["account.read", "chat.read", "chat.send", "network", "storage"],
   },
 
@@ -42,7 +42,7 @@ export const profilePlugin: Plugin = {
                     W.code(address, { label: "Your address" }),
                     W.text("Anyone can message this address, or send to it."),
                   ],
-                  { title: "Address", icon: "finger-print-outline" },
+                  { title: "Address", icon: "fingerprint-pattern" },
                 ),
               });
               return { type: "handled" };
@@ -83,7 +83,7 @@ export const profilePlugin: Plugin = {
             await respond({
               kind: "widget",
               fallback: `${name} → ${eth ?? btc}`,
-              widget: W.card(children, { title: name, icon: "pricetag-outline" }),
+              widget: W.card(children, { title: name, icon: "tag" }),
             });
             return { type: "handled" };
           },

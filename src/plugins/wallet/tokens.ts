@@ -97,7 +97,7 @@ export const tokensCommand: SlashCommand = {
             "Add one the list misses with /tokens add <contract address>, and /tokens remove " + "takes it back off.",
           ),
         ],
-        { title: "Tokens", icon: "pricetag-outline" },
+        { title: "Tokens", icon: "tag" },
       ),
     });
     return { type: "handled" };

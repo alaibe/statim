@@ -90,12 +90,12 @@ export function InviteLinks({ chatId, visible, onClose }: { chatId: ChatId; visi
         actions={[
           {
             label: "Create invite link",
-            icon: "link-outline",
+            icon: "link",
             onPress: () => create.run(false),
           },
           {
             label: "Create link that needs approval",
-            icon: "person-add-outline",
+            icon: "user-plus",
             onPress: () => create.run(true),
           },
         ]}
@@ -128,7 +128,7 @@ export function SlowModeSection({
       <ListItem
         title="Slow mode"
         subtitle={SLOW_MODE.find((option) => option.seconds === delay)?.label ?? "Off"}
-        leading={<RowIcon name="time-outline" />}
+        leading={<RowIcon name="clock" />}
         onPress={() => setOpen(true)}
       />
       <ActionSheet
@@ -157,7 +157,7 @@ const REMOVAL: Record<
     confirm: "Remove",
     body: "They stop receiving messages from this group. Nothing they already received is recalled, and they can come back with an invite or a link.",
     done: "Removed",
-    icon: "person-remove-outline",
+    icon: "user-minus",
   },
   ban: {
     title: "Ban from group",
@@ -165,7 +165,7 @@ const REMOVAL: Record<
     confirm: "Ban",
     body: "They stop receiving messages from this group and cannot join again, even with a link, until an admin lets them back in from another app.",
     done: "Banned",
-    icon: "ban-outline",
+    icon: "ban",
   },
 };
 
@@ -211,7 +211,7 @@ export function MemberModeration({
           testID="profile-mute-member"
           title={muted ? "Let them send messages" : "Mute in group"}
           subtitle={muted ? "They are muted: they read but cannot send." : "They stay, but cannot send."}
-          leading={<RowIcon name={muted ? "mic-outline" : "mic-off-outline"} />}
+          leading={<RowIcon name={muted ? "mic" : "mic-off"} />}
           onPress={members.loading ? undefined : () => mute.run()}
         />
       ) : null}

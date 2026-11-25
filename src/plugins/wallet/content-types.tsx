@@ -126,7 +126,7 @@ function PaymentRequestCard({ data, fromMe, context, message }: MessageRendererP
     <>
       <CardShell fromMe={fromMe}>
         <View className="flex-row items-center gap-2">
-          <Icon name="arrow-down-circle" size={18} tone="accent" />
+          <Icon name="circle-arrow-down" size={20} tone="accent" />
           <Eyebrow tone="accent">Payment request</Eyebrow>
         </View>
 
@@ -183,7 +183,7 @@ function SplitRequestCard({ data, fromMe, context, message }: MessageRendererPro
   return (
     <CardShell fromMe={fromMe}>
       <View className="flex-row items-center gap-1.5">
-        <Icon name="pie-chart-outline" size={15} tone="accent" />
+        <Icon name="chart-pie" size={16} tone="accent" />
         <Eyebrow>{data.note ? `Split · ${data.note}` : "Split"}</Eyebrow>
       </View>
 
@@ -216,7 +216,7 @@ function PaymentReceiptCard({ data, fromMe }: MessageRendererProps<PaymentReceip
   return (
     <CardShell fromMe={fromMe}>
       <View className="flex-row items-center gap-2">
-        <Icon name="checkmark-circle" size={18} tone="success" />
+        <Icon name="circle-check" size={20} tone="success" />
         <Eyebrow tone="success">Payment sent</Eyebrow>
       </View>
 

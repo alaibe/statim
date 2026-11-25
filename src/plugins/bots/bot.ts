@@ -39,7 +39,7 @@ export function makeBotsBot(context: PluginContext): Bot {
                 "you would get typing it.",
             ),
           ],
-          { title: "Bots", icon: "hardware-chip-outline" },
+          { title: "Bots", icon: "cpu" },
         ),
       },
     ],

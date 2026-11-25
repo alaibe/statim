@@ -75,7 +75,7 @@ export default function SearchScreen() {
         keyExtractor={(message) => `${message.chatId}:${message.id}`}
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
-          trimmed && !searching && !error ? <EmptyState icon="search-outline" title="No messages found" /> : null
+          trimmed && !searching && !error ? <EmptyState icon="search" title="No messages found" /> : null
         }
         renderItem={({ item }) => (
           <ListItem

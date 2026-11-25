@@ -1,7 +1,7 @@
 export * from "./components";
 export { copyText } from "./copy-text";
 export { type ThemeColors, useThemeColors } from "./hooks/use-theme-colors";
-export { Icon, type IconName, type IconProps, type IconTone } from "./icon";
+export { Icon, type IconName, type IconProps, type IconSize, type IconTone } from "./icon";
 export { cn } from "./lib/cn";
 export { contextMenu, type MenuAnchor } from "./lib/context-menu";
 export { DRAG_REGION } from "./lib/drag-region";

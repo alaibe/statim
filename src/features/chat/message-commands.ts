@@ -33,14 +33,14 @@ export function messageActions(message: ChatMessage, actions: ChatActions, can: 
       message.status === "failed" && {
         id: "retry",
         label: "Try again",
-        icon: "refresh-outline",
+        icon: "refresh-cw",
         onPress: () => actions.retry(message),
       },
     can.reply &&
       !message.privateToMe && {
         id: "reply",
         label: "Reply",
-        icon: "arrow-undo-outline",
+        icon: "reply",
         onPress: () => actions.reply(message),
       },
     can.thread &&
@@ -48,52 +48,52 @@ export function messageActions(message: ChatMessage, actions: ChatActions, can: 
       !message.privateToMe && {
         id: "thread",
         label: "Reply in thread",
-        icon: "chatbubbles-outline",
+        icon: "messages-square",
         onPress: () => actions.openThread(message),
       },
     sent &&
       content.kind === "image" && {
         id: "copy-image",
         label: "Copy image",
-        icon: "images-outline",
+        icon: "images",
         onPress: () => void copyImage(content.uri),
       },
     !!copy && {
       id: "copy",
       label: "Copy",
-      icon: "copy-outline",
+      icon: "copy",
       onPress: () => void copyText(copy),
     },
     !!save && {
       id: "save",
       label: "Save as…",
-      icon: "download-outline",
+      icon: "download",
       onPress: save,
     },
     {
       id: "forward",
       label: "Forward",
-      icon: "arrow-redo-outline",
+      icon: "forward",
       onPress: () => actions.forward(message),
     },
     canEditMessage(message, can) && {
       id: "edit",
       label: "Edit",
-      icon: "create-outline",
+      icon: "square-pen",
       onPress: () => actions.edit(message),
     },
     can.pin &&
       sent && {
         id: "pin",
         label: message.isPinned ? "Unpin message" : "Pin message",
-        icon: "pin-outline",
+        icon: "pin",
         onPress: () => actions.togglePin(message),
       },
     can.deleteForMe &&
       sent && {
         id: "delete-for-me",
         label: "Delete for me",
-        icon: "trash-outline",
+        icon: "trash-2",
         tone: "danger",
         onPress: () => actions.remove(message, false),
       },
@@ -101,7 +101,7 @@ export function messageActions(message: ChatMessage, actions: ChatActions, can: 
       (message.fromMe ? can.delete : can.deleteOthers) && {
         id: "delete",
         label: "Delete for everyone",
-        icon: "trash-outline",
+        icon: "trash-2",
         tone: "danger",
         onPress: () => actions.remove(message, true),
       },

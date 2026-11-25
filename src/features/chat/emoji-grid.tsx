@@ -97,7 +97,7 @@ export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
 
   const tabs =
     recent.length > 0 && !trimmed
-      ? [{ id: RECENT, title: "Recently used", icon: "time-outline" as IconName }, ...CATEGORIES]
+      ? [{ id: RECENT, title: "Recently used", icon: "clock" as IconName }, ...CATEGORIES]
       : CATEGORIES;
 
   return (

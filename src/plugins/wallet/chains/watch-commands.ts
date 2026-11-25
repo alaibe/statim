@@ -41,7 +41,7 @@ export async function watchedCard(context: PluginContext, chain: Chain, chainKey
       fallback: `Nothing watched on ${chain.name}`,
       widget: W.card([W.text(`Nothing on your ${chain.name} watch list. Add one with /watch vitalik.eth`)], {
         title: "Watch list",
-        icon: "eye-outline",
+        icon: "eye",
       }),
     };
   }
@@ -70,7 +70,7 @@ export async function watchedCard(context: PluginContext, chain: Chain, chainKey
               {
                 label: `Stop watching ${b.entry.label}`,
                 command: `/unwatch ${b.entry.address} --chain ${chainKey}`,
-                icon: "eye-off-outline" as const,
+                icon: "eye-off" as const,
                 tone: "danger" as const,
               },
             ],
@@ -78,7 +78,7 @@ export async function watchedCard(context: PluginContext, chain: Chain, chainKey
         ),
         W.text(`Balances on ${chain.name}. I say so here when one moves.`),
       ],
-      { title: "Watch list", icon: "eye-outline" },
+      { title: "Watch list", icon: "eye" },
     ),
   };
 }

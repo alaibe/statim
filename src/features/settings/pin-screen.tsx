@@ -122,7 +122,7 @@ function PinIntro({ onBegin }: { onBegin: () => void }) {
     <View className="gap-5 px-4">
       <View className="items-center gap-3 pt-2">
         <View className="h-16 w-16 items-center justify-center rounded-full bg-accent-soft">
-          <Icon name="keypad-outline" size={28} tone="accent" />
+          <Icon name="grid-3x3" size={24} tone="accent" />
         </View>
         <Text variant="headline" className="text-center">
           Lock the app with a PIN
@@ -141,7 +141,7 @@ function PinIntro({ onBegin }: { onBegin: () => void }) {
         </Text>
       </View>
 
-      <Note tone="danger" icon="alert-circle" title="A forgotten PIN cannot be recovered">
+      <Note tone="danger" icon="circle-alert" title="A forgotten PIN cannot be recovered">
         Nobody can reset it. The only way back in is to erase this app’s data on this device, then restore each account
         from its recovery phrase.
       </Note>
@@ -151,7 +151,7 @@ function PinIntro({ onBegin }: { onBegin: () => void }) {
           title="Recovery phrase"
           subtitle={accounts > 1 ? "Make sure each account’s phrase is written down" : "Make sure it is written down"}
           numberOfLinesSubtitle={2}
-          leading={<RowIcon name="key-outline" />}
+          leading={<RowIcon name="key-round" />}
           trailing={<Chevron />}
           onPress={() => router.push("/settings/recovery-phrase")}
         />

@@ -49,15 +49,15 @@ export const toast = {
 const TONE = {
   info: {
     border: "border-line",
-    icon: "information-circle" as const,
+    icon: "info" as const,
     colour: "muted" as const,
   },
   success: {
     border: "border-success/50",
-    icon: "checkmark-circle" as const,
+    icon: "circle-check" as const,
     colour: "success" as const,
   },
-  error: { border: "border-danger/50", icon: "alert-circle" as const, colour: "danger" as const },
+  error: { border: "border-danger/50", icon: "circle-alert" as const, colour: "danger" as const },
 } as const;
 
 const TAB_BAR_HEIGHT = 52;
@@ -133,7 +133,7 @@ function SwipeableToast({ toast: t }: { toast: Toast }) {
           ]}
           className={cn("flex-row items-center gap-2.5 rounded-lg border bg-panel px-4 py-3", TONE[t.tone].border)}
         >
-          <Icon name={TONE[t.tone].icon} size={18} color={colors[TONE[t.tone].colour]} />
+          <Icon name={TONE[t.tone].icon} size={20} color={colors[TONE[t.tone].colour]} />
           <Text variant="footnote" className="min-w-0 flex-1 text-fg">
             {t.message}
           </Text>

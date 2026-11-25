@@ -61,7 +61,7 @@ export function QuickActions({
                 suggested ? "border-accent bg-accent-soft" : "border-line bg-panel",
               )}
             >
-              <Icon name={action.icon} size={14} tone="accent" />
+              <Icon name={action.icon} size={16} tone="accent" />
               <Text variant="caption" className="font-medium text-fg">
                 {action.label}
                 {suggested ? " · Suggested" : ""}

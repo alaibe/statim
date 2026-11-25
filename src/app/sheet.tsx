@@ -49,9 +49,9 @@ export default function SheetRoute() {
         </View>
         <IconButton
           testID="sheet-close"
-          icon="close"
+          icon="x"
           label="Close"
-          size={18}
+          size={20}
           surface="sunken"
           onPress={() => shown?.onClose()}
         />

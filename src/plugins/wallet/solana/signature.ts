@@ -117,9 +117,9 @@ export async function signatureCard(signature: string): Promise<Omit<WidgetConte
       [
         W.stat(found.amount ?? "Transaction", { label, tone }),
         ...(rows.length ? [W.rows(rows)] : []),
-        ...(explorer ? [W.link(`View on ${solanaStrategy.explorer.name}`, explorer, "open-outline")] : []),
+        ...(explorer ? [W.link(`View on ${solanaStrategy.explorer.name}`, explorer, "arrow-up-right")] : []),
       ],
-      { title: "Solana transaction", icon: "sunny-outline" },
+      { title: "Solana transaction", icon: "sun" },
     ),
   };
 }

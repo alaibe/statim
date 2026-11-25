@@ -15,6 +15,8 @@ module.exports = {
     "^@/(.*)$": "<rootDir>/src/$1",
     // Babel under Jest breaks marked's Unicode-property regexes; the UMD build needs no transform.
     "^marked$": "<rootDir>/node_modules/marked/lib/marked.umd.js",
+    // The react-native condition picks Lucide's ESM icons, which Jest can't load untransformed.
+    "^lucide-react-native/icons/(.*)$": "<rootDir>/node_modules/lucide-react-native/dist/cjs/icons/$1.js",
   },
   // These packages ship untranspiled ESM/Flow and must go through Babel.
   transformIgnorePatterns: [

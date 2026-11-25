@@ -26,7 +26,7 @@ export function BarButton({
         className,
       )}
     >
-      <Icon name={icon} size={18} tone="accent" />
+      <Icon name={icon} size={20} tone="accent" />
       <Text className="font-semibold text-accent">{label}</Text>
     </Pressable>
   );

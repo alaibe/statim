@@ -259,11 +259,11 @@ function NewRepliesBar({ counts, onOpen }: { counts: ReadonlyMap<MessageId, numb
         onPress={() => onOpen(oldest)}
         className="flex-row items-center gap-1.5 rounded-full bg-accent px-3.5 py-2 shadow-popover"
       >
-        <Icon name="chatbubbles-outline" size={15} tone="on-accent" />
+        <Icon name="messages-square" size={16} tone="on-accent" />
         <Text variant="caption" className="font-semibold text-on-accent">
           {label}
         </Text>
-        <Icon name="chevron-forward" size={13} tone="on-accent" />
+        <Icon name="chevron-right" size={16} tone="on-accent" />
       </Pressable>
     </View>
   );
@@ -325,7 +325,7 @@ function EmptyTranscript({
   if (!history && !isBot) return null;
   return (
     <EmptyState
-      icon={isBot ? "sparkles-outline" : "lock-closed-outline"}
+      icon={isBot ? "sparkles" : "lock"}
       title={fetchingHistory ? "Fetching history…" : "No messages yet"}
       description={
         isBot
@@ -385,7 +385,7 @@ function ChannelMuteBar({ id }: { id: ChatId }) {
   const setChatPref = useChatStore((s) => s.setChatPref);
   return (
     <BarButton
-      icon={muted ? "volume-high-outline" : "volume-mute-outline"}
+      icon={muted ? "volume-2" : "volume-x"}
       label={muted ? "Unmute" : "Mute"}
       accessibilityLabel={muted ? "Unmute channel" : "Mute channel"}
       onPress={() => void setChatPref(id, { muted: !muted })}

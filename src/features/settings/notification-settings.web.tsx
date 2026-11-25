@@ -40,7 +40,7 @@ function OpenAtLogin() {
         title="Open at login"
         subtitle="Starts Statim without a window when you log in, so messages arrive from the start. Off by default."
         numberOfLinesSubtitle={3}
-        leading={<Icon name="flash-outline" size={20} tone="muted" />}
+        leading={<Icon name="zap" size={20} tone="muted" />}
         trailing={<Toggle label="Open at login" value={atLogin} onValueChange={toggle} />}
       />
     </Section>
@@ -67,7 +67,7 @@ function NotifyIphone() {
             : "While this window is in the background, new messages wake your iPhone through your own iCloud, encrypted with a key from this account. Off by default."
         }
         numberOfLinesSubtitle={4}
-        leading={<Icon name="phone-portrait-outline" size={20} tone="muted" />}
+        leading={<Icon name="smartphone" size={20} tone="muted" />}
         trailing={
           <Toggle
             label="Notify my iPhone"

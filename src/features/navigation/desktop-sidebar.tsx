@@ -23,9 +23,9 @@ const TABS: {
   icon: IconName;
   href: "/chats" | "/contacts" | "/settings";
 }[] = [
-  { id: "chats", label: "Chats", icon: "chatbubbles-outline", href: "/chats" },
-  { id: "contacts", label: "Contacts", icon: "people-outline", href: "/contacts" },
-  { id: "settings", label: "Settings", icon: "hardware-chip-outline", href: "/settings" },
+  { id: "chats", label: "Chats", icon: "messages-square", href: "/chats" },
+  { id: "contacts", label: "Contacts", icon: "users", href: "/contacts" },
+  { id: "settings", label: "Settings", icon: "cpu", href: "/settings" },
 ];
 
 /** The traffic lights sit inside the card's top-left corner; the title row clears them. */
@@ -79,17 +79,12 @@ export function DesktopSidebar() {
         )}
         <View className="flex-row items-center justify-end" style={{ minWidth: TRAFFIC_LIGHTS_WIDTH }}>
           {tab === "settings" ? null : tab === "contacts" ? (
-            <IconButton icon="swap-horizontal-outline" label="Sort contacts" onPress={() => setSorting(true)} />
+            <IconButton icon="arrow-left-right" label="Sort contacts" onPress={() => setSorting(true)} />
           ) : (
-            <IconButton icon="people-outline" label="New group" onPress={() => router.push("/new-chat?mode=group")} />
+            <IconButton icon="users" label="New group" onPress={() => router.push("/new-chat?mode=group")} />
           )}
           {tab === "settings" ? null : (
-            <IconButton
-              icon="create-outline"
-              label="New message"
-              tone="accent"
-              onPress={() => router.push("/new-chat")}
-            />
+            <IconButton icon="square-pen" label="New message" tone="accent" onPress={() => router.push("/new-chat")} />
           )}
         </View>
       </View>
@@ -138,7 +133,7 @@ export function DesktopSidebar() {
               className="flex-1 items-center gap-0.5 py-2"
             >
               <View>
-                <Icon name={entry.icon} size={22} tone={active ? "accent" : "muted"} />
+                <Icon name={entry.icon} size={24} tone={active ? "accent" : "muted"} />
                 {entry.id === "settings" && attention ? (
                   <View className="absolute -right-1 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-panel bg-warning" />
                 ) : null}

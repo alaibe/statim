@@ -217,7 +217,7 @@ export function Composer({
         {canAttach ? (
           <IconButton
             testID="composer-attach"
-            icon="attach-outline"
+            icon="paperclip"
             label="Attach"
             surface="outline"
             size={20}
@@ -256,7 +256,7 @@ export function Composer({
               onPress={takeReply}
               className="h-11 w-9 items-center justify-center"
             >
-              <Icon name="sparkles-outline" size={20} tone="accent" />
+              <Icon name="sparkles" size={20} tone="accent" />
             </Pressable>
           ) : null}
 
@@ -268,7 +268,7 @@ export function Composer({
               onPress={() => openMedia("emoji")}
               className="h-11 w-9 items-center justify-center"
             >
-              <Icon name="happy-outline" size={21} tone="muted" />
+              <Icon name="smile" size={20} tone="muted" />
             </Pressable>
           </View>
         </View>
@@ -278,7 +278,7 @@ export function Composer({
         ) : (
           <IconButton
             testID="composer-send"
-            icon={busy ? "ellipsis-horizontal" : "arrow-up"}
+            icon={busy ? "ellipsis" : "arrow-up"}
             label="Send"
             surface={canSend ? "accent" : "outline"}
             tone={canSend ? "on-accent" : "subtle"}
@@ -335,21 +335,21 @@ function AttachSheet({
   if (carriesImages) {
     actions.push({
       label: "Photo library",
-      icon: "images-outline",
+      icon: "images",
       onPress: () => onAttach(pickImage),
     });
   }
   if (sendsVideo) {
-    actions.push({ label: "Video", icon: "videocam-outline", onPress: () => onAttach(pickVideo) });
+    actions.push({ label: "Video", icon: "video", onPress: () => onAttach(pickVideo) });
   }
   if (carriesImages) {
     actions.push({
       label: "Take a photo",
-      icon: "camera-outline",
+      icon: "camera",
       onPress: () => onAttach(takePhoto),
     });
   }
-  actions.push({ label: "File", icon: "document-outline", onPress: () => onAttach(pickFile) });
-  if (carriesImages) actions.push({ label: "GIF", icon: "happy-outline", onPress: onGifs });
+  actions.push({ label: "File", icon: "file", onPress: () => onAttach(pickFile) });
+  if (carriesImages) actions.push({ label: "GIF", icon: "smile", onPress: onGifs });
   return <ActionSheet visible={visible} onClose={onClose} title="Attach" actions={actions} />;
 }

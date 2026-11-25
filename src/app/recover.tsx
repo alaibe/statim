@@ -22,7 +22,7 @@ export default function RecoverScreen() {
     <Screen className="justify-center gap-6 px-4">
       <View className="items-center gap-3">
         <View className="h-20 w-20 items-center justify-center rounded-full bg-side">
-          <Icon name="key-outline" size={34} tone="danger" />
+          <Icon name="key-round" size={24} tone="danger" />
         </View>
         <Text variant="headline" className="text-center">
           Your keys need re-importing

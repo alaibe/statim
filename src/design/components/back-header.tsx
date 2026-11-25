@@ -15,7 +15,7 @@ export function BackHeader({ label, onPress }: BackHeaderProps) {
       onPress={onPress}
       className="flex-row items-center gap-1 px-2 py-2"
     >
-      <Icon name="chevron-back" size={24} tone="accent" />
+      <Icon name="chevron-left" size={24} tone="accent" />
       <Text className="text-accent">{label}</Text>
     </Pressable>
   );

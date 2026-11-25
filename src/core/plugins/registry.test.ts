@@ -13,7 +13,7 @@ function stubContext(): PluginContext {
       name: "x",
       description: "",
       version: "1",
-      icon: "ellipse",
+      icon: "circle",
       permissions: [],
     },
     storage: { get: async () => null, set: async () => {}, remove: async () => {} },
@@ -64,7 +64,7 @@ function makePlugin(id: string, contribution: Partial<ReturnType<Plugin["setup"]
       name: id,
       description: "",
       version: "1.0.0",
-      icon: "ellipse",
+      icon: "circle",
       permissions: [],
     },
     setup: () => contribution,
@@ -97,7 +97,7 @@ describe("PluginRegistry", () => {
       features: [
         {
           commands: [{ name: "hi", description: "", usage: "", run: async () => ({ type: "handled" }) }],
-          composerActions: [{ id: "hi", label: "Hi", icon: "ellipse", command: "/hi" }],
+          composerActions: [{ id: "hi", label: "Hi", icon: "circle", command: "/hi" }],
           isOn: () => on,
           subscribe: (listener) => {
             notify = listener;
@@ -323,7 +323,7 @@ describe("channel scoping", () => {
           run: async () => ({ type: "handled" as const }),
         },
       ],
-      composerActions: [{ id: `${id}-chip`, label: id, icon: "ellipse", command: `/${id}-cmd` }],
+      composerActions: [{ id: `${id}-chip`, label: id, icon: "circle", command: `/${id}-cmd` }],
       ...extra,
     });
 
@@ -345,7 +345,7 @@ describe("channel scoping", () => {
           {
             id: "chip-commands",
             label: "Commands",
-            icon: "ellipse",
+            icon: "circle",
             command: "/commands",
             global: true,
           },

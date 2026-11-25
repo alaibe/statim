@@ -31,7 +31,7 @@ export function openInMaps(url: string): Promise<unknown> {
 export function linkActions(link: LinkSegment, onCommand?: (command: string) => void): SheetAction[] {
   const copy = (label: string): SheetAction => ({
     label,
-    icon: "copy-outline",
+    icon: "copy",
     onPress: () => copyText(link.kind === "url" ? link.href : link.text),
   });
   const open = (label: string, icon: SheetAction["icon"]): SheetAction => ({
@@ -43,7 +43,7 @@ export function linkActions(link: LinkSegment, onCommand?: (command: string) => 
     ? [
         {
           label: "Send funds",
-          icon: "arrow-up-circle-outline",
+          icon: "circle-arrow-up",
           onPress: () => onCommand(`/send ${link.text}`),
         },
       ]
@@ -52,17 +52,17 @@ export function linkActions(link: LinkSegment, onCommand?: (command: string) => 
   switch (link.kind) {
     case "url":
       return isPlace(link)
-        ? [open("Open in Maps", "location-outline"), copy("Copy link")]
-        : [open("Open link", "open-outline"), copy("Copy link")];
+        ? [open("Open in Maps", "map-pin"), copy("Copy link")]
+        : [open("Open link", "arrow-up-right"), copy("Copy link")];
     case "phone":
-      return [open("Call", "call-outline"), copy("Copy number")];
+      return [open("Call", "phone"), copy("Copy number")];
     case "email":
-      return [open("Write an email", "mail-outline"), copy("Copy address")];
+      return [open("Write an email", "mail"), copy("Copy address")];
     case "location":
-      return [open("Open in Maps", "location-outline"), copy("Copy")];
+      return [open("Open in Maps", "map-pin"), copy("Copy")];
     case "address":
-      return [open(`View on ${EXPLORERS[link.family].name}`, "open-outline"), copy("Copy address"), ...send];
+      return [open(`View on ${EXPLORERS[link.family].name}`, "arrow-up-right"), copy("Copy address"), ...send];
     case "ens":
-      return [open("View on ENS", "open-outline"), copy("Copy name"), ...send];
+      return [open("View on ENS", "arrow-up-right"), copy("Copy name"), ...send];
   }
 }

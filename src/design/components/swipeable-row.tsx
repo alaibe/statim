@@ -124,7 +124,7 @@ function ActionButton({
       }}
       className="items-center justify-center gap-1"
     >
-      <Icon name={action.icon} size={21} color={content} />
+      <Icon name={action.icon} size={20} color={content} />
       <Text variant="micro" style={{ color: content }} numberOfLines={1}>
         {action.label}
       </Text>

@@ -239,7 +239,7 @@ function NoticeLine({ text, icon, action }: { text: string; icon?: IconName; act
   return (
     <View className="items-center gap-1.5 py-2">
       <View className="flex-row items-center gap-1.5 rounded-full bg-side px-3 py-1">
-        {icon ? <Icon name={icon} size={13} tone="muted" /> : null}
+        {icon ? <Icon name={icon} size={16} tone="muted" /> : null}
         <Text variant="caption">{text}</Text>
       </View>
       {action}
@@ -253,7 +253,7 @@ function CallLine({ call }: { call: CallContent }) {
   return (
     <NoticeLine
       text={callLabel(call)}
-      icon={call.video ? "videocam-outline" : "call-outline"}
+      icon={call.video ? "video" : "phone"}
       action={openIn && url ? <OpenInButton name={BRIDGED_NETWORKS[openIn.network]} url={url} /> : null}
     />
   );
@@ -268,7 +268,7 @@ function OpenInButton({ name, url }: { name: string; url: string }) {
       }}
       className="flex-row items-center gap-1 rounded-full border border-line px-3 py-1"
     >
-      <Icon name="open-outline" size={13} tone="accent" />
+      <Icon name="arrow-up-right" size={16} tone="accent" />
       <Text variant="caption" className="font-semibold text-accent">
         Open in {name}
       </Text>
@@ -371,7 +371,7 @@ function Footer({ message, read, reactions, place = "row" }: FooterProps & { pla
         {timeLabel(message)}
       </Text>
       {message.fromMe ? (
-        <DeliveryIcon message={message} read={read} size={13} tone="fg" color={overlay ? "#fff" : undefined} />
+        <DeliveryIcon message={message} read={read} size={16} tone="fg" color={overlay ? "#fff" : undefined} />
       ) : null}
     </View>
   );

@@ -45,7 +45,7 @@ function greeting(): ReturnType<Bot["greeting"]> {
           W.link("Telegram", "https://telegram.org"),
           W.link("Matrix", "https://matrix.org"),
         ],
-        { title: "Get started", icon: "sparkles-outline" },
+        { title: "Get started", icon: "sparkles" },
       ),
     },
   ];
@@ -77,7 +77,7 @@ function lockCard({ kind, biometrics }: LockDevice = thisDevice()): Omit<WidgetC
       fallback: "Lock the app: set a PIN in Settings, under Security.",
       widget: W.card([W.text(`${who} Lock the app with a PIN.`), W.actions([pin])], {
         title: "Lock the app",
-        icon: "lock-closed-outline",
+        icon: "lock",
       }),
     };
   }
@@ -90,7 +90,7 @@ function lockCard({ kind, biometrics }: LockDevice = thisDevice()): Omit<WidgetC
         W.text(`${who} Lock the app with ${biometrics}, or with a PIN of its own.`),
         W.actions([pin, { label: `Turn on ${biometrics}`, command: "/security", tone: "neutral" }]),
       ],
-      { title: "Lock the app", icon: "lock-closed-outline" },
+      { title: "Lock the app", icon: "lock" },
     ),
   };
 }

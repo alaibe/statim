@@ -41,7 +41,7 @@ export function VoiceBubble({ uri, durationMs, fromMe, seed }: VoiceBubbleProps)
         }}
       >
         <View className="h-10 w-10 items-center justify-center rounded-full bg-side">
-          <Icon name={status.playing ? "pause" : "play"} size={18} color={tint} />
+          <Icon name={status.playing ? "pause" : "play"} size={20} color={tint} />
         </View>
       </Pressable>
 

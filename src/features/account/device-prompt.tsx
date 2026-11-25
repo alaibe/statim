@@ -22,19 +22,19 @@ import { SHEET_DISMISS_MS, useSheetStore } from "@/design/components/sheet";
 
 export const CONNECTION: Record<HardwareConnection, { icon: IconName; how: string }> = {
   bluetooth: {
-    icon: "bluetooth-outline",
+    icon: "bluetooth",
     how: "Unlock it and open the Ethereum app, then keep it nearby.",
   },
   usb: {
-    icon: "hardware-chip-outline",
+    icon: "cpu",
     how: "Plug it in, unlock it and open the Ethereum app.",
   },
   qr: {
-    icon: "qr-code-outline",
+    icon: "qr-code",
     how: "You scan a QR code from its screen, and it scans one from yours.",
   },
   "companion-app": {
-    icon: "phone-portrait-outline",
+    icon: "smartphone",
     how:
       Platform.OS === "ios"
         ? "Needs Trezor Suite and a Trezor Safe 7, which connects to it over Bluetooth."

@@ -84,7 +84,7 @@ export function ContactList({ query, sortBy, sorting, onSort, onCloseSort, selec
           <ListItem
             testID="invite-contacts"
             title={<Text className="font-semibold text-accent">Invite contacts</Text>}
-            leading={<Icon name="person-add-outline" size={22} tone="accent" />}
+            leading={<Icon name="user-plus" size={24} tone="accent" />}
             onPress={() => router.push("/invite")}
           />
         </Section>

@@ -35,12 +35,12 @@ export function ShareScreen() {
         <Loading className="flex-1" />
       ) : status !== "ready" ? (
         <EmptyState
-          icon="person-circle-outline"
+          icon="circle-user"
           title="No account yet"
           description="Create or import an account in Statim, then share again."
         />
       ) : !text && files.length === 0 ? (
-        <EmptyState icon="paper-plane-outline" title="Nothing to send" />
+        <EmptyState icon="send" title="Nothing to send" />
       ) : (
         <ChatPicker
           photos={files.some((p) => p.shareType === "image")}
@@ -70,7 +70,7 @@ function ChatPicker({ photos, onPick }: { photos: boolean; onPick: (chat: Chat) 
       data={chats.filter(takesShare)}
       keyExtractor={(c) => c.id}
       contentContainerClassName="px-4"
-      ListEmptyComponent={<EmptyState icon="chatbubbles-outline" title="No chat can take this" />}
+      ListEmptyComponent={<EmptyState icon="messages-square" title="No chat can take this" />}
       renderItem={({ item }) => (
         <ListItem
           testID={`share-to-${item.id}`}

@@ -175,7 +175,7 @@ export async function paymentCard(uri: string): Promise<Omit<WidgetContent, "liv
         W.rows([{ label: "Chain", value: chainName }, ...(link.note ? [{ label: "Note", value: link.note }] : [])]),
         W.actions([{ label: amount ? "Review" : "Choose an amount", command }]),
       ],
-      { title: "Payment request", icon: "arrow-up-circle-outline" },
+      { title: "Payment request", icon: "circle-arrow-up" },
     ),
   };
 }

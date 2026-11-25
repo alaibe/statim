@@ -41,7 +41,7 @@ export default function ImportAccount() {
   return (
     <Screen className="px-4">
       <View className="-ml-2 flex-row pt-1">
-        <IconButton icon="chevron-back" label="Back" onPress={goBack} />
+        <IconButton icon="chevron-left" label="Back" onPress={goBack} />
       </View>
       <KeyboardAvoidingView behavior="padding" className="flex-1 justify-between">
         <Animated.View entering={Enter.content()} className="gap-4 pt-4">

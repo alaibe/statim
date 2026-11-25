@@ -25,7 +25,7 @@ export async function endpointCard(context: PluginContext, chain: WalletChain) {
             "goes back to the default.",
         ),
       ],
-      { title: `${strategy.name} ${strategy.endpoint.noun}`, icon: "server-outline" },
+      { title: `${strategy.name} ${strategy.endpoint.noun}`, icon: "server" },
     ),
   };
 }
@@ -86,7 +86,7 @@ export function channelCommands(context: PluginContext, views: { endpoint: Plugi
                 ...(fees.note ? [W.text(fees.note)] : []),
                 ...(fees.link ? [W.link(fees.link.label, fees.link.url)] : []),
               ],
-              { title: `${strategy.name} fees`, icon: "speedometer-outline" },
+              { title: `${strategy.name} fees`, icon: "gauge" },
             ),
           });
           return { type: "handled" };

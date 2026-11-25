@@ -62,7 +62,7 @@ export function ChatHeader({ chat, thread, nameFor, onBack }: ChatHeaderProps) {
       ) : (
         <>
           <IconButton
-            icon="search-outline"
+            icon="search"
             label="Search in chat"
             tone="accent"
             size={20}
@@ -143,14 +143,14 @@ function BackButton({ onBack }: { onBack(): void }) {
     >
       <BlurView intensity={40} tint={colors.scheme === "dark" ? "dark" : "light"} style={StyleSheet.absoluteFill} />
       <View className="absolute inset-0 bg-bg/55" />
-      <Icon name="chevron-back" size={22} tone="accent" />
+      <Icon name="chevron-left" size={24} tone="accent" />
     </Pressable>
   );
 }
 
 function CloseThread({ onBack }: { onBack(): void }) {
   return desktop ? (
-    <IconButton icon="close" label="Close thread" tone="accent" size={20} onPress={onBack} />
+    <IconButton icon="x" label="Close thread" tone="accent" size={20} onPress={onBack} />
   ) : (
     <View className="h-10 w-10" />
   );

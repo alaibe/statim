@@ -30,7 +30,7 @@ export function PinnedMessages({
         style={{ top }}
         className="absolute left-3 right-3 z-[9] flex-row items-center gap-2 rounded-lg border border-line bg-panel px-3 py-2 shadow-popover"
       >
-        <Icon name="pin-outline" size={17} tone="accent" />
+        <Icon name="pin" size={16} tone="accent" />
         <View className="min-w-0 flex-1">
           <Text variant="micro" className="font-semibold text-accent">
             {messages.length === 1 ? "Pinned message" : `${messages.length} pinned messages`}
@@ -39,7 +39,7 @@ export function PinnedMessages({
             {contentPreview(newest.content)}
           </Text>
         </View>
-        <Icon name="chevron-forward" size={16} tone="subtle" />
+        <Icon name="chevron-right" size={16} tone="subtle" />
       </Pressable>
       <Sheet visible={visible} onClose={onClose} title="Pinned messages">
         <ScrollView className="max-h-[480px]">

@@ -32,10 +32,10 @@ export function ModeBanner({
         ) : null}
       </View>
       <IconButton
-        icon="close"
+        icon="x"
         label={editing ? "Cancel edit" : "Cancel reply"}
         tone="subtle"
-        size={18}
+        size={20}
         onPress={onCancel}
       />
     </Animated.View>

@@ -78,7 +78,7 @@ function Affordance({ actions }: { actions: WidgetAction[] | undefined }) {
   if (primary.icon) {
     return (
       <View className="h-7 w-7 items-center justify-center rounded-full bg-side">
-        <Icon name={primary.icon} size={15} tone={primary.tone === "danger" ? "danger" : "accent"} />
+        <Icon name={primary.icon} size={16} tone={primary.tone === "danger" ? "danger" : "accent"} />
       </View>
     );
   }
@@ -184,7 +184,7 @@ function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) 
           onPress={() => onOpenUrl?.(widget.url)}
           className="flex-row items-center gap-1.5"
         >
-          <Icon name={widget.icon ?? "open-outline"} size={14} tone="accent" />
+          <Icon name={widget.icon ?? "arrow-up-right"} size={16} tone="accent" />
           <Text className="min-w-0 flex-1 text-md font-medium text-accent">{widget.label}</Text>
         </Pressable>
       );
@@ -269,7 +269,7 @@ function ListWidget({ widget, onOffer }: OfferingWidgetProps<"list">) {
         >
           <View className="flex-row items-center gap-2.5 py-2">
             {item.state ? <StateDot state={item.state} /> : null}
-            {item.icon ? <Icon name={item.icon} size={17} tone="muted" /> : null}
+            {item.icon ? <Icon name={item.icon} size={16} tone="muted" /> : null}
             <View className="min-w-0 grow shrink gap-0.5">
               <Text numberOfLines={1} className={cn("text-md font-semibold", TEXT_TONE[item.tone ?? "neutral"])}>
                 {item.title}
@@ -299,7 +299,7 @@ function CodeWidget({ widget }: { widget: WidgetOf<"code"> }) {
         <Text variant="mono" numberOfLines={1} className="flex-1">
           {widget.value}
         </Text>
-        {widget.copyable ? <Icon name="copy-outline" size={13} tone="subtle" /> : null}
+        {widget.copyable ? <Icon name="copy" size={16} tone="subtle" /> : null}
       </View>
     </View>
   );
@@ -323,7 +323,7 @@ function CardWidget({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps &
       {widget.title ? (
         <View className="flex-row items-center gap-1.5">
           {widget.icon ? (
-            <Icon name={widget.icon} size={15} tone={widget.tone === "neutral" || !widget.tone ? "muted" : "accent"} />
+            <Icon name={widget.icon} size={16} tone={widget.tone === "neutral" || !widget.tone ? "muted" : "accent"} />
           ) : null}
           <Eyebrow>{widget.title}</Eyebrow>
         </View>

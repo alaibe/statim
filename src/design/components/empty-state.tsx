@@ -19,7 +19,7 @@ export function EmptyState({ icon, title, description, actionLabel, onAction }: 
     <Animated.View entering={Enter.content()} className="flex-1 items-center justify-center gap-3 px-8">
       {icon ? (
         <View className="mb-1 opacity-60">
-          <Icon name={icon} size={44} tone="subtle" />
+          <Icon name={icon} size={24} tone="subtle" />
         </View>
       ) : null}
       <Text variant="title" className="text-center">

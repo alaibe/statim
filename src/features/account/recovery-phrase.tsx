@@ -47,7 +47,7 @@ export function RevealablePhrase({
           onPress={onReveal}
           className="items-center justify-center gap-1 rounded-md bg-side py-10"
         >
-          <Icon name="eye-outline" size={20} tone="muted" />
+          <Icon name="eye" size={20} tone="muted" />
           <Text variant="title">Tap to reveal</Text>
           <Text variant="caption">Make sure nobody is looking over your shoulder</Text>
         </Pressable>

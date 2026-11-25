@@ -47,7 +47,7 @@ function answerCard(title: string, answer: AiAnswer, mistakes = false): WidgetCo
           ...(mistakes ? [{ label: "May contain mistakes", tone: "warning" as const }] : []),
         ]),
       ],
-      { title, icon: "sparkles-outline" },
+      { title, icon: "sparkles" },
     ),
   };
 }
@@ -65,7 +65,7 @@ function offeringSetup(command: SlashCommand): SlashCommand {
           fallback: error.message,
           widget: W.card([W.text(error.message)], {
             title: "AI",
-            icon: "sparkles-outline",
+            icon: "sparkles",
             tone: "warning",
           }),
         });
@@ -171,7 +171,7 @@ const commands = (
               ]),
               W.badges([{ label: model.label }]),
             ],
-            { title: "Replies you could send", icon: "sparkles-outline" },
+            { title: "Replies you could send", icon: "sparkles" },
           ),
         });
         return { type: "handled" };
@@ -189,7 +189,7 @@ const composerActions: ComposerAction[] = [
   {
     id: "ai-rewrite",
     label: "Rewrite",
-    icon: "create-outline",
+    icon: "square-pen",
     command: "/rewrite clearer",
     takesDraft: true,
     showIn: ["dm", "group"],
@@ -197,21 +197,21 @@ const composerActions: ComposerAction[] = [
   {
     id: SUGGESTED_ACTION_IDS.translate,
     label: TRANSLATE_CHIP_LABEL,
-    icon: "globe-outline",
+    icon: "globe",
     command: "/translate",
     showIn: ["dm", "group", "channel"],
   },
   {
     id: SUGGESTED_ACTION_IDS.summarize,
     label: "Summarize",
-    icon: "document-text-outline",
+    icon: "file-text",
     command: "/summarize",
     showIn: ["dm", "group", "channel"],
   },
   {
     id: "ai-suggest",
     label: "Suggest a reply",
-    icon: "chatbubbles-outline",
+    icon: "messages-square",
     command: "/suggest",
     showIn: ["dm", "group"],
   },

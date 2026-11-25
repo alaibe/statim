@@ -43,29 +43,29 @@ export function ChatMenu({
       actions={[
         {
           label: prefs.pinned ? "Unpin" : "Pin to top",
-          icon: "pin-outline",
+          icon: "pin",
           onPress: () => choose("pinned"),
         },
         {
           label: prefs.muted ? "Unmute" : "Mute",
-          icon: prefs.muted ? "volume-high-outline" : "volume-mute-outline",
+          icon: prefs.muted ? "volume-2" : "volume-x",
           onPress: () => choose("muted"),
         },
         {
           label: prefs.archived ? "Move out of archive" : "Archive",
-          icon: "archive-outline",
+          icon: "archive",
           onPress: () => choose("archived"),
         },
         {
           label: "Mark as unread",
-          icon: "mail-unread-outline",
+          icon: "mail-dot",
           onPress: () => void markUnread(chat.id),
         },
         ...(block
           ? [
               {
                 label: chat.blocked ? "Unblock" : "Block",
-                icon: "ban-outline" as const,
+                icon: "ban" as const,
                 tone: chat.blocked ? undefined : ("danger" as const),
                 onPress: () => (chat.blocked ? void setBlocked(chat.id, false) : onBlock(chat)),
               },

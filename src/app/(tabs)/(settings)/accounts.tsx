@@ -61,7 +61,7 @@ export default function AccountsScreen() {
               {
                 id: "erase",
                 label: "Erase",
-                icon: "trash-outline",
+                icon: "trash-2",
                 destructive: true,
                 onPress: () => setConfirmWipe(account),
               },
@@ -92,7 +92,7 @@ export default function AccountsScreen() {
 
       {needsChatKeys ? (
         <View className="mb-6 gap-2 px-4">
-          <Note icon="key-outline">
+          <Note icon="key-round">
             <Text variant="footnote">
               Nostr, Status and notifications from your computer need chat keys for this account. Your wallet makes them
               by signing one message, which moves no funds.
@@ -137,12 +137,12 @@ export default function AccountsScreen() {
           actions={[
             {
               label: "Rename",
-              icon: "create-outline",
+              icon: "square-pen",
               onPress: () => setRenaming(managing),
             },
             {
               label: "Erase this account",
-              icon: "trash-outline",
+              icon: "trash-2",
               tone: "danger",
               onPress: () => setConfirmWipe(managing),
             },

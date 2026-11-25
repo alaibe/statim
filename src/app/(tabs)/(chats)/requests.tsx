@@ -32,7 +32,7 @@ export default function RequestsScreen() {
                 {
                   id: "accept",
                   label: "Accept",
-                  icon: "checkmark-circle-outline",
+                  icon: "circle-check",
                   tone: "accent",
                   onPress: () => answerRequest(item.id, "accepted"),
                 },
@@ -41,7 +41,7 @@ export default function RequestsScreen() {
                 {
                   id: "decline",
                   label: "Decline",
-                  icon: "close-circle-outline",
+                  icon: "circle-x",
                   destructive: true,
                   onPress: () => answerRequest(item.id, "declined"),
                 },

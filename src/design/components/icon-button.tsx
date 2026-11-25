@@ -1,4 +1,4 @@
-import { Icon, type IconName, type IconTone } from "../icon";
+import { Icon, type IconName, type IconSize, type IconTone } from "../icon";
 import { cn } from "../lib/cn";
 import { Pressable, type PressScaleProps } from "./pressable";
 
@@ -14,10 +14,10 @@ interface IconButtonProps extends Omit<PressScaleProps, "children"> {
   label: string;
   tone?: IconTone;
   surface?: keyof typeof SURFACE;
-  size?: number;
+  size?: IconSize;
 }
 
-export function IconButton({ icon, label, surface = "plain", tone, size = 22, className, ...props }: IconButtonProps) {
+export function IconButton({ icon, label, surface = "plain", tone, size = 20, className, ...props }: IconButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"

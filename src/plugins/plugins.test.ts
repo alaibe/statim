@@ -25,7 +25,7 @@ function stubContext() {
       name: "x",
       description: "",
       version: "1",
-      icon: "ellipse",
+      icon: "circle",
       permissions: [],
     },
     storage: { get: async () => null, set: async () => {}, remove: async () => {} },

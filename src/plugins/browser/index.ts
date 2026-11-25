@@ -16,7 +16,7 @@ export const browserPlugin: Plugin = {
     name: "Browser",
     description: "Open bookmarked sites in your system browser and connect them to your wallet over WalletConnect.",
     version: "1.0.0",
-    icon: "compass-outline",
+    icon: "compass",
     permissions: ["account.read", "account.sign", "browser.open", "network", "storage"],
   },
 
@@ -34,21 +34,21 @@ export const browserPlugin: Plugin = {
         {
           id: "bookmarks",
           label: "Bookmarks",
-          icon: "book-outline",
+          icon: "book-open",
           command: "/bookmarks",
           showIn: ["channel"],
         },
         {
           id: "scan",
           label: "Scan",
-          icon: "qr-code-outline",
+          icon: "qr-code",
           command: "/scan",
           showIn: ["channel"],
         },
         {
           id: "bookmark",
           label: "Add bookmark",
-          icon: "add-circle-outline",
+          icon: "circle-plus",
           command: "/bookmark",
           showIn: ["channel"],
         },
@@ -132,7 +132,7 @@ export const browserPlugin: Plugin = {
                         "only add one you trust.",
                     ),
                   ],
-                  { title: "Add a bookmark", icon: "add-circle-outline" },
+                  { title: "Add a bookmark", icon: "circle-plus" },
                 ),
               });
               return { type: "handled" };
@@ -199,7 +199,7 @@ export const browserPlugin: Plugin = {
                     ),
                     W.actions([{ label: "Scan a code", command: "/scan" }]),
                   ],
-                  { title: "Connected sites", icon: "link-outline" },
+                  { title: "Connected sites", icon: "link" },
                 ),
               });
               return { type: "handled" };
@@ -214,7 +214,7 @@ export const browserPlugin: Plugin = {
                     sessions.map((session) => ({
                       title: session.peer.metadata.name || "A site",
                       subtitle: session.peer.metadata.url,
-                      icon: "link-outline" as const,
+                      icon: "link" as const,
                       state: "on" as const,
                       actions: [
                         ...(session.peer.metadata.url
@@ -222,7 +222,7 @@ export const browserPlugin: Plugin = {
                               {
                                 label: `Open ${session.peer.metadata.name || "it"}`,
                                 command: `/open ${session.peer.metadata.url}`,
-                                icon: "open-outline" as const,
+                                icon: "arrow-up-right" as const,
                               },
                             ]
                           : []),
@@ -240,7 +240,7 @@ export const browserPlugin: Plugin = {
                       "itself; every request comes back here for you to approve.",
                   ),
                 ],
-                { title: "Connected sites", icon: "link-outline" },
+                { title: "Connected sites", icon: "link" },
               ),
             });
             return { type: "handled" };
@@ -364,12 +364,12 @@ async function bookmarksCard(context: PluginContext) {
               {
                 label: `Open ${bookmark.name}`,
                 command: `/open ${bookmark.id}`,
-                icon: "open-outline" as const,
+                icon: "arrow-up-right" as const,
               },
               {
                 label: `Remove ${bookmark.name}`,
                 command: `/unbookmark ${bookmark.id}`,
-                icon: "trash-outline" as const,
+                icon: "trash-2" as const,
                 tone: "danger" as const,
               },
             ],
@@ -381,7 +381,7 @@ async function bookmarksCard(context: PluginContext) {
             "there and the request comes back for approval. /bookmark adds your own.",
         ),
       ],
-      { title: "Bookmarks", icon: "book-outline" },
+      { title: "Bookmarks", icon: "book-open" },
     ),
   };
 }

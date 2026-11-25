@@ -16,7 +16,7 @@ export function SearchField({ className, onClear, value, ...input }: SearchField
 
   return (
     <View className={cn("h-9 flex-row items-center gap-2 rounded-full bg-side px-3", className)}>
-      <Icon name="search-outline" size={16} tone="subtle" />
+      <Icon name="search" size={16} tone="subtle" />
       <TextInput
         placeholderTextColor={colors.subtle}
         autoCapitalize="none"
@@ -25,7 +25,7 @@ export function SearchField({ className, onClear, value, ...input }: SearchField
         className="flex-1 py-1 text-md text-fg"
         {...input}
       />
-      {onClear && value ? <IconButton icon="close-circle" label="Clear search" size={16} onPress={onClear} /> : null}
+      {onClear && value ? <IconButton icon="circle-x" label="Clear search" size={16} onPress={onClear} /> : null}
     </View>
   );
 }

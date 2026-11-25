@@ -74,7 +74,7 @@ export async function addBookmark(context: PluginContext, rawUrl: string, rawNam
     name,
     url: parsed.toString().replace(/\/$/, ""),
     description: parsed.host.replace(/^www\./, ""),
-    icon: "globe-outline",
+    icon: "globe",
     custom: true,
   };
 

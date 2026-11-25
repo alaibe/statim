@@ -186,7 +186,7 @@ function stubChain(id: string, name: string, self: string, explorer: string): Ch
   return {
     id,
     name,
-    icon: "ellipse",
+    icon: "circle",
     selfAddress: () => self,
     isAddress: (value: string) => value.length >= 26 && !value.startsWith("0x"),
     addressHint: "",

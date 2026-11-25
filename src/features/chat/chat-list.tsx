@@ -274,7 +274,7 @@ function NoChats() {
   if (connecting) return <ConnectingState />;
   return (
     <EmptyState
-      icon="chatbubbles-outline"
+      icon="messages-square"
       title="No chats yet"
       description="Start one with an Ethereum address on XMTP, a public key on Nostr, or a chat key on Status."
       actionLabel="New chat"
@@ -285,12 +285,12 @@ function NoChats() {
 
 function NothingListed({ query, filter }: { query: string; filter: ChatFilter }) {
   if (query) {
-    return <EmptyState icon="search-outline" title="No matching chats" description={`No chats match “${query}”.`} />;
+    return <EmptyState icon="search" title="No matching chats" description={`No chats match “${query}”.`} />;
   }
   if (filter === "unread") {
-    return <EmptyState icon="search-outline" title="All caught up" description="Nothing unread here." />;
+    return <EmptyState icon="search" title="All caught up" description="Nothing unread here." />;
   }
-  return <EmptyState icon="search-outline" title="Nothing here" description="Try another filter." />;
+  return <EmptyState icon="search" title="Nothing here" description="Try another filter." />;
 }
 
 function RequestsLink({ count }: { count: number }) {
@@ -302,7 +302,7 @@ function RequestsLink({ count }: { count: number }) {
       onPress={() => router.push("/requests")}
       className="mx-4 mb-2 min-h-touch flex-row items-center gap-3 rounded-lg border border-line bg-panel px-3 py-3"
     >
-      <Icon name="mail-unread-outline" size={20} tone="accent" />
+      <Icon name="mail-dot" size={20} tone="accent" />
       <View className="min-w-0 flex-1">
         <Text className="font-semibold">Requests</Text>
         <Text variant="caption">From people you haven’t replied to</Text>
@@ -321,7 +321,7 @@ function SearchMessagesLink({ query }: { query: string }) {
       accessibilityLabel={`Search messages for ${query}`}
       leading={
         <View className="w-11 items-center">
-          <Icon name="search-outline" size={20} tone="accent" />
+          <Icon name="search" size={20} tone="accent" />
         </View>
       }
       trailing={<Chevron />}

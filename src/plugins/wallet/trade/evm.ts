@@ -131,7 +131,7 @@ async function sendTrade(
           W.code(approval, { label: "Approval" }),
           ...(follow ? [W.link(`View on ${from.explorer.name}`, follow)] : []),
         ],
-        { title: "Approval sent", icon: "time-outline", tone: "brand" },
+        { title: "Approval sent", icon: "clock", tone: "brand" },
       ),
     });
 

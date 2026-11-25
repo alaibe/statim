@@ -37,7 +37,7 @@ export default function CreateAccount() {
   return (
     <Screen className="px-4">
       <View className="-ml-2 flex-row pt-1">
-        <IconButton icon="chevron-back" label="Back" onPress={goBack} />
+        <IconButton icon="chevron-left" label="Back" onPress={goBack} />
       </View>
       <ScrollView contentContainerClassName="gap-5 py-4" showsVerticalScrollIndicator={false}>
         <Animated.View entering={Enter.content()} className="items-center gap-3">

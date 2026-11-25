@@ -39,7 +39,7 @@ export async function alertsCard(context: PluginContext) {
       fallback: "No alerts",
       widget: W.card([W.text("No alerts yet. Set one with /alert btc above 100000.")], {
         title: "Price alerts",
-        icon: "notifications-outline",
+        icon: "bell",
       }),
     };
   }
@@ -58,7 +58,7 @@ export async function alertsCard(context: PluginContext) {
         ),
         W.text("Threshold alerts clear once they fire. Percentage alerts keep going."),
       ],
-      { title: "Price alerts", icon: "notifications-outline" },
+      { title: "Price alerts", icon: "bell" },
     ),
   };
 }
@@ -114,7 +114,7 @@ export function marketsCommands(
                   })),
                 ),
               ],
-              { title: "Markets", icon: "trending-up-outline" },
+              { title: "Markets", icon: "trending-up" },
             ),
           });
           return { type: "handled" };
@@ -158,7 +158,7 @@ export function marketsCommands(
               ]),
               W.text("I will say so in the Markets chat. Nothing leaves this device."),
             ],
-            { title: "Alert set", icon: "notifications-outline" },
+            { title: "Alert set", icon: "bell" },
           ),
         });
         return { type: "handled" };
@@ -262,7 +262,7 @@ export function marketApiCard() {
               "/marketapi reset goes back to the exchange.",
           ),
         ],
-        { title: "Market data", icon: "server-outline" },
+        { title: "Market data", icon: "server" },
       ),
     };
   }
@@ -280,7 +280,7 @@ export function marketApiCard() {
             "feeds on Ethereum with /marketapi chainlink, or go back with /marketapi reset.",
         ),
       ],
-      { title: "Market data", icon: "server-outline" },
+      { title: "Market data", icon: "server" },
     ),
   };
 }

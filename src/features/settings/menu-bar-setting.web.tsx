@@ -29,7 +29,7 @@ export function MenuBarSetting() {
         title="Hide menu bar"
         subtitle="Press Alt to show it until your next click."
         numberOfLinesSubtitle={2}
-        leading={<Icon name="menu-outline" size={20} tone="muted" />}
+        leading={<Icon name="menu" size={20} tone="muted" />}
         trailing={<Toggle label="Hide menu bar" value={hidden} onValueChange={toggle} />}
       />
     </Section>

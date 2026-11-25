@@ -30,7 +30,7 @@ const EXPLORER = "https://solscan.io";
 export const solanaStrategy: ChainStrategy = {
   id: "solana",
   name: "Solana",
-  icon: "sunny-outline",
+  icon: "sun",
   selfAddress: (context) => solanaAddress(context.account.deriveEd25519(SOLANA_ACCOUNT_PATH)),
   isAddress: looksLikeSolanaAddress,
   addressHint: "Solana address",

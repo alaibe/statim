@@ -26,7 +26,7 @@ export function NotificationSettings() {
         title="Notifications from your computer"
         subtitle="Statim on your computer wakes this iPhone through your iCloud when a message arrives. It needs the same iCloud and this account on the computer. Off by default."
         numberOfLinesSubtitle={4}
-        leading={<Icon name="notifications-outline" size={20} tone="muted" />}
+        leading={<Icon name="bell" size={20} tone="muted" />}
         trailing={
           <Toggle
             label="Notifications from your computer"

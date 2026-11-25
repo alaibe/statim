@@ -1,7 +1,7 @@
 import { View } from "react-native";
 import { useAppearanceStore } from "@/core/app/appearance";
 import type { Chat, ChatMessage } from "@/core/messaging/types";
-import { Icon, type IconTone } from "@/design";
+import { Icon, type IconSize, type IconTone } from "@/design";
 
 /** Read receipts are symmetric: with yours off, theirs are not shown either. */
 export function useReadUpTo(chat: Chat | undefined): number {
@@ -19,18 +19,18 @@ export function DeliveryIcon({
 }: {
   message: Pick<ChatMessage, "status">;
   read: boolean;
-  size: number;
+  size: IconSize;
   tone?: IconTone;
   color?: string;
 }) {
-  if (message.status === "failed") return <Icon name="alert-circle" size={size} tone="danger" />;
-  if (message.status === "sending") return <Icon name="time-outline" size={size} tone={tone} color={color} />;
-  if (!read) return <Icon name="checkmark" size={size} tone={tone} color={color} />;
+  if (message.status === "failed") return <Icon name="circle-alert" size={size} tone="danger" />;
+  if (message.status === "sending") return <Icon name="clock" size={size} tone={tone} color={color} />;
+  if (!read) return <Icon name="check" size={size} tone={tone} color={color} />;
   return (
     <View className="flex-row">
-      <Icon name="checkmark" size={size} tone="accent" />
+      <Icon name="check" size={size} tone="accent" />
       <View style={{ marginLeft: -size * 0.6 }}>
-        <Icon name="checkmark" size={size} tone="accent" />
+        <Icon name="check" size={size} tone="accent" />
       </View>
     </View>
   );

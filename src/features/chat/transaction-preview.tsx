@@ -27,14 +27,8 @@ export function TransactionPreview({ hash, fromMe }: { hash: `0x${string}`; from
     >
       <View className="flex-row items-center gap-1.5">
         <Icon
-          name={
-            summary.status === "success"
-              ? "checkmark-circle"
-              : summary.status === "reverted"
-                ? "close-circle"
-                : "time-outline"
-          }
-          size={14}
+          name={summary.status === "success" ? "circle-check" : summary.status === "reverted" ? "circle-x" : "clock"}
+          size={16}
           color={tone}
         />
         <Text variant="caption" className="font-semibold" style={{ color: tone }}>

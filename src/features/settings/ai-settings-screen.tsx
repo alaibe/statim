@@ -342,7 +342,7 @@ function AiSettingsForm({ accountId, saved }: { accountId: string; saved: Saved 
         </>
       ) : null}
 
-      <Note className="mx-4" icon="information-circle-outline">
+      <Note className="mx-4" icon="info">
         <Text variant="footnote">
           AI is off until you turn it on. Commands run when you type them or tap their chips. Enabled Jev features also
           check chats as you view them. Nothing is sent to the chat until you send it yourself.

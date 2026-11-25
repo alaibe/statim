@@ -93,7 +93,7 @@ export function PlayOverlay() {
   return (
     <View className="absolute inset-0 items-center justify-center">
       <View className="h-12 w-12 items-center justify-center rounded-full bg-void/55 pl-1">
-        <Icon name="play" size={22} color="white" />
+        <Icon name="play" size={24} color="white" />
       </View>
     </View>
   );

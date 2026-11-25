@@ -97,7 +97,7 @@ export function ApiKeySection({
         </Section>
       )}
 
-      <Note className="mx-4" icon="information-circle-outline">
+      <Note className="mx-4" icon="info">
         {notes.map((note) => (
           <Text key={note} variant="footnote">
             {note}

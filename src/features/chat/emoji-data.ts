@@ -18,15 +18,15 @@ interface Category {
 export type EmojiRow = { kind: "header"; title: string; category: string } | { kind: "emoji"; emojis: string[] };
 
 const CATEGORY_META: Record<string, { title: string; icon: IconName }> = {
-  smileys_emotion: { title: "Smileys & Emotion", icon: "happy-outline" },
-  people_body: { title: "People & Body", icon: "hand-left-outline" },
-  animals_nature: { title: "Animals & Nature", icon: "leaf-outline" },
-  food_drink: { title: "Food & Drink", icon: "pizza-outline" },
-  travel_places: { title: "Travel & Places", icon: "airplane-outline" },
-  activities: { title: "Activities", icon: "football-outline" },
-  objects: { title: "Objects", icon: "bulb-outline" },
-  symbols: { title: "Symbols", icon: "shapes-outline" },
-  flags: { title: "Flags", icon: "flag-outline" },
+  smileys_emotion: { title: "Smileys & Emotion", icon: "smile" },
+  people_body: { title: "People & Body", icon: "hand" },
+  animals_nature: { title: "Animals & Nature", icon: "leaf" },
+  food_drink: { title: "Food & Drink", icon: "pizza" },
+  travel_places: { title: "Travel & Places", icon: "plane" },
+  activities: { title: "Activities", icon: "trophy" },
+  objects: { title: "Objects", icon: "lightbulb" },
+  symbols: { title: "Symbols", icon: "shapes" },
+  flags: { title: "Flags", icon: "flag" },
 };
 
 export const RECENT = "recent";

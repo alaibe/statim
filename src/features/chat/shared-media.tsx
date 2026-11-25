@@ -75,8 +75,7 @@ export function SharedMedia({ chatId }: { chatId: ChatId }) {
 }
 
 function MediaRow({ entry, category }: { entry: MediaEntry; category: MediaCategory }) {
-  const icon: IconName =
-    category === "voice" ? "mic-outline" : category === "links" ? "link-outline" : "document-outline";
+  const icon: IconName = category === "voice" ? "mic" : category === "links" ? "link" : "file";
 
   return (
     <ListItem

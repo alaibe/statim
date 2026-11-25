@@ -63,7 +63,7 @@ function LockScreen() {
 
   if (!setup || protection.error !== undefined) {
     return (
-      <LockFrame icon="lock-closed-outline" tone="danger" message="Could not check how this app is locked.">
+      <LockFrame icon="lock" tone="danger" message="Could not check how this app is locked.">
         <Button
           label="Try again"
           onPress={async () => {
@@ -74,7 +74,7 @@ function LockScreen() {
       </LockFrame>
     );
   }
-  if (protection.value === undefined) return <LockFrame icon="lock-closed-outline" />;
+  if (protection.value === undefined) return <LockFrame icon="lock" />;
   if (protection.value) return <ProtectedKeysUnlock label={label} />;
   return <Unlock setup={setup} label={label} />;
 }
@@ -93,7 +93,7 @@ function Unlock({ setup, label }: { setup: LockSetup; label: string }) {
   if (method === "biometric") {
     return <BiometricUnlock label={label} toPin={setup.pin ? () => setMethod("pin") : null} />;
   }
-  return <LockFrame icon="lock-closed-outline" />;
+  return <LockFrame icon="lock" />;
 }
 
 function BiometricUnlock({ label, toPin }: { label: string; toPin: (() => void) | null }) {
@@ -130,7 +130,7 @@ function BiometricUnlock({ label, toPin }: { label: string; toPin: (() => void) 
 
   return (
     <LockFrame
-      icon={failed ? "lock-closed-outline" : "finger-print-outline"}
+      icon={failed ? "lock" : "fingerprint-pattern"}
       tone={failed ? "danger" : "muted"}
       message={failed ? `${label} was not recognised.` : `Unlocking with ${label}…`}
     >
@@ -182,7 +182,7 @@ function ProtectedKeysUnlock({ label }: { label: string }) {
 
   return (
     <LockFrame
-      icon={failed ? "lock-closed-outline" : "finger-print-outline"}
+      icon={failed ? "lock" : "fingerprint-pattern"}
       tone={failed ? "danger" : "muted"}
       message={
         failed ? `${label} was not recognised. Your keys can only be read with ${label}.` : `Unlocking with ${label}…`
@@ -241,7 +241,7 @@ function PinUnlock({ backToBiometrics }: { backToBiometrics: { label: string; go
           : null;
 
   return (
-    <LockFrame icon="lock-closed-outline" title="Enter your PIN">
+    <LockFrame icon="lock" title="Enter your PIN">
       <View className="min-h-10 justify-center">
         {task ? (
           <Spinner />
@@ -262,7 +262,7 @@ function PinUnlock({ backToBiometrics }: { backToBiometrics: { label: string; go
           backToBiometrics
             ? {
                 label: `Use ${backToBiometrics.label}`,
-                icon: "finger-print-outline",
+                icon: "fingerprint-pattern",
                 onPress: backToBiometrics.go,
               }
             : undefined
@@ -292,7 +292,7 @@ function ForgotPin({ onCancel }: { onCancel: () => void }) {
       <KeyboardAvoidingView behavior="padding" className="flex-1">
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="grow justify-center gap-5 px-4 py-8">
           <View className="items-center gap-3">
-            <IconBadge icon="trash-outline" tone="danger" />
+            <IconBadge icon="trash-2" tone="danger" />
             <Text variant="headline" className="text-center">
               Erase everything?
             </Text>
@@ -369,7 +369,7 @@ function LockFrame({
 function IconBadge({ icon, tone }: { icon: IconName; tone: IconTone }) {
   return (
     <View className="h-20 w-20 items-center justify-center rounded-full bg-side">
-      <Icon name={icon} size={34} tone={tone} />
+      <Icon name={icon} size={24} tone={tone} />
     </View>
   );
 }

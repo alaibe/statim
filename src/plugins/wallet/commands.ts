@@ -143,7 +143,7 @@ async function balanceDetail(
           }),
           ...(tokens.length ? [W.rows(holdingRows(chain.id, tokens))] : []),
           ...detail,
-          W.link(`View on ${chain.explorer.name}`, chain.explorer.addressUrl(address), "open-outline"),
+          W.link(`View on ${chain.explorer.name}`, chain.explorer.addressUrl(address), "arrow-up-right"),
         ],
         { title: chain.name, icon: chain.icon },
       ),
@@ -206,7 +206,7 @@ async function balanceOverview(
         ),
         W.text("Only the chains you have switched on. /chains changes that."),
       ],
-      { title: "Balances", icon: "wallet-outline" },
+      { title: "Balances", icon: "wallet" },
     ),
   });
   return { type: "handled" };
@@ -293,7 +293,7 @@ export const walletCommands: SlashCommand[] = [
                   `${chain.name} address, which is not the same address on every chain.`,
               ),
             ],
-            { title: `Send on ${chain.name}`, icon: "arrow-up-circle-outline" },
+            { title: `Send on ${chain.name}`, icon: "circle-arrow-up" },
           ),
         });
         return { type: "handled" };
@@ -325,7 +325,7 @@ export const walletCommands: SlashCommand[] = [
                 ]),
                 W.text("Nothing is signed until you confirm."),
               ],
-              { title: "Review transfer", icon: "arrow-up-circle-outline", tone: "brand" },
+              { title: "Review transfer", icon: "circle-arrow-up", tone: "brand" },
             ),
           });
           return { type: "handled" };
@@ -343,7 +343,7 @@ export const walletCommands: SlashCommand[] = [
                   W.code(id, { label: "Transaction" }),
                   ...(explorer ? [W.link(`View on ${chain.explorer.name}`, explorer)] : []),
                 ],
-                { title: "Sent", icon: "checkmark-circle", tone: "success" },
+                { title: "Sent", icon: "circle-check", tone: "success" },
               ),
             });
           },
@@ -414,7 +414,7 @@ export const walletCommands: SlashCommand[] = [
                 },
               ),
             ],
-            { title: `Ask for ${symbol}`, icon: "arrow-down-circle-outline" },
+            { title: `Ask for ${symbol}`, icon: "circle-arrow-down" },
           ),
         });
         return { type: "handled" };
@@ -497,7 +497,7 @@ export const walletCommands: SlashCommand[] = [
                 { label: "Split it", command: "/split {total} --chain {chain} {note}" },
               ),
             ],
-            { title: "Split a bill", icon: "people-outline" },
+            { title: "Split a bill", icon: "users" },
           ),
         });
         return { type: "handled" };

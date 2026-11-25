@@ -80,7 +80,7 @@ export function bitcoinStrategy(context: PluginContext): ChainStrategy {
   return {
     id: "bitcoin",
     name: "Bitcoin",
-    icon: "logo-bitcoin",
+    icon: "bitcoin",
     selfAddress: (ctx) => p2wpkhAddress(ctx.account.derive(BIP84_ACCOUNT_PATH).publicKey),
     isAddress: isBitcoinAddress,
     addressHint: "bc1…",

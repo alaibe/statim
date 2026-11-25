@@ -53,7 +53,7 @@ export function assistantCommands(views: { plugins: PluginView }): SlashCommand[
                 })),
               ),
             ],
-            { title: plugin?.name ?? "Slash commands", icon: plugin?.icon ?? "sparkles-outline" },
+            { title: plugin?.name ?? "Slash commands", icon: plugin?.icon ?? "sparkles" },
           ),
         });
         return { type: "handled" };
@@ -119,7 +119,7 @@ export function assistantCommands(views: { plugins: PluginView }): SlashCommand[
               // A link, not `/open`: that command runs only in the Browser's chat.
               W.link(name ? `${name} on ENS` : "Get a name at app.ens.domains", "https://app.ens.domains"),
             ],
-            { title: name ?? "Your address", icon: "finger-print-outline" },
+            { title: name ?? "Your address", icon: "fingerprint-pattern" },
           ),
         });
         return { type: "handled" };
@@ -182,7 +182,7 @@ export function pluginsCard(context: PluginContext): Omit<WidgetContent, "live">
             "Use /commands in a chat to see the slash commands available there.",
         ),
       ],
-      { title: "Plugins", icon: "extension-puzzle-outline" },
+      { title: "Plugins", icon: "puzzle" },
     ),
   };
 }

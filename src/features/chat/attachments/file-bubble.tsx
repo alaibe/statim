@@ -15,11 +15,11 @@ function iconFor(name: string, mimeType?: string): IconName {
   const type = mimeType ?? "";
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
 
-  if (type.startsWith("video/")) return "videocam-outline";
-  if (type.startsWith("audio/")) return "musical-notes-outline";
-  if (type === "application/pdf" || ext === "pdf") return "document-text-outline";
-  if (["zip", "gz", "tar", "rar", "7z"].includes(ext)) return "file-tray-full-outline";
-  return "document-outline";
+  if (type.startsWith("video/")) return "video";
+  if (type.startsWith("audio/")) return "music";
+  if (type === "application/pdf" || ext === "pdf") return "file-text";
+  if (["zip", "gz", "tar", "rar", "7z"].includes(ext)) return "inbox";
+  return "file";
 }
 
 export function FileBubble({ uri, name, mimeType, size, fromMe }: FileBubbleProps) {

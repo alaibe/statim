@@ -17,7 +17,7 @@ export function LocationCard({ location, fromMe }: { location: Location; fromMe:
       className={cn("mt-1.5 flex-row items-center gap-2.5 rounded-md px-2 py-1.5", fromMe ? "bg-fg/15" : "bg-fg/5")}
       style={{ borderCurve: "continuous" }}
     >
-      <Icon name="location-outline" size={22} tone={fromMe ? "fg" : "accent"} />
+      <Icon name="map-pin" size={24} tone={fromMe ? "fg" : "accent"} />
       <View className="min-w-0 flex-1">
         <Text variant="footnote" numberOfLines={2} className={cn("font-semibold", fromMe ? "text-fg" : "text-fg")}>
           {title}

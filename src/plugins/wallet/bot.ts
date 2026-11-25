@@ -63,7 +63,7 @@ export function makeWalletBot(context: PluginContext): Bot {
                 "them: /request and /split only make sense where there is somebody to ask.",
             ),
           ],
-          { title: "Wallet", icon: "wallet-outline" },
+          { title: "Wallet", icon: "wallet" },
         ),
       },
     ],

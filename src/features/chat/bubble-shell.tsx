@@ -103,7 +103,7 @@ export function BubbleShell({
 
         {privateToMe ? (
           <View className="mt-1 flex-row items-center gap-1">
-            <Icon name="eye-off-outline" size={11} tone="subtle" />
+            <Icon name="eye-off" size={16} tone="subtle" />
             <Text variant="micro">Only you can see this</Text>
           </View>
         ) : null}
@@ -211,11 +211,11 @@ function ThreadButton({ thread }: { thread: ThreadChip }) {
       onPress={thread.onOpen}
       className={cn("mt-1 flex-row items-center gap-1.5 rounded-full px-2.5 py-1", unread ? "bg-accent" : "bg-side")}
     >
-      <Icon name="chatbubbles-outline" size={13} tone={unread ? "on-accent" : "accent"} />
+      <Icon name="messages-square" size={16} tone={unread ? "on-accent" : "accent"} />
       <Text variant="caption" className={cn("font-semibold", unread ? "text-on-accent" : "text-accent")}>
         {label}
       </Text>
-      <Icon name="chevron-forward" size={12} tone={unread ? "on-accent" : "accent"} />
+      <Icon name="chevron-right" size={16} tone={unread ? "on-accent" : "accent"} />
     </RNPressable>
   );
 }

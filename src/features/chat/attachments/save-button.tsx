@@ -1,9 +1,9 @@
 import { type ReactNode, useState } from "react";
 import { View } from "react-native";
 
-import { Icon, Pressable } from "@/design";
+import { Icon, type IconSize, Pressable } from "@/design";
 
-export function SaveButton({ onPress, size = 18 }: { onPress: () => void; size?: number }) {
+export function SaveButton({ onPress, size = 20 }: { onPress: () => void; size?: IconSize }) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -12,7 +12,7 @@ export function SaveButton({ onPress, size = 18 }: { onPress: () => void; size?:
       hitSlop={8}
       className="items-center justify-center rounded-full bg-void/45 p-1.5"
     >
-      <Icon name="download-outline" size={size} color="#fff" />
+      <Icon name="download" size={size} color="#fff" />
     </Pressable>
   );
 }

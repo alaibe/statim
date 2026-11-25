@@ -73,7 +73,7 @@ export function ChatRow({
         {
           id: "pin",
           label: pinned ? "Unpin" : "Pin",
-          icon: "pin-outline",
+          icon: "pin",
           tone: "neutral",
           onPress: () => onToggle(chat.id, "pinned"),
         },
@@ -82,14 +82,14 @@ export function ChatRow({
         {
           id: "mute",
           label: muted ? "Unmute" : "Mute",
-          icon: muted ? "volume-high-outline" : "volume-mute-outline",
+          icon: muted ? "volume-2" : "volume-x",
           tone: "warning",
           onPress: () => onToggle(chat.id, "muted"),
         },
         {
           id: "archive",
           label: prefs.archived ? "Unarchive" : "Archive",
-          icon: "archive-outline",
+          icon: "archive",
           tone: "accent",
           onPress: () => onToggle(chat.id, "archived"),
         },
@@ -103,7 +103,7 @@ export function ChatRow({
             {muted ? (
               <>
                 {" "}
-                <Icon name="volume-mute-outline" size={13} tone="subtle" />
+                <Icon name="volume-x" size={16} tone="subtle" />
               </>
             ) : null}
           </>
@@ -119,7 +119,7 @@ export function ChatRow({
         meta={
           last ? (
             <View className="flex-row items-center gap-1">
-              {last.fromMe ? <DeliveryIcon message={last} read={readByPeer(readUpTo, last)} size={14} /> : null}
+              {last.fromMe ? <DeliveryIcon message={last} read={readByPeer(readUpTo, last)} size={16} /> : null}
               <Text variant="caption" className={unread && !muted ? "text-accent" : undefined}>
                 {formatTimestamp(last.sentAt)}
               </Text>
@@ -133,7 +133,7 @@ export function ChatRow({
               {unread ? (
                 <CountBadge count={unreadBadge(chat, since, loaded)} muted={muted} />
               ) : pinned ? (
-                <Icon name="pin" size={14} tone="subtle" />
+                <Icon name="pin" size={16} tone="subtle" />
               ) : null}
             </View>
           ) : undefined
@@ -146,8 +146,8 @@ export function ChatRow({
 const chatCount = (n: number) => `${n} ${n === 1 ? "chat" : "chats"}`;
 
 const OWN_FOLDERS = {
-  archive: { label: "Archive", icon: "archive-outline" },
-  blocked: { label: "Blocked", icon: "ban-outline" },
+  archive: { label: "Archive", icon: "archive" },
+  blocked: { label: "Blocked", icon: "ban" },
 } as const;
 
 export function folderLabel(folder: Folder): string {
@@ -173,7 +173,7 @@ function FolderIcon({ folder, size }: { folder: Folder; size: number }) {
       }}
       className="items-center justify-center bg-side"
     >
-      <Icon name={OWN_FOLDERS[folder].icon} size={size * 0.5} tone="muted" />
+      <Icon name={OWN_FOLDERS[folder].icon} size={20} tone="muted" />
     </View>
   );
 }
@@ -221,7 +221,7 @@ export function FolderHeader({ folder, onBack }: { folder: Folder; onBack: () =>
       onPress={onBack}
       className="min-w-0 flex-1 flex-row items-center gap-1.5"
     >
-      <Icon name="chevron-back" size={20} tone="accent" />
+      <Icon name="chevron-left" size={20} tone="accent" />
       <FolderIcon folder={folder} size={22} />
       <Text variant="title" className="flex-1 font-semibold" numberOfLines={1}>
         {folderLabel(folder)}

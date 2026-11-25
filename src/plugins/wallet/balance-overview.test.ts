@@ -16,7 +16,7 @@ function chain(id: string, symbol: string, amount: string | null, holdings?: Hol
   return {
     id,
     name: id,
-    icon: "wallet-outline",
+    icon: "wallet",
     isAddress: () => true,
     selfAddress: () => me,
     balance: async () => {

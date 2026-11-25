@@ -52,7 +52,7 @@ export function makeBrowserBot(context: PluginContext): Bot {
                 : "Connecting is switched off: no WalletConnect project id is configured. Browsing still works; signing does not.",
             ),
           ],
-          { title: "Browser", icon: "compass-outline" },
+          { title: "Browser", icon: "compass" },
         ),
       },
     ],

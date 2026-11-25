@@ -128,7 +128,7 @@ function NewChatForm({
               />
               <IconButton
                 testID="new-chat-add"
-                icon={input.search ? "search-outline" : "add"}
+                icon={input.search ? "search" : "plus"}
                 label={input.search ? "Search" : "Add participant"}
                 tone="accent"
                 onPress={() => void addParticipant()}
@@ -311,7 +311,7 @@ function Participants({
           <Text numberOfLines={1} className="flex-1 text-md">
             {r.name}
           </Text>
-          <IconButton icon="close" label={`Remove ${r.name}`} size={18} onPress={() => onRemove(r.participantId)} />
+          <IconButton icon="x" label={`Remove ${r.name}`} size={20} onPress={() => onRemove(r.participantId)} />
         </View>
       ))}
     </Animated.View>
@@ -367,11 +367,7 @@ function PersonRow({ person, selected, onPress }: { person: Candidate; selected:
           </Text>
         ) : null}
       </View>
-      <Icon
-        name={selected ? "checkmark-circle" : "add-circle-outline"}
-        size={20}
-        tone={selected ? "accent" : "subtle"}
-      />
+      <Icon name={selected ? "circle-check" : "circle-plus"} size={20} tone={selected ? "accent" : "subtle"} />
     </Pressable>
   );
 }

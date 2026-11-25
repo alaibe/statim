@@ -22,7 +22,7 @@ export default function ContactsScreen() {
             </Pressable>
           ),
           headerRight: () => (
-            <IconButton icon="add" label="New chat" tone="accent" size={24} onPress={() => router.push("/new-chat")} />
+            <IconButton icon="plus" label="New chat" tone="accent" size={24} onPress={() => router.push("/new-chat")} />
           ),
         }}
       />

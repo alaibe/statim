@@ -9,7 +9,7 @@ export const assistantPlugin: Plugin = {
     name: "Statim Assistant",
     description: "Your on-device space for notes, slash commands and discovering features.",
     version: "1.0.0",
-    icon: "sparkles-outline",
+    icon: "sparkles",
     permissions: ["account.read", "plugins.manage", "storage"],
   },
 
@@ -24,7 +24,7 @@ export const assistantPlugin: Plugin = {
         {
           id: "commands",
           label: "Commands",
-          icon: "sparkles-outline",
+          icon: "sparkles",
           command: "/commands",
           showIn: ["dm", "group", "channel"],
           global: true,
@@ -32,7 +32,7 @@ export const assistantPlugin: Plugin = {
         {
           id: "plugins",
           label: "Plugins",
-          icon: "extension-puzzle-outline",
+          icon: "puzzle",
           command: "/plugins",
           showIn: ["channel"],
         },

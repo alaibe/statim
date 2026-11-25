@@ -41,7 +41,7 @@ export function BlockedBar({ chatId }: { chatId: ChatId }) {
       <Text variant="caption" className="text-center">
         You blocked this person. Nothing they send reaches you.
       </Text>
-      <BarButton testID="unblock" icon="ban-outline" label="Unblock" onPress={() => void setBlocked(chatId, false)} />
+      <BarButton testID="unblock" icon="ban" label="Unblock" onPress={() => void setBlocked(chatId, false)} />
     </View>
   );
 }

@@ -27,7 +27,7 @@ async function botsCard(context: PluginContext) {
               "it, exactly like a person would.",
           ),
         ],
-        { title: "No bots yet", icon: "hardware-chip-outline" },
+        { title: "No bots yet", icon: "cpu" },
       ),
     };
   }
@@ -45,14 +45,14 @@ async function botsCard(context: PluginContext) {
               {
                 label: `Say hello to ${bot.name}`,
                 command: `/startbot ${bot.address}`,
-                icon: "chatbubble-outline" as const,
+                icon: "message-square" as const,
               },
             ],
           })),
         ),
         W.actions([{ label: "Add another", command: "/addbot" }]),
       ],
-      { title: "Your bots", icon: "hardware-chip-outline" },
+      { title: "Your bots", icon: "cpu" },
     ),
   };
 }
@@ -63,7 +63,7 @@ export const botsPlugin: Plugin = {
     name: "Bots",
     description: "Add bots by address and talk to them. Bots can reply with cards and buttons.",
     version: "1.0.0",
-    icon: "hardware-chip-outline",
+    icon: "cpu",
     permissions: ["account.read", "chat.read", "chat.send", "network", "storage"],
     requiresSessionRestart: true,
   },
@@ -201,7 +201,7 @@ export const botsPlugin: Plugin = {
         {
           id: "addbot",
           label: "Add bot",
-          icon: "add-circle-outline",
+          icon: "circle-plus",
           command: "/addbot",
           showIn: ["channel"],
         },

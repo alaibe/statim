@@ -21,12 +21,12 @@ jest.mock("./chains/watcher", () => ({ checkBalances: jest.fn() }));
 jest.mock("./chains/rpc", () => ({ hydrateRpcOverrides: jest.fn() }));
 jest.mock("./chains/evm", () => ({
   EVM_CHAINS: [
-    { id: "ethereum", name: "Ethereum", icon: "diamond-outline", description: "Mainnet" },
-    { id: "base", name: "Base", icon: "ellipse-outline", description: "L2" },
+    { id: "ethereum", name: "Ethereum", icon: "gem", description: "Mainnet" },
+    { id: "base", name: "Base", icon: "circle", description: "L2" },
     {
       id: "sepolia",
       name: "Sepolia",
-      icon: "diamond-outline",
+      icon: "gem",
       description: "Testnet",
       testnet: true,
     },

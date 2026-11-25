@@ -44,14 +44,14 @@ export function JoinRequests({ chatId, pending }: { chatId: ChatId; pending?: nu
             trailing={
               <View className="flex-row">
                 <IconButton
-                  icon="checkmark"
+                  icon="check"
                   label={`Approve ${request.name}`}
                   tone="accent"
                   disabled={answer.busy}
                   onPress={() => void answer.run(request.participantId, true)}
                 />
                 <IconButton
-                  icon="close"
+                  icon="x"
                   label={`Decline ${request.name}`}
                   disabled={answer.busy}
                   onPress={() => void answer.run(request.participantId, false)}

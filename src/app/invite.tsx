@@ -136,7 +136,7 @@ export default function InviteScreen() {
           <ListItem
             testID="share-app"
             title={<Text className="font-semibold text-accent">Share Statim</Text>}
-            leading={<Icon name="heart-outline" size={22} tone="accent" />}
+            leading={<Icon name="heart" size={24} tone="accent" />}
             onPress={async () => {
               if (keyring) report(await shareText(inviteText(keyring.address)).catch(() => null));
             }}
@@ -146,14 +146,14 @@ export default function InviteScreen() {
         {loading ? (
           <Loading />
         ) : access === "unavailable" ? (
-          <Note className="mx-4 mt-6" icon="lock-closed-outline">
+          <Note className="mx-4 mt-6" icon="lock">
             <Text variant="footnote">
               Suggestions from your address book are not available on this system. Share the link above, or scan the QR
               code from a phone that has the app.
             </Text>
           </Note>
         ) : access === "none" || access === "unknown" ? (
-          <Note className="mx-4 mt-6" icon="lock-closed-outline">
+          <Note className="mx-4 mt-6" icon="lock">
             <Text variant="footnote">
               Your address book can suggest who to invite. It is read on this device only, never uploaded and never
               matched against a server. That is why this list cannot tell you who is already here.

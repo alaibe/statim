@@ -21,7 +21,7 @@ export default function ChatsScreen() {
           headerLeft: folder
             ? () => (
                 <IconButton
-                  icon="chevron-back"
+                  icon="chevron-left"
                   label={leaveFolderLabel(folder)}
                   tone="accent"
                   onPress={() => setFolder(null)}
@@ -32,13 +32,13 @@ export default function ChatsScreen() {
             <View className="flex-row items-center gap-1">
               <IconButton
                 testID="header-new-group"
-                icon="people-outline"
+                icon="users"
                 label="New group"
                 onPress={() => router.push("/new-chat?mode=group")}
               />
               <IconButton
                 testID="header-new-chat"
-                icon="create-outline"
+                icon="square-pen"
                 label="New message"
                 tone="accent"
                 onPress={() => router.push("/new-chat")}

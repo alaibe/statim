@@ -160,7 +160,7 @@ async function tradeForm(
         ),
         poweredBy(lifi),
       ],
-      { title: "Trade", icon: "swap-horizontal-outline" },
+      { title: "Trade", icon: "arrow-left-right" },
     ),
   });
   return { type: "handled" };
@@ -324,7 +324,7 @@ function reviewCard(
     ],
     {
       title: same ? `Swap on ${from.name}` : `Bridge ${from.name} → ${to.name}`,
-      icon: "swap-horizontal-outline",
+      icon: "arrow-left-right",
       tone: "brand",
     },
   );
@@ -367,8 +367,8 @@ function sentCard(
       poweredBy(quote.provider),
     ],
     settled
-      ? { title: same ? "Swapped" : "Bridge started", icon: "checkmark-circle", tone: "success" }
-      : { title: "Swap sent", icon: "time-outline", tone: "brand" },
+      ? { title: same ? "Swapped" : "Bridge started", icon: "circle-check", tone: "success" }
+      : { title: "Swap sent", icon: "clock", tone: "brand" },
   );
 }
 
@@ -399,7 +399,7 @@ async function statusCard(
           ...(open ? [W.actions([{ label: "Check again", command: statusCommand(hash, from, to) }])] : []),
           poweredBy(provider),
         ],
-        { title: "Bridge status", icon: "swap-horizontal-outline", tone },
+        { title: "Bridge status", icon: "arrow-left-right", tone },
       ),
     });
     return { type: "handled" };

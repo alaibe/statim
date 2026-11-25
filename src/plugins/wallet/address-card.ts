@@ -51,7 +51,7 @@ export async function addressCard(
           actions: offerSend ? sendAction(chain, name ?? address) : [],
         },
       ]),
-      W.link(`View on ${chain.explorer.name}`, chain.explorer.addressUrl(address), "open-outline"),
+      W.link(`View on ${chain.explorer.name}`, chain.explorer.addressUrl(address), "arrow-up-right"),
     ]),
   };
 }
@@ -62,7 +62,7 @@ function sendAction(chain: ChainStrategy, recipient: string) {
     {
       label: `Send ${chain.transfer.symbol}`,
       command: `/send ${recipient} --chain ${chain.id}`,
-      icon: "arrow-up-circle-outline" as const,
+      icon: "circle-arrow-up" as const,
     },
   ];
 }

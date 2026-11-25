@@ -83,7 +83,7 @@ export function PinPad({ onDigit, onDelete, disabled = false, listening = true, 
           <View className="h-[72px] w-[72px]" />
         )}
         <DigitKey digit="0" disabled={disabled} onPress={onDigit} />
-        <IconKey label="Delete" icon="backspace-outline" disabled={disabled} onPress={onDelete} />
+        <IconKey label="Delete" icon="delete" disabled={disabled} onPress={onDelete} />
       </View>
     </View>
   );
@@ -143,7 +143,7 @@ function IconKey({
         disabled && "opacity-40",
       )}
     >
-      <Icon name={icon} size={26} tone="fg" />
+      <Icon name={icon} size={24} tone="fg" />
     </Pressable>
   );
 }

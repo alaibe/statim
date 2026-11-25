@@ -85,7 +85,7 @@ function alertMessage({ alert, price }: FiredAlert): MessageContent {
           },
         ]),
       ],
-      { title: "Price alert", icon: "trending-up-outline" },
+      { title: "Price alert", icon: "trending-up" },
     ),
   };
 }

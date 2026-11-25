@@ -91,7 +91,7 @@ export function balanceChangeMessage({
   return balanceChangeCard({
     fallback: `${target.label}: ${headline} (now ${formatAmount(current)} ${symbol})`,
     title: received ? "Funds received" : "Balance went down",
-    icon: "diamond-outline",
+    icon: "gem",
     headline,
     label: target.label,
     caption: `Now ${formatAmount(current)} ${symbol} on ${chain.name}`,

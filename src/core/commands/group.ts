@@ -64,7 +64,7 @@ async function membersCard(chat: Chat, note?: string) {
               : `You are ${selfRole === "owner" ? "the owner" : "an admin"}. /invite and /remove are available.`),
         ),
       ],
-      { title: `${members.length} members`, icon: "people-outline" },
+      { title: `${members.length} members`, icon: "users" },
     ),
   };
 }
@@ -206,7 +206,7 @@ export const groupComposerActions: ComposerAction[] = [
   {
     id: "members",
     label: "Members",
-    icon: "people-outline",
+    icon: "users",
     command: "/members",
     showIn: ["group"],
   },

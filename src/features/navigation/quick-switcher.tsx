@@ -110,7 +110,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
         id: "new",
         title: "New message",
         subtitle: `${MOD}N`,
-        icon: "create-outline",
+        icon: "square-pen",
         run: () => router.push("/new-chat"),
       },
       {
@@ -118,7 +118,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
         id: "search",
         title: "Search messages",
         subtitle: `${MOD}F`,
-        icon: "search-outline",
+        icon: "search",
         run: () => router.push("/search"),
       },
       {
@@ -126,7 +126,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
         id: "contacts",
         title: "Contacts",
         subtitle: `${MOD}2`,
-        icon: "people-outline",
+        icon: "users",
         run: () => openTab("/contacts"),
       },
       {
@@ -134,7 +134,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
         id: "settings",
         title: "Settings",
         subtitle: `${MOD},`,
-        icon: "hardware-chip-outline",
+        icon: "cpu",
         run: () => openTab("/settings"),
       },
     ];
@@ -236,7 +236,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
                               : "h-8 w-8 items-center justify-center rounded-full bg-side"
                           }
                         >
-                          <Icon name={entry.icon} size={18} tone={active ? "on-accent" : "muted"} />
+                          <Icon name={entry.icon} size={20} tone={active ? "on-accent" : "muted"} />
                         </View>
                       )}
                       <Text

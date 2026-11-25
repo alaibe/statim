@@ -66,7 +66,7 @@ export default function AppearanceScreen() {
                   <Text variant="caption" className={active ? "font-semibold" : undefined}>
                     {entry.label}
                   </Text>
-                  {active ? <Icon name="checkmark-circle" size={14} tone="accent" /> : null}
+                  {active ? <Icon name="circle-check" size={16} tone="accent" /> : null}
                 </View>
               </Pressable>
             );

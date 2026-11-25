@@ -17,12 +17,12 @@ export function toneFor(meta: ChatProtocolMeta): ProtocolTone {
 }
 
 const ICON: Record<ProtocolId, { name: IconName }> = {
-  xmtp: { name: "shield-checkmark-outline" },
-  nostr: { name: "flash-outline" },
-  status: { name: "radio-outline" },
-  telegram: { name: "paper-plane-outline" },
-  matrix: { name: "grid-outline" },
-  local: { name: "phone-portrait-outline" },
+  xmtp: { name: "shield-check" },
+  nostr: { name: "zap" },
+  status: { name: "radio-tower" },
+  telegram: { name: "send" },
+  matrix: { name: "layout-grid" },
+  local: { name: "smartphone" },
 };
 
 export function protocolIcon(protocol: ProtocolId): { name: IconName } {

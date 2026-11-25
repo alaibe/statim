@@ -11,7 +11,7 @@ export const marketsPlugin: Plugin = {
     name: "Markets",
     description: "Spot prices and a chat that tells you when one crosses a level or moves by a percentage.",
     version: "1.0.0",
-    icon: "trending-up-outline",
+    icon: "trending-up",
     permissions: ["network", "storage"],
   },
 
@@ -29,14 +29,14 @@ export const marketsPlugin: Plugin = {
         {
           id: "price",
           label: "Price",
-          icon: "trending-up-outline",
+          icon: "trending-up",
           command: "/price",
           showIn: ["channel"],
         },
         {
           id: "alert",
           label: "Alert",
-          icon: "notifications-outline",
+          icon: "bell",
           command: "/alert",
           showIn: ["channel"],
         },

@@ -90,7 +90,7 @@ function card({
   return balanceChangeCard({
     fallback: `${title}: ${headline}. ${caption}`,
     title,
-    icon: "logo-bitcoin",
+    icon: "bitcoin",
     headline,
     label: "Bitcoin",
     caption,

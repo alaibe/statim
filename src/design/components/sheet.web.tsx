@@ -71,7 +71,7 @@ export function Sheet({ visible, title, subtitle, leading, anchor, children, onC
                   </Text>
                 ) : null}
               </View>
-              {anchor ? null : <IconButton icon="close" label="Close" size={18} onPress={onClose} />}
+              {anchor ? null : <IconButton icon="x" label="Close" size={20} onPress={onClose} />}
             </View>
           ) : null}
           <View className="gap-3">{children}</View>

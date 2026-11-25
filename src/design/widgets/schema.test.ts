@@ -161,7 +161,7 @@ describe("isWidget", () => {
     const widgets = [
       W.stat("1", { label: "Supply", tone: "brand", actions: [{ label: "Go", command: "/go" }] }),
       W.rows([{ label: "a", value: "b", state: "on" }]),
-      W.list([{ title: "Item", subtitle: "sub", icon: "wallet-outline" }]),
+      W.list([{ title: "Item", subtitle: "sub", icon: "wallet" }]),
       W.text("t"),
       W.code("0xabc"),
       W.card([W.text("inside")], { title: "Card" }),

@@ -119,17 +119,15 @@ function WholeChatProfile({ chat, goBack }: { chat: Chat; goBack: () => void }) 
       actions={
         <>
           <Action
-            icon={muted ? "volume-high-outline" : "volume-mute-outline"}
+            icon={muted ? "volume-2" : "volume-x"}
             label={muted ? "Unmute" : "Mute"}
             onPress={() => void setChatPref(chat.id, { muted: !muted }).catch(reportError)}
           />
           <CopyAction value={groupInfo?.link || address || focusId} />
-          {permissions.invite ? (
-            <Action icon="person-add-outline" label="Invite" onPress={() => setInviting(true)} />
-          ) : null}
+          {permissions.invite ? <Action icon="user-plus" label="Invite" onPress={() => setInviting(true)} /> : null}
           {permissions.block ? (
             <Action
-              icon="ban-outline"
+              icon="ban"
               label={chat.blocked ? "Unblock" : "Block"}
               onPress={() => (chat.blocked ? void setBlocked(chat.id, false) : setBlocking(true))}
             />
@@ -194,7 +192,7 @@ function ProfileScreen({
           <ProfileTitle chat={chat} title={title} ens={ens} memberCount={memberCount} />
         </View>
         <View className="flex-row justify-center gap-2 px-4 pb-5">
-          <Action icon="chatbubble-outline" label="Message" onPress={() => openChatFromProfile(chat.id)} />
+          <Action icon="message-square" label="Message" onPress={() => openChatFromProfile(chat.id)} />
           {actions}
         </View>
         {children}
@@ -262,7 +260,7 @@ function AddressCard({ address, ens }: { address: string; ens: EnsProfile | null
 
 function CopyAction({ value }: { value: string | undefined }) {
   if (!value) return null;
-  return <Action icon="copy-outline" label="Copy" onPress={() => void copyText(value)} />;
+  return <Action icon="copy" label="Copy" onPress={() => void copyText(value)} />;
 }
 
 function Action({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {

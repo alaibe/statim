@@ -67,7 +67,7 @@ export function VoiceRecorder({ onRecorded, onError }: VoiceRecorderProps) {
   if (!state.isRecording) {
     return (
       <IconButton
-        icon="mic-outline"
+        icon="mic"
         label="Record a voice message"
         surface="outline"
         size={20}
@@ -80,11 +80,11 @@ export function VoiceRecorder({ onRecorded, onError }: VoiceRecorderProps) {
   return (
     <View className="flex-row items-center gap-2">
       <IconButton
-        icon="trash-outline"
+        icon="trash-2"
         label="Discard recording"
         surface="outline"
         tone="danger"
-        size={18}
+        size={20}
         onPress={() => void finish(false)}
       />
 
