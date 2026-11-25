@@ -4,6 +4,8 @@
   "version": "0.7.16",
   "dependencies": {
     "@bacons/apple-targets": "^5.0.0",
+    "@expo-google-fonts/inter": "^0.4.2",
+    "@expo-google-fonts/jetbrains-mono": "^0.4.1",
     "@keystonehq/bc-ur-registry-eth": "^0.22.1",
     "@ledgerhq/hw-app-eth": "^7.8.16",
     "@ledgerhq/react-native-hw-transport-ble": "^6.41.0",

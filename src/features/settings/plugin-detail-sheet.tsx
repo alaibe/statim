@@ -1,19 +1,10 @@
 import { View } from "react-native";
 import { usePluginHost } from "@/core/plugins/host";
 import { PERMISSION_LABELS, type Plugin } from "@/core/plugins/types";
-import { Badge, cn, RowIcon, type RowIconTone, Section, Sheet, Text } from "@/design";
-
-const TONE: Record<string, RowIconTone> = {
-  assistant: "purple",
-  profile: "blue",
-  bots: "grey",
-  wallet: "green",
-  browser: "teal",
-  markets: "orange",
-};
+import { Badge, cn, RowIcon, Section, Sheet, Text } from "@/design";
 
 export function PluginIcon({ plugin }: { plugin: Plugin }) {
-  return <RowIcon name={plugin.manifest.icon} tone={TONE[plugin.manifest.id] ?? "grey"} />;
+  return <RowIcon name={plugin.manifest.icon} />;
 }
 
 export function PluginDetailSheet({ plugin, onClose }: { plugin: Plugin; onClose: () => void }) {

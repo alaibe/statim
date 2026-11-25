@@ -78,7 +78,7 @@ export function DeviceList({ vendor, onPick }: { vendor: LinkedVendor; onPick(de
             key={device.id}
             testID={`hardware-device-${device.id}`}
             title={device.name || "Unnamed wallet"}
-            leading={<RowIcon name={CONNECTION[vendor.connection].icon} tone="blue" />}
+            leading={<RowIcon name={CONNECTION[vendor.connection].icon} />}
             onPress={() => onPick(device.id)}
           />
         ))

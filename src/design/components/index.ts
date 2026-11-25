@@ -32,7 +32,7 @@ export { Pressable } from "./pressable";
 export { AnimatedQrCode, QrCode } from "./qr-code";
 export { QrReader, type QrReaderProps } from "./qr-reader";
 export { QrScanner, type QrScannerProps } from "./qr-scanner";
-export { RowIcon, type RowIconTone } from "./row-icon";
+export { RowIcon } from "./row-icon";
 export { Screen } from "./screen";
 export { SearchField, type SearchFieldProps } from "./search-field";
 export { Section } from "./section";

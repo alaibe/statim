@@ -8,6 +8,7 @@ import { DesktopSidebar } from "./desktop-sidebar";
 import { HistoryMenu } from "./history-menu";
 import { QuickSwitcher } from "./quick-switcher";
 import { FULL_WINDOW_ROUTES } from "./routes";
+import { StatusBar } from "./status-bar";
 
 /** The window has no title bar, so this strip drags it; the traffic lights are drawn over it. */
 const DRAG_STRIP_HEIGHT = 24;
@@ -53,15 +54,18 @@ export function AppFrame({ children }: PropsWithChildren) {
 
   return (
     <LayoutInsetsContext.Provider value={FRAME_INSETS}>
-      <View className="flex-1 flex-row bg-canvas">
-        <ChatBackground pattern={wallpaper} intensity="vivid" />
-        <View className="p-2 pr-0">
-          <DesktopSidebar />
+      <View className="flex-1 bg-canvas">
+        <View className="min-h-0 flex-1 flex-row">
+          <ChatBackground pattern={wallpaper} intensity="vivid" />
+          <View className="p-2 pr-0">
+            <DesktopSidebar />
+          </View>
+          <View className="min-w-0 flex-1">{children}</View>
+          <DragStrip />
+          <QuickSwitcher />
+          <HistoryMenu />
         </View>
-        <View className="min-w-0 flex-1">{children}</View>
-        <DragStrip />
-        <QuickSwitcher />
-        <HistoryMenu />
+        <StatusBar />
       </View>
     </LayoutInsetsContext.Provider>
   );

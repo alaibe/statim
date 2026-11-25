@@ -3,7 +3,7 @@ import { LOCAL_PROTOCOL, type ProtocolId } from "@/core/messaging/namespace";
 import { BRIDGED_NETWORKS, isBridgedNetwork, type NetworkId } from "@/core/messaging/networks";
 import type { ChatProtocolMeta } from "@/core/messaging/protocol";
 import type { ProtocolDescriptor } from "@/core/messaging/registry";
-import type { IconName, RowIconTone } from "@/design";
+import type { IconName } from "@/design";
 import { connectableProtocols, protocolById } from "@/protocols";
 
 type ProtocolTone = "neutral" | "brand" | "success" | "warning" | "danger";
@@ -16,16 +16,16 @@ export function toneFor(meta: ChatProtocolMeta): ProtocolTone {
   return "warning";
 }
 
-const ICON: Record<ProtocolId, { name: IconName; tone: RowIconTone }> = {
-  xmtp: { name: "shield-checkmark-outline", tone: "blue" },
-  nostr: { name: "flash-outline", tone: "purple" },
-  status: { name: "radio-outline", tone: "teal" },
-  telegram: { name: "paper-plane-outline", tone: "blue" },
-  matrix: { name: "grid-outline", tone: "green" },
-  local: { name: "phone-portrait-outline", tone: "grey" },
+const ICON: Record<ProtocolId, { name: IconName }> = {
+  xmtp: { name: "shield-checkmark-outline" },
+  nostr: { name: "flash-outline" },
+  status: { name: "radio-outline" },
+  telegram: { name: "paper-plane-outline" },
+  matrix: { name: "grid-outline" },
+  local: { name: "phone-portrait-outline" },
 };
 
-export function protocolIcon(protocol: ProtocolId): { name: IconName; tone: RowIconTone } {
+export function protocolIcon(protocol: ProtocolId): { name: IconName } {
   return ICON[protocol];
 }
 

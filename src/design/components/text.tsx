@@ -1,17 +1,19 @@
 import { Text as RNText, type TextProps as RNTextProps } from "react-native";
 
+import { fontFamilyFor } from "../fonts";
 import { cn } from "../lib/cn";
 
+// Interface text (titles, amounts, captions, labels) is mono; what people read and write is Inter.
 const VARIANTS = {
-  display: "text-display font-sans font-semibold tracking-tight text-content",
-  headline: "text-headline font-sans font-semibold tracking-tight text-content",
-  title: "text-title font-sans font-semibold text-content",
-  amount: "text-[1.625rem] font-sans font-semibold tracking-tight tabular-nums text-content",
+  display: "text-display font-mono font-semibold tracking-tight text-content",
+  headline: "text-headline font-mono font-semibold tracking-tight text-content",
+  title: "text-title font-mono font-semibold text-content",
+  amount: "text-[1.625rem] font-mono font-semibold tracking-tight tabular-nums text-content",
   body: "text-body font-sans text-content",
   bodyMuted: "text-body font-sans text-content-muted",
   footnote: "text-footnote font-sans text-content-muted",
-  caption: "text-caption font-sans text-content-subtle",
-  micro: "text-micro font-sans text-content-subtle",
+  caption: "text-caption font-mono text-content-subtle",
+  micro: "text-micro font-mono uppercase tracking-wider text-content-subtle",
   mono: "text-footnote font-mono text-content-muted",
 } as const;
 
@@ -22,6 +24,13 @@ interface TextProps extends RNTextProps {
   className?: string;
 }
 
-export function Text({ variant = "body", className, ...props }: TextProps) {
-  return <RNText className={cn(VARIANTS[variant], className)} {...props} />;
+export function Text({ variant = "body", className, style, ...props }: TextProps) {
+  const classes = cn(VARIANTS[variant], className);
+  return (
+    <RNText
+      className={classes}
+      style={[{ fontFamily: fontFamilyFor(classes), fontWeight: "normal" }, style]}
+      {...props}
+    />
+  );
 }

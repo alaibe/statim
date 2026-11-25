@@ -42,9 +42,9 @@ module.exports = {
         danger: "rgb(var(--color-danger) / <alpha-value>)",
       },
       borderRadius: {
-        card: "18px",
-        bubble: "15px",
-        field: "14px",
+        card: "6px",
+        bubble: "4px",
+        field: "3px",
         pill: "999px",
       },
       fontFamily: {

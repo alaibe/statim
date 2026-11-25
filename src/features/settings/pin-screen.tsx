@@ -151,7 +151,7 @@ function PinIntro({ onBegin }: { onBegin: () => void }) {
           title="Recovery phrase"
           subtitle={accounts > 1 ? "Make sure each account’s phrase is written down" : "Make sure it is written down"}
           numberOfLinesSubtitle={2}
-          leading={<RowIcon name="key-outline" tone="orange" />}
+          leading={<RowIcon name="key-outline" />}
           trailing={<Chevron />}
           onPress={() => router.push("/settings/recovery-phrase")}
         />

@@ -95,7 +95,7 @@ export function ConnectHardware({ visible, onClose }: { visible: boolean; onClos
               title={wallet.label}
               subtitle={CONNECTION[wallet.connection].how}
               numberOfLinesSubtitle={2}
-              leading={<RowIcon name={CONNECTION[wallet.connection].icon} tone="grey" />}
+              leading={<RowIcon name={CONNECTION[wallet.connection].icon} />}
               onPress={() => choose(wallet)}
             />
           ))}

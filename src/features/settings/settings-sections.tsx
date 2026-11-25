@@ -88,7 +88,7 @@ export function SettingsSections({
                 ? "Add another account or switch between them"
                 : `${accounts.length} accounts on this device`
           }
-          leading={<RowIcon name="people-outline" tone="blue" />}
+          leading={<RowIcon name="people-outline" />}
           trailing={chevron}
           selected={selected === "accounts"}
           onPress={() => openTab("/accounts")}
@@ -98,7 +98,7 @@ export function SettingsSections({
           title="My QR code"
           subtitle={hint("Let someone scan your address to start a chat")}
           numberOfLinesSubtitle={2}
-          leading={<RowIcon name="qr-code-outline" tone="purple" />}
+          leading={<RowIcon name="qr-code-outline" />}
           trailing={chevron}
           onPress={() => router.push("/qr")}
         />
@@ -108,7 +108,7 @@ export function SettingsSections({
             title="Recovery phrase"
             subtitle={hint("View the words that control this account")}
             numberOfLinesSubtitle={2}
-            leading={<RowIcon name="key-outline" tone="orange" />}
+            leading={<RowIcon name="key-outline" />}
             trailing={chevron}
             selected={selected === "recovery-phrase"}
             onPress={() => openTab("/settings/recovery-phrase")}
@@ -123,7 +123,7 @@ export function SettingsSections({
               : "Removes its keys and every message kept here. Only the recovery phrase brings it back.",
           )}
           numberOfLinesSubtitle={2}
-          leading={<RowIcon name="trash-outline" tone="red" />}
+          leading={<RowIcon name="trash-outline" danger />}
           onPress={() => setConfirmErase(true)}
         />
       </Section>
@@ -146,7 +146,7 @@ export function SettingsSections({
           testID="settings-appearance"
           title="Appearance"
           subtitle={hint("Theme and chat wallpaper")}
-          leading={<RowIcon name="color-palette-outline" tone="pink" />}
+          leading={<RowIcon name="color-palette-outline" />}
           trailing={chevron}
           selected={selected === "appearance"}
           onPress={() => openTab("/settings/appearance")}
@@ -156,7 +156,7 @@ export function SettingsSections({
             testID="settings-notifications"
             title="Notifications"
             subtitle={hint(notificationsHint)}
-            leading={<RowIcon name="notifications-outline" tone="red" />}
+            leading={<RowIcon name="notifications-outline" />}
             trailing={chevron}
             selected={selected === "notifications"}
             onPress={() => openTab("/settings/notifications")}
@@ -167,7 +167,7 @@ export function SettingsSections({
           title="Privacy"
           subtitle={hint("Read receipts, and what this app deliberately does not collect")}
           numberOfLinesSubtitle={2}
-          leading={<RowIcon name="hand-left-outline" tone="grey" />}
+          leading={<RowIcon name="hand-left-outline" />}
           trailing={chevron}
           selected={selected === "privacy"}
           onPress={() => openTab("/settings/privacy")}
@@ -176,7 +176,7 @@ export function SettingsSections({
           testID="settings-trades"
           title="Trades"
           subtitle={hint(tradesHint(keys))}
-          leading={<RowIcon name="swap-horizontal-outline" tone="blue" />}
+          leading={<RowIcon name="swap-horizontal-outline" />}
           trailing={chevron}
           selected={selected === "trades"}
           onPress={() => openTab("/settings/trades")}
@@ -185,7 +185,7 @@ export function SettingsSections({
           testID="settings-gifs"
           title="GIFs"
           subtitle={hint(keys.gifs ? "Search is on" : "Add a KLIPY key to search GIFs")}
-          leading={<RowIcon name="happy-outline" tone="green" />}
+          leading={<RowIcon name="happy-outline" />}
           trailing={chevron}
           selected={selected === "gifs"}
           onPress={() => openTab("/settings/gifs")}
@@ -194,7 +194,7 @@ export function SettingsSections({
           testID="settings-ai"
           title="AI"
           subtitle={hint("The model that rewrites, translates and summarises")}
-          leading={<RowIcon name="sparkles-outline" tone="teal" />}
+          leading={<RowIcon name="sparkles-outline" />}
           trailing={chevron}
           selected={selected === "ai"}
           onPress={() => openTab("/settings/ai")}
@@ -203,7 +203,7 @@ export function SettingsSections({
           testID="settings-devices"
           title="Devices"
           subtitle={hint("Where this account is signed in")}
-          leading={<RowIcon name="phone-portrait-outline" tone="orange" />}
+          leading={<RowIcon name="phone-portrait-outline" />}
           trailing={chevron}
           selected={selected === "devices"}
           onPress={() => openTab("/settings/devices")}
@@ -219,7 +219,7 @@ export function SettingsSections({
           testID="settings-plugins"
           title="Plugins"
           subtitle={hint(`${enabledIds.length} of ${registry.list().length} enabled`)}
-          leading={<RowIcon name="extension-puzzle-outline" tone="purple" />}
+          leading={<RowIcon name="extension-puzzle-outline" />}
           trailing={chevron}
           selected={selected === "plugins"}
           onPress={() => openTab("/settings/plugins")}
@@ -229,7 +229,7 @@ export function SettingsSections({
             testID="settings-command-line"
             title="Command line"
             subtitle={hint("Use this app from a terminal, or let an AI agent use it")}
-            leading={<RowIcon name="terminal-outline" tone="grey" />}
+            leading={<RowIcon name="terminal-outline" />}
             trailing={chevron}
             selected={selected === "command-line"}
             onPress={() => openTab("/settings/command-line")}
@@ -242,7 +242,7 @@ export function SettingsSections({
           testID="settings-report-problem"
           title="Report a problem"
           subtitle={hint("Opens a public issue form on GitHub")}
-          leading={<RowIcon name="flag-outline" tone="red" />}
+          leading={<RowIcon name="flag-outline" />}
           trailing={external}
           onPress={() => openExternal(feedbackUrl("problem")).catch(() => {})}
         />
@@ -250,7 +250,7 @@ export function SettingsSections({
           testID="settings-suggest-feature"
           title="Suggest a feature"
           subtitle={hint("Opens a public issue form on GitHub")}
-          leading={<RowIcon name="bulb-outline" tone="orange" />}
+          leading={<RowIcon name="bulb-outline" />}
           trailing={external}
           onPress={() => openExternal(feedbackUrl("feature")).catch(() => {})}
         />

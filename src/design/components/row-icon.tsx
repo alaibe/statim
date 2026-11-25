@@ -1,27 +1,13 @@
 import { View } from "react-native";
+import { useThemeColors } from "../hooks/use-theme-colors";
 import { Icon, type IconName } from "../icon";
-import { cn } from "../lib/cn";
 
-export type RowIconTone = "blue" | "green" | "orange" | "red" | "purple" | "teal" | "grey" | "pink";
-
-const FILL: Record<RowIconTone, string> = {
-  blue: "bg-[#3E63DD]",
-  green: "bg-[#30A46C]",
-  orange: "bg-[#F76B15]",
-  red: "bg-[#E5484D]",
-  purple: "bg-[#8E4EC6]",
-  teal: "bg-[#12A594]",
-  grey: "bg-[#8B8D98]",
-  pink: "bg-[#E93D82]",
-};
-
-export function RowIcon({ name, tone = "grey" }: { name: IconName; tone?: RowIconTone }) {
+// The design system keeps the interface in ink: every row icon is the same outlined square, danger aside.
+export function RowIcon({ name, danger = false }: { name: IconName; danger?: boolean }) {
+  const colors = useThemeColors();
   return (
-    <View
-      style={{ borderCurve: "continuous" }}
-      className={cn("h-7 w-7 items-center justify-center rounded-[8px]", FILL[tone])}
-    >
-      <Icon name={name} size={17} color="#FFFFFF" />
+    <View className="h-7 w-7 items-center justify-center rounded-field border border-line bg-surface-sunken">
+      <Icon name={name} size={16} color={danger ? colors.danger : colors["content-muted"]} />
     </View>
   );
 }

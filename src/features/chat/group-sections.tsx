@@ -222,7 +222,7 @@ export function MemberModeration({
           title={REMOVAL[removal].title}
           subtitle={REMOVAL[removal].subtitle}
           numberOfLinesSubtitle={2}
-          leading={<RowIcon name={REMOVAL[removal].icon} tone="red" />}
+          leading={<RowIcon name={REMOVAL[removal].icon} />}
           onPress={() => setConfirming(removal)}
         />
       ))}

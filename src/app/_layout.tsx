@@ -1,6 +1,7 @@
 import { EmptyState, ToastHost, toast, useThemeColors } from "@/design";
 import "@/global.css";
 
+import { useFonts } from "expo-font";
 import { Observe, type ObserveErrorBoundaryFallbackProps, ObserveRoot, useObserve } from "expo-observe";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -15,6 +16,7 @@ import { useAppBoot, useAppLock, useDeepLinkRouter } from "@/core/app/boot";
 import { useMessageNotifications } from "@/core/app/use-notifications";
 import { type HostUi, PluginProvider, usePluginHost } from "@/core/plugins/host";
 import { UsageStatistics } from "@/core/usage/usage-statistics";
+import { FONTS } from "@/design/fonts";
 import { DevicePromptHost } from "@/features/account/device-prompt";
 import { LockGate } from "@/features/account/lock-gate";
 import { CliApprovals } from "@/features/cli/approvals";
@@ -54,6 +56,8 @@ function RootLayout() {
   useEffect(() => {
     nativewindColorScheme.set(applied);
   }, [applied]);
+  const [fontsLoaded] = useFonts(FONTS);
+  if (!fontsLoaded) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

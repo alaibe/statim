@@ -7,12 +7,12 @@ import { Pressable, type PressScaleProps } from "./pressable";
 import { Text } from "./text";
 
 const TONE = {
-  brand: { view: "bg-brand active:bg-brand-strong", label: "text-brand-on font-semibold" },
-  neutral: { view: "bg-surface-raised border border-line", label: "text-content font-medium" },
-  ghost: { view: "bg-transparent", label: "text-brand font-medium" },
-  success: { view: "bg-success", label: "text-white font-semibold" },
-  warning: { view: "bg-warning", label: "text-white font-semibold" },
-  danger: { view: "bg-danger", label: "text-white font-semibold" },
+  brand: { view: "bg-brand active:bg-brand-strong", label: "text-brand-on font-mono font-medium" },
+  neutral: { view: "bg-surface-raised border border-line", label: "text-content font-mono font-medium" },
+  ghost: { view: "bg-transparent", label: "text-brand font-mono font-medium" },
+  success: { view: "bg-success", label: "text-canvas font-mono font-medium" },
+  warning: { view: "bg-warning", label: "text-canvas font-mono font-medium" },
+  danger: { view: "bg-danger", label: "text-canvas font-mono font-medium" },
 } as const;
 
 const SIZE = {

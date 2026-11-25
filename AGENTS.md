@@ -25,6 +25,12 @@ https://docs.expo.dev/versions/v57.0.0/ before writing Expo, Expo Router or Reac
 - `src/core/usage/tracker.ts`, `use-usage.ts` and `usage-vectors.json` are byte-for-byte copies of Kestrel's and Grenier's: change all three repositories together.
 - When a change alters how the app is used or what it sends, update the guide or privacy policy in the laibe repository (`content/statim/`).
 
+## Design
+
+- Statim follows the laibe design system v0.1.0 (`git.laibe.cc/anthony/design`) with the `ultraviolet` accent. Before a UI change, read its `principles.md` and the component pages it touches.
+- `Palette` in `src/design/tokens.ts` is the system's colours under Statim's names (brand → accent, canvas → bg, surface → panel, content → fg); `src/global.css` carries the same values.
+- Inter for what people read and write, JetBrains Mono for the interface, both bundled (`src/design/fonts.ts`); `Text` picks the face from its weight. The desktop has the system's status bar with contextual hints.
+
 ## Words
 
 Say chat (not conversation or room), participant (not peer or user), account (not identity or profile), request with accept and decline (not invite or reject; declining never blocks), plugin (not extension), slash command and CLI command (not just command). Protocol is XMTP, Matrix, Telegram, Nostr or Status; network is where a chat lives, such as a bridged WhatsApp; chain is a blockchain. Code that mirrors a protocol's API keeps its words.
