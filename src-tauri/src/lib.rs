@@ -65,11 +65,47 @@ fn raise_open_file_limit() {
     }
 }
 
+#[cfg(target_os = "linux")]
+fn keep_stderr() {
+    use std::os::fd::AsRawFd;
+
+    if std::fs::read_link("/proc/self/fd/2").ok().as_deref() != Some(std::path::Path::new("/dev/null")) {
+        return;
+    }
+    let Some(dir) = dirs::data_dir().map(|d| d.join("im.statim.app").join("logs")) else {
+        return;
+    };
+    if std::fs::create_dir_all(&dir).is_err() {
+        return;
+    }
+    let path = dir.join("stderr.log");
+    let full = std::fs::metadata(&path).is_ok_and(|m| m.len() > 8 * 1024 * 1024);
+    let Ok(file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(!full)
+        .write(true)
+        .truncate(full)
+        .open(&path)
+    else {
+        return;
+    };
+    unsafe {
+        libc::dup2(file.as_raw_fd(), libc::STDERR_FILENO);
+    }
+    eprintln!(
+        "--- statim {} started as pid {}",
+        env!("CARGO_PKG_VERSION"),
+        std::process::id()
+    );
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     if cli::show_running_copy() {
         return;
     }
+    #[cfg(target_os = "linux")]
+    keep_stderr();
     #[cfg(unix)]
     raise_open_file_limit();
 
