@@ -31,7 +31,7 @@ export function NewChatScreen() {
 
   if (!destination) {
     return (
-      <Screen className="px-gutter" edges={["top", "bottom"]}>
+      <Screen className="px-4" edges={["top", "bottom"]}>
         <ModalHeader title="New message" onClose={goBack} />
         <Text variant="bodyMuted">Connecting…</Text>
       </Screen>
@@ -88,7 +88,7 @@ function NewChatForm({
   const { hint, nobody, input } = addingFor(destination);
 
   return (
-    <Screen className="px-gutter" edges={["top", "bottom"]}>
+    <Screen className="px-4" edges={["top", "bottom"]}>
       <ModalHeader title={isGroup ? "New group" : "New message"} onClose={onClose} />
 
       <KeyboardAvoidingView behavior="padding" className="flex-1 justify-between">
@@ -130,7 +130,7 @@ function NewChatForm({
                 testID="new-chat-add"
                 icon={input.search ? "search-outline" : "add"}
                 label={input.search ? "Search" : "Add participant"}
-                tone="brand"
+                tone="accent"
                 onPress={() => void addParticipant()}
                 disabled={draft.trim().length < (input.search ? 2 : 3) || busy}
                 className="mb-0.5"
@@ -305,10 +305,10 @@ function Participants({
       {participants.map((r) => (
         <View
           key={r.participantId}
-          className="flex-row items-center gap-3 rounded-card border border-line bg-surface px-3 py-2.5"
+          className="flex-row items-center gap-3 rounded-lg border border-line bg-panel px-3 py-2.5"
         >
           <Avatar seed={r.participantId} size="sm" />
-          <Text numberOfLines={1} className="flex-1 text-footnote">
+          <Text numberOfLines={1} className="flex-1 text-md">
             {r.name}
           </Text>
           <IconButton icon="close" label={`Remove ${r.name}`} size={18} onPress={() => onRemove(r.participantId)} />
@@ -354,7 +354,7 @@ function PersonRow({ person, selected, onPress }: { person: Candidate; selected:
       accessibilityState={{ checked: selected }}
       accessibilityLabel={person.name}
       onPress={onPress}
-      className="min-h-tap flex-row items-center gap-3 py-1.5"
+      className="min-h-touch flex-row items-center gap-3 py-1.5"
     >
       <Avatar seed={person.name} size="md" />
       <View className="min-w-0 flex-1">
@@ -370,7 +370,7 @@ function PersonRow({ person, selected, onPress }: { person: Candidate; selected:
       <Icon
         name={selected ? "checkmark-circle" : "add-circle-outline"}
         size={20}
-        tone={selected ? "brand" : "subtle"}
+        tone={selected ? "accent" : "subtle"}
       />
     </Pressable>
   );

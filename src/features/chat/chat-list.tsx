@@ -181,7 +181,7 @@ export function ChatList({ query, selectedId }: ChatListProps) {
             contentInsetAdjustmentBehavior="automatic"
             ListEmptyComponent={<NothingListed query={trimmed} filter={filter} />}
             refreshControl={
-              <RefreshControl refreshing={syncing} onRefresh={() => void sync()} tintColor={colors.brand} />
+              <RefreshControl refreshing={syncing} onRefresh={() => void sync()} tintColor={colors.accent} />
             }
             ListHeaderComponent={
               <>{requests.length > 0 && !folder ? <RequestsLink count={requests.length} /> : null}</>
@@ -300,9 +300,9 @@ function RequestsLink({ count }: { count: number }) {
       testID="open-requests"
       accessibilityRole="button"
       onPress={() => router.push("/requests")}
-      className="mx-gutter mb-2 min-h-tap flex-row items-center gap-3 rounded-card border border-line bg-surface px-3 py-3"
+      className="mx-4 mb-2 min-h-touch flex-row items-center gap-3 rounded-lg border border-line bg-panel px-3 py-3"
     >
-      <Icon name="mail-unread-outline" size={20} tone="brand" />
+      <Icon name="mail-unread-outline" size={20} tone="accent" />
       <View className="min-w-0 flex-1">
         <Text className="font-semibold">Requests</Text>
         <Text variant="caption">From people you haven’t replied to</Text>
@@ -317,11 +317,11 @@ function SearchMessagesLink({ query }: { query: string }) {
   return (
     <ListItem
       testID="search-messages"
-      title={<Text className="text-brand">Search messages for “{query}”</Text>}
+      title={<Text className="text-accent">Search messages for “{query}”</Text>}
       accessibilityLabel={`Search messages for ${query}`}
       leading={
         <View className="w-11 items-center">
-          <Icon name="search-outline" size={20} tone="brand" />
+          <Icon name="search-outline" size={20} tone="accent" />
         </View>
       }
       trailing={<Chevron />}

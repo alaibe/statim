@@ -32,8 +32,8 @@ export default function SheetRoute() {
   );
 
   return (
-    <View className="bg-surface px-gutter" style={{ paddingBottom: insets.bottom + 8 }}>
-      <View className="min-h-tap flex-row items-center gap-3 py-3">
+    <View className="bg-panel px-4" style={{ paddingBottom: insets.bottom + 8 }}>
+      <View className="min-h-touch flex-row items-center gap-3 py-3">
         {shown?.leading}
         <View className="min-w-0 flex-1">
           {shown?.title ? (

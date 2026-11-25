@@ -26,7 +26,7 @@ export function SharedMedia({ chatId }: { chatId: ChatId }) {
 
   return (
     <>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 px-gutter pb-3">
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 px-4 pb-3">
         {TABS.map((entry) => {
           const active = entry.id === tab;
           return (
@@ -37,14 +37,14 @@ export function SharedMedia({ chatId }: { chatId: ChatId }) {
               onPress={() => setTab(entry.id)}
               className={
                 active
-                  ? "flex-row items-center gap-1.5 rounded-pill bg-brand px-3 py-1.5"
-                  : "flex-row items-center gap-1.5 rounded-pill bg-surface-sunken px-3 py-1.5"
+                  ? "flex-row items-center gap-1.5 rounded-full bg-accent px-3 py-1.5"
+                  : "flex-row items-center gap-1.5 rounded-full bg-side px-3 py-1.5"
               }
             >
-              <Text variant="caption" className={active ? "font-semibold text-brand-on" : "font-medium text-content"}>
+              <Text variant="caption" className={active ? "font-semibold text-on-accent" : "font-medium text-fg"}>
                 {entry.label}
               </Text>
-              <Text variant="micro" className={active ? "text-brand-on/80" : "text-content-subtle"}>
+              <Text variant="micro" className={active ? "text-on-accent/80" : "text-subtle"}>
                 {counts[entry.id]}
               </Text>
             </Pressable>
@@ -53,7 +53,7 @@ export function SharedMedia({ chatId }: { chatId: ChatId }) {
       </ScrollView>
 
       {entries.length === 0 ? (
-        <Text variant="footnote" className="px-gutter py-6">
+        <Text variant="footnote" className="px-4 py-6">
           {isLocalChat(chatId) ? "Bot chats do not share files." : `Nothing shared in this chat yet.`}
         </Text>
       ) : tab === "media" || tab === "gifs" ? (

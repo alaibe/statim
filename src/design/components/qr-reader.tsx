@@ -53,7 +53,7 @@ export function QrReader({ purpose, onScanned, className }: QrReaderProps) {
   return (
     <View className={cn("gap-2", className)}>
       {permission?.granted ? (
-        <View className="flex-1 overflow-hidden rounded-card">
+        <View className="flex-1 overflow-hidden rounded-lg">
           <CameraView
             style={{ flex: 1 }}
             facing="back"

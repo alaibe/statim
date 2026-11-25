@@ -34,7 +34,7 @@ export function PluginDetailSheet({ plugin, onClose }: { plugin: Plugin; onClose
         {manifest.requiresSessionRestart || hasChat ? (
           <View className="flex-row flex-wrap gap-1.5">
             {manifest.requiresSessionRestart ? <Badge label="Reconnects chat" tone="warning" /> : null}
-            {hasChat ? <Badge label="Has its own chat" tone="brand" /> : null}
+            {hasChat ? <Badge label="Has its own chat" tone="accent" /> : null}
           </View>
         ) : null}
 

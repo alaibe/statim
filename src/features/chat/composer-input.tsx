@@ -39,7 +39,7 @@ export function ComposerInput({
       placeholder={placeholder}
       placeholderTextColor={placeholderColor}
       multiline
-      className="max-h-32 min-h-[42px] flex-1 py-2.5 pr-1 text-body text-content"
+      className="max-h-32 min-h-[42px] flex-1 py-2.5 pr-1 text-md text-fg"
       returnKeyType="send"
       submitBehavior="submit"
       onSubmitEditing={onSubmit}

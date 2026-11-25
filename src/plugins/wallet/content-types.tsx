@@ -26,8 +26,8 @@ function CardShell({ fromMe, children }: { fromMe: boolean; children: React.Reac
   return (
     <View
       className={cn(
-        "w-[260px] gap-3 rounded-bubble border p-3.5",
-        fromMe ? "border-brand/40 bg-brand-soft" : "border-line bg-surface-raised",
+        "w-[260px] gap-3 rounded-lg border p-3.5",
+        fromMe ? "border-accent/40 bg-accent-soft" : "border-line bg-panel",
       )}
     >
       {children}
@@ -126,8 +126,8 @@ function PaymentRequestCard({ data, fromMe, context, message }: MessageRendererP
     <>
       <CardShell fromMe={fromMe}>
         <View className="flex-row items-center gap-2">
-          <Icon name="arrow-down-circle" size={18} tone="brand" />
-          <Eyebrow tone="brand">Payment request</Eyebrow>
+          <Icon name="arrow-down-circle" size={18} tone="accent" />
+          <Eyebrow tone="accent">Payment request</Eyebrow>
         </View>
 
         <View className="gap-0.5">
@@ -152,7 +152,7 @@ function PaymentRequestCard({ data, fromMe, context, message }: MessageRendererP
 
       <Sheet visible={open} onClose={() => setOpen(false)} title="Review payment">
         <View className="gap-3">
-          <View className="gap-2 rounded-card bg-surface-raised p-3">
+          <View className="gap-2 rounded-lg bg-panel p-3">
             <Row label="Amount" value={`${data.amount} ${data.symbol}`} />
             <Row label="To" value={shortAddress(data.to, 8, 6)} />
             {rows?.map((row) => <Row key={row.label} label={row.label} value={row.value} />) ?? null}
@@ -183,7 +183,7 @@ function SplitRequestCard({ data, fromMe, context, message }: MessageRendererPro
   return (
     <CardShell fromMe={fromMe}>
       <View className="flex-row items-center gap-1.5">
-        <Icon name="pie-chart-outline" size={15} tone="brand" />
+        <Icon name="pie-chart-outline" size={15} tone="accent" />
         <Eyebrow>{data.note ? `Split · ${data.note}` : "Split"}</Eyebrow>
       </View>
 
@@ -235,7 +235,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <View className="flex-row items-center justify-between">
       <Text variant="caption">{label}</Text>
-      <Text variant="footnote" className="font-medium text-content">
+      <Text variant="footnote" className="font-medium text-fg">
         {value}
       </Text>
     </View>

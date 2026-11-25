@@ -56,7 +56,7 @@ export function MessageText({
             <Spans spans={only.spans} look={look} />
             {footer ? (
               // A span ignores opacity, and Android reads transparent black as no colour.
-              <Text variant="micro" className="text-white/0">{`\u2002\u2002${footer.label}`}</Text>
+              <Text variant="micro" className="text-fg/0">{`\u2002\u2002${footer.label}`}</Text>
             ) : null}
           </Text>
           {footer ? <View className="absolute bottom-0 right-0">{footer.node}</View> : null}
@@ -99,9 +99,9 @@ function Blocks({ blocks, look }: { blocks: readonly Block[]; look: Look }) {
           <View
             key={i}
             style={{ borderCurve: "continuous" }}
-            className={cn("rounded-lg px-2.5 py-1.5", fromMe ? "bg-bubble-out-on/15" : "bg-content/5", gap)}
+            className={cn("rounded-lg px-2.5 py-1.5", fromMe ? "bg-fg/15" : "bg-fg/5", gap)}
           >
-            <Paragraph selectable className={cn(className, "font-mono text-footnote")}>
+            <Paragraph selectable className={cn(className, "font-mono text-md")}>
               {block.text}
             </Paragraph>
           </View>
@@ -109,7 +109,7 @@ function Blocks({ blocks, look }: { blocks: readonly Block[]; look: Look }) {
       case "quote":
         return (
           <View key={i} className={cn("flex-row gap-2", gap)}>
-            <View className={cn("w-0.5 rounded-full", fromMe ? "bg-bubble-out-on/60" : "bg-brand")} />
+            <View className={cn("w-0.5 rounded-full", fromMe ? "bg-fg/60" : "bg-accent")} />
             <View className="min-w-0 grow shrink gap-1">
               <Blocks blocks={block.blocks} look={look} />
             </View>
@@ -129,7 +129,7 @@ function Blocks({ blocks, look }: { blocks: readonly Block[]; look: Look }) {
           </View>
         );
       case "rule":
-        return <View key={i} className={cn("my-1 h-px", fromMe ? "bg-bubble-out-on/30" : "bg-line", gap)} />;
+        return <View key={i} className={cn("my-1 h-px", fromMe ? "bg-fg/30" : "bg-line", gap)} />;
     }
   });
 }
@@ -174,7 +174,7 @@ function Spans({ spans, look }: { spans: readonly Span[]; look: Look }) {
           accessibilityRole={look.onMention ? "link" : undefined}
           suppressHighlighting
           onPress={look.onMention ? () => look.onMention?.(mentioned) : undefined}
-          className={cn(look.className, style, "font-semibold", look.fromMe ? "text-bubble-out-on" : "text-brand")}
+          className={cn(look.className, style, "font-semibold", look.fromMe ? "text-fg" : "text-accent")}
         >
           {span.text}
         </Text>
@@ -187,10 +187,7 @@ function Spans({ spans, look }: { spans: readonly Span[]; look: Look }) {
     }
     if (span.style.code) {
       return (
-        <Text
-          key={i}
-          className={cn(look.className, style, "font-mono", look.fromMe ? "bg-bubble-out-on/15" : "bg-content/5")}
-        >
+        <Text key={i} className={cn(look.className, style, "font-mono", look.fromMe ? "bg-fg/15" : "bg-fg/5")}>
           {span.text}
         </Text>
       );
@@ -223,7 +220,7 @@ function mentionText(value: string, look: Look): ReactNode[] {
     const start = (match.index ?? 0) + match[1].length;
     parts.push(value.slice(cursor, start));
     parts.push(
-      <Text key={start} className={cn("font-semibold", look.fromMe ? "text-bubble-out-on" : "text-brand")}>
+      <Text key={start} className={cn("font-semibold", look.fromMe ? "text-fg" : "text-accent")}>
         {match[2]}
       </Text>,
     );
@@ -240,7 +237,7 @@ function LinkText({ link, look, className }: { link: LinkSegment; look: Look; cl
       suppressHighlighting
       onPress={() => openLink(link)}
       onLongPress={() => look.onHold(link)}
-      className={cn(look.className, className, "underline", !look.fromMe && "text-brand")}
+      className={cn(look.className, className, "underline", !look.fromMe && "text-accent")}
     >
       {link.text}
     </Text>

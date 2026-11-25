@@ -36,7 +36,7 @@ export default function ChatScreen() {
       {root ? (
         <View
           style={{ width: THREAD_PANE_WIDTH, borderCurve: "continuous" }}
-          className="my-2 mr-2 overflow-hidden rounded-card bg-surface shadow-md"
+          className="my-2 mr-2 overflow-hidden rounded-lg bg-panel shadow-popover"
         >
           <ChatView key={root} id={id} thread={root} onBack={() => setOpen(null)} />
         </View>

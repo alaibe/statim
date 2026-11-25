@@ -35,7 +35,7 @@ export default function CreateAccount() {
   }
 
   return (
-    <Screen className="px-gutter">
+    <Screen className="px-4">
       <View className="-ml-2 flex-row pt-1">
         <IconButton icon="chevron-back" label="Back" onPress={goBack} />
       </View>
@@ -61,7 +61,7 @@ export default function CreateAccount() {
 
         <Animated.View entering={Enter.content(stagger(2, 70))}>
           <Text variant="bodyMuted">
-            These twelve words <Text className="font-semibold text-content">are</Text> your account. Anyone who has them
+            These twelve words <Text className="font-semibold text-fg">are</Text> your account. Anyone who has them
             controls your messages and your funds. Write them down offline: there is no reset link.
           </Text>
         </Animated.View>

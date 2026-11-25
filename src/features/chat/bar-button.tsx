@@ -22,12 +22,12 @@ export function BarButton({
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
       className={cn(
-        "min-h-tap flex-row items-center justify-center gap-2 rounded-pill border border-line bg-surface-raised",
+        "min-h-touch flex-row items-center justify-center gap-2 rounded-full border border-line bg-panel",
         className,
       )}
     >
-      <Icon name={icon} size={18} tone="brand" />
-      <Text className="font-semibold text-brand">{label}</Text>
+      <Icon name={icon} size={18} tone="accent" />
+      <Text className="font-semibold text-accent">{label}</Text>
     </Pressable>
   );
 }

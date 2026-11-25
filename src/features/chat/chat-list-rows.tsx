@@ -30,7 +30,7 @@ import { DeliveryIcon, useReadUpTo } from "./delivery-icon";
 import { useChatAttention } from "./use-chat-attention";
 
 const ATTENTION = {
-  reply: { label: "Reply needed", tone: "brand" },
+  reply: { label: "Reply needed", tone: "accent" },
   "follow-up": { label: "Follow up", tone: "warning" },
 } as const;
 
@@ -90,7 +90,7 @@ export function ChatRow({
           id: "archive",
           label: prefs.archived ? "Unarchive" : "Archive",
           icon: "archive-outline",
-          tone: "brand",
+          tone: "accent",
           onPress: () => onToggle(chat.id, "archived"),
         },
       ]}
@@ -120,7 +120,7 @@ export function ChatRow({
           last ? (
             <View className="flex-row items-center gap-1">
               {last.fromMe ? <DeliveryIcon message={last} read={readByPeer(readUpTo, last)} size={14} /> : null}
-              <Text variant="caption" className={unread && !muted ? "text-brand" : undefined}>
+              <Text variant="caption" className={unread && !muted ? "text-accent" : undefined}>
                 {formatTimestamp(last.sentAt)}
               </Text>
             </View>
@@ -171,7 +171,7 @@ function FolderIcon({ folder, size }: { folder: Folder; size: number }) {
         borderRadius: squareCorner(size),
         borderCurve: "continuous",
       }}
-      className="items-center justify-center bg-surface-sunken"
+      className="items-center justify-center bg-side"
     >
       <Icon name={OWN_FOLDERS[folder].icon} size={size * 0.5} tone="muted" />
     </View>
@@ -202,7 +202,7 @@ export function FolderRow({
       leading={<FolderIcon folder={row.folder} size={44} />}
       meta={
         row.latest.lastMessage ? (
-          <Text variant="caption" className={highlight ? "text-brand" : undefined}>
+          <Text variant="caption" className={highlight ? "text-accent" : undefined}>
             {formatTimestamp(row.latest.lastMessage.sentAt)}
           </Text>
         ) : undefined
@@ -221,7 +221,7 @@ export function FolderHeader({ folder, onBack }: { folder: Folder; onBack: () =>
       onPress={onBack}
       className="min-w-0 flex-1 flex-row items-center gap-1.5"
     >
-      <Icon name="chevron-back" size={20} tone="brand" />
+      <Icon name="chevron-back" size={20} tone="accent" />
       <FolderIcon folder={folder} size={22} />
       <Text variant="title" className="flex-1 font-semibold" numberOfLines={1}>
         {folderLabel(folder)}
@@ -236,13 +236,13 @@ export function Separator() {
 
 export function ConnectingState() {
   return (
-    <Animated.View entering={Enter.fade()} className="gap-1 px-gutter pt-4">
+    <Animated.View entering={Enter.fade()} className="gap-1 px-4 pt-4">
       {[0, 1, 2, 3, 4].map((i) => (
-        <View key={i} className="min-h-tap flex-row items-center gap-3 py-2.5">
-          <View className="h-11 w-11 rounded-pill bg-surface-sunken" />
+        <View key={i} className="min-h-touch flex-row items-center gap-3 py-2.5">
+          <View className="h-11 w-11 rounded-full bg-side" />
           <View className="flex-1 gap-2">
-            <View className="h-3 w-1/3 rounded-pill bg-surface-sunken" />
-            <View className="h-2.5 w-2/3 rounded-pill bg-surface-sunken" />
+            <View className="h-3 w-1/3 rounded-full bg-side" />
+            <View className="h-2.5 w-2/3 rounded-full bg-side" />
           </View>
         </View>
       ))}

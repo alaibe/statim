@@ -15,14 +15,14 @@ export function SearchField({ className, onClear, value, ...input }: SearchField
   const colors = useThemeColors();
 
   return (
-    <View className={cn("h-9 flex-row items-center gap-2 rounded-pill bg-surface-sunken px-3", className)}>
+    <View className={cn("h-9 flex-row items-center gap-2 rounded-full bg-side px-3", className)}>
       <Icon name="search-outline" size={16} tone="subtle" />
       <TextInput
-        placeholderTextColor={colors["content-subtle"]}
+        placeholderTextColor={colors.subtle}
         autoCapitalize="none"
         autoCorrect={false}
         value={value}
-        className="flex-1 py-1 text-body text-content"
+        className="flex-1 py-1 text-md text-fg"
         {...input}
       />
       {onClear && value ? <IconButton icon="close-circle" label="Clear search" size={16} onPress={onClear} /> : null}

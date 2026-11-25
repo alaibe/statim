@@ -18,7 +18,7 @@ export default function SettingsScreen() {
   const ensName = useEnsName(focusCount);
 
   return (
-    <Screen className="bg-surface px-0" edges={[]}>
+    <Screen className="bg-panel px-0" edges={[]}>
       <Stack.Screen options={{ title: "Settings", headerTransparent: false }} />
 
       <ScrollView contentInsetAdjustmentBehavior="automatic">

@@ -35,7 +35,7 @@ const SLOW_MODE: { seconds: number; label: string }[] = [
 export function GroupAbout({ info, error }: { info?: GroupInfo; error?: string }) {
   if (!info?.description && !info?.link && !error) return null;
   return (
-    <Card className="mx-gutter mb-5 gap-3">
+    <Card className="mx-4 mb-5 gap-3">
       {info?.description ? (
         <View className="gap-1">
           <Text variant="caption">About</Text>
@@ -57,7 +57,7 @@ function LinkRow({ label, link }: { label: string; link: string }) {
       className="gap-1"
     >
       <Text variant="caption">{label}</Text>
-      <Text className="text-brand" selectable>
+      <Text className="text-accent" selectable>
         {link}
       </Text>
     </Pressable>
@@ -79,7 +79,7 @@ export function InviteLinks({ chatId, visible, onClose }: { chatId: ChatId; visi
   return (
     <>
       {created ? (
-        <Card className="mx-gutter mb-5">
+        <Card className="mx-4 mb-5">
           <LinkRow label={`${created.approval ? "Approval link" : "Invite link"} · copied`} link={created.link} />
         </Card>
       ) : null}

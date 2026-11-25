@@ -28,14 +28,14 @@ export function HistoryStatus({
   const describe = compact ? summary : details;
 
   return (
-    <View className={compact ? "gap-0.5 px-gutter py-1.5" : "gap-1 px-gutter py-3"} accessibilityLiveRegion="polite">
+    <View className={compact ? "gap-0.5 px-4 py-1.5" : "gap-1 px-4 py-3"} accessibilityLiveRegion="polite">
       {active.length > 0 ? (
         <View
           className="flex-row items-center gap-2"
           accessible
           accessibilityLabel={`${fetching.length ? "Fetching history" : "Connecting"}: ${active.map(([id]) => networkLabel(id)).join(", ")}`}
         >
-          <ActivityIndicator size="small" color={colors["content-subtle"]} />
+          <ActivityIndicator size="small" color={colors.subtle} />
           <Text variant="caption" className="flex-1">
             {fetching.length ? "Fetching history…" : "Connecting…"}
             {" · "}

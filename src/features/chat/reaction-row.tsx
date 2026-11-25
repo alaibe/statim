@@ -63,16 +63,8 @@ function Reaction({
       onHoverIn={() => setHovered(true)}
       onHoverOut={() => setHovered(false)}
       className={cn(
-        "relative flex-row items-center gap-1 rounded-pill px-2 py-0.5",
-        !inBubble
-          ? "bg-surface-sunken"
-          : mine
-            ? fromMe
-              ? "bg-bubble-out-on/25"
-              : "bg-brand"
-            : fromMe
-              ? "bg-bubble-out-on/10"
-              : "bg-brand/10",
+        "relative flex-row items-center gap-1 rounded-full px-2 py-0.5",
+        !inBubble ? "bg-side" : mine ? (fromMe ? "bg-fg/25" : "bg-accent") : fromMe ? "bg-fg/10" : "bg-accent/10",
       )}
     >
       <Text variant="caption">{emoji}</Text>
@@ -81,15 +73,15 @@ function Reaction({
           variant="micro"
           className={cn(
             "font-semibold tabular-nums",
-            inBubble && mine && !fromMe ? "text-brand-on" : fromMe ? "text-bubble-out-on" : "text-brand",
+            inBubble && mine && !fromMe ? "text-on-accent" : fromMe ? "text-fg" : "text-accent",
           )}
         >
           {people.length}
         </Text>
       ) : null}
       {hovered ? (
-        <View className="absolute bottom-full left-0 z-10 mb-1 rounded-md bg-content px-2 py-1">
-          <Text variant="micro" className="whitespace-nowrap text-canvas">
+        <View className="absolute bottom-full left-0 z-10 mb-1 rounded-md bg-fg px-2 py-1">
+          <Text variant="micro" className="whitespace-nowrap text-bg">
             {who}
           </Text>
         </View>

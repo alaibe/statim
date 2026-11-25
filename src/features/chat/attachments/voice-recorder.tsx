@@ -88,9 +88,9 @@ export function VoiceRecorder({ onRecorded, onError }: VoiceRecorderProps) {
         onPress={() => void finish(false)}
       />
 
-      <View className="flex-row items-center gap-1.5 rounded-pill bg-danger/15 px-3 py-2">
+      <View className="flex-row items-center gap-1.5 rounded-full bg-danger/15 px-3 py-2">
         <View className="h-2 w-2 rounded-full bg-danger" />
-        <Text variant="caption" className="font-medium tabular-nums text-content">
+        <Text variant="caption" className="font-medium tabular-nums text-fg">
           {formatDuration(state.durationMillis ?? 0)}
         </Text>
       </View>
@@ -98,7 +98,7 @@ export function VoiceRecorder({ onRecorded, onError }: VoiceRecorderProps) {
       <IconButton
         icon="arrow-up"
         label="Send voice message"
-        surface="brand"
+        surface="accent"
         size={20}
         onPress={() => void finish(true)}
       />

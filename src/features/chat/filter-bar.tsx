@@ -41,12 +41,12 @@ export function FilterBar({
             className="items-center px-2 pt-2"
           >
             <View className="flex-row items-center gap-1 pb-2">
-              <Text variant="footnote" className={cn("font-semibold", selected ? "text-brand" : "text-content-muted")}>
+              <Text variant="footnote" className={cn("font-semibold", selected ? "text-accent" : "text-muted")}>
                 {label}
               </Text>
               {count > 0 ? <CountBadge count={count} muted={!selected} /> : null}
             </View>
-            <View className={cn("h-0.5 self-stretch rounded-full", selected ? "bg-brand" : "bg-transparent")} />
+            <View className={cn("h-0.5 self-stretch rounded-full", selected ? "bg-accent" : "bg-transparent")} />
           </Pressable>
         );
       })}

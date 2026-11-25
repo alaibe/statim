@@ -39,11 +39,11 @@ export function AppFrame({ children }: PropsWithChildren) {
 
   if (first === undefined || FULL_WINDOW_ROUTES.has(first)) {
     return (
-      <View className="flex-1 items-center justify-center bg-canvas p-6">
+      <View className="flex-1 items-center justify-center bg-bg p-6">
         <ChatBackground pattern={wallpaper} intensity="vivid" />
         <View
           style={{ borderCurve: "continuous" }}
-          className="h-[720px] max-h-full w-[520px] max-w-full overflow-hidden rounded-card bg-canvas shadow-xl"
+          className="h-[720px] max-h-full w-[520px] max-w-full overflow-hidden rounded-lg bg-bg shadow-popover"
         >
           {children}
         </View>
@@ -54,7 +54,7 @@ export function AppFrame({ children }: PropsWithChildren) {
 
   return (
     <LayoutInsetsContext.Provider value={FRAME_INSETS}>
-      <View className="flex-1 bg-canvas">
+      <View className="flex-1 bg-bg">
         <View className="min-h-0 flex-1 flex-row">
           <ChatBackground pattern={wallpaper} intensity="vivid" />
           <View className="p-2 pr-0">

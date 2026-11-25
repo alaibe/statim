@@ -70,7 +70,7 @@ function Packs({ packs, width, onSend }: GridProps & { packs: PickerPack[] }) {
             accessibilityLabel={each.title}
             accessibilityState={{ selected: each === pack }}
             onPress={() => setChosen(each.key)}
-            className={each === pack ? "rounded-md bg-surface-sunken p-1" : "rounded-md p-1"}
+            className={each === pack ? "rounded-md bg-side p-1" : "rounded-md p-1"}
           >
             {each.cover ? (
               <Image source={{ uri: each.cover }} style={{ width: COVER, height: COVER }} contentFit="contain" />

@@ -92,7 +92,7 @@ export function BubbleShell({
 
   return (
     <>
-      <View className={cn("px-gutter", grouped ? "pt-0.5" : "pt-2", side.align)}>
+      <View className={cn("px-4", grouped ? "pt-0.5" : "pt-2", side.align)}>
         {showSender && !fromMe ? (
           <Text variant="micro" className="mb-0.5 ml-3 font-medium">
             {senderName}
@@ -133,31 +133,31 @@ const TAIL = {
 
 const SIDE = {
   out: {
-    fill: "bg-bubble-out",
-    color: "bubble-out",
+    fill: "bg-accent-soft",
+    color: "accent-soft",
     align: "items-end",
     edge: "right",
     tail: TAIL.out,
     pointed: "rounded-br-none",
     corner: "rounded-br-md",
     grouped: "rounded-tr-md",
-    quote: "bg-bubble-out-on/15",
-    bar: "bg-bubble-out-on",
-    author: "text-bubble-out-on",
-    preview: "text-bubble-out-on/80",
+    quote: "bg-fg/15",
+    bar: "bg-fg",
+    author: "text-fg",
+    preview: "text-fg/80",
   },
   in: {
-    fill: "bg-bubble-in",
-    color: "bubble-in",
+    fill: "bg-panel",
+    color: "panel",
     align: "items-start",
     edge: "left",
     tail: TAIL.in,
     pointed: "rounded-bl-none",
     corner: "rounded-bl-md",
     grouped: "rounded-tl-md",
-    quote: "bg-content/5",
-    bar: "bg-brand",
-    author: "text-brand",
+    quote: "bg-fg/5",
+    bar: "bg-accent",
+    author: "text-accent",
     preview: undefined,
   },
 } as const;
@@ -179,8 +179,7 @@ function bubbleClass({
 }): string {
   return cn(
     !held && (process.env.EXPO_OS === "web" ? "max-w-[min(82%,560px)]" : "max-w-[82%]"),
-    !bare &&
-      cn("rounded-bubble px-2.5 py-1.5", side.fill, pointed ? side.pointed : side.corner, grouped && side.grouped),
+    !bare && cn("rounded-lg px-2.5 py-1.5", side.fill, pointed ? side.pointed : side.corner, grouped && side.grouped),
   );
 }
 
@@ -210,16 +209,13 @@ function ThreadButton({ thread }: { thread: ThreadChip }) {
       accessibilityRole="button"
       accessibilityLabel={`Open thread, ${label}`}
       onPress={thread.onOpen}
-      className={cn(
-        "mt-1 flex-row items-center gap-1.5 rounded-pill px-2.5 py-1",
-        unread ? "bg-brand" : "bg-surface-sunken",
-      )}
+      className={cn("mt-1 flex-row items-center gap-1.5 rounded-full px-2.5 py-1", unread ? "bg-accent" : "bg-side")}
     >
-      <Icon name="chatbubbles-outline" size={13} tone={unread ? "brand-on" : "brand"} />
-      <Text variant="caption" className={cn("font-semibold", unread ? "text-brand-on" : "text-brand")}>
+      <Icon name="chatbubbles-outline" size={13} tone={unread ? "on-accent" : "accent"} />
+      <Text variant="caption" className={cn("font-semibold", unread ? "text-on-accent" : "text-accent")}>
         {label}
       </Text>
-      <Icon name="chevron-forward" size={12} tone={unread ? "brand-on" : "brand"} />
+      <Icon name="chevron-forward" size={12} tone={unread ? "on-accent" : "accent"} />
     </RNPressable>
   );
 }

@@ -1,0 +1,172 @@
+/* laibe tokens: the one source of every value. Edit this file by hand.
+
+   Dark is the default mode. Light applies when the system prefers light, or with data-theme="light" on <html>;
+   data-theme="dark" keeps dark. Every colour is written light-dark(<light>, <dark>).
+
+   The accent is phosphor unless an element sets data-accent="ember|gold|ultraviolet|magenta|cyan".
+   A colour change must keep every pair in foundations/accessibility.md#contrast above its minimum. */
+
+:root {
+  color-scheme: dark;
+
+  /* Type */
+  --font-mono: "JetBrains Mono", "JetBrainsMono Nerd Font", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-sans: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --text-2xs: 11px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 15px;
+  --text-lg: 17px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 32px;
+  --leading-tight: 1.2;
+  --leading-snug: 1.35;
+  --leading-normal: 1.55;
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0;
+  --tracking-label: 0.06em;
+  --tracking-caps: 0.12em;
+
+  /* Space, on the 4px grid */
+  --space-0: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Shape */
+  --radius-none: 0px;
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+  --radius-full: 9999px;
+  --chamfer-sm: 6px;
+  --chamfer-md: 10px;
+  --chamfer-lg: 16px;
+
+  /* Sizes of controls and of the window's regions */
+  --control-sm: 28px;
+  --control-md: 32px;
+  --control-lg: 36px;
+  --control-touch: 44px;
+  --layout-sidebar: 232px;
+  --layout-list: 360px;
+  --layout-reading: 680px;
+  --layout-statusbar: 24px;
+  --layout-titlebar: 32px;
+  --layout-titlebar-mac: 38px;
+  --layout-tabbar: 54px;
+  --layout-header-phone: 52px;
+
+  /* Stacking order, see patterns/app-shell.md */
+  --layer-content: 0;
+  --layer-sticky: 10;
+  --layer-bars: 20;
+  --layer-drawer: 30;
+  --layer-popover: 40;
+  --layer-toast: 50;
+  --layer-dialog: 60;
+  --layer-palette: 70;
+
+  /* Motion */
+  --duration-instant: 80ms;
+  --duration-fast: 120ms;
+  --duration-base: 160ms;
+  --duration-slow: 240ms;
+  --duration-blink: 1060ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-snap: cubic-bezier(0.3, 1.4, 0.5, 1);
+
+  /* Shadows, only for layers that float */
+  --shadow-popover: 0 12px 32px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(255 255 255 / 0.04);
+  --shadow-dialog: 0 32px 80px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(255 255 255 / 0.05);
+
+  /* Ink: the same for every accent */
+  --void: light-dark(#d7dae6, #04050b);
+  --side: light-dark(#eceef5, #070812);
+  --bg: light-dark(#f5f6fb, #0b0d19);
+  --panel: light-dark(#ffffff, #131624);
+  --hover: light-dark(#e5e7f0, #1a1d2c);
+  --line: light-dark(#d7dae6, #2a2f45);
+  --line-strong: light-dark(#c3c7d5, #3c4158);
+  --subtle: light-dark(#727995, #727995);
+  --muted: light-dark(#51576f, #b0c0d1);
+  --fg: light-dark(#0b0d19, #daf6fb);
+  --on-accent: light-dark(#ffffff, #04050b);
+
+  /* Status: the same for every accent, always with a tag word */
+  --danger: light-dark(#c9222b, #ff7072);
+  --warning: light-dark(#a96b00, #ffc845);
+  --success: light-dark(#007f38, #73f094);
+  --info: light-dark(#0070a6, #69caff);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* Accents. In light mode the selection is the accent's soft fill; in dark mode it is ink. */
+:root,
+[data-accent="phosphor"] {
+  --accent: light-dark(#007835, #00fd77);
+  --accent-strong: light-dark(#00642b, #9dffb2);
+  --accent-soft: light-dark(#d7f4dc, #0d371a);
+  --selection: light-dark(#d7f4dc, #212538);
+}
+[data-accent="ember"] {
+  --accent: light-dark(#a24100, #ff864b);
+  --accent-strong: light-dark(#883500, #ffa176);
+  --accent-soft: light-dark(#ffe5da, #4a200c);
+  --selection: light-dark(#ffe5da, #212538);
+}
+[data-accent="gold"] {
+  --accent: light-dark(#7e5d00, #fec000);
+  --accent-strong: light-dark(#694e00, #ffd57a);
+  --accent-soft: light-dark(#f9eaca, #3c2b00);
+  --selection: light-dark(#f9eaca, #212538);
+}
+[data-accent="ultraviolet"] {
+  --accent: light-dark(#654abb, #aa99ff);
+  --accent-strong: light-dark(#5637a7, #b9aeff);
+  --accent-soft: light-dark(#eae8ff, #2e274e);
+  --selection: light-dark(#eae8ff, #212538);
+}
+[data-accent="magenta"] {
+  --accent: light-dark(#a12d79, #ff78ca);
+  --accent-strong: light-dark(#8d1767, #ff99d4);
+  --accent-soft: light-dark(#ffe2f1, #461e36);
+  --selection: light-dark(#ffe2f1, #212538);
+}
+[data-accent="cyan"] {
+  --accent: light-dark(#007176, #00f4fe);
+  --accent-strong: light-dark(#005f63, #9efaff);
+  --accent-soft: light-dark(#c9f5f7, #003538);
+  --selection: light-dark(#c9f5f7, #212538);
+}
+
+/* Derived from the accent. Declared again on [data-accent], so an element with its own accent glows in it. */
+:root,
+[data-accent] {
+  --glow:
+    0 0 0 1px color-mix(in oklab, var(--accent) 70%, transparent),
+    0 0 18px color-mix(in oklab, var(--accent) 35%, transparent);
+  --glow-text: 0 0 12px color-mix(in oklab, var(--accent) 55%, transparent);
+  --focus-ring:
+    0 0 0 2px var(--bg), 0 0 0 3px var(--accent), 0 0 14px color-mix(in oklab, var(--accent) 45%, transparent);
+}

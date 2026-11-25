@@ -20,13 +20,13 @@ export function Chip({ label, selected, onPress, size = "md", testID }: ChipProp
       onPress={onPress}
       style={{ borderCurve: "continuous" }}
       className={cn(
-        "rounded-pill border px-3 py-1.5",
-        selected ? "border-brand bg-brand-soft" : "border-line bg-surface",
+        "rounded-full border px-3 py-1.5",
+        selected ? "border-accent bg-accent-soft" : "border-line bg-panel",
       )}
     >
       <Text
         variant={size === "sm" ? "caption" : "footnote"}
-        className={selected ? "font-medium text-brand" : "text-content"}
+        className={selected ? "font-medium text-accent" : "text-fg"}
       >
         {label}
       </Text>

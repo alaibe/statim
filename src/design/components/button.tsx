@@ -7,17 +7,17 @@ import { Pressable, type PressScaleProps } from "./pressable";
 import { Text } from "./text";
 
 const TONE = {
-  brand: { view: "bg-brand active:bg-brand-strong", label: "text-brand-on font-mono font-medium" },
-  neutral: { view: "bg-surface-raised border border-line", label: "text-content font-mono font-medium" },
-  ghost: { view: "bg-transparent", label: "text-brand font-mono font-medium" },
-  success: { view: "bg-success", label: "text-canvas font-mono font-medium" },
-  warning: { view: "bg-warning", label: "text-canvas font-mono font-medium" },
-  danger: { view: "bg-danger", label: "text-canvas font-mono font-medium" },
+  accent: { view: "bg-accent active:bg-accent-strong", label: "text-on-accent font-mono font-medium" },
+  neutral: { view: "bg-panel border border-line", label: "text-fg font-mono font-medium" },
+  ghost: { view: "bg-transparent", label: "text-accent font-mono font-medium" },
+  success: { view: "bg-success", label: "text-bg font-mono font-medium" },
+  warning: { view: "bg-warning", label: "text-bg font-mono font-medium" },
+  danger: { view: "bg-danger", label: "text-bg font-mono font-medium" },
 } as const;
 
 const SIZE = {
-  sm: { view: "h-9 px-3 rounded-field", label: "text-footnote" },
-  md: { view: "h-tap px-4 rounded-field", label: "text-body" },
+  sm: { view: "h-9 px-3 rounded-md", label: "text-md" },
+  md: { view: "h-touch px-4 rounded-md", label: "text-md" },
 } as const;
 
 const SM_HIT_SLOP = { top: 4, bottom: 4, left: 4, right: 4 } as const;
@@ -33,7 +33,7 @@ export interface ButtonProps extends Omit<PressScaleProps, "children" | "onPress
 
 export function Button({
   label,
-  tone = "brand",
+  tone = "accent",
   size = "md",
   loading = false,
   fullWidth = false,

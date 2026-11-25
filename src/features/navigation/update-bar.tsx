@@ -64,7 +64,7 @@ export function UpdateBar() {
 
   return (
     <View className="flex-row items-center gap-2 border-t border-line px-3 py-2">
-      <Text variant="footnote" className="flex-1 text-content">
+      <Text variant="footnote" className="flex-1 text-fg">
         Version {update.version} is ready
       </Text>
       <Button size="sm" label="Restart" onPress={restart} />

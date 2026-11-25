@@ -41,10 +41,7 @@ export function PinDots({ length, filled, shakes }: { length: number; filled: nu
       {Array.from({ length }, (_, i) => (
         <View
           key={i}
-          className={cn(
-            "h-3.5 w-3.5 rounded-pill border-2",
-            i < filled ? "border-content bg-content" : "border-line-strong",
-          )}
+          className={cn("h-3.5 w-3.5 rounded-full border-2", i < filled ? "border-fg bg-fg" : "border-line-strong")}
         />
       ))}
     </Animated.View>
@@ -113,11 +110,11 @@ function DigitKey({
         onPress(digit);
       }}
       className={cn(
-        "h-[72px] w-[72px] items-center justify-center rounded-pill bg-surface-sunken active:bg-line",
+        "h-[72px] w-[72px] items-center justify-center rounded-full bg-side active:bg-line",
         disabled && "opacity-40",
       )}
     >
-      <Text className="text-[28px] leading-[34px] tabular-nums text-content">{digit}</Text>
+      <Text className="text-[28px] leading-[34px] tabular-nums text-fg">{digit}</Text>
     </Pressable>
   );
 }
@@ -142,11 +139,11 @@ function IconKey({
       pressScale={0.92}
       onPress={onPress}
       className={cn(
-        "h-[72px] w-[72px] items-center justify-center rounded-pill active:bg-surface-sunken",
+        "h-[72px] w-[72px] items-center justify-center rounded-full active:bg-side",
         disabled && "opacity-40",
       )}
     >
-      <Icon name={icon} size={26} tone="content" />
+      <Icon name={icon} size={26} tone="fg" />
     </Pressable>
   );
 }

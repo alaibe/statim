@@ -66,7 +66,7 @@ export function DesktopSidebar() {
   return (
     <View
       style={{ borderCurve: "continuous" }}
-      className="w-[320px] flex-1 overflow-hidden rounded-card bg-surface shadow-md"
+      className="w-[320px] flex-1 overflow-hidden rounded-lg bg-panel shadow-popover"
     >
       <View {...DRAG_REGION} className="flex-row items-center px-2 pb-1 pt-2">
         <View style={{ width: TRAFFIC_LIGHTS_WIDTH }} />
@@ -87,7 +87,7 @@ export function DesktopSidebar() {
             <IconButton
               icon="create-outline"
               label="New message"
-              tone="brand"
+              tone="accent"
               onPress={() => router.push("/new-chat")}
             />
           )}
@@ -96,7 +96,7 @@ export function DesktopSidebar() {
 
       {tab === "settings" ? null : (
         <SearchField
-          className="mx-3 mb-2 bg-surface-raised"
+          className="mx-3 mb-2 bg-panel"
           placeholder={tab === "contacts" ? "Search" : chatSearchPlaceholder(openFolder)}
           value={query}
           onChangeText={setQuery}
@@ -138,12 +138,12 @@ export function DesktopSidebar() {
               className="flex-1 items-center gap-0.5 py-2"
             >
               <View>
-                <Icon name={entry.icon} size={22} tone={active ? "brand" : "muted"} />
+                <Icon name={entry.icon} size={22} tone={active ? "accent" : "muted"} />
                 {entry.id === "settings" && attention ? (
-                  <View className="absolute -right-1 -top-0.5 h-2.5 w-2.5 rounded-pill border-2 border-surface bg-warning" />
+                  <View className="absolute -right-1 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-panel bg-warning" />
                 ) : null}
               </View>
-              <Text variant="caption" className={active ? "font-semibold text-brand" : "text-content-muted"}>
+              <Text variant="caption" className={active ? "font-semibold text-accent" : "text-muted"}>
                 {entry.label}
               </Text>
             </Pressable>

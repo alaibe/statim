@@ -30,7 +30,7 @@ export function ShareScreen() {
 
   return (
     <Screen className="px-0" edges={["top", "bottom"]}>
-      <ModalHeader title="Send to" onClose={close} className="px-gutter" />
+      <ModalHeader title="Send to" onClose={close} className="px-4" />
       {status === "loading" ? (
         <Loading className="flex-1" />
       ) : status !== "ready" ? (
@@ -69,7 +69,7 @@ function ChatPicker({ photos, onPick }: { photos: boolean; onPick: (chat: Chat) 
     <FlashList
       data={chats.filter(takesShare)}
       keyExtractor={(c) => c.id}
-      contentContainerClassName="px-gutter"
+      contentContainerClassName="px-4"
       ListEmptyComponent={<EmptyState icon="chatbubbles-outline" title="No chat can take this" />}
       renderItem={({ item }) => (
         <ListItem

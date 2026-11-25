@@ -41,7 +41,7 @@ export function LockGate() {
   useInertOutside(shield);
 
   return (
-    <View ref={shield} className="absolute inset-0 bg-canvas">
+    <View ref={shield} className="absolute inset-0 bg-bg">
       <LockScreen />
     </View>
   );
@@ -290,10 +290,7 @@ function ForgotPin({ onCancel }: { onCancel: () => void }) {
   return (
     <Screen>
       <KeyboardAvoidingView behavior="padding" className="flex-1">
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerClassName="grow justify-center gap-5 px-gutter py-8"
-        >
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="grow justify-center gap-5 px-4 py-8">
           <View className="items-center gap-3">
             <IconBadge icon="trash-outline" tone="danger" />
             <Text variant="headline" className="text-center">
@@ -355,7 +352,7 @@ function LockFrame({
     <Screen className="items-center justify-center gap-6">
       <IconBadge icon={icon} tone={tone} />
 
-      <View className="items-center gap-1.5 px-gutter">
+      <View className="items-center gap-1.5 px-4">
         <Text variant="title">{title}</Text>
         {message ? (
           <Text variant="footnote" className="text-center">
@@ -371,7 +368,7 @@ function LockFrame({
 
 function IconBadge({ icon, tone }: { icon: IconName; tone: IconTone }) {
   return (
-    <View className="h-20 w-20 items-center justify-center rounded-full bg-surface-sunken">
+    <View className="h-20 w-20 items-center justify-center rounded-full bg-side">
       <Icon name={icon} size={34} tone={tone} />
     </View>
   );
@@ -379,5 +376,5 @@ function IconBadge({ icon, tone }: { icon: IconName; tone: IconTone }) {
 
 function Spinner() {
   const colors = useThemeColors();
-  return <ActivityIndicator color={colors["content-subtle"]} />;
+  return <ActivityIndicator color={colors.subtle} />;
 }

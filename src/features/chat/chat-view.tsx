@@ -150,7 +150,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
   );
 
   return (
-    <View className={desktop ? "flex-1" : "flex-1 bg-canvas"}>
+    <View className={desktop ? "flex-1" : "flex-1 bg-bg"}>
       {desktop ? null : <ChatBackground pattern={wallpaper} />}
 
       {chat ? (
@@ -257,13 +257,13 @@ function NewRepliesBar({ counts, onOpen }: { counts: ReadonlyMap<MessageId, numb
         accessibilityRole="button"
         accessibilityLabel={`${label}. Open thread`}
         onPress={() => onOpen(oldest)}
-        className="flex-row items-center gap-1.5 rounded-pill bg-brand px-3.5 py-2 shadow-md"
+        className="flex-row items-center gap-1.5 rounded-full bg-accent px-3.5 py-2 shadow-popover"
       >
-        <Icon name="chatbubbles-outline" size={15} tone="brand-on" />
-        <Text variant="caption" className="font-semibold text-brand-on">
+        <Icon name="chatbubbles-outline" size={15} tone="on-accent" />
+        <Text variant="caption" className="font-semibold text-on-accent">
           {label}
         </Text>
-        <Icon name="chevron-forward" size={13} tone="brand-on" />
+        <Icon name="chevron-forward" size={13} tone="on-accent" />
       </Pressable>
     </View>
   );
@@ -343,7 +343,7 @@ function LoadEarlierButton({ history, onPress }: { history: MessageHistoryState;
       accessibilityLabel={history.error ? `Retry loading earlier messages. ${history.error}` : "Load earlier messages"}
       disabled={history.loading}
       onPress={onPress}
-      className="items-center px-gutter py-3"
+      className="items-center px-4 py-3"
     >
       <Text variant="caption" className={history.error ? "text-danger" : undefined}>
         {history.loading
@@ -374,7 +374,7 @@ function ChatBar({
   if (permissions.send) return children;
   if (chat.kind === "channel") return <ChannelMuteBar id={chat.id} />;
   return (
-    <View className="mx-gutter mb-2 min-h-tap items-center justify-center rounded-pill border border-line bg-surface-raised px-4">
+    <View className="mx-4 mb-2 min-h-touch items-center justify-center rounded-full border border-line bg-panel px-4">
       <Text variant="caption">You cannot send messages in this chat.</Text>
     </View>
   );
@@ -389,7 +389,7 @@ function ChannelMuteBar({ id }: { id: ChatId }) {
       label={muted ? "Unmute" : "Mute"}
       accessibilityLabel={muted ? "Unmute channel" : "Mute channel"}
       onPress={() => void setChatPref(id, { muted: !muted })}
-      className="mx-gutter mb-2"
+      className="mx-4 mb-2"
     />
   );
 }

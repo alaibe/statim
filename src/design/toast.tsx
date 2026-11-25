@@ -50,7 +50,7 @@ const TONE = {
   info: {
     border: "border-line",
     icon: "information-circle" as const,
-    colour: "content-muted" as const,
+    colour: "muted" as const,
   },
   success: {
     border: "border-success/50",
@@ -131,13 +131,10 @@ function SwipeableToast({ toast: t }: { toast: Toast }) {
               borderCurve: "continuous",
             },
           ]}
-          className={cn(
-            "flex-row items-center gap-2.5 rounded-card border bg-surface-raised px-4 py-3",
-            TONE[t.tone].border,
-          )}
+          className={cn("flex-row items-center gap-2.5 rounded-lg border bg-panel px-4 py-3", TONE[t.tone].border)}
         >
           <Icon name={TONE[t.tone].icon} size={18} color={colors[TONE[t.tone].colour]} />
-          <Text variant="footnote" className="min-w-0 flex-1 text-content">
+          <Text variant="footnote" className="min-w-0 flex-1 text-fg">
             {t.message}
           </Text>
         </Animated.View>
@@ -156,7 +153,7 @@ export function ToastHost() {
   const bottom = Math.max(keyboard + 12, insets.bottom + TAB_BAR_HEIGHT + 12);
 
   return (
-    <View style={[PASS_THROUGH, { bottom }]} className="absolute left-0 right-0 z-50 items-center gap-2 px-gutter">
+    <View style={[PASS_THROUGH, { bottom }]} className="absolute left-0 right-0 z-50 items-center gap-2 px-4">
       {toasts.map((t) => (
         <SwipeableToast key={t.id} toast={t} />
       ))}

@@ -45,9 +45,7 @@ export function ImageBubble({ uri, width, height, caption, fromMe, onSave }: Ima
         </Pressable>
       </HoverSave>
 
-      {caption ? (
-        <MessageText text={caption} fromMe={fromMe} className={fromMe ? "text-bubble-out-on" : "text-bubble-in-on"} />
-      ) : null}
+      {caption ? <MessageText text={caption} fromMe={fromMe} className={fromMe ? "text-fg" : "text-fg"} /> : null}
 
       <MediaViewer visible={zoomed} onClose={() => setZoomed(false)} onSave={onSave}>
         <Image source={{ uri }} style={{ flex: 1 }} contentFit="contain" />

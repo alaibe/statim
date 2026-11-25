@@ -33,7 +33,7 @@ function AuroraBackdrop() {
   return (
     <View style={{ pointerEvents: "none" }} className="absolute inset-0 overflow-hidden">
       <Animated.View style={blobA} className="absolute -left-24 top-0">
-        <Glow size={340} color={colors.brand} />
+        <Glow size={340} color={colors.accent} />
       </Animated.View>
       <Animated.View style={blobB} className="absolute -right-20 top-40">
         <Glow size={380} color={colors.success} intensity={0.045} />
@@ -47,7 +47,7 @@ export default function Welcome() {
   const [connecting, setConnecting] = useState(false);
 
   return (
-    <Screen className="px-gutter">
+    <Screen className="px-4">
       <AuroraBackdrop />
 
       <View className="flex-1 justify-end gap-3 pb-6">
@@ -55,7 +55,7 @@ export default function Welcome() {
           <Text variant="display">Talk freely.</Text>
         </Animated.View>
         <Animated.View entering={Enter.content(stagger(1, 70))}>
-          <Text variant="display" className="text-brand">
+          <Text variant="display" className="text-accent">
             Own everything.
           </Text>
         </Animated.View>

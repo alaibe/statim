@@ -119,10 +119,10 @@ function PinIntro({ onBegin }: { onBegin: () => void }) {
   const accounts = useAccountStore((s) => s.accounts.length);
 
   return (
-    <View className="gap-5 px-gutter">
+    <View className="gap-5 px-4">
       <View className="items-center gap-3 pt-2">
-        <View className="h-16 w-16 items-center justify-center rounded-full bg-brand-soft">
-          <Icon name="keypad-outline" size={28} tone="brand" />
+        <View className="h-16 w-16 items-center justify-center rounded-full bg-accent-soft">
+          <Icon name="keypad-outline" size={28} tone="accent" />
         </View>
         <Text variant="headline" className="text-center">
           Lock the app with a PIN
@@ -176,12 +176,12 @@ function PinEntry({
   const { text, alarming } = describe(state, waitLeft);
 
   return (
-    <View className="items-center gap-5 px-gutter pt-4">
+    <View className="items-center gap-5 px-4 pt-4">
       <View className="items-center gap-1.5">
         <Text variant="title">{prompt(state)}</Text>
         <View className="min-h-10 justify-center">
           {state.task?.run === "check" ? (
-            <ActivityIndicator color={colors["content-subtle"]} />
+            <ActivityIndicator color={colors.subtle} />
           ) : (
             <Text variant="footnote" className={cn("text-center", alarming && "text-danger")}>
               {text}

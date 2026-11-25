@@ -27,7 +27,7 @@ export function SettingsAccount({ ensName }: { ensName: string | null }) {
   if (!account) return null;
 
   return (
-    <View className="items-center gap-2 px-gutter pb-6 pt-2">
+    <View className="items-center gap-2 px-4 pb-6 pt-2">
       <View className="w-full flex-row items-center justify-between">
         <IconButton testID="settings-qr" icon="qr-code-outline" label="My QR code" onPress={() => router.push("/qr")} />
         {/* The ENS name is a record this app reads and never writes, so it is changed on the ENS site. */}

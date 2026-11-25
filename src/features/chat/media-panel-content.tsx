@@ -74,11 +74,9 @@ export function MediaPanelContent({
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
               onPress={() => onTab(entry)}
-              className={active ? "rounded-pill bg-surface-sunken px-4 py-1.5" : "rounded-pill px-4 py-1.5"}
+              className={active ? "rounded-full bg-side px-4 py-1.5" : "rounded-full px-4 py-1.5"}
             >
-              <Text className={active ? "font-semibold text-content" : "font-medium text-content-muted"}>
-                {TAB_LABELS[entry]}
-              </Text>
+              <Text className={active ? "font-semibold text-fg" : "font-medium text-muted"}>{TAB_LABELS[entry]}</Text>
             </Pressable>
           );
         })}

@@ -69,8 +69,8 @@ export function VideoBubble({
               <>
                 <PlayOverlay />
                 {durationMs ? (
-                  <View className="absolute left-1.5 top-1.5 rounded-pill bg-black/45 px-1.5 py-0.5">
-                    <Text variant="micro" className="text-white">
+                  <View className="absolute left-1.5 top-1.5 rounded-full bg-void/45 px-1.5 py-0.5">
+                    <Text variant="micro" className="text-fg">
                       {formatDuration(durationMs)}
                     </Text>
                   </View>
@@ -80,9 +80,7 @@ export function VideoBubble({
           </View>
         </Pressable>
       </HoverSave>
-      {caption ? (
-        <MessageText text={caption} fromMe={fromMe} className={fromMe ? "text-bubble-out-on" : "text-bubble-in-on"} />
-      ) : null}
+      {caption ? <MessageText text={caption} fromMe={fromMe} className={fromMe ? "text-fg" : "text-fg"} /> : null}
 
       <MediaViewer visible={open} onClose={() => setOpen(false)} onSave={onSave} interactive={!gif}>
         {open ? <ViewerVideo uri={uri} gif={gif} /> : null}
@@ -94,7 +92,7 @@ export function VideoBubble({
 export function PlayOverlay() {
   return (
     <View className="absolute inset-0 items-center justify-center">
-      <View className="h-12 w-12 items-center justify-center rounded-pill bg-black/55 pl-1">
+      <View className="h-12 w-12 items-center justify-center rounded-full bg-void/55 pl-1">
         <Icon name="play" size={22} color="white" />
       </View>
     </View>

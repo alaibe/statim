@@ -5,16 +5,16 @@ import { cn } from "../lib/cn";
 
 // Interface text (titles, amounts, captions, labels) is mono; what people read and write is Inter.
 const VARIANTS = {
-  display: "text-display font-mono font-semibold tracking-tight text-content",
-  headline: "text-headline font-mono font-semibold tracking-tight text-content",
-  title: "text-title font-mono font-semibold text-content",
-  amount: "text-[1.625rem] font-mono font-semibold tracking-tight tabular-nums text-content",
-  body: "text-body font-sans text-content",
-  bodyMuted: "text-body font-sans text-content-muted",
-  footnote: "text-footnote font-sans text-content-muted",
-  caption: "text-caption font-mono text-content-subtle",
-  micro: "text-micro font-mono uppercase tracking-wider text-content-subtle",
-  mono: "text-footnote font-mono text-content-muted",
+  display: "text-3xl font-mono font-semibold tracking-tight text-fg",
+  headline: "text-2xl font-mono font-semibold tracking-tight text-fg",
+  title: "text-lg font-mono font-semibold text-fg",
+  amount: "text-[1.625rem] font-mono font-semibold tracking-tight tabular-nums text-fg",
+  body: "text-md font-sans text-fg",
+  bodyMuted: "text-md font-sans text-muted",
+  footnote: "text-md font-sans text-muted",
+  caption: "text-sm font-mono text-subtle",
+  micro: "text-2xs font-mono uppercase tracking-caps text-subtle",
+  mono: "text-md font-mono text-muted",
 } as const;
 
 type TextVariant = keyof typeof VARIANTS;

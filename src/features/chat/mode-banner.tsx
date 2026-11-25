@@ -18,11 +18,11 @@ export function ModeBanner({
     <Animated.View
       entering={Enter.fade()}
       exiting={Exit.fade()}
-      className="flex-row items-center gap-2 border-t border-line bg-surface-sunken px-gutter py-2"
+      className="flex-row items-center gap-2 border-t border-line bg-side px-4 py-2"
     >
-      <View className="h-8 w-0.5 rounded-full bg-brand" />
+      <View className="h-8 w-0.5 rounded-full bg-accent" />
       <View className="min-w-0 flex-1">
-        <Text variant={banner.detail ? "micro" : "caption"} className="font-semibold text-brand">
+        <Text variant={banner.detail ? "micro" : "caption"} className="font-semibold text-accent">
           {banner.label}
         </Text>
         {banner.detail ? (

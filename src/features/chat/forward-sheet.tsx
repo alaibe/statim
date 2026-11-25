@@ -18,10 +18,7 @@ export function ForwardSheet({ message, from, onClose }: { message: ChatMessage;
 
   return (
     <Sheet visible onClose={onClose} title="Forward to" subtitle={contentPreview(message.content)}>
-      <View
-        style={{ borderCurve: "continuous" }}
-        className="max-h-[420px] overflow-hidden rounded-card bg-surface-raised"
-      >
+      <View style={{ borderCurve: "continuous" }} className="max-h-[420px] overflow-hidden rounded-lg bg-panel">
         <FlashList
           data={targets}
           keyExtractor={(c) => c.id}

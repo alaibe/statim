@@ -18,7 +18,7 @@ export default function QrScreen() {
   }
 
   return (
-    <Screen className="justify-between px-gutter py-4" edges={["top", "bottom"]}>
+    <Screen className="justify-between px-4 py-4" edges={["top", "bottom"]}>
       <View className="flex-row justify-end">
         <IconButton icon="close" label="Close" surface="sunken" size={18} onPress={() => router.back()} />
       </View>

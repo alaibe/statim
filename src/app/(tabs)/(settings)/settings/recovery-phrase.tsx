@@ -14,7 +14,7 @@ export default function RecoveryPhraseScreen() {
   if (!keyring?.mnemonic) {
     return (
       <SettingsScreen title="Recovery phrase">
-        <Text variant="footnote" className="px-gutter">
+        <Text variant="footnote" className="px-4">
           {keyring
             ? "This account’s key lives on its hardware wallet, so Statim has no recovery phrase for it."
             : "No account is open."}
@@ -25,7 +25,7 @@ export default function RecoveryPhraseScreen() {
 
   return (
     <SettingsScreen title="Recovery phrase">
-      <View className="gap-4 px-gutter">
+      <View className="gap-4 px-4">
         <Card className="gap-2">
           <Text variant="caption">Address</Text>
           <Pressable

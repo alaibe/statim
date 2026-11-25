@@ -10,6 +10,13 @@ const FIELD_KEYBOARDS = ["default", "decimal"] as const;
 export type WidgetTone = (typeof WIDGET_TONES)[number];
 type WidgetState = (typeof WIDGET_STATES)[number];
 
+/** Bots name the accent `brand`; the design system calls it `accent`. */
+export function buttonTone(tone: WidgetTone): Exclude<WidgetTone, "brand"> | "accent";
+export function buttonTone(tone: WidgetTone | undefined): Exclude<WidgetTone, "brand"> | "accent" | undefined;
+export function buttonTone(tone: WidgetTone | undefined) {
+  return tone === "brand" ? "accent" : tone;
+}
+
 export interface WidgetAction {
   label: string;
   command: string;

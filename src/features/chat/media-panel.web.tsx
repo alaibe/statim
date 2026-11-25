@@ -32,7 +32,7 @@ export function MediaPanel({ tab: initialTab, anchor, onClose, ...content }: Med
           height,
           borderCurve: "continuous",
         }}
-        className="overflow-hidden rounded-card border border-line bg-surface-raised shadow-xl"
+        className="overflow-hidden rounded-lg border border-line bg-panel shadow-popover"
       >
         <MediaPanelContent {...content} tab={tab} onTab={setTab} autoFocusSearch />
       </View>

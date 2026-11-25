@@ -29,7 +29,7 @@ export function makeApprovalOverlay(context: PluginContext) {
         title={isProposal ? "Connect to site" : (described?.title ?? "Request")}
       >
         <View className="gap-3">
-          <View className="gap-1 rounded-card bg-surface-sunken p-3">
+          <View className="gap-1 rounded-lg bg-side p-3">
             <Text className="font-semibold">{isProposal ? metadata?.name : head.siteName}</Text>
             {isProposal && metadata?.url ? <Text variant="caption">{metadata.url}</Text> : null}
             {described ? (
@@ -49,7 +49,7 @@ export function makeApprovalOverlay(context: PluginContext) {
               </Text>
             </View>
           ) : (
-            <Badge label="Signed on this device" tone="brand" />
+            <Badge label="Signed on this device" tone="accent" />
           )}
 
           <Button label={isProposal ? "Connect" : "Approve"} fullWidth onPress={() => approve(context)} />

@@ -18,11 +18,11 @@ export default function ContactsScreen() {
           title: "Contacts",
           headerLeft: () => (
             <Pressable accessibilityRole="button" accessibilityLabel="Sort contacts" onPress={() => setSorting(true)}>
-              <Text className="font-medium text-brand">Sort</Text>
+              <Text className="font-medium text-accent">Sort</Text>
             </Pressable>
           ),
           headerRight: () => (
-            <IconButton icon="add" label="New chat" tone="brand" size={24} onPress={() => router.push("/new-chat")} />
+            <IconButton icon="add" label="New chat" tone="accent" size={24} onPress={() => router.push("/new-chat")} />
           ),
         }}
       />

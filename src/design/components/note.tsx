@@ -4,7 +4,7 @@ import { cn } from "../lib/cn";
 import { Text } from "./text";
 
 const TONE = {
-  brand: { box: "border-brand/15 bg-brand-soft", title: "text-brand", body: undefined },
+  accent: { box: "border-accent/15 bg-accent-soft", title: "text-accent", body: undefined },
   warning: { box: "border-warning/40 bg-warning/10", title: "text-warning", body: "text-warning" },
   danger: { box: "border-danger/40 bg-danger/10", title: "text-danger", body: "text-danger" },
 } as const;
@@ -17,7 +17,7 @@ interface NoteProps {
   className?: string;
 }
 
-export function Note({ title, icon, tone = "brand", children, className }: NoteProps) {
+export function Note({ title, icon, tone = "accent", children, className }: NoteProps) {
   const body =
     typeof children === "string" ? (
       <Text variant="caption" className={TONE[tone].body}>
@@ -28,7 +28,7 @@ export function Note({ title, icon, tone = "brand", children, className }: NoteP
     );
 
   return (
-    <View style={{ borderCurve: "continuous" }} className={cn("rounded-card border p-4", TONE[tone].box, className)}>
+    <View style={{ borderCurve: "continuous" }} className={cn("rounded-lg border p-4", TONE[tone].box, className)}>
       {title ? (
         <View className="gap-2">
           <View className="flex-row items-center gap-2">

@@ -62,7 +62,7 @@ export default function DevicesScreen() {
                 title="Signed in here"
                 subtitle={describe(here)}
                 numberOfLinesSubtitle={2}
-                leading={<Icon name="phone-portrait-outline" size={20} tone="brand" />}
+                leading={<Icon name="phone-portrait-outline" size={20} tone="accent" />}
                 trailing={<Badge label="Current" tone="success" />}
               />
             ) : null}
@@ -90,12 +90,12 @@ export default function DevicesScreen() {
       )}
 
       {error ? (
-        <Note tone="danger" className="mx-gutter mb-4">
+        <Note tone="danger" className="mx-4 mb-4">
           {error}
         </Note>
       ) : null}
 
-      <Note className="mx-gutter" title="What a device is" icon="phone-portrait-outline">
+      <Note className="mx-4" title="What a device is" icon="phone-portrait-outline">
         <Text variant="footnote">
           Each device holds its own keys and its own copy of your messages. Nothing sits on a server for a new device to
           download. That is why a fresh install starts empty, and why revoking a device here cuts it off for good rather

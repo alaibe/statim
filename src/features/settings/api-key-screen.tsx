@@ -56,7 +56,7 @@ export function ApiKeySection({
     <>
       {saved === undefined ? null : (
         <Section title={sectionTitle} surface="card" className="mb-6">
-          <View className="gap-3 px-gutter py-4">
+          <View className="gap-3 px-4 py-4">
             <Field
               testID={testIdPrefix}
               value={key}
@@ -97,7 +97,7 @@ export function ApiKeySection({
         </Section>
       )}
 
-      <Note className="mx-gutter" icon="information-circle-outline">
+      <Note className="mx-4" icon="information-circle-outline">
         {notes.map((note) => (
           <Text key={note} variant="footnote">
             {note}

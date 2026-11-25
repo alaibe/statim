@@ -28,9 +28,9 @@ export function DeliveryIcon({
   if (!read) return <Icon name="checkmark" size={size} tone={tone} color={color} />;
   return (
     <View className="flex-row">
-      <Icon name="checkmark" size={size} tone="brand" />
+      <Icon name="checkmark" size={size} tone="accent" />
       <View style={{ marginLeft: -size * 0.6 }}>
-        <Icon name="checkmark" size={size} tone="brand" />
+        <Icon name="checkmark" size={size} tone="accent" />
       </View>
     </View>
   );

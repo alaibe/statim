@@ -69,7 +69,7 @@ export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
     if (item.kind === "header") {
       return (
         <View style={{ height: HEADER, paddingHorizontal: PAD + 4 }} className="justify-end pb-1">
-          <Text variant="caption" className="font-semibold text-content-muted">
+          <Text variant="caption" className="font-semibold text-muted">
             {item.title}
           </Text>
         </View>
@@ -84,7 +84,7 @@ export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
             accessibilityLabel={emoji}
             onPress={() => pick(emoji)}
             style={{ width: cell, height: CELL }}
-            className="items-center justify-center rounded-md hover:bg-surface-sunken active:bg-surface-sunken"
+            className="items-center justify-center rounded-md hover:bg-side active:bg-side"
           >
             <NativeText allowFontScaling={false} style={{ fontSize: EMOJI_SIZE, lineHeight: CELL - 4 }}>
               {emoji}
@@ -152,11 +152,11 @@ export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
               onPress={() => jumpTo(category.id)}
               className={
                 selected
-                  ? "h-8 flex-1 items-center justify-center rounded-md bg-brand-soft"
-                  : "h-8 flex-1 items-center justify-center rounded-md hover:bg-surface-sunken"
+                  ? "h-8 flex-1 items-center justify-center rounded-md bg-accent-soft"
+                  : "h-8 flex-1 items-center justify-center rounded-md hover:bg-side"
               }
             >
-              <Icon name={category.icon} size={20} tone={selected ? "brand" : "muted"} />
+              <Icon name={category.icon} size={20} tone={selected ? "accent" : "muted"} />
             </Pressable>
           );
         })}

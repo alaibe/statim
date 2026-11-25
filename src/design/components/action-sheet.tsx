@@ -64,7 +64,10 @@ export function ActionSheet({ actions, searchFor, ...sheet }: ActionSheetProps) 
             </View>
           ) : null}
           {shown.map((action, i) => {
-            const color = action.tone && action.tone !== "neutral" ? colors[action.tone] : colors.content;
+            const color =
+              action.tone && action.tone !== "neutral"
+                ? colors[action.tone === "brand" ? "accent" : action.tone]
+                : colors.fg;
             return (
               <ListItem
                 key={`${action.label}-${i}`}

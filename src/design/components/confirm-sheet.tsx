@@ -10,7 +10,7 @@ export interface ConfirmSheetProps extends Omit<SheetProps, "children"> {
   confirm: {
     label: string;
     busyLabel?: string;
-    tone?: "brand" | "danger";
+    tone?: "accent" | "danger";
     testID?: string;
     onPress: PressHandler;
   };
@@ -45,7 +45,7 @@ export function ConfirmSheet({
         <Button
           testID={confirm.testID}
           label={busy ? (confirm.busyLabel ?? confirm.label) : confirm.label}
-          tone={confirm.tone ?? "brand"}
+          tone={confirm.tone ?? "accent"}
           fullWidth
           loading={busy}
           disabled={busy}

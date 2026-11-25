@@ -14,7 +14,7 @@ interface FieldProps extends TextInputProps {
   containerClassName?: string;
 }
 
-export const FIELD_BOX = "min-h-tap rounded-field border bg-surface-raised px-3 py-2.5";
+export const FIELD_BOX = "min-h-touch rounded-md border bg-panel px-3 py-2.5";
 
 export function FieldShell({
   label,
@@ -40,12 +40,12 @@ export function Field({ label, hint, error, className, containerClassName, ...pr
   return (
     <FieldShell label={label} hint={hint} error={error} containerClassName={containerClassName}>
       <TextInput
-        placeholderTextColor={colors["content-subtle"]}
+        placeholderTextColor={colors.subtle}
         style={{ borderCurve: "continuous" }}
         className={cn(
           FIELD_BOX,
-          "text-body text-content",
-          error ? "border-danger" : "border-line focus:border-brand",
+          "text-md text-fg",
+          error ? "border-danger" : "border-line focus:border-accent",
           className,
         )}
         {...props}

@@ -65,7 +65,7 @@ export function ContactList({ query, sortBy, sorting, onSort, onCloseSort, selec
     <>
       <ScrollView contentInsetAdjustmentBehavior="automatic">
         {access === "limited" && process.env.EXPO_OS === "ios" ? (
-          <Card className="mx-gutter mb-4 flex-row items-center gap-3">
+          <Card className="mx-4 mb-4 flex-row items-center gap-3">
             <View className="flex-1">
               <Text variant="footnote">You have shared only some of your contacts with Statim.</Text>
             </View>
@@ -83,8 +83,8 @@ export function ContactList({ query, sortBy, sorting, onSort, onCloseSort, selec
         <Section surface="list">
           <ListItem
             testID="invite-contacts"
-            title={<Text className="font-semibold text-brand">Invite contacts</Text>}
-            leading={<Icon name="person-add-outline" size={22} tone="brand" />}
+            title={<Text className="font-semibold text-accent">Invite contacts</Text>}
+            leading={<Icon name="person-add-outline" size={22} tone="accent" />}
             onPress={() => router.push("/invite")}
           />
         </Section>

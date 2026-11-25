@@ -24,7 +24,7 @@ function iconFor(name: string, mimeType?: string): IconName {
 
 export function FileBubble({ uri, name, mimeType, size, fromMe }: FileBubbleProps) {
   const colors = useThemeColors();
-  const tint = fromMe ? colors["bubble-out-on"] : colors.brand;
+  const tint = fromMe ? colors["fg"] : colors.accent;
 
   return (
     <Pressable
@@ -34,18 +34,15 @@ export function FileBubble({ uri, name, mimeType, size, fromMe }: FileBubbleProp
       pressScale={0.99}
     >
       <View className="min-w-[180px] flex-row items-center gap-3 py-0.5">
-        <View className="h-10 w-10 items-center justify-center rounded-full bg-surface-sunken">
+        <View className="h-10 w-10 items-center justify-center rounded-full bg-side">
           <Icon name={iconFor(name, mimeType)} size={20} color={tint} />
         </View>
         <View className="min-w-0 flex-1">
-          <Text
-            numberOfLines={1}
-            className={fromMe ? "font-medium text-bubble-out-on" : "font-medium text-bubble-in-on"}
-          >
+          <Text numberOfLines={1} className={fromMe ? "font-medium text-fg" : "font-medium text-fg"}>
             {name}
           </Text>
           {size !== undefined ? (
-            <Text variant="caption" className={fromMe ? "text-bubble-out-on/70" : undefined}>
+            <Text variant="caption" className={fromMe ? "text-fg/70" : undefined}>
               {formatBytes(size)}
             </Text>
           ) : null}

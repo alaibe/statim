@@ -12,6 +12,7 @@
       "!priv/**",
       "!patches/**",
       "!src/global.css",
+      "!src/design/laibe/**",
       "!src/storage/migrations/**",
       "!**/token-list.json",
       "!package-lock.json",

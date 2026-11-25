@@ -46,7 +46,7 @@ export function JoinRequests({ chatId, pending }: { chatId: ChatId; pending?: nu
                 <IconButton
                   icon="checkmark"
                   label={`Approve ${request.name}`}
-                  tone="brand"
+                  tone="accent"
                   disabled={answer.busy}
                   onPress={() => void answer.run(request.participantId, true)}
                 />

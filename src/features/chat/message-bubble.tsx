@@ -238,7 +238,7 @@ export function MessageBubble({
 function NoticeLine({ text, icon, action }: { text: string; icon?: IconName; action?: ReactNode }) {
   return (
     <View className="items-center gap-1.5 py-2">
-      <View className="flex-row items-center gap-1.5 rounded-pill bg-surface-sunken px-3 py-1">
+      <View className="flex-row items-center gap-1.5 rounded-full bg-side px-3 py-1">
         {icon ? <Icon name={icon} size={13} tone="muted" /> : null}
         <Text variant="caption">{text}</Text>
       </View>
@@ -266,10 +266,10 @@ function OpenInButton({ name, url }: { name: string; url: string }) {
       onPress={() => {
         openExternal(url).catch((e) => toast.error(errorMessage(e, `Could not open ${name}`)));
       }}
-      className="flex-row items-center gap-1 rounded-pill border border-line px-3 py-1"
+      className="flex-row items-center gap-1 rounded-full border border-line px-3 py-1"
     >
-      <Icon name="open-outline" size={13} tone="brand" />
-      <Text variant="caption" className="font-semibold text-brand">
+      <Icon name="open-outline" size={13} tone="accent" />
+      <Text variant="caption" className="font-semibold text-accent">
         Open in {name}
       </Text>
     </Pressable>
@@ -289,7 +289,7 @@ function TextBody({
 }) {
   const { message } = footer;
   const { fromMe } = message;
-  const className = cn("text-body", fromMe ? "text-bubble-out-on" : "text-bubble-in-on");
+  const className = cn("text-md", fromMe ? "text-fg" : "text-fg");
   const plain = plainText(text);
   const claimed = useTextPreview(plain);
 
@@ -364,23 +364,14 @@ function Footer({ message, read, reactions, place = "row" }: FooterProps & { pla
     <View
       className={cn(
         "flex-row items-center gap-1",
-        overlay && "absolute bottom-1.5 right-1.5 rounded-pill bg-black/45 px-1.5 py-0.5",
+        overlay && "absolute bottom-1.5 right-1.5 rounded-full bg-void/45 px-1.5 py-0.5",
       )}
     >
-      <Text
-        variant="micro"
-        className={overlay ? "text-white" : message.fromMe ? "text-bubble-out-on/60" : "text-content-subtle"}
-      >
+      <Text variant="micro" className={overlay ? "text-fg" : message.fromMe ? "text-fg/60" : "text-subtle"}>
         {timeLabel(message)}
       </Text>
       {message.fromMe ? (
-        <DeliveryIcon
-          message={message}
-          read={read}
-          size={13}
-          tone="bubble-out-on"
-          color={overlay ? "#fff" : undefined}
-        />
+        <DeliveryIcon message={message} read={read} size={13} tone="fg" color={overlay ? "#fff" : undefined} />
       ) : null}
     </View>
   );

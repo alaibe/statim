@@ -13,10 +13,10 @@ export function MediaPanel({ tab: initialTab, onClose, ...content }: MediaPanelP
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable accessibilityLabel="Close" onPress={onClose} className="flex-1 bg-content/20" />
+      <Pressable accessibilityLabel="Close" onPress={onClose} className="flex-1 bg-fg/20" />
       <View
         style={{ height: Math.round(height * 0.55), paddingBottom: insets.bottom }}
-        className="rounded-t-card bg-surface-raised"
+        className="rounded-t-xl bg-panel"
       >
         <MediaPanelContent {...content} tab={tab} onTab={setTab} />
       </View>

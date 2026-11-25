@@ -46,19 +46,19 @@ export function ListItem({
   const pressable = Boolean(onPress || onLongPress);
 
   const body = (
-    <View className={cn("min-h-tap flex-row items-center gap-3 px-gutter py-2.5", !pressable && "mx-1", className)}>
+    <View className={cn("min-h-touch flex-row items-center gap-3 px-4 py-2.5", !pressable && "mx-1", className)}>
       {leading}
       <View className="min-w-0 flex-1 gap-0.5">
         <View className="flex-row items-center gap-2">
           <Text
             variant="title"
             numberOfLines={1}
-            className={cn("min-w-0 flex-1 text-body font-semibold", unread && "text-content")}
+            className={cn("min-w-0 flex-1 text-md font-semibold", unread && "text-fg")}
           >
             {title}
           </Text>
           {typeof meta === "string" ? (
-            <Text variant="caption" className={cn(unread && "font-semibold text-brand")}>
+            <Text variant="caption" className={cn(unread && "font-semibold text-accent")}>
               {meta}
             </Text>
           ) : (
@@ -70,7 +70,7 @@ export function ListItem({
             <Text
               variant="footnote"
               numberOfLines={numberOfLinesSubtitle}
-              className={cn("min-w-0 flex-1", unread && "font-medium text-content-muted")}
+              className={cn("min-w-0 flex-1", unread && "font-medium text-muted")}
             >
               {subtitle}
             </Text>
@@ -98,7 +98,7 @@ export function ListItem({
       onLongPress={onLongPress}
       {...(onContextMenu ? contextMenu(onContextMenu) : undefined)}
       pressScale={0.99}
-      className={cn("mx-1 rounded-card active:bg-surface", selected && "bg-brand-soft")}
+      className={cn("mx-1 rounded-lg active:bg-panel", selected && "bg-accent-soft")}
       style={{ borderCurve: "continuous" }}
     >
       {body}

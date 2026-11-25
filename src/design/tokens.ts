@@ -1,77 +1,57 @@
-export const Palette = {
-  light: {
-    // The laibe design system, ultraviolet accent.
-    brand: "101 74 187",
-    "brand-soft": "234 232 255",
-    "brand-strong": "86 55 167",
-    "brand-on": "255 255 255",
-    ai: "86 55 167",
+import tokens from "./laibe/tokens.json";
 
-    canvas: "245 246 251",
-    surface: "255 255 255",
-    "surface-raised": "255 255 255",
-    "surface-sunken": "236 238 245",
+export type ColorName = keyof typeof tokens.colors;
+export type ThemeName = "light" | "dark";
+export type ResolvedColors = Record<ColorName, string>;
 
-    content: "11 13 25",
-    "content-muted": "81 87 111",
-    "content-subtle": "114 121 149",
+export const COLOR_NAMES = Object.keys(tokens.colors) as ColorName[];
 
-    line: "215 218 230",
-    "line-strong": "195 199 213",
-
-    "bubble-out": "234 232 255",
-    "bubble-out-on": "11 13 25",
-    "bubble-in": "255 255 255",
-    "bubble-in-on": "11 13 25",
-
-    success: "0 127 56",
-    warning: "169 107 0",
-    danger: "201 34 43",
-  },
-  dark: {
-    brand: "170 153 255",
-    "brand-soft": "46 39 78",
-    "brand-strong": "185 174 255",
-    "brand-on": "4 5 11",
-    ai: "185 174 255",
-
-    canvas: "11 13 25",
-    surface: "19 22 36",
-    "surface-raised": "19 22 36",
-    "surface-sunken": "7 8 18",
-
-    content: "218 246 251",
-    "content-muted": "176 192 209",
-    "content-subtle": "114 121 149",
-
-    line: "42 47 69",
-    "line-strong": "60 65 88",
-
-    "bubble-out": "46 39 78",
-    "bubble-out-on": "218 246 251",
-    "bubble-in": "19 22 36",
-    "bubble-in-on": "218 246 251",
-
-    success: "115 240 148",
-    warning: "255 200 69",
-    danger: "255 112 114",
-  },
-} as const;
-
-export type ThemeName = keyof typeof Palette;
-type TokenName = keyof (typeof Palette)["light"];
-
-function rgb(channels: string, alpha?: number) {
-  return alpha === undefined ? `rgb(${channels})` : `rgb(${channels} / ${alpha})`;
+function resolve(theme: ThemeName): ResolvedColors {
+  return Object.fromEntries(COLOR_NAMES.map((name) => [name, tokens.colors[name][theme]])) as ResolvedColors;
 }
 
-export type ResolvedColors = Record<TokenName, string>;
-
-const RESOLVED: Record<ThemeName, ResolvedColors> = {
-  light: Object.fromEntries(Object.entries(Palette.light).map(([k, v]) => [k, rgb(v)])) as ResolvedColors,
-  dark: Object.fromEntries(Object.entries(Palette.dark).map(([k, v]) => [k, rgb(v)])) as ResolvedColors,
-};
+const RESOLVED: Record<ThemeName, ResolvedColors> = { light: resolve("light"), dark: resolve("dark") };
 
 export function colorsFor(theme: ThemeName): ResolvedColors {
   return RESOLVED[theme];
+}
+
+/** A token colour at an opacity, as `color-mix(in oklab, <colour> <n>%, transparent)` gives it. */
+export function withAlpha(hex: string, alpha: number): string {
+  const [r, g, b] = [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+export const FontSize = tokens.fontSize;
+export const Leading = tokens.leading;
+export const Tracking = tokens.tracking;
+export const Space = tokens.space;
+export const Radius = tokens.radius;
+export const Chamfer = tokens.chamfer;
+export const Control = tokens.control;
+export const Layout = tokens.layout;
+export const Layer = tokens.layer;
+export const Durations = tokens.duration;
+export const Ease = tokens.ease as Record<keyof typeof tokens.ease, [number, number, number, number]>;
+export const Shadow = tokens.shadow;
+
+export type FontSizeName = keyof typeof FontSize;
+
+/** `--glow`: the primary button on hover, the live indicator, the lit point. */
+export function glow(colors: ResolvedColors): string {
+  return `0 0 0 1px ${withAlpha(colors.accent, 0.7)}, 0 0 18px ${withAlpha(colors.accent, 0.35)}`;
+}
+
+/** `--focus-ring`, drawn on every focusable element under keyboard focus. */
+export function focusRing(colors: ResolvedColors): string {
+  return `0 0 0 2px ${colors.bg}, 0 0 0 3px ${colors.accent}, 0 0 14px ${withAlpha(colors.accent, 0.45)}`;
+}
+
+/** `--glow-text`, as React Native's text shadow. */
+export function glowText(colors: ResolvedColors) {
+  return {
+    textShadowColor: withAlpha(colors.accent, 0.55),
+    textShadowRadius: 12,
+    textShadowOffset: { width: 0, height: 0 },
+  };
 }

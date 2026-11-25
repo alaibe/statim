@@ -10,7 +10,7 @@ export default function Index() {
   if (status === "invalidated") return <Redirect href="/recover" />;
 
   if (status === "loading" || status === "blocked" || status === "error") {
-    return <Loading className="flex-1 bg-canvas" />;
+    return <Loading className="flex-1 bg-bg" />;
   }
 
   return <Redirect href="/(onboarding)/welcome" />;

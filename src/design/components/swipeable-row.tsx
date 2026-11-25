@@ -8,7 +8,7 @@ import { type PressHandler, runPress } from "../lib/press";
 import { Pressable } from "./pressable";
 import { Text } from "./text";
 
-export type SwipeTone = "neutral" | "warning" | "brand" | "danger";
+export type SwipeTone = "neutral" | "warning" | "accent" | "danger";
 
 export interface SwipeAction {
   id: string;
@@ -94,13 +94,13 @@ function ActionButton({
   const tone: SwipeTone = action.tone ?? (action.destructive ? "danger" : "neutral");
 
   const fill = {
-    neutral: colors["content-muted"],
+    neutral: colors.muted,
     warning: colors.warning,
-    brand: colors.brand,
+    accent: colors.accent,
     danger: colors.danger,
   }[tone];
 
-  const content = colors["brand-on"];
+  const content = colors["on-accent"];
 
   const leftRadius = first ? ACTION_RADIUS : 0;
   const rightRadius = last ? ACTION_RADIUS : 0;

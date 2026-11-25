@@ -10,10 +10,10 @@ export function Dialog({ children }: PropsWithChildren) {
 
   return (
     <View className="flex-1 items-center justify-center p-6">
-      <Pressable accessibilityLabel="Close" onPress={() => router.back()} className="absolute inset-0 bg-content/30" />
+      <Pressable accessibilityLabel="Close" onPress={() => router.back()} className="absolute inset-0 bg-fg/30" />
       <View
         style={{ borderCurve: "continuous" }}
-        className="max-h-full w-[560px] max-w-full overflow-hidden rounded-card bg-canvas shadow-xl"
+        className="max-h-full w-[560px] max-w-full overflow-hidden rounded-lg bg-bg shadow-popover"
       >
         {children}
       </View>

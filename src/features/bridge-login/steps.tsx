@@ -87,7 +87,7 @@ export function WaitStep({ step }: { step: LoginStep }) {
         </Text>
       ) : null}
       <View className="flex-row items-center gap-2">
-        <ActivityIndicator color={colors["content-muted"]} />
+        <ActivityIndicator color={colors.muted} />
         <Text variant="caption">Waiting…</Text>
       </View>
     </View>
@@ -152,7 +152,7 @@ export function FlowPicker({
               title={flow.name}
               subtitle={flow.description}
               numberOfLinesSubtitle={2}
-              meta={flow.id === preferred ? <Badge label="Recommended" tone="brand" /> : undefined}
+              meta={flow.id === preferred ? <Badge label="Recommended" tone="accent" /> : undefined}
               onPress={() => onPick(flow.id)}
             />
           </Card>

@@ -2,8 +2,8 @@ import { cn } from "../lib/cn";
 import { Text } from "./text";
 
 const TONE = {
-  muted: "text-content-subtle",
-  brand: "text-brand",
+  muted: "text-subtle",
+  accent: "text-accent",
   success: "text-success",
   danger: "text-danger",
 } as const;
@@ -15,5 +15,5 @@ interface EyebrowProps {
 }
 
 export function Eyebrow({ children, tone = "muted", className }: EyebrowProps) {
-  return <Text className={cn("font-mono text-micro uppercase tracking-wide", TONE[tone], className)}>{children}</Text>;
+  return <Text className={cn("font-mono text-2xs uppercase tracking-label", TONE[tone], className)}>{children}</Text>;
 }

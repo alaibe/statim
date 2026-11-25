@@ -7,7 +7,7 @@ import { Icon } from "../icon";
 import { cn } from "../lib/cn";
 import { affordanceFor } from "./affordance";
 import { FormWidget } from "./form-widget";
-import { type Widget, type WidgetAction, type WidgetOf, type WidgetTone } from "./schema";
+import { buttonTone, type Widget, type WidgetAction, type WidgetOf, type WidgetTone } from "./schema";
 
 interface WidgetViewProps {
   widget: Widget;
@@ -17,16 +17,16 @@ interface WidgetViewProps {
 }
 
 const TEXT_TONE: Record<WidgetTone, string> = {
-  neutral: "text-content",
-  brand: "text-brand",
+  neutral: "text-fg",
+  brand: "text-accent",
   success: "text-success",
   warning: "text-warning",
   danger: "text-danger",
 };
 
 const CARD_TONE: Record<WidgetTone, string> = {
-  neutral: "border-line bg-surface-raised",
-  brand: "border-brand/40 bg-brand-soft",
+  neutral: "border-line bg-panel",
+  brand: "border-accent/40 bg-accent-soft",
   success: "border-success/40 bg-success/10",
   warning: "border-warning/40 bg-warning/10",
   danger: "border-danger/40 bg-danger/10",
@@ -77,8 +77,8 @@ function Affordance({ actions }: { actions: WidgetAction[] | undefined }) {
   const primary = actions[0];
   if (primary.icon) {
     return (
-      <View className="h-7 w-7 items-center justify-center rounded-pill bg-surface-sunken">
-        <Icon name={primary.icon} size={15} tone={primary.tone === "danger" ? "danger" : "brand"} />
+      <View className="h-7 w-7 items-center justify-center rounded-full bg-side">
+        <Icon name={primary.icon} size={15} tone={primary.tone === "danger" ? "danger" : "accent"} />
       </View>
     );
   }
@@ -88,7 +88,7 @@ function Affordance({ actions }: { actions: WidgetAction[] | undefined }) {
   return (
     <Text
       numberOfLines={1}
-      className={cn("shrink-0 text-footnote font-medium", single?.tone === "danger" ? "text-danger" : "text-brand")}
+      className={cn("shrink-0 text-md font-medium", single?.tone === "danger" ? "text-danger" : "text-accent")}
     >
       {label}
     </Text>
@@ -126,9 +126,7 @@ function Offerable({
 }
 
 function StateDot({ state }: { state: "on" | "off" }) {
-  return (
-    <View className={cn("h-2 w-2 shrink-0 rounded-pill", state === "on" ? "bg-success" : "bg-content-subtle/40")} />
-  );
+  return <View className={cn("h-2 w-2 shrink-0 rounded-full", state === "on" ? "bg-success" : "bg-subtle/40")} />;
 }
 
 function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) {
@@ -155,7 +153,7 @@ function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) 
       return (
         <View className="flex-row flex-wrap gap-1.5">
           {widget.badges.map((b, i) => (
-            <Badge key={`${b.label}-${i}`} label={b.label} tone={b.tone ?? "neutral"} />
+            <Badge key={`${b.label}-${i}`} label={b.label} tone={buttonTone(b.tone) ?? "neutral"} />
           ))}
         </View>
       );
@@ -168,7 +166,7 @@ function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) 
               key={`${action.label}-${i}`}
               label={action.label}
               size="sm"
-              tone={action.tone}
+              tone={buttonTone(action.tone)}
               onPress={() => onCommand?.(action.command)}
             />
           ))}
@@ -186,8 +184,8 @@ function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) 
           onPress={() => onOpenUrl?.(widget.url)}
           className="flex-row items-center gap-1.5"
         >
-          <Icon name={widget.icon ?? "open-outline"} size={14} tone="brand" />
-          <Text className="min-w-0 flex-1 text-footnote font-medium text-brand">{widget.label}</Text>
+          <Icon name={widget.icon ?? "open-outline"} size={14} tone="accent" />
+          <Text className="min-w-0 flex-1 text-md font-medium text-accent">{widget.label}</Text>
         </Pressable>
       );
   }
@@ -228,7 +226,7 @@ function RowsWidget({ widget, onOffer }: OfferingWidgetProps<"rows">) {
           actions={row.actions}
           heading={{ title: row.label, subtitle: row.value || undefined }}
           label={`${row.label}, ${row.value}`}
-          className="-mx-1 rounded-field px-1 py-0.5 active:bg-surface-sunken"
+          className="-mx-1 rounded-md px-1 py-0.5 active:bg-side"
           onOffer={onOffer}
         >
           <View className={cn("flex-row gap-3", row.state ? "items-center" : "items-baseline")}>
@@ -240,7 +238,7 @@ function RowsWidget({ widget, onOffer }: OfferingWidgetProps<"rows">) {
               <Text
                 numberOfLines={1}
                 className={cn(
-                  "grow shrink text-right text-footnote font-medium tabular-nums",
+                  "grow shrink text-right text-md font-medium tabular-nums",
                   TEXT_TONE[row.tone ?? "neutral"],
                 )}
               >
@@ -266,14 +264,14 @@ function ListWidget({ widget, onOffer }: OfferingWidgetProps<"list">) {
           actions={item.actions}
           heading={{ title: item.title, subtitle: item.subtitle }}
           label={item.subtitle ? `${item.title}, ${item.subtitle}` : item.title}
-          className="-mx-1.5 rounded-field px-1.5 active:bg-surface-sunken"
+          className="-mx-1.5 rounded-md px-1.5 active:bg-side"
           onOffer={onOffer}
         >
           <View className="flex-row items-center gap-2.5 py-2">
             {item.state ? <StateDot state={item.state} /> : null}
             {item.icon ? <Icon name={item.icon} size={17} tone="muted" /> : null}
             <View className="min-w-0 grow shrink gap-0.5">
-              <Text numberOfLines={1} className={cn("text-footnote font-semibold", TEXT_TONE[item.tone ?? "neutral"])}>
+              <Text numberOfLines={1} className={cn("text-md font-semibold", TEXT_TONE[item.tone ?? "neutral"])}>
                 {item.title}
               </Text>
               {item.subtitle ? (
@@ -282,7 +280,7 @@ function ListWidget({ widget, onOffer }: OfferingWidgetProps<"list">) {
                 </Text>
               ) : null}
             </View>
-            {item.status ? <Badge label={item.status} tone={item.tone === "brand" ? "brand" : "neutral"} /> : null}
+            {item.status ? <Badge label={item.status} tone={item.tone === "brand" ? "accent" : "neutral"} /> : null}
             <View className="pl-2">
               <Affordance actions={item.actions} />
             </View>
@@ -321,11 +319,11 @@ function CodeWidget({ widget }: { widget: WidgetOf<"code"> }) {
 
 function CardWidget({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps & { widget: WidgetOf<"card"> }) {
   return (
-    <View className={cn("gap-2.5 rounded-bubble border p-3.5", CARD_TONE[widget.tone ?? "neutral"])}>
+    <View className={cn("gap-2.5 rounded-lg border p-3.5", CARD_TONE[widget.tone ?? "neutral"])}>
       {widget.title ? (
         <View className="flex-row items-center gap-1.5">
           {widget.icon ? (
-            <Icon name={widget.icon} size={15} tone={widget.tone === "neutral" || !widget.tone ? "muted" : "brand"} />
+            <Icon name={widget.icon} size={15} tone={widget.tone === "neutral" || !widget.tone ? "muted" : "accent"} />
           ) : null}
           <Eyebrow>{widget.title}</Eyebrow>
         </View>

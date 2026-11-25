@@ -19,14 +19,14 @@ const PATTERN_OPACITY = {
 // A gradient to `surface-sunken` reads as a flat black rectangle in dark: it is five values from the canvas.
 const GRADIENTS = {
   subtle: {
-    light: (c: ThemeColors) => `linear-gradient(141deg, ${c["brand-soft"]} 0%, ${c.canvas} 55%, ${c.surface} 100%)`,
-    dark: (c: ThemeColors) => `linear-gradient(141deg, ${c.surface} 0%, ${c.canvas} 55%, ${c.surface} 100%)`,
+    light: (c: ThemeColors) => `linear-gradient(141deg, ${c["accent-soft"]} 0%, ${c.bg} 55%, ${c.panel} 100%)`,
+    dark: (c: ThemeColors) => `linear-gradient(141deg, ${c.panel} 0%, ${c.bg} 55%, ${c.panel} 100%)`,
   },
   vivid: {
     light: (c: ThemeColors) =>
-      `linear-gradient(160deg, ${c["brand-soft"]} 0%, color-mix(in srgb, ${c.brand} 6%, ${c.canvas}) 45%, color-mix(in srgb, ${c.success} 22%, ${c.canvas}) 100%)`,
+      `linear-gradient(160deg, ${c["accent-soft"]} 0%, color-mix(in srgb, ${c.accent} 6%, ${c.bg}) 45%, color-mix(in srgb, ${c.success} 22%, ${c.bg}) 100%)`,
     dark: (c: ThemeColors) =>
-      `linear-gradient(160deg, ${c["brand-soft"]} 0%, ${c.canvas} 50%, color-mix(in srgb, ${c.success} 14%, ${c.canvas}) 100%)`,
+      `linear-gradient(160deg, ${c["accent-soft"]} 0%, ${c.bg} 50%, color-mix(in srgb, ${c.success} 14%, ${c.bg}) 100%)`,
   },
 };
 
@@ -57,7 +57,7 @@ export function ChatBackground({ pattern = "doodles", intensity = "subtle" }: Ch
       <Image
         source={SOURCES[pattern]}
         resizeMode="repeat"
-        tintColor={intensity === "vivid" && scheme === "light" ? colors.brand : colors.content}
+        tintColor={intensity === "vivid" && scheme === "light" ? colors.accent : colors.fg}
         style={{ position: "absolute", inset: 0, opacity: PATTERN_OPACITY[intensity][scheme] }}
         fadeDuration={0}
         accessible={false}

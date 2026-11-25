@@ -5,6 +5,7 @@ import { ActionSheet, Button, Chip, FIELD_BOX, Field, FieldShell, MANY_OPTIONS, 
 import { Icon } from "../icon";
 import { cn } from "../lib/cn";
 import {
+  buttonTone,
   displayValues,
   fillCommand,
   fillText,
@@ -44,7 +45,7 @@ function SelectField({
         style={{ borderCurve: "continuous" }}
         className={cn(FIELD_BOX, "flex-row items-center gap-2 border-line")}
       >
-        <Text className={cn("min-w-0 flex-1 text-body", chosen ? "text-content" : "text-content-subtle")}>
+        <Text className={cn("min-w-0 flex-1 text-md", chosen ? "text-fg" : "text-subtle")}>
           {chosen?.label ?? placeholder ?? "Choose"}
         </Text>
         <Icon name="chevron-down" size={16} tone="subtle" />
@@ -137,7 +138,7 @@ export function FormWidget({ widget, onCommand }: { widget: WidgetOf<"form">; on
         label={widget.submit.label}
         size="sm"
         disabled={missing}
-        tone={widget.submit.tone}
+        tone={buttonTone(widget.submit.tone)}
         onPress={() => onCommand?.(fillCommand(widget.submit.command, answers))}
       />
     </View>

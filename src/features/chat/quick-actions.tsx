@@ -45,7 +45,7 @@ export function QuickActions({
         horizontal
         showsHorizontalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        contentContainerClassName="gap-2 px-gutter pb-2"
+        contentContainerClassName="gap-2 px-4 pb-2"
       >
         {actions.map(({ action }) => {
           const suggested = action.id === suggestedId;
@@ -57,12 +57,12 @@ export function QuickActions({
               accessibilityLabel={suggested ? `${action.label}, suggested by Jev` : action.label}
               onPress={() => onRun(action)}
               className={cn(
-                "flex-row items-center gap-1.5 rounded-pill border px-3 py-1.5",
-                suggested ? "border-brand bg-brand-soft" : "border-line bg-surface-raised",
+                "flex-row items-center gap-1.5 rounded-full border px-3 py-1.5",
+                suggested ? "border-accent bg-accent-soft" : "border-line bg-panel",
               )}
             >
-              <Icon name={action.icon} size={14} tone="brand" />
-              <Text variant="caption" className="font-medium text-content">
+              <Icon name={action.icon} size={14} tone="accent" />
+              <Text variant="caption" className="font-medium text-fg">
                 {action.label}
                 {suggested ? " · Suggested" : ""}
               </Text>

@@ -13,7 +13,7 @@ export function SettingsScreen({
   children: React.ReactNode;
 }) {
   return (
-    <Screen className="bg-surface px-0" edges={[]}>
+    <Screen className="bg-panel px-0" edges={[]}>
       <Stack.Screen options={{ title }} />
       <KeyboardAvoidingView behavior="padding" className="flex-1">
         <ScrollView
@@ -22,7 +22,7 @@ export function SettingsScreen({
           contentContainerStyle={{ paddingTop: 16, paddingBottom: 48 }}
         >
           {intro ? (
-            <Text variant="bodyMuted" className="px-gutter pb-4">
+            <Text variant="bodyMuted" className="px-4 pb-4">
               {intro}
             </Text>
           ) : null}

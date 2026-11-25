@@ -1,19 +1,14 @@
 import { type ClassValue, clsx } from "clsx";
 import { extendTailwindMerge } from "tailwind-merge";
 
-import { Palette } from "../tokens";
-
-const FONT_SIZE_NAMES = ["micro", "caption", "footnote", "body", "title", "headline", "display"] as const;
-
-const COLOR_NAMES = Object.keys(Palette.light);
+import { COLOR_NAMES, FontSize, Radius } from "../tokens";
 
 const twMerge = extendTailwindMerge({
-  extend: {
-    classGroups: {
-      "font-size": [{ text: [...FONT_SIZE_NAMES] }],
-      "text-color": [{ text: COLOR_NAMES }],
-      "bg-color": [{ bg: COLOR_NAMES }],
-      "border-color": [{ border: COLOR_NAMES }],
+  override: {
+    theme: {
+      color: [...COLOR_NAMES, "transparent"],
+      radius: Object.keys(Radius),
+      text: Object.keys(FontSize),
     },
   },
 });

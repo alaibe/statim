@@ -33,7 +33,7 @@ export function ChatProfile() {
       <Screen className="px-0" edges={["top"]}>
         <Stack.Screen options={{ headerShown: false }} />
         <BackHeader label="Back" onPress={goBack} />
-        <Text variant="footnote" className="px-gutter">
+        <Text variant="footnote" className="px-4">
           That chat is not loaded.
         </Text>
       </Screen>
@@ -189,11 +189,11 @@ function ProfileScreen({
       <Stack.Screen options={{ headerShown: false }} />
       <BackHeader label="Back" onPress={goBack} />
       <ScrollView contentContainerStyle={{ paddingBottom: 48 }}>
-        <View className="items-center gap-3 px-gutter pb-5">
+        <View className="items-center gap-3 px-4 pb-5">
           {avatar}
           <ProfileTitle chat={chat} title={title} ens={ens} memberCount={memberCount} />
         </View>
-        <View className="flex-row justify-center gap-2 px-gutter pb-5">
+        <View className="flex-row justify-center gap-2 px-4 pb-5">
           <Action icon="chatbubble-outline" label="Message" onPress={() => openChatFromProfile(chat.id)} />
           {actions}
         </View>
@@ -235,7 +235,7 @@ function ProfileTitle({
 
 function AddressCard({ address, ens }: { address: string; ens: EnsProfile | null | undefined }) {
   return (
-    <Card className="mx-gutter mb-5 gap-1">
+    <Card className="mx-4 mb-5 gap-1">
       <Text variant="caption">Address</Text>
       <Text variant="mono" selectable>
         {shortAddress(address, 12, 10)}
@@ -271,10 +271,10 @@ function Action({ icon, label, onPress }: { icon: IconName; label: string; onPre
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      className="min-w-[84px] items-center gap-1 rounded-card bg-surface-sunken px-3 py-2.5"
+      className="min-w-[84px] items-center gap-1 rounded-lg bg-side px-3 py-2.5"
     >
-      <Icon name={icon} size={20} tone="brand" />
-      <Text variant="micro" className="font-medium text-content">
+      <Icon name={icon} size={20} tone="accent" />
+      <Text variant="micro" className="font-medium text-fg">
         {label}
       </Text>
     </Pressable>

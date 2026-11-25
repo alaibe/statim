@@ -91,7 +91,7 @@ export default function AccountsScreen() {
       </Section>
 
       {needsChatKeys ? (
-        <View className="mb-6 gap-2 px-gutter">
+        <View className="mb-6 gap-2 px-4">
           <Note icon="key-outline">
             <Text variant="footnote">
               Nostr, Status and notifications from your computer need chat keys for this account. Your wallet makes them
@@ -108,7 +108,7 @@ export default function AccountsScreen() {
         </View>
       ) : null}
 
-      <View className="gap-2 px-gutter">
+      <View className="gap-2 px-4">
         <Button label="Create a new account" fullWidth onPress={() => router.push("/(onboarding)/create")} />
         <Button
           label="Import a recovery phrase"

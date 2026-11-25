@@ -129,16 +129,15 @@ const ICONS = {
 export type IconName = keyof typeof ICONS;
 
 const TONE = {
-  content: "content",
-  muted: "content-muted",
-  subtle: "content-subtle",
-  brand: "brand",
-  "brand-on": "brand-on",
-  ai: "ai",
-  "bubble-out-on": "bubble-out-on",
+  fg: "fg",
+  muted: "muted",
+  subtle: "subtle",
+  accent: "accent",
+  "on-accent": "on-accent",
   success: "success",
   warning: "warning",
   danger: "danger",
+  info: "info",
 } as const satisfies Record<string, keyof ResolvedColors>;
 
 export type IconTone = keyof typeof TONE;

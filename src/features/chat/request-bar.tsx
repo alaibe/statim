@@ -8,7 +8,7 @@ import { answerRequest } from "./requests";
 export function RequestBar({ chatId, name, canBlock }: { chatId: ChatId; name: string; canBlock: boolean }) {
   const [blocking, setBlocking] = useState(false);
   return (
-    <View className="gap-3 border-t border-line bg-surface-raised px-gutter pb-3 pt-3">
+    <View className="gap-3 border-t border-line bg-panel px-4 pb-3 pt-3">
       <Text variant="caption" className="text-center">
         You have not accepted this request. Declining it takes the chat off your list without blocking the sender.
       </Text>

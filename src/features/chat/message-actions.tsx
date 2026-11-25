@@ -91,7 +91,7 @@ export function MessageActions({
         <Animated.View entering={FadeIn.duration(140)} exiting={FadeOut.duration(100)}>
           <View
             style={{ borderCurve: "continuous", height: REACTION_BAR_HEIGHT }}
-            className="flex-row items-center gap-1 rounded-pill bg-surface-raised px-2 shadow-sm"
+            className="flex-row items-center gap-1 rounded-full bg-panel px-2 shadow-popover"
           >
             {QUICK_REACTIONS.map((emoji) => (
               <RNPressable
@@ -102,7 +102,7 @@ export function MessageActions({
                   onReact(emoji);
                   onClose();
                 }}
-                className="h-9 w-9 items-center justify-center rounded-pill active:bg-surface-sunken"
+                className="h-9 w-9 items-center justify-center rounded-full active:bg-side"
               >
                 <Text className="text-[24px]">{emoji}</Text>
               </RNPressable>
@@ -116,7 +116,7 @@ export function MessageActions({
       <Animated.View entering={FadeIn.duration(140).delay(30)} exiting={FadeOut.duration(100)}>
         <View
           style={{ borderCurve: "continuous", minWidth: 200 }}
-          className="overflow-hidden rounded-card bg-surface-raised py-1 shadow-sm"
+          className="overflow-hidden rounded-lg bg-panel py-1 shadow-popover"
         >
           {actions.map((action) => (
             <RNPressable
@@ -127,9 +127,9 @@ export function MessageActions({
                 onClose();
                 action.onPress();
               }}
-              className="min-h-[46px] flex-row items-center gap-3 px-4 py-2.5 active:bg-surface-sunken"
+              className="min-h-[46px] flex-row items-center gap-3 px-4 py-2.5 active:bg-side"
             >
-              <Icon name={action.icon} size={20} tone={action.tone === "danger" ? "danger" : "content"} />
+              <Icon name={action.icon} size={20} tone={action.tone === "danger" ? "danger" : "fg"} />
               <Text className={cn("font-medium", action.tone === "danger" && "text-danger")}>{action.label}</Text>
             </RNPressable>
           ))}
@@ -142,7 +142,7 @@ export function MessageActions({
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <Animated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(120)} style={{ flex: 1 }}>
         <BlurView intensity={40} tint={colors.scheme === "dark" ? "dark" : "light"} style={{ flex: 1 }}>
-          {android ? <View className="absolute inset-0 bg-canvas/85" /> : null}
+          {android ? <View className="absolute inset-0 bg-bg/85" /> : null}
           {scrolls ? (
             <ScrollView
               contentContainerStyle={{ paddingTop: top, paddingBottom: screenHeight - bottom }}

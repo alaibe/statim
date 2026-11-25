@@ -28,11 +28,11 @@ export function PinnedMessages({
         accessibilityLabel={`View ${messages.length} pinned messages`}
         onPress={onOpen}
         style={{ top }}
-        className="absolute left-3 right-3 z-[9] flex-row items-center gap-2 rounded-card border border-line bg-surface-raised px-3 py-2 shadow-sm"
+        className="absolute left-3 right-3 z-[9] flex-row items-center gap-2 rounded-lg border border-line bg-panel px-3 py-2 shadow-popover"
       >
-        <Icon name="pin-outline" size={17} tone="brand" />
+        <Icon name="pin-outline" size={17} tone="accent" />
         <View className="min-w-0 flex-1">
-          <Text variant="micro" className="font-semibold text-brand">
+          <Text variant="micro" className="font-semibold text-accent">
             {messages.length === 1 ? "Pinned message" : `${messages.length} pinned messages`}
           </Text>
           <Text variant="caption" numberOfLines={1}>

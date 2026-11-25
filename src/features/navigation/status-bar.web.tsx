@@ -31,8 +31,8 @@ function hintsFor(segments: readonly string[]): Hint[] {
 
 function Key({ label }: { label: string }) {
   return (
-    <View className="h-4 min-w-4 items-center justify-center rounded-[2px] border border-b-2 border-line-strong bg-canvas px-1">
-      <Text variant="mono" className="text-[10px] leading-none text-content-muted">
+    <View className="h-4 min-w-4 items-center justify-center rounded-sm border border-b-2 border-line-strong bg-bg px-1">
+      <Text variant="mono" className="text-[10px] leading-none text-muted">
         {label}
       </Text>
     </View>
@@ -43,16 +43,16 @@ export function StatusBar() {
   const segments = useSegments();
   const hints = hintsFor(segments);
   return (
-    <View className="h-6 flex-row items-center gap-2 border-t border-line bg-surface-sunken px-3">
-      <View className="h-1.5 w-1.5 rounded-full bg-brand" style={{ boxShadow: "0 0 8px rgb(var(--color-brand))" }} />
-      <Text variant="micro" className="text-content">
+    <View className="h-6 flex-row items-center gap-2 border-t border-line bg-side px-3">
+      <View className="h-1.5 w-1.5 rounded-full bg-accent" style={{ boxShadow: "0 0 8px rgb(var(--color-accent))" }} />
+      <Text variant="micro" className="text-fg">
         Statim
       </Text>
       <View className="flex-1" />
       {hints.map((hint, index) => (
         <Fragment key={hint.action}>
           {index > 0 ? (
-            <Text variant="mono" className="text-[11px] text-content-subtle">
+            <Text variant="mono" className="text-[11px] text-subtle">
               ·
             </Text>
           ) : null}
@@ -60,7 +60,7 @@ export function StatusBar() {
             {hint.keys.map((key) => (
               <Key key={key} label={key} />
             ))}
-            <Text variant="mono" className="text-[11px] text-content-muted">
+            <Text variant="mono" className="text-[11px] text-muted">
               {hint.action}
             </Text>
           </View>

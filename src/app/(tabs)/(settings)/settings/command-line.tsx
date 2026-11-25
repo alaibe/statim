@@ -61,7 +61,7 @@ export default function CommandLineScreen() {
 
   return (
     <SettingsScreen title="Command line">
-      <View className="gap-2 px-gutter pb-6">
+      <View className="gap-2 px-4 pb-6">
         <Text variant="body">
           statim does from a terminal whatever this app does: read and send messages, manage chats and groups, run
           plugin commands. It talks to this app, and starts it in the background when it is closed.

@@ -47,7 +47,7 @@ export default function PrivacyScreen() {
         />
       </Section>
 
-      <Text variant="footnote" className="px-gutter pb-6">
+      <Text variant="footnote" className="px-4 pb-6">
         Unread state is otherwise kept on this device only. Nothing tells anyone which chats you have open, which you
         have pinned, or which you have muted.
       </Text>

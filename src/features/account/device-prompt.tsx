@@ -173,7 +173,7 @@ function Confirming({ prompt }: { prompt: Extract<DevicePrompt, { kind: "confirm
   const { label, connection } = prompt.vendor;
   return (
     <View className="flex-row items-center gap-3">
-      <ActivityIndicator color={colors.content} />
+      <ActivityIndicator color={colors.fg} />
       <Text variant="footnote" className="flex-1">
         {connection === "companion-app"
           ? `Finish in ${label} Suite, then come back to Statim.`

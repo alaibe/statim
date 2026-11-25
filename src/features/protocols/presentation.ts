@@ -6,7 +6,7 @@ import type { ProtocolDescriptor } from "@/core/messaging/registry";
 import type { IconName } from "@/design";
 import { connectableProtocols, protocolById } from "@/protocols";
 
-type ProtocolTone = "neutral" | "brand" | "success" | "warning" | "danger";
+type ProtocolTone = "neutral" | "accent" | "success" | "warning" | "danger";
 
 export function toneFor(meta: ChatProtocolMeta): ProtocolTone {
   if (!meta.properties.endToEndEncrypted) return "danger";
@@ -42,7 +42,7 @@ export function connectionBadge(
         ? { label: "Incomplete", tone: "warning" }
         : { label: "Connected", tone: "success" };
     case "connecting":
-      return { label: "Connecting", tone: "brand" };
+      return { label: "Connecting", tone: "accent" };
     case "error":
       return { label: "Failed", tone: "danger" };
     default:

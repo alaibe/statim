@@ -80,8 +80,8 @@ true;`,
         presentationStyle="pageSheet"
         onRequestClose={() => void finish(null)}
       >
-        <SafeAreaView className="flex-1 bg-canvas" edges={["top", "bottom"]}>
-          <View className="flex-row items-center justify-between px-gutter py-2">
+        <SafeAreaView className="flex-1 bg-bg" edges={["top", "bottom"]}>
+          <View className="flex-row items-center justify-between px-4 py-2">
             <Text className="font-semibold">Sign in to {network}</Text>
             <Button label="Cancel" tone="ghost" size="sm" onPress={() => finish(null)} />
           </View>

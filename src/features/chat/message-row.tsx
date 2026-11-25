@@ -68,7 +68,7 @@ export function MessageRow({
     <>
       {startsNewDay ? <DateSeparator at={message.sentAt} /> : null}
       {divider ? <SectionDivider label={divider} /> : null}
-      <View className={highlighted ? "bg-brand/15" : undefined}>
+      <View className={highlighted ? "bg-accent/15" : undefined}>
         <MessageBubble
           message={message}
           grouped={grouped}

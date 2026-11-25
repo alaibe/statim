@@ -23,7 +23,7 @@ export default function ChatsScreen() {
                 <IconButton
                   icon="chevron-back"
                   label={leaveFolderLabel(folder)}
-                  tone="brand"
+                  tone="accent"
                   onPress={() => setFolder(null)}
                 />
               )
@@ -40,7 +40,7 @@ export default function ChatsScreen() {
                 testID="header-new-chat"
                 icon="create-outline"
                 label="New message"
-                tone="brand"
+                tone="accent"
                 onPress={() => router.push("/new-chat")}
               />
             </View>

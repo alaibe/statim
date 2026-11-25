@@ -31,34 +31,26 @@ export function LinkPreviewCard({ url, fromMe }: { url: string; fromMe: boolean 
       accessibilityRole="link"
       accessibilityLabel={[siteName, title].filter(Boolean).join(". ") || url}
       onPress={open}
-      className={cn("mt-1.5 flex-row gap-2 rounded-md px-2 py-1.5", fromMe ? "bg-bubble-out-on/15" : "bg-content/5")}
+      className={cn("mt-1.5 flex-row gap-2 rounded-md px-2 py-1.5", fromMe ? "bg-fg/15" : "bg-fg/5")}
       style={{
         borderCurve: "continuous",
         width: Math.min(screenWidth * MAX_WIDTH_RATIO, MAX_WIDTH),
       }}
     >
-      <View className={cn("w-0.5 rounded-full", fromMe ? "bg-bubble-out-on" : "bg-brand")} />
+      <View className={cn("w-0.5 rounded-full", fromMe ? "bg-fg" : "bg-accent")} />
       <View className="min-w-0 flex-1 gap-0.5">
         {siteName ? (
-          <Text
-            variant="caption"
-            numberOfLines={1}
-            className={cn("font-semibold", fromMe ? "text-bubble-out-on" : "text-brand")}
-          >
+          <Text variant="caption" numberOfLines={1} className={cn("font-semibold", fromMe ? "text-fg" : "text-accent")}>
             {siteName}
           </Text>
         ) : null}
         {title ? (
-          <Text
-            variant="footnote"
-            numberOfLines={3}
-            className={cn("font-semibold", fromMe ? "text-bubble-out-on" : "text-bubble-in-on")}
-          >
+          <Text variant="footnote" numberOfLines={3} className={cn("font-semibold", fromMe ? "text-fg" : "text-fg")}>
             {title}
           </Text>
         ) : null}
         {description ? (
-          <Text variant="footnote" numberOfLines={3} className={fromMe ? "text-bubble-out-on/80" : undefined}>
+          <Text variant="footnote" numberOfLines={3} className={fromMe ? "text-fg/80" : undefined}>
             {description}
           </Text>
         ) : null}

@@ -185,7 +185,7 @@ export function Composer({
         onPick={({ command }) => fill(`/${command.name} `)}
         render={({ command, pluginId }) => (
           <>
-            <Text className="font-mono text-footnote font-semibold text-brand">/{command.name}</Text>
+            <Text className="font-mono text-md font-semibold text-accent">/{command.name}</Text>
             <Text variant="caption" numberOfLines={1} className="flex-1">
               {command.description}
             </Text>
@@ -195,7 +195,7 @@ export function Composer({
       />
 
       {shownError ? (
-        <Animated.View entering={Enter.fade()} exiting={Exit.fade()} className="mx-gutter mb-1.5">
+        <Animated.View entering={Enter.fade()} exiting={Exit.fade()} className="mx-4 mb-1.5">
           <ErrorText>{shownError}</ErrorText>
         </Animated.View>
       ) : null}
@@ -227,8 +227,8 @@ export function Composer({
 
         <View
           className={cn(
-            "min-h-[44px] flex-1 flex-row items-end rounded-pill border bg-surface-raised pl-4 pr-1",
-            ghostText ? "border-ai/60" : "border-line",
+            "min-h-[44px] flex-1 flex-row items-end rounded-full border bg-panel pl-4 pr-1",
+            ghostText ? "border-accent-strong/60" : "border-line",
           )}
         >
           <ComposerInput
@@ -245,7 +245,7 @@ export function Composer({
             onFile={canAttach ? (file) => void attach(() => contentFromBrowserFile(file, can)) : undefined}
             onEditLast={value === "" && !busy && !editing ? onEditLast : undefined}
             placeholder={ghostText ?? (thread ? "Reply in thread" : "Message")}
-            placeholderColor={ghostText ? colors.ai : colors["content-subtle"]}
+            placeholderColor={ghostText ? colors["accent-strong"] : colors.subtle}
           />
 
           {ready ? (
@@ -256,7 +256,7 @@ export function Composer({
               onPress={takeReply}
               className="h-11 w-9 items-center justify-center"
             >
-              <Icon name="sparkles-outline" size={20} tone="ai" />
+              <Icon name="sparkles-outline" size={20} tone="accent" />
             </Pressable>
           ) : null}
 
@@ -280,8 +280,8 @@ export function Composer({
             testID="composer-send"
             icon={busy ? "ellipsis-horizontal" : "arrow-up"}
             label="Send"
-            surface={canSend ? "brand" : "outline"}
-            tone={canSend ? "brand-on" : "subtle"}
+            surface={canSend ? "accent" : "outline"}
+            tone={canSend ? "on-accent" : "subtle"}
             size={20}
             disabled={!canSend}
             onPress={() => void submit()}

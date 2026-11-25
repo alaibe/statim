@@ -45,9 +45,9 @@ export function ChatHeader({ chat, thread, nameFor, onBack }: ChatHeaderProps) {
         onPress={() => router.push(`/profile/${id}`)}
         className="flex-1 items-center"
       >
-        <View className="max-w-full overflow-hidden rounded-pill px-4 py-1.5">
+        <View className="max-w-full overflow-hidden rounded-full px-4 py-1.5">
           <BlurView intensity={40} tint={colors.scheme === "dark" ? "dark" : "light"} style={StyleSheet.absoluteFill} />
-          <View className="absolute inset-0 bg-canvas/55" />
+          <View className="absolute inset-0 bg-bg/55" />
           <Text className="text-center font-semibold" numberOfLines={1}>
             {title}
           </Text>
@@ -64,7 +64,7 @@ export function ChatHeader({ chat, thread, nameFor, onBack }: ChatHeaderProps) {
           <IconButton
             icon="search-outline"
             label="Search in chat"
-            tone="brand"
+            tone="accent"
             size={20}
             onPress={() => router.push(`/search?chatId=${encodeURIComponent(id)}`)}
           />
@@ -99,7 +99,7 @@ function HeaderBar({ children }: { children: React.ReactNode }) {
     <View
       className={
         android
-          ? "absolute left-0 right-0 top-0 z-10 flex-row items-center gap-2 border-b border-line bg-canvas px-3"
+          ? "absolute left-0 right-0 top-0 z-10 flex-row items-center gap-2 border-b border-line bg-bg px-3"
           : "absolute left-0 right-0 top-0 z-10 flex-row items-center gap-2 px-3"
       }
       style={{ paddingTop: insets.top + frame.top + 6, paddingBottom: 8 }}
@@ -112,10 +112,10 @@ function HeaderBar({ children }: { children: React.ReactNode }) {
 
 /** Hides messages behind the clock and the header, and fades them out just below it, as iOS bars do over scrolled content. */
 function ScrollEdge() {
-  const { canvas } = useThemeColors();
+  const { bg: canvas } = useThemeColors();
   return (
     <>
-      <View className="absolute inset-0 bg-canvas" style={{ pointerEvents: "none" }} />
+      <View className="absolute inset-0 bg-bg" style={{ pointerEvents: "none" }} />
       <View
         style={{
           position: "absolute",
@@ -139,18 +139,18 @@ function BackButton({ onBack }: { onBack(): void }) {
       accessibilityRole="button"
       accessibilityLabel="Back"
       onPress={onBack}
-      className="h-10 w-10 items-center justify-center overflow-hidden rounded-pill"
+      className="h-10 w-10 items-center justify-center overflow-hidden rounded-full"
     >
       <BlurView intensity={40} tint={colors.scheme === "dark" ? "dark" : "light"} style={StyleSheet.absoluteFill} />
-      <View className="absolute inset-0 bg-canvas/55" />
-      <Icon name="chevron-back" size={22} tone="brand" />
+      <View className="absolute inset-0 bg-bg/55" />
+      <Icon name="chevron-back" size={22} tone="accent" />
     </Pressable>
   );
 }
 
 function CloseThread({ onBack }: { onBack(): void }) {
   return desktop ? (
-    <IconButton icon="close" label="Close thread" tone="brand" size={20} onPress={onBack} />
+    <IconButton icon="close" label="Close thread" tone="accent" size={20} onPress={onBack} />
   ) : (
     <View className="h-10 w-10" />
   );

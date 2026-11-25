@@ -37,7 +37,7 @@ export function BlockSheet({ chatId, name, onClose }: { chatId: ChatId; name: st
 
 export function BlockedBar({ chatId }: { chatId: ChatId }) {
   return (
-    <View className="mx-gutter mb-2 gap-2">
+    <View className="mx-4 mb-2 gap-2">
       <Text variant="caption" className="text-center">
         You blocked this person. Nothing they send reaches you.
       </Text>

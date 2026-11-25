@@ -39,7 +39,7 @@ export default function ImportAccount() {
   }
 
   return (
-    <Screen className="px-gutter">
+    <Screen className="px-4">
       <View className="-ml-2 flex-row pt-1">
         <IconButton icon="chevron-back" label="Back" onPress={goBack} />
       </View>

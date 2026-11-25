@@ -33,7 +33,7 @@ export default function RequestsScreen() {
                   id: "accept",
                   label: "Accept",
                   icon: "checkmark-circle-outline",
-                  tone: "brand",
+                  tone: "accent",
                   onPress: () => answerRequest(item.id, "accepted"),
                 },
               ]}

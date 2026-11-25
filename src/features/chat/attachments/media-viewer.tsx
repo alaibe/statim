@@ -15,7 +15,7 @@ interface MediaViewerProps {
 export function MediaViewer({ visible, onClose, onSave, interactive, children }: MediaViewerProps) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View className="flex-1 items-center justify-center bg-black">
+      <View className="flex-1 items-center justify-center bg-void">
         <RNPressable
           accessible={false}
           importantForAccessibility="no-hide-descendants"

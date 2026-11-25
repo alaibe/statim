@@ -40,7 +40,7 @@ function BridgeLogin({ bridge, goBack }: { bridge: KnownBridge; goBack: () => vo
   const label = BRIDGED_NETWORKS[bridge.network];
 
   return (
-    <Screen className="px-gutter" edges={["top", "bottom"]}>
+    <Screen className="px-4" edges={["top", "bottom"]}>
       <ModalHeader title={`Connect ${label}`} onClose={goBack} />
 
       <KeyboardAvoidingView behavior="padding" className="flex-1">

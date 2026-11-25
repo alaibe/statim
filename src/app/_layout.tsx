@@ -74,7 +74,7 @@ function RootLayout() {
 
 function Crashed({ resetError }: ObserveErrorBoundaryFallbackProps) {
   return (
-    <View className="flex-1 bg-canvas">
+    <View className="flex-1 bg-bg">
       <EmptyState
         title="Something went wrong"
         description="This screen hit an error it could not recover from. Your account and messages are not affected."
@@ -133,7 +133,7 @@ function AppShell() {
   }, [lockStatus, markInteractive]);
 
   return (
-    <View className="flex-1 bg-canvas">
+    <View className="flex-1 bg-bg">
       <StatusBar style={colors.scheme === "dark" ? "light" : "dark"} />
       <AppFrame>
         <Stack
@@ -168,7 +168,7 @@ function AppShell() {
             options={{
               presentation: "formSheet",
               sheetAllowedDetents: "fitToContents",
-              contentStyle: { backgroundColor: colors.surface },
+              contentStyle: { backgroundColor: colors.panel },
             }}
           />
         </Stack>
@@ -182,7 +182,7 @@ function AppShell() {
       {lockStatus === "open" ? null : lockStatus === "locked" ? (
         <LockGate />
       ) : (
-        <View className="absolute inset-0 bg-canvas" />
+        <View className="absolute inset-0 bg-bg" />
       )}
     </View>
   );

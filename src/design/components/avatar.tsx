@@ -68,7 +68,7 @@ export function Avatar({ seed, size = "md", label, image, emoji }: AvatarProps) 
         accessibilityRole="image"
         accessibilityLabel={label ? `Avatar for ${label}` : "Avatar"}
         style={{ width: px, height: px }}
-        className="items-center justify-center rounded-pill bg-brand-soft"
+        className="items-center justify-center rounded-full bg-accent-soft"
       >
         <Text style={{ fontSize: px * 0.52, lineHeight: px, textAlign: "center" }}>{emoji}</Text>
       </View>
@@ -82,9 +82,9 @@ export function Avatar({ seed, size = "md", label, image, emoji }: AvatarProps) 
         accessibilityRole="image"
         accessibilityLabel={`Avatar for ${label}`}
         style={{ width: px, height: px, backgroundColor: bg }}
-        className="items-center justify-center rounded-pill"
+        className="items-center justify-center rounded-full"
       >
-        <Text className="font-semibold text-white" style={{ fontSize: px * 0.36 }}>
+        <Text className="font-semibold text-fg" style={{ fontSize: px * 0.36 }}>
           {initials}
         </Text>
       </View>
@@ -97,7 +97,7 @@ export function Avatar({ seed, size = "md", label, image, emoji }: AvatarProps) 
       accessibilityRole="image"
       accessibilityLabel="Identicon"
       style={{ width: px, height: px, backgroundColor: bg }}
-      className="flex-row flex-wrap overflow-hidden rounded-pill"
+      className="flex-row flex-wrap overflow-hidden rounded-full"
     >
       {cells.map((on, i) => (
         <View key={i} style={{ width: cell, height: cell, backgroundColor: on ? fg : "transparent" }} />

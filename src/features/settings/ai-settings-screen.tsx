@@ -214,7 +214,7 @@ function AiSettingsForm({ accountId, saved }: { accountId: string; saved: Saved 
                 trailing={<Toggle label={title} value={draft[flag]} onValueChange={(on) => change({ [flag]: on })} />}
               />
             ))}
-            <View className="gap-3 px-gutter py-4">
+            <View className="gap-3 px-4 py-4">
               <Field
                 testID="ai-typesafe-key"
                 label="TypeSafe API key"
@@ -254,7 +254,7 @@ function AiSettingsForm({ accountId, saved }: { accountId: string; saved: Saved 
 
           {form ? (
             <Section title={form.title} surface="card" className="mb-6">
-              <View className="gap-3 px-gutter py-4">
+              <View className="gap-3 px-4 py-4">
                 {draft.source === "openai" ? (
                   <Field
                     testID="ai-url"
@@ -316,7 +316,7 @@ function AiSettingsForm({ accountId, saved }: { accountId: string; saved: Saved 
             </Section>
           ) : null}
 
-          <View className="mb-6 flex-row gap-2 px-gutter">
+          <View className="mb-6 flex-row gap-2 px-4">
             <View className="flex-1">
               <Button
                 testID="ai-save"
@@ -342,7 +342,7 @@ function AiSettingsForm({ accountId, saved }: { accountId: string; saved: Saved 
         </>
       ) : null}
 
-      <Note className="mx-gutter" icon="information-circle-outline">
+      <Note className="mx-4" icon="information-circle-outline">
         <Text variant="footnote">
           AI is off until you turn it on. Commands run when you type them or tap their chips. Enabled Jev features also
           check chats as you view them. Nothing is sent to the chat until you send it yourself.

@@ -25,7 +25,7 @@ export default function ProtocolConfigScreen() {
   if (!descriptor) {
     return (
       <SettingsScreen title="Protocol">
-        <Text className="px-gutter">No protocol called “{id}”.</Text>
+        <Text className="px-4">No protocol called “{id}”.</Text>
       </SettingsScreen>
     );
   }
@@ -42,7 +42,7 @@ function ProtocolSettings({ descriptor }: { descriptor: ProtocolDescriptor }) {
   return (
     <SettingsScreen title={descriptor.label} intro={descriptor.description}>
       <HistoryStatus protocol={descriptor.id} />
-      <View className="gap-3 px-gutter">
+      <View className="gap-3 px-4">
         <Card className="gap-2">
           <View className="flex-row items-start gap-2">
             <Badge

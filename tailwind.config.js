@@ -1,85 +1,28 @@
-const { platformSelect } = require("nativewind/theme");
+const tokens = require("./src/design/laibe/tokens.json");
 
+const px = (group) => Object.fromEntries(Object.entries(group).map(([name, value]) => [name, `${value}px`]));
+
+/** The theme is the design system's and nothing else: a colour, radius or size it doesn't name doesn't exist. */
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ["./src/**/*.{js,jsx,ts,tsx}"],
   presets: [require("nativewind/preset")],
   darkMode: "class",
   theme: {
+    colors: {
+      transparent: "transparent",
+      ...Object.fromEntries(
+        Object.keys(tokens.colors).map((name) => [name, `rgb(var(--color-${name}) / <alpha-value>)`]),
+      ),
+    },
+    borderRadius: px(tokens.radius),
+    fontSize: px(tokens.fontSize),
+    // React Native's `fontFamily` takes one loaded family name; `Text` picks the weight's file.
+    fontFamily: { sans: "Inter-400", mono: "JetBrainsMono-400" },
+    letterSpacing: Object.fromEntries(Object.entries(tokens.tracking).map(([name, value]) => [name, `${value}em`])),
+    boxShadow: { none: "none", ...tokens.shadow },
     extend: {
-      colors: {
-        // `<alpha-value>` keeps opacity modifiers such as `bg-surface/60` working.
-        brand: {
-          DEFAULT: "rgb(var(--color-brand) / <alpha-value>)",
-          soft: "rgb(var(--color-brand-soft) / <alpha-value>)",
-          strong: "rgb(var(--color-brand-strong) / <alpha-value>)",
-          on: "rgb(var(--color-brand-on) / <alpha-value>)",
-        },
-        ai: "rgb(var(--color-ai) / <alpha-value>)",
-        canvas: "rgb(var(--color-canvas) / <alpha-value>)",
-        surface: {
-          DEFAULT: "rgb(var(--color-surface) / <alpha-value>)",
-          raised: "rgb(var(--color-surface-raised) / <alpha-value>)",
-          sunken: "rgb(var(--color-surface-sunken) / <alpha-value>)",
-        },
-        content: {
-          DEFAULT: "rgb(var(--color-content) / <alpha-value>)",
-          muted: "rgb(var(--color-content-muted) / <alpha-value>)",
-          subtle: "rgb(var(--color-content-subtle) / <alpha-value>)",
-        },
-        line: {
-          DEFAULT: "rgb(var(--color-line) / <alpha-value>)",
-          strong: "rgb(var(--color-line-strong) / <alpha-value>)",
-        },
-        bubble: {
-          out: "rgb(var(--color-bubble-out) / <alpha-value>)",
-          "out-on": "rgb(var(--color-bubble-out-on) / <alpha-value>)",
-          in: "rgb(var(--color-bubble-in) / <alpha-value>)",
-          "in-on": "rgb(var(--color-bubble-in-on) / <alpha-value>)",
-        },
-        success: "rgb(var(--color-success) / <alpha-value>)",
-        warning: "rgb(var(--color-warning) / <alpha-value>)",
-        danger: "rgb(var(--color-danger) / <alpha-value>)",
-      },
-      borderRadius: {
-        card: "6px",
-        bubble: "4px",
-        field: "3px",
-        pill: "999px",
-      },
-      fontFamily: {
-        // React Native's `fontFamily` takes one family name, not a CSS variable or a stack.
-        sans: platformSelect({
-          ios: "System",
-          android: "sans-serif",
-          default: "var(--font-display)",
-        }),
-        mono: platformSelect({
-          ios: "Menlo",
-          android: "monospace",
-          default: "var(--font-mono)",
-        }),
-        rounded: platformSelect({
-          // iOS exposes the rounded system face under this name.
-          ios: "ui-rounded",
-          android: "sans-serif-medium",
-          default: "var(--font-rounded)",
-        }),
-      },
-      fontSize: {
-        // Body copy never goes below 16px on a phone; only metadata (timestamps, counts, labels) does.
-        micro: ["11px", { lineHeight: "14px" }],
-        caption: ["13px", { lineHeight: "17px" }],
-        footnote: ["15px", { lineHeight: "20px" }],
-        body: ["16px", { lineHeight: "22px" }],
-        title: ["18px", { lineHeight: "24px" }],
-        headline: ["24px", { lineHeight: "30px" }],
-        display: ["34px", { lineHeight: "40px" }],
-      },
-      spacing: {
-        gutter: "16px",
-        tap: "44px", // Apple's minimum accessible hit target
-      },
+      spacing: { touch: `${tokens.control.touch}px` },
     },
   },
   plugins: [],

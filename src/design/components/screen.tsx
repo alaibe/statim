@@ -11,7 +11,7 @@ export interface ScreenProps extends ViewProps {
 
 export function Screen({ className, children, edges = ["top"], ...props }: ScreenProps) {
   return (
-    <SafeAreaView edges={edges} className="flex-1 bg-canvas">
+    <SafeAreaView edges={edges} className="flex-1 bg-bg">
       <View className={cn("mx-auto w-full max-w-[720px] flex-1", className)} {...props}>
         {children}
       </View>

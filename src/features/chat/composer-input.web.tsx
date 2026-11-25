@@ -24,18 +24,18 @@ const TYPED: [RegExp, string][] = [
 ];
 
 const STYLE = `
-.composer-rich { outline: none; white-space: pre-wrap; overflow-wrap: anywhere; caret-color: rgb(var(--color-content)); }
+.composer-rich { outline: none; white-space: pre-wrap; overflow-wrap: anywhere; caret-color: rgb(var(--color-fg)); }
 .composer-rich code, .composer-rich pre {
   font-family: var(--font-mono), ui-monospace, monospace; font-size: 0.9em;
-  background: rgb(var(--color-content) / 0.07); border-radius: 4px; padding: 0 3px;
+  background: rgb(var(--color-fg) / 0.07); border-radius: 4px; padding: 0 3px;
 }
 .composer-rich pre { padding: 4px 8px; margin: 2px 0; }
 .composer-rich blockquote {
-  margin: 2px 0; padding-left: 8px; border-left: 2px solid rgb(var(--color-brand));
+  margin: 2px 0; padding-left: 8px; border-left: 2px solid rgb(var(--color-accent));
 }
 .composer-rich p, .composer-rich ul, .composer-rich ol { margin: 0; }
 .composer-rich ul, .composer-rich ol { padding-left: 20px; }
-.composer-rich a { color: rgb(var(--color-brand)); }
+.composer-rich a { color: rgb(var(--color-accent)); }
 `;
 
 export function ComposerInput({
@@ -156,7 +156,7 @@ export function ComposerInput({
             color: placeholderColor,
             pointerEvents: "none",
           }}
-          className="text-body"
+          className="text-md"
         >
           {placeholder}
         </div>
@@ -172,7 +172,7 @@ export function ComposerInput({
         onKeyDown={onKeyDown}
         onInput={onInput}
         onPaste={onPaste}
-        className="composer-rich text-body text-content"
+        className="composer-rich text-md text-fg"
         style={{
           gridArea: "1 / 1",
           maxHeight: 128,
@@ -198,11 +198,11 @@ function DropZone() {
         alignItems: "center",
         justifyContent: "center",
         borderRadius: 20,
-        border: "2px dashed rgb(var(--color-brand))",
-        background: "rgb(var(--color-canvas) / 0.85)",
+        border: "2px dashed rgb(var(--color-accent))",
+        background: "rgb(var(--color-bg) / 0.85)",
       }}
     >
-      <div className="text-title font-semibold" style={{ color: "rgb(var(--color-brand))" }}>
+      <div className="text-lg font-semibold" style={{ color: "rgb(var(--color-accent))" }}>
         Drop to send
       </div>
     </div>

@@ -10,7 +10,7 @@ export function SaveButton({ onPress, size = 18 }: { onPress: () => void; size?:
       accessibilityLabel="Save as…"
       onPress={onPress}
       hitSlop={8}
-      className="items-center justify-center rounded-pill bg-black/45 p-1.5"
+      className="items-center justify-center rounded-full bg-void/45 p-1.5"
     >
       <Icon name="download-outline" size={size} color="#fff" />
     </Pressable>

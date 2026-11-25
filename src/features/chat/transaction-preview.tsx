@@ -22,7 +22,7 @@ export function TransactionPreview({ hash, fromMe }: { hash: `0x${string}`; from
       onPress={() => {
         if (summary.explorerUrl) openUrlQuietly(summary.explorerUrl);
       }}
-      className={cn("mt-1.5 gap-1 rounded-md border p-2", fromMe ? "border-bubble-out-on/25" : "border-line")}
+      className={cn("mt-1.5 gap-1 rounded-md border p-2", fromMe ? "border-fg/25" : "border-line")}
       style={{ borderCurve: "continuous" }}
     >
       <View className="flex-row items-center gap-1.5">
@@ -43,7 +43,7 @@ export function TransactionPreview({ hash, fromMe }: { hash: `0x${string}`; from
         <Text variant="micro">· {summary.chainName}</Text>
       </View>
 
-      <Text className={cn("font-semibold", fromMe && "text-bubble-out-on")}>{summary.amount ?? "Contract call"}</Text>
+      <Text className={cn("font-semibold", fromMe && "text-fg")}>{summary.amount ?? "Contract call"}</Text>
 
       <Text variant="micro" numberOfLines={1}>
         {shortAddress(summary.from)} → {summary.to ? shortAddress(summary.to) : "contract creation"}

@@ -15,7 +15,7 @@ export function Toggle({ label, ...props }: ToggleProps) {
 
   return (
     <View {...KEEP_CLICK_OFF_ROW}>
-      <Switch trackColor={{ true: colors.brand, false: colors.line }} accessibilityLabel={label} {...props} />
+      <Switch trackColor={{ true: colors.accent, false: colors.line }} accessibilityLabel={label} {...props} />
     </View>
   );
 }

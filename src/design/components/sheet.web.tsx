@@ -49,15 +49,15 @@ export function Sheet({ visible, title, subtitle, leading, anchor, children, onC
 
   return (
     <Modal visible transparent animationType="none" onRequestClose={onClose}>
-      <RNPressable accessibilityLabel="Close" onPress={onClose} className={anchor ? "flex-1" : "flex-1 bg-content/20"}>
+      <RNPressable accessibilityLabel="Close" onPress={onClose} className={anchor ? "flex-1" : "flex-1 bg-fg/20"}>
         <View
           onLayout={(event) => setSize(event.nativeEvent.layout)}
           onStartShouldSetResponder={() => true}
           style={[placement, { width: WIDTH, position: "absolute" }]}
-          className="rounded-card border border-line bg-surface p-2 shadow-lg"
+          className="rounded-lg border border-line bg-panel p-2 shadow-popover"
         >
           {title || subtitle || leading ? (
-            <View className="min-h-tap flex-row items-center gap-3 px-2 py-1.5">
+            <View className="min-h-touch flex-row items-center gap-3 px-2 py-1.5">
               {leading}
               <View className="min-w-0 flex-1">
                 {title ? (

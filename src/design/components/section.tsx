@@ -25,17 +25,17 @@ export function Section({
 
   return (
     <View className={className} {...props}>
-      {title ? <Eyebrow className={cn("mb-1.5", card ? inset && "px-7" : "px-gutter")}>{title}</Eyebrow> : null}
+      {title ? <Eyebrow className={cn("mb-1.5", card ? inset && "px-7" : "px-4")}>{title}</Eyebrow> : null}
       <View
         style={card ? { borderCurve: "continuous" } : undefined}
         className={cn(
-          surface === "list" && "border-y border-line bg-surface-raised",
-          card && "overflow-hidden rounded-card bg-surface-raised",
-          card && inset && "mx-gutter",
+          surface === "list" && "border-y border-line bg-panel",
+          card && "overflow-hidden rounded-lg bg-panel",
+          card && inset && "mx-4",
         )}
       >
         {empty && Children.toArray(children).length === 0 ? (
-          <Text variant="footnote" className="px-gutter py-6">
+          <Text variant="footnote" className="px-4 py-6">
             {empty}
           </Text>
         ) : (

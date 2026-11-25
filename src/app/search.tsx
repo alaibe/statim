@@ -51,9 +51,9 @@ export default function SearchScreen() {
       <ModalHeader
         title={chatId ? `Search ${titles.get(chatId) ?? "chat"}` : "Search messages"}
         onClose={router.back}
-        className="px-gutter"
+        className="px-4"
       />
-      <View className="px-gutter pb-3">
+      <View className="px-4 pb-3">
         <SearchField
           autoFocus
           placeholder="Search messages"
@@ -68,8 +68,8 @@ export default function SearchScreen() {
           }}
         />
       </View>
-      <ErrorText className="px-gutter">{error}</ErrorText>
-      {searching ? <Text className="px-gutter py-2">Searching…</Text> : null}
+      <ErrorText className="px-4">{error}</ErrorText>
+      {searching ? <Text className="px-4 py-2">Searching…</Text> : null}
       <FlatList
         data={results}
         keyExtractor={(message) => `${message.chatId}:${message.id}`}

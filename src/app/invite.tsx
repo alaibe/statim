@@ -116,18 +116,18 @@ export default function InviteScreen() {
       <ModalHeader
         title="Invite contacts"
         onClose={() => router.back()}
-        className="px-gutter"
+        className="px-4"
         action={
           <Pressable
             accessibilityRole="button"
             onPress={() => setSelected(allVisibleSelected ? new Set() : new Set(visible.map((c) => c.id)))}
           >
-            <Text className="font-medium text-brand">{allVisibleSelected ? "Clear" : "Select all"}</Text>
+            <Text className="font-medium text-accent">{allVisibleSelected ? "Clear" : "Select all"}</Text>
           </Pressable>
         }
       />
 
-      <View className="px-gutter pb-4">
+      <View className="px-4 pb-4">
         <Field onChangeText={setQuery} placeholder="Search" autoCorrect={false} autoCapitalize="none" />
       </View>
 
@@ -135,8 +135,8 @@ export default function InviteScreen() {
         <Section surface="list">
           <ListItem
             testID="share-app"
-            title={<Text className="font-semibold text-brand">Share Statim</Text>}
-            leading={<Icon name="heart-outline" size={22} tone="brand" />}
+            title={<Text className="font-semibold text-accent">Share Statim</Text>}
+            leading={<Icon name="heart-outline" size={22} tone="accent" />}
             onPress={async () => {
               if (keyring) report(await shareText(inviteText(keyring.address)).catch(() => null));
             }}
@@ -146,14 +146,14 @@ export default function InviteScreen() {
         {loading ? (
           <Loading />
         ) : access === "unavailable" ? (
-          <Note className="mx-gutter mt-6" icon="lock-closed-outline">
+          <Note className="mx-4 mt-6" icon="lock-closed-outline">
             <Text variant="footnote">
               Suggestions from your address book are not available on this system. Share the link above, or scan the QR
               code from a phone that has the app.
             </Text>
           </Note>
         ) : access === "none" || access === "unknown" ? (
-          <Note className="mx-gutter mt-6" icon="lock-closed-outline">
+          <Note className="mx-4 mt-6" icon="lock-closed-outline">
             <Text variant="footnote">
               Your address book can suggest who to invite. It is read on this device only, never uploaded and never
               matched against a server. That is why this list cannot tell you who is already here.
@@ -180,7 +180,7 @@ export default function InviteScreen() {
       </ScrollView>
 
       {selected.size > 0 ? (
-        <View className="absolute inset-x-0 bottom-0 border-t border-line bg-surface-raised px-gutter pb-8 pt-3">
+        <View className="absolute inset-x-0 bottom-0 border-t border-line bg-panel px-4 pb-8 pt-3">
           <Button label={`Invite ${selected.size}`} fullWidth onPress={sendInvites} />
         </View>
       ) : null}

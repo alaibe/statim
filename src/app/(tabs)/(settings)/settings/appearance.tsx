@@ -42,7 +42,7 @@ export default function AppearanceScreen() {
       <MenuBarSetting />
 
       <Section title="Chat wallpaper" className="mb-6">
-        <View className="flex-row gap-3 px-gutter">
+        <View className="flex-row gap-3 px-4">
           {WALLPAPERS.map((entry) => {
             const active = entry.id === wallpaper;
             return (
@@ -56,8 +56,8 @@ export default function AppearanceScreen() {
                 <View
                   className={
                     active
-                      ? "h-28 overflow-hidden rounded-card border-2 border-brand"
-                      : "h-28 overflow-hidden rounded-card border border-line"
+                      ? "h-28 overflow-hidden rounded-lg border-2 border-accent"
+                      : "h-28 overflow-hidden rounded-lg border border-line"
                   }
                 >
                   <ChatBackground pattern={entry.id} />
@@ -66,7 +66,7 @@ export default function AppearanceScreen() {
                   <Text variant="caption" className={active ? "font-semibold" : undefined}>
                     {entry.label}
                   </Text>
-                  {active ? <Icon name="checkmark-circle" size={14} tone="brand" /> : null}
+                  {active ? <Icon name="checkmark-circle" size={14} tone="accent" /> : null}
                 </View>
               </Pressable>
             );

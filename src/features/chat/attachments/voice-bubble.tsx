@@ -23,8 +23,8 @@ export function VoiceBubble({ uri, durationMs, fromMe, seed }: VoiceBubbleProps)
   const total = status.duration ? status.duration * 1000 : durationMs;
   const played = status.currentTime ? (status.currentTime * 1000) / Math.max(total, 1) : 0;
 
-  const tint = fromMe ? colors["bubble-out-on"] : colors.brand;
-  const dim = fromMe ? colors["bubble-out-on"] : colors["content-subtle"];
+  const tint = fromMe ? colors["fg"] : colors.accent;
+  const dim = fromMe ? colors["fg"] : colors.subtle;
 
   return (
     <View className="min-w-[200px] flex-row items-center gap-3 py-0.5">
@@ -40,7 +40,7 @@ export function VoiceBubble({ uri, durationMs, fromMe, seed }: VoiceBubbleProps)
           player.play();
         }}
       >
-        <View className="h-10 w-10 items-center justify-center rounded-full bg-surface-sunken">
+        <View className="h-10 w-10 items-center justify-center rounded-full bg-side">
           <Icon name={status.playing ? "pause" : "play"} size={18} color={tint} />
         </View>
       </Pressable>
@@ -63,7 +63,7 @@ export function VoiceBubble({ uri, durationMs, fromMe, seed }: VoiceBubbleProps)
             );
           })}
         </View>
-        <Text variant="caption" className={fromMe ? "text-bubble-out-on/70" : undefined}>
+        <Text variant="caption" className={fromMe ? "text-fg/70" : undefined}>
           {formatDuration(status.playing || played > 0 ? (status.currentTime ?? 0) * 1000 : total)}
         </Text>
       </View>

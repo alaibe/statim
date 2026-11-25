@@ -28,7 +28,7 @@ export function PollBubble({
   );
   const voted = chosen.length > 0;
   const canVote = !!onVote && !poll.closed && !vote.busy;
-  const textColor = fromMe ? "text-bubble-out-on" : "text-bubble-in-on";
+  const textColor = fromMe ? "text-fg" : "text-fg";
 
   const submit = (ids: number[]) => {
     if (canVote) void vote.run(ids);
@@ -37,7 +37,7 @@ export function PollBubble({
   return (
     <View className="min-w-52 gap-2 py-1">
       <Text className={cn("font-semibold", textColor)}>{poll.question}</Text>
-      <Text variant="micro" className={fromMe ? "text-bubble-out-on/70" : undefined}>
+      <Text variant="micro" className={fromMe ? "text-fg/70" : undefined}>
         {poll.multiple ? "Choose one or more" : "Choose one"}
       </Text>
       {poll.options.map((option, index) => {
@@ -58,7 +58,7 @@ export function PollBubble({
             }
             className={cn(
               "min-h-10 flex-row items-center gap-2 rounded-lg px-2 py-1.5",
-              fromMe ? "bg-bubble-out-on/10" : "bg-content/5",
+              fromMe ? "bg-fg/10" : "bg-fg/5",
             )}
           >
             <Text className={textColor}>{poll.multiple ? (active ? "☑" : "□") : active ? "◉" : "○"}</Text>
@@ -78,7 +78,7 @@ export function PollBubble({
       (selected.length !== chosen.length || selected.some((id) => !chosen.includes(id))) ? (
         <Button label="Vote" size="sm" onPress={() => submit(selected)} />
       ) : null}
-      <Text variant="micro" className={fromMe ? "text-bubble-out-on/70" : undefined}>
+      <Text variant="micro" className={fromMe ? "text-fg/70" : undefined}>
         {poll.totalVoters} {poll.totalVoters === 1 ? "vote" : "votes"}
         {poll.closed ? " · Closed" : ""}
       </Text>

@@ -183,12 +183,12 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
         accessibilityLabel="Close"
         onPress={onClose}
         style={{ paddingLeft: insets.left }}
-        className="flex-1 items-center bg-content/30 pt-[12vh]"
+        className="flex-1 items-center bg-fg/30 pt-[12vh]"
       >
         <View
           onStartShouldSetResponder={() => true}
           style={{ borderCurve: "continuous" }}
-          className="max-h-[70vh] w-[560px] max-w-full overflow-hidden rounded-card bg-surface-raised shadow-xl"
+          className="max-h-[70vh] w-[560px] max-w-full overflow-hidden rounded-lg bg-panel shadow-popover"
         >
           <SearchField
             className="m-3 h-11 px-4"
@@ -210,7 +210,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
             ) : null}
             {entries.map((section) => (
               <View key={section.heading}>
-                <Eyebrow className="bg-surface px-5 py-1.5">{section.heading}</Eyebrow>
+                <Eyebrow className="bg-panel px-5 py-1.5">{section.heading}</Eyebrow>
                 {section.items.map((entry) => {
                   const active = flat[highlighted] === entry;
                   return (
@@ -222,7 +222,7 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
                       onHoverIn={() => setIndex(flat.indexOf(entry))}
                       className={
                         active
-                          ? "flex-row items-center gap-3 bg-brand px-5 py-2.5"
+                          ? "flex-row items-center gap-3 bg-accent px-5 py-2.5"
                           : "flex-row items-center gap-3 px-5 py-2.5"
                       }
                     >
@@ -232,21 +232,21 @@ function QuickSwitcherPanel({ onClose }: { onClose: () => void }) {
                         <View
                           className={
                             active
-                              ? "h-8 w-8 items-center justify-center rounded-pill bg-brand-on/20"
-                              : "h-8 w-8 items-center justify-center rounded-pill bg-surface-sunken"
+                              ? "h-8 w-8 items-center justify-center rounded-full bg-on-accent/20"
+                              : "h-8 w-8 items-center justify-center rounded-full bg-side"
                           }
                         >
-                          <Icon name={entry.icon} size={18} tone={active ? "brand-on" : "muted"} />
+                          <Icon name={entry.icon} size={18} tone={active ? "on-accent" : "muted"} />
                         </View>
                       )}
                       <Text
                         numberOfLines={1}
-                        className={active ? "flex-1 font-medium text-brand-on" : "flex-1 font-medium"}
+                        className={active ? "flex-1 font-medium text-on-accent" : "flex-1 font-medium"}
                       >
                         {entry.title}
                       </Text>
                       {entry.subtitle ? (
-                        <Text variant="caption" className={active ? "text-brand-on/80" : undefined}>
+                        <Text variant="caption" className={active ? "text-on-accent/80" : undefined}>
                           {entry.subtitle}
                         </Text>
                       ) : null}

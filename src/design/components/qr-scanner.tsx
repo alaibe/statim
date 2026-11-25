@@ -18,9 +18,9 @@ export function QrScanner({ title, closeLabel, hint, onClose, ...reader }: QrSca
     <Modal visible animationType="slide" onRequestClose={onClose}>
       <SafeAreaProvider>
         <Screen className="px-0" edges={["top", "bottom"]}>
-          <ModalHeader title={title} closeLabel={closeLabel} onClose={onClose} className="px-gutter" />
-          <QrReader {...reader} className="flex-1 px-gutter" />
-          <View className="px-gutter pt-1">
+          <ModalHeader title={title} closeLabel={closeLabel} onClose={onClose} className="px-4" />
+          <QrReader {...reader} className="flex-1 px-4" />
+          <View className="px-4 pt-1">
             <Text variant="caption">{hint}</Text>
           </View>
         </Screen>

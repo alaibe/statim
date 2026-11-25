@@ -30,7 +30,9 @@ export function EmptyState({ icon, title, description, actionLabel, onAction }: 
           {description}
         </Text>
       ) : null}
-      {actionLabel && onAction ? <Button label={actionLabel} tone="brand" onPress={onAction} className="mt-2" /> : null}
+      {actionLabel && onAction ? (
+        <Button label={actionLabel} tone="accent" onPress={onAction} className="mt-2" />
+      ) : null}
     </Animated.View>
   );
 }

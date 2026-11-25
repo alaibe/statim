@@ -35,7 +35,7 @@ export function ChatAvatar({
   return (
     <View>
       {avatar}
-      <View className="absolute -bottom-0.5 -right-0.5 rounded-pill border-2 border-surface">
+      <View className="absolute -bottom-0.5 -right-0.5 rounded-full border-2 border-panel">
         <NetworkMark network={network} label={networkLabel(network)} />
       </View>
     </View>
