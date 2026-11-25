@@ -15,6 +15,7 @@ import { Icon, type IconName } from "../icon";
 import { controlHeight, desktop } from "../lib/platform";
 import { type PressHandler, usePress } from "../lib/press";
 import { usePrimaryClaim } from "../lib/primary";
+import { useSubmitKey } from "../lib/submit-key";
 import { EASE_IN_OUT } from "../motion";
 import { Chamfer as ChamferSize, Radius, withAlpha } from "../tokens";
 import { Chamfer } from "./chamfer";
@@ -67,6 +68,9 @@ export function Button({
   const primary = variant === "primary";
   const filledDanger = variant === "danger" && confirm;
   usePrimaryClaim(primary);
+  useSubmitKey(keys?.join("+") === "mod+enter", () => {
+    if (!off) press?.();
+  });
 
   const tone = (hovered: boolean): TextTone => {
     if (disabled) return "subtle";

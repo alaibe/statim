@@ -4,7 +4,6 @@ import { View } from "react-native";
 import { useThemeColors } from "../hooks/use-theme-colors";
 import { type PressHandler, usePress } from "../lib/press";
 import { PrimaryScope } from "../lib/primary";
-import { useSubmitKey } from "../lib/submit-key";
 import { Chamfer as ChamferSize, Layout, Radius, Shadow, Space, withAlpha } from "../tokens";
 import { Button } from "./button";
 import { Chamfer } from "./chamfer";
@@ -115,7 +114,6 @@ export function ConfirmDialog({
   const busy = working || pending;
   const ready = !typedName || typed.trim() === typedName;
   const paragraphs = (Array.isArray(body) ? body : [body]).filter(Boolean) as string[];
-  useSubmitKey(sheet.visible && ready && !busy, () => press?.());
 
   return (
     <Sheet {...sheet} label={label}>

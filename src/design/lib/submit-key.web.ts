@@ -1,17 +1,27 @@
 import { useEffect, useEffectEvent } from "react";
 
-/** ⌘↵ (Ctrl+Enter) runs a dialog's primary action while it is open. */
+// Mounted ⌘↵ buttons, innermost last; ⌘↵ reaches only the top one, even while it is disabled.
+const stack: (() => void)[] = [];
+
+function onKey(event: KeyboardEvent) {
+  const top = stack.at(-1);
+  if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey) || !top) return;
+  event.preventDefault();
+  top();
+}
+
+// Capture phase: react-native-web stops keydown from bubbling out of inputs.
+function listen(handler: () => void) {
+  if (stack.length === 0) globalThis.addEventListener("keydown", onKey, true);
+  stack.push(handler);
+  return () => {
+    stack.splice(stack.indexOf(handler), 1);
+    if (stack.length === 0) globalThis.removeEventListener("keydown", onKey, true);
+  };
+}
+
+/** ⌘↵ (Ctrl+Enter) presses the button that shows it, the innermost one when dialogs stack. */
 export function useSubmitKey(active: boolean, onSubmit: () => void): void {
   const submit = useEffectEvent(onSubmit);
-  useEffect(() => {
-    if (!active) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey)) return;
-      event.preventDefault();
-      submit();
-    };
-    // Capture phase: react-native-web stops keydown from bubbling out of inputs.
-    globalThis.addEventListener("keydown", onKey, true);
-    return () => globalThis.removeEventListener("keydown", onKey, true);
-  }, [active]);
+  useEffect(() => (active ? listen(() => submit()) : undefined), [active]);
 }
