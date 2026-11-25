@@ -105,7 +105,7 @@ appId: im.statim.app
       - tapOn: "Open"
 - extendedWaitUntil:
     visible:
-      id: "settings-erase-account"
+      id: "settings-accounts"
     timeout: 20000
 - waitForAnimationToEnd
 - takeScreenshot: settings
