@@ -268,7 +268,8 @@ jobs:
             -o Dir::Cache::Archives=/cache/apt/archives \
             libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev \
             libssl-dev libayatana-appindicator3-dev librsvg2-dev \
-            cmake perl libudev-dev pkg-config patchelf xdg-utils
+            cmake perl libudev-dev pkg-config patchelf xdg-utils \
+            gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-pulseaudio gstreamer1.0-libav
           curl -fsSL -o "$RUNNER_TEMP/gh.tar.gz" "https://github.com/cli/cli/releases/download/v$GH_VERSION/gh_${GH_VERSION}_linux_amd64.tar.gz"
           echo "$GH_SHA256  $RUNNER_TEMP/gh.tar.gz" | sha256sum -c -
           sudo tar -xzf "$RUNNER_TEMP/gh.tar.gz" -C /usr/local --strip-components=1
