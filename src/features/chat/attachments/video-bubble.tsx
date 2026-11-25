@@ -103,5 +103,5 @@ export function PlayOverlay() {
 
 function ViewerVideo({ uri, gif }: { uri: string; gif: boolean }) {
   const player = useMessagePlayer(uri, gif, true);
-  return <VideoView player={player} style={{ flex: 1 }} contentFit="contain" nativeControls={!gif} />;
+  return <VideoView player={player} style={{ flex: 1, minHeight: 0 }} contentFit="contain" nativeControls={!gif} />;
 }
