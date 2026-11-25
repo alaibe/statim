@@ -10,6 +10,8 @@ mod homeserver;
 mod ledger;
 mod matrix;
 mod media;
+#[cfg(target_os = "linux")]
+mod opfs;
 mod paths;
 #[cfg(debug_assertions)]
 mod probe;
@@ -75,6 +77,11 @@ pub fn run() {
     #[cfg(feature = "updater")]
     {
         builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        builder = builder.register_asynchronous_uri_scheme_protocol(opfs::SCHEME, opfs::handle);
     }
 
     builder
@@ -219,6 +226,8 @@ pub fn run() {
             #[cfg(debug_assertions)]
             probe::watch(app.handle().clone());
             vault::preload(app.handle());
+            #[cfg(target_os = "linux")]
+            opfs::restrict(app.handle());
             paint_canvas(app.handle());
             cli::serve(app.handle());
             let opened = app.handle().clone();
