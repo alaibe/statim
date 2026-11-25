@@ -552,6 +552,17 @@ describe("MatrixSession chats", () => {
     expect(api.named("media")).toHaveLength(1);
   });
 
+  it("shows a DM without a picture of its own with the other person’s", async () => {
+    const { chat, api } = await connect(SESSION, (api) =>
+      api.roomsById.set(DM.id, { ...DM, heroAvatars: { [BOB]: "mxc://example.org/bob" } }),
+    );
+    const chats: ProtocolChat[] = [];
+    await chat.streamChats((c) => chats.push(c));
+    await flush();
+    expect(api.named("media")[0]).toMatchObject([{ source: JSON.stringify({ url: "mxc://example.org/bob" }) }]);
+    expect(chats.at(-1)?.avatarUri).toBe("file:///matrix/media/avatar");
+  });
+
   it("marks rooms unread through the SDK and shows the flag", async () => {
     const { chat, api } = await connect(SESSION, (api) =>
       api.roomsById.set(GROUP.id, { ...GROUP, markedUnread: true }),

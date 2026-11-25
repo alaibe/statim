@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { reportError } from "@/core/app/report-error";
 import { PLATFORM_NAME } from "@/lib/platform-name";
 
-/** On Linux an `asset://` file plays from a blob; null until it has loaded. */
-export function usePlayableUri(uri: string): string | null {
+/** On Linux an `asset://` file loads from a blob; null until it has loaded. */
+export function useLoadableUri(uri: string): string | null {
   const viaBlob = PLATFORM_NAME === "Linux" && uri.startsWith("asset:");
   const [loaded, setLoaded] = useState<{ from: string; blob: string } | null>(null);
 

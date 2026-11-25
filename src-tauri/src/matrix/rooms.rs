@@ -62,11 +62,11 @@ impl Session {
                     .find_map(|target| target.as_user_id().map(|id| id.to_string()))
             })
             .flatten();
-        let heroes = room
-            .heroes()
-            .await
-            .into_iter()
-            .map(|hero| hero.user_id.to_string())
+        let room_heroes = room.heroes().await;
+        let heroes = room_heroes.iter().map(|hero| hero.user_id.to_string()).collect();
+        let hero_avatars = room_heroes
+            .iter()
+            .filter_map(|hero| Some((hero.user_id.to_string(), hero.avatar_url.as_ref()?.to_string())))
             .collect();
         let (self_role, latest) = if joined {
             let (role, latest) = futures_util::join!(
@@ -106,6 +106,7 @@ impl Session {
                 peer,
                 membership,
                 heroes,
+                hero_avatars,
                 elevated,
                 self_role,
                 inviter,
@@ -156,6 +157,7 @@ pub async fn mx_members(state: State<'_, Matrix>, room_id: String) -> Result<Vec
         .map(|member| MxMember {
             user_id: member.user_id().to_string(),
             display_name: member.display_name().map(str::to_string),
+            avatar_url: member.avatar_url().map(|url| url.to_string()),
             role: role_str(member.suggested_role_for_power_level()),
             power_level: match member.power_level() {
                 UserPowerLevel::Int(level) => Some(level.into()),

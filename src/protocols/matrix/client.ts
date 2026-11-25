@@ -229,6 +229,9 @@ class RnMatrixClient implements MatrixApi {
       joined ? latestOf(room).catch(() => undefined) : undefined,
     ]);
     const heroes = info.heroes.map((hero) => hero.userId);
+    const heroAvatars = Object.fromEntries(
+      info.heroes.flatMap((hero) => (hero.avatarUrl ? [[hero.userId, hero.avatarUrl] as const] : [])),
+    );
     const messageType = new sdk.MessageLikeEventType.RoomMessage();
     const power = info.powerLevels;
     const requiredToSend = power
@@ -251,6 +254,7 @@ class RnMatrixClient implements MatrixApi {
       peer: info.isDm ? heroes.find((id) => id !== room.ownUserId() && !info.serviceMembers.includes(id)) : undefined,
       membership,
       heroes,
+      heroAvatars,
       elevated: [...(power ? power.userPowerLevels().keys() : []), ...(info.creators ?? [])],
       selfRole,
       inviter: info.inviter?.userId,
@@ -378,6 +382,7 @@ class RnMatrixClient implements MatrixApi {
         out.push({
           userId: member.userId,
           displayName: member.displayName,
+          avatarUrl: member.avatarUrl,
           role: mapRole(member.suggestedRoleForPowerLevel),
           powerLevel:
             member.powerLevel.tag === sdk.PowerLevel_Tags.Value ? Number(member.powerLevel.inner.value) : undefined,

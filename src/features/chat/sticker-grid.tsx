@@ -1,11 +1,10 @@
-import { Image } from "expo-image";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
 import { errorMessage } from "@/core/errors";
 import { stickerLabel } from "@/core/messaging/preview";
 import type { PickerPack } from "@/core/messaging/stickers";
 import type { ChatId, MessageContent } from "@/core/messaging/types";
-import { ErrorText, Loading, Pressable, Text } from "@/design";
+import { ErrorText, Image, Loading, Pressable, Text } from "@/design";
 
 import { StickerEmoji } from "./attachments/sticker-bubble";
 import { useLoadUntil, useStickerPacks } from "./use-sticker-packs";

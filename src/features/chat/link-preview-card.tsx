@@ -1,9 +1,8 @@
-import { Image } from "expo-image";
 import { useState } from "react";
 import { useWindowDimensions, View } from "react-native";
 import { useAppearanceStore } from "@/core/app/appearance";
 import type { LinkPreview } from "@/core/messaging/link-preview";
-import { cn, Pressable, Text } from "@/design";
+import { cn, Image, Pressable, Text } from "@/design";
 import { openExternal, openInBrowser } from "@/lib/open-url";
 import { PlayOverlay } from "./attachments/video-bubble";
 import { useLinkPreview } from "./use-link-preview";

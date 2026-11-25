@@ -39,6 +39,8 @@ export interface MxRoom {
   membership: MxMembership;
   /** Who the room is named after when it has no name. */
   heroes: string[];
+  /** The heroes' own pictures, by user ID, for those that have one. */
+  heroAvatars?: Record<string, string>;
   /** Who has a power level of their own, and the room's creators. */
   elevated: string[];
   selfRole: MxRole;
@@ -58,6 +60,7 @@ export interface MxRoom {
 export interface MxMember {
   userId: string;
   displayName?: string;
+  avatarUrl?: string;
   role: MxRole;
   /** Unset for a room creator, whose power has no number. */
   powerLevel?: number;

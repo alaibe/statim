@@ -1,4 +1,3 @@
-import { Image } from "expo-image";
 import { useState } from "react";
 import { ScrollView, useWindowDimensions, View } from "react-native";
 import { isLocalChat } from "@/core/messaging/bots";
@@ -6,7 +5,7 @@ import { useChatStore } from "@/core/messaging/chat-store";
 import { countsFor, entriesOf, type MediaCategory, type MediaEntry } from "@/core/messaging/media-index";
 import { formatDayLabel } from "@/core/messaging/preview";
 import type { ChatId } from "@/core/messaging/types";
-import { Icon, type IconName, ListItem, Pressable, Text } from "@/design";
+import { Icon, type IconName, Image, ListItem, Pressable, Text } from "@/design";
 import { openUrlQuietly } from "./link-actions";
 
 const TABS: { id: MediaCategory; label: string }[] = [

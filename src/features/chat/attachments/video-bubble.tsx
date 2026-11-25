@@ -4,9 +4,9 @@ import { useWindowDimensions, View } from "react-native";
 
 import { formatDuration } from "@/core/messaging/preview";
 import { Icon, Pressable, Text } from "@/design";
+import { useLoadableUri } from "@/lib/loadable-uri";
 import { MessageText } from "../message-text";
 import { MediaViewer } from "./media-viewer";
-import { usePlayableUri } from "./playable-uri";
 import { HoverSave } from "./save-button";
 
 interface VideoBubbleProps {
@@ -21,7 +21,7 @@ interface VideoBubbleProps {
 }
 
 export function useMessagePlayer(uri: string, looping: boolean, autoplay = looping) {
-  const playable = usePlayableUri(uri);
+  const playable = useLoadableUri(uri);
   const player = useVideoPlayer(playable, (player) => {
     player.loop = looping;
     player.muted = looping;
