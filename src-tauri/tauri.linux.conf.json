@@ -1,5 +1,21 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "app": {
+    "windows": [
+      {
+        "title": "Statim",
+        "visible": false,
+        "backgroundThrottling": "disabled",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 720,
+        "minHeight": 480,
+        "resizable": true,
+        "fullscreen": false,
+        "dragDropEnabled": true
+      }
+    ]
+  },
   "bundle": {
     "resources": {
       "frameworks/libtdjson.so": "libtdjson.so"

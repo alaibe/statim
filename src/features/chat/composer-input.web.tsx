@@ -1,7 +1,11 @@
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import type { DragDropEvent } from "@tauri-apps/api/webview";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useEffect, useEffectEvent, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 
 import { htmlToMarkdown } from "@/core/messaging/html-markdown";
 import { markdownHtml } from "@/core/messaging/markdown";
+import { toast } from "@/design";
 import { htmlWithBreaks } from "./composer-html";
 import type { ComposerInputProps } from "./composer-input";
 import { isCommand, typedEmoji } from "./typed-emoji";
@@ -123,13 +127,14 @@ export function ComposerInput({
       files.forEach(onFile);
       return;
     }
-    event.clipboardData
-      .getData("text/plain")
-      .split(/\r?\n/)
-      .forEach((line, i) => {
-        if (i > 0) document.execCommand("insertLineBreak");
-        if (line) document.execCommand("insertText", false, line);
-      });
+    const text = event.clipboardData.getData("text/plain");
+    if (onFile && event.clipboardData.types.includes("text/uri-list")) {
+      void invoke<string[]>("clipboard_files")
+        .then((paths) => (paths.length > 0 ? attachPaths(paths, onFile) : insertPlainText(text)))
+        .catch(() => insertPlainText(text));
+      return;
+    }
+    insertPlainText(text);
   };
 
   const dragging = useWindowFileDrop(onFile);
@@ -202,6 +207,26 @@ function DropZone() {
       </div>
     </div>
   );
+}
+
+function insertPlainText(text: string) {
+  text.split(/\r?\n/).forEach((line, i) => {
+    if (i > 0) document.execCommand("insertLineBreak");
+    if (line) document.execCommand("insertText", false, line);
+  });
+}
+
+/** Paths the app was handed by a drop or a copy, which Tauri has let through the asset protocol. */
+function attachPaths(paths: string[], onFile: (file: File) => void) {
+  for (const path of paths) {
+    void fetch(convertFileSrc(path))
+      .then((response) => {
+        if (!response.ok) throw new Error(response.statusText);
+        return response.blob();
+      })
+      .then((blob) => onFile(new File([blob], path.split("/").pop() ?? "file", { type: blob.type })))
+      .catch(() => toast.error(`Could not read ${path.split("/").pop()}`));
+  }
 }
 
 function toHtml(markdown: string): string {
@@ -322,6 +347,20 @@ function useWindowFileDrop(onFile: ((file: File) => void) | undefined): boolean 
         window.removeEventListener(type, listener as EventListener);
       }
     };
+  }, []);
+
+  const onNativeDrag = useEffectEvent((event: DragDropEvent) => {
+    if (!onFile) return;
+    if (event.type === "enter") setDragging(event.paths.length > 0);
+    else if (event.type === "leave") setDragging(false);
+    else if (event.type === "drop") {
+      setDragging(false);
+      attachPaths(event.paths, onFile);
+    }
+  });
+  useEffect(() => {
+    const unlisten = getCurrentWebview().onDragDropEvent(({ payload }) => onNativeDrag(payload));
+    return () => void unlisten.then((stop) => stop());
   }, []);
 
   return dragging;

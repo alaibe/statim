@@ -4,6 +4,7 @@ mod ai;
 mod app_menu;
 mod biometrics;
 pub mod cli;
+mod clipboard;
 mod contacts;
 mod db;
 mod homeserver;
@@ -198,6 +199,7 @@ pub fn run() {
             app_menu::menu_bar_set_hidden,
             app_menu::menu_bar_peek,
             app_menu::menu_history,
+            clipboard::clipboard_files,
             set_badge,
         ])
         .on_window_event(|window, event| {

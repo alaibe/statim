@@ -6296,6 +6296,7 @@ dependencies = [
  "fm-rs",
  "futures-util",
  "getrandom 0.2.17",
+ "gtk",
  "http-body-util",
  "hyper",
  "hyper-util",

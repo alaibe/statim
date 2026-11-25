@@ -77,6 +77,9 @@ fm-rs = { git = "https://github.com/alaibe/fm-rs", rev = "5240022cb6432597a57329
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 rusqlite = { version = "0.40", features = ["bundled-sqlcipher-vendored-openssl"] }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "0.18"
+
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
