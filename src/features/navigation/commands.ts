@@ -1,4 +1,5 @@
 import { type Href, router } from "expo-router";
+import { Dimensions } from "react-native";
 import { create } from "zustand";
 
 import { orderChats, prefsFor } from "@/core/messaging/chat-prefs";
@@ -83,6 +84,8 @@ interface Overlays {
   palette: boolean;
   shortcuts: boolean;
   sidebarCollapsed: boolean;
+  /** The sidebar expanded over the list while the window is too narrow for it. */
+  sidebarDrawer: boolean;
   set(change: Partial<Omit<Overlays, "set">>): void;
 }
 
@@ -90,8 +93,18 @@ export const useOverlays = create<Overlays>((set) => ({
   palette: false,
   shortcuts: false,
   sidebarCollapsed: false,
+  sidebarDrawer: false,
   set: (change) => set(change),
 }));
+
+/** Below this width the sidebar collapses to icons, and expanding it opens it as a drawer. */
+export const COLLAPSE_AT = 1100;
+
+export function toggleSidebar(width: number): void {
+  const { sidebarCollapsed, sidebarDrawer, set } = useOverlays.getState();
+  if (width < COLLAPSE_AT) set({ sidebarDrawer: !sidebarDrawer });
+  else set({ sidebarCollapsed: !sidebarCollapsed });
+}
 
 /** Accepted chats in the list's order, archived ones aside. */
 function listedChats(): ChatId[] {
@@ -338,7 +351,7 @@ export const COMMANDS: readonly Command[] = [
     group: "Window",
     icon: "panel-left",
     keys: ["mod", "\\"],
-    run: () => useOverlays.getState().set({ sidebarCollapsed: !useOverlays.getState().sidebarCollapsed }),
+    run: () => toggleSidebar(Dimensions.get("window").width),
   },
   { id: "next-region", label: "Next region", group: "Window", keys: ["f6"], run: () => moveRegion(1) },
   {

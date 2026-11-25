@@ -26,6 +26,7 @@ export {
   colorsFor,
   focusRing,
   glow,
+  Layer,
   Layout,
   Radius,
   Shadow,

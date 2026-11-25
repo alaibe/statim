@@ -6,11 +6,22 @@ import { useWindowDimensions, View, type ViewProps } from "react-native";
 import { useChatStore } from "@/core/messaging/chat-store";
 import { splitRequests } from "@/core/messaging/folders";
 import { parseChatId } from "@/core/messaging/namespace";
-import { IconButton, Layout, Sidebar, SidebarGroup, SidebarItem, TitleBar, useThemeColors } from "@/design";
+import {
+  IconButton,
+  Layer,
+  Layout,
+  Pressable,
+  Shadow,
+  Sidebar,
+  SidebarGroup,
+  SidebarItem,
+  TitleBar,
+  useThemeColors,
+} from "@/design";
 import { useChatTitles } from "@/features/chat/use-display-names";
 import { protocolsNeedAttention } from "@/features/protocols/presentation";
 
-import { COMMANDS, openPlace, PLACES, type PlaceId, placeOf, useOverlays } from "./commands";
+import { COLLAPSE_AT, COMMANDS, openPlace, PLACES, type PlaceId, placeOf, useOverlays } from "./commands";
 import { HistoryMenu } from "./history-menu";
 import { useKeymap } from "./keymap";
 import { ListColumn } from "./list-column";
@@ -22,14 +33,15 @@ import { UpdateBanner } from "./update-bar";
 
 const mac = /Mac/.test(navigator.userAgent);
 
-/** Below 1100 the sidebar collapses to icons; below 860 the list and the detail take turns. */
-const COLLAPSE_AT = 1100;
+/** Below 860 the list and the detail take turns. */
 const ONE_PANE_AT = 860;
 
 /** F6 finds the regions by these. */
 const region = (name: string) => ({ dataSet: { region: name } }) as ViewProps;
 
 const run = (id: string) => COMMANDS.find((command) => command.id === id)?.run({ segments: [] });
+
+const closeDrawer = () => useOverlays.getState().set({ sidebarDrawer: false });
 
 /** The window's regions: title bar, sidebar of places, list, detail and status bar, on `void`, `side` and `bg`. */
 export function AppFrame({ children }: PropsWithChildren) {
@@ -38,8 +50,14 @@ export function AppFrame({ children }: PropsWithChildren) {
   const { id } = useGlobalSearchParams<{ id?: string }>();
   const { width } = useWindowDimensions();
   const collapsedByHand = useOverlays((s) => s.sidebarCollapsed);
+  const narrow = width < COLLAPSE_AT;
+  const drawer = useOverlays((s) => s.sidebarDrawer) && narrow;
   const chatId = segments[0] === "chat" && id ? (parseChatId(id) ?? undefined) : undefined;
   useKeymap(segments, chatId);
+
+  useEffect(() => {
+    if (!narrow) useOverlays.getState().set({ sidebarDrawer: false });
+  }, [narrow]);
 
   const first = segments[0];
   if (first === undefined || FULL_WINDOW_ROUTES.has(first)) {
@@ -52,18 +70,34 @@ export function AppFrame({ children }: PropsWithChildren) {
   }
 
   const place = placeOf(segments);
-  const collapsed = collapsedByHand || width < COLLAPSE_AT;
+  const collapsed = collapsedByHand || narrow;
   const onePane = width < ONE_PANE_AT;
   const showList = place !== "requests" && !(onePane && (chatId || segments.length > 2 || DIALOG_SEGMENTS.has(first)));
   const showDetail = !onePane || !showList;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <WindowTitle place={place} chatId={chatId} collapsed={collapsed} />
+      <WindowTitle place={place} chatId={chatId} collapsed={collapsed} drawer={drawer} />
       <UpdateBanner />
       <View style={{ flex: 1, minHeight: 0, flexDirection: "row" }}>
-        <View {...region("sidebar")}>
-          <Places place={place} collapsed={collapsed} />
+        {drawer ? (
+          <Pressable
+            accessibilityLabel="Close the sidebar"
+            onPress={closeDrawer}
+            style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, zIndex: Layer.drawer }}
+          />
+        ) : null}
+        <View
+          {...region("sidebar")}
+          style={drawer ? { width: Layout["sidebar-collapsed"], zIndex: Layer.drawer } : undefined}
+        >
+          {drawer ? (
+            <View style={{ position: "absolute", top: 0, bottom: 0, left: 0, boxShadow: Shadow.popover }}>
+              <Places place={place} collapsed={false} />
+            </View>
+          ) : (
+            <Places place={place} collapsed={collapsed} />
+          )}
         </View>
         {showList ? (
           <View
@@ -109,7 +143,10 @@ function Places({ place, collapsed }: { place: PlaceId; collapsed: boolean }) {
       }}
       current={place === entry.id}
       collapsed={collapsed}
-      onPress={() => openPlace(entry.id)}
+      onPress={() => {
+        closeDrawer();
+        openPlace(entry.id);
+      }}
     />
   );
   return (
@@ -123,7 +160,17 @@ function Places({ place, collapsed }: { place: PlaceId; collapsed: boolean }) {
 }
 
 /** Where you are, in the title bar and as the window's title: `Alice — Statim`. */
-function WindowTitle({ place, chatId, collapsed }: { place: PlaceId; chatId?: string; collapsed: boolean }) {
+function WindowTitle({
+  place,
+  chatId,
+  collapsed,
+  drawer,
+}: {
+  place: PlaceId;
+  chatId?: string;
+  collapsed: boolean;
+  drawer: boolean;
+}) {
   const chat = useChatStore((s) => (chatId ? s.chats.find((entry) => entry.id === chatId) : undefined));
   const { titleOf } = useChatTitles(chat ? [chat] : []);
   const label = PLACES.find((entry) => entry.id === place)?.label ?? "Statim";
@@ -143,7 +190,12 @@ function WindowTitle({ place, chatId, collapsed }: { place: PlaceId; chatId?: st
       leading={
         <>
           {collapsed ? (
-            <IconButton icon="panel-left" label="Expand the sidebar" size="sm" onPress={() => run("toggle-sidebar")} />
+            <IconButton
+              icon="panel-left"
+              label={drawer ? "Close the sidebar" : "Expand the sidebar"}
+              size="sm"
+              onPress={() => run("toggle-sidebar")}
+            />
           ) : null}
           <IconButton icon="arrow-left" label="Back" size="sm" onPress={() => run("back")} />
           <IconButton icon="arrow-right" label="Forward" size="sm" onPress={() => run("forward")} />
