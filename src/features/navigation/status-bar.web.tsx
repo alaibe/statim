@@ -1,71 +1,50 @@
 import { useSegments } from "expo-router";
-import { Fragment } from "react";
-import { View } from "react-native";
 
-import { Text } from "@/design";
+import { useAppearanceStore } from "@/core/app/appearance";
+import type { ChatId } from "@/core/messaging/types";
+import { StatusBar as Bar, overlayOpen } from "@/design";
 
-type Hint = { keys: string[]; action: string };
+import { type HintContext, hintsFor, openPlace, useOverlays } from "./commands";
+import { useConnectionSummary } from "./connection";
+import { useKeyState } from "./key-state";
+import { DIALOG_SEGMENTS } from "./routes";
 
-// The design system's status bar: the lit point and the app on the left, the keys for what you're doing on the right.
-function hintsFor(segments: readonly string[]): Hint[] {
-  if (segments[0] === "chat" || segments[0] === "thread") {
-    return [
-      { keys: ["↵"], action: "send" },
-      { keys: ["↑"], action: "edit last" },
-      { keys: ["⌘", "K"], action: "switch chat" },
-    ];
-  }
-  if (segments[0] === "search") {
-    return [
-      { keys: ["↵"], action: "open" },
-      { keys: ["Esc"], action: "close" },
-    ];
-  }
-  return [
-    { keys: ["⌘", "K"], action: "switch" },
-    { keys: ["⌘", "N"], action: "new chat" },
-    { keys: ["⌘", "F"], action: "search" },
-    { keys: ["⌘", ","], action: "settings" },
-  ];
+/** The context the hints follow, in the status bar page's order: chord, writing, searching, palette, dialog, item, list. */
+function useHintContext(chatId: ChatId | undefined): HintContext {
+  const segments = useSegments() as string[];
+  const chord = useKeyState((s) => s.chord);
+  const focus = useKeyState((s) => s.focus);
+  const palette = useOverlays((s) => s.palette);
+  if (chord) return "chord";
+  if (palette) return "palette";
+  if (focus === "searching") return "searching";
+  if (DIALOG_SEGMENTS.has(segments[0] ?? "") || overlayOpen()) return "dialog";
+  if (focus === "writing") return "writing";
+  return chatId ? "item" : "list";
 }
 
-function Key({ label }: { label: string }) {
-  return (
-    <View className="h-4 min-w-4 items-center justify-center rounded-sm border border-b-2 border-line-strong bg-bg px-1">
-      <Text variant="mono" className="text-[10px] leading-none text-muted">
-        {label}
-      </Text>
-    </View>
-  );
-}
+/** The desktop's status bar: the protocols' live state on the left, the keys of the moment on the right. */
+export function StatusBar({ chatId }: { chatId?: ChatId }) {
+  const segments = useSegments() as string[];
+  const context = useHintContext(chatId);
+  const quickTips = useAppearanceStore((s) => s.quickTips);
+  const summary = useConnectionSummary();
 
-export function StatusBar() {
-  const segments = useSegments();
-  const hints = hintsFor(segments);
+  const hints = quickTips
+    ? hintsFor(context, { segments, chatId }).map((hint) =>
+        context === "chord" ? { ...hint, keys: hint.keys.slice(-1), sequence: false } : hint,
+      )
+    : [];
+
   return (
-    <View className="h-6 flex-row items-center gap-2 border-t border-line bg-side px-3">
-      <View className="h-1.5 w-1.5 rounded-full bg-accent" style={{ boxShadow: "0 0 8px rgb(var(--color-accent))" }} />
-      <Text variant="micro" className="text-fg">
-        Statim
-      </Text>
-      <View className="flex-1" />
-      {hints.map((hint, index) => (
-        <Fragment key={hint.action}>
-          {index > 0 ? (
-            <Text variant="mono" className="text-[11px] text-subtle">
-              ·
-            </Text>
-          ) : null}
-          <View className="flex-row items-center gap-1">
-            {hint.keys.map((key) => (
-              <Key key={key} label={key} />
-            ))}
-            <Text variant="mono" className="text-[11px] text-muted">
-              {hint.action}
-            </Text>
-          </View>
-        </Fragment>
-      ))}
-    </View>
+    <Bar
+      app="Statim"
+      working={summary.busy}
+      segments={summary.segments.map((segment) => ({
+        ...segment,
+        onPress: segment.protocol ? () => openPlace("settings") : undefined,
+      }))}
+      hints={hints}
+    />
   );
 }

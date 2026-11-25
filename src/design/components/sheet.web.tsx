@@ -2,9 +2,12 @@ import { useState } from "react";
 import { Modal, Pressable as RNPressable, useWindowDimensions, View } from "react-native";
 import { create } from "zustand";
 
+import { useThemeColors } from "../hooks/use-theme-colors";
 import { useEscapeKey } from "../lib/escape-key";
-import { useLayoutInsets } from "../lib/layout-insets";
-import { IconButton } from "./icon-button";
+import { PrimaryScope } from "../lib/primary";
+import { Layout, Radius, Shadow, Space } from "../tokens";
+import { IconButton } from "./button";
+import { DialogHeader, DialogSurface, scrimColor } from "./dialog";
 import type { SheetProps } from "./sheet";
 import { Text } from "./text";
 
@@ -25,57 +28,85 @@ export function closeSheetThen(sheet: Pick<SheetProps, "onClose">, action: () =>
   action();
 }
 
-const WIDTH = 320;
-const MARGIN = 12;
+const MARGIN = Space[3];
 
-export function Sheet({ visible, title, subtitle, leading, anchor, children, onClose }: SheetProps) {
+/** Opened by a pointer, a menu at the pointer; otherwise a dialog over a `void` scrim. */
+export function Sheet({ visible, label, title, subtitle, leading, anchor, children, onClose }: SheetProps) {
+  const colors = useThemeColors();
   const window = useWindowDimensions();
-  const insets = useLayoutInsets();
-  const [size, setSize] = useState({ width: WIDTH, height: 0 });
+  const [size, setSize] = useState({ width: Layout.menu, height: 0 });
 
   useEscapeKey(visible, onClose);
 
   if (!visible) return null;
 
-  const placement = anchor
-    ? {
-        left: Math.min(anchor.x, window.width - size.width - MARGIN),
-        top: Math.min(anchor.y, window.height - size.height - MARGIN),
-      }
-    : {
-        left: insets.left + (window.width - insets.left - size.width) / 2,
-        top: Math.max(MARGIN, (window.height - size.height) / 2),
-      };
+  if (anchor) {
+    return (
+      <Modal visible transparent animationType="none" onRequestClose={onClose}>
+        <RNPressable accessibilityLabel="Close" onPress={onClose} style={{ flex: 1 }}>
+          <View
+            onLayout={(event) => setSize(event.nativeEvent.layout)}
+            onStartShouldSetResponder={() => true}
+            style={{
+              position: "absolute",
+              left: Math.min(anchor.x, window.width - size.width - MARGIN),
+              top: Math.min(anchor.y, window.height - size.height - MARGIN),
+              minWidth: Layout.menu,
+              maxWidth: 320,
+              padding: Space[1],
+              backgroundColor: colors.panel,
+              borderWidth: 1,
+              borderColor: colors["line-strong"],
+              borderRadius: Radius.lg,
+              boxShadow: Shadow.popover,
+            }}
+          >
+            {title ? (
+              <View style={{ paddingHorizontal: Space[2], paddingTop: Space[1], paddingBottom: Space[1] }}>
+                <Text variant="label" numberOfLines={1}>
+                  {title}
+                </Text>
+              </View>
+            ) : null}
+            <PrimaryScope>{children}</PrimaryScope>
+          </View>
+        </RNPressable>
+      </Modal>
+    );
+  }
 
   return (
     <Modal visible transparent animationType="none" onRequestClose={onClose}>
-      <RNPressable accessibilityLabel="Close" onPress={onClose} className={anchor ? "flex-1" : "flex-1 bg-fg/20"}>
-        <View
-          onLayout={(event) => setSize(event.nativeEvent.layout)}
-          onStartShouldSetResponder={() => true}
-          style={[placement, { width: WIDTH, position: "absolute" }]}
-          className="rounded-lg border border-line bg-panel p-2 shadow-popover"
-        >
-          {title || subtitle || leading ? (
-            <View className="min-h-touch flex-row items-center gap-3 px-2 py-1.5">
-              {leading}
-              <View className="min-w-0 flex-1">
-                {title ? (
-                  <Text variant="title" numberOfLines={1}>
-                    {title}
-                  </Text>
-                ) : null}
-                {subtitle ? (
-                  <Text variant="caption" numberOfLines={1}>
-                    {subtitle}
-                  </Text>
-                ) : null}
-              </View>
-              {anchor ? null : <IconButton icon="x" label="Close" size={20} onPress={onClose} />}
+      <RNPressable
+        accessibilityLabel="Close"
+        onPress={onClose}
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          padding: Space[4],
+          backgroundColor: scrimColor(colors),
+        }}
+      >
+        <DialogSurface>
+          <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+            {leading ? <View style={{ paddingTop: Space[5], paddingLeft: Space[5] }}>{leading}</View> : null}
+            <View style={{ flex: 1 }}>
+              {title ? <DialogHeader label={label} title={title} /> : null}
+              {subtitle ? (
+                <View style={{ paddingHorizontal: Space[5] }}>
+                  <Text variant="meta">{subtitle}</Text>
+                </View>
+              ) : null}
             </View>
-          ) : null}
-          <View className="gap-3">{children}</View>
-        </View>
+            <View style={{ padding: Space[3] }}>
+              <IconButton icon="x" label="Close" size="sm" onPress={onClose} />
+            </View>
+          </View>
+          <View style={{ gap: Space[3], paddingHorizontal: Space[5], paddingTop: Space[2], paddingBottom: Space[5] }}>
+            {children}
+          </View>
+        </DialogSurface>
       </RNPressable>
     </Modal>
   );

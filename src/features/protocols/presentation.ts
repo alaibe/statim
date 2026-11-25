@@ -3,17 +3,14 @@ import { LOCAL_PROTOCOL, type ProtocolId } from "@/core/messaging/namespace";
 import { BRIDGED_NETWORKS, isBridgedNetwork, type NetworkId } from "@/core/messaging/networks";
 import type { ChatProtocolMeta } from "@/core/messaging/protocol";
 import type { ProtocolDescriptor } from "@/core/messaging/registry";
-import type { IconName } from "@/design";
+import type { IconName, TagTone } from "@/design";
 import { connectableProtocols, protocolById } from "@/protocols";
 
-type ProtocolTone = "neutral" | "accent" | "success" | "warning" | "danger";
-
-export function toneFor(meta: ChatProtocolMeta): ProtocolTone {
-  if (!meta.properties.endToEndEncrypted) return "danger";
-  if (meta.properties.groupModel === "enforced" && meta.properties.forwardSecrecy) {
-    return "success";
-  }
-  return "warning";
+/** How safe a protocol is, as a status tag's tone: the word beside it says why. */
+export function toneFor(meta: ChatProtocolMeta): TagTone {
+  if (!meta.properties.endToEndEncrypted) return "err";
+  if (meta.properties.groupModel === "enforced" && meta.properties.forwardSecrecy) return "ok";
+  return "warn";
 }
 
 const ICON: Record<ProtocolId, { name: IconName }> = {
@@ -29,31 +26,32 @@ export function protocolIcon(protocol: ProtocolId): { name: IconName } {
   return ICON[protocol];
 }
 
+/** A protocol's state as a tag: a status word, or a category word when there is nothing to report. */
 export function connectionBadge(
   descriptor: ProtocolDescriptor,
   connection: ProtocolConnection,
-): { label: string; tone: ProtocolTone } {
-  if (!descriptor.connect) return { label: "Not available", tone: "neutral" };
-  if (connection.login) return { label: "Sign in", tone: "warning" };
+): { label: string; tone: TagTone; detail?: string } {
+  if (!descriptor.connect) return { label: "Not available", tone: "category" };
+  if (connection.login) return { label: "WARN", tone: "warn", detail: "Sign in to finish connecting" };
 
   switch (connection.status) {
     case "ready":
       return connection.history.status === "partial"
-        ? { label: "Incomplete", tone: "warning" }
-        : { label: "Connected", tone: "success" };
+        ? { label: "WARN", tone: "warn", detail: "Connected, history incomplete" }
+        : { label: "OK", tone: "ok" };
     case "connecting":
-      return { label: "Connecting", tone: "accent" };
+      return { label: "Syncing", tone: "accent" };
     case "error":
-      return { label: "Failed", tone: "danger" };
+      return { label: "ERR", tone: "err" };
     default:
-      return { label: "Not set up", tone: "neutral" };
+      return { label: "Not set up", tone: "category" };
   }
 }
 
 export function protocolsNeedAttention(protocols: Partial<Record<ProtocolId, ProtocolConnection>>): boolean {
   return connectableProtocols().some((descriptor) => {
     const { tone } = connectionBadge(descriptor, connectionFor(protocols, descriptor.id));
-    return tone === "warning" || tone === "danger";
+    return tone === "warn" || tone === "err";
   });
 }
 

@@ -4,7 +4,7 @@ import { activeAccount, useAccountStore } from "@/core/account/account-store";
 import { shortAddress } from "@/core/account/keyring";
 import { reportError } from "@/core/app/report-error";
 import { useChatStore } from "@/core/messaging/chat-store";
-import { Avatar, Badge, IconButton, Text } from "@/design";
+import { Avatar, IconButton, Tag, Text } from "@/design";
 import { cachedEnsName, lookupName } from "@/lib/evm/ens";
 import { forgetEns } from "@/lib/evm/ens-cache";
 import { openInBrowser } from "@/lib/open-url";
@@ -25,6 +25,7 @@ export function SettingsAccount({ ensName }: { ensName: string | null }) {
   const chatStatus = useChatStore((s) => s.status);
 
   if (!account) return null;
+  const name = ensName ?? account.label;
 
   return (
     <View className="items-center gap-2 px-4 pb-6 pt-2">
@@ -42,21 +43,24 @@ export function SettingsAccount({ ensName }: { ensName: string | null }) {
         />
       </View>
 
-      <Avatar seed={keyring?.address ?? "anon"} size="xl" />
+      <Avatar label={name} size={64} />
 
-      <View className="items-center gap-0.5">
-        <Text variant="title" className="font-semibold">
-          {ensName ?? account.label}
+      <View className="items-center gap-1">
+        <Text variant="title" align="center">
+          {name}
         </Text>
-        <Text variant="mono" selectable>
+        <Text variant="meta" selectable>
           {keyring ? shortAddress(keyring.address, 10, 8) : "—"}
         </Text>
       </View>
 
-      <Badge
-        label={chatStatus === "ready" ? "Connected" : chatStatus}
-        tone={chatStatus === "ready" ? "success" : chatStatus === "error" ? "danger" : "neutral"}
-      />
+      {chatStatus === "ready" ? (
+        <Tag tone="ok" label="Connected" />
+      ) : chatStatus === "error" ? (
+        <Tag tone="err" />
+      ) : (
+        <Tag tone="category" label={chatStatus} />
+      )}
     </View>
   );
 }

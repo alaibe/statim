@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { View } from "react-native";
 
-import { ActionSheet, Button, Chip, FIELD_BOX, Field, FieldShell, MANY_OPTIONS, Pressable, Text } from "../components";
+import { Button, FieldShell, Input, MANY_OPTIONS, Menu, Pressable, Radio, Segmented, Text } from "../components";
+import { useThemeColors } from "../hooks/use-theme-colors";
 import { Icon } from "../icon";
-import { cn } from "../lib/cn";
+import { controlHeight } from "../lib/platform";
+import { Radius, Space } from "../tokens";
 import {
-  buttonTone,
   displayValues,
   fillCommand,
   fillText,
@@ -18,45 +19,58 @@ import {
 
 const DECIMAL_SEPARATOR = new Intl.NumberFormat().format(1.5).charAt(1);
 
+/** Up to four short options read as a segmented control; more as radios. */
+const SEGMENTS = 4;
+
 function SelectField({
   label,
-  hint,
+  help,
   placeholder,
   options,
   value,
   onPick,
 }: {
   label: string;
-  hint?: string;
+  help?: string;
   placeholder?: string;
   options: WidgetOption[];
   value: string | undefined;
   onPick: (value: string) => void;
 }) {
+  const colors = useThemeColors();
   const [picking, setPicking] = useState(false);
   const chosen = options.find((option) => option.value === value);
 
   return (
-    <FieldShell label={label} hint={hint}>
+    <FieldShell label={label} help={help}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${label}, ${chosen?.label ?? "none chosen"}`}
         onPress={() => setPicking(true)}
-        style={{ borderCurve: "continuous" }}
-        className={cn(FIELD_BOX, "flex-row items-center gap-2 border-line")}
+        style={({ hovered }) => ({
+          height: controlHeight(),
+          flexDirection: "row",
+          alignItems: "center",
+          gap: Space[2],
+          paddingHorizontal: Space[3],
+          borderRadius: Radius.md,
+          borderWidth: 1,
+          borderColor: hovered ? colors.muted : colors["line-strong"],
+          backgroundColor: colors.panel,
+        })}
       >
-        <Text className={cn("min-w-0 flex-1 text-md", chosen ? "text-fg" : "text-subtle")}>
+        <Text tone={chosen ? "fg" : "muted"} numberOfLines={1} className="min-w-0 flex-1">
           {chosen?.label ?? placeholder ?? "Choose"}
         </Text>
-        <Icon name="chevron-down" size={16} tone="subtle" />
+        <Icon name="chevron-down" size={16} tone="muted" />
       </Pressable>
 
-      <ActionSheet
+      <Menu
         visible={picking}
         onClose={() => setPicking(false)}
         title={label}
         searchFor={label.toLowerCase()}
-        actions={
+        items={
           picking
             ? options.map((option) => ({
                 label: option.label,
@@ -66,6 +80,40 @@ function SelectField({
             : []
         }
       />
+    </FieldShell>
+  );
+}
+
+function RadioField({
+  label,
+  help,
+  options,
+  value,
+  onPick,
+}: {
+  label: string;
+  help?: string;
+  options: WidgetOption[];
+  value: string | undefined;
+  onPick: (value: string) => void;
+}) {
+  return (
+    <FieldShell label={label} help={help}>
+      <View accessibilityRole="radiogroup">
+        {options.map((option) => (
+          <Pressable
+            key={option.value}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: value === option.value }}
+            accessibilityLabel={option.label}
+            onPress={() => onPick(option.value)}
+            className="min-h-touch flex-row items-center gap-2"
+          >
+            <Radio checked={value === option.value} />
+            <Text>{option.label}</Text>
+          </Pressable>
+        ))}
+      </View>
     </FieldShell>
   );
 }
@@ -82,18 +130,19 @@ export function FormWidget({ widget, onCommand }: { widget: WidgetOf<"form">; on
   const answer = (id: string, value: string) => setValues({ ...answers, [id]: value });
 
   return (
-    <View className="gap-3" style={{ minWidth: 260 }}>
+    <View className="gap-4" style={{ minWidth: 260 }}>
       {widget.fields.map((field) => {
         const label = fillText(field.label, display);
         if (!field.options) {
           return (
-            <Field
+            <Input
               key={field.id}
               label={label}
-              hint={fill(field.hint)}
+              help={fill(field.hint)}
+              mono={field.keyboard === "decimal"}
               placeholder={fill(field.placeholder)}
               defaultValue={field.value ?? ""}
-              onChangeText={(text) =>
+              onChangeText={(text: string) =>
                 answer(field.id, field.keyboard === "decimal" ? normaliseDecimal(text, DECIMAL_SEPARATOR) : text)
               }
               autoCorrect={false}
@@ -108,7 +157,7 @@ export function FormWidget({ widget, onCommand }: { widget: WidgetOf<"form">; on
             <SelectField
               key={field.id}
               label={label}
-              hint={fill(field.hint)}
+              help={fill(field.hint)}
               placeholder={field.placeholder}
               options={options}
               value={answers[field.id]}
@@ -116,29 +165,34 @@ export function FormWidget({ widget, onCommand }: { widget: WidgetOf<"form">; on
             />
           );
         }
+        if (options.length > SEGMENTS) {
+          return (
+            <RadioField
+              key={field.id}
+              label={label}
+              help={fill(field.hint)}
+              options={options}
+              value={answers[field.id]}
+              onPick={(value) => answer(field.id, value)}
+            />
+          );
+        }
         return (
-          <View key={field.id} className="gap-1.5">
-            <Text variant="caption">{label}</Text>
-            <View className="flex-row flex-wrap gap-1.5">
-              {options.map((option) => (
-                <Chip
-                  key={option.value}
-                  label={option.label}
-                  size="sm"
-                  selected={answers[field.id] === option.value}
-                  onPress={() => answer(field.id, option.value)}
-                />
-              ))}
-            </View>
-            {field.hint ? <Text variant="micro">{fill(field.hint)}</Text> : null}
-          </View>
+          <FieldShell key={field.id} label={label} help={fill(field.hint)}>
+            <Segmented
+              accessibilityLabel={label}
+              options={options.map((option) => ({ value: option.value, label: option.label }))}
+              value={answers[field.id] ?? ""}
+              onChange={(value) => answer(field.id, value)}
+            />
+          </FieldShell>
         );
       })}
       <Button
         label={widget.submit.label}
         size="sm"
         disabled={missing}
-        tone={buttonTone(widget.submit.tone)}
+        variant={widget.submit.tone === "danger" ? "danger" : "secondary"}
         onPress={() => onCommand?.(fillCommand(widget.submit.command, answers))}
       />
     </View>

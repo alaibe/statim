@@ -7,6 +7,8 @@ import type { MenuAnchor } from "../lib/context-menu";
 export interface SheetProps {
   visible: boolean;
   onClose: () => void;
+  /** What it is about, above the title, in the label role. */
+  label?: string;
   title?: string;
   subtitle?: string;
   leading?: React.ReactNode;
@@ -38,12 +40,12 @@ function owns(id: string) {
   return useSheetStore.getState().current?.id === id;
 }
 
-export function Sheet({ visible, title, subtitle, leading, children, onClose }: SheetProps) {
+export function Sheet({ visible, label, title, subtitle, leading, children, onClose }: SheetProps) {
   const id = useId();
   const presented = useRef(false);
 
   useEffect(() => {
-    const spec = { id, title, subtitle, leading, children, onClose };
+    const spec = { id, label, title, subtitle, leading, children, onClose };
     if (visible && !presented.current) {
       presented.current = true;
       useSheetStore.setState({ current: spec });
@@ -57,7 +59,7 @@ export function Sheet({ visible, title, subtitle, leading, children, onClose }: 
     } else if (visible && owns(id)) {
       useSheetStore.setState({ current: spec });
     }
-  }, [visible, id, title, subtitle, leading, children, onClose]);
+  }, [visible, id, label, title, subtitle, leading, children, onClose]);
 
   useEffect(
     () => () => {

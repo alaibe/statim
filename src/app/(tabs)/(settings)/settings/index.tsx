@@ -18,10 +18,10 @@ export default function SettingsScreen() {
   const ensName = useEnsName(focusCount);
 
   return (
-    <Screen className="bg-panel px-0" edges={[]}>
-      <Stack.Screen options={{ title: "Settings", headerTransparent: false }} />
+    <Screen edges={[]}>
+      <Stack.Screen options={{ title: "Settings" }} />
 
-      <ScrollView contentInsetAdjustmentBehavior="automatic">
+      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ paddingBottom: 48 }}>
         <SettingsAccount ensName={ensName} />
         <SettingsSections keys={keys} />
       </ScrollView>

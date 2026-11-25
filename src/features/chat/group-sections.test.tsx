@@ -5,14 +5,13 @@ import { MemberModeration } from "./group-sections";
 
 jest.mock("expo-clipboard", () => ({ setStringAsync: jest.fn() }));
 jest.mock("@/design", () => ({
-  ActionSheet: "ActionSheet",
-  Card: "Card",
-  ConfirmSheet: "ConfirmSheet",
+  ConfirmDialog: "ConfirmDialog",
   copyText: jest.fn(),
-  ListItem: "ListItem",
+  Menu: "Menu",
+  Notice: "Notice",
   Pressable: "Pressable",
-  RowIcon: "RowIcon",
   Section: "Section",
+  SettingsRow: "SettingsRow",
   Text: "Text",
   toast: { success: jest.fn(), error: jest.fn() },
 }));
@@ -51,8 +50,8 @@ const mount = () =>
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
 const row = (testID: string) => tree.root.findByProps({ testID });
-const rows = () => tree.root.findAllByType("ListItem" as never).map((node) => node.props.testID as string);
-const confirm = () => tree.root.findByType("ConfirmSheet" as never);
+const rows = () => tree.root.findAllByType("SettingsRow" as never).map((node) => node.props.testID as string);
+const confirm = () => tree.root.findByType("ConfirmDialog" as never);
 
 afterEach(async () => {
   await act(() => tree?.unmount());
@@ -74,7 +73,7 @@ describe("MemberModeration", () => {
     await mount();
     await act(async () => row("profile-mute-member").props.onPress());
     expect(mockStore.setMemberMuted).toHaveBeenCalledWith("telegram-5", "bob", true);
-    expect(row("profile-mute-member").props.title).toBe("Let them send messages");
+    expect(row("profile-mute-member").props.label).toBe("Let them send messages");
   });
 
   it("bans only once confirmed, then leaves the profile", async () => {

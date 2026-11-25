@@ -1,17 +1,20 @@
 import { View } from "react-native";
 
-import { cn } from "../lib/cn";
+import { PrimaryScope } from "../lib/primary";
+import { Layout } from "../tokens";
 import type { ScreenProps } from "./screen";
 
 export type { ScreenProps } from "./screen";
 
-/** A desktop pane or dialog has its own background and no notch, so this only centres the content column. */
-export function Screen({ className, children, edges: _edges, ...props }: ScreenProps) {
+/** The detail region: no notch, the text column at most 680 wide. */
+export function Screen({ children, edges: _edges, style, ...props }: ScreenProps) {
   return (
-    <View className="flex-1">
-      <View className={cn("mx-auto w-full max-w-[720px] flex-1", className)} {...props}>
-        {children}
-      </View>
+    <View style={{ flex: 1 }}>
+      <PrimaryScope>
+        <View style={[{ flex: 1, width: "100%", maxWidth: Layout.reading, alignSelf: "center" }, style]} {...props}>
+          {children}
+        </View>
+      </PrimaryScope>
     </View>
   );
 }

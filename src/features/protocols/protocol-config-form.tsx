@@ -1,7 +1,7 @@
 import { errorMessage } from "@/core/errors";
 import { loadProtocolConfig, missingFields, withDefaults } from "@/core/messaging/config";
 import type { ProtocolDescriptor } from "@/core/messaging/registry";
-import { Button, ErrorText, Field, Loading, Text } from "@/design";
+import { Button, Input, Notice, Skeleton, Text } from "@/design";
 import { useAction } from "@/features/use-action";
 import { useKeyedLoad } from "@/lib/use-keyed-load";
 import { accountRuntime } from "@/runtime";
@@ -9,10 +9,13 @@ import { accountRuntime } from "@/runtime";
 export function ProtocolConfigForm({
   accountId,
   descriptor,
+  primary = true,
   onSaved,
 }: {
   accountId: string;
   descriptor: ProtocolDescriptor;
+  /** Saving is the page's action unless a sign-in step is waiting. */
+  primary?: boolean;
   onSaved(): void;
 }) {
   const loaded = useKeyedLoad(`${accountId}/${descriptor.id}`, () =>
@@ -25,25 +28,26 @@ export function ProtocolConfigForm({
       await accountRuntime.updateProtocolConfig(accountId, descriptor.id, config);
       onSaved();
     },
-    { success: `${descriptor.label} settings saved`, failure: "Could not save those settings" },
+    { success: `Saved the ${descriptor.label} settings`, failure: "Couldn't save those settings" },
   );
 
   if (loaded.error) {
-    return <ErrorText>{errorMessage(loaded.error, "Could not read these settings")}</ErrorText>;
+    return <Notice tone="danger" message={errorMessage(loaded.error, "Couldn't read these settings")} />;
   }
-  if (!config) return <Loading className="py-4" />;
+  if (!config) return <Skeleton rows={2} lines={1} />;
 
   const missing = missingFields(descriptor.configSchema, config);
 
   return (
     <>
       {descriptor.configSchema.fields.map((field) => (
-        <Field
+        <Input
           key={field.key}
           testID={`protocol-field-${field.key}`}
           label={field.label}
           placeholder={field.placeholder}
-          hint={field.help}
+          help={field.help}
+          mono={field.kind !== "lines"}
           defaultValue={config[field.key] ?? ""}
           onChangeText={(text) => loaded.update((current) => ({ ...current, [field.key]: text }))}
           autoCapitalize="none"
@@ -52,19 +56,25 @@ export function ProtocolConfigForm({
           secureTextEntry={field.kind === "secret"}
           multiline={field.kind === "lines"}
           numberOfLines={field.kind === "lines" ? 5 : 1}
-          className={field.kind === "lines" ? "min-h-[110px]" : undefined}
         />
       ))}
 
       {missing.length > 0 ? (
-        <Text variant="caption">
+        <Text size="sm" tone="muted">
           {`${descriptor.label} stays disconnected until ${missing
             .map((f) => f.label)
             .join(" and ")} ${missing.length === 1 ? "is" : "are"} filled in.`}
         </Text>
       ) : null}
 
-      <Button testID="protocol-save" label="Save and reconnect" size="md" fullWidth onPress={() => save.run()} />
+      <Button
+        testID="protocol-save"
+        variant={primary ? "primary" : "secondary"}
+        label="Save and reconnect"
+        fullWidth
+        busy={save.busy}
+        onPress={() => save.run()}
+      />
     </>
   );
 }

@@ -11,15 +11,15 @@ import { draftKey } from "@/core/messaging/drafts";
 import type { ChatId, ChatKind, MessageContent, MessageId } from "@/core/messaging/types";
 import { usePluginHost } from "@/core/plugins/host";
 import {
-  ActionSheet,
-  cn,
+  Button,
+  controlHeight,
   Enter,
-  ErrorText,
   Exit,
-  Icon,
+  FieldError,
   IconButton,
-  Pressable,
-  type SheetAction,
+  Menu,
+  type MenuItem,
+  Radius,
   springLayout,
   Text,
   useThemeColors,
@@ -172,8 +172,10 @@ export function Composer({
         onPick={(person) => fill(mentions.apply(person))}
         render={(person) => (
           <>
-            <Text className="flex-1 font-semibold">{person.name}</Text>
-            <Text variant="caption">{person.address}</Text>
+            <Text className="flex-1" strong>
+              {person.name}
+            </Text>
+            <Text variant="meta">{person.address}</Text>
           </>
         )}
       />
@@ -185,18 +187,20 @@ export function Composer({
         onPick={({ command }) => fill(`/${command.name} `)}
         render={({ command, pluginId }) => (
           <>
-            <Text className="font-mono text-md font-semibold text-accent">/{command.name}</Text>
-            <Text variant="caption" numberOfLines={1} className="flex-1">
+            <Text variant="control" tone="accent">
+              /{command.name}
+            </Text>
+            <Text size="sm" tone="muted" numberOfLines={1} className="flex-1">
               {command.description}
             </Text>
-            <Text variant="micro">{registry.get(pluginId)?.manifest.name ?? ""}</Text>
+            <Text variant="meta">{registry.get(pluginId)?.manifest.name ?? ""}</Text>
           </>
         )}
       />
 
       {shownError ? (
         <Animated.View entering={Enter.fade()} exiting={Exit.fade()} className="mx-4 mb-1.5">
-          <ErrorText>{shownError}</ErrorText>
+          <FieldError>{shownError}</FieldError>
         </Animated.View>
       ) : null}
 
@@ -215,21 +219,18 @@ export function Composer({
 
       <Animated.View layout={springLayout()} className="flex-row items-end gap-2 px-3 pb-2 pt-1">
         {canAttach ? (
-          <IconButton
-            testID="composer-attach"
-            icon="paperclip"
-            label="Attach"
-            surface="outline"
-            size={20}
-            onPress={() => setAttaching(true)}
-          />
+          <IconButton testID="composer-attach" icon="paperclip" label="Attach…" onPress={() => setAttaching(true)} />
         ) : null}
 
         <View
-          className={cn(
-            "min-h-[44px] flex-1 flex-row items-end rounded-full border bg-panel pl-4 pr-1",
-            ghostText ? "border-accent-strong/60" : "border-line",
-          )}
+          className="flex-1 flex-row items-end pl-3 pr-1"
+          style={{
+            minHeight: controlHeight(),
+            borderRadius: Radius.md,
+            borderWidth: 1,
+            borderColor: ghostText ? colors.accent : colors["line-strong"],
+            backgroundColor: colors.panel,
+          }}
         >
           <ComposerInput
             ref={inputRef}
@@ -245,45 +246,40 @@ export function Composer({
             onFile={canAttach ? (file) => void attach(() => contentFromBrowserFile(file, can)) : undefined}
             onEditLast={value === "" && !busy && !editing ? onEditLast : undefined}
             placeholder={ghostText ?? (thread ? "Reply in thread" : "Message")}
-            placeholderColor={ghostText ? colors["accent-strong"] : colors.subtle}
+            placeholderColor={ghostText ? colors.accent : colors.muted}
           />
 
           {ready ? (
-            <Pressable
+            <IconButton
               testID="ai-use-reply"
-              accessibilityRole="button"
-              accessibilityLabel={`Use suggested ${reply.kind}, by ${ready.label}`}
+              icon="sparkles"
+              label={`Use suggested ${reply.kind}, by ${ready.label}`}
+              tone="accent"
+              size="sm"
               onPress={takeReply}
-              className="h-11 w-9 items-center justify-center"
-            >
-              <Icon name="sparkles" size={20} tone="accent" />
-            </Pressable>
+            />
           ) : null}
 
           <View ref={emojiButton} collapsable={false}>
-            <Pressable
+            <IconButton
               testID="composer-emoji"
-              accessibilityRole="button"
-              accessibilityLabel="Emoji"
+              icon="smile"
+              label="Emoji"
+              size="sm"
               onPress={() => openMedia("emoji")}
-              className="h-11 w-9 items-center justify-center"
-            >
-              <Icon name="smile" size={20} tone="muted" />
-            </Pressable>
+            />
           </View>
         </View>
 
         {canAttach && value.trim().length === 0 && !busy ? (
           <VoiceRecorder onRecorded={sendContent} onError={setError} />
         ) : (
-          <IconButton
+          <Button
             testID="composer-send"
-            icon={busy ? "ellipsis" : "arrow-up"}
+            variant="primary"
             label="Send"
-            surface={canSend ? "accent" : "outline"}
-            tone={canSend ? "on-accent" : "subtle"}
-            size={20}
-            disabled={!canSend}
+            busy={busy}
+            disabled={!canSend && !busy}
             onPress={() => void submit()}
           />
         )}
@@ -331,25 +327,25 @@ function AttachSheet({
   onAttach: (pick: (can: AttachLimits) => Promise<MessageContent | null>) => void;
   onGifs: () => void;
 }) {
-  const actions: SheetAction[] = [];
+  const items: MenuItem[] = [];
   if (carriesImages) {
-    actions.push({
+    items.push({
       label: "Photo library",
       icon: "images",
       onPress: () => onAttach(pickImage),
     });
   }
   if (sendsVideo) {
-    actions.push({ label: "Video", icon: "video", onPress: () => onAttach(pickVideo) });
+    items.push({ label: "Video", icon: "video", onPress: () => onAttach(pickVideo) });
   }
   if (carriesImages) {
-    actions.push({
+    items.push({
       label: "Take a photo",
       icon: "camera",
       onPress: () => onAttach(takePhoto),
     });
   }
-  actions.push({ label: "File", icon: "file", onPress: () => onAttach(pickFile) });
-  if (carriesImages) actions.push({ label: "GIF", icon: "smile", onPress: onGifs });
-  return <ActionSheet visible={visible} onClose={onClose} title="Attach" actions={actions} />;
+  items.push({ label: "File", icon: "file", onPress: () => onAttach(pickFile) });
+  if (carriesImages) items.push({ label: "GIF", icon: "smile", onPress: onGifs });
+  return <Menu visible={visible} onClose={onClose} title="Attach" items={items} />;
 }

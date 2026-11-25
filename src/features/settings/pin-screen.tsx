@@ -1,25 +1,11 @@
 import { useIsFocused, useRouter } from "expo-router";
 import { useEffect, useEffectEvent, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
 import { useAccountStore } from "@/core/account/account-store";
 import { useLockStore } from "@/core/account/lock-store";
 import { PIN_LENGTH } from "@/core/account/pin";
 import { reportError } from "@/core/app/report-error";
-import {
-  Button,
-  Chevron,
-  cn,
-  Icon,
-  ListItem,
-  Note,
-  PinDots,
-  PinPad,
-  RowIcon,
-  Section,
-  Text,
-  toast,
-  useThemeColors,
-} from "@/design";
+import { Button, LitPoint, Notice, PinDots, PinPad, Section, SettingsRow, Text, toast } from "@/design";
 import {
   advancePinFlow,
   type PinFlowEvent,
@@ -119,45 +105,39 @@ function PinIntro({ onBegin }: { onBegin: () => void }) {
   const accounts = useAccountStore((s) => s.accounts.length);
 
   return (
-    <View className="gap-5 px-4">
-      <View className="items-center gap-3 pt-2">
-        <View className="h-16 w-16 items-center justify-center rounded-full bg-accent-soft">
-          <Icon name="grid-3x3" size={24} tone="accent" />
-        </View>
-        <Text variant="headline" className="text-center">
-          Lock the app with a PIN
-        </Text>
-      </View>
-
-      <View className="gap-3">
-        <Text variant="bodyMuted">
+    <View className="gap-6">
+      <View className="gap-3 px-4">
+        <Text variant="heading">Lock the app with a PIN</Text>
+        <Text tone="muted">
           Statim asks for this {PIN_LENGTH}-digit PIN whenever it opens. It is separate from your{" "}
-          {desktop ? "computer’s password" : "phone’s passcode"}, so knowing that does not open this app.
+          {desktop ? "computer’s password" : "phone’s passcode"}, so knowing that doesn’t open this app.
         </Text>
-        <Text variant="bodyMuted">
+        <Text tone="muted">
           The PIN itself is never stored. The app keeps a one-way fingerprint of it{" "}
-          {desktop ? "in its encrypted vault" : "in the keychain"}, which can check a PIN but cannot be turned back into
+          {desktop ? "in its encrypted vault" : "in the keychain"}, which can check a PIN but can’t be turned back into
           one.
         </Text>
+        <Notice
+          tone="warning"
+          message="A forgotten PIN can’t be recovered."
+          detail="Nobody can reset it. The only way back in is to erase this app’s data on this device, then restore each account from its recovery phrase."
+        />
       </View>
 
-      <Note tone="danger" icon="circle-alert" title="A forgotten PIN cannot be recovered">
-        Nobody can reset it. The only way back in is to erase this app’s data on this device, then restore each account
-        from its recovery phrase.
-      </Note>
-
-      <Section title="Before you go on" surface="card" inset={false}>
-        <ListItem
-          title="Recovery phrase"
-          subtitle={accounts > 1 ? "Make sure each account’s phrase is written down" : "Make sure it is written down"}
-          numberOfLinesSubtitle={2}
-          leading={<RowIcon name="key-round" />}
-          trailing={<Chevron />}
+      <Section label="Before you go on">
+        <SettingsRow
+          label="Recovery phrase"
+          description={
+            accounts > 1 ? "Make sure each account’s phrase is written down" : "Make sure it is written down"
+          }
+          icon="key-round"
           onPress={() => router.push("/settings/recovery-phrase")}
         />
       </Section>
 
-      <Button label="Choose a PIN" fullWidth onPress={onBegin} />
+      <View className="px-4">
+        <Button variant="primary" label="Choose a PIN" fullWidth onPress={onBegin} />
+      </View>
     </View>
   );
 }
@@ -171,7 +151,6 @@ function PinEntry({
   listening: boolean;
   onEvent: (event: PinFlowEvent) => void;
 }) {
-  const colors = useThemeColors();
   const waitLeft = useWaitLeft(state.note?.kind === "wait" ? state.note.until : null);
   const { text, alarming } = describe(state, waitLeft);
 
@@ -181,9 +160,9 @@ function PinEntry({
         <Text variant="title">{prompt(state)}</Text>
         <View className="min-h-10 justify-center">
           {state.task?.run === "check" ? (
-            <ActivityIndicator color={colors.subtle} />
+            <LitPoint pulse />
           ) : (
-            <Text variant="footnote" className={cn("text-center", alarming && "text-danger")}>
+            <Text size="sm" tone={alarming ? "danger" : "muted"} align="center">
               {text}
             </Text>
           )}
@@ -216,7 +195,7 @@ function prompt({ kind, stage }: PinFlowState): string {
 function describe({ stage, note }: PinFlowState, waitLeft: number) {
   if (note?.kind === "wait" && waitLeft > 0) return { text: waitMessage(waitLeft), alarming: true };
   if (note?.kind === "mismatch") {
-    return { text: "Those PINs did not match. Choose one again.", alarming: true };
+    return { text: "Those PINs didn’t match. Choose one again.", alarming: true };
   }
   if (note?.kind === "wrong") return { text: "Wrong PIN. Try again.", alarming: true };
   if (note?.kind === "failed") return { text: note.message, alarming: true };

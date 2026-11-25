@@ -5,18 +5,17 @@ import { useAccountStore } from "@/core/account/account-store";
 import {
   Avatar,
   Button,
-  Checkmark,
-  Field,
+  Checkbox,
   Icon,
-  ListItem,
-  Loading,
-  ModalHeader,
-  Note,
-  Pressable,
+  Notice,
+  Row,
+  RowGroup,
   Screen,
-  Section,
+  SearchField,
+  Skeleton,
   Text,
   toast,
+  useThemeColors,
 } from "@/design";
 import { ContactName } from "@/features/contacts/contact-name";
 import {
@@ -27,6 +26,7 @@ import {
   type DeviceContact,
   readDeviceContacts,
 } from "@/features/contacts/device-contacts";
+import { RouteHeader } from "@/features/navigation/route-header";
 import { useAction } from "@/features/use-action";
 import { type ShareResult, shareText, shareWithNumbers } from "@/lib/share";
 
@@ -38,6 +38,7 @@ function inviteText(address: string): string {
 
 export default function InviteScreen() {
   const router = useRouter();
+  const colors = useThemeColors();
   const keyring = useAccountStore((s) => s.keyring);
 
   const [access, setAccess] = useState<ContactAccess>("unknown");
@@ -83,8 +84,8 @@ export default function InviteScreen() {
   }
 
   function report(result: ShareResult | null) {
-    if (result === "copied") toast.success("Invite copied");
-    if (result === "copied-for-messages") toast.success("Invite copied, paste it into Messages");
+    if (result === "copied") toast.success("Copied the invite");
+    if (result === "copied-for-messages") toast.success("Copied the invite: paste it into Messages");
   }
 
   const allowContacts = useAction(
@@ -93,7 +94,7 @@ export default function InviteScreen() {
       setAccess(privileges);
       await load(privileges).catch(() => {});
     },
-    { failure: "Could not ask for your contacts" },
+    { failure: "Couldn’t ask for your contacts" },
   );
 
   async function sendInvites() {
@@ -112,76 +113,82 @@ export default function InviteScreen() {
   }
 
   return (
-    <Screen className="px-0" edges={["top"]}>
-      <ModalHeader
-        title="Invite contacts"
-        onClose={() => router.back()}
-        className="px-4"
-        action={
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setSelected(allVisibleSelected ? new Set() : new Set(visible.map((c) => c.id)))}
-          >
-            <Text className="font-medium text-accent">{allVisibleSelected ? "Clear" : "Select all"}</Text>
-          </Pressable>
-        }
-      />
+    <Screen edges={["top"]}>
+      <RouteHeader title="Invite contacts" onClose={() => router.back()} />
 
-      <View className="px-4 pb-4">
-        <Field onChangeText={setQuery} placeholder="Search" autoCorrect={false} autoCapitalize="none" />
+      <View className="flex-row items-center gap-2 px-4 pb-3 pt-3">
+        <View className="flex-1">
+          <SearchField onChangeText={setQuery} value={query} placeholder="Search" onClear={() => setQuery("")} />
+        </View>
+        {visible.length > 0 ? (
+          <Button
+            variant="ghost"
+            label={allVisibleSelected ? "Clear" : "Select all"}
+            onPress={() => setSelected(allVisibleSelected ? new Set() : new Set(visible.map((c) => c.id)))}
+          />
+        ) : null}
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
-        <Section surface="list">
-          <ListItem
-            testID="share-app"
-            title={<Text className="font-semibold text-accent">Share Statim</Text>}
-            leading={<Icon name="heart" size={24} tone="accent" />}
-            onPress={async () => {
-              if (keyring) report(await shareText(inviteText(keyring.address)).catch(() => null));
-            }}
-          />
-        </Section>
+        <Row
+          testID="share-app"
+          title="Share Statim…"
+          leading={<Icon name="heart" size={20} tone="muted" />}
+          onPress={async () => {
+            if (keyring) report(await shareText(inviteText(keyring.address)).catch(() => null));
+          }}
+        />
 
         {loading ? (
-          <Loading />
+          <Skeleton rows={5} avatar />
         ) : access === "unavailable" ? (
-          <Note className="mx-4 mt-6" icon="lock">
-            <Text variant="footnote">
-              Suggestions from your address book are not available on this system. Share the link above, or scan the QR
-              code from a phone that has the app.
-            </Text>
-          </Note>
+          <View className="px-4 pt-6">
+            <Notice
+              tone="info"
+              message="Suggestions from your address book aren’t available on this system."
+              detail="Share the link above, or scan the QR code from a phone that has the app."
+            />
+          </View>
         ) : access === "none" || access === "unknown" ? (
-          <Note className="mx-4 mt-6" icon="lock">
-            <Text variant="footnote">
-              Your address book can suggest who to invite. It is read on this device only, never uploaded and never
-              matched against a server. That is why this list cannot tell you who is already here.
-            </Text>
-            <Button label="Allow contacts" onPress={() => allowContacts.run()} />
-          </Note>
+          <View className="px-4 pt-6">
+            <Notice
+              tone="info"
+              message="Your address book can suggest who to invite."
+              detail="It is read on this device only, never uploaded and never matched against a server. That is why this list can’t tell you who is already here."
+              action={{ label: "Allow contacts", onPress: () => allowContacts.run() }}
+            />
+          </View>
         ) : (
-          <Section title={`Contacts · ${visible.length}`} surface="list" className="mt-6">
+          <RowGroup label={`Contacts · ${visible.length}`}>
             {visible.map((contact) => {
               const isSelected = selected.has(contact.id);
+              const name = `${contact.given ?? ""} ${contact.family ?? ""}`.trim();
               return (
-                <ListItem
+                <Row
                   key={contact.id}
-                  title={<ContactName given={contact.given} family={contact.family} />}
-                  subtitle={contact.phone ?? "No phone number"}
-                  leading={<Avatar seed={`${contact.given ?? ""}${contact.family ?? ""}`} size="md" />}
-                  trailing={<Checkmark selected={isSelected} multiple />}
+                  title={
+                    <Text numberOfLines={1}>
+                      <ContactName given={contact.given} family={contact.family} />
+                    </Text>
+                  }
+                  accessibilityLabel={name || "Unknown"}
+                  preview={contact.phone ?? "No phone number"}
+                  leading={<Avatar size={40} label={name} />}
+                  trailing={<Checkbox checked={isSelected} />}
                   onPress={() => toggle(contact.id)}
                 />
               );
             })}
-          </Section>
+          </RowGroup>
         )}
       </ScrollView>
 
       {selected.size > 0 ? (
-        <View className="absolute inset-x-0 bottom-0 border-t border-line bg-panel px-4 pb-8 pt-3">
-          <Button label={`Invite ${selected.size}`} fullWidth onPress={sendInvites} />
+        <View
+          className="absolute inset-x-0 bottom-0 px-4 pb-8 pt-3"
+          style={{ backgroundColor: colors.panel, borderTopWidth: 1, borderColor: colors.line }}
+        >
+          <Button variant="primary" label={`Invite ${selected.size}…`} fullWidth onPress={sendInvites} />
         </View>
       ) : null}
     </Screen>

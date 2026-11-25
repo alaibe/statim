@@ -17,14 +17,14 @@ import { OLLAMA_URL, providerFor } from "@/core/ai/providers";
 import { DEFAULT_ANTHROPIC_MODEL } from "@/core/ai/providers/anthropic";
 import { listModels } from "@/core/ai/providers/openai";
 import { useAppearanceStore } from "@/core/app/appearance";
-import { Button, Checkmark, Chip, Field, ListItem, Note, Section, Text, Toggle, toast } from "@/design";
+import { Button, desktop, Input, Radio, Row, SECTION_GAP, Section, SettingsRow, Text, toast } from "@/design";
 import { useAction } from "@/features/use-action";
 import { guideUrl } from "@/lib/guide";
 import { openExternal } from "@/lib/open-url";
 import { useKeyedLoad } from "@/lib/use-keyed-load";
 import { SettingsScreen } from "./settings-screen";
 
-const DESKTOP = process.env.EXPO_OS === "web";
+const DESKTOP = desktop;
 
 const JEV_FEATURES = [
   {
@@ -156,11 +156,11 @@ function AiSettingsForm({ accountId, saved }: { accountId: string; saved: Saved 
       await saveTypesafeKey(accountId, draft.typesafeKey);
       await saveAiConfig(accountId, draft);
     },
-    { success: "AI settings saved", failure: "Could not save the AI settings" },
+    { success: "Saved the AI settings", failure: "Couldn't save the AI settings" },
   );
 
   const toggle = useAction((on: boolean) => useAppearanceStore.getState().setAiInChats(on), {
-    failure: "Could not change the AI setting",
+    failure: "Couldn't change the AI setting",
   });
 
   const tryIt = useAction(
@@ -175,7 +175,7 @@ function AiSettingsForm({ accountId, saved }: { accountId: string; saved: Saved 
       const seconds = ((Date.now() - started) / 1000).toFixed(1);
       toast.success(`${model.label} answered in ${seconds} s`);
     },
-    { failure: "The model did not answer" },
+    { failure: "The model didn't answer" },
   );
 
   const findModels = useAction(
@@ -184,183 +184,186 @@ function AiSettingsForm({ accountId, saved }: { accountId: string; saved: Saved 
       if (found.length === 0) throw new Error("The server lists no models.");
       setModels(found);
     },
-    { failure: "Could not list the models" },
+    { failure: "Couldn't list the models" },
   );
 
   const form = draft.source === "auto" ? null : FORM[draft.source];
 
   return (
     <>
-      <Section surface="card" className="mb-6">
-        <ListItem
-          testID="ai-enabled"
-          title="AI in chats"
-          subtitle="Rewrite, Translate, Summarize and Suggest a reply, above the composer and as slash commands"
-          numberOfLinesSubtitle={2}
-          trailing={<Toggle label="AI in chats" value={enabled} onValueChange={(on) => void toggle.run(on)} />}
-        />
-      </Section>
+      <View style={{ marginBottom: SECTION_GAP }}>
+        <Section>
+          <SettingsRow
+            testID="ai-enabled"
+            label="AI in chats"
+            description="Rewrite, Translate, Summarize and Suggest a reply, above the composer and as slash commands"
+            icon="sparkles"
+            toggle={{ value: enabled, onValueChange: (on) => void toggle.run(on) }}
+          />
+        </Section>
+      </View>
 
       {enabled ? (
         <>
-          <Section title="Jev" surface="card" className="mb-6">
-            {JEV_FEATURES.map(({ flag, testID, title, subtitle }) => (
-              <ListItem
-                key={flag}
-                testID={testID}
-                title={title}
-                subtitle={subtitle}
-                numberOfLinesSubtitle={3}
-                trailing={<Toggle label={title} value={draft[flag]} onValueChange={(on) => change({ [flag]: on })} />}
-              />
-            ))}
-            <View className="gap-3 px-4 py-4">
-              <Field
-                testID="ai-typesafe-key"
-                label="TypeSafe API key"
-                value={draft.typesafeKey}
-                onChangeText={(typesafeKey) => change({ typesafeKey })}
-                placeholder="Your Jev key"
-                autoCorrect={false}
-                autoCapitalize="none"
-                secureTextEntry
-              />
-              <Text variant="footnote">
-                These options send recent messages to TypeSafe, including other participants’ messages. Badges check
-                chats visible in the chat list. Reply suggestions use the model selected below.
-              </Text>
-              <Button
-                label="Get a TypeSafe key"
-                tone="neutral"
-                size="sm"
-                onPress={() => openExternal("https://console.typesafe.ai").catch(() => {})}
-              />
-            </View>
-          </Section>
-
-          <Section title="Model" surface="card" className="mb-6">
-            {SOURCES.map((source) => (
-              <ListItem
-                key={source.id}
-                testID={`ai-source-${source.id}`}
-                title={source.title}
-                subtitle={source.id === "auto" ? automaticHint(saved.device) : source.hint}
-                numberOfLinesSubtitle={2}
-                onPress={() => pick(source.id)}
-                trailing={<Checkmark selected={source.id === draft.source} />}
-              />
-            ))}
-          </Section>
-
-          {form ? (
-            <Section title={form.title} surface="card" className="mb-6">
-              <View className="gap-3 px-4 py-4">
-                {draft.source === "openai" ? (
-                  <Field
-                    testID="ai-url"
-                    label="Address"
-                    value={draft.url}
-                    onChangeText={(url) => change({ url })}
-                    placeholder={OLLAMA_URL}
-                    autoCorrect={false}
-                    autoCapitalize="none"
-                    keyboardType="url"
-                  />
-                ) : null}
-                <Field
-                  testID="ai-key"
-                  label="API key"
-                  value={draft.key}
-                  onChangeText={(text) => change({ key: text })}
-                  placeholder={form.key}
+          <View style={{ marginBottom: SECTION_GAP }}>
+            <Section
+              label="Jev"
+              description="These options send recent messages to TypeSafe, including other participants’ messages. Badges check chats visible in the chat list. Reply suggestions use the model selected below."
+            >
+              {JEV_FEATURES.map(({ flag, testID, title, subtitle }) => (
+                <SettingsRow
+                  key={flag}
+                  testID={testID}
+                  label={title}
+                  description={subtitle}
+                  toggle={{ value: draft[flag], onValueChange: (on) => change({ [flag]: on }) }}
+                />
+              ))}
+              <Block>
+                <Input
+                  testID="ai-typesafe-key"
+                  label="TypeSafe API key"
+                  mono
+                  value={draft.typesafeKey}
+                  onChangeText={(typesafeKey) => change({ typesafeKey })}
+                  placeholder="Your Jev key"
                   autoCorrect={false}
                   autoCapitalize="none"
                   secureTextEntry
                 />
-                <Field
-                  testID="ai-model"
-                  label="Model"
-                  value={draft.model}
-                  onChangeText={(model) => change({ model })}
-                  placeholder={form.model}
-                  autoCorrect={false}
-                  autoCapitalize="none"
+                <Button
+                  label="Get a TypeSafe key"
+                  trailingIcon="arrow-up-right"
+                  size="sm"
+                  onPress={() => openExternal("https://console.typesafe.ai").catch(() => {})}
                 />
-                {draft.source === "openai" ? (
-                  <>
-                    {models.length > 0 ? (
-                      <View className="flex-row flex-wrap gap-1.5">
-                        {models.map((model) => (
-                          <Chip
-                            key={model}
-                            label={model}
-                            size="sm"
-                            selected={model === draft.model}
-                            onPress={() => change({ model })}
-                          />
-                        ))}
-                      </View>
-                    ) : null}
-                    <Button
-                      testID="ai-find-models"
-                      label="Find models"
-                      tone="neutral"
-                      size="sm"
-                      loading={findModels.busy}
-                      disabled={!draft.url.trim() || findModels.busy}
-                      onPress={() => findModels.run()}
-                    />
-                  </>
-                ) : null}
-              </View>
+              </Block>
             </Section>
+          </View>
+
+          <View style={{ marginBottom: SECTION_GAP }}>
+            <Section label="Model">
+              {SOURCES.map((source) => (
+                <Row
+                  key={source.id}
+                  testID={`ai-source-${source.id}`}
+                  title={source.title}
+                  preview={source.id === "auto" ? automaticHint(saved.device) : source.hint}
+                  leading={<Radio checked={source.id === draft.source} />}
+                  onPress={() => pick(source.id)}
+                />
+              ))}
+            </Section>
+          </View>
+
+          {form ? (
+            <View style={{ marginBottom: SECTION_GAP }}>
+              <Section label={form.title}>
+                <Block>
+                  {draft.source === "openai" ? (
+                    <Input
+                      testID="ai-url"
+                      label="Address"
+                      mono
+                      value={draft.url}
+                      onChangeText={(url) => change({ url })}
+                      placeholder={OLLAMA_URL}
+                      autoCorrect={false}
+                      autoCapitalize="none"
+                      keyboardType="url"
+                    />
+                  ) : null}
+                  <Input
+                    testID="ai-key"
+                    label="API key"
+                    mono
+                    value={draft.key}
+                    onChangeText={(text) => change({ key: text })}
+                    placeholder={form.key}
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    secureTextEntry
+                  />
+                  <Input
+                    testID="ai-model"
+                    label="Model"
+                    mono
+                    value={draft.model}
+                    onChangeText={(model) => change({ model })}
+                    placeholder={form.model}
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                  />
+                  {draft.source === "openai" ? (
+                    <>
+                      {models.length > 0 ? (
+                        <View>
+                          {models.map((model) => (
+                            <Row
+                              key={model}
+                              title={model}
+                              leading={<Radio checked={model === draft.model} />}
+                              onPress={() => change({ model })}
+                            />
+                          ))}
+                        </View>
+                      ) : null}
+                      <Button
+                        testID="ai-find-models"
+                        icon="search"
+                        label="Find models"
+                        size="sm"
+                        busy={findModels.busy}
+                        disabled={!draft.url.trim()}
+                        onPress={() => findModels.run()}
+                      />
+                    </>
+                  ) : null}
+                </Block>
+              </Section>
+            </View>
           ) : null}
 
-          <View className="mb-6 flex-row gap-2 px-4">
-            <View className="flex-1">
-              <Button
-                testID="ai-save"
-                label="Save"
-                fullWidth
-                loading={save.busy}
-                disabled={!dirty || save.busy}
-                onPress={() => save.run()}
-              />
-            </View>
-            <View className="flex-1">
-              <Button
-                testID="ai-try"
-                label="Try it"
-                tone="neutral"
-                fullWidth
-                loading={tryIt.busy}
-                disabled={tryIt.busy}
-                onPress={() => tryIt.run()}
-              />
-            </View>
+          <View className="mb-6 flex-row justify-end gap-2 px-4">
+            <Button testID="ai-try" label="Try it" busy={tryIt.busy} onPress={() => tryIt.run()} />
+            <Button
+              testID="ai-save"
+              variant="primary"
+              label="Save"
+              busy={save.busy}
+              disabled={!dirty}
+              onPress={() => save.run()}
+            />
           </View>
         </>
       ) : null}
 
-      <Note className="mx-4" icon="info">
-        <Text variant="footnote">
-          AI is off until you turn it on. Commands run when you type them or tap their chips. Enabled Jev features also
-          check chats as you view them. Nothing is sent to the chat until you send it yourself.
-        </Text>
-        <Text variant="footnote">
-          Automatic uses the model built into this device. Enabled Jev features still send recent messages to TypeSafe.
-          Translation uses the device&apos;s own translator first, when it has the language.
-        </Text>
-        <Text variant="footnote">
-          With your server or Anthropic, each request goes to that server: the text you rewrite or translate, and for
-          /summarize and /suggest the recent messages of the chat. In a group that includes what other people wrote.
-        </Text>
-        <Button
-          label="How to set this up"
-          tone="neutral"
-          onPress={() => openExternal(guideUrl("ai")).catch(() => {})}
-        />
-      </Note>
+      <Section label="What leaves this device">
+        <Block>
+          <Text size="sm" tone="muted">
+            AI is off until you turn it on. Commands run when you type them or tap their chips. Enabled Jev features
+            also check chats as you view them. Nothing is sent to the chat until you send it yourself.
+          </Text>
+          <Text size="sm" tone="muted">
+            Automatic uses the model built into this device. Enabled Jev features still send recent messages to
+            TypeSafe. Translation uses the device&apos;s own translator first, when it has the language.
+          </Text>
+          <Text size="sm" tone="muted">
+            With your server or Anthropic, each request goes to that server: the text you rewrite or translate, and for
+            /summarize and /suggest the recent messages of the chat. In a group that includes what other people wrote.
+          </Text>
+          <Button
+            label="How to set this up"
+            trailingIcon="arrow-up-right"
+            size="sm"
+            onPress={() => openExternal(guideUrl("ai")).catch(() => {})}
+          />
+        </Block>
+      </Section>
     </>
   );
+}
+
+function Block({ children }: { children: React.ReactNode }) {
+  return <View className={desktop ? "gap-3 py-3" : "gap-3 p-4"}>{children}</View>;
 }

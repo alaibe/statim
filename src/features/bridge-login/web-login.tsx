@@ -3,7 +3,7 @@ import { Modal, Platform, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
-import { Button, Card, Text } from "@/design";
+import { Button, PhoneHeader, Text, useThemeColors } from "@/design";
 import {
   extractionScript,
   localStorageKeys,
@@ -21,6 +21,7 @@ const SAFARI =
   Platform.OS === "ios" ? `Version/${String(Platform.Version).split(".")[0]}.0 Mobile/15E148 Safari/604.1` : undefined;
 
 export function WebLogin({ params, network, onValues, onCancel }: WebLoginProps) {
+  const colors = useThemeColors();
   const [open, setOpen] = useState(true);
   const page = useRef<PageState | null>(null);
   const url = useRef(params.url);
@@ -69,22 +70,23 @@ true;`,
 
   return (
     <>
-      <Card className="gap-2" testID="bridge-web-login">
-        <Text variant="footnote">
+      <View testID="bridge-web-login">
+        <Text tone="muted">
           Sign in to {network} on the page that opened. It closes by itself once the bridge has what it needs.
         </Text>
-      </Card>
+      </View>
       <Modal
         visible={open}
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={() => void finish(null)}
       >
-        <SafeAreaView className="flex-1 bg-bg" edges={["top", "bottom"]}>
-          <View className="flex-row items-center justify-between px-4 py-2">
-            <Text className="font-semibold">Sign in to {network}</Text>
-            <Button label="Cancel" tone="ghost" size="sm" onPress={() => finish(null)} />
-          </View>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["bottom"]}>
+          <PhoneHeader
+            inset={false}
+            title={`Sign in to ${network}`}
+            action={<Button label="Cancel" variant="ghost" size="sm" onPress={() => void finish(null)} />}
+          />
           <WebView
             source={{ uri: params.url }}
             userAgent={params.user_agent || undefined}

@@ -30,7 +30,10 @@ https://docs.expo.dev/versions/v57.0.0/ before writing Expo, Expo Router or Reac
 
 - Statim follows the laibe design system as of 2026-11-25 (`git.laibe.cc/anthony/design`) with the `ultraviolet` accent. Before a UI change, read its `principles.md` and the component pages it touches.
 - `src/design/laibe/tokens.css` is the system's `tokens/tokens.css`, byte for byte: replace it on a new entry in the system's changelog, never edit it, and run `npm run tokens`, which writes the colours (light and dark), sizes, radii, durations and shadows under the system's names into `src/design/laibe/tokens.json` and `src/global.css`. Tailwind's theme is that and nothing else.
-- Inter for what people read and write, JetBrains Mono for the interface, both bundled (`src/design/fonts.ts`); `Text` picks the face from its weight. The desktop has the system's status bar with contextual hints.
+- `src/design/components` ports the system's `components.css` to React Native, one file per component page, named like the page, with every value kept. Screens use them and set no colour, radius or type themselves: `className` is for layout only, and lint fails on a colour, radius, type or arbitrary class, or a raw colour, in `src/app`, `src/features` or `src/plugins`. `Text` takes the typography roles (`display title heading label control meta body reading code stat`). One primary button per screen: `Screen`, dialogs and sheets report a second one in development.
+- Inter for what people read and write, JetBrains Mono for the interface, both bundled (`src/design/fonts.ts`). Icons are Lucide (`src/design/icon.tsx`, 16/20/24); network marks are Statim's own.
+- The shell is the system's app shell. Phones: the system's tab bar and `PhoneHeader` (live state as its subtitle), dialogs as bottom sheets, the palette from the Chats search button. Desktop (`app-frame.web.tsx`): title bar, sidebar of places, list, detail and status bar, collapsing below 1100 and 860.
+- Every action is one entry in `src/features/navigation/commands.ts`: the keymap (`keymap.web.ts`, every shared key of `patterns/keyboard.md`), the ⌘K palette, the `?` overlay, the status bar's hints and the app menu's ids (`src-tauri/src/app_menu.rs`, checked by `commands.test.ts`) all read it.
 
 ## Words
 

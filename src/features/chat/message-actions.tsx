@@ -1,11 +1,30 @@
-import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { useEffect } from "react";
-import { Modal, Pressable as RNPressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
+import {
+  Modal,
+  Pressable as RNPressable,
+  Text as RNText,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { QUICK_REACTIONS } from "@/core/messaging/reactions";
-import { cn, Icon, type IconName, PASS_THROUGH, Text, useThemeColors } from "@/design";
+import {
+  Control,
+  type IconName,
+  Layout,
+  MenuRow,
+  MenuSeparator,
+  PASS_THROUGH,
+  Pressable,
+  Radius,
+  Shadow,
+  scrimColor,
+  useThemeColors,
+} from "@/design";
 
 export interface MessageAction {
   id: string;
@@ -23,9 +42,17 @@ export interface MessageAnchor {
 }
 
 const REACTION_BAR_HEIGHT = 48;
-const MENU_ROW_HEIGHT = 46;
+const MENU_ROW_HEIGHT = Control.touch;
 const GAP = 8;
-const android = process.env.EXPO_OS === "android";
+
+/** The menu's floating surface: `panel`, a `line-strong` edge, radius `lg`, `--shadow-popover`. */
+const SURFACE = (colors: ReturnType<typeof useThemeColors>) => ({
+  backgroundColor: colors.panel,
+  borderWidth: 1,
+  borderColor: colors["line-strong"],
+  borderRadius: Radius.lg,
+  boxShadow: Shadow.popover,
+});
 
 export function MessageActions({
   visible,
@@ -56,8 +83,12 @@ export function MessageActions({
 
   if (!anchor) return null;
 
+  // Destructive actions come last, after a separator.
+  const ordered = [...actions.filter((a) => a.tone !== "danger"), ...actions.filter((a) => a.tone === "danger")];
+  const firstDanger = ordered.findIndex((a) => a.tone === "danger");
+
   const above = onReact ? REACTION_BAR_HEIGHT + GAP : 0;
-  const menuHeight = actions.length * MENU_ROW_HEIGHT + 16;
+  const menuHeight = actions.length * MENU_ROW_HEIGHT + 18;
   const wanted = above + anchor.height + GAP + menuHeight;
   const top = insets.top + 8;
   const bottom = screenHeight - insets.bottom - 8;
@@ -89,12 +120,9 @@ export function MessageActions({
     >
       {onReact ? (
         <Animated.View entering={FadeIn.duration(140)} exiting={FadeOut.duration(100)}>
-          <View
-            style={{ borderCurve: "continuous", height: REACTION_BAR_HEIGHT }}
-            className="flex-row items-center gap-1 rounded-full bg-panel px-2 shadow-popover"
-          >
+          <View className="flex-row items-center gap-1 px-1" style={[SURFACE(colors), { height: REACTION_BAR_HEIGHT }]}>
             {QUICK_REACTIONS.map((emoji) => (
-              <RNPressable
+              <Pressable
                 key={emoji}
                 accessibilityRole="button"
                 accessibilityLabel={`React with ${emoji}`}
@@ -102,10 +130,14 @@ export function MessageActions({
                   onReact(emoji);
                   onClose();
                 }}
-                className="h-9 w-9 items-center justify-center rounded-full active:bg-side"
+                className="h-10 w-10 items-center justify-center"
+                style={({ hovered, pressed }) => ({
+                  borderRadius: Radius.md,
+                  backgroundColor: hovered || pressed ? colors.hover : "transparent",
+                })}
               >
-                <Text className="text-[24px]">{emoji}</Text>
-              </RNPressable>
+                <RNText style={{ fontSize: 24 }}>{emoji}</RNText>
+              </Pressable>
             ))}
           </View>
         </Animated.View>
@@ -114,24 +146,23 @@ export function MessageActions({
       <View style={[PASS_THROUGH, { width: anchor.width }]}>{render()}</View>
 
       <Animated.View entering={FadeIn.duration(140).delay(30)} exiting={FadeOut.duration(100)}>
-        <View
-          style={{ borderCurve: "continuous", minWidth: 200 }}
-          className="overflow-hidden rounded-lg bg-panel py-1 shadow-popover"
-        >
-          {actions.map((action) => (
-            <RNPressable
-              key={action.id}
-              accessibilityRole="button"
-              accessibilityLabel={action.label}
-              onPress={() => {
-                onClose();
-                action.onPress();
-              }}
-              className="min-h-[46px] flex-row items-center gap-3 px-4 py-2.5 active:bg-side"
-            >
-              <Icon name={action.icon} size={20} tone={action.tone === "danger" ? "danger" : "fg"} />
-              <Text className={cn("font-medium", action.tone === "danger" && "text-danger")}>{action.label}</Text>
-            </RNPressable>
+        <View className="p-1" style={[SURFACE(colors), { minWidth: Layout.menu }]}>
+          {ordered.map((action, index) => (
+            <View key={action.id}>
+              {index === firstDanger && index > 0 ? <MenuSeparator /> : null}
+              <MenuRow
+                item={{
+                  label: action.label,
+                  icon: action.icon,
+                  danger: action.tone === "danger",
+                  onPress: action.onPress,
+                }}
+                onRun={() => {
+                  onClose();
+                  action.onPress();
+                }}
+              />
+            </View>
           ))}
         </View>
       </Animated.View>
@@ -141,8 +172,7 @@ export function MessageActions({
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <Animated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(120)} style={{ flex: 1 }}>
-        <BlurView intensity={40} tint={colors.scheme === "dark" ? "dark" : "light"} style={{ flex: 1 }}>
-          {android ? <View className="absolute inset-0 bg-bg/85" /> : null}
+        <View style={{ flex: 1, backgroundColor: scrimColor(colors) }}>
           {scrolls ? (
             <ScrollView
               contentContainerStyle={{ paddingTop: top, paddingBottom: screenHeight - bottom }}
@@ -157,7 +187,7 @@ export function MessageActions({
               {group}
             </>
           )}
-        </BlurView>
+        </View>
       </Animated.View>
     </Modal>
   );

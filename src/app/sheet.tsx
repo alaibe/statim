@@ -2,16 +2,19 @@ import { useEffect } from "react";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cancelPrompt, useDevicePrompt } from "@/core/account/device-prompt";
-import { IconButton, Text } from "@/design";
+import { IconButton, PrimaryScope, Space, Text, useThemeColors } from "@/design";
 import { SHEET_DISMISS_MS, useSheetStore } from "@/design/components/sheet";
 import { DevicePromptBody, devicePromptTitle } from "@/features/account/device-prompt";
 
+/** The phone's dialogs and menus: a bottom sheet with the dialog's parts. */
 export default function SheetRoute() {
+  const colors = useThemeColors();
   const current = useSheetStore((s) => s.current);
   const prompt = useDevicePrompt((s) => s.prompt);
   const insets = useSafeAreaInsets();
   const shown = prompt
     ? {
+        label: undefined,
         title: devicePromptTitle(prompt),
         subtitle: undefined,
         leading: undefined,
@@ -32,31 +35,33 @@ export default function SheetRoute() {
   );
 
   return (
-    <View className="bg-panel px-4" style={{ paddingBottom: insets.bottom + 8 }}>
-      <View className="min-h-touch flex-row items-center gap-3 py-3">
+    <View
+      style={{
+        backgroundColor: colors.panel,
+        paddingHorizontal: Space[4],
+        paddingBottom: insets.bottom + Space[2],
+      }}
+    >
+      <View style={{ minHeight: 52, flexDirection: "row", alignItems: "center", gap: Space[3], paddingTop: Space[4] }}>
         {shown?.leading}
-        <View className="min-w-0 flex-1">
+        <View style={{ flex: 1, minWidth: 0, gap: Space[1] }}>
+          {shown?.label ? <Text variant="label">{shown.label}</Text> : null}
           {shown?.title ? (
-            <Text variant="title" numberOfLines={1}>
+            <Text variant="title" numberOfLines={2}>
               {shown.title}
             </Text>
           ) : null}
           {shown?.subtitle ? (
-            <Text variant="caption" numberOfLines={1}>
+            <Text variant="meta" numberOfLines={1}>
               {shown.subtitle}
             </Text>
           ) : null}
         </View>
-        <IconButton
-          testID="sheet-close"
-          icon="x"
-          label="Close"
-          size={20}
-          surface="sunken"
-          onPress={() => shown?.onClose()}
-        />
+        <IconButton testID="sheet-close" icon="x" label="Close" onPress={() => shown?.onClose()} />
       </View>
-      <View className="gap-3">{shown?.children}</View>
+      <PrimaryScope>
+        <View style={{ gap: Space[3], paddingTop: Space[2] }}>{shown?.children}</View>
+      </PrimaryScope>
     </View>
   );
 }

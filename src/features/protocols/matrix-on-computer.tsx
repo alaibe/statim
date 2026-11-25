@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { View } from "react-native";
 import { errorMessage } from "@/core/errors";
-import { Button, Card, QrScanner, Text } from "@/design";
+import { Button, QrScanner, Text } from "@/design";
 import { DEVICE_NAME } from "@/protocols/matrix/descriptor";
 import { loginWithToken } from "@/protocols/matrix/token-login";
 
@@ -19,11 +20,11 @@ export function MatrixOnComputer({ accountId, signedIn }: MatrixOnComputerProps)
 
   const signIn = async (data: string) => {
     const link = readPhoneLink(data);
-    if (!link) return "That is not a code from Statim on your computer.";
+    if (!link) return "That isn't a code from Statim on your computer.";
     try {
       await adoptMatrixSession(accountId, await loginWithToken(link.homeserver, link.loginToken, DEVICE_NAME));
     } catch (e) {
-      return errorMessage(e, "Could not sign in with that code");
+      return errorMessage(e, "Couldn't sign in with that code");
     }
     setScanning(false);
     return null;
@@ -31,17 +32,16 @@ export function MatrixOnComputer({ accountId, signedIn }: MatrixOnComputerProps)
 
   if (signedIn) return null;
   return (
-    <Card className="gap-2">
-      <Text variant="headline">Matrix on your computer</Text>
-      <Text variant="caption">
+    <View className="gap-2">
+      <Text variant="heading">Matrix on your computer</Text>
+      <Text size="sm" tone="muted">
         If Statim runs Matrix on your computer, choose Connect your phone there, under Settings › Matrix, and scan the
         code it shows. Both devices need Tailscale.
       </Text>
       <Button
         testID="matrix-scan-computer"
+        icon="qr-code"
         label="Scan the code from your computer"
-        tone="neutral"
-        size="md"
         fullWidth
         onPress={() => setScanning(true)}
       />
@@ -54,6 +54,6 @@ export function MatrixOnComputer({ accountId, signedIn }: MatrixOnComputerProps)
           onClose={() => setScanning(false)}
         />
       ) : null}
-    </Card>
+    </View>
   );
 }

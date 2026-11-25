@@ -1280,7 +1280,7 @@
         "properties": {
           "setting": {
             "type": "string",
-            "description": "theme, wallpaper, read-receipts, typing-indicators, link-previews or ai"
+            "description": "theme, quick-tips, read-receipts, typing-indicators, link-previews or ai"
           },
           "value": {
             "type": "string",

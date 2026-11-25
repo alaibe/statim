@@ -5,7 +5,7 @@ import { useChatStore } from "@/core/messaging/chat-store";
 import type { ProtocolId } from "@/core/messaging/namespace";
 import type { PublicChatPreview } from "@/core/messaging/protocol";
 import type { PublicChatsCopy } from "@/core/messaging/registry";
-import { Avatar, Button, Card, ErrorText, Eyebrow, Field, Text } from "@/design";
+import { Avatar, Button, FieldError, Input, Section, Text } from "@/design";
 import { openChatFromSheet } from "@/features/navigation/open";
 
 export function JoinPublicChat({ protocol, copy }: { protocol: ProtocolId; copy: PublicChatsCopy }) {
@@ -23,7 +23,7 @@ export function JoinPublicChat({ protocol, copy }: { protocol: ProtocolId; copy:
     try {
       setPreview(await previewPublicChat(protocol, input));
     } catch (failure) {
-      setError(errorMessage(failure, "Could not preview that chat"));
+      setError(errorMessage(failure, "Couldn’t preview that chat. Check the link or the name."));
     } finally {
       setBusy(false);
     }
@@ -41,7 +41,7 @@ export function JoinPublicChat({ protocol, copy }: { protocol: ProtocolId; copy:
         setPreview(null);
       }
     } catch (failure) {
-      setError(errorMessage(failure, "Could not join that chat"));
+      setError(errorMessage(failure, "Couldn’t join that chat"));
     } finally {
       setBusy(false);
     }
@@ -49,61 +49,68 @@ export function JoinPublicChat({ protocol, copy }: { protocol: ProtocolId; copy:
 
   return (
     <View className="gap-2">
-      <Eyebrow>{copy.title}</Eyebrow>
-      <Text variant="caption">{copy.hint}</Text>
+      <Text variant="label">{copy.title}</Text>
+      <Text size="sm" tone="muted">
+        {copy.hint}
+      </Text>
       <View className="flex-row items-end gap-2">
-        <Field
-          label="Group or channel"
-          placeholder={copy.placeholder}
-          containerClassName="flex-1"
-          value={input}
-          editable={!busy}
-          autoCapitalize="none"
-          autoCorrect={false}
-          onChangeText={(value) => {
-            setInput(value);
-            setPreview(null);
-            setError(null);
-            setRequestSent(false);
-          }}
-          onSubmitEditing={() => void lookup()}
-        />
-        <Button
-          label="Preview"
-          size="sm"
-          disabled={!input.trim() || busy}
-          loading={busy && !preview}
-          onPress={lookup}
-        />
+        <View className="flex-1">
+          <Input
+            label="Group or channel"
+            placeholder={copy.placeholder}
+            value={input}
+            editable={!busy}
+            autoCapitalize="none"
+            autoCorrect={false}
+            onChangeText={(value) => {
+              setInput(value);
+              setPreview(null);
+              setError(null);
+              setRequestSent(false);
+            }}
+            onSubmitEditing={() => void lookup()}
+          />
+        </View>
+        <Button label="Preview" disabled={!input.trim() || busy} busy={busy && !preview} onPress={lookup} />
       </View>
       {preview ? (
-        <Card className="gap-3">
-          <View className="flex-row items-center gap-3">
-            <Avatar seed={preview.id} label={preview.title} size="md" image={preview.avatarUri} />
-            <View className="min-w-0 flex-1">
-              <Text className="font-semibold" numberOfLines={1}>
-                {preview.title}
-              </Text>
-              <Text variant="caption">
-                {preview.kind === "channel" ? "Channel" : "Group"}
-                {preview.memberCount
-                  ? ` · ${preview.memberCount} ${preview.kind === "channel" ? "subscribers" : "members"}`
-                  : ""}
-              </Text>
+        <Section raised>
+          <View className="gap-3">
+            <View className="flex-row items-center gap-3">
+              <Avatar label={preview.title} size={40} image={preview.avatarUri} />
+              <View className="min-w-0 flex-1">
+                <Text strong numberOfLines={1}>
+                  {preview.title}
+                </Text>
+                <Text variant="meta">
+                  {preview.kind === "channel" ? "Channel" : "Group"}
+                  {preview.memberCount
+                    ? ` · ${preview.memberCount} ${preview.kind === "channel" ? "subscribers" : "members"}`
+                    : ""}
+                </Text>
+              </View>
             </View>
+            {preview.description ? <Text tone="muted">{preview.description}</Text> : null}
+            <Button
+              label={preview.joined ? "Open chat" : preview.requiresApproval ? "Request to join" : "Join chat"}
+              busy={busy}
+              disabled={Boolean(preview.joinUnavailableReason)}
+              onPress={join}
+            />
+            {preview.joinUnavailableReason ? (
+              <Text size="sm" tone="muted">
+                {preview.joinUnavailableReason}
+              </Text>
+            ) : null}
           </View>
-          {preview.description ? <Text variant="footnote">{preview.description}</Text> : null}
-          <Button
-            label={preview.joined ? "Open chat" : preview.requiresApproval ? "Request to join" : "Join chat"}
-            loading={busy}
-            disabled={Boolean(preview.joinUnavailableReason)}
-            onPress={join}
-          />
-          {preview.joinUnavailableReason ? <Text variant="caption">{preview.joinUnavailableReason}</Text> : null}
-        </Card>
+        </Section>
       ) : null}
-      {requestSent ? <Text variant="caption">Join request sent. An administrator needs to approve it.</Text> : null}
-      <ErrorText>{error}</ErrorText>
+      {requestSent ? (
+        <Text size="sm" tone="muted">
+          Sent a join request. An administrator needs to approve it.
+        </Text>
+      ) : null}
+      {error ? <FieldError>{error}</FieldError> : null}
     </View>
   );
 }

@@ -4,8 +4,9 @@ import { type BiometricCapability, biometricCapability } from "@/core/account/bi
 import { disableKeyProtection, enableKeyProtection, isKeyProtectionEnabled } from "@/core/account/key-protection";
 import { useLockStore } from "@/core/account/lock-store";
 import { reportError } from "@/core/app/report-error";
-import { Chevron, ConfirmSheet, ListItem, RowIcon, Section, Toggle, toast } from "@/design";
+import { ConfirmDialog, SettingsRow, toast } from "@/design";
 import { openTab } from "@/features/navigation/open";
+import { PageLink, SettingsGroup } from "@/features/settings/settings-group";
 import { useKeyedLoad } from "@/lib/use-keyed-load";
 
 interface Biometrics extends BiometricCapability {
@@ -45,63 +46,50 @@ export function SecuritySection({
   const biometrics = useKeyedLoad("biometrics", readBiometrics).value;
   if (!setup || !biometrics) return null;
 
-  const hint = (text: string) => (compact ? undefined : text);
-  const chevron = compact ? undefined : <Chevron />;
-
   return (
-    <Section title="Security" surface="card" className="mb-6">
-      {biometrics.available ? <BiometricRows biometrics={biometrics} lockOn={setup.biometric} hint={hint} /> : null}
+    <SettingsGroup label="Security" compact={compact}>
+      {biometrics.available ? <BiometricRows biometrics={biometrics} lockOn={setup.biometric} /> : null}
 
       {setup.pin ? (
         <>
-          <ListItem
+          <PageLink
+            compact={compact}
             testID="settings-change-pin"
-            title="Change PIN"
-            subtitle={hint(
+            label="Change PIN"
+            description={
               setup.biometric && biometrics.available
-                ? `Asked for when ${biometrics.label} does not work`
-                : "Asked for when the app opens",
-            )}
-            numberOfLinesSubtitle={2}
-            leading={<RowIcon name="grid-3x3" />}
-            trailing={chevron}
+                ? `Asked for when ${biometrics.label} doesn't work`
+                : "Asked for when the app opens"
+            }
+            icon="grid-3x3"
             selected={pinSelected}
             onPress={() => openTab("/settings/pin")}
           />
-          <ListItem
+          <PageLink
+            compact={compact}
             testID="settings-turn-off-pin"
-            title="Turn off PIN"
-            leading={<RowIcon name="circle-x" />}
-            trailing={chevron}
+            label="Turn off PIN"
+            icon="circle-x"
             selected={pinOffSelected}
             onPress={() => openTab("/settings/pin-off")}
           />
         </>
       ) : (
-        <ListItem
+        <PageLink
+          compact={compact}
           testID="settings-set-pin"
-          title="Set PIN"
-          subtitle={hint("Ask for a PIN of its own whenever the app opens")}
-          numberOfLinesSubtitle={2}
-          leading={<RowIcon name="grid-3x3" />}
-          trailing={chevron}
+          label="Set PIN"
+          description="Ask for a PIN of its own whenever the app opens"
+          icon="grid-3x3"
           selected={pinSelected}
           onPress={() => openTab("/settings/pin")}
         />
       )}
-    </Section>
+    </SettingsGroup>
   );
 }
 
-function BiometricRows({
-  biometrics,
-  lockOn,
-  hint,
-}: {
-  biometrics: Biometrics;
-  lockOn: boolean;
-  hint: (text: string) => string | undefined;
-}) {
+function BiometricRows({ biometrics, lockOn }: { biometrics: Biometrics; lockOn: boolean }) {
   const { label, enrolled } = biometrics;
   const noteJustAuthenticated = useLockStore((s) => s.noteJustAuthenticated);
   const setBiometricLock = useLockStore((s) => s.setBiometricLock);
@@ -137,7 +125,7 @@ function BiometricRows({
     const result = await change(ids).catch(() => null);
     setBusy(false);
 
-    if (!result) toast.error("Could not change key protection");
+    if (!result) toast.error("Couldn't change key protection");
     else if (!result.ok) toast.error(unchanged(result.reason));
     else {
       setProtectedKeys(next);
@@ -147,50 +135,45 @@ function BiometricRows({
 
   return (
     <>
-      <ListItem
-        title={`Require ${label}`}
-        subtitle={hint(enrolled ? "Asks before showing your accounts" : `Set up ${label} on this device first`)}
-        numberOfLinesSubtitle={2}
-        leading={<RowIcon name="fingerprint-pattern" />}
-        trailing={
-          <Toggle
-            label={`Require ${label}`}
-            value={lockOn}
-            disabled={!enrolled || busy}
-            onValueChange={async (next) => {
-              setBusy(true);
-              const applied = await changeLock(next).catch(() => {
-                toast.error("Could not change the lock setting");
+      <SettingsRow
+        label={`Require ${label}`}
+        description={enrolled ? "Asks before showing your accounts" : `Set up ${label} on this device first`}
+        icon="fingerprint-pattern"
+        toggle={{
+          value: lockOn,
+          disabled: !enrolled || busy,
+          onValueChange: (next) => {
+            setBusy(true);
+            void changeLock(next)
+              .catch(() => {
+                toast.error("Couldn't change the lock setting");
                 return false;
+              })
+              .then((applied) => {
+                setBusy(false);
+                if (applied) noteJustAuthenticated();
               });
-              setBusy(false);
-              if (applied) noteJustAuthenticated();
-            }}
-          />
-        }
+          },
+        }}
       />
 
       {lockOn && SEALS_KEYS ? (
-        <ListItem
-          title="Also protect keys"
-          subtitle={hint(`Your recovery phrase is sealed in the keychain and cannot be read without ${label}`)}
-          numberOfLinesSubtitle={2}
-          leading={<RowIcon name="lock" />}
-          trailing={
-            <Toggle
-              label="Also protect keys"
-              value={protectedKeys}
-              disabled={busy}
-              onValueChange={(next) => {
-                if (next) setConfirming(true);
-                else void applyProtection(false);
-              }}
-            />
-          }
+        <SettingsRow
+          label="Also protect keys"
+          description={`Your recovery phrase is sealed in the keychain and can't be read without ${label}`}
+          icon="lock"
+          toggle={{
+            value: protectedKeys,
+            disabled: busy,
+            onValueChange: (next) => {
+              if (next) setConfirming(true);
+              else void applyProtection(false);
+            },
+          }}
         />
       ) : null}
 
-      <ConfirmSheet
+      <ConfirmDialog
         visible={confirming}
         onClose={() => setConfirming(false)}
         title="Write down your phrase first"
@@ -200,7 +183,7 @@ function BiometricRows({
         ]}
         busy={busy}
         confirm={{
-          label: "My phrase is written down. Turn it on",
+          label: "Protect keys",
           onPress: () => {
             setConfirming(false);
             void applyProtection(true);

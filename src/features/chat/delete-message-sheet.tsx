@@ -1,6 +1,6 @@
 import { useChatStore } from "@/core/messaging/chat-store";
 import type { ChatId, ChatMessage } from "@/core/messaging/types";
-import { ConfirmSheet } from "@/design";
+import { ConfirmDialog } from "@/design";
 
 import { useAction } from "@/features/use-action";
 
@@ -38,14 +38,14 @@ export function DeleteMessageSheet({
   const copy = COPY[target.forEveryone ? "everyone" : "me"];
 
   return (
-    <ConfirmSheet
+    <ConfirmDialog
       visible
       onClose={onClose}
       title={copy.title}
       body={copy.body}
       confirm={{
         label: copy.label,
-        tone: "danger",
+        danger: true,
         onPress: async () => {
           if (await remove.run(target)) onClose();
         },

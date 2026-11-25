@@ -10,7 +10,7 @@ import { awaitsFile, callLabel, formatTimestamp } from "@/core/messaging/preview
 import { hasReactions } from "@/core/messaging/reactions";
 import type { CallContent, ChatMessage, LiveView, MessageId, WidgetContent } from "@/core/messaging/types";
 import { usePluginHost } from "@/core/plugins/host";
-import { cn, Icon, type IconName, Pressable, Text, toast } from "@/design";
+import { Button, cn, Icon, type IconName, Radius, Text, toast, useThemeColors, withAlpha } from "@/design";
 import { WidgetView } from "@/design/widgets/widget-view";
 import { findTransactionHash } from "@/lib/evm/transactions";
 import { openExternal } from "@/lib/open-url";
@@ -39,7 +39,6 @@ export type { ReplyPreview } from "./bubble-shell";
 interface MessageBubbleProps {
   message: ChatMessage;
   grouped: boolean;
-  tail: boolean;
   read: boolean;
   senderName: string;
   showSender: boolean;
@@ -56,7 +55,6 @@ interface MessageBubbleProps {
 export function MessageBubble({
   message,
   grouped,
-  tail,
   read,
   senderName,
   showSender,
@@ -219,7 +217,6 @@ export function MessageBubble({
     <BubbleShell
       fromMe={fromMe}
       grouped={grouped}
-      tail={tail}
       senderName={senderName}
       showSender={showSender}
       below={bare ? reactionRow(false) : null}
@@ -238,9 +235,9 @@ export function MessageBubble({
 function NoticeLine({ text, icon, action }: { text: string; icon?: IconName; action?: ReactNode }) {
   return (
     <View className="items-center gap-1.5 py-2">
-      <View className="flex-row items-center gap-1.5 rounded-full bg-side px-3 py-1">
+      <View className="flex-row items-center gap-1.5 px-3 py-1">
         {icon ? <Icon name={icon} size={16} tone="muted" /> : null}
-        <Text variant="caption">{text}</Text>
+        <Text variant="meta">{text}</Text>
       </View>
       {action}
     </View>
@@ -261,18 +258,14 @@ function CallLine({ call }: { call: CallContent }) {
 
 function OpenInButton({ name, url }: { name: string; url: string }) {
   return (
-    <Pressable
-      accessibilityRole="button"
+    <Button
+      size="sm"
+      label={`Open in ${name}`}
+      trailingIcon="arrow-up-right"
       onPress={() => {
         openExternal(url).catch((e) => toast.error(errorMessage(e, `Could not open ${name}`)));
       }}
-      className="flex-row items-center gap-1 rounded-full border border-line px-3 py-1"
-    >
-      <Icon name="arrow-up-right" size={16} tone="accent" />
-      <Text variant="caption" className="font-semibold text-accent">
-        Open in {name}
-      </Text>
-    </Pressable>
+    />
   );
 }
 
@@ -289,14 +282,13 @@ function TextBody({
 }) {
   const { message } = footer;
   const { fromMe } = message;
-  const className = cn("text-md", fromMe ? "text-fg" : "text-fg");
   const plain = plainText(text);
   const claimed = useTextPreview(plain);
 
   if (unsupported) {
     return (
       <>
-        <Text className={cn(className, "italic opacity-80")}>{text}</Text>
+        <Text tone="muted">{text}</Text>
         <Footer {...footer} />
       </>
     );
@@ -318,7 +310,6 @@ function TextBody({
       <MessageText
         text={text}
         fromMe={fromMe}
-        className={className}
         chatId={message.chatId}
         onCommand={onCommand}
         footer={inline ? { node: <Footer {...footer} place="inline" />, label: footerLabel(message) } : undefined}
@@ -359,20 +350,17 @@ interface FooterProps {
 }
 
 function Footer({ message, read, reactions, place = "row" }: FooterProps & { place?: "row" | "overlay" | "inline" }) {
+  const colors = useThemeColors();
   const overlay = place === "overlay";
   const time = (
     <View
-      className={cn(
-        "flex-row items-center gap-1",
-        overlay && "absolute bottom-1.5 right-1.5 rounded-full bg-void/45 px-1.5 py-0.5",
-      )}
+      className={cn("flex-row items-center gap-1", overlay && "absolute bottom-1.5 right-1.5 px-1.5 py-0.5")}
+      style={overlay ? { borderRadius: Radius.sm, backgroundColor: withAlpha(colors.void, 0.7) } : undefined}
     >
-      <Text variant="micro" className={overlay ? "text-fg" : message.fromMe ? "text-fg/60" : "text-subtle"}>
+      <Text variant="meta" tone={overlay ? "fg" : "muted"}>
         {timeLabel(message)}
       </Text>
-      {message.fromMe ? (
-        <DeliveryIcon message={message} read={read} size={16} tone="fg" color={overlay ? "#fff" : undefined} />
-      ) : null}
+      {message.fromMe ? <DeliveryIcon message={message} read={read} size={16} tone="muted" /> : null}
     </View>
   );
   if (place !== "row") return time;

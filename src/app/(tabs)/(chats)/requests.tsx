@@ -2,9 +2,10 @@ import { FlashList } from "@shopify/flash-list";
 import { Stack } from "expo-router";
 import { useChatStore } from "@/core/messaging/chat-store";
 import { splitRequests } from "@/core/messaging/folders";
-import { formatTimestamp, messagePreview } from "@/core/messaging/preview";
-import { EmptyState, ListItem, Screen, SwipeableRow } from "@/design";
+import { messagePreview } from "@/core/messaging/preview";
+import { EmptyState, Row, Screen, SwipeableRow } from "@/design";
 import { ChatAvatar } from "@/features/chat/chat-avatar";
+import { formatListTime } from "@/features/chat/list-time";
 import { answerRequest } from "@/features/chat/requests";
 import { useChatTitles } from "@/features/chat/use-display-names";
 import { openChat } from "@/features/navigation/open";
@@ -16,11 +17,14 @@ export default function RequestsScreen() {
   const { selfIdOf, titleOf } = useChatTitles(requests);
 
   return (
-    <Screen className="px-0" edges={[]}>
+    <Screen edges={[]}>
       <Stack.Screen options={{ title: "Requests" }} />
 
       {requests.length === 0 ? (
-        <EmptyState title="Nothing waiting" description="New chats will show up here." />
+        <EmptyState
+          boot="no requests"
+          text="When someone new writes to you, their chat waits here until you accept it."
+        />
       ) : (
         <FlashList
           data={requests}
@@ -33,7 +37,6 @@ export default function RequestsScreen() {
                   id: "accept",
                   label: "Accept",
                   icon: "circle-check",
-                  tone: "accent",
                   onPress: () => answerRequest(item.id, "accepted"),
                 },
               ]}
@@ -47,12 +50,12 @@ export default function RequestsScreen() {
                 },
               ]}
             >
-              <ListItem
+              <Row
                 testID={`request-${item.id}`}
                 title={titleOf(item)}
-                subtitle={messagePreview(item.lastMessage)}
-                meta={item.lastMessage ? formatTimestamp(item.lastMessage.sentAt) : undefined}
-                leading={<ChatAvatar chat={item} selfId={selfIdOf(item)} size="md" />}
+                preview={messagePreview(item.lastMessage)}
+                meta={item.lastMessage ? formatListTime(item.lastMessage.sentAt) : undefined}
+                leading={<ChatAvatar chat={item} selfId={selfIdOf(item)} size={40} />}
                 onPress={() => openChat(item.id)}
               />
             </SwipeableRow>

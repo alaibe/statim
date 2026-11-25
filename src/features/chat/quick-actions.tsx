@@ -7,7 +7,7 @@ import type { ChatId } from "@/core/messaging/types";
 import { usePluginHost } from "@/core/plugins/host";
 import { worksOn } from "@/core/plugins/registry";
 import type { ComposerAction } from "@/core/plugins/types";
-import { cn, Enter, Exit, Icon, Pressable, Text } from "@/design";
+import { Enter, Exit, Icon, Pressable, Radius, Text, useThemeColors } from "@/design";
 
 import { useChatSession } from "./use-chat-permissions";
 
@@ -24,6 +24,7 @@ export function QuickActions({
   suggestedId?: string;
   onRun: (action: ComposerAction) => void;
 }) {
+  const colors = useThemeColors();
   const { registry } = usePluginHost();
   const session = useChatSession(chatId);
   const offered = useSyncExternalStore(
@@ -56,16 +57,18 @@ export function QuickActions({
               accessibilityRole="button"
               accessibilityLabel={suggested ? `${action.label}, suggested by Jev` : action.label}
               onPress={() => onRun(action)}
-              className={cn(
-                "flex-row items-center gap-1.5 rounded-full border px-3 py-1.5",
-                suggested ? "border-accent bg-accent-soft" : "border-line bg-panel",
-              )}
+              className="flex-row items-center gap-2 px-3"
+              style={({ hovered }) => ({
+                height: 32,
+                borderRadius: Radius.md,
+                borderWidth: 1,
+                borderColor: suggested ? colors.accent : colors["line-strong"],
+                backgroundColor: suggested ? colors["accent-soft"] : hovered ? colors.hover : colors.panel,
+              })}
             >
-              <Icon name={action.icon} size={16} tone="accent" />
-              <Text variant="caption" className="font-medium text-fg">
-                {action.label}
-                {suggested ? " · Suggested" : ""}
-              </Text>
+              <Icon name={action.icon} size={16} tone="muted" />
+              <Text variant="control">{action.label}</Text>
+              {suggested ? <Text variant="meta">Suggested</Text> : null}
             </Pressable>
           );
         })}

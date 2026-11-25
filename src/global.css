@@ -20,10 +20,10 @@
     --color-accent-strong: 86 55 167;
     --color-accent-soft: 234 232 255;
     --color-on-accent: 255 255 255;
-    --color-danger: 201 34 43;
-    --color-warning: 169 107 0;
-    --color-success: 0 127 56;
-    --color-info: 0 112 166;
+    --color-danger: 166 0 24;
+    --color-warning: 119 74 2;
+    --color-success: 0 97 41;
+    --color-info: 2 88 132;
   }
 
   .dark:root {
@@ -42,16 +42,30 @@
     --color-accent-strong: 185 174 255;
     --color-accent-soft: 46 39 78;
     --color-on-accent: 4 5 11;
-    --color-danger: 255 112 114;
+    --color-danger: 255 130 129;
     --color-warning: 255 200 69;
     --color-success: 115 240 148;
     --color-info: 105 202 255;
   }
 
-  /* The app draws its own focus ring; a mouse focus shows none. */
+  /* Keyboard focus draws --focus-ring on everything focusable; a mouse focus draws nothing. */
   input,
   textarea,
   :focus:not(:focus-visible) {
     outline: none;
+  }
+  :focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px rgb(var(--color-bg)),
+      0 0 0 3px rgb(var(--color-accent)),
+      0 0 14px rgb(var(--color-accent) / 0.45) !important;
+  }
+  /* An input inside a control that draws the ring around itself. */
+  [data-bare]:focus-visible {
+    box-shadow: none !important;
+  }
+  ::selection {
+    background-color: rgb(var(--color-selection));
   }
 }

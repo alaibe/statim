@@ -1,8 +1,8 @@
 import { View } from "react-native";
-
 import { isLine } from "@/core/messaging/message-rules";
 import { contentPreview, isNewDay } from "@/core/messaging/preview";
 import type { ChatMessage, MessageId } from "@/core/messaging/types";
+import { useThemeColors } from "@/design";
 
 import { DateSeparator, SectionDivider } from "./date-separator";
 import type { MessageAction } from "./message-actions";
@@ -22,7 +22,6 @@ export function replyPreview(target: ChatMessage, nameFor: (id: string) => strin
 export function MessageRow({
   message,
   previous,
-  next,
   highlighted,
   replyTarget,
   nameFor,
@@ -38,11 +37,9 @@ export function MessageRow({
   newReplies,
   onOpenThread,
   divider,
-  endsRun = false,
 }: {
   message: ChatMessage;
   previous: ChatMessage | undefined;
-  next: ChatMessage | undefined;
   highlighted: boolean;
   replyTarget: ChatMessage | undefined;
   nameFor: (id: string) => string;
@@ -58,21 +55,19 @@ export function MessageRow({
   newReplies: number;
   onOpenThread?: (root: MessageId) => void;
   divider?: string;
-  endsRun?: boolean;
 }) {
+  const colors = useThemeColors();
   const startsNewDay = isNewDay(previous?.sentAt, message.sentAt);
   const grouped = !divider && !!previous && sameRun(previous, message);
-  const tail = endsRun || !next || !sameRun(message, next);
 
   return (
     <>
       {startsNewDay ? <DateSeparator at={message.sentAt} /> : null}
       {divider ? <SectionDivider label={divider} /> : null}
-      <View className={highlighted ? "bg-accent/15" : undefined}>
+      <View style={highlighted ? { backgroundColor: colors.selection } : undefined}>
         <MessageBubble
           message={message}
           grouped={grouped}
-          tail={tail}
           read={read}
           selfId={selfId}
           nameFor={nameFor}

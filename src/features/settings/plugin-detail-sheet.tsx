@@ -1,10 +1,12 @@
+import { Fragment } from "react";
 import { View } from "react-native";
 import { usePluginHost } from "@/core/plugins/host";
 import { PERMISSION_LABELS, type Plugin } from "@/core/plugins/types";
-import { Badge, cn, RowIcon, Section, Sheet, Text } from "@/design";
+import { Avatar, Divider, Sheet, Tag, Text } from "@/design";
 
-export function PluginIcon({ plugin }: { plugin: Plugin }) {
-  return <RowIcon name={plugin.manifest.icon} />;
+/** A plugin is an agent, so its avatar is the square with its mark. */
+export function PluginIcon({ plugin, size = 40 }: { plugin: Plugin; size?: 28 | 40 }) {
+  return <Avatar shape="square" size={size} icon={plugin.manifest.icon} label={plugin.manifest.name} />;
 }
 
 export function PluginDetailSheet({ plugin, onClose }: { plugin: Plugin; onClose: () => void }) {
@@ -20,26 +22,33 @@ export function PluginDetailSheet({ plugin, onClose }: { plugin: Plugin; onClose
       subtitle={`v${manifest.version}`}
       leading={<PluginIcon plugin={plugin} />}
     >
-      <View className="gap-3">
-        <Text variant="footnote">{manifest.description}</Text>
+      <View className="gap-4">
+        <Text tone="muted">{manifest.description}</Text>
 
-        <Section title="What it can reach" surface="card" inset={false}>
-          {manifest.permissions.map((permission, i) => (
-            <Text key={permission} variant="footnote" className={cn("px-4 py-2.5", i > 0 && "border-t border-line")}>
-              {PERMISSION_LABELS[permission]}
-            </Text>
-          ))}
-        </Section>
+        <View className="gap-2">
+          <Text variant="label">What it can reach</Text>
+          <View>
+            {manifest.permissions.map((permission) => (
+              <Fragment key={permission}>
+                <Divider />
+                <View className="py-3">
+                  <Text size="sm">{PERMISSION_LABELS[permission]}</Text>
+                </View>
+              </Fragment>
+            ))}
+            <Divider />
+          </View>
+        </View>
 
         {manifest.requiresSessionRestart || hasChat ? (
-          <View className="flex-row flex-wrap gap-1.5">
-            {manifest.requiresSessionRestart ? <Badge label="Reconnects chat" tone="warning" /> : null}
-            {hasChat ? <Badge label="Has its own chat" tone="accent" /> : null}
+          <View className="flex-row flex-wrap gap-2">
+            {manifest.requiresSessionRestart ? <Tag tone="warn" label="Reconnects chat" /> : null}
+            {hasChat ? <Tag tone="accent" label="Own chat" /> : null}
           </View>
         ) : null}
 
         {hasChat ? (
-          <Text variant="caption">
+          <Text size="sm" tone="muted">
             Turning this off takes its chat out of your list. The transcript stays on this device and returns if you
             turn it back on.
           </Text>

@@ -4,7 +4,7 @@ import { useChatStore } from "@/core/messaging/chat-store";
 import { type BotChatLoss, botChatLoss, botChatLossCopy } from "@/core/plugins/bot-chats";
 import { usePluginHost } from "@/core/plugins/host";
 import { type Plugin } from "@/core/plugins/types";
-import { ConfirmSheet, ListItem, Section, Toggle, toast } from "@/design";
+import { ConfirmDialog, Row, Section, Toggle, toast } from "@/design";
 import { PluginDetailSheet, PluginIcon } from "@/features/settings/plugin-detail-sheet";
 import { SettingsScreen } from "@/features/settings/settings-screen";
 
@@ -21,13 +21,13 @@ export default function PluginsScreen() {
 
   const apply = async (plugin: Plugin, next: boolean) => {
     const id = plugin.manifest.id;
-    const done = `${plugin.manifest.name} ${next ? "enabled" : "disabled"}`;
+    const done = `${next ? "Enabled" : "Disabled"} ${plugin.manifest.name}`;
     setToggling((current) => ({ ...current, [id]: next }));
     try {
       await setEnabled(id, next);
       toast.success(done);
     } catch (e) {
-      toast.error(errorMessage(e, "Could not update plugin"));
+      toast.error(errorMessage(e, "Couldn't update the plugin"));
     } finally {
       setToggling(({ [id]: _settled, ...rest }) => rest);
     }
@@ -47,19 +47,22 @@ export default function PluginsScreen() {
       title="Plugins"
       intro="Plugins add slash commands, message types and screens. They ship inside the app, so enabling one grants it the access its row lists."
     >
-      <Section surface="card" className="mb-6">
+      <Section label="Installed">
         {registry.list().map((plugin) => {
           const enabled = toggling[plugin.manifest.id] ?? enabledIds.includes(plugin.manifest.id);
           return (
-            <ListItem
+            <Row
               key={plugin.manifest.id}
               testID={`plugin-${plugin.manifest.id}`}
               title={plugin.manifest.name}
-              subtitle={plugin.manifest.description}
-              numberOfLinesSubtitle={2}
+              preview={plugin.manifest.description}
               leading={<PluginIcon plugin={plugin} />}
               trailing={
-                <Toggle label={plugin.manifest.name} value={enabled} onValueChange={(next) => onToggle(plugin, next)} />
+                <Toggle
+                  label={plugin.manifest.name}
+                  value={enabled}
+                  onValueChange={(next) => void onToggle(plugin, next)}
+                />
               }
               onPress={() => setDetail(plugin)}
             />
@@ -96,13 +99,13 @@ function ConfirmDisable({
 }) {
   const copy = botChatLossCopy(plugin.manifest.name, loss);
   return (
-    <ConfirmSheet
+    <ConfirmDialog
       visible
       onClose={onClose}
       title={copy.title}
       body={copy.body}
       cancelLabel="Keep it on"
-      confirm={{ label: copy.confirmLabel, tone: "danger", onPress: onConfirm }}
+      confirm={{ label: copy.confirmLabel, danger: true, onPress: onConfirm }}
     />
   );
 }

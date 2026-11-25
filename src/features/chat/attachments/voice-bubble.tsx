@@ -2,7 +2,7 @@ import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { View } from "react-native";
 import { reportError } from "@/core/app/report-error";
 import { formatDuration } from "@/core/messaging/preview";
-import { Icon, Pressable, Text, useThemeColors } from "@/design";
+import { Icon, Pressable, Radius, Text, useThemeColors } from "@/design";
 import { useLoadableUri } from "@/lib/loadable-uri";
 import { waveformBars } from "./format";
 
@@ -23,11 +23,11 @@ export function VoiceBubble({ uri, durationMs, fromMe, seed }: VoiceBubbleProps)
   const total = status.duration ? status.duration * 1000 : durationMs;
   const played = status.currentTime ? (status.currentTime * 1000) / Math.max(total, 1) : 0;
 
-  const tint = fromMe ? colors["fg"] : colors.accent;
-  const dim = fromMe ? colors["fg"] : colors.subtle;
+  const tint = colors.accent;
+  const dim = colors.muted;
 
   return (
-    <View className="min-w-[200px] flex-row items-center gap-3 py-0.5">
+    <View className="flex-row items-center gap-3 py-0.5" style={{ minWidth: 200 }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={status.playing ? "Pause" : "Play voice message"}
@@ -40,13 +40,16 @@ export function VoiceBubble({ uri, durationMs, fromMe, seed }: VoiceBubbleProps)
           player.play();
         }}
       >
-        <View className="h-10 w-10 items-center justify-center rounded-full bg-side">
-          <Icon name={status.playing ? "pause" : "play"} size={20} color={tint} />
+        <View
+          className="h-10 w-10 items-center justify-center"
+          style={{ borderRadius: Radius.md, backgroundColor: fromMe ? colors.bg : colors.hover }}
+        >
+          <Icon name={status.playing ? "pause" : "play"} size={20} tone="accent" />
         </View>
       </Pressable>
 
       <View className="flex-1 gap-1">
-        <View className="h-6 flex-row items-center gap-[2px]">
+        <View className="h-6 flex-row items-center" style={{ gap: 2 }}>
           {bars.map((height, index) => {
             const reached = index / bars.length <= played;
             return (
@@ -63,7 +66,7 @@ export function VoiceBubble({ uri, durationMs, fromMe, seed }: VoiceBubbleProps)
             );
           })}
         </View>
-        <Text variant="caption" className={fromMe ? "text-fg/70" : undefined}>
+        <Text variant="meta">
           {formatDuration(status.playing || played > 0 ? (status.currentTime ?? 0) * 1000 : total)}
         </Text>
       </View>

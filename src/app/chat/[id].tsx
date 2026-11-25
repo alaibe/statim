@@ -4,6 +4,7 @@ import { View } from "react-native";
 
 import { parseChatId } from "@/core/messaging/namespace";
 import type { MessageId } from "@/core/messaging/types";
+import { useThemeColors } from "@/design";
 import { ChatView } from "@/features/chat/chat-view";
 import { useBack } from "@/features/navigation/use-back";
 
@@ -12,6 +13,7 @@ const THREAD_PANE_WIDTH = 400;
 export default function ChatScreen() {
   const params = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const colors = useThemeColors();
   const back = useBack("/chats");
   const [open, setOpen] = useState<{ id: string; root: MessageId } | null>(null);
   const id = parseChatId(params.id);
@@ -34,10 +36,7 @@ export default function ChatScreen() {
         <ChatView id={id} onBack={back} onOpenThread={(next) => setOpen({ id, root: next })} />
       </View>
       {root ? (
-        <View
-          style={{ width: THREAD_PANE_WIDTH, borderCurve: "continuous" }}
-          className="my-2 mr-2 overflow-hidden rounded-lg bg-panel shadow-popover"
-        >
+        <View style={{ width: THREAD_PANE_WIDTH, borderLeftWidth: 1, borderColor: colors.line }}>
           <ChatView key={root} id={id} thread={root} onBack={() => setOpen(null)} />
         </View>
       ) : null}

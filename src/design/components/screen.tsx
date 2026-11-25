@@ -2,19 +2,26 @@ import type { ViewProps } from "react-native";
 import { View } from "react-native";
 import { type Edge, SafeAreaView } from "react-native-safe-area-context";
 
-import { cn } from "../lib/cn";
+import { useThemeColors } from "../hooks/use-theme-colors";
+import { PrimaryScope } from "../lib/primary";
+import { Layout } from "../tokens";
 
 export interface ScreenProps extends ViewProps {
+  /** Layout only: padding and gaps of the content column. */
   className?: string;
   edges?: readonly Edge[];
 }
 
-export function Screen({ className, children, edges = ["top"], ...props }: ScreenProps) {
+/** A screen on `bg`, its text column at most 680 wide, with room for one primary button. */
+export function Screen({ children, edges = ["top"], style, ...props }: ScreenProps) {
+  const colors = useThemeColors();
   return (
-    <SafeAreaView edges={edges} className="flex-1 bg-bg">
-      <View className={cn("mx-auto w-full max-w-[720px] flex-1", className)} {...props}>
-        {children}
-      </View>
+    <SafeAreaView edges={edges} style={{ flex: 1, backgroundColor: colors.bg }}>
+      <PrimaryScope>
+        <View style={[{ flex: 1, width: "100%", maxWidth: Layout.reading, alignSelf: "center" }, style]} {...props}>
+          {children}
+        </View>
+      </PrimaryScope>
     </SafeAreaView>
   );
 }

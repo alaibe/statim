@@ -26,7 +26,6 @@ export interface SwipeableRowProps {
 }
 
 const ACTION_WIDTH = 76;
-const ACTION_RADIUS = 14;
 
 export function SwipeableRow({ right, left, children }: SwipeableRowProps) {
   const ref = useRef<SwipeableMethods>(null);
@@ -41,19 +40,12 @@ export function SwipeableRow({ right, left, children }: SwipeableRowProps) {
     void runPress(action.onPress);
   };
 
-  const render = (actions: SwipeAction[], side: "left" | "right") =>
+  const render = (actions: SwipeAction[]) =>
     function SwipeActions() {
       return (
-        <View className="flex-row items-stretch py-1 pl-1 pr-1">
+        <View style={{ flexDirection: "row", alignItems: "stretch" }}>
           {actions.map((action, index) => (
-            <ActionButton
-              key={action.id}
-              action={action}
-              onRun={run}
-              first={index === 0}
-              last={index === actions.length - 1}
-              side={side}
-            />
+            <ActionButton key={action.id} action={action} onRun={run} first={index === 0} />
           ))}
         </View>
       );
@@ -69,8 +61,8 @@ export function SwipeableRow({ right, left, children }: SwipeableRowProps) {
       leftThreshold={ACTION_WIDTH / 2}
       overshootRight={false}
       overshootLeft={false}
-      renderRightActions={right?.length ? render(right, "right") : undefined}
-      renderLeftActions={left?.length ? render(left, "left") : undefined}
+      renderRightActions={right?.length ? render(right) : undefined}
+      renderLeftActions={left?.length ? render(left) : undefined}
     >
       {children}
     </ReanimatedSwipeable>
@@ -81,51 +73,31 @@ function ActionButton({
   action,
   onRun,
   first,
-  last,
-  side,
 }: {
   action: SwipeAction;
   onRun(action: SwipeAction): void;
   first: boolean;
-  last: boolean;
-  side: "left" | "right";
 }) {
   const colors = useThemeColors();
-  const tone: SwipeTone = action.tone ?? (action.destructive ? "danger" : "neutral");
-
-  const fill = {
-    neutral: colors.muted,
-    warning: colors.warning,
-    accent: colors.accent,
-    danger: colors.danger,
-  }[tone];
-
-  const content = colors["on-accent"];
-
-  const leftRadius = first ? ACTION_RADIUS : 0;
-  const rightRadius = last ? ACTION_RADIUS : 0;
+  const tone = action.destructive || action.tone === "danger" ? "danger" : "fg";
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={action.label}
       onPress={() => onRun(action)}
-      pressScale={1}
       style={{
         width: ACTION_WIDTH,
-        backgroundColor: fill,
-        borderCurve: "continuous",
-        borderTopLeftRadius: leftRadius,
-        borderBottomLeftRadius: leftRadius,
-        borderTopRightRadius: rightRadius,
-        borderBottomRightRadius: rightRadius,
-        marginLeft: side === "right" && !first ? 2 : 0,
-        marginRight: side === "left" && !last ? 2 : 0,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 4,
+        backgroundColor: colors.panel,
+        borderLeftWidth: first ? 0 : 1,
+        borderColor: colors.line,
       }}
-      className="items-center justify-center gap-1"
     >
-      <Icon name={action.icon} size={20} color={content} />
-      <Text variant="micro" style={{ color: content }} numberOfLines={1}>
+      <Icon name={action.icon} size={20} tone={tone === "danger" ? "danger" : "muted"} />
+      <Text variant="label" tone={tone} numberOfLines={1}>
         {action.label}
       </Text>
     </Pressable>

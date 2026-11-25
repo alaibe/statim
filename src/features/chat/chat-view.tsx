@@ -1,7 +1,6 @@
 import { type ReactNode, useState } from "react";
 import { KeyboardAvoidingView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAppearanceStore } from "@/core/app/appearance";
 import { errorMessage } from "@/core/errors";
 import { isLocalChat } from "@/core/messaging/bots";
 import { prefsFor } from "@/core/messaging/chat-prefs";
@@ -11,18 +10,7 @@ import { type ProtocolId, protocolOf } from "@/core/messaging/namespace";
 import type { ChatPermissions } from "@/core/messaging/permissions";
 import type { Chat, ChatId, ChatMessage, MessageContent, MessageId } from "@/core/messaging/types";
 import { readByPeer } from "@/core/messaging/unread";
-import {
-  ChatBackground,
-  EmptyState,
-  Icon,
-  Loading,
-  Pressable,
-  Text,
-  toast,
-  useEscapeKey,
-  useLayoutInsets,
-} from "@/design";
-import { BarButton } from "./bar-button";
+import { Button, EmptyState, Notice, Skeleton, toast, useEscapeKey, useThemeColors } from "@/design";
 import { BlockedBar } from "./block";
 import { repliesLabel } from "./bubble-shell";
 import { ChatHeader, PendingChatHeader } from "./chat-header";
@@ -51,12 +39,9 @@ interface ChatViewProps {
 }
 
 export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
-  const wallpaper = useAppearanceStore((s) => s.wallpaper);
-  const desktop = process.env.EXPO_OS === "web";
+  const colors = useThemeColors();
   useEscapeKey(Boolean(thread), onBack);
   const insets = useSafeAreaInsets();
-  const frame = useLayoutInsets();
-  const headerHeight = insets.top + frame.top + 62;
 
   const sessions = useChatStore((s) => s.sessions);
   const chat = useChatStore((s) => s.chats.find((c) => c.id === id));
@@ -129,9 +114,7 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
     <MessageRow
       message={item}
       previous={messages[index - 1]}
-      next={messages[index + 1]}
       divider={dividerAt(index)}
-      endsRun={dividerAt(index + 1) !== undefined}
       highlighted={item.id === highlighted}
       replyTarget={item.replyTo ? byId.get(item.replyTo) : undefined}
       nameFor={nameFor}
@@ -150,27 +133,25 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
   );
 
   return (
-    <View className={desktop ? "flex-1" : "flex-1 bg-bg"}>
-      {desktop ? null : <ChatBackground pattern={wallpaper} />}
-
+    <KeyboardAvoidingView behavior="padding" className="flex-1" style={{ backgroundColor: colors.bg }}>
       {chat ? (
         <ChatHeader chat={chat} thread={thread} nameFor={nameFor} onBack={onBack} />
       ) : (
         <PendingChatHeader thread={thread} onBack={onBack} />
       )}
 
-      <PinnedMessages
-        messages={pinnedMessages}
-        visible={showPinned}
-        onOpen={() => setShowPinned(true)}
-        onClose={() => setShowPinned(false)}
-        onUnpin={permissions.pin ? (message) => void togglePin(message) : undefined}
-        top={headerHeight}
-      />
+      <View className="flex-1">
+        <PinnedMessages
+          messages={pinnedMessages}
+          visible={showPinned}
+          onOpen={() => setShowPinned(true)}
+          onClose={() => setShowPinned(false)}
+          onUnpin={permissions.pin ? (message) => void togglePin(message) : undefined}
+          top={8}
+        />
 
-      <KeyboardAvoidingView behavior="padding" className="flex-1">
         {messages.length === 0 ? (
-          <View className="flex-1" style={{ paddingTop: headerHeight }}>
+          <View className="flex-1">
             <HistoryStatus protocol={protocol} />
             <EmptyTranscript
               protocol={protocol}
@@ -195,39 +176,39 @@ export function ChatView({ id, thread, onOpenThread, onBack }: ChatViewProps) {
               </View>
             }
             footer={running ? <CommandPending label={`Running ${running}…`} /> : null}
-            topInset={headerHeight + (pinnedMessages.length ? 54 : 0)}
+            topInset={pinnedMessages.length ? 62 : 0}
           />
         )}
+      </View>
 
-        <View style={{ paddingBottom: insets.bottom }}>
-          {onOpenThread ? <NewRepliesBar counts={newReplies} onOpen={onOpenThread} /> : null}
-          {chat ? (
-            <ChatBar chat={chat} permissions={permissions} title={chatTitle(chat, selfId, nameFor)}>
-              <Composer
-                chatId={id}
-                kind={chat.kind}
-                thread={thread}
-                onSendText={(text) => composer.submit(text)}
-                onSendContent={onSendContent}
-                editing={composer.mode.kind === "edit"}
-                onEditLast={lastEditable ? () => composer.edit(lastEditable) : undefined}
-                banner={composer.banner(previewOf)}
-                onCancelBanner={() => composer.cancel()}
-                pendingCommand={pendingCommand}
-                onPendingCommandHandled={clearPendingCommand}
-                onRunningChange={(command) => {
-                  setRunning(command);
-                  if (command) followNewest();
-                }}
-              />
-            </ChatBar>
-          ) : null}
-        </View>
-      </KeyboardAvoidingView>
+      <View style={{ paddingBottom: insets.bottom }}>
+        {onOpenThread ? <NewRepliesBar counts={newReplies} onOpen={onOpenThread} /> : null}
+        {chat ? (
+          <ChatBar chat={chat} permissions={permissions} title={chatTitle(chat, selfId, nameFor)}>
+            <Composer
+              chatId={id}
+              kind={chat.kind}
+              thread={thread}
+              onSendText={(text) => composer.submit(text)}
+              onSendContent={onSendContent}
+              editing={composer.mode.kind === "edit"}
+              onEditLast={lastEditable ? () => composer.edit(lastEditable) : undefined}
+              banner={composer.banner(previewOf)}
+              onCancelBanner={() => composer.cancel()}
+              pendingCommand={pendingCommand}
+              onPendingCommandHandled={clearPendingCommand}
+              onRunningChange={(command) => {
+                setRunning(command);
+                if (command) followNewest();
+              }}
+            />
+          </ChatBar>
+        ) : null}
+      </View>
 
       {forwarding ? <ForwardSheet message={forwarding} from={id} onClose={() => setForwarding(null)} /> : null}
       {deleting ? <DeleteMessageSheet chatId={id} target={deleting} onClose={() => setDeleting(null)} /> : null}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -253,18 +234,13 @@ function NewRepliesBar({ counts, onOpen }: { counts: ReadonlyMap<MessageId, numb
   }`;
   return (
     <View className="items-center pb-2">
-      <Pressable
-        accessibilityRole="button"
+      <Button
+        size="sm"
+        label={label}
         accessibilityLabel={`${label}. Open thread`}
+        trailingIcon="arrow-right"
         onPress={() => onOpen(oldest)}
-        className="flex-row items-center gap-1.5 rounded-full bg-accent px-3.5 py-2 shadow-popover"
-      >
-        <Icon name="messages-square" size={16} tone="on-accent" />
-        <Text variant="caption" className="font-semibold text-on-accent">
-          {label}
-        </Text>
-        <Icon name="chevron-right" size={16} tone="on-accent" />
-      </Pressable>
+      />
     </View>
   );
 }
@@ -316,18 +292,24 @@ function EmptyTranscript({
   onRetry(): void;
 }) {
   const fetchingHistory = useChatStore((s) => connectionFor(s.protocols, protocol).history.status === "fetching");
-  if (history?.loading) return <Loading />;
+  if (history?.loading) return <Skeleton rows={4} lines={1} />;
   if (history?.error) {
     return (
-      <EmptyState title="Could not load messages" description={history.error} actionLabel="Retry" onAction={onRetry} />
+      <View className="p-4">
+        <Notice
+          tone="danger"
+          message="Couldn't load the messages."
+          detail={history.error}
+          action={{ label: "Retry", onPress: onRetry }}
+        />
+      </View>
     );
   }
   if (!history && !isBot) return null;
   return (
     <EmptyState
-      icon={isBot ? "sparkles" : "lock"}
-      title={fetchingHistory ? "Fetching history…" : "No messages yet"}
-      description={
+      boot={fetchingHistory ? "fetching history" : "no messages yet"}
+      text={
         isBot
           ? "Type /commands to see what you can do in this chat."
           : "Messages are end-to-end encrypted. Type /commands to see what you can do here."
@@ -338,21 +320,13 @@ function EmptyTranscript({
 
 function LoadEarlierButton({ history, onPress }: { history: MessageHistoryState; onPress: () => void }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={history.error ? `Retry loading earlier messages. ${history.error}` : "Load earlier messages"}
-      disabled={history.loading}
-      onPress={onPress}
-      className="items-center px-4 py-3"
-    >
-      <Text variant="caption" className={history.error ? "text-danger" : undefined}>
-        {history.loading
-          ? "Loading earlier messages…"
-          : history.error
-            ? `${history.error} · Retry`
-            : "Load earlier messages"}
-      </Text>
-    </Pressable>
+    <View className="items-center px-4 py-3">
+      {history.error ? (
+        <Notice tone="danger" message={history.error} action={{ label: "Retry", onPress }} />
+      ) : (
+        <Button variant="ghost" size="sm" label="Load earlier messages" busy={history.loading} onPress={onPress} />
+      )}
+    </View>
   );
 }
 
@@ -374,8 +348,8 @@ function ChatBar({
   if (permissions.send) return children;
   if (chat.kind === "channel") return <ChannelMuteBar id={chat.id} />;
   return (
-    <View className="mx-4 mb-2 min-h-touch items-center justify-center rounded-full border border-line bg-panel px-4">
-      <Text variant="caption">You cannot send messages in this chat.</Text>
+    <View className="mx-4 mb-2">
+      <Notice tone="info" message="You can't send messages in this chat." />
     </View>
   );
 }
@@ -384,12 +358,14 @@ function ChannelMuteBar({ id }: { id: ChatId }) {
   const muted = useChatStore((s) => Boolean(prefsFor(s.chatPrefs, id).muted));
   const setChatPref = useChatStore((s) => s.setChatPref);
   return (
-    <BarButton
-      icon={muted ? "volume-2" : "volume-x"}
-      label={muted ? "Unmute" : "Mute"}
-      accessibilityLabel={muted ? "Unmute channel" : "Mute channel"}
-      onPress={() => void setChatPref(id, { muted: !muted })}
-      className="mx-4 mb-2"
-    />
+    <View className="mx-4 mb-2">
+      <Button
+        fullWidth
+        icon={muted ? "volume-2" : "volume-x"}
+        label={muted ? "Unmute" : "Mute"}
+        accessibilityLabel={muted ? "Unmute channel" : "Mute channel"}
+        onPress={() => void setChatPref(id, { muted: !muted })}
+      />
+    </View>
   );
 }

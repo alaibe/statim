@@ -5,9 +5,30 @@ export { Icon, type IconName, type IconProps, type IconSize, type IconTone } fro
 export { cn } from "./lib/cn";
 export { contextMenu, type MenuAnchor } from "./lib/context-menu";
 export { DRAG_REGION } from "./lib/drag-region";
-export { useEscapeKey } from "./lib/escape-key";
+export { overlayOpen, useEscapeKey } from "./lib/escape-key";
 export { useInertOutside } from "./lib/inert-outside";
-export { LayoutInsetsContext, useLayoutInsets } from "./lib/layout-insets";
 export { PASS_THROUGH } from "./lib/pass-through";
-export { Duration, Enter, Exit, Spring, springLayout, stagger } from "./motion";
-export { ToastHost, type ToastTone, toast } from "./toast";
+export { controlHeight, desktop } from "./lib/platform";
+export { PrimaryScope, TwoPrimaries } from "./lib/primary";
+export { useSubmitKey } from "./lib/submit-key";
+export { Duration, EASE_OUT, Enter, Exit, Spring, springLayout, stagger } from "./motion";
+export {
+  dismissNewestToast,
+  runNewestToastAction,
+  type ToastAction,
+  ToastHost,
+  type ToastTone,
+  toast,
+} from "./toast";
+export {
+  type ColorName,
+  Control,
+  colorsFor,
+  focusRing,
+  glow,
+  Layout,
+  Radius,
+  Shadow,
+  Space,
+  withAlpha,
+} from "./tokens";

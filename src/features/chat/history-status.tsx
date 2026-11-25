@@ -1,8 +1,8 @@
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
 
 import { type ProtocolConnection, useChatStore } from "@/core/messaging/chat-store";
 import { type ProtocolId, protocolEntries } from "@/core/messaging/namespace";
-import { Pressable, Text, useThemeColors } from "@/design";
+import { Button, Tag, Text } from "@/design";
 import { networkLabel } from "@/features/protocols/presentation";
 
 export function HistoryStatus({
@@ -14,7 +14,6 @@ export function HistoryStatus({
   compact?: boolean;
   showPartial?: boolean;
 }) {
-  const colors = useThemeColors();
   const protocols = useChatStore((s) => s.protocols);
   const syncProtocol = useChatStore((s) => s.syncProtocol);
   const entries = protocolEntries(protocols).filter(([id]) => !protocol || id === protocol);
@@ -35,42 +34,42 @@ export function HistoryStatus({
           accessible
           accessibilityLabel={`${fetching.length ? "Fetching history" : "Connecting"}: ${active.map(([id]) => networkLabel(id)).join(", ")}`}
         >
-          <ActivityIndicator size="small" color={colors.subtle} />
-          <Text variant="caption" className="flex-1">
-            {fetching.length ? "Fetching history…" : "Connecting…"}
-            {" · "}
+          <Tag tone="accent" label={fetching.length ? "Syncing" : "Connecting"} dot />
+          <Text variant="meta" className="flex-1" numberOfLines={1}>
             {active.map(([id]) => networkLabel(id)).join(" · ")}
           </Text>
         </View>
       ) : null}
       {failed.length > 0 ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Retry fetching history. ${details(failed)}`}
-          onPress={() => {
+        <Problem
+          text={describe(failed)}
+          label={`Retry fetching history. ${details(failed)}`}
+          onRetry={() => {
             for (const [id] of failed) void syncProtocol(id);
           }}
-          className="py-1"
-        >
-          <Text variant="caption" numberOfLines={1}>
-            {describe(failed)} · Retry
-          </Text>
-        </Pressable>
+        />
       ) : null}
       {partial.length > 0 ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Retry unavailable relays. ${details(partial)}`}
-          onPress={() => {
+        <Problem
+          text={describe(partial)}
+          label={`Retry unavailable relays. ${details(partial)}`}
+          onRetry={() => {
             for (const [id] of partial) void syncProtocol(id);
           }}
-          className="py-1"
-        >
-          <Text variant="caption" numberOfLines={1}>
-            {describe(partial)} · Retry
-          </Text>
-        </Pressable>
+        />
       ) : null}
+    </View>
+  );
+}
+
+function Problem({ text, label, onRetry }: { text: string; label: string; onRetry(): void }) {
+  return (
+    <View className="flex-row items-center gap-2">
+      <Tag tone="warn" />
+      <Text variant="meta" numberOfLines={1} className="flex-1">
+        {text}
+      </Text>
+      <Button variant="ghost" size="sm" label="Retry" accessibilityLabel={label} onPress={onRetry} />
     </View>
   );
 }

@@ -9,10 +9,10 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-
+import { useThemeColors } from "../hooks/use-theme-colors";
 import { Icon, type IconName } from "../icon";
-import { cn } from "../lib/cn";
 import { useDigitKeys } from "../lib/digit-keys";
+import { Radius } from "../tokens";
 import { Pressable } from "./pressable";
 import { Text } from "./text";
 
@@ -20,6 +20,7 @@ const SHAKE = { duration: 55, reduceMotion: ReduceMotion.System } as const;
 
 /** `shakes` counts rejections; each new one shakes the dots and buzzes. */
 export function PinDots({ length, filled, shakes }: { length: number; filled: number; shakes: number }) {
+  const colors = useThemeColors();
   const offset = useSharedValue(0);
   const style = useAnimatedStyle(() => ({ transform: [{ translateX: offset.get() }] }));
 
@@ -41,7 +42,14 @@ export function PinDots({ length, filled, shakes }: { length: number; filled: nu
       {Array.from({ length }, (_, i) => (
         <View
           key={i}
-          className={cn("h-3.5 w-3.5 rounded-full border-2", i < filled ? "border-fg bg-fg" : "border-line-strong")}
+          style={{
+            width: 12,
+            height: 12,
+            borderRadius: Radius.full,
+            borderWidth: 1,
+            borderColor: i < filled ? colors.accent : colors["line-strong"],
+            backgroundColor: i < filled ? colors.accent : "transparent",
+          }}
         />
       ))}
     </Animated.View>
@@ -68,26 +76,62 @@ export function PinPad({ onDigit, onDelete, disabled = false, listening = true, 
   useDigitKeys(listening && !disabled, onDigit, onDelete);
 
   return (
-    <View className="items-center gap-3">
+    <View className="items-center gap-2">
       {ROWS.map((row) => (
-        <View key={row[0]} className="flex-row gap-5">
+        <View key={row[0]} className="flex-row gap-2">
           {row.map((digit) => (
             <DigitKey key={digit} digit={digit} disabled={disabled} onPress={onDigit} />
           ))}
         </View>
       ))}
-      <View className="flex-row gap-5">
-        {extra ? (
-          <IconKey label={extra.label} icon={extra.icon} onPress={extra.onPress} />
-        ) : (
-          <View className="h-[72px] w-[72px]" />
-        )}
+      <View className="flex-row gap-2">
+        {extra ? <IconKey label={extra.label} icon={extra.icon} onPress={extra.onPress} /> : <View style={KEY} />}
         <DigitKey digit="0" disabled={disabled} onPress={onDigit} />
         <IconKey label="Delete" icon="delete" disabled={disabled} onPress={onDelete} />
       </View>
     </View>
   );
 }
+
+/** A PIN key is a secondary button made big for a thumb: `panel`, `line-strong`, radius `md`, the digit in mono. */
+function KeyButton({
+  label,
+  disabled,
+  bare = false,
+  onPress,
+  children,
+}: {
+  label: string;
+  disabled: boolean;
+  bare?: boolean;
+  onPress(): void;
+  children: React.ReactNode;
+}) {
+  const colors = useThemeColors();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ hovered, pressed }) => ({
+        width: KEY.width,
+        height: KEY.height,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: Radius.md,
+        borderWidth: bare ? 0 : 1,
+        borderColor: colors["line-strong"],
+        backgroundColor: bare ? "transparent" : hovered || pressed ? colors.hover : colors.panel,
+      })}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
+const KEY = { width: 80, height: 56 };
 
 function DigitKey({
   digit,
@@ -99,23 +143,18 @@ function DigitKey({
   onPress: (digit: string) => void;
 }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={digit}
-      accessibilityState={{ disabled }}
+    <KeyButton
+      label={digit}
       disabled={disabled}
-      pressScale={0.92}
       onPress={() => {
         if (process.env.EXPO_OS === "ios") Haptics.selectionAsync().catch(() => {});
         onPress(digit);
       }}
-      className={cn(
-        "h-[72px] w-[72px] items-center justify-center rounded-full bg-side active:bg-line",
-        disabled && "opacity-40",
-      )}
     >
-      <Text className="text-[28px] leading-[34px] tabular-nums text-fg">{digit}</Text>
-    </Pressable>
+      <Text variant="title" tone={disabled ? "subtle" : "fg"}>
+        {digit}
+      </Text>
+    </KeyButton>
   );
 }
 
@@ -131,19 +170,8 @@ function IconKey({
   onPress: () => void;
 }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled }}
-      disabled={disabled}
-      pressScale={0.92}
-      onPress={onPress}
-      className={cn(
-        "h-[72px] w-[72px] items-center justify-center rounded-full active:bg-side",
-        disabled && "opacity-40",
-      )}
-    >
-      <Icon name={icon} size={24} tone="fg" />
-    </Pressable>
+    <KeyButton label={label} disabled={disabled} bare onPress={onPress}>
+      <Icon name={icon} size={24} tone={disabled ? "subtle" : "fg"} />
+    </KeyButton>
   );
 }

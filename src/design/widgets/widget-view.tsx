@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { View } from "react-native";
 
-import { ActionSheet, Badge, Button, Eyebrow, Pressable, Text } from "../components";
+import { Button, Menu, Pressable, Tag, type TagTone, Text, type TextTone } from "../components";
 import { copyText } from "../copy-text";
+import { useThemeColors } from "../hooks/use-theme-colors";
 import { Icon } from "../icon";
-import { cn } from "../lib/cn";
+import { Radius, Size } from "../tokens";
 import { affordanceFor } from "./affordance";
 import { FormWidget } from "./form-widget";
-import { buttonTone, type Widget, type WidgetAction, type WidgetOf, type WidgetTone } from "./schema";
+import type { Widget, WidgetAction, WidgetOf, WidgetTone } from "./schema";
 
 interface WidgetViewProps {
   widget: Widget;
@@ -16,21 +17,23 @@ interface WidgetViewProps {
   onOffer?: (heading: { title: string; subtitle?: string }, actions: WidgetAction[]) => void;
 }
 
-const TEXT_TONE: Record<WidgetTone, string> = {
-  neutral: "text-fg",
-  brand: "text-accent",
-  success: "text-success",
-  warning: "text-warning",
-  danger: "text-danger",
+const TEXT_TONE: Record<WidgetTone, TextTone> = {
+  neutral: "fg",
+  brand: "accent",
+  success: "success",
+  warning: "warning",
+  danger: "danger",
 };
 
-const CARD_TONE: Record<WidgetTone, string> = {
-  neutral: "border-line bg-panel",
-  brand: "border-accent/40 bg-accent-soft",
-  success: "border-success/40 bg-success/10",
-  warning: "border-warning/40 bg-warning/10",
-  danger: "border-danger/40 bg-danger/10",
+const TAG_TONE: Record<WidgetTone, TagTone> = {
+  neutral: "category",
+  brand: "accent",
+  success: "ok",
+  warning: "warn",
+  danger: "err",
 };
+
+const BAR = { brand: "accent", success: "success", warning: "warning", danger: "danger" } as const;
 
 export function WidgetView(props: WidgetViewProps) {
   const [offer, setOffer] = useState<{
@@ -53,15 +56,15 @@ export function WidgetView(props: WidgetViewProps) {
       />
 
       {offer ? (
-        <ActionSheet
+        <Menu
           visible
           onClose={() => setOffer(null)}
           title={offer.title}
           subtitle={offer.subtitle}
-          actions={offer.actions.map((action) => ({
+          items={offer.actions.map((action) => ({
             label: action.label,
             icon: action.icon,
-            tone: action.tone,
+            danger: action.tone === "danger",
             onPress: () => props.onCommand?.(action.command),
           }))}
         />
@@ -74,22 +77,12 @@ function Affordance({ actions }: { actions: WidgetAction[] | undefined }) {
   const label = affordanceFor(actions);
   if (!label || !actions?.length) return null;
 
-  const primary = actions[0];
-  if (primary.icon) {
-    return (
-      <View className="h-7 w-7 items-center justify-center rounded-full bg-side">
-        <Icon name={primary.icon} size={16} tone={primary.tone === "danger" ? "danger" : "accent"} />
-      </View>
-    );
-  }
+  const first = actions[0];
+  if (first.icon) return <Icon name={first.icon} size={16} tone={first.tone === "danger" ? "danger" : "muted"} />;
 
   const single = actions.length === 1 ? actions[0] : undefined;
-
   return (
-    <Text
-      numberOfLines={1}
-      className={cn("shrink-0 text-md font-medium", single?.tone === "danger" ? "text-danger" : "text-accent")}
-    >
+    <Text variant="control" tone={single?.tone === "danger" ? "danger" : "muted"} numberOfLines={1}>
       {label}
     </Text>
   );
@@ -99,34 +92,48 @@ function Offerable({
   actions,
   heading,
   label,
-  className,
   onOffer,
   children,
 }: {
   actions: WidgetAction[] | undefined;
   heading: { title: string; subtitle?: string };
   label?: string;
-  className?: string;
   onOffer: WidgetViewProps["onOffer"];
   children: React.ReactNode;
 }) {
+  const colors = useThemeColors();
   if (!actions?.length) return children;
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={affordanceFor(actions) ?? undefined}
-      pressScale={0.99}
       onPress={() => onOffer?.(heading, actions)}
-      className={className}
+      style={({ hovered, pressed }) => ({
+        marginHorizontal: -4,
+        paddingHorizontal: 4,
+        borderRadius: Radius.sm,
+        backgroundColor: hovered || pressed ? colors.hover : "transparent",
+      })}
     >
       {children}
     </Pressable>
   );
 }
 
+/** On or off, said by the row's label as well: never colour alone. */
 function StateDot({ state }: { state: "on" | "off" }) {
-  return <View className={cn("h-2 w-2 shrink-0 rounded-full", state === "on" ? "bg-success" : "bg-subtle/40")} />;
+  const colors = useThemeColors();
+  return (
+    <View
+      style={{
+        width: Size.dot,
+        height: Size.dot,
+        borderRadius: Radius.full,
+        backgroundColor: state === "on" ? colors.success : colors["line-strong"],
+      }}
+    />
+  );
 }
 
 function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) {
@@ -141,7 +148,7 @@ function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) 
       return <ListWidget widget={widget} onOffer={onOffer} />;
 
     case "text":
-      return <Text variant="footnote">{widget.text}</Text>;
+      return <Text>{widget.text}</Text>;
 
     case "code":
       return <CodeWidget widget={widget} />;
@@ -151,9 +158,9 @@ function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) 
 
     case "badges":
       return (
-        <View className="flex-row flex-wrap gap-1.5">
+        <View className="flex-row flex-wrap gap-1">
           {widget.badges.map((b, i) => (
-            <Badge key={`${b.label}-${i}`} label={b.label} tone={buttonTone(b.tone) ?? "neutral"} />
+            <Tag key={`${b.label}-${i}`} label={b.label} tone={TAG_TONE[b.tone ?? "neutral"]} />
           ))}
         </View>
       );
@@ -165,8 +172,9 @@ function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) 
             <Button
               key={`${action.label}-${i}`}
               label={action.label}
+              icon={action.icon}
               size="sm"
-              tone={buttonTone(action.tone)}
+              variant={action.tone === "danger" ? "danger" : "secondary"}
               onPress={() => onCommand?.(action.command)}
             />
           ))}
@@ -182,10 +190,12 @@ function WidgetNode({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps) 
           accessibilityRole="link"
           accessibilityLabel={widget.label}
           onPress={() => onOpenUrl?.(widget.url)}
-          className="flex-row items-center gap-1.5"
+          className="flex-row items-center gap-2"
         >
+          <Text tone="accent" numberOfLines={1} className="min-w-0 shrink">
+            {widget.label}
+          </Text>
           <Icon name={widget.icon ?? "arrow-up-right"} size={16} tone="accent" />
-          <Text className="min-w-0 flex-1 text-md font-medium text-accent">{widget.label}</Text>
         </Pressable>
       );
   }
@@ -204,12 +214,12 @@ function StatWidget({ widget, onOffer }: OfferingWidgetProps<"stat">) {
       onOffer={onOffer}
     >
       <View className="flex-row items-center justify-between gap-2">
-        <View className="flex-1 gap-0.5">
-          {widget.label ? <Text variant="caption">{widget.label}</Text> : null}
-          <Text variant="amount" className={TEXT_TONE[widget.tone ?? "neutral"]}>
+        <View className="flex-1 gap-1">
+          {widget.label ? <Text variant="label">{widget.label}</Text> : null}
+          <Text variant="stat" tone={TEXT_TONE[widget.tone ?? "neutral"]}>
             {widget.value}
           </Text>
-          {widget.caption ? <Text variant="caption">{widget.caption}</Text> : null}
+          {widget.caption ? <Text variant="meta">{widget.caption}</Text> : null}
         </View>
         <Affordance actions={widget.actions} />
       </View>
@@ -219,28 +229,27 @@ function StatWidget({ widget, onOffer }: OfferingWidgetProps<"stat">) {
 
 function RowsWidget({ widget, onOffer }: OfferingWidgetProps<"rows">) {
   return (
-    <View className="gap-1.5">
+    <View className="gap-1">
       {widget.rows.map((row, i) => (
         <Offerable
           key={`${row.label}-${i}`}
           actions={row.actions}
           heading={{ title: row.label, subtitle: row.value || undefined }}
           label={`${row.label}, ${row.value}`}
-          className="-mx-1 rounded-md px-1 py-0.5 active:bg-side"
           onOffer={onOffer}
         >
-          <View className={cn("flex-row gap-3", row.state ? "items-center" : "items-baseline")}>
+          <View className={row.state ? "flex-row items-center gap-3 py-1" : "flex-row items-baseline gap-3 py-1"}>
             {row.state ? <StateDot state={row.state} /> : null}
-            <Text variant="caption" className={cn(row.state ? "grow shrink" : "shrink-0")} numberOfLines={1}>
+            <Text size="sm" tone="muted" className={row.state ? "shrink grow" : "shrink-0"} numberOfLines={1}>
               {row.label}
             </Text>
             {row.value ? (
               <Text
+                variant="code"
+                align="right"
+                tone={TEXT_TONE[row.tone ?? "neutral"]}
                 numberOfLines={1}
-                className={cn(
-                  "grow shrink text-right text-md font-medium tabular-nums",
-                  TEXT_TONE[row.tone ?? "neutral"],
-                )}
+                className="shrink grow"
               >
                 {row.value}
               </Text>
@@ -257,30 +266,29 @@ function RowsWidget({ widget, onOffer }: OfferingWidgetProps<"rows">) {
 
 function ListWidget({ widget, onOffer }: OfferingWidgetProps<"list">) {
   return (
-    <View className="gap-1">
+    <View>
       {widget.items.map((item, i) => (
         <Offerable
           key={`${item.title}-${i}`}
           actions={item.actions}
           heading={{ title: item.title, subtitle: item.subtitle }}
           label={item.subtitle ? `${item.title}, ${item.subtitle}` : item.title}
-          className="-mx-1.5 rounded-md px-1.5 active:bg-side"
           onOffer={onOffer}
         >
-          <View className="flex-row items-center gap-2.5 py-2">
+          <View className="flex-row items-center gap-2 py-2">
             {item.state ? <StateDot state={item.state} /> : null}
             {item.icon ? <Icon name={item.icon} size={16} tone="muted" /> : null}
-            <View className="min-w-0 grow shrink gap-0.5">
-              <Text numberOfLines={1} className={cn("text-md font-semibold", TEXT_TONE[item.tone ?? "neutral"])}>
+            <View className="min-w-0 shrink grow gap-1">
+              <Text numberOfLines={1} tone={TEXT_TONE[item.tone ?? "neutral"]}>
                 {item.title}
               </Text>
               {item.subtitle ? (
-                <Text variant="caption" numberOfLines={2}>
+                <Text size="sm" tone="muted" numberOfLines={2}>
                   {item.subtitle}
                 </Text>
               ) : null}
             </View>
-            {item.status ? <Badge label={item.status} tone={item.tone === "brand" ? "accent" : "neutral"} /> : null}
+            {item.status ? <Tag label={item.status} tone={TAG_TONE[item.tone ?? "neutral"]} /> : null}
             <View className="pl-2">
               <Affordance actions={item.actions} />
             </View>
@@ -293,13 +301,13 @@ function ListWidget({ widget, onOffer }: OfferingWidgetProps<"list">) {
 
 function CodeWidget({ widget }: { widget: WidgetOf<"code"> }) {
   const body = (
-    <View className="gap-0.5">
-      {widget.label ? <Text variant="caption">{widget.label}</Text> : null}
-      <View className="flex-row items-center gap-1.5">
-        <Text variant="mono" numberOfLines={1} className="flex-1">
+    <View className="gap-1">
+      {widget.label ? <Text variant="label">{widget.label}</Text> : null}
+      <View className="flex-row items-center gap-2">
+        <Text variant="code" numberOfLines={1} className="flex-1">
           {widget.value}
         </Text>
-        {widget.copyable ? <Icon name="copy" size={16} tone="subtle" /> : null}
+        {widget.copyable ? <Icon name="copy" size={16} tone="muted" /> : null}
       </View>
     </View>
   );
@@ -309,7 +317,6 @@ function CodeWidget({ widget }: { widget: WidgetOf<"code"> }) {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Copy ${widget.label ?? "value"}`}
-      pressScale={0.99}
       onPress={() => void copyText(widget.value)}
     >
       {body}
@@ -317,15 +324,25 @@ function CodeWidget({ widget }: { widget: WidgetOf<"code"> }) {
   );
 }
 
+/** A raised panel; a tone draws the notice's 2px bar on its left edge, never a tinted fill. */
 function CardWidget({ widget, onCommand, onOpenUrl, onOffer }: WidgetViewProps & { widget: WidgetOf<"card"> }) {
+  const colors = useThemeColors();
+  const tone = widget.tone && widget.tone !== "neutral" ? colors[BAR[widget.tone]] : null;
   return (
-    <View className={cn("gap-2.5 rounded-lg border p-3.5", CARD_TONE[widget.tone ?? "neutral"])}>
+    <View
+      className="gap-3 p-3"
+      style={{
+        backgroundColor: colors.panel,
+        borderWidth: 1,
+        borderColor: colors.line,
+        borderRadius: Radius.lg,
+        boxShadow: tone ? `inset 2px 0 0 ${tone}` : undefined,
+      }}
+    >
       {widget.title ? (
-        <View className="flex-row items-center gap-1.5">
-          {widget.icon ? (
-            <Icon name={widget.icon} size={16} tone={widget.tone === "neutral" || !widget.tone ? "muted" : "accent"} />
-          ) : null}
-          <Eyebrow>{widget.title}</Eyebrow>
+        <View className="flex-row items-center gap-2">
+          {widget.icon ? <Icon name={widget.icon} size={16} tone="muted" /> : null}
+          <Text variant="label">{widget.title}</Text>
         </View>
       ) : null}
       {widget.children.map((child, i) => (

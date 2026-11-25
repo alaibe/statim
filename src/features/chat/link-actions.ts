@@ -1,7 +1,7 @@
 import { errorMessage } from "@/core/errors";
 import { EXPLORERS, type LinkSegment } from "@/core/messaging/links";
 import { mapsLinks, parseLocation } from "@/core/messaging/locations";
-import { copyText, type SheetAction, toast } from "@/design";
+import { copyText, type MenuItem, toast } from "@/design";
 import { openExternal, openInBrowser } from "@/lib/open-url";
 
 export function openUrlQuietly(url: string) {
@@ -28,18 +28,18 @@ export function openInMaps(url: string): Promise<unknown> {
   return openExternal(process.env.EXPO_OS === "android" ? links.geo : links.apple);
 }
 
-export function linkActions(link: LinkSegment, onCommand?: (command: string) => void): SheetAction[] {
-  const copy = (label: string): SheetAction => ({
+export function linkActions(link: LinkSegment, onCommand?: (command: string) => void): MenuItem[] {
+  const copy = (label: string): MenuItem => ({
     label,
     icon: "copy",
     onPress: () => copyText(link.kind === "url" ? link.href : link.text),
   });
-  const open = (label: string, icon: SheetAction["icon"]): SheetAction => ({
+  const open = (label: string, icon: MenuItem["icon"]): MenuItem => ({
     label,
     icon,
     onPress: () => openLink(link),
   });
-  const send: SheetAction[] = onCommand
+  const send: MenuItem[] = onCommand
     ? [
         {
           label: "Send funds",

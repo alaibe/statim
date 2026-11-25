@@ -1,12 +1,13 @@
-import { View } from "react-native";
+import { Text as RNText, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 import type { NetworkId } from "@/core/messaging/networks";
 
 import { NETWORK_MARKS } from "../network-marks";
-import { Text } from "./text";
+import { textStyle } from "./text";
 
-export const squareCorner = (size: number) => size * 0.28;
+/** A network mark on a square keeps the avatar page's `sm` corner. */
+export const squareCorner = (_size: number) => 2;
 
 export function NetworkMark({
   network,
@@ -28,7 +29,6 @@ export function NetworkMark({
         width: size,
         height: size,
         borderRadius: square ? squareCorner(size) : size / 2,
-        borderCurve: "continuous",
         backgroundColor: mark?.color ?? "#6B7280",
         alignItems: "center",
         justifyContent: "center",
@@ -39,9 +39,14 @@ export function NetworkMark({
           <Path d={mark.path} fill="#FFFFFF" />
         </Svg>
       ) : (
-        <Text style={{ fontSize: size * 0.6, lineHeight: size * 0.75, color: "#FFFFFF" }} className="font-bold">
+        <RNText
+          style={[
+            textStyle("control", { strong: true }),
+            { fontSize: size * 0.6, lineHeight: size * 0.75, color: "#FFFFFF" },
+          ]}
+        >
           {mark?.glyph ?? label.slice(0, 1).toUpperCase()}
-        </Text>
+        </RNText>
       )}
     </View>
   );

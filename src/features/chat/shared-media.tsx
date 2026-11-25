@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { ScrollView, useWindowDimensions, View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import { isLocalChat } from "@/core/messaging/bots";
 import { useChatStore } from "@/core/messaging/chat-store";
 import { countsFor, entriesOf, type MediaCategory, type MediaEntry } from "@/core/messaging/media-index";
 import { formatDayLabel } from "@/core/messaging/preview";
 import type { ChatId } from "@/core/messaging/types";
-import { Icon, type IconName, Image, ListItem, Pressable, Text } from "@/design";
+import { Icon, type IconName, Image, Row, Tabs, Text } from "@/design";
 import { openUrlQuietly } from "./link-actions";
 
 const TABS: { id: MediaCategory; label: string }[] = [
@@ -26,35 +26,17 @@ export function SharedMedia({ chatId }: { chatId: ChatId }) {
 
   return (
     <>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 px-4 pb-3">
-        {TABS.map((entry) => {
-          const active = entry.id === tab;
-          return (
-            <Pressable
-              key={entry.id}
-              accessibilityRole="button"
-              accessibilityLabel={`${entry.label}, ${counts[entry.id]}`}
-              onPress={() => setTab(entry.id)}
-              className={
-                active
-                  ? "flex-row items-center gap-1.5 rounded-full bg-accent px-3 py-1.5"
-                  : "flex-row items-center gap-1.5 rounded-full bg-side px-3 py-1.5"
-              }
-            >
-              <Text variant="caption" className={active ? "font-semibold text-on-accent" : "font-medium text-fg"}>
-                {entry.label}
-              </Text>
-              <Text variant="micro" className={active ? "text-on-accent/80" : "text-subtle"}>
-                {counts[entry.id]}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      <View className="mb-2">
+        <Tabs<MediaCategory>
+          items={TABS.map((entry) => ({ ...entry, count: counts[entry.id] }))}
+          value={tab}
+          onChange={setTab}
+        />
+      </View>
 
       {entries.length === 0 ? (
-        <Text variant="footnote" className="px-4 py-6">
-          {isLocalChat(chatId) ? "Bot chats do not share files." : `Nothing shared in this chat yet.`}
+        <Text tone="muted" className="px-4 py-6">
+          {isLocalChat(chatId) ? "Bot chats don't share files." : "Nothing shared in this chat yet."}
         </Text>
       ) : tab === "media" || tab === "gifs" ? (
         <View className="flex-row flex-wrap gap-0.5 px-1">
@@ -78,10 +60,10 @@ function MediaRow({ entry, category }: { entry: MediaEntry; category: MediaCateg
   const icon: IconName = category === "voice" ? "mic" : category === "links" ? "link" : "file";
 
   return (
-    <ListItem
+    <Row
       title={entry.label ?? entry.uri}
-      subtitle={formatDayLabel(entry.sentAt)}
-      leading={<Icon name={icon} size={20} tone="muted" />}
+      meta={formatDayLabel(entry.sentAt)}
+      leading={<Icon name={icon} size={16} tone="muted" />}
       onPress={() => openUrlQuietly(entry.uri)}
     />
   );

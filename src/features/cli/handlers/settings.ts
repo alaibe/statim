@@ -1,14 +1,12 @@
 import { useAccountStore } from "@/core/account/account-store";
 import { type CredentialId, writeCredential } from "@/core/account/credentials";
 import { type ThemeChoice, useAppearanceStore } from "@/core/app/appearance";
-import { CHAT_PATTERNS, type ChatPatternName } from "@/design/components/chat-pattern-tile";
 
 import { type CliHandler, whenAccountReady } from "../context";
 import { CliError } from "../errors";
 import { readText } from "./input";
 
 const THEMES: ThemeChoice[] = ["system", "light", "dark"];
-const WALLPAPERS = Object.keys(CHAT_PATTERNS) as ChatPatternName[];
 const CREDENTIALS: CredentialId[] = ["gifs", "lifi", "lcx", "ai"];
 
 function onOff(value: string): boolean {
@@ -24,7 +22,7 @@ function oneOf<T extends string>(value: string, choices: readonly T[], what: str
 
 const SETTERS: Record<string, (value: string) => Promise<void>> = {
   theme: (v) => useAppearanceStore.getState().setTheme(oneOf(v, THEMES, "theme")),
-  wallpaper: (v) => useAppearanceStore.getState().setWallpaper(oneOf(v, WALLPAPERS, "wallpaper")),
+  "quick-tips": (v) => useAppearanceStore.getState().setQuickTips(onOff(v)),
   "read-receipts": (v) => useAppearanceStore.getState().setReadReceipts(onOff(v)),
   "typing-indicators": (v) => useAppearanceStore.getState().setTypingIndicators(onOff(v)),
   "link-previews": (v) => useAppearanceStore.getState().setLinkPreviews(onOff(v)),
@@ -35,7 +33,7 @@ function current() {
   const s = useAppearanceStore.getState();
   return {
     theme: s.theme,
-    wallpaper: s.wallpaper,
+    "quick-tips": s.quickTips,
     "read-receipts": s.readReceipts,
     "typing-indicators": s.typingIndicators,
     "link-previews": s.linkPreviews,

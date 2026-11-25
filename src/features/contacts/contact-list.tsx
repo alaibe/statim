@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { useShallow } from "zustand/react/shallow";
 import { type ChatState, selfIdFor, useChatStore } from "@/core/messaging/chat-store";
-import { ActionSheet, Avatar, Button, Card, Icon, ListItem, Section, Text } from "@/design";
+import { Avatar, Icon, Menu, Notice, Row, RowGroup, Text } from "@/design";
 import { useDisplayNames } from "@/features/chat/use-display-names";
 import { contactKey, contactNetwork, contactsOf, fromContactKey } from "@/features/contacts/contacts";
 import { type ContactAccess, currentAccess, manageLimitedAccess } from "@/features/contacts/device-contacts";
@@ -65,57 +65,55 @@ export function ContactList({ query, sortBy, sorting, onSort, onCloseSort, selec
     <>
       <ScrollView contentInsetAdjustmentBehavior="automatic">
         {access === "limited" && process.env.EXPO_OS === "ios" ? (
-          <Card className="mx-4 mb-4 flex-row items-center gap-3">
-            <View className="flex-1">
-              <Text variant="footnote">You have shared only some of your contacts with Statim.</Text>
-            </View>
-            <Button
-              label="Manage"
-              size="sm"
-              onPress={async () => {
-                await manageLimitedAccess();
-                refreshAccess();
+          <View className="px-4 pb-2 pt-3">
+            <Notice
+              tone="info"
+              message="You have shared only some of your contacts with Statim."
+              action={{
+                label: "Manage…",
+                onPress: async () => {
+                  await manageLimitedAccess();
+                  refreshAccess();
+                },
               }}
             />
-          </Card>
+          </View>
         ) : null}
 
-        <Section surface="list">
-          <ListItem
-            testID="invite-contacts"
-            title={<Text className="font-semibold text-accent">Invite contacts</Text>}
-            leading={<Icon name="user-plus" size={24} tone="accent" />}
-            onPress={() => router.push("/invite")}
-          />
-        </Section>
+        <Row
+          testID="invite-contacts"
+          title="Invite contacts…"
+          leading={<Icon name="user-plus" size={20} tone="muted" />}
+          onPress={() => router.push("/invite")}
+        />
 
-        <Section
-          title="On Statim"
-          surface="list"
-          empty={
-            query
-              ? "Nobody matches that search."
-              : "Nobody yet. Start a chat with an address or an ENS name and they will appear here."
-          }
-          className="mt-6"
-        >
+        <RowGroup label="On Statim">
+          {visible.length === 0 ? (
+            <View className="px-4 py-3">
+              <Text size="sm" tone="muted">
+                {query
+                  ? "Nobody matches that search."
+                  : "Nobody yet. Start a chat with an address or an ENS name and they will appear here."}
+              </Text>
+            </View>
+          ) : null}
           {visible.map((contact) => (
-            <ListItem
+            <Row
               key={`${contact.protocol}-${contact.id}`}
               title={nameFor(contact.id)}
-              subtitle={contactNetwork(contact)}
-              leading={<Avatar seed={nameFor(contact.id)} size="md" />}
+              preview={contactNetwork(contact)}
+              leading={<Avatar size={40} label={nameFor(contact.id)} />}
               selected={contact.chatId === selectedChatId}
               onPress={() => openChat(contact.chatId)}
             />
           ))}
-        </Section>
+        </RowGroup>
       </ScrollView>
-      <ActionSheet
+      <Menu
         visible={sorting}
         onClose={onCloseSort}
         title="Sort by"
-        actions={[
+        items={[
           { label: "Name", selected: sortBy === "name", onPress: () => onSort("name") },
           {
             label: "Recently active",

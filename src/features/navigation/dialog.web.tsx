@@ -2,21 +2,24 @@ import { useRouter } from "expo-router";
 import type { PropsWithChildren } from "react";
 import { Pressable, View } from "react-native";
 
-import { useEscapeKey } from "@/design";
+import { DialogSurface, Space, scrimColor, useEscapeKey, useThemeColors } from "@/design";
 
+/** A dialog route on the desktop: the form dialog's surface over a `void` scrim at 70%. */
 export function Dialog({ children }: PropsWithChildren) {
   const router = useRouter();
+  const colors = useThemeColors();
   useEscapeKey(true, () => router.back());
 
   return (
-    <View className="flex-1 items-center justify-center p-6">
-      <Pressable accessibilityLabel="Close" onPress={() => router.back()} className="absolute inset-0 bg-fg/30" />
-      <View
-        style={{ borderCurve: "continuous" }}
-        className="max-h-full w-[560px] max-w-full overflow-hidden rounded-lg bg-bg shadow-popover"
-      >
-        {children}
-      </View>
+    <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: Space[6] }}>
+      <Pressable
+        accessibilityLabel="Close"
+        onPress={() => router.back()}
+        style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, backgroundColor: scrimColor(colors) }}
+      />
+      <DialogSurface width="dialog-form">
+        <View style={{ height: 640, maxHeight: "100%" }}>{children}</View>
+      </DialogSurface>
     </View>
   );
 }

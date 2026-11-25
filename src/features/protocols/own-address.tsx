@@ -1,26 +1,31 @@
-import { Button, Card, copyText, Text } from "@/design";
+import { View } from "react-native";
+
+import { Button, copyText, Text } from "@/design";
 
 export function OwnAddress({ label, address, inboxId }: { label: string; address: string; inboxId?: string }) {
   return (
-    <Card className="gap-2" testID="protocol-own-address">
-      <Text variant="footnote" className="font-semibold">
-        Your {label} address
-      </Text>
-      <Text variant="caption" selectable>
-        {address}
-      </Text>
-      <Button label="Copy address" tone="neutral" size="sm" onPress={() => copyText(address, "Address copied")} />
+    <View className="gap-4" testID="protocol-own-address">
+      <View className="gap-2">
+        <Text variant="label">{`Your ${label} address`}</Text>
+        <Text variant="code" selectable>
+          {address}
+        </Text>
+        <Button icon="copy" label="Copy address" size="sm" onPress={() => copyText(address, "Copied the address")} />
+      </View>
       {inboxId ? (
-        <>
-          <Text variant="footnote" className="mt-2 font-semibold">
-            Inbox id
-          </Text>
-          <Text variant="caption" selectable>
+        <View className="gap-2">
+          <Text variant="label">Inbox ID</Text>
+          <Text variant="code" selectable>
             {inboxId}
           </Text>
-          <Button label="Copy inbox id" tone="neutral" size="sm" onPress={() => copyText(inboxId, "Inbox id copied")} />
-        </>
+          <Button
+            icon="copy"
+            label="Copy inbox ID"
+            size="sm"
+            onPress={() => copyText(inboxId, "Copied the inbox ID")}
+          />
+        </View>
       ) : null}
-    </Card>
+    </View>
   );
 }

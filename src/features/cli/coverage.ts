@@ -99,7 +99,7 @@ export const APPEARANCE_STORE: Record<Actions<AppearanceState>, Covered> = {
   hydrate: "internal",
   clear: "internal",
   setTheme: "settings set",
-  setWallpaper: "settings set",
+  setQuickTips: "settings set",
   setReadReceipts: "settings set",
   setTypingIndicators: "settings set",
   setLinkPreviews: "settings set",

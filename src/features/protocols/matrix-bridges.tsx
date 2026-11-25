@@ -1,9 +1,10 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
+import { View } from "react-native";
 import { useChatStore } from "@/core/messaging/chat-store";
 import { BRIDGED_NETWORKS } from "@/core/messaging/networks";
 import type { ChatSession } from "@/core/messaging/protocol";
-import { Button, Card, ListItem, Text } from "@/design";
+import { Button, Row, Text } from "@/design";
 import { connectByChat, existingBotChat } from "@/features/bridge-login/connect-by-chat";
 import { guideUrl } from "@/lib/guide";
 import { openExternal } from "@/lib/open-url";
@@ -58,54 +59,56 @@ export function MatrixBridges({ session }: { session: ChatSession & Partial<Matr
   }
 
   return (
-    <Card className="gap-2" testID="matrix-bridges">
-      <Text variant="footnote" className="font-semibold">
-        Bridges on this server
-      </Text>
+    <View className="gap-2" testID="matrix-bridges">
+      <Text variant="heading">Bridges on this server</Text>
       {found === null ? (
-        <Text variant="caption">Looking for bridges…</Text>
+        <Text size="sm" tone="muted">
+          Looking for bridges…
+        </Text>
       ) : found.length === 0 ? (
         <>
-          <Text variant="caption">
+          <Text size="sm" tone="muted">
             This homeserver runs none of the usual bridges. A bridge brings WhatsApp, Signal, Messenger and others into
             this list.
           </Text>
           <Button
             label="How to add bridges"
-            tone="neutral"
+            trailingIcon="arrow-up-right"
             size="sm"
             onPress={() => openExternal(guideUrl("homeserver")).catch(() => {})}
           />
         </>
       ) : (
         <>
-          <Text variant="caption">
+          <Text size="sm" tone="muted">
             Connect signs you in to the network through its bridge. Your chats from there then appear in this list.
           </Text>
-          {found.map((item) => {
-            const connected = item.accounts !== null && item.accounts.length > 0;
-            const chat = item.accounts === null && existingBotChat(chats, item.botId);
-            return (
-              <ListItem
-                key={item.botId}
-                testID={`matrix-bridge-${item.bridge.localpart}`}
-                title={BRIDGED_NETWORKS[item.bridge.network]}
-                subtitle={connected ? `Signed in as ${item.accounts!.join(", ")}` : item.botId}
-                trailing={
-                  <Button
-                    label={connected ? "Manage" : chat ? "Open" : "Connect"}
-                    size="sm"
-                    tone={connected || chat ? "neutral" : undefined}
-                    loading={busy === item.botId}
-                    disabled={busy !== null}
-                    onPress={() => connect(item)}
-                  />
-                }
-              />
-            );
-          })}
+          <View className="-mx-4">
+            {found.map((item) => {
+              const connected = item.accounts !== null && item.accounts.length > 0;
+              const chat = item.accounts === null && existingBotChat(chats, item.botId);
+              return (
+                <Row
+                  key={item.botId}
+                  testID={`matrix-bridge-${item.bridge.localpart}`}
+                  title={BRIDGED_NETWORKS[item.bridge.network]}
+                  preview={connected ? `Signed in as ${item.accounts!.join(", ")}` : item.botId}
+                  trailing={
+                    <Button
+                      label={connected ? "Manage…" : chat ? "Open" : "Connect…"}
+                      trailingIcon={chat && !connected ? "arrow-right" : undefined}
+                      size="sm"
+                      busy={busy === item.botId}
+                      disabled={busy !== null}
+                      onPress={() => connect(item)}
+                    />
+                  }
+                />
+              );
+            })}
+          </View>
         </>
       )}
-    </Card>
+    </View>
   );
 }

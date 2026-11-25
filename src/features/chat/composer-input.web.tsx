@@ -5,7 +5,7 @@ import { useEffect, useEffectEvent, useImperativeHandle, useLayoutEffect, useRef
 
 import { htmlToMarkdown } from "@/core/messaging/html-markdown";
 import { markdownHtml } from "@/core/messaging/markdown";
-import { toast } from "@/design";
+import { Radius, textStyle, toast, useThemeColors, withAlpha } from "@/design";
 import { htmlWithBreaks } from "./composer-html";
 import type { ComposerInputProps } from "./composer-input";
 import { isCommand, typedEmoji } from "./typed-emoji";
@@ -13,6 +13,14 @@ import { isCommand, typedEmoji } from "./typed-emoji";
 export type { ComposerInputHandle, ComposerInputProps } from "./composer-input";
 
 const ZERO_WIDTH = "​";
+
+/** What a person writes is content: Inter at the desktop's body size. */
+const BODY = textStyle("body");
+const TEXT = {
+  fontFamily: BODY.fontFamily,
+  fontSize: BODY.fontSize,
+  lineHeight: `${BODY.lineHeight}px`,
+} as const;
 
 const SHORTCUTS: Record<string, string> = { b: "bold", i: "italic", x: "strikeThrough" };
 
@@ -26,13 +34,14 @@ const TYPED: [RegExp, string][] = [
 const STYLE = `
 .composer-rich { outline: none; white-space: pre-wrap; overflow-wrap: anywhere; caret-color: rgb(var(--color-fg)); }
 .composer-rich code, .composer-rich pre {
-  font-family: var(--font-mono), ui-monospace, monospace; font-size: 0.9em;
-  background: rgb(var(--color-fg) / 0.07); border-radius: 4px; padding: 0 3px;
+  font-family: JetBrainsMono-400, ui-monospace, monospace; font-size: 13px;
+  background: rgb(var(--color-fg) / 0.07); border-radius: 2px; padding: 0 3px;
 }
 .composer-rich pre { padding: 4px 8px; margin: 2px 0; }
 .composer-rich blockquote {
   margin: 2px 0; padding-left: 8px; border-left: 2px solid rgb(var(--color-accent));
 }
+.composer-rich strong, .composer-rich b { font-family: Inter-600; font-weight: normal; }
 .composer-rich p, .composer-rich ul, .composer-rich ol { margin: 0; }
 .composer-rich ul, .composer-rich ol { padding-left: 20px; }
 .composer-rich a { color: rgb(var(--color-accent)); }
@@ -48,6 +57,7 @@ export function ComposerInput({
   placeholder,
   placeholderColor,
 }: ComposerInputProps) {
+  const colors = useThemeColors();
   const field = useRef<HTMLDivElement>(null);
   const shown = useRef<string | null>(null);
 
@@ -153,10 +163,10 @@ export function ComposerInput({
             overflowWrap: "anywhere",
             whiteSpace: "pre-wrap",
             padding: "10px 4px 10px 0",
+            ...TEXT,
             color: placeholderColor,
             pointerEvents: "none",
           }}
-          className="text-md"
         >
           {placeholder}
         </div>
@@ -172,8 +182,10 @@ export function ComposerInput({
         onKeyDown={onKeyDown}
         onInput={onInput}
         onPaste={onPaste}
-        className="composer-rich text-md text-fg"
+        className="composer-rich"
         style={{
+          ...TEXT,
+          color: colors.fg,
           gridArea: "1 / 1",
           maxHeight: 128,
           minHeight: 22,
@@ -186,6 +198,7 @@ export function ComposerInput({
 }
 
 function DropZone() {
+  const colors = useThemeColors();
   return (
     <div
       aria-hidden
@@ -197,14 +210,12 @@ function DropZone() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 20,
-        border: "2px dashed rgb(var(--color-accent))",
-        background: "rgb(var(--color-bg) / 0.85)",
+        borderRadius: Radius.xl,
+        border: `1px dashed ${colors.accent}`,
+        background: withAlpha(colors.bg, 0.85),
       }}
     >
-      <div className="text-lg font-semibold" style={{ color: "rgb(var(--color-accent))" }}>
-        Drop to send
-      </div>
+      <div style={{ ...textStyle("heading"), color: colors.accent } as React.CSSProperties}>Drop to send</div>
     </div>
   );
 }

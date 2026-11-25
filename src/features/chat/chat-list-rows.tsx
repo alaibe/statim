@@ -1,38 +1,46 @@
 import { View } from "react-native";
-import Animated from "react-native-reanimated";
 
 import type { AiConfig } from "@/core/ai/config";
 import type { ChatPrefs } from "@/core/messaging/chat-prefs";
 import { useChatStore } from "@/core/messaging/chat-store";
 import { type ChatListRow, type Folder, isOwnFolder } from "@/core/messaging/folders";
 import type { NetworkId } from "@/core/messaging/networks";
-import { formatTimestamp, messagePreview } from "@/core/messaging/preview";
+import { messagePreview } from "@/core/messaging/preview";
 import type { Chat, ChatId } from "@/core/messaging/types";
 import { readByPeer, unreadBadge } from "@/core/messaging/unread";
 import {
-  Badge,
-  Chevron,
-  CountBadge,
-  Enter,
+  Avatar,
   Icon,
-  ListItem,
   type MenuAnchor,
   NetworkMark,
   Pressable,
+  Row,
+  Skeleton,
   SwipeableRow,
-  squareCorner,
+  Tag,
   Text,
 } from "@/design";
 import { openChat } from "@/features/navigation/open";
 import { networkLabel } from "@/features/protocols/presentation";
 import { ChatAvatar } from "./chat-avatar";
 import { DeliveryIcon, useReadUpTo } from "./delivery-icon";
+import { formatListTime } from "./list-time";
 import { useChatAttention } from "./use-chat-attention";
 
+/** What the assistant thinks a chat needs, as a tag word: never a colour alone. */
 const ATTENTION = {
-  reply: { label: "Reply needed", tone: "accent" },
-  "follow-up": { label: "Follow up", tone: "warning" },
+  reply: { label: "Reply", tone: "accent" },
+  "follow-up": { label: "Follow up", tone: "warn" },
 } as const;
+
+/** A count in a list is plain mono text, in `accent` when it is unread news. */
+function Count({ count, lit }: { count: number; lit: boolean }) {
+  return (
+    <Text variant="meta" tone={lit ? "accent" : "muted"}>
+      {count > 99 ? "99+" : count}
+    </Text>
+  );
+}
 
 export function ChatRow({
   chat,
@@ -66,6 +74,7 @@ export function ChatRow({
   const loaded = useChatStore((s) => s.messages[chat.id]);
   const since = useChatStore((s) => s.readAt[chat.id] ?? 0);
   const readUpTo = useReadUpTo(chat);
+  const lit = unread && !muted;
 
   return (
     <SwipeableRow
@@ -74,7 +83,6 @@ export function ChatRow({
           id: "pin",
           label: pinned ? "Unpin" : "Pin",
           icon: "pin",
-          tone: "neutral",
           onPress: () => onToggle(chat.id, "pinned"),
         },
       ]}
@@ -83,59 +91,53 @@ export function ChatRow({
           id: "mute",
           label: muted ? "Unmute" : "Mute",
           icon: muted ? "volume-2" : "volume-x",
-          tone: "warning",
           onPress: () => onToggle(chat.id, "muted"),
         },
         {
           id: "archive",
           label: prefs.archived ? "Unarchive" : "Archive",
           icon: "archive",
-          tone: "accent",
           onPress: () => onToggle(chat.id, "archived"),
         },
       ]}
     >
-      <ListItem
+      <Row
         testID={`chat-${chat.id}`}
         title={
-          <>
-            {title}
-            {muted ? (
-              <>
-                {" "}
-                <Icon name="volume-x" size={16} tone="subtle" />
-              </>
-            ) : null}
-          </>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <Text numberOfLines={1} strong={lit} style={{ flexShrink: 1 }}>
+              {title}
+            </Text>
+            {muted ? <Icon name="volume-x" size={16} tone="muted" /> : null}
+            {pinned ? <Icon name="pin" size={16} tone="muted" /> : null}
+          </View>
         }
-        accessibilityLabel={[title, attention?.label, chat.typing ? "typing" : preview].filter(Boolean).join(", ")}
-        subtitle={chat.typing ? "typing…" : preview}
+        accessibilityLabel={[title, lit ? "unread" : null, attention?.label, chat.typing ? "typing" : preview]
+          .filter(Boolean)
+          .join(", ")}
+        preview={chat.typing ? "typing…" : preview}
         onPress={() => openChat(chat.id)}
         onLongPress={() => onMenu(chat, null)}
         onContextMenu={(anchor) => onMenu(chat, anchor)}
         selected={selected}
-        unread={unread && !muted}
-        leading={<ChatAvatar chat={chat} selfId={selfId} size="md" network={network} />}
+        unread={lit}
+        leading={<ChatAvatar chat={chat} selfId={selfId} network={network} />}
         meta={
           last ? (
-            <View className="flex-row items-center gap-1">
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               {last.fromMe ? <DeliveryIcon message={last} read={readByPeer(readUpTo, last)} size={16} /> : null}
-              <Text variant="caption" className={unread && !muted ? "text-accent" : undefined}>
-                {formatTimestamp(last.sentAt)}
+              <Text variant="meta" tone={lit ? "accent" : "muted"}>
+                {formatListTime(last.sentAt)}
               </Text>
             </View>
           ) : undefined
         }
-        subtitleTrailing={
-          attention || unread || pinned ? (
-            <View className="flex-row items-center gap-1">
-              {attention ? <Badge label={attention.label} tone={attention.tone} /> : null}
-              {unread ? (
-                <CountBadge count={unreadBadge(chat, since, loaded)} muted={muted} />
-              ) : pinned ? (
-                <Icon name="pin" size={16} tone="subtle" />
-              ) : null}
-            </View>
+        tags={
+          attention || unread ? (
+            <>
+              {attention ? <Tag tone={attention.tone} label={attention.label} /> : null}
+              {unread ? <Count count={unreadBadge(chat, since, loaded)} lit={lit} /> : null}
+            </>
           ) : undefined
         }
       />
@@ -159,23 +161,12 @@ export const leaveFolderLabel = (folder: Folder) => `Back to all chats from ${fo
 export const chatSearchPlaceholder = (folder: Folder | null) =>
   folder ? `Search ${folderLabel(folder)}` : "Search chats";
 
-function FolderIcon({ folder, size }: { folder: Folder; size: number }) {
+/** A folder is a place, so it takes a square: Statim's own as a Lucide icon, a network as its mark. */
+function FolderIcon({ folder, size }: { folder: Folder; size: 20 | 40 }) {
   if (!isOwnFolder(folder)) {
     return <NetworkMark network={folder} label={folderLabel(folder)} size={size} square />;
   }
-  return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: squareCorner(size),
-        borderCurve: "continuous",
-      }}
-      className="items-center justify-center bg-side"
-    >
-      <Icon name={OWN_FOLDERS[folder].icon} size={20} tone="muted" />
-    </View>
-  );
+  return <Avatar size={size} shape="square" icon={OWN_FOLDERS[folder].icon} label={folderLabel(folder)} />;
 }
 
 export function FolderRow({
@@ -192,63 +183,46 @@ export function FolderRow({
   const quiet = isOwnFolder(row.folder);
   const highlight = unread > 0 && !quiet;
   return (
-    <ListItem
+    <Row
       testID={`folder-${row.folder}`}
       title={folderLabel(row.folder)}
-      subtitle={preview}
+      preview={preview}
       accessibilityLabel={`${folderLabel(row.folder)}, ${chatCount(row.chats.length)}${unread ? `, ${unread} unread` : ""}`}
       onPress={onPress}
       unread={highlight}
-      leading={<FolderIcon folder={row.folder} size={44} />}
+      leading={<FolderIcon folder={row.folder} size={40} />}
       meta={
         row.latest.lastMessage ? (
-          <Text variant="caption" className={highlight ? "text-accent" : undefined}>
-            {formatTimestamp(row.latest.lastMessage.sentAt)}
+          <Text variant="meta" tone={highlight ? "accent" : "muted"}>
+            {formatListTime(row.latest.lastMessage.sentAt)}
           </Text>
         ) : undefined
       }
-      subtitleTrailing={unread > 0 ? <CountBadge count={unread} muted={quiet} /> : undefined}
-      trailing={<Chevron />}
+      tags={unread > 0 ? <Count count={unread} lit={highlight} /> : undefined}
+      trailing={<Icon name="chevron-right" size={16} tone="muted" />}
     />
   );
 }
 
+/** The open folder's name with the way back to every chat. */
 export function FolderHeader({ folder, onBack }: { folder: Folder; onBack: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={leaveFolderLabel(folder)}
       onPress={onBack}
-      className="min-w-0 flex-1 flex-row items-center gap-1.5"
+      className="min-w-0 flex-1 flex-row items-center gap-2"
     >
-      <Icon name="chevron-left" size={20} tone="accent" />
-      <FolderIcon folder={folder} size={22} />
-      <Text variant="title" className="flex-1 font-semibold" numberOfLines={1}>
+      <Icon name="chevron-left" size={20} tone="muted" />
+      <FolderIcon folder={folder} size={20} />
+      <Text variant="heading" numberOfLines={1} style={{ flex: 1 }}>
         {folderLabel(folder)}
       </Text>
     </Pressable>
   );
 }
 
-export function Separator() {
-  return <View className="ml-[76px] mr-3 h-px bg-line" />;
-}
-
+/** While the first chats arrive: rows in their shape, in `hover`; the status says what is running. */
 export function ConnectingState() {
-  return (
-    <Animated.View entering={Enter.fade()} className="gap-1 px-4 pt-4">
-      {[0, 1, 2, 3, 4].map((i) => (
-        <View key={i} className="min-h-touch flex-row items-center gap-3 py-2.5">
-          <View className="h-11 w-11 rounded-full bg-side" />
-          <View className="flex-1 gap-2">
-            <View className="h-3 w-1/3 rounded-full bg-side" />
-            <View className="h-2.5 w-2/3 rounded-full bg-side" />
-          </View>
-        </View>
-      ))}
-      <Text variant="caption" className="mt-3 text-center">
-        Fetching history…
-      </Text>
-    </Animated.View>
-  );
+  return <Skeleton rows={6} avatar />;
 }

@@ -2,11 +2,10 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import { View } from "react-native";
+import { Notice, toast } from "@/design";
 
-import { Button, Text, toast } from "@/design";
-
-export function UpdateBar() {
+/** A banner under the title bar: an update is app-wide state. */
+export function UpdateBanner() {
   const [update, setUpdate] = useState<Update | null>(null);
   const looking = useRef(false);
 
@@ -16,7 +15,7 @@ export function UpdateBar() {
     try {
       const found = await check();
       if (!found) {
-        if (asked) toast.success("Statim is up to date");
+        if (asked) toast.info("Statim is up to date");
         return null;
       }
       if (asked) toast.info(`Downloading version ${found.version}`);
@@ -24,7 +23,7 @@ export function UpdateBar() {
       return found;
     } catch (error) {
       console.warn("[updater]", error);
-      if (asked) toast.error("Could not check for updates");
+      if (asked) toast.error("Couldn’t check for updates. Try again later.");
       return null;
     } finally {
       looking.current = false;
@@ -58,16 +57,17 @@ export function UpdateBar() {
       await relaunch();
     } catch (error) {
       console.warn("[updater]", error);
-      toast.error("The update could not be installed");
+      toast.error("Couldn’t install the update. Try again from the Statim menu.");
     }
   };
 
   return (
-    <View className="flex-row items-center gap-2 border-t border-line px-3 py-2">
-      <Text variant="footnote" className="flex-1 text-fg">
-        Version {update.version} is ready
-      </Text>
-      <Button size="sm" label="Restart" onPress={restart} />
-    </View>
+    <Notice
+      banner
+      tone="accent"
+      tag="UPDATE"
+      message={`Version ${update.version} is ready.`}
+      action={{ label: "Restart", onPress: restart }}
+    />
   );
 }

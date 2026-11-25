@@ -5,7 +5,7 @@ import Animated from "react-native-reanimated";
 import { useAccountStore } from "@/core/account/account-store";
 import { createMnemonic, keyringFromMnemonic, shortAddress } from "@/core/account/keyring";
 import { errorMessage } from "@/core/errors";
-import { Avatar, Button, copyText, Enter, Field, IconButton, Screen, stagger, Text, toast } from "@/design";
+import { Avatar, Button, copyText, Enter, IconButton, Input, Screen, stagger, Text, toast } from "@/design";
 import { RevealablePhrase } from "@/features/account/recovery-phrase";
 import { useBack } from "@/features/navigation/use-back";
 
@@ -39,30 +39,30 @@ export default function CreateAccount() {
       <View className="-ml-2 flex-row pt-1">
         <IconButton icon="chevron-left" label="Back" onPress={goBack} />
       </View>
-      <ScrollView contentContainerClassName="gap-5 py-4" showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerClassName="gap-6 py-4" showsVerticalScrollIndicator={false}>
         <Animated.View entering={Enter.content()} className="items-center gap-3">
-          <Avatar seed={preview.address} size="xl" />
-          <View className="items-center">
-            <Text variant="headline">Your new account</Text>
-            <Text variant="mono">{shortAddress(preview.address, 10, 8)}</Text>
+          <Avatar label={label || "Personal"} size={64} />
+          <View className="items-center gap-1">
+            <Text variant="title">Your new account</Text>
+            <Text variant="meta">{shortAddress(preview.address, 10, 8)}</Text>
           </View>
         </Animated.View>
 
         <Animated.View entering={Enter.content(stagger(1, 70))}>
-          <Field
+          <Input
             label="Name this account"
             placeholder="Personal"
             onChangeText={setLabel}
             maxLength={40}
             autoCapitalize="words"
-            hint="Just for you, on this device. An ENS name is the one other people see."
+            help="Just for you, on this device. An ENS name is the one other people see."
           />
         </Animated.View>
 
         <Animated.View entering={Enter.content(stagger(2, 70))}>
-          <Text variant="bodyMuted">
-            These twelve words <Text className="font-semibold text-fg">are</Text> your account. Anyone who has them
-            controls your messages and your funds. Write them down offline: there is no reset link.
+          <Text tone="muted">
+            These twelve words <Text strong>are</Text> your account. Anyone who has them controls your messages and your
+            funds. Write them down offline: there is no reset link.
           </Text>
         </Animated.View>
 
@@ -70,7 +70,7 @@ export default function CreateAccount() {
           <RevealablePhrase phrase={phrase} revealed={revealed} onReveal={() => setRevealed(true)}>
             <Button
               label="Copy phrase"
-              tone="neutral"
+              icon="copy"
               size="sm"
               onPress={() => copyText(phrase, "Copied. Paste it somewhere safe, then clear your clipboard.")}
             />
@@ -80,14 +80,14 @@ export default function CreateAccount() {
 
       <View className="gap-2 pb-8 pt-2">
         <Button
+          variant="primary"
           label="I've written it down"
-          size="md"
           fullWidth
           disabled={!revealed}
-          loading={saving}
+          busy={saving}
           onPress={confirm}
         />
-        <Text variant="caption" className="text-center">
+        <Text size="sm" tone="muted" align="center">
           {revealed ? "Continuing stores the phrase in this device’s keychain." : "Reveal the phrase to continue."}
         </Text>
       </View>

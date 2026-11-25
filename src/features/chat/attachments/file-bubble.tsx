@@ -1,5 +1,5 @@
 import { View } from "react-native";
-import { Icon, type IconName, Pressable, Text, useThemeColors } from "@/design";
+import { Icon, type IconName, Pressable, Radius, Text, useThemeColors } from "@/design";
 import { openUrlQuietly } from "../link-actions";
 import { formatBytes } from "./format";
 
@@ -24,28 +24,19 @@ function iconFor(name: string, mimeType?: string): IconName {
 
 export function FileBubble({ uri, name, mimeType, size, fromMe }: FileBubbleProps) {
   const colors = useThemeColors();
-  const tint = fromMe ? colors["fg"] : colors.accent;
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Open ${name}`}
-      onPress={() => openUrlQuietly(uri)}
-      pressScale={0.99}
-    >
-      <View className="min-w-[180px] flex-row items-center gap-3 py-0.5">
-        <View className="h-10 w-10 items-center justify-center rounded-full bg-side">
-          <Icon name={iconFor(name, mimeType)} size={20} color={tint} />
+    <Pressable accessibilityRole="button" accessibilityLabel={`Open ${name}`} onPress={() => openUrlQuietly(uri)}>
+      <View className="flex-row items-center gap-3 py-0.5" style={{ minWidth: 180 }}>
+        <View
+          className="h-10 w-10 items-center justify-center"
+          style={{ borderRadius: Radius.sm, backgroundColor: fromMe ? colors.bg : colors.hover }}
+        >
+          <Icon name={iconFor(name, mimeType)} size={20} tone="muted" />
         </View>
         <View className="min-w-0 flex-1">
-          <Text numberOfLines={1} className={fromMe ? "font-medium text-fg" : "font-medium text-fg"}>
-            {name}
-          </Text>
-          {size !== undefined ? (
-            <Text variant="caption" className={fromMe ? "text-fg/70" : undefined}>
-              {formatBytes(size)}
-            </Text>
-          ) : null}
+          <Text numberOfLines={1}>{name}</Text>
+          {size !== undefined ? <Text variant="meta">{formatBytes(size)}</Text> : null}
         </View>
       </View>
     </Pressable>

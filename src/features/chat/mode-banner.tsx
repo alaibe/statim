@@ -1,7 +1,7 @@
 import { View } from "react-native";
 import Animated from "react-native-reanimated";
 
-import { Enter, Exit, IconButton, Text } from "@/design";
+import { Enter, Exit, IconButton, Text, useThemeColors } from "@/design";
 
 import type { ComposerBanner } from "./composer-mode";
 
@@ -14,30 +14,26 @@ export function ModeBanner({
   editing: boolean;
   onCancel: () => void;
 }) {
+  const colors = useThemeColors();
   return (
     <Animated.View
       entering={Enter.fade()}
       exiting={Exit.fade()}
-      className="flex-row items-center gap-2 border-t border-line bg-side px-4 py-2"
+      className="flex-row items-center gap-2 px-4 py-2"
+      style={{ borderTopWidth: 1, borderColor: colors.line, backgroundColor: colors.bg }}
     >
-      <View className="h-8 w-0.5 rounded-full bg-accent" />
+      <View style={{ width: 2, height: 32, backgroundColor: colors.accent }} />
       <View className="min-w-0 flex-1">
-        <Text variant={banner.detail ? "micro" : "caption"} className="font-semibold text-accent">
+        <Text variant="label" tone="accent">
           {banner.label}
         </Text>
         {banner.detail ? (
-          <Text variant="caption" numberOfLines={1}>
+          <Text size="sm" tone="muted" numberOfLines={1}>
             {banner.detail}
           </Text>
         ) : null}
       </View>
-      <IconButton
-        icon="x"
-        label={editing ? "Cancel edit" : "Cancel reply"}
-        tone="subtle"
-        size={20}
-        onPress={onCancel}
-      />
+      <IconButton icon="x" label={editing ? "Cancel edit" : "Cancel reply"} onPress={onCancel} />
     </Animated.View>
   );
 }

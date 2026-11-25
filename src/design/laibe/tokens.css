@@ -54,19 +54,41 @@
   --chamfer-md: 10px;
   --chamfer-lg: 16px;
 
-  /* Sizes of controls and of the window's regions */
+  /* Sizes of controls, of the window's regions and of the floating layers. All on the 4px grid except three:
+     --layout-titlebar-mac and --layout-window-button are the platforms' own (macOS's compact toolbar, Windows'
+     caption buttons), and --size-dot is a mark inside a line of text, not a box on the grid. */
   --control-sm: 28px;
   --control-md: 32px;
   --control-lg: 36px;
   --control-touch: 44px;
   --layout-sidebar: 232px;
+  --layout-sidebar-min: 200px;
+  --layout-sidebar-max: 320px;
+  --layout-sidebar-collapsed: 48px;
   --layout-list: 360px;
+  --layout-list-min: 280px;
+  --layout-list-max: 480px;
   --layout-reading: 680px;
+  --layout-resize-handle: 4px;
   --layout-statusbar: 24px;
+  --layout-banner: 36px;
   --layout-titlebar: 32px;
   --layout-titlebar-mac: 38px;
-  --layout-tabbar: 54px;
+  --layout-titlebar-mac-inset: 76px;
+  --layout-window-button: 46px;
+  --layout-tabbar: 56px;
   --layout-header-phone: 52px;
+  --layout-row: 56px;
+  --layout-palette: 560px;
+  --layout-palette-input: 48px;
+  --layout-dialog: 440px;
+  --layout-dialog-form: 560px;
+  --layout-menu: 200px;
+  --layout-toast: 420px;
+  --layout-calendar: 260px;
+  --layout-tooltip: 280px;
+  --layout-empty: 360px;
+  --size-dot: 6px;
 
   /* Stacking order, see patterns/app-shell.md */
   --layer-content: 0;
@@ -90,7 +112,7 @@
 
   /* Shadows, only for layers that float */
   --shadow-popover: 0 12px 32px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(255 255 255 / 0.04);
-  --shadow-dialog: 0 32px 80px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(255 255 255 / 0.05);
+  --shadow-dialog: 0 32px 80px rgb(0 0 0 / 0.6);
 
   /* Ink: the same for every accent */
   --void: light-dark(#d7dae6, #04050b);
@@ -105,25 +127,21 @@
   --fg: light-dark(#0b0d19, #daf6fb);
   --on-accent: light-dark(#ffffff, #04050b);
 
-  /* Status: the same for every accent, always with a tag word */
-  --danger: light-dark(#c9222b, #ff7072);
-  --warning: light-dark(#a96b00, #ffc845);
-  --success: light-dark(#007f38, #73f094);
-  --info: light-dark(#0070a6, #69caff);
+  /* Status: the same for every accent, always with a tag word. Each is the colour of its hue that keeps the tag word
+     at 4.5:1 on its own 12% tint over every surface a tag sits on, void and accent-soft included. */
+  --danger: light-dark(#a60018, #ff8281);
+  --warning: light-dark(#774a02, #ffc845);
+  --success: light-dark(#006129, #73f094);
+  --info: light-dark(#025884, #69caff);
 }
 
 @media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    color-scheme: light;
-  }
+  :root:not([data-theme="dark"]) { color-scheme: light; }
 }
-:root[data-theme="light"] {
-  color-scheme: light;
-}
+:root[data-theme="light"] { color-scheme: light; }
 
 /* Accents. In light mode the selection is the accent's soft fill; in dark mode it is ink. */
-:root,
-[data-accent="phosphor"] {
+:root, [data-accent="phosphor"] {
   --accent: light-dark(#007835, #00fd77);
   --accent-strong: light-dark(#00642b, #9dffb2);
   --accent-soft: light-dark(#d7f4dc, #0d371a);
@@ -161,12 +179,8 @@
 }
 
 /* Derived from the accent. Declared again on [data-accent], so an element with its own accent glows in it. */
-:root,
-[data-accent] {
-  --glow:
-    0 0 0 1px color-mix(in oklab, var(--accent) 70%, transparent),
-    0 0 18px color-mix(in oklab, var(--accent) 35%, transparent);
+:root, [data-accent] {
+  --glow: 0 0 0 1px color-mix(in oklab, var(--accent) 70%, transparent), 0 0 18px color-mix(in oklab, var(--accent) 35%, transparent);
   --glow-text: 0 0 12px color-mix(in oklab, var(--accent) 55%, transparent);
-  --focus-ring:
-    0 0 0 2px var(--bg), 0 0 0 3px var(--accent), 0 0 14px color-mix(in oklab, var(--accent) 45%, transparent);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 3px var(--accent), 0 0 14px color-mix(in oklab, var(--accent) 45%, transparent);
 }

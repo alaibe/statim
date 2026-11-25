@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useWindowDimensions, View } from "react-native";
-import { Image, Pressable } from "@/design";
+import { Image, Pressable, Radius } from "@/design";
 import { MessageText } from "../message-text";
 import { MediaViewer } from "./media-viewer";
 import { HoverSave } from "./save-button";
@@ -32,12 +32,11 @@ export function ImageBubble({ uri, width, height, caption, fromMe, onSave }: Ima
           accessibilityRole="imagebutton"
           accessibilityLabel={caption ?? "Photo"}
           onPress={() => setZoomed(true)}
-          pressScale={0.99}
         >
           <Image
             source={{ uri }}
             recyclingKey={uri}
-            style={{ width: boxWidth, height: boxHeight, borderRadius: 14 }}
+            style={{ width: boxWidth, height: boxHeight, borderRadius: Radius.md }}
             contentFit="cover"
             transition={120}
             placeholderContentFit="cover"
@@ -45,7 +44,7 @@ export function ImageBubble({ uri, width, height, caption, fromMe, onSave }: Ima
         </Pressable>
       </HoverSave>
 
-      {caption ? <MessageText text={caption} fromMe={fromMe} className={fromMe ? "text-fg" : "text-fg"} /> : null}
+      {caption ? <MessageText text={caption} fromMe={fromMe} /> : null}
 
       <MediaViewer visible={zoomed} onClose={() => setZoomed(false)} onSave={onSave}>
         <Image source={{ uri }} style={{ flex: 1 }} contentFit="contain" />

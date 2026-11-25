@@ -1,66 +1,153 @@
 import { useEffect, useState } from "react";
-import { Keyboard, useWindowDimensions, View } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import { Keyboard, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { scheduleOnRN } from "react-native-worklets";
 import { create } from "zustand";
+
+import { Button } from "./components/button";
+import { Pressable } from "./components/pressable";
+import { Tag, type TagTone } from "./components/tag";
 import { Text } from "./components/text";
 import { useThemeColors } from "./hooks/use-theme-colors";
-import { Icon } from "./icon";
-import { cn } from "./lib/cn";
 import { PASS_THROUGH } from "./lib/pass-through";
-import { Duration, Enter, Exit, Spring } from "./motion";
+import { desktop } from "./lib/platform";
+import { Enter, Exit } from "./motion";
+import { Layer, Layout, Radius, Shadow, Space } from "./tokens";
 
-export type ToastTone = "info" | "success" | "error";
+export type ToastTone = "ok" | "info" | "warn" | "err";
+
+export interface ToastAction {
+  /** A verb, usually Undo; ⌘Z runs it while the toast shows. */
+  label: string;
+  run(): void;
+}
 
 interface Toast {
   id: number;
   message: string;
   tone: ToastTone;
+  action?: ToastAction;
 }
 
 interface ToastState {
   toasts: Toast[];
-  push(message: string, tone?: ToastTone): void;
+  push(message: string, tone: ToastTone, action?: ToastAction): void;
   dismiss(id: number): void;
+  /** Hovering a toast holds every timer. */
+  hold(held: boolean): void;
 }
 
 let nextId = 1;
+const timers = new Map<number, { left: number; started: number; timer?: ReturnType<typeof setTimeout> }>();
+let held = false;
 
-export const useToastStore = create<ToastState>((set) => ({
+function schedule(id: number) {
+  const entry = timers.get(id);
+  if (!entry || held) return;
+  entry.started = Date.now();
+  entry.timer = setTimeout(() => useToastStore.getState().dismiss(id), entry.left);
+}
+
+/** Shown 4s, 8s with an action; at most three stack upwards. */
+export const useToastStore = create<ToastState>((set, get) => ({
   toasts: [],
-  push(message, tone = "info") {
+  push(message, tone, action) {
     const id = nextId++;
-    set((s) => ({ toasts: [...s.toasts, { id, message, tone }] }));
-    setTimeout(() => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })), 3200);
+    timers.set(id, { left: action ? 8000 : 4000, started: Date.now() });
+    const kept = get().toasts.slice(-2);
+    for (const old of get().toasts) if (!kept.includes(old)) get().dismiss(old.id);
+    set({ toasts: [...kept, { id, message, tone, action }] });
+    schedule(id);
   },
   dismiss(id) {
+    clearTimeout(timers.get(id)?.timer);
+    timers.delete(id);
     set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
+  },
+  hold(value) {
+    held = value;
+    for (const [id, entry] of timers) {
+      if (value) {
+        clearTimeout(entry.timer);
+        entry.left = Math.max(1000, entry.left - (Date.now() - entry.started));
+      } else schedule(id);
+    }
   },
 }));
 
+/** Feedback after an action: the tag first, then what happened in the past tense of the button. */
 export const toast = {
-  info: (m: string) => useToastStore.getState().push(m, "info"),
-  success: (m: string) => useToastStore.getState().push(m, "success"),
-  error: (m: string) => useToastStore.getState().push(m, "error"),
+  success: (message: string, action?: ToastAction) => useToastStore.getState().push(message, "ok", action),
+  info: (message: string, action?: ToastAction) => useToastStore.getState().push(message, "info", action),
+  warn: (message: string, action?: ToastAction) => useToastStore.getState().push(message, "warn", action),
+  error: (message: string, action?: ToastAction) => useToastStore.getState().push(message, "err", action),
 };
 
-const TONE = {
-  info: {
-    border: "border-line",
-    icon: "info" as const,
-    colour: "muted" as const,
-  },
-  success: {
-    border: "border-success/50",
-    icon: "circle-check" as const,
-    colour: "success" as const,
-  },
-  error: { border: "border-danger/50", icon: "circle-alert" as const, colour: "danger" as const },
-} as const;
+/** ⌘Z: the newest toast's action. Esc: dismiss the newest. */
+export function runNewestToastAction(): boolean {
+  const newest = useToastStore.getState().toasts.findLast((t) => t.action);
+  if (!newest?.action) return false;
+  newest.action.run();
+  useToastStore.getState().dismiss(newest.id);
+  return true;
+}
 
-const TAB_BAR_HEIGHT = 52;
+export function dismissNewestToast(): boolean {
+  const newest = useToastStore.getState().toasts.at(-1);
+  if (!newest) return false;
+  useToastStore.getState().dismiss(newest.id);
+  return true;
+}
+
+const TAG: Record<ToastTone, TagTone> = { ok: "ok", info: "info", warn: "warn", err: "err" };
+
+function ToastView({ toast: t }: { toast: Toast }) {
+  const colors = useThemeColors();
+  const dismiss = useToastStore((s) => s.dismiss);
+  const hold = useToastStore((s) => s.hold);
+
+  return (
+    <Animated.View entering={Enter.fromBottom()} exiting={Exit.fade()} style={{ maxWidth: Layout.toast }}>
+      <Pressable
+        accessibilityRole="alert"
+        accessibilityLabel={t.message}
+        onPress={() => dismiss(t.id)}
+        onHoverIn={() => hold(true)}
+        onHoverOut={() => hold(false)}
+        style={{
+          minHeight: Space[12],
+          flexDirection: "row",
+          alignItems: "center",
+          gap: Space[3],
+          paddingVertical: Space[2],
+          paddingHorizontal: Space[3],
+          backgroundColor: colors.panel,
+          borderWidth: 1,
+          borderColor: colors["line-strong"],
+          borderRadius: Radius.lg,
+          boxShadow: Shadow.popover,
+        }}
+      >
+        <Tag tone={TAG[t.tone]} />
+        <Text size="sm" style={{ flexShrink: 1 }}>
+          {t.message}
+        </Text>
+        {t.action ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            label={t.action.label}
+            keys={["mod", "z"]}
+            onPress={() => {
+              t.action?.run();
+              dismiss(t.id);
+            }}
+          />
+        ) : null}
+      </Pressable>
+    </Animated.View>
+  );
+}
 
 function useKeyboardHeight(): number {
   const [height, setHeight] = useState(0);
@@ -68,11 +155,10 @@ function useKeyboardHeight(): number {
   useEffect(() => {
     // iOS reports the frame before the keyboard moves, Android only after.
     const ios = process.env.EXPO_OS === "ios";
-    const show = ios ? "keyboardWillChangeFrame" : "keyboardDidShow";
-    const hide = ios ? "keyboardWillHide" : "keyboardDidHide";
-
-    const shown = Keyboard.addListener(show, (event) => setHeight(event.endCoordinates?.height ?? 0));
-    const hidden = Keyboard.addListener(hide, () => setHeight(0));
+    const shown = Keyboard.addListener(ios ? "keyboardWillChangeFrame" : "keyboardDidShow", (event) =>
+      setHeight(event.endCoordinates?.height ?? 0),
+    );
+    const hidden = Keyboard.addListener(ios ? "keyboardWillHide" : "keyboardDidHide", () => setHeight(0));
     return () => {
       shown.remove();
       hidden.remove();
@@ -82,67 +168,7 @@ function useKeyboardHeight(): number {
   return height;
 }
 
-function SwipeableToast({ toast: t }: { toast: Toast }) {
-  const colors = useThemeColors();
-  const { width } = useWindowDimensions();
-  const dismiss = useToastStore((s) => s.dismiss);
-
-  const x = useSharedValue(0);
-
-  const pan = Gesture.Pan()
-    .activeOffsetX([-12, 12])
-    .failOffsetY([-16, 16])
-    .onUpdate((event) => {
-      x.set(event.translationX);
-    })
-    .onEnd((event) => {
-      const far = Math.abs(event.translationX) > width * 0.25;
-      const fast = Math.abs(event.velocityX) > 500;
-
-      if (far || fast) {
-        const direction = (event.translationX || event.velocityX) > 0 ? 1 : -1;
-        x.set(
-          withTiming(direction * width, { duration: Duration.fast }, () => {
-            scheduleOnRN(dismiss, t.id);
-          }),
-        );
-        return;
-      }
-
-      x.set(withSpring(0, { ...Spring.press, velocity: event.velocityX }));
-    });
-
-  const style = useAnimatedStyle(() => ({
-    transform: [{ translateX: x.get() }],
-    opacity: 1 - Math.min(Math.abs(x.get()) / (width * 0.5), 1),
-  }));
-
-  return (
-    <Animated.View entering={Enter.fromBottom()} exiting={Exit.fade()} className="w-full max-w-[520px]">
-      <GestureDetector gesture={pan}>
-        <Animated.View
-          accessibilityRole="alert"
-          accessibilityLabel={t.message}
-          accessibilityHint="Swipe left or right to dismiss"
-          style={[
-            style,
-            {
-              boxShadow: "0 6px 20px rgba(0, 0, 0, 0.14)",
-              borderCurve: "continuous",
-            },
-          ]}
-          className={cn("flex-row items-center gap-2.5 rounded-lg border bg-panel px-4 py-3", TONE[t.tone].border)}
-        >
-          <Icon name={TONE[t.tone].icon} size={20} color={colors[TONE[t.tone].colour]} />
-          <Text variant="footnote" className="min-w-0 flex-1 text-fg">
-            {t.message}
-          </Text>
-        </Animated.View>
-      </GestureDetector>
-    </Animated.View>
-  );
-}
-
+/** Bottom-right on the desktop, 16 from the edges above the status bar; bottom-centre on a phone, above the tab bar. */
 export function ToastHost() {
   const toasts = useToastStore((s) => s.toasts);
   const insets = useSafeAreaInsets();
@@ -150,12 +176,27 @@ export function ToastHost() {
 
   if (toasts.length === 0) return null;
 
-  const bottom = Math.max(keyboard + 12, insets.bottom + TAB_BAR_HEIGHT + 12);
+  const bottom = desktop
+    ? Layout.statusbar + Space[4]
+    : Math.max(keyboard + Space[3], insets.bottom + Layout.tabbar + Space[3]);
 
   return (
-    <View style={[PASS_THROUGH, { bottom }]} className="absolute left-0 right-0 z-50 items-center gap-2 px-4">
+    <View
+      style={[
+        PASS_THROUGH,
+        {
+          position: "absolute",
+          bottom,
+          left: desktop ? undefined : Space[4],
+          right: Space[4],
+          zIndex: Layer.toast,
+          gap: Space[2],
+          alignItems: desktop ? "flex-end" : "center",
+        },
+      ]}
+    >
       {toasts.map((t) => (
-        <SwipeableToast key={t.id} toast={t} />
+        <ToastView key={t.id} toast={t} />
       ))}
     </View>
   );

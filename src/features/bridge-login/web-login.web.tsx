@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useEffectEvent } from "react";
 import { View } from "react-native";
 import { errorMessage } from "@/core/errors";
-import { Button, Card, Text, toast } from "@/design";
+import { Button, Text, toast } from "@/design";
 import {
   extractionScript,
   localStorageKeys,
@@ -81,15 +81,14 @@ export function WebLogin({ params, network, onValues, onCancel }: WebLoginProps)
   }, [params, network]);
 
   return (
-    <Card className="gap-3" testID="bridge-web-login">
-      <Text variant="footnote">
+    <View className="gap-3" testID="bridge-web-login">
+      <Text tone="muted">
         Sign in to {network} in the window that opened. It closes by itself once the bridge has what it needs; the app
         reads only that, and the window keeps nothing afterwards.
       </Text>
       <View className="flex-row gap-2">
         <Button
           label="Cancel"
-          tone="neutral"
           size="sm"
           onPress={() => {
             invoke("web_login_close").catch(() => {});
@@ -97,6 +96,6 @@ export function WebLogin({ params, network, onValues, onCancel }: WebLoginProps)
           }}
         />
       </View>
-    </Card>
+    </View>
   );
 }

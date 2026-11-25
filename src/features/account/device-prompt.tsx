@@ -1,6 +1,6 @@
 import type { UR } from "@ngraveio/bc-ur";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Platform, View } from "react-native";
+import { Platform, View } from "react-native";
 import { cancelPrompt, type DevicePrompt, type LinkedVendor, useDevicePrompt } from "@/core/account/device-prompt";
 import { connectTo } from "@/core/account/device-session";
 import type { HardwareConnection } from "@/core/account/hardware";
@@ -9,14 +9,15 @@ import { errorMessage } from "@/core/errors";
 import {
   AnimatedQrCode,
   Button,
-  ErrorText,
+  desktop,
+  Icon,
   type IconName,
-  ListItem,
+  LitPoint,
+  Notice,
   QrReader,
-  RowIcon,
+  Row,
   Sheet,
   Text,
-  useThemeColors,
 } from "@/design";
 import { SHEET_DISMISS_MS, useSheetStore } from "@/design/components/sheet";
 
@@ -47,6 +48,11 @@ const SEARCHING = {
   usb: "Looking for a plugged-in wallet…",
 };
 
+/** Rows run edge to edge across the sheet, past its padding. */
+export function SheetRows({ children }: { children: React.ReactNode }) {
+  return <View className={desktop ? "-mx-5" : "-mx-4"}>{children}</View>;
+}
+
 export function DeviceList({ vendor, onPick }: { vendor: LinkedVendor; onPick(deviceId: string): void }) {
   const [devices, setDevices] = useState<{ id: string; name: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -71,19 +77,23 @@ export function DeviceList({ vendor, onPick }: { vendor: LinkedVendor; onPick(de
   return (
     <>
       {devices.length === 0 ? (
-        <Text variant="caption">{SEARCHING[vendor.connection]}</Text>
+        <Text size="sm" tone="muted">
+          {SEARCHING[vendor.connection]}
+        </Text>
       ) : (
-        devices.map((device) => (
-          <ListItem
-            key={device.id}
-            testID={`hardware-device-${device.id}`}
-            title={device.name || "Unnamed wallet"}
-            leading={<RowIcon name={CONNECTION[vendor.connection].icon} />}
-            onPress={() => onPick(device.id)}
-          />
-        ))
+        <SheetRows>
+          {devices.map((device) => (
+            <Row
+              key={device.id}
+              testID={`hardware-device-${device.id}`}
+              title={device.name || "Unnamed wallet"}
+              leading={<Icon name={CONNECTION[vendor.connection].icon} size={20} />}
+              onPress={() => onPick(device.id)}
+            />
+          ))}
+        </SheetRows>
       )}
-      <ErrorText>{error}</ErrorText>
+      {error ? <Notice tone="danger" message={error} /> : null}
     </>
   );
 }
@@ -105,13 +115,15 @@ function Reconnect({ prompt }: { prompt: Extract<DevicePrompt, { kind: "connect"
 
   return (
     <>
-      <Text variant="footnote">{CONNECTION[prompt.vendor.connection].how}</Text>
+      <Text tone="muted">{CONNECTION[prompt.vendor.connection].how}</Text>
       {busy ? (
-        <Text variant="caption">Connecting…</Text>
+        <Text size="sm" tone="muted">
+          Connecting…
+        </Text>
       ) : (
         <DeviceList vendor={prompt.vendor} onPick={(id) => void pick(id)} />
       )}
-      <ErrorText>{error}</ErrorText>
+      {error ? <Notice tone="danger" message={error} /> : null}
     </>
   );
 }
@@ -147,34 +159,33 @@ function QrExchange({ prompt }: { prompt: Extract<DevicePrompt, { kind: "qr" }> 
 
   return scanning ? (
     <>
-      <Text variant="footnote">Scan the signature your {label} shows.</Text>
+      <Text tone="muted">Scan the signature your {label} shows.</Text>
       <QrReader
         purpose={`The camera reads the signature from your ${label}, and nothing else.`}
         onScanned={read}
         className="h-72"
       />
-      {progress > 0 ? <Text variant="caption">Keep it in view: {progress}%</Text> : null}
+      {progress > 0 ? <Text variant="meta">Keep it in view: {progress}%</Text> : null}
     </>
   ) : (
     <>
-      <Text variant="footnote">
+      <Text tone="muted">
         Scan this with your {label} to sign {PURPOSE[prompt.purpose]}, and check what it shows before you approve.
       </Text>
       <View className="items-center">
         <AnimatedQrCode parts={prompt.parts} />
       </View>
-      <Button label="Scan the signature" fullWidth onPress={() => setScanning(true)} />
+      <Button variant="primary" label="Scan the signature" fullWidth onPress={() => setScanning(true)} />
     </>
   );
 }
 
 function Confirming({ prompt }: { prompt: Extract<DevicePrompt, { kind: "confirm" }> }) {
-  const colors = useThemeColors();
   const { label, connection } = prompt.vendor;
   return (
     <View className="flex-row items-center gap-3">
-      <ActivityIndicator color={colors.fg} />
-      <Text variant="footnote" className="flex-1">
+      <LitPoint pulse />
+      <Text className="flex-1">
         {connection === "companion-app"
           ? `Finish in ${label} Suite, then come back to Statim.`
           : `Check the details on your ${label} and approve them there.`}
@@ -206,7 +217,7 @@ export function DevicePromptBody({ prompt }: { prompt: DevicePrompt }) {
       ) : (
         <Confirming prompt={prompt} />
       )}
-      {cancellable ? <Button label="Cancel" tone="neutral" fullWidth onPress={() => cancelPrompt(prompt)} /> : null}
+      {cancellable ? <Button label="Cancel" fullWidth onPress={() => cancelPrompt(prompt)} /> : null}
     </>
   );
 }

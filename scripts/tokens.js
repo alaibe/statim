@@ -97,6 +97,7 @@ function generate(css) {
     chamfer: group(root, "chamfer", px),
     control: group(root, "control", px),
     layout: group(root, "layout", px),
+    size: group(root, "size", px),
     layer: group(root, "layer", Number),
     duration: group(root, "duration", px),
     ease: group(root, "ease", bezier),
@@ -130,11 +131,25 @@ ${variables(colors, "light")}
 ${variables(colors, "dark")}
   }
 
-  /* The app draws its own focus ring; a mouse focus shows none. */
+  /* Keyboard focus draws --focus-ring on everything focusable; a mouse focus draws nothing. */
   input,
   textarea,
   :focus:not(:focus-visible) {
     outline: none;
+  }
+  :focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px rgb(var(--color-bg)),
+      0 0 0 3px rgb(var(--color-accent)),
+      0 0 14px rgb(var(--color-accent) / 0.45) !important;
+  }
+  /* An input inside a control that draws the ring around itself. */
+  [data-bare]:focus-visible {
+    box-shadow: none !important;
+  }
+  ::selection {
+    background-color: rgb(var(--color-selection));
   }
 }
 `;

@@ -8,7 +8,20 @@ import { prefsFor } from "@/core/messaging/chat-prefs";
 import { selfIdFor, useChatStore } from "@/core/messaging/chat-store";
 import { chatParticipants, chatTitle } from "@/core/messaging/display-names";
 import type { Chat, ParticipantId } from "@/core/messaging/types";
-import { Avatar, BackHeader, Badge, Card, copyText, Icon, type IconName, Pressable, Screen, Text } from "@/design";
+import {
+  Avatar,
+  Button,
+  copyText,
+  desktop,
+  IconButton,
+  type IconName,
+  Notice,
+  PhoneHeader,
+  Screen,
+  Section,
+  Tag,
+  Text,
+} from "@/design";
 import { GroupAbout, InviteLinks, MemberModeration, SlowModeSection } from "@/features/chat/group-sections";
 import { JoinRequests } from "@/features/chat/join-requests";
 import { useChatPermissions } from "@/features/chat/use-chat-permissions";
@@ -30,12 +43,12 @@ export function ChatProfile() {
 
   if (!chat) {
     return (
-      <Screen className="px-0" edges={["top"]}>
+      <Screen edges={[]}>
         <Stack.Screen options={{ headerShown: false }} />
-        <BackHeader label="Back" onPress={goBack} />
-        <Text variant="footnote" className="px-4">
-          That chat is not loaded.
-        </Text>
+        <ProfileHeader goBack={goBack} />
+        <View className="p-4">
+          <Notice tone="warning" message="That chat isn’t loaded." action={{ label: "Back", onPress: goBack }} />
+        </View>
       </Screen>
     );
   }
@@ -70,7 +83,7 @@ function MemberProfile({ chat, member, goBack }: { chat: Chat; member: Participa
       goBack={goBack}
       title={title}
       ens={ens}
-      avatar={<Avatar seed={member} size="xl" image={ens?.avatar ?? undefined} />}
+      avatar={<Avatar size={64} label={title} image={ens?.avatar ?? undefined} />}
       actions={<CopyAction value={address || member} />}
     >
       {address ? <AddressCard address={address} ens={ens} /> : null}
@@ -108,14 +121,7 @@ function WholeChatProfile({ chat, goBack }: { chat: Chat; goBack: () => void }) 
       title={title}
       ens={ens}
       memberCount={groupInfo?.memberCount}
-      avatar={
-        <Avatar
-          seed={focusId ?? chat.id}
-          size="xl"
-          label={chat.kind !== "dm" ? chat.title : undefined}
-          image={groupInfo?.avatarUri ?? ens?.avatar ?? chat.avatarUri}
-        />
-      }
+      avatar={<Avatar size={64} label={title} image={groupInfo?.avatarUri ?? ens?.avatar ?? chat.avatarUri} />}
       actions={
         <>
           <Action
@@ -128,7 +134,7 @@ function WholeChatProfile({ chat, goBack }: { chat: Chat; goBack: () => void }) 
           {permissions.block ? (
             <Action
               icon="ban"
-              label={chat.blocked ? "Unblock" : "Block"}
+              label={chat.blocked ? "Unblock" : "Block…"}
               onPress={() => (chat.blocked ? void setBlocked(chat.id, false) : setBlocking(true))}
             />
           ) : null}
@@ -142,7 +148,7 @@ function WholeChatProfile({ chat, goBack }: { chat: Chat; goBack: () => void }) 
       {chat.kind === "group" || chat.kind === "channel" ? (
         <GroupAbout
           info={groupInfo}
-          error={details.error ? errorMessage(details.error, "Could not load details") : undefined}
+          error={details.error ? errorMessage(details.error, "Couldn’t load the details") : undefined}
         />
       ) : null}
       {permissions.invite ? (
@@ -183,16 +189,21 @@ function ProfileScreen({
   children: ReactNode;
 }) {
   return (
-    <Screen className="px-0" edges={["top"]}>
+    <Screen edges={[]}>
       <Stack.Screen options={{ headerShown: false }} />
-      <BackHeader label="Back" onPress={goBack} />
+      <ProfileHeader goBack={goBack} />
       <ScrollView contentContainerStyle={{ paddingBottom: 48 }}>
-        <View className="items-center gap-3 px-4 pb-5">
+        <View className="items-center gap-3 px-4 pb-6 pt-6">
           {avatar}
           <ProfileTitle chat={chat} title={title} ens={ens} memberCount={memberCount} />
         </View>
-        <View className="flex-row justify-center gap-2 px-4 pb-5">
-          <Action icon="message-square" label="Message" onPress={() => openChatFromProfile(chat.id)} />
+        <View className="flex-row flex-wrap justify-center gap-2 px-4 pb-6">
+          <Button
+            variant="primary"
+            icon="message-square"
+            label="Message"
+            onPress={() => openChatFromProfile(chat.id)}
+          />
           {actions}
         </View>
         {children}
@@ -214,16 +225,13 @@ function ProfileTitle({
 }) {
   return (
     <View className="items-center gap-1">
-      <Text variant="headline">{title}</Text>
-      {ens?.name ? (
-        <Badge
-          label={ens.paidUntil ? `ENS · held through ${ens.paidUntil.getFullYear()}` : "ENS name"}
-          tone="success"
-        />
-      ) : null}
-      <Text variant="micro">{protocolSubtitle(chat.protocol)}</Text>
+      <Text variant="title" align="center">
+        {title}
+      </Text>
+      {ens?.name ? <Tag tone="ok" label={ens.paidUntil ? `ENS ${ens.paidUntil.getFullYear()}` : "ENS"} /> : null}
+      <Text variant="label">{protocolSubtitle(chat.protocol)}</Text>
       {memberCount ? (
-        <Text variant="caption">
+        <Text variant="meta">
           {memberCount} {chat.kind === "channel" ? "subscribers" : "members"}
         </Text>
       ) : null}
@@ -233,28 +241,27 @@ function ProfileTitle({
 
 function AddressCard({ address, ens }: { address: string; ens: EnsProfile | null | undefined }) {
   return (
-    <Card className="mx-4 mb-5 gap-1">
-      <Text variant="caption">Address</Text>
-      <Text variant="mono" selectable>
-        {shortAddress(address, 12, 10)}
-      </Text>
-      {ens?.description ? (
-        <Text variant="footnote" className="pt-1">
-          {ens.description}
-        </Text>
-      ) : null}
-      {ens?.paidUntil ? (
-        <Text variant="micro" className="pt-1">
-          {ens.name} is registered until{" "}
-          {ens.paidUntil.toLocaleDateString(undefined, {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
-          . Anyone can pick a display name; only the holder can renew this one.
-        </Text>
-      ) : null}
-    </Card>
+    <View className="mb-6">
+      <Section label="Address">
+        <View className="gap-2 px-4 py-3">
+          <Text variant="code" selectable>
+            {shortAddress(address, 12, 10)}
+          </Text>
+          {ens?.description ? <Text tone="muted">{ens.description}</Text> : null}
+          {ens?.paidUntil ? (
+            <Text size="sm" tone="muted">
+              {ens.name} is registered until{" "}
+              {ens.paidUntil.toLocaleDateString(undefined, {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+              . Anyone can pick a display name; only the holder can renew this one.
+            </Text>
+          ) : null}
+        </View>
+      </Section>
+    </View>
   );
 }
 
@@ -264,17 +271,17 @@ function CopyAction({ value }: { value: string | undefined }) {
 }
 
 function Action({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      className="min-w-[84px] items-center gap-1 rounded-lg bg-side px-3 py-2.5"
-    >
-      <Icon name={icon} size={20} tone="accent" />
-      <Text variant="micro" className="font-medium text-fg">
-        {label}
-      </Text>
-    </Pressable>
-  );
+  return <Button icon={icon} label={label} onPress={onPress} />;
+}
+
+/** Back on a phone; on the desktop the profile is a dialog, closed from its corner. */
+function ProfileHeader({ goBack }: { goBack: () => void }) {
+  if (desktop) {
+    return (
+      <View className="flex-row justify-end p-2">
+        <IconButton icon="x" label="Close" keys={["esc"]} onPress={goBack} />
+      </View>
+    );
+  }
+  return <PhoneHeader title="Profile" onBack={goBack} />;
 }

@@ -1,7 +1,7 @@
 import { View } from "react-native";
 import { errorMessage } from "@/core/errors";
 import type { PluginContext } from "@/core/plugins/types";
-import { Badge, Button, Sheet, Text } from "@/design";
+import { Button, DialogFooter, Section, Sheet, Tag, Text } from "@/design";
 
 import { describeRequest } from "../rpc";
 import { useWalletConnectStore } from "../walletconnect";
@@ -29,31 +29,37 @@ export function makeApprovalOverlay(context: PluginContext) {
         title={isProposal ? "Connect to site" : (described?.title ?? "Request")}
       >
         <View className="gap-3">
-          <View className="gap-1 rounded-lg bg-side p-3">
-            <Text className="font-semibold">{isProposal ? metadata?.name : head.siteName}</Text>
-            {isProposal && metadata?.url ? <Text variant="caption">{metadata.url}</Text> : null}
-            {described ? (
-              <Text variant="footnote" className="mt-1">
-                {described.detail}
-              </Text>
-            ) : null}
-          </View>
+          <Section raised>
+            <View className="gap-1">
+              <Text strong>{isProposal ? metadata?.name : head.siteName}</Text>
+              {isProposal && metadata?.url ? <Text variant="meta">{metadata.url}</Text> : null}
+              {described ? (
+                <Text tone="muted" className="mt-1">
+                  {described.detail}
+                </Text>
+              ) : null}
+            </View>
+          </Section>
 
           {isProposal ? (
-            <View className="gap-1.5">
-              <Text variant="caption">This site will be able to:</Text>
-              <Text variant="footnote">• See your address</Text>
-              <Text variant="footnote">• Ask you to sign messages and transactions</Text>
-              <Text variant="caption" className="mt-1">
+            <View className="gap-2">
+              <Text variant="label">This site will be able to</Text>
+              <Text>• See your address</Text>
+              <Text>• Ask you to sign messages and transactions</Text>
+              <Text size="sm" tone="muted" className="mt-1">
                 Every signature still needs your approval here.
               </Text>
             </View>
           ) : (
-            <Badge label="Signed on this device" tone="accent" />
+            <View className="flex-row">
+              <Tag tone="accent" label="Signed on this device" />
+            </View>
           )}
 
-          <Button label={isProposal ? "Connect" : "Approve"} fullWidth onPress={() => approve(context)} />
-          <Button label="Reject" tone="neutral" fullWidth onPress={reject} />
+          <DialogFooter>
+            <Button label="Reject" onPress={reject} />
+            <Button variant="primary" label={isProposal ? "Connect" : "Approve"} onPress={() => approve(context)} />
+          </DialogFooter>
         </View>
       </Sheet>
     );

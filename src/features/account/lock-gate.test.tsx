@@ -13,13 +13,13 @@ import { LockGate } from "./lock-gate";
 
 jest.mock("@/design", () => ({
   Button: "Button",
-  Field: "Field",
   Icon: "Icon",
+  Input: "Input",
+  LitPoint: "LitPoint",
   PinDots: "PinDots",
   PinPad: "PinPad",
   Screen: "Screen",
   Text: "Text",
-  cn: (...names: unknown[]) => names.filter(Boolean).join(" "),
   useInertOutside: () => {},
   useThemeColors: () => ({}),
 }));
@@ -171,7 +171,7 @@ describe("Forgot PIN?", () => {
     const erase = () => tree.root.findAllByType("Button" as never).find((b) => b.props.label === "Erase everything")!;
     expect(erase().props.disabled).toBe(true);
 
-    await act(async () => tree.root.findByType("Field" as never).props.onChangeText("Erase "));
+    await act(async () => tree.root.findByType("Input" as never).props.onChangeText("Erase "));
     expect(erase().props.disabled).toBe(false);
 
     await press("Cancel");
@@ -184,7 +184,7 @@ describe("Forgot PIN?", () => {
     await render({ biometric: false, pin: true });
 
     await press("Forgot PIN?");
-    await act(async () => tree.root.findByType("Field" as never).props.onChangeText("erase"));
+    await act(async () => tree.root.findByType("Input" as never).props.onChangeText("erase"));
     await press("Erase everything");
 
     expect(eraseEverything).toHaveBeenCalledTimes(1);

@@ -1,6 +1,8 @@
 import { type Ref, useImperativeHandle, useRef } from "react";
 import { TextInput } from "react-native";
 
+import { useInputText } from "@/design";
+
 import { withTypedEmoji } from "./typed-emoji";
 
 export interface ComposerInputHandle {
@@ -27,6 +29,7 @@ export function ComposerInput({
   placeholder,
   placeholderColor,
 }: ComposerInputProps) {
+  const text = useInputText();
   const input = useRef<TextInput>(null);
   useImperativeHandle(ref, () => ({ focus: () => input.current?.focus() }));
 
@@ -38,8 +41,10 @@ export function ComposerInput({
       onChangeText={(text) => onChangeText(withTypedEmoji(value, text))}
       placeholder={placeholder}
       placeholderTextColor={placeholderColor}
+      selectionColor={text.selectionColor}
       multiline
-      className="max-h-32 min-h-[42px] flex-1 py-2.5 pr-1 text-md text-fg"
+      className="flex-1 py-2.5 pr-1"
+      style={[text.style, { minHeight: 42, maxHeight: 128 }]}
       returnKeyType="send"
       submitBehavior="submit"
       onSubmitEditing={onSubmit}

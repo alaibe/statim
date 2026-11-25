@@ -4,7 +4,7 @@ import Animated from "react-native-reanimated";
 import { shortAddress } from "@/core/account/keyring";
 import type { ChatId } from "@/core/messaging/types";
 import { contentType, type MessageRendererProps, type PluginContext } from "@/core/plugins/types";
-import { Badge, Button, cn, Enter, ErrorText, Eyebrow, Icon, Sheet, Text } from "@/design";
+import { Button, DialogFooter, Enter, Icon, Notice, Radius, Sheet, Tag, Text, useThemeColors } from "@/design";
 
 import { chainById } from "@/lib/evm/chains";
 import { type ChainStrategy, chainStrategies } from "./chains/strategy";
@@ -22,13 +22,18 @@ import {
   type SplitRequest,
 } from "./types";
 
+/** A payment sits in its bubble's colour: `accent-soft` when sent, `panel` with a `line` edge when received. */
 function CardShell({ fromMe, children }: { fromMe: boolean; children: React.ReactNode }) {
+  const colors = useThemeColors();
   return (
     <View
-      className={cn(
-        "w-[260px] gap-3 rounded-lg border p-3.5",
-        fromMe ? "border-accent/40 bg-accent-soft" : "border-line bg-panel",
-      )}
+      className="w-64 gap-3 p-3"
+      style={{
+        borderRadius: Radius.lg,
+        borderWidth: 1,
+        borderColor: fromMe ? colors["accent-soft"] : colors.line,
+        backgroundColor: fromMe ? colors["accent-soft"] : colors.panel,
+      }}
     >
       {children}
     </View>
@@ -126,33 +131,33 @@ function PaymentRequestCard({ data, fromMe, context, message }: MessageRendererP
     <>
       <CardShell fromMe={fromMe}>
         <View className="flex-row items-center gap-2">
-          <Icon name="circle-arrow-down" size={20} tone="accent" />
-          <Eyebrow tone="accent">Payment request</Eyebrow>
+          <Icon name="circle-arrow-down" size={16} tone="muted" />
+          <Text variant="label">Payment request</Text>
         </View>
 
-        <View className="gap-0.5">
-          <Text variant="amount">
+        <View className="gap-1">
+          <Text variant="stat">
             {data.amount} {data.symbol}
           </Text>
-          <Text variant="caption">
+          <Text variant="meta">
             to {shortAddress(data.to)} on {chainLabel(data)}
           </Text>
         </View>
 
-        {data.note ? <Text variant="footnote">{data.note}</Text> : null}
+        {data.note ? <Text>{data.note}</Text> : null}
 
         {fromMe ? (
-          <Badge label="Waiting for payment" tone="warning" />
+          <Tag tone="warn" label="Unpaid" />
         ) : payment.paid ? (
-          <Badge label="Payment sent" tone="success" />
+          <Tag tone="ok" label="Paid" />
         ) : (
-          <Button label={`Pay ${data.amount} ${data.symbol}`} size="sm" onPress={review} />
+          <Button label={`Pay ${data.amount} ${data.symbol}…`} size="sm" onPress={review} />
         )}
       </CardShell>
 
       <Sheet visible={open} onClose={() => setOpen(false)} title="Review payment">
         <View className="gap-3">
-          <View className="gap-2 rounded-lg bg-panel p-3">
+          <View className="gap-2">
             <Row label="Amount" value={`${data.amount} ${data.symbol}`} />
             <Row label="To" value={shortAddress(data.to, 8, 6)} />
             {rows?.map((row) => <Row key={row.label} label={row.label} value={row.value} />) ?? null}
@@ -160,17 +165,20 @@ function PaymentRequestCard({ data, fromMe, context, message }: MessageRendererP
 
           {payment.error ? (
             <Animated.View entering={Enter.fade()}>
-              <ErrorText>{payment.error}</ErrorText>
+              <Notice tone="danger" message={payment.error} />
             </Animated.View>
           ) : null}
 
-          <Button
-            label="Confirm and send"
-            fullWidth
-            loading={payment.busy}
-            disabled={rows === null || payment.error !== null}
-            onPress={pay}
-          />
+          <DialogFooter>
+            <Button
+              variant="primary"
+              label="Confirm and send"
+              keys={["mod", "enter"]}
+              busy={payment.busy}
+              disabled={rows === null || payment.error !== null}
+              onPress={pay}
+            />
+          </DialogFooter>
         </View>
       </Sheet>
     </>
@@ -183,28 +191,32 @@ function SplitRequestCard({ data, fromMe, context, message }: MessageRendererPro
   return (
     <CardShell fromMe={fromMe}>
       <View className="flex-row items-center gap-1.5">
-        <Icon name="chart-pie" size={16} tone="accent" />
-        <Eyebrow>{data.note ? `Split · ${data.note}` : "Split"}</Eyebrow>
+        <Icon name="chart-pie" size={16} tone="muted" />
+        <Text variant="label">Split</Text>
       </View>
+      {data.note ? <Text>{data.note}</Text> : null}
 
-      <Text variant="amount">
+      <Text variant="stat">
         {data.share} {data.symbol}
       </Text>
-      <Text variant="caption">
+      <Text variant="meta">
         your share of {data.total} {data.symbol}, {data.people} ways
       </Text>
 
       <Row label="Chain" value={chainLabel(data)} />
       <Row label="Goes to" value={shortAddress(data.to)} />
 
-      <ErrorText>{payment.error}</ErrorText>
+      {payment.error ? <Notice tone="danger" message={payment.error} /> : null}
 
       {fromMe ? (
-        <Text variant="caption">Waiting for the others to settle.</Text>
-      ) : payment.paid ? (
-        <Text variant="caption" className="text-success">
-          Your share is paid.
+        <Text size="sm" tone="muted">
+          Waiting for the others to settle.
         </Text>
+      ) : payment.paid ? (
+        <View className="flex-row items-center gap-2">
+          <Tag tone="ok" label="Paid" />
+          <Text size="sm">Your share is paid.</Text>
+        </View>
       ) : (
         <Button label={`Pay ${data.share} ${data.symbol}`} fullWidth onPress={() => payment.send(data.share)} />
       )}
@@ -216,15 +228,15 @@ function PaymentReceiptCard({ data, fromMe }: MessageRendererProps<PaymentReceip
   return (
     <CardShell fromMe={fromMe}>
       <View className="flex-row items-center gap-2">
-        <Icon name="circle-check" size={20} tone="success" />
-        <Eyebrow tone="success">Payment sent</Eyebrow>
+        <Tag tone="ok" />
+        <Text variant="label">Payment sent</Text>
       </View>
 
-      <Text variant="amount" className="text-[1.375rem]">
+      <Text variant="stat">
         {data.amount} {data.symbol}
       </Text>
 
-      <Text variant="caption">
+      <Text variant="meta">
         {shortAddress(data.hash, 10, 8)} on {chainLabel(data)}
       </Text>
     </CardShell>
@@ -233,9 +245,11 @@ function PaymentReceiptCard({ data, fromMe }: MessageRendererProps<PaymentReceip
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <View className="flex-row items-center justify-between">
-      <Text variant="caption">{label}</Text>
-      <Text variant="footnote" className="font-medium text-fg">
+    <View className="flex-row items-center justify-between gap-4">
+      <Text size="sm" tone="muted">
+        {label}
+      </Text>
+      <Text variant="code" align="right" className="shrink">
         {value}
       </Text>
     </View>

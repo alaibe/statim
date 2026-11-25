@@ -1,4 +1,4 @@
-import { EmptyState, ToastHost, toast, useThemeColors } from "@/design";
+import { Notice, Splash, type ThemeColors, ToastHost, toast, useThemeColors } from "@/design";
 import "@/global.css";
 
 import { useFonts } from "expo-font";
@@ -40,17 +40,29 @@ const HOST_UI: HostUi = {
   openSettings: (page) => openTab(page === "pin" ? "/settings/pin" : "/settings"),
 };
 
-/** On desktop the frame's wallpaper shows through, so the navigator paints no background. */
-function navigationTheme(theme: typeof DefaultTheme): typeof DefaultTheme {
-  if (process.env.EXPO_OS !== "web") return theme;
-  return { ...theme, colors: { ...theme.colors, background: "transparent" } };
+/** The navigator paints with the system's colours: `bg` behind screens, `side` for bars, `line`, `fg`, `accent`. */
+function navigationTheme(colors: ThemeColors): typeof DefaultTheme {
+  const base = colors.scheme === "dark" ? DarkTheme : DefaultTheme;
+  return {
+    ...base,
+    colors: {
+      ...base.colors,
+      background: colors.bg,
+      card: colors.side,
+      border: colors.line,
+      text: colors.fg,
+      primary: colors.accent,
+      notification: colors.accent,
+    },
+  };
 }
 
 function RootLayout() {
   const system = useSystemColorScheme();
   const choice = useAppearanceStore((s) => s.theme);
 
-  const scheme = choice === "system" ? system : choice;
+  // With no preference from the system, dark: it is the system's home.
+  const scheme = choice === "system" ? (system ?? "dark") : choice;
   // Given a resolved scheme, NativeWind pins Appearance on a phone; the desktop's dark class needs one.
   const applied = process.env.EXPO_OS === "web" ? (scheme === "dark" ? "dark" : "light") : choice;
   useEffect(() => {
@@ -62,24 +74,31 @@ function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ThemeProvider value={navigationTheme(scheme === "dark" ? DarkTheme : DefaultTheme)}>
+        <ThemedNavigation>
           <PluginProvider plugins={ALL_PLUGINS} defaultEnabled={DEFAULT_ENABLED_PLUGINS} ui={HOST_UI}>
             <AppShell />
           </PluginProvider>
-        </ThemeProvider>
+        </ThemedNavigation>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
 
+function ThemedNavigation({ children }: { children: React.ReactNode }) {
+  const colors = useThemeColors();
+  return <ThemeProvider value={navigationTheme(colors)}>{children}</ThemeProvider>;
+}
+
+/** An error is never an empty state: it says what happened and the way out, inline, with its tag. */
 function Crashed({ resetError }: ObserveErrorBoundaryFallbackProps) {
+  const colors = useThemeColors();
   return (
-    <View className="flex-1 bg-bg">
-      <EmptyState
-        title="Something went wrong"
-        description="This screen hit an error it could not recover from. Your account and messages are not affected."
-        actionLabel="Try again"
-        onAction={resetError}
+    <View style={{ flex: 1, justifyContent: "center", padding: 16, backgroundColor: colors.bg }}>
+      <Notice
+        tone="danger"
+        message="This screen hit an error it couldn’t recover from."
+        detail="Your account and messages are not affected. Try again, or restart Statim."
+        action={{ label: "Try again", onPress: resetError }}
       />
     </View>
   );
@@ -133,7 +152,7 @@ function AppShell() {
   }, [lockStatus, markInteractive]);
 
   return (
-    <View className="flex-1 bg-bg">
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <StatusBar style={colors.scheme === "dark" ? "light" : "dark"} />
       <AppFrame>
         <Stack
@@ -169,6 +188,7 @@ function AppShell() {
               presentation: "formSheet",
               sheetAllowedDetents: "fitToContents",
               contentStyle: { backgroundColor: colors.panel },
+              sheetCornerRadius: 6,
             }}
           />
         </Stack>
@@ -182,7 +202,9 @@ function AppShell() {
       {lockStatus === "open" ? null : lockStatus === "locked" ? (
         <LockGate />
       ) : (
-        <View className="absolute inset-0 bg-bg" />
+        <View style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}>
+          <Splash />
+        </View>
       )}
     </View>
   );

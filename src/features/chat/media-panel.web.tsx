@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Modal, Pressable, useWindowDimensions, View } from "react-native";
 
-import { useEscapeKey } from "@/design";
+import { Radius, Shadow, useEscapeKey, useThemeColors } from "@/design";
 
 import { MediaPanelContent, type MediaPanelProps, type MediaTab } from "./media-panel-content";
 
@@ -12,6 +12,7 @@ const HEIGHT = 460;
 const MARGIN = 12;
 
 export function MediaPanel({ tab: initialTab, anchor, onClose, ...content }: MediaPanelProps) {
+  const colors = useThemeColors();
   const window = useWindowDimensions();
   const [tab, setTab] = useState<MediaTab>(initialTab);
   useEscapeKey(true, onClose);
@@ -30,9 +31,13 @@ export function MediaPanel({ tab: initialTab, anchor, onClose, ...content }: Med
           bottom,
           width: WIDTH,
           height,
-          borderCurve: "continuous",
+          overflow: "hidden",
+          borderRadius: Radius.lg,
+          borderWidth: 1,
+          borderColor: colors["line-strong"],
+          backgroundColor: colors.panel,
+          boxShadow: Shadow.popover,
         }}
-        className="overflow-hidden rounded-lg border border-line bg-panel shadow-popover"
       >
         <MediaPanelContent {...content} tab={tab} onTab={setTab} autoFocusSearch />
       </View>

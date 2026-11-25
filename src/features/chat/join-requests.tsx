@@ -3,7 +3,7 @@ import { errorMessage } from "@/core/errors";
 import { useChatStore } from "@/core/messaging/chat-store";
 import { formatDayLabel } from "@/core/messaging/preview";
 import type { ChatId, ParticipantId } from "@/core/messaging/types";
-import { Avatar, IconButton, ListItem, Section, Text } from "@/design";
+import { Avatar, FieldError, IconButton, Row, Section, Skeleton } from "@/design";
 import { useAction } from "@/features/use-action";
 import { useKeyedLoad } from "@/lib/use-keyed-load";
 
@@ -16,31 +16,25 @@ export function JoinRequests({ chatId, pending }: { chatId: ChatId; pending?: nu
       await processJoinRequest(chatId, participantId, approve);
       requests.update((pending) => pending.filter((request) => request.participantId !== participantId));
     },
-    { success: "Done", failure: "Could not handle join request" },
+    { success: "Answered the request", failure: "Could not handle join request" },
   );
 
-  const note = requests.error
-    ? errorMessage(requests.error, "Could not load join requests")
-    : requests.loading
-      ? "Loading requests…"
-      : requests.value?.length === 0
-        ? "No pending requests"
-        : null;
-
   return (
-    <Section title="Join requests" surface="card" className="mb-5">
-      {note ? (
-        <Text variant="caption" className={requests.error ? "px-4 py-3 text-danger" : "px-4 py-3"}>
-          {note}
-        </Text>
+    <Section label="Join requests" empty="No pending requests">
+      {requests.error ? (
+        <View className="px-4 py-3">
+          <FieldError>{errorMessage(requests.error, "Could not load join requests")}</FieldError>
+        </View>
+      ) : requests.loading ? (
+        <Skeleton rows={2} avatar />
       ) : (
         requests.value?.map((request) => (
-          <ListItem
+          <Row
             key={request.participantId}
             title={request.name}
-            subtitle={request.bio || formatDayLabel(request.requestedAt)}
-            numberOfLinesSubtitle={2}
-            leading={<Avatar seed={request.participantId} size="sm" />}
+            preview={request.bio || formatDayLabel(request.requestedAt)}
+            previewLines={2}
+            leading={<Avatar label={request.name} size={28} />}
             trailing={
               <View className="flex-row">
                 <IconButton

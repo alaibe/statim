@@ -14,7 +14,7 @@ export function DeliveryIcon({
   message,
   read,
   size,
-  tone = "subtle",
+  tone = "muted",
   color,
 }: {
   message: Pick<ChatMessage, "status">;

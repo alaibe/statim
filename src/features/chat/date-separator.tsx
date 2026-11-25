@@ -1,27 +1,22 @@
 import { View } from "react-native";
 import { formatDayLabel } from "@/core/messaging/preview";
-import { Text } from "@/design";
+import { Divider, Text } from "@/design";
 
+/** A day between messages: a line with the date in the label role. */
 export function DateSeparator({ at }: { at: number }) {
-  return (
-    <View className="items-center py-2">
-      <View className="rounded-full bg-side/90 px-2.5 py-1">
-        <Text variant="micro" className="font-medium text-muted">
-          {formatDayLabel(at)}
-        </Text>
-      </View>
-    </View>
-  );
+  return <SectionDivider label={formatDayLabel(at)} />;
 }
 
 export function SectionDivider({ label }: { label: string }) {
   return (
     <View className="flex-row items-center gap-3 px-4 py-2">
-      <View className="h-px flex-1 bg-line" />
-      <Text variant="micro" className="font-medium text-muted">
-        {label}
-      </Text>
-      <View className="h-px flex-1 bg-line" />
+      <View className="flex-1">
+        <Divider />
+      </View>
+      <Text variant="label">{label}</Text>
+      <View className="flex-1">
+        <Divider />
+      </View>
     </View>
   );
 }

@@ -2,7 +2,7 @@ import { FlashList, type FlashListRef, type ListRenderItemInfo } from "@shopify/
 import { useObserve } from "expo-observe";
 import { useIsFocused, useRouter } from "expo-router";
 import { useDeferredValue, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
-import { RefreshControl, View } from "react-native";
+import { RefreshControl } from "react-native";
 import Animated from "react-native-reanimated";
 import { useAiConfig } from "@/core/ai/use-config";
 import { reportError } from "@/core/app/report-error";
@@ -13,7 +13,6 @@ import {
   type ChatListRow,
   type FilterContext,
   type Folder,
-  folderProtocol,
   homeFolder,
   isUnreadHere,
   networkOf,
@@ -21,30 +20,24 @@ import {
 import { messagePreview, nameList } from "@/core/messaging/preview";
 import type { Chat, ChatId } from "@/core/messaging/types";
 import { isUnread } from "@/core/messaging/unread";
-import {
-  Chevron,
-  CountBadge,
-  EmptyState,
-  Enter,
-  Icon,
-  ListItem,
-  type MenuAnchor,
-  Pressable,
-  Text,
-  useEscapeKey,
-  useThemeColors,
-} from "@/design";
+import { EmptyState, Enter, Icon, type MenuAnchor, Row, Text, toast, useEscapeKey, useThemeColors } from "@/design";
 import { useChatListStore } from "@/features/chat/chat-list-store";
 import { FilterBar } from "@/features/chat/filter-bar";
-import { HistoryStatus } from "@/features/chat/history-status";
 import { useChatTitles } from "@/features/chat/use-display-names";
 import { useUnreadCounts } from "@/features/chat/use-unread-counts";
 import { BlockSheet } from "./block";
 import { chatListContents, isFolded } from "./chat-list-contents";
-import { ChatRow, ConnectingState, FolderRow, Separator } from "./chat-list-rows";
+import { ChatRow, ConnectingState, FolderRow } from "./chat-list-rows";
 import { ChatMenu, type ChatMenuTarget } from "./chat-menu";
 
 const NO_IDS: ReadonlySet<string> = new Set();
+
+/** The toast after a swipe or a menu item, in the past tense of its button. */
+const TOGGLED: Partial<Record<keyof ChatPrefs, [on: string, off: string]>> = {
+  archived: ["Archived the chat", "Unarchived the chat"],
+  muted: ["Muted the chat", "Unmuted the chat"],
+  pinned: ["Pinned the chat", "Unpinned the chat"],
+};
 
 interface ChatListProps {
   query: string;
@@ -76,8 +69,12 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   const { selfIdOf, titleOf } = useChatTitles(chats);
   const chatPrefs = useChatStore((s) => s.chatPrefs);
   const setChatPref = useChatStore((s) => s.setChatPref);
+  const setPref = (id: ChatId, key: keyof ChatPrefs, value: boolean) =>
+    setChatPref(id, { [key]: value }).catch(reportError);
   const toggle = (id: ChatId, key: keyof ChatPrefs) => {
-    setChatPref(id, { [key]: !prefsFor(useChatStore.getState().chatPrefs, id)[key] }).catch(reportError);
+    const on = !prefsFor(useChatStore.getState().chatPrefs, id)[key];
+    void setPref(id, key, on);
+    toast.success(TOGGLED[key]?.[on ? 0 : 1] ?? "Done", { label: "Undo", run: () => void setPref(id, key, !on) });
   };
 
   const [menu, setMenu] = useState<ChatMenuTarget | null>(null);
@@ -130,7 +127,6 @@ export function ChatList({ query, selectedId }: ChatListProps) {
   }, [badgesOn, list]);
 
   const filterContext = { prefs: chatPrefs, readAt };
-  const protocol = folderProtocol(folder);
   const renderItem = ({ item: row }: ListRenderItemInfo<ChatListRow>) => {
     if (row.kind === "chat") {
       return (
@@ -157,7 +153,6 @@ export function ChatList({ query, selectedId }: ChatListProps) {
       {chats.length > 0 && filtering ? (
         <FilterBar active={filter} onSelect={setFilter} unread={unreadHere} mentions={mentionsHere} />
       ) : null}
-      <HistoryStatus compact protocol={protocol} showPartial={protocol !== undefined} />
       {chats.length === 0 ? (
         <NoChats />
       ) : (
@@ -177,7 +172,6 @@ export function ChatList({ query, selectedId }: ChatListProps) {
             keyExtractor={(row) => (row.kind === "chat" ? row.chat.id : row.folder)}
             getItemType={(row) => row.kind}
             drawDistance={process.env.EXPO_OS === "web" ? 2000 : undefined}
-            ItemSeparatorComponent={Separator}
             contentInsetAdjustmentBehavior="automatic"
             ListEmptyComponent={<NothingListed query={trimmed} filter={filter} />}
             refreshControl={
@@ -274,57 +268,46 @@ function NoChats() {
   if (connecting) return <ConnectingState />;
   return (
     <EmptyState
-      icon="messages-square"
-      title="No chats yet"
-      description="Start one with an Ethereum address on XMTP, a public key on Nostr, or a chat key on Status."
-      actionLabel="New chat"
-      onAction={() => router.push("/new-chat")}
+      boot="no chats yet"
+      text="Start one with an Ethereum address on XMTP, a public key on Nostr, or a chat key on Status."
+      action={{ label: "New chat", keys: ["mod", "n"], onPress: () => router.push("/new-chat") }}
     />
   );
 }
 
 function NothingListed({ query, filter }: { query: string; filter: ChatFilter }) {
-  if (query) {
-    return <EmptyState icon="search" title="No matching chats" description={`No chats match “${query}”.`} />;
-  }
-  if (filter === "unread") {
-    return <EmptyState icon="search" title="All caught up" description="Nothing unread here." />;
-  }
-  return <EmptyState icon="search" title="Nothing here" description="Try another filter." />;
+  if (query) return <EmptyState noMatch boot="no match" text={`No chats match “${query}”. Search messages instead.`} />;
+  if (filter === "unread") return <EmptyState boot="all caught up" text="Nothing unread here." />;
+  return <EmptyState noMatch boot="nothing here" text="Try another filter." />;
 }
 
 function RequestsLink({ count }: { count: number }) {
   const router = useRouter();
   return (
-    <Pressable
+    <Row
       testID="open-requests"
-      accessibilityRole="button"
+      title="Requests"
+      preview="From people you haven’t replied to"
+      leading={<Icon name="mail-dot" size={20} tone="accent" />}
+      meta={
+        <Text variant="meta" tone="accent">
+          {count}
+        </Text>
+      }
+      trailing={<Icon name="chevron-right" size={16} tone="muted" />}
       onPress={() => router.push("/requests")}
-      className="mx-4 mb-2 min-h-touch flex-row items-center gap-3 rounded-lg border border-line bg-panel px-3 py-3"
-    >
-      <Icon name="mail-dot" size={20} tone="accent" />
-      <View className="min-w-0 flex-1">
-        <Text className="font-semibold">Requests</Text>
-        <Text variant="caption">From people you haven’t replied to</Text>
-      </View>
-      <CountBadge count={count} />
-    </Pressable>
+    />
   );
 }
 
 function SearchMessagesLink({ query }: { query: string }) {
   const router = useRouter();
   return (
-    <ListItem
+    <Row
       testID="search-messages"
-      title={<Text className="text-accent">Search messages for “{query}”</Text>}
-      accessibilityLabel={`Search messages for ${query}`}
-      leading={
-        <View className="w-11 items-center">
-          <Icon name="search" size={20} tone="accent" />
-        </View>
-      }
-      trailing={<Chevron />}
+      title={`Search messages for “${query}”`}
+      leading={<Icon name="search" size={16} tone="muted" />}
+      trailing={<Icon name="arrow-right" size={16} tone="muted" />}
       onPress={() => router.push(`/search?q=${encodeURIComponent(query)}`)}
     />
   );

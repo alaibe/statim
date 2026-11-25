@@ -31,6 +31,7 @@ export const Chamfer = tokens.chamfer;
 export const Control = tokens.control;
 export const Layout = tokens.layout;
 export const Layer = tokens.layer;
+export const Size = tokens.size;
 export const Durations = tokens.duration;
 export const Ease = tokens.ease as Record<keyof typeof tokens.ease, [number, number, number, number]>;
 export const Shadow = tokens.shadow;

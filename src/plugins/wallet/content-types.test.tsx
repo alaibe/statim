@@ -7,22 +7,25 @@ import { type ChainStrategy, registerChainStrategy } from "./chains/strategy";
 import { walletContentTypes } from "./content-types";
 import { CONTENT_TYPE_PAYMENT_REQUEST, type PaymentRequest } from "./types";
 
-jest.mock("react-native-reanimated", () => jest.requireActual("react-native-reanimated/mock"));
+jest.mock("react-native-reanimated", () => ({
+  ...jest.requireActual("react-native-reanimated/mock"),
+  useReducedMotion: () => true,
+}));
 jest.mock("@/design", () => ({
   Button: jest.requireActual("@/design/components/button").Button,
-  Badge: "Badge",
-  Text: "Text",
-  Eyebrow: "Text",
-  ErrorText: "Text",
+  DialogFooter: "DialogFooter",
   Icon: "Icon",
+  Notice: "Notice",
+  Radius: { lg: 4 },
+  Tag: "Tag",
+  Text: "Text",
   Sheet: ({ visible, children, onClose }: { visible: boolean; children: React.ReactNode; onClose: () => void }) => {
     const { createElement: h, Fragment: F } = jest.requireActual("react");
     const { Button: B } = jest.requireActual("@/design/components/button");
     return visible ? h(F, null, h(B, { label: "Close", onPress: onClose }), children) : null;
   },
-  cn: (...classes: string[]) => classes.join(" "),
   Enter: { fade: () => undefined },
-  useThemeColors: () => ({ brand: "#000", success: "#000" }),
+  useThemeColors: () => ({ panel: "panel", line: "line", "accent-soft": "accent-soft" }),
 }));
 
 const hash = `0x${"ab".repeat(32)}`;
@@ -78,15 +81,15 @@ async function press(label: string) {
 }
 
 it("removes an old fee quote and disables sending when a later review fails", async () => {
-  await press("Pay 0.1 ETH");
+  await press("Pay 0.1 ETH…");
   expect(control("Confirm and send").props.accessibilityState.disabled).toBeFalsy();
   await press("Close");
   quote.mockRejectedValueOnce(new Error("Network request failed"));
 
-  await press("Pay 0.1 ETH");
+  await press("Pay 0.1 ETH…");
 
   expect(control("Confirm and send").props.accessibilityState.disabled).toBe(true);
-  expect(control("Confirm and send").props.onPress).toBeUndefined();
+  expect(control("Confirm and send").props.disabled).toBe(true);
   const visible = JSON.stringify(tree.toJSON());
   expect(visible).not.toContain("0.00001 ETH");
   expect(visible).toMatch(/nothing was sent/i);
@@ -95,7 +98,7 @@ it("removes an old fee quote and disables sending when a later review fails", as
 
 it("keeps a sent payment non-payable when posting its receipt fails", async () => {
   shareReceipt.mockRejectedValueOnce(new Error("Network request failed"));
-  await press("Pay 0.1 ETH");
+  await press("Pay 0.1 ETH…");
   await press("Confirm and send");
 
   const visible = JSON.stringify(tree.toJSON());

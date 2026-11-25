@@ -1,8 +1,9 @@
 import { Stack } from "expo-router";
-import { KeyboardAvoidingView, ScrollView } from "react-native";
+import { KeyboardAvoidingView, ScrollView, View } from "react-native";
 
-import { Screen, Text } from "@/design";
+import { desktop, PageHeader, Screen, Text } from "@/design";
 
+/** A settings page: the stack header names it on a phone, the page header on the desktop. */
 export function SettingsScreen({
   title,
   intro,
@@ -13,20 +14,22 @@ export function SettingsScreen({
   children: React.ReactNode;
 }) {
   return (
-    <Screen className="bg-panel px-0" edges={[]}>
+    <Screen edges={[]}>
       <Stack.Screen options={{ title }} />
       <KeyboardAvoidingView behavior="padding" className="flex-1">
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingTop: 16, paddingBottom: 48 }}
+          contentContainerStyle={{ paddingTop: desktop ? 0 : 16, paddingBottom: 48 }}
         >
-          {intro ? (
-            <Text variant="bodyMuted" className="px-4 pb-4">
-              {intro}
-            </Text>
+          {desktop ? (
+            <PageHeader title={title} intro={intro} />
+          ) : intro ? (
+            <View className="px-4 pb-6">
+              <Text tone="muted">{intro}</Text>
+            </View>
           ) : null}
-          {children}
+          <View className={desktop ? "px-6" : undefined}>{children}</View>
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>

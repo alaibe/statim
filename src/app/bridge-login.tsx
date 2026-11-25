@@ -4,7 +4,7 @@ import { KeyboardAvoidingView, ScrollView, View } from "react-native";
 import { useChatStore } from "@/core/messaging/chat-store";
 import { BRIDGED_NETWORKS } from "@/core/messaging/networks";
 import type { ChatSession } from "@/core/messaging/protocol";
-import { Button, Card, ModalHeader, Note, Screen, Text } from "@/design";
+import { Button, DialogHeader, desktop, IconButton, Notice, PhoneHeader, Screen, Skeleton, Text } from "@/design";
 import { connectByChat } from "@/features/bridge-login/connect-by-chat";
 import { FlowPicker, InputStep, WaitStep } from "@/features/bridge-login/steps";
 import { useBridgeLogin } from "@/features/bridge-login/use-bridge-login";
@@ -21,7 +21,7 @@ export default function BridgeLoginScreen() {
   if (!bridge) {
     return (
       <Screen className="items-center justify-center">
-        <Text variant="footnote">No bridge called “{localpart}”.</Text>
+        <Text tone="muted">No bridge called “{localpart}”.</Text>
       </Screen>
     );
   }
@@ -40,29 +40,44 @@ function BridgeLogin({ bridge, goBack }: { bridge: KnownBridge; goBack: () => vo
   const label = BRIDGED_NETWORKS[bridge.network];
 
   return (
-    <Screen className="px-4" edges={["top", "bottom"]}>
-      <ModalHeader title={`Connect ${label}`} onClose={goBack} />
+    <Screen edges={["bottom"]}>
+      {desktop ? (
+        <View className="flex-row items-start">
+          <View className="flex-1">
+            <DialogHeader label="Bridge" title={`Connect ${label}`} />
+          </View>
+          <View className="p-3">
+            <IconButton icon="x" label="Close" size="sm" onPress={goBack} />
+          </View>
+        </View>
+      ) : (
+        <PhoneHeader title={`Connect ${label}`} action={<IconButton icon="x" label="Close" onPress={goBack} />} />
+      )}
 
       <KeyboardAvoidingView behavior="padding" className="flex-1">
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4 pb-6">
-          {phase === "loading" ? <Text variant="caption">Asking the bridge…</Text> : null}
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerClassName={desktop ? "gap-4 px-5 pb-5" : "gap-4 p-4"}
+        >
+          {phase === "loading" ? <Skeleton rows={3} lines={1} /> : null}
 
           {phase === "unavailable" ? (
-            <Card className="gap-3">
-              <Text variant="footnote">
+            <View className="gap-3">
+              <Text tone="muted">
                 This homeserver does not let the app sign in to {label} directly. You can still connect by chatting with
                 the bridge’s bot.
               </Text>
               <Button
+                variant="primary"
                 label="Connect in a chat"
-                size="md"
+                trailingIcon="arrow-right"
                 fullWidth
                 onPress={() => {
                   goBack();
                   void connectByChat(bridge, bridgeBotId(bridge, session?.self.address ?? ""));
                 }}
               />
-            </Card>
+            </View>
           ) : null}
 
           {phase === "flows" ? (
@@ -71,9 +86,7 @@ function BridgeLogin({ bridge, goBack }: { bridge: KnownBridge; goBack: () => vo
 
           {phase === "step" && step ? (
             <View className="gap-4">
-              {step.instructions && step.type !== "cookies" ? (
-                <Text variant="footnote">{step.instructions}</Text>
-              ) : null}
+              {step.instructions && step.type !== "cookies" ? <Text tone="muted">{step.instructions}</Text> : null}
               {step.type === "user_input" ? (
                 <InputStep
                   key={`${step.login_id}/${step.step_id}`}
@@ -92,35 +105,31 @@ function BridgeLogin({ bridge, goBack }: { bridge: KnownBridge; goBack: () => vo
                   onCancel={login.restart}
                 />
               ) : (
-                <Card className="gap-3">
-                  <Text variant="footnote">
-                    This way of signing in needs something the app cannot do yet. Pick another one, or connect in a chat
-                    with the bridge’s bot.
-                  </Text>
-                  <Button label="Choose another way" tone="neutral" onPress={login.restart} />
-                </Card>
+                <Notice
+                  tone="warning"
+                  message="This way of signing in needs something the app can’t do yet."
+                  detail="Pick another one, or connect in a chat with the bridge’s bot."
+                  action={{ label: "Choose another way", onPress: login.restart }}
+                />
               )}
               {step.type !== "cookies" ? (
-                <Button label="Start over" tone="ghost" size="sm" onPress={login.restart} />
+                <Button label="Start over" variant="ghost" size="sm" onPress={login.restart} />
               ) : null}
             </View>
           ) : null}
 
           {phase === "done" ? (
-            <Card className="gap-3">
-              <Text className="font-semibold">{label} is connected</Text>
-              <Text variant="footnote">
-                Your chats appear in the chat list as the bridge catches up. Older history can take a few minutes.
-              </Text>
-              <Button label="Done" size="md" fullWidth onPress={goBack} />
-            </Card>
+            <View className="gap-3">
+              <Notice
+                tone="success"
+                message={`Connected ${label}.`}
+                detail="Your chats appear in the chat list as the bridge catches up. Older history can take a few minutes."
+              />
+              <Button variant="primary" label="Done" fullWidth onPress={goBack} />
+            </View>
           ) : null}
 
-          {login.error ? (
-            <Note tone="danger" title="That did not work">
-              {login.error}
-            </Note>
-          ) : null}
+          {login.error ? <Notice tone="danger" message="That didn’t work." detail={login.error} /> : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>

@@ -6,9 +6,9 @@ import { Cancelled, type LinkedVendor } from "@/core/account/device-prompt";
 import { DEFAULT_EVM_PATH, type HardwareSigner, type HardwareVendor, hardwareVendors } from "@/core/account/hardware";
 import { readAccountUr, urReader } from "@/core/account/vendors/keystone";
 import { errorMessage } from "@/core/errors";
-import { Button, ErrorText, ListItem, Note, QrReader, RowIcon, Sheet, Text, toast } from "@/design";
+import { Button, Icon, Notice, QrReader, Row, Sheet, Text, toast } from "@/design";
 
-import { CONNECTION, DeviceList } from "./device-prompt";
+import { CONNECTION, DeviceList, SheetRows } from "./device-prompt";
 
 export function ConnectHardware({ visible, onClose }: { visible: boolean; onClose(): void }) {
   const addHardwareAccount = useAccountStore((s) => s.addHardwareAccount);
@@ -82,27 +82,28 @@ export function ConnectHardware({ visible, onClose }: { visible: boolean; onClos
     if (!chosen) {
       return (
         <>
-          <Note icon="cpu">
-            <Text variant="footnote">
-              The key stays on the device. Every payment is confirmed on the wallet itself, so Statim can ask but never
-              sign on its own.
-            </Text>
-          </Note>
-          {hardwareVendors().map((wallet) => (
-            <ListItem
-              key={wallet.id}
-              testID={`connect-${wallet.id}`}
-              title={wallet.label}
-              subtitle={CONNECTION[wallet.connection].how}
-              numberOfLinesSubtitle={2}
-              leading={<RowIcon name={CONNECTION[wallet.connection].icon} />}
-              onPress={() => choose(wallet)}
-            />
-          ))}
+          <Text tone="muted">
+            The key stays on the device. Every payment is confirmed on the wallet itself, so Statim can ask but never
+            sign on its own.
+          </Text>
+          <SheetRows>
+            {hardwareVendors().map((wallet) => (
+              <Row
+                key={wallet.id}
+                testID={`connect-${wallet.id}`}
+                title={wallet.label}
+                preview={CONNECTION[wallet.connection].how}
+                previewLines={2}
+                leading={<Icon name={CONNECTION[wallet.connection].icon} size={20} />}
+                trailing={<Icon name="chevron-right" size={16} />}
+                onPress={() => choose(wallet)}
+              />
+            ))}
+          </SheetRows>
         </>
       );
     }
-    if (busy) return <Text variant="footnote">{busy}</Text>;
+    if (busy) return <Text tone="muted">{busy}</Text>;
     if (chosen.connection === "companion-app") return null;
     if (chosen.connection === "qr") {
       const wallet = chosen;
@@ -121,7 +122,7 @@ export function ConnectHardware({ visible, onClose }: { visible: boolean; onClos
       };
       return (
         <>
-          <Text variant="footnote">
+          <Text tone="muted">
             On your {wallet.label}, open Connect Software Wallet, choose MetaMask, and scan the QR code it shows.
           </Text>
           <QrReader
@@ -135,7 +136,7 @@ export function ConnectHardware({ visible, onClose }: { visible: boolean; onClos
     const wallet = chosen;
     return (
       <>
-        <Text variant="footnote">{CONNECTION[wallet.connection].how}</Text>
+        <Text tone="muted">{CONNECTION[wallet.connection].how}</Text>
         <DeviceList vendor={wallet} onPick={(deviceId) => void pick(wallet, deviceId)} />
       </>
     );
@@ -152,11 +153,10 @@ export function ConnectHardware({ visible, onClose }: { visible: boolean; onClos
     >
       <View className="gap-3">
         {content()}
-        <ErrorText>{error}</ErrorText>
+        {error ? <Notice tone="danger" message={error} /> : null}
         {chosen ? (
           <Button
             label="Back"
-            tone="neutral"
             fullWidth
             disabled={busy !== null && chosen.connection !== "companion-app"}
             onPress={leave}

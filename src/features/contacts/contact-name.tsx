@@ -11,11 +11,11 @@ export function ContactName({ given, family }: ContactNameProps) {
 
   if (!first && !last) return <>Unknown</>;
   if (!last) return <>{first}</>;
-  if (!first) return <Text className="font-semibold">{last}</Text>;
+  if (!first) return <Text strong>{last}</Text>;
 
   return (
     <>
-      {first} <Text className="font-semibold">{last}</Text>
+      {first} <Text strong>{last}</Text>
     </>
   );
 }

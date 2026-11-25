@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { View } from "react-native";
 import { useAccountStore } from "@/core/account/account-store";
-import { Button, Field, Note, Section, Text, toast } from "@/design";
+import { Button, desktop, Input, Section, Text, toast } from "@/design";
 import { useAction } from "@/features/use-action";
 import { openExternal } from "@/lib/open-url";
 import { useKeyedLoad } from "@/lib/use-keyed-load";
@@ -42,69 +42,67 @@ export function ApiKeySection({
   const saved = stored.loading ? undefined : (stored.value ?? null);
   const [draft, setDraft] = useState<{ accountId: string | null; text: string } | null>(null);
   const key = draft?.accountId === accountId ? draft.text : (saved ?? "");
+  // Trades holds two keys, so only the one being edited is the screen's primary action.
+  const unchanged = key.trim() === (saved ?? "");
   const submit = useAction(
     async (value: string) => {
       if (!accountId) throw new Error("No account is active yet.");
       await save(accountId, value);
       setVersion((v) => v + 1);
-      toast.success(value.trim() ? savedMessage : "Key removed");
+      toast.success(value.trim() ? savedMessage : "Removed the key");
     },
-    { failure: "Could not save that key" },
+    { failure: "Couldn't save that key" },
   );
 
   return (
-    <>
+    <Section label={sectionTitle}>
       {saved === undefined ? null : (
-        <Section title={sectionTitle} surface="card" className="mb-6">
-          <View className="gap-3 px-4 py-4">
-            <Field
-              testID={testIdPrefix}
-              value={key}
-              onChangeText={(text) => setDraft({ accountId, text })}
-              placeholder={placeholder}
-              autoCorrect={false}
-              autoCapitalize="none"
-              hint={saved ? "A key is saved for this account." : "No key yet."}
+        <View className={desktop ? "gap-3 py-3" : "gap-3 p-4"}>
+          <Input
+            testID={testIdPrefix}
+            mono
+            value={key}
+            onChangeText={(text) => setDraft({ accountId, text })}
+            placeholder={placeholder}
+            autoCorrect={false}
+            autoCapitalize="none"
+            help={saved ? "A key is saved for this account." : "No key yet."}
+          />
+          <View className="flex-row justify-end gap-2">
+            {saved ? (
+              <Button
+                testID={`${testIdPrefix}-clear`}
+                label="Remove"
+                disabled={submit.busy}
+                onPress={() => {
+                  setDraft({ accountId, text: "" });
+                  return submit.run("");
+                }}
+              />
+            ) : null}
+            <Button
+              testID={`${testIdPrefix}-save`}
+              variant={unchanged ? "secondary" : "primary"}
+              label="Save"
+              busy={submit.busy}
+              disabled={unchanged}
+              onPress={() => submit.run(key)}
             />
-            <View className="flex-row gap-2">
-              <View className="flex-1">
-                <Button
-                  testID={`${testIdPrefix}-save`}
-                  label="Save"
-                  fullWidth
-                  loading={submit.busy}
-                  disabled={submit.busy || key.trim() === (saved ?? "")}
-                  onPress={() => submit.run(key)}
-                />
-              </View>
-              {saved ? (
-                <View className="flex-1">
-                  <Button
-                    testID={`${testIdPrefix}-clear`}
-                    label="Remove"
-                    tone="neutral"
-                    fullWidth
-                    disabled={submit.busy}
-                    onPress={() => {
-                      setDraft({ accountId, text: "" });
-                      return submit.run("");
-                    }}
-                  />
-                </View>
-              ) : null}
-            </View>
           </View>
-        </Section>
+        </View>
       )}
-
-      <Note className="mx-4" icon="info">
+      <View className={desktop ? "gap-3 py-3" : "gap-3 p-4"}>
         {notes.map((note) => (
-          <Text key={note} variant="footnote">
+          <Text key={note} size="sm" tone="muted">
             {note}
           </Text>
         ))}
-        <Button label={link.label} tone="neutral" onPress={() => openExternal(link.url).catch(() => {})} />
-      </Note>
-    </>
+        <Button
+          label={link.label}
+          trailingIcon="arrow-up-right"
+          onPress={() => openExternal(link.url).catch(() => {})}
+        />
+      </View>
+    </Section>
   );
 }

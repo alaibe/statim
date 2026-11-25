@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import type { ChatPatternName } from "@/design";
 import type { AccountStorage } from "@/storage/account";
 
 export type ThemeChoice = "system" | "light" | "dark";
@@ -9,7 +8,8 @@ const KEY = "appearance";
 export interface AppearanceState {
   accountId: string | null;
   theme: ThemeChoice;
-  wallpaper: ChatPatternName;
+  /** The desktop status bar shows the keys of the current context. */
+  quickTips: boolean;
   readReceipts: boolean;
   typingIndicators: boolean;
   linkPreviews: boolean;
@@ -18,7 +18,7 @@ export interface AppearanceState {
   hydrate(storage: AccountStorage): Promise<void>;
   clear(): void;
   setTheme(theme: ThemeChoice): Promise<void>;
-  setWallpaper(wallpaper: ChatPatternName): Promise<void>;
+  setQuickTips(enabled: boolean): Promise<void>;
   setReadReceipts(enabled: boolean): Promise<void>;
   setTypingIndicators(enabled: boolean): Promise<void>;
   setLinkPreviews(enabled: boolean): Promise<void>;
@@ -27,12 +27,12 @@ export interface AppearanceState {
 
 type Settings = Pick<
   AppearanceState,
-  "theme" | "wallpaper" | "readReceipts" | "typingIndicators" | "linkPreviews" | "aiInChats"
+  "theme" | "quickTips" | "readReceipts" | "typingIndicators" | "linkPreviews" | "aiInChats"
 >;
 
 const DEFAULTS: Settings = {
   theme: "system",
-  wallpaper: "doodles",
+  quickTips: true,
   readReceipts: false,
   typingIndicators: false,
   linkPreviews: true,
@@ -67,8 +67,8 @@ export const useAppearanceStore = create<AppearanceState>((set, get) => ({
     await persist(get());
   },
 
-  async setWallpaper(wallpaper) {
-    set({ wallpaper });
+  async setQuickTips(quickTips) {
+    set({ quickTips });
     await persist(get());
   },
 
@@ -99,7 +99,7 @@ async function persist(state: AppearanceState): Promise<void> {
   try {
     await storage.set(KEY, {
       theme: state.theme,
-      wallpaper: state.wallpaper,
+      quickTips: state.quickTips,
       readReceipts: state.readReceipts,
       typingIndicators: state.typingIndicators,
       linkPreviews: state.linkPreviews,

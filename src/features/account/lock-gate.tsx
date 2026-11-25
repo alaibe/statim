@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, ScrollView, View } from "react-native";
+import { KeyboardAvoidingView, ScrollView, View } from "react-native";
 import { useAccountStore } from "@/core/account/account-store";
 import { biometricCapability } from "@/core/account/biometrics";
 import { isKeyProtectionEnabled } from "@/core/account/key-protection";
@@ -12,11 +12,11 @@ import { reportError } from "@/core/app/report-error";
 import { useOnReturnFromBackground } from "@/core/app/use-return-from-background";
 import {
   Button,
-  cn,
-  Field,
   Icon,
   type IconName,
   type IconTone,
+  Input,
+  LitPoint,
   PinDots,
   PinPad,
   Screen,
@@ -38,10 +38,11 @@ const readProtection = () =>
 
 export function LockGate() {
   const shield = useRef<View>(null);
+  const colors = useThemeColors();
   useInertOutside(shield);
 
   return (
-    <View ref={shield} className="absolute inset-0 bg-bg">
+    <View ref={shield} className="absolute inset-0" style={{ backgroundColor: colors.bg }}>
       <LockScreen />
     </View>
   );
@@ -135,9 +136,9 @@ function BiometricUnlock({ label, toPin }: { label: string; toPin: (() => void) 
       message={failed ? `${label} was not recognised.` : `Unlocking with ${label}…`}
     >
       {failed ? (
-        <View className="w-full max-w-[280px] gap-2">
-          <Button label="Try again" fullWidth disabled={prompting} onPress={attempt} />
-          {toPin ? <Button label="Use PIN" tone="neutral" fullWidth onPress={toPin} /> : null}
+        <View className="w-full max-w-72 gap-2">
+          <Button variant="primary" label="Try again" fullWidth disabled={prompting} onPress={attempt} />
+          {toPin ? <Button label="Use PIN" fullWidth onPress={toPin} /> : null}
         </View>
       ) : (
         <Spinner />
@@ -188,7 +189,7 @@ function ProtectedKeysUnlock({ label }: { label: string }) {
         failed ? `${label} was not recognised. Your keys can only be read with ${label}.` : `Unlocking with ${label}…`
       }
     >
-      {failed ? <Button label="Try again" disabled={prompting} onPress={attempt} /> : <Spinner />}
+      {failed ? <Button variant="primary" label="Try again" disabled={prompting} onPress={attempt} /> : <Spinner />}
     </LockFrame>
   );
 }
@@ -246,7 +247,7 @@ function PinUnlock({ backToBiometrics }: { backToBiometrics: { label: string; go
         {task ? (
           <Spinner />
         ) : (
-          <Text variant="footnote" className={cn("text-center", message && "text-danger")}>
+          <Text tone={message ? "danger" : "muted"} align="center">
             {message ?? "Statim is locked"}
           </Text>
         )}
@@ -269,7 +270,7 @@ function PinUnlock({ backToBiometrics }: { backToBiometrics: { label: string; go
         }
       />
 
-      <Button label="Forgot PIN?" tone="ghost" size="sm" onPress={() => setForgotten(true)} />
+      <Button label="Forgot PIN?" variant="ghost" size="sm" onPress={() => setForgotten(true)} />
     </LockFrame>
   );
 }
@@ -291,23 +292,21 @@ function ForgotPin({ onCancel }: { onCancel: () => void }) {
     <Screen>
       <KeyboardAvoidingView behavior="padding" className="flex-1">
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="grow justify-center gap-5 px-4 py-8">
-          <View className="items-center gap-3">
-            <IconBadge icon="trash-2" tone="danger" />
-            <Text variant="headline" className="text-center">
-              Erase everything?
-            </Text>
+          <View className="gap-1">
+            <Text variant="label">Forgot PIN</Text>
+            <Text variant="title">Erase everything?</Text>
           </View>
 
-          <Text variant="bodyMuted">
+          <Text tone="muted">
             A forgotten PIN cannot be reset. To use Statim again, erase everything it keeps on this device: every
             account’s keys, chats and settings.
           </Text>
-          <Text variant="bodyMuted">
+          <Text tone="muted">
             Then restore each account from its recovery phrase. Notes and anything else kept only on this device are
             gone for good.
           </Text>
 
-          <Field
+          <Input
             label={`Type “${ERASE_WORD}” to confirm`}
             value={typed}
             onChangeText={setTyped}
@@ -318,16 +317,17 @@ function ForgotPin({ onCancel }: { onCancel: () => void }) {
           />
 
           <View className="gap-2">
+            <Button label="Cancel" fullWidth disabled={erase.busy} onPress={onCancel} />
             <Button
               testID="forgot-pin-erase"
               label="Erase everything"
-              tone="danger"
+              variant="danger"
+              confirm
               fullWidth
               disabled={!armed}
-              loading={erase.busy}
+              busy={erase.busy}
               onPress={() => erase.run()}
             />
-            <Button label="Cancel" tone="neutral" fullWidth disabled={erase.busy} onPress={onCancel} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -350,12 +350,12 @@ function LockFrame({
 }) {
   return (
     <Screen className="items-center justify-center gap-6">
-      <IconBadge icon={icon} tone={tone} />
+      <Icon name={icon} size={24} tone={tone} />
 
-      <View className="items-center gap-1.5 px-4">
+      <View className="items-center gap-2 px-4">
         <Text variant="title">{title}</Text>
         {message ? (
-          <Text variant="footnote" className="text-center">
+          <Text tone={tone === "danger" ? "danger" : "muted"} align="center">
             {message}
           </Text>
         ) : null}
@@ -366,15 +366,7 @@ function LockFrame({
   );
 }
 
-function IconBadge({ icon, tone }: { icon: IconName; tone: IconTone }) {
-  return (
-    <View className="h-20 w-20 items-center justify-center rounded-full bg-side">
-      <Icon name={icon} size={24} tone={tone} />
-    </View>
-  );
-}
-
+/** Waiting on the system's prompt: the lit point pulses. */
 function Spinner() {
-  const colors = useThemeColors();
-  return <ActivityIndicator color={colors.subtle} />;
+  return <LitPoint pulse />;
 }

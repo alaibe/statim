@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import { ConfirmSheet } from "@/design";
+import { ConfirmDialog } from "@/design";
 
 interface Pending {
   id: number;
@@ -32,9 +32,10 @@ export function CliApprovals() {
   const current = useApprovals((s) => s.queue.at(0));
   if (!current) return null;
   return (
-    <ConfirmSheet
+    <ConfirmDialog
       visible
       onClose={() => settle(current.id, false)}
+      label="Command line"
       title="The command line is asking"
       body={[...current.request.split("\n"), "Approve only what you, or an assistant you are running, just asked for."]}
       confirm={{

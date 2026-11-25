@@ -4,24 +4,25 @@ import { supports } from "@/core/messaging/capability";
 import type { NetworkId } from "@/core/messaging/networks";
 import {
   Avatar,
-  Badge,
   Button,
-  Chip,
-  ErrorText,
-  Eyebrow,
-  Field,
-  Icon,
+  Checkbox,
+  desktop,
+  FieldError,
   IconButton,
-  ModalHeader,
+  Input,
   Pressable,
   Screen,
+  Segmented,
+  Skeleton,
   springLayout,
+  Tag,
   Text,
+  useThemeColors,
 } from "@/design";
 import { JoinPublicChat } from "@/features/chat/join-public-chat";
 import type { Contact } from "@/features/contacts/contacts";
+import { RouteHeader } from "@/features/navigation/route-header";
 import { useBack } from "@/features/navigation/use-back";
-import { toneFor } from "@/features/protocols/presentation";
 import type { Candidate } from "./bridged-networks";
 import { type Destination, useDestinations, useNewChat } from "./use-new-chat";
 
@@ -31,9 +32,9 @@ export function NewChatScreen() {
 
   if (!destination) {
     return (
-      <Screen className="px-4" edges={["top", "bottom"]}>
-        <ModalHeader title="New message" onClose={goBack} />
-        <Text variant="bodyMuted">Connecting…</Text>
+      <Screen edges={["top", "bottom"]}>
+        <RouteHeader title="New message" onClose={goBack} />
+        <Skeleton rows={3} avatar lines={1} />
       </Screen>
     );
   }
@@ -88,16 +89,19 @@ function NewChatForm({
   const { hint, nobody, input } = addingFor(destination);
 
   return (
-    <Screen className="px-4" edges={["top", "bottom"]}>
-      <ModalHeader title={isGroup ? "New group" : "New message"} onClose={onClose} />
+    <Screen edges={["top", "bottom"]}>
+      <RouteHeader title={isGroup ? "New group" : "New message"} onClose={onClose} />
 
       <KeyboardAvoidingView behavior="padding" className="flex-1 justify-between">
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4">
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerClassName={desktop ? "gap-4 px-5 pt-2" : "gap-4 px-4 pt-4"}
+        >
           {available.length > 1 ? (
             <ProtocolPicker destination={destination} available={available} onChoose={onChoose} />
           ) : null}
 
-          <Text variant="bodyMuted">{hint}</Text>
+          <Text tone="muted">{hint}</Text>
 
           {adding === "address" && descriptor.publicChats && canJoinPublic ? (
             <JoinPublicChat protocol={descriptor.id} copy={descriptor.publicChats} />
@@ -113,27 +117,27 @@ function NewChatForm({
 
           {input ? (
             <View className="flex-row items-end gap-2">
-              <Field
-                testID="new-chat-input"
-                containerClassName="flex-1"
-                label={input.label}
-                placeholder={input.placeholder}
-                ref={draftRef}
-                onChangeText={changeDraft}
-                autoCapitalize="none"
-                autoCorrect={false}
-                spellCheck={false}
-                returnKeyType="done"
-                onSubmitEditing={() => void addParticipant()}
-              />
-              <IconButton
+              <View className="flex-1">
+                <Input
+                  testID="new-chat-input"
+                  mono={!input.search}
+                  label={input.label}
+                  placeholder={input.placeholder}
+                  ref={draftRef}
+                  onChangeText={changeDraft}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  spellCheck={false}
+                  returnKeyType="done"
+                  onSubmitEditing={() => void addParticipant()}
+                />
+              </View>
+              <Button
                 testID="new-chat-add"
                 icon={input.search ? "search" : "plus"}
-                label={input.search ? "Search" : "Add participant"}
-                tone="accent"
+                label={input.search ? "Search" : "Add"}
                 onPress={() => void addParticipant()}
                 disabled={draft.trim().length < (input.search ? 2 : 3) || busy}
-                className="mb-0.5"
               />
             </View>
           ) : null}
@@ -147,7 +151,7 @@ function NewChatForm({
             />
           ))}
 
-          <ErrorText>{error}</ErrorText>
+          {error ? <FieldError>{error}</FieldError> : null}
 
           {participants.length > 0 ? <Participants participants={participants} onRemove={removeParticipant} /> : null}
 
@@ -156,17 +160,22 @@ function NewChatForm({
           ) : null}
         </ScrollView>
 
-        <View className="gap-2 pb-4 pt-2">
-          <Button
-            testID="new-chat-start"
-            label={startLabel(isGroup, Boolean(existingDm), participants.length)}
-            size="md"
-            fullWidth
-            loading={busy}
-            disabled={participants.length === 0}
-            onPress={start}
-          />
-          <Button label="Cancel" tone="ghost" fullWidth onPress={onClose} />
+        <View className={desktop ? "flex-row justify-end gap-2 px-5 pb-5 pt-4" : "flex-row gap-2 px-4 pb-4 pt-2"}>
+          <View className={desktop ? undefined : "flex-1"}>
+            <Button label="Cancel" fullWidth={!desktop} onPress={onClose} />
+          </View>
+          <View className={desktop ? undefined : "flex-1"}>
+            <Button
+              testID="new-chat-start"
+              variant="primary"
+              label={startLabel(isGroup, Boolean(existingDm), participants.length)}
+              keys={["mod", "enter"]}
+              fullWidth={!desktop}
+              busy={busy}
+              disabled={participants.length === 0}
+              onPress={start}
+            />
+          </View>
         </View>
       </KeyboardAvoidingView>
     </Screen>
@@ -222,25 +231,26 @@ function ProtocolPicker({
   const { meta } = destination.descriptor;
   return (
     <View className="gap-2">
-      <Eyebrow>Protocol</Eyebrow>
-      <View className="flex-row flex-wrap gap-2">
-        {available.map((option) => (
-          <Chip
-            key={option.id}
-            testID={`new-chat-protocol-${option.id}`}
-            label={option.label}
-            selected={option.id === destination.id}
-            onPress={() => onChoose(option.id)}
-          />
-        ))}
-      </View>
+      <Text variant="label">Protocol</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="grow">
+        <Segmented
+          accessibilityLabel="Protocol"
+          value={destination.id}
+          onChange={onChoose}
+          options={available.map((option) => ({
+            value: option.id,
+            label: option.label,
+            testID: `new-chat-protocol-${option.id}`,
+          }))}
+        />
+      </ScrollView>
       <View className="flex-row items-start gap-2">
         {destination.bridged ? (
-          <Badge label="Bridged" tone="warning" />
+          <Tag label="Bridged" />
         ) : (
-          <Badge label={meta.properties.endToEndEncrypted ? "Encrypted" : "Not E2EE"} tone={toneFor(meta)} />
+          <Tag label={meta.properties.endToEndEncrypted ? "E2EE" : "Not E2EE"} />
         )}
-        <Text variant="caption" className="flex-1">
+        <Text size="sm" tone="muted" className="flex-1">
           {destination.bridged
             ? `Your Matrix bridge carries these chats to ${destination.label}. It reads the messages to pass them on.`
             : meta.trustModel}
@@ -266,17 +276,19 @@ function KnownPeople({
   if (known.length === 0) {
     return (
       <View className="gap-1">
-        <Eyebrow>{`Nobody yet on ${network}`}</Eyebrow>
-        <Text variant="caption">{nobody}</Text>
+        <Text variant="label">{`Nobody yet on ${network}`}</Text>
+        <Text size="sm" tone="muted">
+          {nobody}
+        </Text>
       </View>
     );
   }
   return (
     <View className="gap-1">
-      <Eyebrow>{`People you have talked to on ${network}`}</Eyebrow>
+      <Text variant="label">{`People on ${network}`}</Text>
       {known.map((entry) =>
         entry.kind === "header" ? (
-          <Text key={`h-${entry.letter}`} variant="micro" className="pl-1 pt-2">
+          <Text key={`h-${entry.letter}`} variant="label" className="pt-2">
             {entry.letter}
           </Text>
         ) : (
@@ -301,17 +313,14 @@ function Participants({
 }) {
   return (
     <Animated.View layout={springLayout()} className="gap-2">
-      <Eyebrow>{`${participants.length} participant${participants.length === 1 ? "" : "s"}`}</Eyebrow>
+      <Text variant="label">{`${participants.length} participant${participants.length === 1 ? "" : "s"}`}</Text>
       {participants.map((r) => (
-        <View
-          key={r.participantId}
-          className="flex-row items-center gap-3 rounded-lg border border-line bg-panel px-3 py-2.5"
-        >
-          <Avatar seed={r.participantId} size="sm" />
-          <Text numberOfLines={1} className="flex-1 text-md">
+        <View key={r.participantId} className="flex-row items-center gap-3">
+          <Avatar size={28} label={r.name} />
+          <Text numberOfLines={1} className="flex-1">
             {r.name}
           </Text>
-          <IconButton icon="x" label={`Remove ${r.name}`} size={20} onPress={() => onRemove(r.participantId)} />
+          <IconButton icon="x" label={`Remove ${r.name}`} size="sm" onPress={() => onRemove(r.participantId)} />
         </View>
       ))}
     </Animated.View>
@@ -330,7 +339,7 @@ function GroupName({
   const badge = GROUP_BADGE[model];
   return (
     <Animated.View layout={springLayout()} className="gap-2">
-      <Field
+      <Input
         testID="new-chat-title"
         label="Group name"
         placeholder={placeholder}
@@ -338,8 +347,8 @@ function GroupName({
         returnKeyType="done"
       />
       <View className="flex-row items-start gap-2">
-        <Badge label={badge.label} tone={badge.tone} />
-        <Text variant="caption" className="flex-1">
+        <Tag label={badge.label} />
+        <Text size="sm" tone="muted" className="flex-1">
           {badge.detail}
         </Text>
       </View>
@@ -348,6 +357,7 @@ function GroupName({
 }
 
 function PersonRow({ person, selected, onPress }: { person: Candidate; selected: boolean; onPress: () => void }) {
+  const colors = useThemeColors();
   return (
     <Pressable
       accessibilityRole="checkbox"
@@ -355,19 +365,18 @@ function PersonRow({ person, selected, onPress }: { person: Candidate; selected:
       accessibilityLabel={person.name}
       onPress={onPress}
       className="min-h-touch flex-row items-center gap-3 py-1.5"
+      style={({ hovered }) => (hovered ? { backgroundColor: colors.hover } : null)}
     >
-      <Avatar seed={person.name} size="md" />
+      <Avatar size={40} label={person.name} />
       <View className="min-w-0 flex-1">
-        <Text className="font-medium" numberOfLines={1}>
-          {person.name}
-        </Text>
+        <Text numberOfLines={1}>{person.name}</Text>
         {person.detail ? (
-          <Text variant="caption" numberOfLines={1}>
+          <Text variant="meta" numberOfLines={1}>
             {person.detail}
           </Text>
         ) : null}
       </View>
-      <Icon name={selected ? "circle-check" : "circle-plus"} size={20} tone={selected ? "accent" : "subtle"} />
+      <Checkbox checked={selected} />
     </Pressable>
   );
 }
@@ -375,12 +384,10 @@ function PersonRow({ person, selected, onPress }: { person: Candidate; selected:
 const GROUP_BADGE = {
   enforced: {
     label: "Enforced roster",
-    tone: "success" as const,
     detail: "Membership changes are themselves encrypted messages, so everyone converges on the same roster.",
   },
   "participant-set": {
     label: "No roster",
-    tone: "warning" as const,
     detail:
       "The group is whoever a message is addressed to. Nobody can be added or removed afterwards, and leaving is only local to your device.",
   },

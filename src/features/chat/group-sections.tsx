@@ -4,16 +4,14 @@ import { useChatStore } from "@/core/messaging/chat-store";
 import type { GroupInfo } from "@/core/messaging/protocol";
 import type { ChatId, ParticipantId } from "@/core/messaging/types";
 import {
-  ActionSheet,
-  Card,
-  ConfirmSheet,
+  ConfirmDialog,
   copyText,
-  ErrorText,
   type IconName,
-  ListItem,
+  Menu,
+  Notice,
   Pressable,
-  RowIcon,
   Section,
+  SettingsRow,
   Text,
   toast,
 } from "@/design";
@@ -35,16 +33,23 @@ const SLOW_MODE: { seconds: number; label: string }[] = [
 export function GroupAbout({ info, error }: { info?: GroupInfo; error?: string }) {
   if (!info?.description && !info?.link && !error) return null;
   return (
-    <Card className="mx-4 mb-5 gap-3">
-      {info?.description ? (
-        <View className="gap-1">
-          <Text variant="caption">About</Text>
-          <Text selectable>{info.description}</Text>
+    <View className="mb-6 gap-3">
+      {error ? (
+        <View className="px-4">
+          <Notice tone="danger" message={error} />
         </View>
       ) : null}
-      {info?.link ? <LinkRow label="Link" link={info.link} /> : null}
-      <ErrorText>{error}</ErrorText>
-    </Card>
+      {info?.description || info?.link ? (
+        <Section label="About">
+          {info?.description ? (
+            <View className="px-4 py-3">
+              <Text selectable>{info.description}</Text>
+            </View>
+          ) : null}
+          {info?.link ? <LinkRow label="Link" link={info.link} /> : null}
+        </Section>
+      ) : null}
+    </View>
   );
 }
 
@@ -54,10 +59,10 @@ function LinkRow({ label, link }: { label: string; link: string }) {
       accessibilityRole="button"
       accessibilityLabel={`Copy ${label.toLowerCase()}`}
       onPress={() => void copyText(link, "Link copied")}
-      className="gap-1"
+      className="gap-1 px-4 py-3"
     >
-      <Text variant="caption">{label}</Text>
-      <Text className="text-accent" selectable>
+      <Text variant="label">{label}</Text>
+      <Text variant="code" tone="accent" selectable>
         {link}
       </Text>
     </Pressable>
@@ -71,23 +76,25 @@ export function InviteLinks({ chatId, visible, onClose }: { chatId: ChatId; visi
     async (approval: boolean) => {
       const link = await createInviteLink(chatId, approval);
       setCreated({ link, approval });
-      await copyText(link, approval ? "Approval link copied" : "Invite link copied");
+      await copyText(link, approval ? "Copied the approval link" : "Copied the invite link");
     },
-    { failure: "Could not create invite link" },
+    { failure: "Couldn’t create an invite link" },
   );
 
   return (
     <>
       {created ? (
-        <Card className="mx-4 mb-5">
-          <LinkRow label={`${created.approval ? "Approval link" : "Invite link"} · copied`} link={created.link} />
-        </Card>
+        <View className="mb-6">
+          <Section label={created.approval ? "Approval link" : "Invite link"}>
+            <LinkRow label="Copied" link={created.link} />
+          </Section>
+        </View>
       ) : null}
-      <ActionSheet
+      <Menu
         visible={visible}
         onClose={onClose}
         title="Invite people"
-        actions={[
+        items={[
           {
             label: "Create invite link",
             icon: "link",
@@ -120,28 +127,30 @@ export function SlowModeSection({
       await setSlowModeDelay(chatId, seconds);
       onChanged(seconds);
     },
-    { success: "Slow mode updated", failure: "Could not update slow mode" },
+    { success: "Updated slow mode", failure: "Couldn’t update slow mode" },
   );
 
   return (
-    <Section title="Moderation" surface="card" className="mb-5">
-      <ListItem
-        title="Slow mode"
-        subtitle={SLOW_MODE.find((option) => option.seconds === delay)?.label ?? "Off"}
-        leading={<RowIcon name="clock" />}
-        onPress={() => setOpen(true)}
-      />
-      <ActionSheet
+    <View className="mb-6">
+      <Section label="Moderation">
+        <SettingsRow
+          label="Slow mode"
+          value={SLOW_MODE.find((option) => option.seconds === delay)?.label ?? "Off"}
+          icon="clock"
+          onPress={() => setOpen(true)}
+        />
+      </Section>
+      <Menu
         visible={open}
         onClose={() => setOpen(false)}
         title="Slow mode"
-        actions={SLOW_MODE.map((option) => ({
+        items={SLOW_MODE.map((option) => ({
           label: option.label,
           selected: option.seconds === delay,
           onPress: () => change.run(option.seconds),
         }))}
       />
-    </Section>
+    </View>
   );
 }
 
@@ -156,7 +165,7 @@ const REMOVAL: Record<
     subtitle: "They can come back with an invite or a link.",
     confirm: "Remove",
     body: "They stop receiving messages from this group. Nothing they already received is recalled, and they can come back with an invite or a link.",
-    done: "Removed",
+    done: "Removed them from the group",
     icon: "user-minus",
   },
   ban: {
@@ -164,7 +173,7 @@ const REMOVAL: Record<
     subtitle: "They are removed and cannot come back.",
     confirm: "Ban",
     body: "They stop receiving messages from this group and cannot join again, even with a link, until an admin lets them back in from another app.",
-    done: "Banned",
+    done: "Banned them from the group",
     icon: "ban",
   },
 };
@@ -196,46 +205,50 @@ export function MemberModeration({
       await setMemberMuted(chatId, member, !muted);
       members.update((list) => list.map((m) => (m.id === member ? { ...m, muted: !muted } : m)));
     },
-    { success: muted ? "They can send again" : "Muted", failure: "Could not change that" },
+    { success: muted ? "Unmuted them" : "Muted them", failure: "Couldn’t change that" },
   );
   const remove = useAction(
     (removal: Removal) => (removal === "ban" ? banMember(chatId, member) : removeMembers(chatId, [member])),
-    { failure: "Could not do that" },
+    { failure: "Couldn’t do that" },
   );
   const removals: Removal[] = can.ban ? ["remove", "ban"] : ["remove"];
 
   return (
-    <Section surface="card" className="mb-5">
-      {can.muteMembers ? (
-        <ListItem
-          testID="profile-mute-member"
-          title={muted ? "Let them send messages" : "Mute in group"}
-          subtitle={muted ? "They are muted: they read but cannot send." : "They stay, but cannot send."}
-          leading={<RowIcon name={muted ? "mic" : "mic-off"} />}
-          onPress={members.loading ? undefined : () => mute.run()}
-        />
-      ) : null}
-      {removals.map((removal) => (
-        <ListItem
-          key={removal}
-          testID={`profile-${removal}-member`}
-          title={REMOVAL[removal].title}
-          subtitle={REMOVAL[removal].subtitle}
-          numberOfLinesSubtitle={2}
-          leading={<RowIcon name={REMOVAL[removal].icon} />}
-          onPress={() => setConfirming(removal)}
-        />
-      ))}
+    <View className="mb-6">
+      <Section label="Moderation">
+        {can.muteMembers ? (
+          <SettingsRow
+            testID="profile-mute-member"
+            label={muted ? "Let them send messages" : "Mute in group"}
+            description={muted ? "They are muted: they read but cannot send." : "They stay, but cannot send."}
+            icon={muted ? "mic" : "mic-off"}
+            disabled={members.loading}
+            onPress={() => mute.run()}
+          />
+        ) : null}
+        {removals.map((removal) => (
+          <SettingsRow
+            key={removal}
+            testID={`profile-${removal}-member`}
+            label={`${REMOVAL[removal].title}…`}
+            description={REMOVAL[removal].subtitle}
+            icon={REMOVAL[removal].icon}
+            danger
+            onPress={() => setConfirming(removal)}
+          />
+        ))}
+      </Section>
       {confirming ? (
-        <ConfirmSheet
+        <ConfirmDialog
           visible
           onClose={() => setConfirming(null)}
+          label={REMOVAL[confirming].title}
           title={`${REMOVAL[confirming].confirm} ${memberName} from ${groupTitle}?`}
           body={REMOVAL[confirming].body}
           confirm={{
             testID: "confirm-remove-member",
-            label: REMOVAL[confirming].title,
-            tone: "danger",
+            label: `${REMOVAL[confirming].confirm} ${memberName}`,
+            danger: true,
             onPress: async () => {
               if (!(await remove.run(confirming))) return;
               toast.success(REMOVAL[confirming].done);
@@ -245,6 +258,6 @@ export function MemberModeration({
           }}
         />
       ) : null}
-    </Section>
+    </View>
   );
 }

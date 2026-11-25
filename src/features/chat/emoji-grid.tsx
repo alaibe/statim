@@ -5,11 +5,10 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Text as NativeText,
-  Pressable,
   View,
 } from "react-native";
 
-import { Icon, type IconName, SearchField, Text } from "@/design";
+import { Divider, Icon, type IconName, Pressable, Radius, SearchField, Text, useThemeColors } from "@/design";
 
 import { CATEGORIES, CELL, type EmojiRow, emojiRows, HEADER, RECENT, searchEmoji } from "./emoji-data";
 import { useRecentEmoji } from "./use-recent-emoji";
@@ -24,6 +23,7 @@ interface EmojiGridProps {
 }
 
 export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
+  const colors = useThemeColors();
   const list = useRef<FlatList<EmojiRow>>(null);
 
   const [query, setQuery] = useState("");
@@ -69,9 +69,7 @@ export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
     if (item.kind === "header") {
       return (
         <View style={{ height: HEADER, paddingHorizontal: PAD + 4 }} className="justify-end pb-1">
-          <Text variant="caption" className="font-semibold text-muted">
-            {item.title}
-          </Text>
+          <Text variant="label">{item.title}</Text>
         </View>
       );
     }
@@ -83,8 +81,13 @@ export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
             accessibilityRole="button"
             accessibilityLabel={emoji}
             onPress={() => pick(emoji)}
-            style={{ width: cell, height: CELL }}
-            className="items-center justify-center rounded-md hover:bg-side active:bg-side"
+            className="items-center justify-center"
+            style={({ hovered, pressed }) => ({
+              width: cell,
+              height: CELL,
+              borderRadius: Radius.md,
+              backgroundColor: hovered || pressed ? colors.hover : "transparent",
+            })}
           >
             <NativeText allowFontScaling={false} style={{ fontSize: EMOJI_SIZE, lineHeight: CELL - 4 }}>
               {emoji}
@@ -102,21 +105,22 @@ export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
 
   return (
     <View className="flex-1">
-      <SearchField
-        className="mx-3 mb-2 mt-3"
-        placeholder="Search emoji"
-        autoFocus={autoFocusSearch}
-        value={query}
-        onChangeText={setQuery}
-        onSubmitEditing={() => {
-          const first = trimmed ? searchEmoji(trimmed, 1)[0] : undefined;
-          if (first) pick(first);
-        }}
-      />
+      <View className="mx-3 mb-2 mt-3">
+        <SearchField
+          placeholder="Search emoji"
+          autoFocus={autoFocusSearch}
+          value={query}
+          onChangeText={setQuery}
+          onSubmitEditing={() => {
+            const first = trimmed ? searchEmoji(trimmed, 1)[0] : undefined;
+            if (first) pick(first);
+          }}
+        />
+      </View>
 
       {rows.length === 0 ? (
         <View className="flex-1 items-center justify-center px-6">
-          <Text variant="footnote" className="text-center">
+          <Text tone="muted" align="center">
             No emoji match “{trimmed}”.
           </Text>
         </View>
@@ -140,7 +144,8 @@ export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
         />
       )}
 
-      <View className="flex-row items-center border-t border-line px-2 py-1">
+      <Divider />
+      <View className="flex-row items-center px-2 py-1">
         {tabs.map((category) => {
           const selected = !trimmed && category.id === active;
           return (
@@ -150,11 +155,11 @@ export function EmojiGrid({ width, onEmoji, autoFocusSearch }: EmojiGridProps) {
               accessibilityLabel={category.title}
               accessibilityState={{ selected }}
               onPress={() => jumpTo(category.id)}
-              className={
-                selected
-                  ? "h-8 flex-1 items-center justify-center rounded-md bg-accent-soft"
-                  : "h-8 flex-1 items-center justify-center rounded-md hover:bg-side"
-              }
+              className="h-8 flex-1 items-center justify-center"
+              style={({ hovered }) => ({
+                borderRadius: Radius.md,
+                backgroundColor: selected ? colors["accent-soft"] : hovered ? colors.hover : "transparent",
+              })}
             >
               <Icon name={category.icon} size={20} tone={selected ? "accent" : "muted"} />
             </Pressable>

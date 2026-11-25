@@ -1,7 +1,7 @@
 import { useEventListener } from "expo";
 import { VideoView } from "expo-video";
 import { type ReactNode, useState } from "react";
-import { View } from "react-native";
+import { Text as RNText, View } from "react-native";
 import { stickerLabel } from "@/core/messaging/preview";
 import { type StickerContent, stickerFormat } from "@/core/messaging/stickers";
 import { Image, Text } from "@/design";
@@ -72,9 +72,9 @@ export function StickerEmoji({ emoji, box }: { emoji?: string; box: Box }) {
   return (
     <View style={box} className="items-center justify-center">
       {emoji ? (
-        <Text style={{ fontSize: Math.round(box.height / 2) }}>{emoji}</Text>
+        <RNText style={{ fontSize: Math.round(box.height / 2) }}>{emoji}</RNText>
       ) : (
-        <Text variant="caption">Sticker</Text>
+        <Text variant="meta">Sticker</Text>
       )}
     </View>
   );

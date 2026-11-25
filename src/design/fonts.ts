@@ -1,31 +1,24 @@
-import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from "@expo-google-fonts/inter";
+import { Inter_400Regular, Inter_600SemiBold } from "@expo-google-fonts/inter";
 import {
   JetBrainsMono_400Regular,
   JetBrainsMono_500Medium,
   JetBrainsMono_600SemiBold,
-  JetBrainsMono_700Bold,
 } from "@expo-google-fonts/jetbrains-mono";
 
-// The laibe design system bundles Inter for content and JetBrains Mono for the interface; a family per weight.
+/** Inter for content and JetBrains Mono for the interface, bundled: 400 and 600 each, and mono's 500 for controls. */
 export const FONTS = {
   "Inter-400": Inter_400Regular,
-  "Inter-500": Inter_500Medium,
   "Inter-600": Inter_600SemiBold,
-  "Inter-700": Inter_700Bold,
   "JetBrainsMono-400": JetBrainsMono_400Regular,
   "JetBrainsMono-500": JetBrainsMono_500Medium,
   "JetBrainsMono-600": JetBrainsMono_600SemiBold,
-  "JetBrainsMono-700": JetBrainsMono_700Bold,
 };
 
-/** The loaded family for a text's classes: `font-mono` picks JetBrains Mono, the weight class picks the file. */
-export function fontFamilyFor(classes: string): keyof typeof FONTS {
-  const weight = /\bfont-bold\b/.test(classes)
-    ? 700
-    : /\bfont-semibold\b/.test(classes)
-      ? 600
-      : /\bfont-medium\b/.test(classes)
-        ? 500
-        : 400;
-  return `${/\bfont-mono\b/.test(classes) ? "JetBrainsMono" : "Inter"}-${weight}`;
+export type FontFamily = "mono" | "sans";
+export type FontWeight = 400 | 500 | 600;
+
+/** The loaded file for a family and weight; Inter has no 500, so it takes 400. */
+export function fontFile(family: FontFamily, weight: FontWeight): keyof typeof FONTS {
+  if (family === "sans") return weight === 600 ? "Inter-600" : "Inter-400";
+  return `JetBrainsMono-${weight}`;
 }

@@ -1,6 +1,5 @@
-import { ScrollView, View } from "react-native";
 import type { ChatFilter } from "@/core/messaging/folders";
-import { CountBadge, cn, Pressable, Text } from "@/design";
+import { type TabItem, Tabs } from "@/design";
 
 const FILTERS: { id: ChatFilter; label: string }[] = [
   { id: "all", label: "All" },
@@ -10,6 +9,7 @@ const FILTERS: { id: ChatFilter; label: string }[] = [
   { id: "groups", label: "Groups" },
 ];
 
+/** Views of the chat list as scrollable tabs, with the unread and mention counts in mono. */
 export function FilterBar({
   active,
   onSelect,
@@ -21,35 +21,10 @@ export function FilterBar({
   unread: number;
   mentions: number;
 }) {
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      className="grow-0 border-b border-line"
-      contentContainerClassName="px-1.5"
-    >
-      {FILTERS.map(({ id, label }) => {
-        const selected = id === active;
-        const count = id === "unread" ? unread : id === "mentions" ? mentions : 0;
-        return (
-          <Pressable
-            key={id}
-            accessibilityRole="tab"
-            accessibilityState={{ selected }}
-            accessibilityLabel={count ? `${label}, ${count} unread` : label}
-            onPress={() => onSelect(id)}
-            className="items-center px-2 pt-2"
-          >
-            <View className="flex-row items-center gap-1 pb-2">
-              <Text variant="footnote" className={cn("font-semibold", selected ? "text-accent" : "text-muted")}>
-                {label}
-              </Text>
-              {count > 0 ? <CountBadge count={count} muted={!selected} /> : null}
-            </View>
-            <View className={cn("h-0.5 self-stretch rounded-full", selected ? "bg-accent" : "bg-transparent")} />
-          </Pressable>
-        );
-      })}
-    </ScrollView>
-  );
+  const items: TabItem<ChatFilter>[] = FILTERS.map(({ id, label }) => ({
+    id,
+    label,
+    count: id === "unread" ? unread : id === "mentions" ? mentions : undefined,
+  }));
+  return <Tabs items={items} value={active} onChange={onSelect} />;
 }

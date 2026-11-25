@@ -1,7 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
+import { View } from "react-native";
 
-import { Icon, ListItem, Section, Toggle } from "@/design";
+import { SECTION_GAP, Section, SettingsRow } from "@/design";
 
 const MAC = /Mac/.test(navigator.userAgent);
 
@@ -23,15 +24,16 @@ export function MenuBarSetting() {
   }
 
   return (
-    <Section title="Window" surface="card" className="mb-6">
-      <ListItem
-        testID="hide-menu-bar"
-        title="Hide menu bar"
-        subtitle="Press Alt to show it until your next click."
-        numberOfLinesSubtitle={2}
-        leading={<Icon name="menu" size={20} tone="muted" />}
-        trailing={<Toggle label="Hide menu bar" value={hidden} onValueChange={toggle} />}
-      />
-    </Section>
+    <View style={{ marginBottom: SECTION_GAP }}>
+      <Section label="Window">
+        <SettingsRow
+          testID="hide-menu-bar"
+          label="Hide menu bar"
+          description="Press Alt to show it until your next click."
+          icon="menu"
+          toggle={{ value: hidden, onValueChange: (next) => void toggle(next) }}
+        />
+      </Section>
+    </View>
   );
 }

@@ -4,7 +4,7 @@ import { AppState, Linking, View } from "react-native";
 
 import { cn } from "../lib/cn";
 import { Button } from "./button";
-import { ErrorText } from "./error-text";
+import { FieldError } from "./input";
 import { Text } from "./text";
 
 export interface QrReaderProps {
@@ -53,7 +53,7 @@ export function QrReader({ purpose, onScanned, className }: QrReaderProps) {
   return (
     <View className={cn("gap-2", className)}>
       {permission?.granted ? (
-        <View className="flex-1 overflow-hidden rounded-lg">
+        <View className="flex-1 overflow-hidden" style={{ borderRadius: 4 }}>
           <CameraView
             style={{ flex: 1 }}
             facing="back"
@@ -64,7 +64,7 @@ export function QrReader({ purpose, onScanned, className }: QrReaderProps) {
         </View>
       ) : (
         <View className="flex-1 justify-center gap-4">
-          <Text variant="bodyMuted">{purpose}</Text>
+          <Text tone="muted">{purpose}</Text>
           <Button
             label={permission?.canAskAgain === false ? "Open Settings" : "Allow the camera"}
             fullWidth
@@ -72,7 +72,7 @@ export function QrReader({ purpose, onScanned, className }: QrReaderProps) {
           />
         </View>
       )}
-      <ErrorText>{error}</ErrorText>
+      {error ? <FieldError>{error}</FieldError> : null}
     </View>
   );
 }

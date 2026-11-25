@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
 
-import { Badge, Button, Card, Chip, Field, ListItem, QrCode, Text, useThemeColors } from "@/design";
+import { Button, Icon, Input, LitPoint, QrCode, Radio, Row, Tag, Text } from "@/design";
 import type { InputField, LoginStep, Whoami } from "@/protocols/matrix/provisioning";
 
 export function InputStep({
@@ -27,26 +27,25 @@ export function InputStep({
       {fields.map((field, index) =>
         field.type === "select" ? (
           <View key={field.id} className="gap-2">
-            <Text variant="footnote" className="font-semibold">
-              {field.name}
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
+            <Text variant="label">{field.name}</Text>
+            <View className="-mx-4">
               {(field.options ?? []).map((option) => (
-                <Chip
+                <Row
                   key={option}
-                  label={option}
-                  selected={values[field.id] === option}
+                  title={option}
+                  leading={<Radio checked={values[field.id] === option} />}
                   onPress={() => setValues((current) => ({ ...current, [field.id]: option }))}
                 />
               ))}
             </View>
           </View>
         ) : (
-          <Field
+          <Input
             key={field.id}
             testID={`bridge-login-${field.id}`}
             label={field.name}
-            hint={field.description}
+            help={field.description}
+            mono={field.type !== "password" && field.type !== "email"}
             value={values[field.id] ?? ""}
             onChangeText={(text) => setValues((current) => ({ ...current, [field.id]: text }))}
             onSubmitEditing={submit}
@@ -62,10 +61,10 @@ export function InputStep({
       )}
       <Button
         testID="bridge-login-submit"
+        variant="primary"
         label="Continue"
-        size="md"
         fullWidth
-        loading={busy}
+        busy={busy}
         disabled={!ready}
         onPress={submit}
       />
@@ -74,7 +73,6 @@ export function InputStep({
 }
 
 export function WaitStep({ step }: { step: LoginStep }) {
-  const colors = useThemeColors();
   const display = step.display_and_wait;
 
   return (
@@ -82,13 +80,13 @@ export function WaitStep({ step }: { step: LoginStep }) {
       {display?.type === "qr" && display.data ? (
         <QrCode value={display.data} />
       ) : display?.data ? (
-        <Text variant="title" className="text-center" selectable>
+        <Text variant="title" align="center" selectable>
           {display.data}
         </Text>
       ) : null}
       <View className="flex-row items-center gap-2">
-        <ActivityIndicator color={colors.muted} />
-        <Text variant="caption">Waiting…</Text>
+        <LitPoint pulse />
+        <Text variant="meta">Waiting…</Text>
       </View>
     </View>
   );
@@ -136,26 +134,26 @@ export function FlowPicker({
   return (
     <>
       {whoami && whoami.logins.length > 0 ? (
-        <Card className="gap-1">
-          <Text variant="footnote" className="font-semibold">
-            Signed in as {whoami.logins.map((login) => login.name || login.id).join(", ")}
+        <View className="gap-1">
+          <Text strong>Signed in as {whoami.logins.map((login) => login.name || login.id).join(", ")}</Text>
+          <Text size="sm" tone="muted">
+            Sign in again to add another account.
           </Text>
-          <Text variant="caption">Sign in again to add another account.</Text>
-        </Card>
+        </View>
       ) : null}
-      <Text variant="footnote">How do you want to sign in to {network}?</Text>
-      <View className="gap-2">
+      <Text variant="label">How do you want to sign in to {network}?</Text>
+      <View className="-mx-4">
         {flows.map((flow) => (
-          <Card key={flow.id} className="p-0">
-            <ListItem
-              testID={`bridge-flow-${flow.id}`}
-              title={flow.name}
-              subtitle={flow.description}
-              numberOfLinesSubtitle={2}
-              meta={flow.id === preferred ? <Badge label="Recommended" tone="accent" /> : undefined}
-              onPress={() => onPick(flow.id)}
-            />
-          </Card>
+          <Row
+            key={flow.id}
+            testID={`bridge-flow-${flow.id}`}
+            title={flow.name}
+            preview={flow.description}
+            previewLines={2}
+            tags={flow.id === preferred ? <Tag tone="accent" label="Recommended" /> : undefined}
+            trailing={<Icon name="chevron-right" size={16} tone="muted" />}
+            onPress={() => onPick(flow.id)}
+          />
         ))}
       </View>
     </>

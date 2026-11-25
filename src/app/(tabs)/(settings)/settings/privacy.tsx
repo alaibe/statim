@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import { View } from "react-native";
 
 import { useAppearanceStore } from "@/core/app/appearance";
 import { usage } from "@/core/usage/usage";
-import { Icon, ListItem, Section, Text, Toggle } from "@/design";
+import { SECTION_GAP, Section, SettingsRow } from "@/design";
 import { SettingsScreen } from "@/features/settings/settings-screen";
 
 export default function PrivacyScreen() {
@@ -28,71 +29,63 @@ export default function PrivacyScreen() {
 
   return (
     <SettingsScreen title="Privacy">
-      <Section title="Receipts" surface="card" className="mb-4">
-        <ListItem
-          title="Send read receipts"
-          subtitle="Tells the other person when you have opened their message. Off by default, and it works both ways: with it off, you do not see theirs either."
-          numberOfLinesSubtitle={4}
-          leading={<Icon name="check-check" size={20} tone="muted" />}
-          trailing={<Toggle label="Send read receipts" value={readReceipts} onValueChange={setReadReceipts} />}
-        />
-        <ListItem
-          title="Send typing indicators"
-          subtitle="Shows people on Telegram and Matrix that you are typing. Off by default: it sends a signal every time you touch the keyboard."
-          numberOfLinesSubtitle={4}
-          leading={<Icon name="ellipsis" size={20} tone="muted" />}
-          trailing={
-            <Toggle label="Send typing indicators" value={typingIndicators} onValueChange={setTypingIndicators} />
-          }
-        />
-      </Section>
+      <View style={{ marginBottom: SECTION_GAP }}>
+        <Section
+          label="Receipts"
+          description="Unread state is otherwise kept on this device only. Nothing tells anyone which chats you have open, pinned or muted."
+        >
+          <SettingsRow
+            label="Send read receipts"
+            description="Tells the other person when you have opened their message. Off by default, and it works both ways: with it off, you don't see theirs either."
+            icon="check-check"
+            toggle={{ value: readReceipts, onValueChange: (next) => void setReadReceipts(next) }}
+          />
+          <SettingsRow
+            label="Send typing indicators"
+            description="Shows people on Telegram and Matrix that you are typing. Off by default: it sends a signal every time you touch the keyboard."
+            icon="ellipsis"
+            toggle={{ value: typingIndicators, onValueChange: (next) => void setTypingIndicators(next) }}
+          />
+        </Section>
+      </View>
 
-      <Text variant="footnote" className="px-4 pb-6">
-        Unread state is otherwise kept on this device only. Nothing tells anyone which chats you have open, which you
-        have pinned, or which you have muted.
-      </Text>
+      <View style={{ marginBottom: SECTION_GAP }}>
+        <Section label="Links">
+          <SettingsRow
+            label="Show link previews"
+            description="Fetches a title, description and picture for links, straight from the linked site. With no server in between, the site sees this device's address as soon as a link arrives, not only when you tap it. Turn this off to keep that to yourself."
+            icon="link"
+            toggle={{ value: linkPreviews, onValueChange: (next) => void setLinkPreviews(next) }}
+          />
+        </Section>
+      </View>
 
-      <Section title="Links" surface="card" className="mb-4">
-        <ListItem
-          title="Show link previews"
-          subtitle="Fetches a title, description and picture for links, straight from the linked site. With no server in between, the site sees this device's address as soon as a link arrives, not only when you tap it. Turn this off to keep that to yourself."
-          numberOfLinesSubtitle={6}
-          leading={<Icon name="link" size={20} tone="muted" />}
-          trailing={<Toggle label="Show link previews" value={linkPreviews} onValueChange={setLinkPreviews} />}
-        />
-      </Section>
+      <View style={{ marginBottom: SECTION_GAP }}>
+        <Section label="Usage statistics">
+          <SettingsRow
+            testID="usage-statistics"
+            label="Share anonymous usage statistics"
+            description="Sends which screens you open, Statim's version and your system to stats.laibe.cc, to count how Statim is used. Nothing you write or read. On by default."
+            icon="chart-pie"
+            toggle={
+              usageStatistics === null
+                ? undefined
+                : { value: usageStatistics, onValueChange: (next) => void toggleUsageStatistics(next) }
+            }
+          />
+        </Section>
+      </View>
 
-      <Section title="Usage statistics" surface="card" className="mb-4">
-        <ListItem
-          testID="usage-statistics"
-          title="Share anonymous usage statistics"
-          subtitle="Sends which screens you open, Statim's version and your system to stats.laibe.cc, to count how Statim is used. Nothing you write or read. On by default."
-          numberOfLinesSubtitle={5}
-          leading={<Icon name="chart-pie" size={20} tone="muted" />}
-          trailing={
-            usageStatistics !== null && (
-              <Toggle
-                label="Share anonymous usage statistics"
-                value={usageStatistics}
-                onValueChange={toggleUsageStatistics}
-              />
-            )
-          }
+      <Section label="Not collected">
+        <SettingsRow
+          label="No last seen of our own"
+          description="XMTP, Nostr and Status carry no presence. Telegram shows when you were last online, as the Telegram apps do, and Matrix does when your homeserver shares presence; this app adds nothing on top."
+          icon="eye-off"
         />
-      </Section>
-
-      <Section title="Not collected" surface="card" className="mb-4">
-        <ListItem
-          title="No last seen of our own"
-          subtitle="XMTP, Nostr and Status carry no presence. Telegram shows when you were last online, as the Telegram apps do, and Matrix does when your homeserver shares presence; this app adds nothing on top."
-          numberOfLinesSubtitle={4}
-          leading={<Icon name="eye-off" size={20} tone="muted" />}
-        />
-        <ListItem
-          title="No contact upload"
-          subtitle="Your address book is read on this device to suggest invites and is never sent anywhere."
-          numberOfLinesSubtitle={3}
-          leading={<Icon name="users" size={20} tone="muted" />}
+        <SettingsRow
+          label="No contact upload"
+          description="Your address book is read on this device to suggest invites and is never sent anywhere."
+          icon="users"
         />
       </Section>
     </SettingsScreen>

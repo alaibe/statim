@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { Text as RNText, View } from "react-native";
 
-import { cn, Text } from "@/design";
+import { cn, Pressable, Radius, Text, useThemeColors } from "@/design";
 
 export function ReactionRow({
   reactions,
@@ -26,8 +26,6 @@ export function ReactionRow({
           emoji={emoji}
           people={people}
           mine={people.includes(selfId)}
-          fromMe={fromMe}
-          inBubble={inBubble}
           names={people.map((id) => (id === selfId ? "You" : nameFor(id)))}
           onPress={onReact && (() => onReact(emoji))}
         />
@@ -36,23 +34,21 @@ export function ReactionRow({
   );
 }
 
+/** A small tag: `hover` fill, `accent-soft` with an `accent` edge when it is yours, the count in mono. */
 function Reaction({
   emoji,
   people,
   mine,
-  fromMe,
-  inBubble,
   names,
   onPress,
 }: {
   emoji: string;
   people: readonly string[];
   mine: boolean;
-  fromMe: boolean;
-  inBubble: boolean;
   names: string[];
   onPress?: () => void;
 }) {
+  const colors = useThemeColors();
   const [hovered, setHovered] = useState(false);
   const who = names.join(", ");
   return (
@@ -62,26 +58,31 @@ function Reaction({
       onPress={onPress}
       onHoverIn={() => setHovered(true)}
       onHoverOut={() => setHovered(false)}
-      className={cn(
-        "relative flex-row items-center gap-1 rounded-full px-2 py-0.5",
-        !inBubble ? "bg-side" : mine ? (fromMe ? "bg-fg/25" : "bg-accent") : fromMe ? "bg-fg/10" : "bg-accent/10",
-      )}
+      className="relative flex-row items-center gap-1 px-1.5 py-0.5"
+      style={{
+        borderRadius: Radius.sm,
+        borderWidth: 1,
+        borderColor: mine ? colors.accent : "transparent",
+        backgroundColor: mine ? colors["accent-soft"] : colors.hover,
+      }}
     >
-      <Text variant="caption">{emoji}</Text>
+      <RNText style={{ fontSize: 13, lineHeight: 18 }}>{emoji}</RNText>
       {people.length > 1 ? (
-        <Text
-          variant="micro"
-          className={cn(
-            "font-semibold tabular-nums",
-            inBubble && mine && !fromMe ? "text-on-accent" : fromMe ? "text-fg" : "text-accent",
-          )}
-        >
+        <Text variant="meta" tone={mine ? "accent" : "muted"}>
           {people.length}
         </Text>
       ) : null}
       {hovered ? (
-        <View className="absolute bottom-full left-0 z-10 mb-1 rounded-md bg-fg px-2 py-1">
-          <Text variant="micro" className="whitespace-nowrap text-bg">
+        <View
+          className="absolute bottom-full left-0 z-10 mb-2 px-2 py-1"
+          style={{
+            borderRadius: Radius.sm,
+            borderWidth: 1,
+            borderColor: colors["line-strong"],
+            backgroundColor: colors.void,
+          }}
+        >
+          <Text variant="meta" tone="fg" numberOfLines={1}>
             {who}
           </Text>
         </View>

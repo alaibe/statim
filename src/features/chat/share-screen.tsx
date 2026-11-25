@@ -7,7 +7,7 @@ import { sessionFor, useChatStore } from "@/core/messaging/chat-store";
 import { draftKey } from "@/core/messaging/drafts";
 import { chatPermissions } from "@/core/messaging/permissions";
 import type { Chat } from "@/core/messaging/types";
-import { EmptyState, ListItem, Loading, ModalHeader, Screen, toast } from "@/design";
+import { EmptyState, IconButton, PhoneHeader, Row, Screen, Skeleton, toast } from "@/design";
 import { openChatFromSheet } from "@/features/navigation/open";
 import { useBack } from "@/features/navigation/use-back";
 
@@ -29,18 +29,14 @@ export function ShareScreen() {
   };
 
   return (
-    <Screen className="px-0" edges={["top", "bottom"]}>
-      <ModalHeader title="Send to" onClose={close} className="px-4" />
+    <Screen edges={["bottom"]}>
+      <PhoneHeader title="Send to" action={<IconButton icon="x" label="Close" onPress={close} />} />
       {status === "loading" ? (
-        <Loading className="flex-1" />
+        <Skeleton avatar lines={1} />
       ) : status !== "ready" ? (
-        <EmptyState
-          icon="circle-user"
-          title="No account yet"
-          description="Create or import an account in Statim, then share again."
-        />
+        <EmptyState boot="no account yet" text="Create or import an account in Statim, then share again." />
       ) : !text && files.length === 0 ? (
-        <EmptyState icon="send" title="Nothing to send" />
+        <EmptyState boot="nothing to send" noMatch />
       ) : (
         <ChatPicker
           photos={files.some((p) => p.shareType === "image")}
@@ -69,13 +65,12 @@ function ChatPicker({ photos, onPick }: { photos: boolean; onPick: (chat: Chat) 
     <FlashList
       data={chats.filter(takesShare)}
       keyExtractor={(c) => c.id}
-      contentContainerClassName="px-4"
-      ListEmptyComponent={<EmptyState icon="messages-square" title="No chat can take this" />}
+      ListEmptyComponent={<EmptyState boot="no chat fits" noMatch />}
       renderItem={({ item }) => (
-        <ListItem
+        <Row
           testID={`share-to-${item.id}`}
           title={titleOf(item)}
-          leading={<ChatAvatar chat={item} selfId={selfIdOf(item)} size="sm" />}
+          leading={<ChatAvatar chat={item} selfId={selfIdOf(item)} size={28} />}
           onPress={() => onPick(item)}
         />
       )}

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useWindowDimensions, View } from "react-native";
 import { useAppearanceStore } from "@/core/app/appearance";
 import type { LinkPreview } from "@/core/messaging/link-preview";
-import { cn, Image, Pressable, Text } from "@/design";
+import { Image, Pressable, Radius, Text, useThemeColors } from "@/design";
 import { openExternal, openInBrowser } from "@/lib/open-url";
 import { PlayOverlay } from "./attachments/video-bubble";
 import { useLinkPreview } from "./use-link-preview";
@@ -13,7 +13,8 @@ const MAX_WIDTH = 300;
 const MAX_IMAGE_HEIGHT = 220;
 const DEFAULT_RATIO = 1.91;
 
-export function LinkPreviewCard({ url, fromMe }: { url: string; fromMe: boolean }) {
+export function LinkPreviewCard({ url }: { url: string; fromMe: boolean }) {
+  const colors = useThemeColors();
   const enabled = useAppearanceStore((s) => s.linkPreviews);
   const preview = useLinkPreview(enabled ? url : null);
   const { width: screenWidth } = useWindowDimensions();
@@ -31,26 +32,23 @@ export function LinkPreviewCard({ url, fromMe }: { url: string; fromMe: boolean 
       accessibilityRole="link"
       accessibilityLabel={[siteName, title].filter(Boolean).join(". ") || url}
       onPress={open}
-      className={cn("mt-1.5 flex-row gap-2 rounded-md px-2 py-1.5", fromMe ? "bg-fg/15" : "bg-fg/5")}
-      style={{
-        borderCurve: "continuous",
-        width: Math.min(screenWidth * MAX_WIDTH_RATIO, MAX_WIDTH),
-      }}
+      className="mt-1.5 flex-row gap-2 py-1.5 pr-2"
+      style={{ width: Math.min(screenWidth * MAX_WIDTH_RATIO, MAX_WIDTH) }}
     >
-      <View className={cn("w-0.5 rounded-full", fromMe ? "bg-fg" : "bg-accent")} />
+      <View style={{ width: 2, backgroundColor: colors.accent }} />
       <View className="min-w-0 flex-1 gap-0.5">
         {siteName ? (
-          <Text variant="caption" numberOfLines={1} className={cn("font-semibold", fromMe ? "text-fg" : "text-accent")}>
+          <Text variant="label" tone="accent" numberOfLines={1}>
             {siteName}
           </Text>
         ) : null}
         {title ? (
-          <Text variant="footnote" numberOfLines={3} className={cn("font-semibold", fromMe ? "text-fg" : "text-fg")}>
+          <Text numberOfLines={3} strong>
             {title}
           </Text>
         ) : null}
         {description ? (
-          <Text variant="footnote" numberOfLines={3} className={fromMe ? "text-fg/80" : undefined}>
+          <Text size="sm" tone="muted" numberOfLines={3}>
             {description}
           </Text>
         ) : null}
@@ -68,7 +66,7 @@ function PreviewImage({ image, video }: { image: NonNullable<LinkPreview["image"
   const ratio = declared ?? (loaded ? loaded.width / loaded.height : DEFAULT_RATIO);
 
   return (
-    <View className="mt-1 overflow-hidden rounded-[10px]">
+    <View className="mt-1 overflow-hidden" style={{ borderRadius: Radius.md }}>
       <Image
         source={{ uri: image.url }}
         accessibilityIgnoresInvertColors

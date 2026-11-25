@@ -9,7 +9,7 @@ import { useState } from "react";
 import { View } from "react-native";
 import { formatDuration } from "@/core/messaging/preview";
 import type { MessageContent } from "@/core/messaging/types";
-import { IconButton, Text } from "@/design";
+import { IconButton, Radius, Tag, Text, useThemeColors, withAlpha } from "@/design";
 
 interface VoiceRecorderProps {
   onRecorded(content: MessageContent): void;
@@ -17,6 +17,7 @@ interface VoiceRecorderProps {
 }
 
 export function VoiceRecorder({ onRecorded, onError }: VoiceRecorderProps) {
+  const colors = useThemeColors();
   const recorder = useAudioRecorder({
     ...RecordingPresets.LOW_QUALITY,
     // A phone can only play the AAC that the `.m4a` name promises.
@@ -65,43 +66,24 @@ export function VoiceRecorder({ onRecorded, onError }: VoiceRecorderProps) {
   };
 
   if (!state.isRecording) {
-    return (
-      <IconButton
-        icon="mic"
-        label="Record a voice message"
-        surface="outline"
-        size={20}
-        disabled={starting}
-        onPress={() => void start()}
-      />
-    );
+    return <IconButton icon="mic" label="Record a voice message" disabled={starting} onPress={() => void start()} />;
   }
 
   return (
     <View className="flex-row items-center gap-2">
-      <IconButton
-        icon="trash-2"
-        label="Discard recording"
-        surface="outline"
-        tone="danger"
-        size={20}
-        onPress={() => void finish(false)}
-      />
+      <IconButton icon="trash-2" label="Discard recording" tone="danger" onPress={() => void finish(false)} />
 
-      <View className="flex-row items-center gap-1.5 rounded-full bg-danger/15 px-3 py-2">
-        <View className="h-2 w-2 rounded-full bg-danger" />
-        <Text variant="caption" className="font-medium tabular-nums text-fg">
+      <View
+        className="flex-row items-center gap-2 px-3 py-2"
+        style={{ borderRadius: Radius.md, backgroundColor: withAlpha(colors.danger, 0.12) }}
+      >
+        <Tag tone="err" label="REC" dot />
+        <Text variant="meta" tone="fg">
           {formatDuration(state.durationMillis ?? 0)}
         </Text>
       </View>
 
-      <IconButton
-        icon="arrow-up"
-        label="Send voice message"
-        surface="accent"
-        size={20}
-        onPress={() => void finish(true)}
-      />
+      <IconButton icon="arrow-up" label="Send voice message" tone="accent" onPress={() => void finish(true)} />
     </View>
   );
 }

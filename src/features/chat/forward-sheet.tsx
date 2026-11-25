@@ -5,7 +5,7 @@ import { sessionFor, useChatStore } from "@/core/messaging/chat-store";
 import { chatPermissions } from "@/core/messaging/permissions";
 import { contentPreview } from "@/core/messaging/preview";
 import type { ChatId, ChatMessage } from "@/core/messaging/types";
-import { ListItem, Sheet, toast } from "@/design";
+import { Row, Sheet, toast } from "@/design";
 import { ChatAvatar } from "./chat-avatar";
 import { useChatTitles } from "./use-display-names";
 
@@ -18,19 +18,19 @@ export function ForwardSheet({ message, from, onClose }: { message: ChatMessage;
 
   return (
     <Sheet visible onClose={onClose} title="Forward to" subtitle={contentPreview(message.content)}>
-      <View style={{ borderCurve: "continuous" }} className="max-h-[420px] overflow-hidden rounded-lg bg-panel">
+      <View style={{ maxHeight: 420 }}>
         <FlashList
           data={targets}
           keyExtractor={(c) => c.id}
           renderItem={({ item }) => (
-            <ListItem
+            <Row
               testID={`forward-to-${item.id}`}
               title={titleOf(item)}
-              leading={<ChatAvatar chat={item} selfId={selfIdOf(item)} size="sm" />}
+              leading={<ChatAvatar chat={item} selfId={selfIdOf(item)} size={28} />}
               onPress={() => {
                 onClose();
                 sendMessage(item.id, message.content)
-                  .then(() => toast.success("Forwarded"))
+                  .then(() => toast.success(`Forwarded to ${titleOf(item)}`))
                   .catch((e) => toast.error(errorMessage(e, "Could not forward")));
               }}
             />

@@ -1,8 +1,7 @@
 import { createContext, useRef, useState } from "react";
 import { Pressable as RNPressable, View } from "react-native";
-import Svg, { Path } from "react-native-svg";
 
-import { cn, Icon, Text, useThemeColors } from "@/design";
+import { cn, desktop, Icon, Pressable, Radius, Text, useThemeColors, withAlpha } from "@/design";
 import { type MessageAction, MessageActions, type MessageAnchor } from "./message-actions";
 
 export interface ReplyPreview {
@@ -21,7 +20,6 @@ export const HeldBubble = createContext(false);
 export function BubbleShell({
   fromMe,
   grouped,
-  tail,
   senderName,
   showSender,
   bare = false,
@@ -35,7 +33,6 @@ export function BubbleShell({
 }: {
   fromMe: boolean;
   grouped: boolean;
-  tail: boolean;
   senderName: string;
   showSender: boolean;
   bare?: boolean;
@@ -62,7 +59,7 @@ export function BubbleShell({
     });
   };
 
-  const pointed = tail && !bare;
+  const colors = useThemeColors();
   const side = SIDE[fromMe ? "out" : "in"];
 
   const body = (held: boolean) => (
@@ -81,12 +78,21 @@ export function BubbleShell({
         : undefined)}
       delayLongPress={280}
       accessible={false}
-      style={bare ? undefined : BUBBLE_SHADOW}
-      className={bubbleClass({ held, bare, side, pointed, grouped })}
+      className={bare ? undefined : "px-2.5 py-1.5"}
+      style={[
+        held ? null : { maxWidth: desktop ? 560 : "82%" },
+        bare
+          ? null
+          : {
+              borderRadius: Radius.md,
+              borderWidth: 1,
+              borderColor: colors[side.border],
+              backgroundColor: colors[side.fill],
+            },
+      ]}
     >
       {replyPreview ? <ReplyQuote reply={replyPreview} side={side} /> : null}
       {children}
-      {pointed ? <Tail side={side} /> : null}
     </RNPressable>
   );
 
@@ -94,7 +100,7 @@ export function BubbleShell({
     <>
       <View className={cn("px-4", grouped ? "pt-0.5" : "pt-2", side.align)}>
         {showSender && !fromMe ? (
-          <Text variant="micro" className="mb-0.5 ml-3 font-medium">
+          <Text variant="label" className="mb-0.5 ml-1">
             {senderName}
           </Text>
         ) : null}
@@ -103,8 +109,8 @@ export function BubbleShell({
 
         {privateToMe ? (
           <View className="mt-1 flex-row items-center gap-1">
-            <Icon name="eye-off" size={16} tone="subtle" />
-            <Text variant="micro">Only you can see this</Text>
+            <Icon name="eye-off" size={16} tone="muted" />
+            <Text variant="meta">Only you can see this</Text>
           </View>
         ) : null}
 
@@ -126,74 +132,29 @@ export function BubbleShell({
   );
 }
 
-const TAIL = {
-  in: "M3 19H9V2C8.807 4.84 8.124 7.767 6.95 10.782C6.046 13.107 4.504 15.267 2.325 17.262A1 1 0 0 0 3 19Z",
-  out: "M8 19H2V2C2.193 4.84 2.876 7.767 4.05 10.782C4.954 13.107 6.496 15.267 8.675 17.262A1 1 0 0 1 8 19Z",
-};
-
+/** In: `panel` with a 1px `line`. Out: `accent-soft`. Radius `md`, no tail, no shadow. */
 const SIDE = {
-  out: {
-    fill: "bg-accent-soft",
-    color: "accent-soft",
-    align: "items-end",
-    edge: "right",
-    tail: TAIL.out,
-    pointed: "rounded-br-none",
-    corner: "rounded-br-md",
-    grouped: "rounded-tr-md",
-    quote: "bg-fg/15",
-    bar: "bg-fg",
-    author: "text-fg",
-    preview: "text-fg/80",
-  },
-  in: {
-    fill: "bg-panel",
-    color: "panel",
-    align: "items-start",
-    edge: "left",
-    tail: TAIL.in,
-    pointed: "rounded-bl-none",
-    corner: "rounded-bl-md",
-    grouped: "rounded-tl-md",
-    quote: "bg-fg/5",
-    bar: "bg-accent",
-    author: "text-accent",
-    preview: undefined,
-  },
+  out: { fill: "accent-soft", border: "accent-soft", align: "items-end", bar: "fg", author: "fg" },
+  in: { fill: "panel", border: "line", align: "items-start", bar: "accent", author: "accent" },
 } as const;
 
 type Side = (typeof SIDE)["out" | "in"];
 
-function bubbleClass({
-  held,
-  bare,
-  side,
-  pointed,
-  grouped,
-}: {
-  held: boolean;
-  bare: boolean;
-  side: Side;
-  pointed: boolean;
-  grouped: boolean;
-}): string {
-  return cn(
-    !held && (process.env.EXPO_OS === "web" ? "max-w-[min(82%,560px)]" : "max-w-[82%]"),
-    !bare && cn("rounded-lg px-2.5 py-1.5", side.fill, pointed ? side.pointed : side.corner, grouped && side.grouped),
-  );
-}
-
 function ReplyQuote({ reply, side }: { reply: ReplyPreview; side: Side }) {
+  const colors = useThemeColors();
   return (
-    <View className={cn("mb-1.5 flex-row gap-2 rounded-md px-2 py-1", side.quote)}>
-      <View className={cn("w-0.5 rounded-full", side.bar)} />
+    <View
+      className="mb-1.5 flex-row gap-2 px-2 py-1"
+      style={{ borderRadius: Radius.sm, backgroundColor: withAlpha(colors.fg, 0.06) }}
+    >
+      <View style={{ width: 2, backgroundColor: colors[side.bar] }} />
       <View className="min-w-0 flex-1">
         {reply.author ? (
-          <Text variant="micro" className={cn("font-semibold", side.author)}>
+          <Text variant="label" tone={side.author}>
             {reply.author}
           </Text>
         ) : null}
-        <Text variant="caption" numberOfLines={1} className={side.preview}>
+        <Text size="sm" tone="muted" numberOfLines={1}>
           {reply.preview}
         </Text>
       </View>
@@ -202,36 +163,32 @@ function ReplyQuote({ reply, side }: { reply: ReplyPreview; side: Side }) {
 }
 
 function ThreadButton({ thread }: { thread: ThreadChip }) {
+  const colors = useThemeColors();
   const label = repliesLabel(thread.replies, thread.newReplies);
   const unread = thread.newReplies > 0;
   return (
-    <RNPressable
+    <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Open thread, ${label}`}
       onPress={thread.onOpen}
-      className={cn("mt-1 flex-row items-center gap-1.5 rounded-full px-2.5 py-1", unread ? "bg-accent" : "bg-side")}
+      className="mt-1 flex-row items-center gap-1.5 px-2 py-1"
+      style={({ hovered }) => ({
+        borderRadius: Radius.md,
+        borderWidth: 1,
+        borderColor: colors["line-strong"],
+        backgroundColor: hovered ? colors.hover : colors.panel,
+      })}
     >
-      <Icon name="messages-square" size={16} tone={unread ? "on-accent" : "accent"} />
-      <Text variant="caption" className={cn("font-semibold", unread ? "text-on-accent" : "text-accent")}>
+      <Icon name="messages-square" size={16} tone={unread ? "accent" : "muted"} />
+      <Text variant="control" tone={unread ? "accent" : "fg"}>
         {label}
       </Text>
-      <Icon name="chevron-right" size={16} tone={unread ? "on-accent" : "accent"} />
-    </RNPressable>
+      <Icon name="chevron-right" size={16} tone="muted" />
+    </Pressable>
   );
 }
 
 export function repliesLabel(count: number, fresh = 0): string {
   const replies = count === 1 ? "1 reply" : `${count} replies`;
   return fresh > 0 ? `${replies} · ${fresh} new` : replies;
-}
-
-const BUBBLE_SHADOW = { boxShadow: "0 1px 2px rgba(16, 35, 47, 0.15)" };
-
-function Tail({ side }: { side: Side }) {
-  const colors = useThemeColors();
-  return (
-    <Svg width={11} height={20} viewBox="0 0 11 20" style={{ position: "absolute", bottom: -1, [side.edge]: -8.4 }}>
-      <Path d={side.tail} fill={colors[side.color]} />
-    </Svg>
-  );
 }

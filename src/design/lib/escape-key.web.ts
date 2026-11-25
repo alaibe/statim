@@ -24,3 +24,8 @@ export function useEscapeKey(active: boolean, onEscape: () => void): void {
   const escape = useEffectEvent(onEscape);
   useEffect(() => (active ? listen(() => escape()) : undefined), [active]);
 }
+
+/** Whether a dialog, a sheet or a menu holds Esc. */
+export function overlayOpen(): boolean {
+  return stack.length > 0;
+}

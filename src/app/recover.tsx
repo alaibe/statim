@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { useAccountStore } from "@/core/account/account-store";
 import { shortAddress } from "@/core/account/keyring";
 import { eraseEverything } from "@/core/app/erase-account";
-import { Button, Card, Icon, Screen, Text } from "@/design";
+import { Button, Notice, Screen, Section, SettingsRow, Text } from "@/design";
 import { useAction } from "@/features/use-action";
 
 export default function RecoverScreen() {
@@ -20,37 +20,35 @@ export default function RecoverScreen() {
 
   return (
     <Screen className="justify-center gap-6 px-4">
-      <View className="items-center gap-3">
-        <View className="h-20 w-20 items-center justify-center rounded-full bg-side">
-          <Icon name="key-round" size={24} tone="danger" />
-        </View>
-        <Text variant="headline" className="text-center">
-          Your keys need re-importing
-        </Text>
+      <Text variant="title">Your keys need re-importing</Text>
+
+      <Notice
+        tone="warning"
+        message="This device's biometrics changed, so iOS discarded the keys that were sealed to them."
+        detail="That is the trade-off of protecting keys with Face ID, and it cannot be undone from here."
+      />
+
+      <View className="-mx-4">
+        <Section label="Affected">
+          {accounts.map((account) => (
+            <SettingsRow key={account.id} label={account.label} value={shortAddress(account.address, 8, 6)} />
+          ))}
+        </Section>
       </View>
 
-      <Text variant="bodyMuted">
-        This device&apos;s biometrics changed, so iOS discarded the keys that were sealed to them. That is the trade-off
-        of protecting keys with Face ID, and it cannot be undone from here.
-      </Text>
-
-      <Card className="gap-2">
-        <Text variant="caption">Affected</Text>
-        {accounts.map((account) => (
-          <Text key={account.id} variant="mono">
-            {account.label} · {shortAddress(account.address, 8, 6)}
-          </Text>
-        ))}
-      </Card>
-
-      <Text variant="bodyMuted">
+      <Text tone="muted">
         Your messages and settings are still here. Import an account&apos;s recovery phrase and it picks up exactly
         where it left off.
       </Text>
 
       <View className="gap-2">
-        <Button label="Import a recovery phrase" fullWidth onPress={() => router.push("/(onboarding)/import")} />
-        <Button label="Erase everything and start over" tone="danger" fullWidth onPress={() => erase.run()} />
+        <Button
+          variant="primary"
+          label="Import a recovery phrase"
+          fullWidth
+          onPress={() => router.push("/(onboarding)/import")}
+        />
+        <Button label="Erase everything and start over" variant="danger" fullWidth onPress={() => erase.run()} />
       </View>
     </Screen>
   );

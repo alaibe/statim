@@ -1,15 +1,19 @@
 import { View } from "react-native";
 import Animated from "react-native-reanimated";
 
-import { Enter, Exit, Text } from "@/design";
+import { Enter, Exit, Radius, Text, useThemeColors } from "@/design";
 
 export function CommandPending({ label }: { label: string }) {
+  const colors = useThemeColors();
   return (
     <Animated.View entering={Enter.fade()} exiting={Exit.fade()} className="items-start px-4 pt-2">
-      <View className="rounded-lg rounded-bl-md bg-panel px-3.5 py-2">
+      <View
+        className="px-2.5 py-1.5"
+        style={{ borderRadius: Radius.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.panel }}
+      >
         <View className="flex-row items-center gap-2">
           <Dots />
-          <Text variant="caption" numberOfLines={1} className="text-fg/70">
+          <Text variant="meta" numberOfLines={1}>
             {label}
           </Text>
         </View>
@@ -18,14 +22,19 @@ export function CommandPending({ label }: { label: string }) {
   );
 }
 
+/** Something is running: three dots in `accent`, pulsing. */
 function Dots() {
+  const colors = useThemeColors();
   return (
     <View className="flex-row items-center gap-1">
       {[0, 1, 2].map((i) => (
         <Animated.View
           key={i}
-          className="h-1.5 w-1.5 rounded-full bg-fg"
           style={{
+            width: 6,
+            height: 6,
+            borderRadius: Radius.full,
+            backgroundColor: colors.accent,
             animationName: {
               "0%, 100%": { opacity: 0.25 },
               "50%": { opacity: 1 },

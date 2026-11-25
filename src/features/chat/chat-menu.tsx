@@ -1,7 +1,7 @@
 import { type ChatPrefs, prefsFor } from "@/core/messaging/chat-prefs";
 import { useChatStore } from "@/core/messaging/chat-store";
 import type { Chat } from "@/core/messaging/types";
-import { ActionSheet, type MenuAnchor } from "@/design";
+import { Menu, type MenuAnchor, toast } from "@/design";
 import { protocolSubtitle } from "@/features/protocols/presentation";
 
 import { setBlocked } from "./block";
@@ -31,30 +31,37 @@ export function ChatMenu({
   const setChatPref = useChatStore((s) => s.setChatPref);
   const markUnread = useChatStore((s) => s.markUnread);
   const { block } = useChatPermissions(chat.id);
-  const choose = (key: keyof ChatPrefs) => void setChatPref(chat.id, { [key]: !prefs[key] });
+  const choose = (key: keyof ChatPrefs, done: string) => {
+    const was = Boolean(prefs[key]);
+    void setChatPref(chat.id, { [key]: !was });
+    toast.success(done, { label: "Undo", run: () => void setChatPref(chat.id, { [key]: was }) });
+  };
   return (
-    <ActionSheet
+    <Menu
       visible
       anchor={anchor}
       onClose={onClose}
       title={titleOf(chat)}
       subtitle={protocolSubtitle(chat.protocol)}
-      leading={<ChatAvatar chat={chat} selfId={selfIdOf(chat)} size="md" />}
-      actions={[
+      leading={<ChatAvatar chat={chat} selfId={selfIdOf(chat)} size={40} />}
+      items={[
         {
           label: prefs.pinned ? "Unpin" : "Pin to top",
           icon: "pin",
-          onPress: () => choose("pinned"),
+          keys: ["p"],
+          onPress: () => choose("pinned", prefs.pinned ? "Unpinned the chat" : "Pinned the chat"),
         },
         {
           label: prefs.muted ? "Unmute" : "Mute",
           icon: prefs.muted ? "volume-2" : "volume-x",
-          onPress: () => choose("muted"),
+          keys: ["m"],
+          onPress: () => choose("muted", prefs.muted ? "Unmuted the chat" : "Muted the chat"),
         },
         {
           label: prefs.archived ? "Move out of archive" : "Archive",
           icon: "archive",
-          onPress: () => choose("archived"),
+          keys: ["e"],
+          onPress: () => choose("archived", prefs.archived ? "Moved the chat out of the archive" : "Archived the chat"),
         },
         {
           label: "Mark as unread",
@@ -64,9 +71,9 @@ export function ChatMenu({
         ...(block
           ? [
               {
-                label: chat.blocked ? "Unblock" : "Block",
+                label: chat.blocked ? "Unblock" : "Block…",
                 icon: "ban" as const,
-                tone: chat.blocked ? undefined : ("danger" as const),
+                danger: !chat.blocked,
                 onPress: () => (chat.blocked ? void setBlocked(chat.id, false) : onBlock(chat)),
               },
             ]

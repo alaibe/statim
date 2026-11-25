@@ -3,7 +3,7 @@ import { ScrollView, View } from "react-native";
 import { useAccountStore } from "@/core/account/account-store";
 import { errorMessage } from "@/core/errors";
 import type { ChatId, MessageContent } from "@/core/messaging/types";
-import { ErrorText, Image, Loading, Pressable, SearchField, Text } from "@/design";
+import { Divider, FieldError, Image, Pressable, Radius, SearchField, Segmented, Skeleton, Text } from "@/design";
 import { useKeyedLoad } from "@/lib/use-keyed-load";
 
 import { featuredGifs, type Gif, gifToContent, loadGifKey, searchGifs } from "./attachments/gifs";
@@ -65,22 +65,17 @@ export function MediaPanelContent({
         )}
       </View>
 
-      <View className="flex-row items-center justify-center gap-1 border-t border-line px-3 py-2">
-        {tabs.map((entry) => {
-          const active = entry === tab;
-          return (
-            <Pressable
-              key={entry}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: active }}
-              onPress={() => onTab(entry)}
-              className={active ? "rounded-full bg-side px-4 py-1.5" : "rounded-full px-4 py-1.5"}
-            >
-              <Text className={active ? "font-semibold text-fg" : "font-medium text-muted"}>{TAB_LABELS[entry]}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <Divider />
+      {tabs.length > 1 ? (
+        <View className="items-center px-3 py-2">
+          <Segmented
+            accessibilityLabel="Media"
+            options={tabs.map((entry) => ({ value: entry, label: TAB_LABELS[entry] }))}
+            value={tab}
+            onChange={onTab}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -131,11 +126,11 @@ function GifGrid({
   if (key === null) {
     return (
       <View className="gap-3 px-4 py-4">
-        <Text variant="footnote">
+        <Text tone="muted">
           GIF search needs a KLIPY key, which you add in Settings. There is no keyless GIF API, and this app does not
           ship credentials of its own.
         </Text>
-        <Text variant="footnote">
+        <Text tone="muted">
           You can still send GIFs without one: pick them from your photo library like any other image and they send
           animated.
         </Text>
@@ -156,18 +151,18 @@ function GifGrid({
 
   return (
     <View className="flex-1">
-      <SearchField
-        className="mx-3 mb-2 mt-3"
-        placeholder="Search GIFs"
-        autoFocus={autoFocusSearch}
-        value={query}
-        onChangeText={setQuery}
-      />
+      <View className="mx-3 mb-2 mt-3">
+        <SearchField placeholder="Search GIFs" autoFocus={autoFocusSearch} value={query} onChangeText={setQuery} />
+      </View>
 
-      <ErrorText className="px-4 pb-2">{error}</ErrorText>
+      {error ? (
+        <View className="px-4 pb-2">
+          <FieldError>{error}</FieldError>
+        </View>
+      ) : null}
 
       {busy && results.length === 0 ? (
-        <Loading className="flex-1 py-8" />
+        <Skeleton rows={3} lines={1} />
       ) : (
         <ScrollView
           contentContainerClassName="flex-row flex-wrap px-3 pb-3"
@@ -183,7 +178,7 @@ function GifGrid({
             >
               <Image
                 source={{ uri: gif.previewUrl }}
-                style={{ width: tile, height: tile, borderRadius: 8 }}
+                style={{ width: tile, height: tile, borderRadius: Radius.md }}
                 contentFit="cover"
               />
             </Pressable>
@@ -191,7 +186,7 @@ function GifGrid({
         </ScrollView>
       )}
 
-      <Text variant="micro" className="px-4 pb-2 text-right">
+      <Text variant="meta" align="right" className="px-4 pb-2">
         GIFs by KLIPY
       </Text>
     </View>
