@@ -1,3 +1,3 @@
-export function usePlayableUri(uri: string): string | null {
+export function useLoadableUri(uri: string): string | null {
   return uri;
 }

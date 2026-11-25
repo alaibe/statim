@@ -3,8 +3,8 @@ import { View } from "react-native";
 import { reportError } from "@/core/app/report-error";
 import { formatDuration } from "@/core/messaging/preview";
 import { Icon, Pressable, Text, useThemeColors } from "@/design";
+import { useLoadableUri } from "@/lib/loadable-uri";
 import { waveformBars } from "./format";
-import { usePlayableUri } from "./playable-uri";
 
 interface VoiceBubbleProps {
   uri: string;
@@ -15,7 +15,7 @@ interface VoiceBubbleProps {
 
 export function VoiceBubble({ uri, durationMs, fromMe, seed }: VoiceBubbleProps) {
   const colors = useThemeColors();
-  const playable = usePlayableUri(uri);
+  const playable = useLoadableUri(uri);
   const player = useAudioPlayer(playable ? { uri: playable } : null);
   const status = useAudioPlayerStatus(player);
 

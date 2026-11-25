@@ -2,6 +2,8 @@ import { Image } from "expo-image";
 
 import { View } from "react-native";
 
+import { useLoadableUri } from "@/lib/loadable-uri";
+
 import { Text } from "./text";
 
 const SIZE = { sm: 32, md: 44, lg: 64, xl: 96 } as const;
@@ -43,14 +45,15 @@ export interface AvatarProps {
 export function Avatar({ seed, size = "md", label, image, emoji }: AvatarProps) {
   const px = SIZE[size];
   const { bg, fg, cells } = identicon(seed || "anon");
+  const loaded = useLoadableUri(typeof image === "string" ? image : "");
 
   // expo-image has no NativeWind interop here, so the circle is plain style.
-  if (image !== undefined) {
+  if (typeof image === "number" || (image !== undefined && loaded)) {
     return (
       <Image
         accessibilityRole="image"
         accessibilityLabel={label ? `Avatar for ${label}` : "Avatar"}
-        source={typeof image === "string" ? { uri: image } : image}
+        source={typeof image === "string" ? { uri: loaded ?? image } : image}
         recyclingKey={typeof image === "string" ? image : undefined}
         cachePolicy="memory-disk"
         contentFit="cover"
