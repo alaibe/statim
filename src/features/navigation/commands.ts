@@ -250,7 +250,7 @@ export const COMMANDS: readonly Command[] = [
     id: "undo",
     label: "Undo",
     group: "Actions",
-    icon: "reply",
+    icon: "undo",
     keys: ["mod", "z"],
     run: () => void runNewestToastAction(),
   },

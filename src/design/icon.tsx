@@ -106,6 +106,7 @@ import Trash2Icon from "lucide-react-native/icons/trash-2";
 import TrendingUpIcon from "lucide-react-native/icons/trending-up";
 import TriangleIcon from "lucide-react-native/icons/triangle";
 import TrophyIcon from "lucide-react-native/icons/trophy";
+import UndoIcon from "lucide-react-native/icons/undo";
 import UserMinusIcon from "lucide-react-native/icons/user-minus";
 import UserPlusIcon from "lucide-react-native/icons/user-plus";
 import UserRoundIcon from "lucide-react-native/icons/user-round";
@@ -229,6 +230,7 @@ const ICONS = {
   "trending-up": TrendingUpIcon,
   triangle: TriangleIcon,
   trophy: TrophyIcon,
+  undo: UndoIcon,
   "user-minus": UserMinusIcon,
   "user-plus": UserPlusIcon,
   "user-round": UserRoundIcon,
