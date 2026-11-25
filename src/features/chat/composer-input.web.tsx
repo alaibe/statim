@@ -19,7 +19,6 @@ const TYPED: [RegExp, string][] = [
   [/`([^`]+)`$/, "code"],
 ];
 
-// WebKitGTK paints the caret of an empty field black rather than in the text colour, which hides it on dark themes.
 const STYLE = `
 .composer-rich { outline: none; white-space: pre-wrap; overflow-wrap: anywhere; caret-color: rgb(var(--color-content)); }
 .composer-rich code, .composer-rich pre {
