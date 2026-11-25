@@ -19,6 +19,7 @@ https://docs.expo.dev/versions/v57.0.0/ before writing Expo, Expo Router or Reac
 - Comments are one line, and only where the reason isn't obvious from the code.
 - Change generated files at their source: `ios/` and `android/` from `app.json`; `src/storage/migrations/index.ts` with `npm run db:bundle`; `src/global.css`, `skills/statim/SKILL.md`, `src-tauri/cli/help.txt`, `src-tauri/cli/mcp.json`, the icons, `chat-pattern-tile.ts` and the token lists with the generators in `priv/`.
 - `priv/` is gitignored and holds the maintainer's material and tooling; a worktree has none, so use the main checkout's.
+- The store screenshots are `store/ios` and `store/android`, captured by `store/capture.sh` from `store/capture.yaml` on a Release build; the Store screenshots workflow captures and commits the App Store's. A new screen worth showing in the stores gets its step in `capture.yaml`.
 - `.web.ts(x)` is the desktop app, never a browser build, and each platform file needs a non-platform neighbour.
 - `index.js` loads `src/polyfills` before Expo Router: viem and WalletConnect capture `globalThis.crypto` as they evaluate.
 - Protocols live in `src/protocols/<name>/` behind `ChatSession`; persistence lives in `src/storage`.

@@ -1,0 +1,109 @@
+# The App Store's and Google Play's screenshots, on the clean device store/capture.sh prepares, in a Release build.
+appId: im.statim.app
+---
+- launchApp:
+    stopApp: true
+
+- runFlow:
+    when:
+      visible: "Ready for Apple Intelligence"
+    commands:
+      - swipe:
+          start: "50%,15%"
+          end: "50%,2%"
+
+- extendedWaitUntil:
+    visible: ".*Create an account.*"
+    timeout: 90000
+- waitForAnimationToEnd
+- takeScreenshot: 01-welcome
+
+- tapOn: ".*Create an account.*"
+- extendedWaitUntil:
+    visible: "Reveal recovery phrase"
+    timeout: 30000
+- tapOn: "Reveal recovery phrase"
+- waitForAnimationToEnd
+- takeScreenshot: 02-recovery-phrase
+- tapOn: ".*written it down.*"
+- extendedWaitUntil:
+    visible:
+      id: "chat-local-statim"
+    timeout: 60000
+- waitForAnimationToEnd
+- takeScreenshot: 03-chats
+
+- tapOn:
+    id: "chat-local-statim"
+- extendedWaitUntil:
+    visible:
+      id: "composer-input"
+    timeout: 20000
+- tapOn:
+    id: "composer-input"
+- inputText: "Remember to book the train tomorrow"
+- tapOn:
+    id: "composer-send"
+# iOS introduces its keyboard languages the first time the keyboard opens.
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd
+- tapOn:
+    point: "95%,40%"
+- waitForAnimationToEnd
+- takeScreenshot: 04-chat
+
+- openLink: "statim://settings"
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"
+- scrollUntilVisible:
+    element:
+      id: "settings-protocol-matrix"
+    direction: DOWN
+    centerElement: true
+- waitForAnimationToEnd
+- takeScreenshot: 05-protocols
+
+- openLink: "statim://chat/local-statim"
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"
+- extendedWaitUntil:
+    visible:
+      id: "composer-input"
+    timeout: 20000
+- tapOn:
+    id: "composer-input"
+- inputText: "/enable wallet"
+- tapOn:
+    id: "composer-send"
+- waitForAnimationToEnd
+- openLink: "statim://chat/local-wallet"
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"
+- extendedWaitUntil:
+    visible:
+      id: "composer-input"
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: 06-wallet
+
+- openLink: "statim://settings/privacy"
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"
+- waitForAnimationToEnd
+- takeScreenshot: 07-privacy
