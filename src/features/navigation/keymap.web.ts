@@ -5,7 +5,7 @@ import { useLockStore } from "@/core/account/lock-store";
 import type { ChatId } from "@/core/messaging/types";
 import { overlayOpen } from "@/design";
 
-import { COMMANDS, type Command, type CommandScope, useOverlays } from "./commands";
+import { COMMANDS, type Command, type CommandScope, menuCommand, useOverlays } from "./commands";
 import { useKeyState } from "./key-state";
 import { commandFor, editable, keysOf, same } from "./keys";
 
@@ -79,7 +79,7 @@ export function useKeymap(segments: readonly string[], chatId: ChatId | undefine
     let stop: UnlistenFn | undefined;
     let cancelled = false;
     void listen<string>("app-menu", ({ payload }) => {
-      const command = COMMANDS.find((c) => c.id === payload);
+      const command = menuCommand(payload);
       if (command) run(command, scope());
     }).then((unlisten) => {
       if (cancelled) unlisten();

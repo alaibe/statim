@@ -358,6 +358,18 @@ export const COMMANDS: readonly Command[] = [
   },
 ];
 
+/** The History menu's recent chats send `chat:` and the chat's id. */
+const MENU_CHAT = "chat:";
+
+/** The command an app menu item runs: a registry entry, or a recent chat from the History menu. */
+export function menuCommand(id: string): Command | undefined {
+  if (id.startsWith(MENU_CHAT)) {
+    const chatId = id.slice(MENU_CHAT.length);
+    return { id, label: "Open chat", group: "Go to", run: () => openChat(chatId) };
+  }
+  return COMMANDS.find((command) => command.id === id);
+}
+
 function history(direction: "back" | "forward") {
   const exists = (id: ChatId) => useChatStore.getState().chats.some((chat) => chat.id === id);
   const id = useChatHistory.getState().step(direction, exists);

@@ -1,8 +1,11 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { COMMANDS, hintsFor } from "./commands";
+import { COMMANDS, hintsFor, menuCommand } from "./commands";
 import { commandFor, keysOf } from "./keys";
+import { openChat } from "./open";
+
+jest.mock("./open", () => ({ openChat: jest.fn(), openTab: jest.fn() }));
 
 const keyed = COMMANDS.filter((command) => command.keys && !command.sequence);
 const bound = (keys: string[]) => keyed.some((command) => command.keys?.join("+") === keys.join("+"));
@@ -50,6 +53,14 @@ describe("the command registry", () => {
       expect(command).toBeDefined();
       if (accelerator) expect(command?.keys?.join("+")).toBe(accelerator.replace("CmdOrCtrl", "mod").toLowerCase());
     }
+  });
+
+  it("opens a recent chat from the History menu", () => {
+    const menu = readFileSync(join(__dirname, "../../../src-tauri/src/app_menu.rs"), "utf8");
+    const prefix = /format!\("\{PAGE\}([a-z]+:)\{\}", chat\.id\)/.exec(menu)?.[1];
+    expect(prefix).toBe("chat:");
+    menuCommand(`${prefix}xmtp:abc`)?.run({ segments: [] });
+    expect(openChat).toHaveBeenCalledWith("xmtp:abc");
   });
 
   it("shows at most five hints, the list's starting with J/K", () => {
