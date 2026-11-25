@@ -6,6 +6,7 @@ import { formatDuration } from "@/core/messaging/preview";
 import { Icon, Pressable, Text } from "@/design";
 import { MessageText } from "../message-text";
 import { MediaViewer } from "./media-viewer";
+import { usePlayableUri } from "./playable-uri";
 import { HoverSave } from "./save-button";
 
 interface VideoBubbleProps {
@@ -20,7 +21,8 @@ interface VideoBubbleProps {
 }
 
 export function useMessagePlayer(uri: string, looping: boolean, autoplay = looping) {
-  const player = useVideoPlayer(uri, (player) => {
+  const playable = usePlayableUri(uri);
+  const player = useVideoPlayer(playable, (player) => {
     player.loop = looping;
     player.muted = looping;
   });

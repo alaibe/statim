@@ -4,6 +4,7 @@ import { reportError } from "@/core/app/report-error";
 import { formatDuration } from "@/core/messaging/preview";
 import { Icon, Pressable, Text, useThemeColors } from "@/design";
 import { waveformBars } from "./format";
+import { usePlayableUri } from "./playable-uri";
 
 interface VoiceBubbleProps {
   uri: string;
@@ -14,7 +15,8 @@ interface VoiceBubbleProps {
 
 export function VoiceBubble({ uri, durationMs, fromMe, seed }: VoiceBubbleProps) {
   const colors = useThemeColors();
-  const player = useAudioPlayer({ uri });
+  const playable = usePlayableUri(uri);
+  const player = useAudioPlayer(playable ? { uri: playable } : null);
   const status = useAudioPlayerStatus(player);
 
   const bars = waveformBars(seed);
