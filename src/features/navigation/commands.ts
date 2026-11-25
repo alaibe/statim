@@ -162,6 +162,7 @@ export const COMMANDS: readonly Command[] = [
     label: "New message…",
     group: "Actions",
     keys: ["n"],
+    hint: "new",
     run: () => router.push("/new-chat"),
   },
   {

@@ -1,5 +1,13 @@
 import { useMemo, useState } from "react";
-import { Modal, Pressable as RNPressable, Text as RNText, ScrollView, TextInput, View } from "react-native";
+import {
+  Modal,
+  Pressable as RNPressable,
+  Text as RNText,
+  ScrollView,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useThemeColors } from "../hooks/use-theme-colors";
@@ -59,6 +67,7 @@ export function filterPalette(groups: readonly PaletteGroup[], query: string): P
 /** ⌘K: every action, every place and recent items by name. */
 export function CommandPalette({ visible, onClose, groups, query, onQuery }: CommandPaletteProps) {
   const colors = useThemeColors();
+  const window = useWindowDimensions();
   const [index, setIndex] = useState(0);
   useEscapeKey(visible, onClose);
 
@@ -201,7 +210,7 @@ export function CommandPalette({ visible, onClose, groups, query, onQuery }: Com
         style={{
           flex: 1,
           alignItems: "center",
-          paddingTop: "20%",
+          paddingTop: window.height * 0.2,
           paddingHorizontal: Space[4],
           backgroundColor: scrimColor(colors, true),
         }}

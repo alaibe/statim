@@ -131,7 +131,7 @@ interface EmptyStateProps {
   text?: string;
   /** At most one button: the action that fills the place. */
   action?: { label: string; onPress: PressHandler; keys?: readonly string[]; testID?: string };
-  /** No match for a search: no lit point. */
+  /** No match for a search, or a second empty region beside one that already shows it: no lit point. */
   noMatch?: boolean;
   testID?: string;
 }

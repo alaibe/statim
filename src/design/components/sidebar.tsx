@@ -84,6 +84,7 @@ export function Sidebar({ collapsed = false, children }: { collapsed?: boolean; 
       role="navigation"
       aria-label="Places"
       style={{
+        flex: 1,
         width: collapsed ? Layout["sidebar-collapsed"] : Layout.sidebar,
         paddingBottom: Space[3],
         backgroundColor: colors.side,
