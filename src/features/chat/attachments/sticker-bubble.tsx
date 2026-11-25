@@ -1,11 +1,10 @@
 import { useEventListener } from "expo";
-import { Image } from "expo-image";
 import { VideoView } from "expo-video";
 import { type ReactNode, useState } from "react";
 import { View } from "react-native";
 import { stickerLabel } from "@/core/messaging/preview";
 import { type StickerContent, stickerFormat } from "@/core/messaging/stickers";
-import { Text } from "@/design";
+import { Image, Text } from "@/design";
 import { useKeyedLoad } from "@/lib/use-keyed-load";
 
 import { loadLottie } from "./lottie";

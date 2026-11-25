@@ -1,10 +1,9 @@
-import { Image } from "expo-image";
 import { useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { useAccountStore } from "@/core/account/account-store";
 import { errorMessage } from "@/core/errors";
 import type { ChatId, MessageContent } from "@/core/messaging/types";
-import { ErrorText, Loading, Pressable, SearchField, Text } from "@/design";
+import { ErrorText, Image, Loading, Pressable, SearchField, Text } from "@/design";
 import { useKeyedLoad } from "@/lib/use-keyed-load";
 
 import { featuredGifs, type Gif, gifToContent, loadGifKey, searchGifs } from "./attachments/gifs";

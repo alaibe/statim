@@ -22,6 +22,7 @@ export { Eyebrow } from "./eyebrow";
 export { FIELD_BOX, Field, FieldShell } from "./field";
 export { Glow } from "./glow";
 export { IconButton } from "./icon-button";
+export { Image } from "./image";
 export { ListItem } from "./list-item";
 export { Loading } from "./loading";
 export { ModalHeader } from "./modal-header";

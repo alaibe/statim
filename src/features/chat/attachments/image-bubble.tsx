@@ -1,7 +1,6 @@
-import { Image } from "expo-image";
 import { useState } from "react";
 import { useWindowDimensions, View } from "react-native";
-import { Pressable } from "@/design";
+import { Image, Pressable } from "@/design";
 import { MessageText } from "../message-text";
 import { MediaViewer } from "./media-viewer";
 import { HoverSave } from "./save-button";
