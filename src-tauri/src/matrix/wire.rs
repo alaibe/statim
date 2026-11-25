@@ -43,6 +43,8 @@ pub struct MxRoom {
     pub(super) peer: Option<String>,
     pub(super) membership: &'static str,
     pub(super) heroes: Vec<String>,
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    pub(super) hero_avatars: HashMap<String, String>,
     pub(super) elevated: Vec<String>,
     pub(super) self_role: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -66,6 +68,8 @@ pub struct MxMember {
     pub(super) user_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) display_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) avatar_url: Option<String>,
     pub(super) role: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) power_level: Option<i64>,

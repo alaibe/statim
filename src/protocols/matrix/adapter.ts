@@ -90,6 +90,8 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
   private readonly awaitedMedia = new Map<string, MxEvent[]>();
   private readonly unfetched = new Map<MessageId, { raw: MxEvent; media: MxMedia }>();
   private readonly avatars = new Map<string, string | null>();
+  /** People's own pictures, by user ID: a DM shows its participant's when the room has none. */
+  private readonly pictures = new Map<string, string>();
   private ignored: ReadonlySet<string> = new Set();
   private readonly presence = new PresenceWatcher(
     () => this.homeserver(),
@@ -139,6 +141,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     this.mediaPaths.clear();
     this.unfetched.clear();
     this.avatars.clear();
+    this.pictures.clear();
     this.presence.clear();
     this.features.clear();
     this.unsubscribe?.();
@@ -258,6 +261,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
 
   private onRoom(room: MxRoom): void {
     this.rooms.set(room.id, room);
+    for (const [userId, url] of Object.entries(room.heroAvatars ?? {})) this.pictures.set(userId, url);
     if (room.isDm) this.forgetMembers(room.id);
     if (room.isDm && room.heroes.length === 1 && room.name) this.names.set(room.heroes[0], room.name);
     if (included(room)) this.announce(room);
@@ -445,8 +449,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
     };
   }
 
-  private avatarOf(room: MxRoom): string | undefined {
-    const url = room.avatarUrl;
+  private avatarOf(room: MxRoom, url: string | undefined): string | undefined {
     if (!url) return undefined;
     const known = this.avatars.get(url);
     if (known !== undefined) return known ?? undefined;
@@ -455,7 +458,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
       if (!uri) return;
       this.avatars.set(url, uri);
       const current = this.rooms.get(room.id);
-      if (current?.avatarUrl === url && included(current)) this.announce(current);
+      if (current && included(current)) this.announce(current);
     });
     return undefined;
   }
@@ -664,6 +667,7 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
         .then((members) => {
           for (const member of members) {
             if (member.displayName) this.names.set(member.userId, member.displayName);
+            if (member.avatarUrl) this.pictures.set(member.userId, member.avatarUrl);
           }
           this.members.set(roomId, members);
           const room = this.rooms.get(roomId);
@@ -724,7 +728,10 @@ export class MatrixSession implements ChatSession, MatrixCapabilities {
       ...(isDm && participant ? this.peerState(participant) : {}),
       network,
       title: room.name || (isDm ? (participant ?? room.id) : "Untitled chat"),
-      avatarUri: this.avatarOf(room),
+      avatarUri: this.avatarOf(
+        room,
+        room.avatarUrl ?? (isDm && participant ? this.pictures.get(participant) : undefined),
+      ),
       memberIds,
       createdAt: room.latest?.timestamp ?? 0,
       lastMessage: room.latest ? { ...this.toMessage(previewEvent(room), false), preview: true } : undefined,
