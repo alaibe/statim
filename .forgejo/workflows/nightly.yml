@@ -40,7 +40,7 @@ jobs:
             exit 0
           fi
           COUNT=$(git rev-list --count "$LAST..HEAD")
-          APP=$(git rev-list --count "$LAST..HEAD" -- . ':(exclude).forgejo' ':(exclude).github' ':(exclude,glob)*.md' ':(exclude)store')
+          APP=$(git rev-list --count "$LAST..HEAD" -- . ':(exclude).forgejo' ':(exclude).github' ':(exclude,glob)*.md' ':(exclude)screenshots')
           echo "$COUNT commits since $LAST, $APP of them changing the app"
           [ "$APP" -eq 0 ] || echo "due=true" >> "$GITHUB_OUTPUT"
 

@@ -1,0 +1,139 @@
+# Mondays at 06:20 in Paris: the guide's screenshots into laibe, the App Store's into screenshots/store/ios.
+# No Google Play job: the mac runner has no Android emulator; screenshots/capture.sh store-android runs by hand.
+
+name: Screenshots
+
+on:
+  schedule:
+    - cron: 'TZ=Europe/Paris 20 6 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: screenshots
+  cancel-in-progress: false
+
+env:
+  ORIGIN: ssh://git@git.laibe.cc:2222/anthony/statim.git
+  LANG: en_US.UTF-8
+  LC_ALL: en_US.UTF-8
+
+jobs:
+  site:
+    runs-on: mac
+    timeout-minutes: 120
+    env:
+      METRO_PORT: 8099
+    steps:
+      # actions/checkout adds a safe.directory to the global git config: a throwaway one, not Anthony's ~/.gitconfig.
+      - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: main
+        env:
+          GIT_CONFIG_GLOBAL: ${{ runner.temp }}/gitconfig
+
+      - uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+
+      - name: JavaScript packages
+        run: npm ci
+
+      - name: TDLib
+        run: ./scripts/tdlib.sh ios
+
+      # Debug, served by Metro: the move-invite fixture exists only in a debug build.
+      - name: Build
+        run: |
+          npx expo prebuild --platform ios
+          xcodebuild -workspace ios/Statim.xcworkspace -scheme Statim -configuration Debug -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/xcode" \
+            COMPILER_INDEX_STORE_ENABLE=NO > "$RUNNER_TEMP/xcodebuild.log" 2>&1 \
+            || { grep -m 20 'error:' "$RUNNER_TEMP/xcodebuild.log"; tail -n 40 "$RUNNER_TEMP/xcodebuild.log"; exit 1; }
+
+      - name: Site
+        run: |
+          rm -rf "$RUNNER_TEMP/laibe"
+          git clone --depth 1 ssh://git@git.laibe.cc:2222/anthony/laibe.git "$RUNNER_TEMP/laibe"
+
+      # A port of its own, so a Metro already running on the Mac isn't the one serving main.
+      - name: Capture
+        run: |
+          CI=1 npx expo start --dev-client --port "$METRO_PORT" > "$RUNNER_TEMP/metro.log" 2>&1 &
+          METRO=$!
+          trap 'kill "$METRO" 2>/dev/null || true' EXIT
+          for _ in $(seq 90); do
+            kill -0 "$METRO" 2>/dev/null || { tail -n 40 "$RUNNER_TEMP/metro.log"; exit 1; }
+            curl -fsS "http://localhost:$METRO_PORT/status" 2>/dev/null | grep -q packager-status:running && break
+            sleep 2
+          done
+          curl -fsS --max-time 900 -o /dev/null "http://localhost:$METRO_PORT/index.bundle?platform=ios&dev=true&minify=false" \
+            || { tail -n 40 "$RUNNER_TEMP/metro.log"; exit 1; }
+          APP="$RUNNER_TEMP/xcode/Build/Products/Debug-iphonesimulator/Statim.app" SITE_CHECKOUT="$RUNNER_TEMP/laibe" \
+            screenshots/capture.sh site
+
+      - name: Commit
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          cd "$RUNNER_TEMP/laibe"
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "The screenshots haven't changed."
+            exit 0
+          fi
+          git add -A public/sites/statim/screenshots
+          git -c user.name="Statim screenshots" -c user.email="nightly@git.laibe.cc" \
+            commit -q -m "Screenshots of statim $SHA"
+          for try in 1 2 3; do
+            git push origin HEAD:main && exit 0
+            [ "$try" -eq 3 ] || git -c user.name="Statim screenshots" -c user.email="nightly@git.laibe.cc" pull --rebase -q origin main
+          done
+          exit 1
+
+  # After the site's, so the two never share the Mac's simulators and CPU.
+  store-ios:
+    needs: site
+    if: ${{ !cancelled() }}
+    runs-on: mac
+    timeout-minutes: 90
+    steps:
+      - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: main
+        env:
+          GIT_CONFIG_GLOBAL: ${{ runner.temp }}/gitconfig
+
+      - uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+
+      - name: JavaScript packages
+        run: npm ci
+
+      - name: TDLib
+        run: ./scripts/tdlib.sh ios
+
+      # Release bundles the JavaScript, so the app runs without Metro.
+      - name: Build
+        run: |
+          npx expo prebuild --platform ios
+          xcodebuild -workspace ios/Statim.xcworkspace -scheme Statim -configuration Release -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/xcode" \
+            COMPILER_INDEX_STORE_ENABLE=NO > "$RUNNER_TEMP/xcodebuild.log" 2>&1 \
+            || { grep -m 20 'error:' "$RUNNER_TEMP/xcodebuild.log"; tail -n 40 "$RUNNER_TEMP/xcodebuild.log"; exit 1; }
+
+      - name: Capture
+        run: APP="$RUNNER_TEMP/xcode/Build/Products/Release-iphonesimulator/Statim.app" screenshots/capture.sh store-ios
+
+      - name: Commit
+        run: |
+          git add screenshots/store/ios
+          if git diff --cached --quiet; then
+            echo "The screenshots haven't changed."
+            exit 0
+          fi
+          git -c user.name="Statim screenshots" -c user.email="nightly@git.laibe.cc" \
+            commit -q -m "Screenshots of statim $(git rev-parse --short HEAD)"
+          for try in 1 2 3; do
+            git push "$ORIGIN" HEAD:main && exit 0
+            [ "$try" -eq 3 ] || git -c user.name="Statim screenshots" -c user.email="nightly@git.laibe.cc" pull --rebase -q "$ORIGIN" main
+          done
+          exit 1

@@ -19,7 +19,7 @@ https://docs.expo.dev/versions/v57.0.0/ before writing Expo, Expo Router or Reac
 - Comments are one line, and only where the reason isn't obvious from the code.
 - Change generated files at their source: `ios/` and `android/` from `app.json`; `src/storage/migrations/index.ts` with `npm run db:bundle`; `src/global.css`, `skills/statim/SKILL.md`, `src-tauri/cli/help.txt`, `src-tauri/cli/mcp.json`, the icons, `chat-pattern-tile.ts` and the token lists with the generators in `priv/`.
 - `priv/` is gitignored and holds the maintainer's material and tooling; a worktree has none, so use the main checkout's.
-- The store screenshots are `store/ios` and `store/android`, captured by `store/capture.sh` from `store/capture.yaml` on a Release build; the Store screenshots workflow captures and commits the App Store's. A new screen worth showing in the stores gets its step in `capture.yaml`.
+- Screenshots follow the design system's `patterns/screenshots.md`: `screenshots/capture.sh site|store-ios|store-android` runs the flows `screenshots/site.yaml` (the guide's, into laibe) and `screenshots/store.yaml` (into `screenshots/store/`), and the weekly Screenshots workflow commits them. A new screen worth showing gets its step in the flow.
 - `.web.ts(x)` is the desktop app, never a browser build, and each platform file needs a non-platform neighbour.
 - `index.js` loads `src/polyfills` before Expo Router: viem and WalletConnect capture `globalThis.crypto` as they evaluate.
 - Protocols live in `src/protocols/<name>/` behind `ChatSession`; persistence lives in `src/storage`.
@@ -28,7 +28,7 @@ https://docs.expo.dev/versions/v57.0.0/ before writing Expo, Expo Router or Reac
 
 ## Design
 
-- Statim follows the laibe design system v0.1.0 (`git.laibe.cc/anthony/design`) with the `ultraviolet` accent. Before a UI change, read its `principles.md` and the component pages it touches.
+- Statim follows the laibe design system as of 2026-11-25 (`git.laibe.cc/anthony/design`) with the `ultraviolet` accent. Before a UI change, read its `principles.md` and the component pages it touches.
 - `Palette` in `src/design/tokens.ts` is the system's colours under Statim's names (brand → accent, canvas → bg, surface → panel, content → fg); `src/global.css` carries the same values.
 - Inter for what people read and write, JetBrains Mono for the interface, both bundled (`src/design/fonts.ts`); `Text` picks the face from its weight. The desktop has the system's status bar with contextual hints.
 

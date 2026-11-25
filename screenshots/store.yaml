@@ -1,4 +1,4 @@
-# The App Store's and Google Play's screenshots, on the clean device store/capture.sh prepares, in a Release build.
+# The App Store's and Google Play's screenshots, in a Release build on the clean dark device capture.sh prepares.
 appId: im.statim.app
 ---
 - launchApp:
