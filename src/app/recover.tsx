@@ -1,21 +1,23 @@
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { View } from "react-native";
 import { useAccountStore } from "@/core/account/account-store";
 import { shortAddress } from "@/core/account/keyring";
 import { eraseEverything } from "@/core/app/erase-account";
-import { Button, Notice, Screen, Section, SettingsRow, Text } from "@/design";
+import { Button, ConfirmDialog, Notice, Screen, Section, SettingsRow, Text } from "@/design";
 import { useAction } from "@/features/use-action";
 
 export default function RecoverScreen() {
   const router = useRouter();
 
   const accounts = useAccountStore((s) => s.accounts);
+  const [confirming, setConfirming] = useState(false);
   const erase = useAction(
     async () => {
       await eraseEverything();
       router.replace("/(onboarding)/welcome");
     },
-    { failure: "Could not erase this device" },
+    { failure: "Couldn’t erase this device. Try again." },
   );
 
   return (
@@ -48,8 +50,33 @@ export default function RecoverScreen() {
           fullWidth
           onPress={() => router.push("/(onboarding)/import")}
         />
-        <Button label="Erase everything and start over" variant="danger" fullWidth onPress={() => erase.run()} />
+        <Button
+          label="Erase everything and start over…"
+          variant="danger"
+          fullWidth
+          onPress={() => setConfirming(true)}
+        />
       </View>
+
+      <ConfirmDialog
+        visible={confirming}
+        onClose={() => setConfirming(false)}
+        label="Erase this device"
+        title="Erase everything?"
+        body={[
+          "Every account, chat and setting on this device goes, and so do the keys. Only a recovery phrase brings an account back.",
+        ]}
+        typedName="erase"
+        busy={erase.busy}
+        confirm={{
+          label: "Erase everything",
+          danger: true,
+          testID: "recover-erase-confirm",
+          onPress: async () => {
+            if (await erase.run()) setConfirming(false);
+          },
+        }}
+      />
     </Screen>
   );
 }

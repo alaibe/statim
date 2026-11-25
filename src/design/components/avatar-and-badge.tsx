@@ -23,8 +23,10 @@ export interface AvatarProps {
   presence?: "online" | "away";
 }
 
-/** Initials are one or two letters: a name's first two words, or its first two characters. */
+/** Initials are one or two letters: a name's first two words, its first two characters, or an address's after `0x`. */
 export function initialsOf(label: string): string {
+  const address = /^0x([0-9a-f]{2})/i.exec(label.trim());
+  if (address) return address[1].toUpperCase();
   const words = label.trim().split(/\s+/).filter(Boolean);
   if (words.length >= 2) return `${[...words[0]][0]}${[...words[1]][0]}`.toUpperCase();
   return [...(words[0] ?? "")].slice(0, 2).join("").toUpperCase();
