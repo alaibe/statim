@@ -3,6 +3,10 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { Notice, toast } from "@/design";
+import { PLATFORM_NAME } from "@/lib/platform-name";
+
+/** Where Check for Updates… lives: the app menu on macOS, Help on Windows and Linux. */
+const UPDATE_MENU = PLATFORM_NAME === "macOS" ? "Statim" : "Help";
 
 /** A banner under the title bar: an update is app-wide state. */
 export function UpdateBanner() {
@@ -57,7 +61,7 @@ export function UpdateBanner() {
       await relaunch();
     } catch (error) {
       console.warn("[updater]", error);
-      toast.error("Couldn’t install the update. Try again from the Statim menu.");
+      toast.error(`Couldn’t install the update. Try again from the ${UPDATE_MENU} menu.`);
     }
   };
 
