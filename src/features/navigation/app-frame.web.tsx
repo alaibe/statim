@@ -1,18 +1,20 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { Image } from "expo-image";
 import { useGlobalSearchParams, useSegments } from "expo-router";
-import { type PropsWithChildren, useEffect } from "react";
+import { Fragment, type PropsWithChildren, useEffect } from "react";
 import { useWindowDimensions, View, type ViewProps } from "react-native";
 
+import { activeAccount, useAccountStore } from "@/core/account/account-store";
 import { useChatStore } from "@/core/messaging/chat-store";
 import { splitRequests } from "@/core/messaging/folders";
 import { parseChatId } from "@/core/messaging/namespace";
 import {
+  Avatar,
   IconButton,
   Layer,
   Layout,
-  Pressable,
-  Shadow,
   Sidebar,
+  SidebarEnd,
   SidebarGroup,
   SidebarItem,
   TitleBar,
@@ -21,10 +23,11 @@ import {
 import { useChatTitles } from "@/features/chat/use-display-names";
 import { protocolsNeedAttention } from "@/features/protocols/presentation";
 
-import { COLLAPSE_AT, COMMANDS, openPlace, PLACES, type PlaceId, placeOf, useOverlays } from "./commands";
+import { COMMANDS, openPlace, PLACES, type PlaceId, placeOf, RAIL } from "./commands";
 import { HistoryMenu } from "./history-menu";
 import { useKeymap } from "./keymap";
 import { ListColumn } from "./list-column";
+import { openTab } from "./open";
 import { Palette } from "./palette";
 import { DIALOG_SEGMENTS, FULL_WINDOW_ROUTES } from "./routes";
 import { ShortcutsOverlay } from "./shortcuts";
@@ -41,23 +44,14 @@ const region = (name: string) => ({ dataSet: { region: name } }) as ViewProps;
 
 const run = (id: string) => COMMANDS.find((command) => command.id === id)?.run({ segments: [] });
 
-const closeDrawer = () => useOverlays.getState().set({ sidebarDrawer: false });
-
 /** The window's regions: title bar, sidebar of places, list, detail and status bar, on `void`, `side` and `bg`. */
 export function AppFrame({ children }: PropsWithChildren) {
   const colors = useThemeColors();
   const segments = useSegments() as string[];
   const { id } = useGlobalSearchParams<{ id?: string }>();
   const { width } = useWindowDimensions();
-  const collapsedByHand = useOverlays((s) => s.sidebarCollapsed);
-  const narrow = width < COLLAPSE_AT;
-  const drawer = useOverlays((s) => s.sidebarDrawer) && narrow;
   const chatId = segments[0] === "chat" && id ? (parseChatId(id) ?? undefined) : undefined;
   useKeymap(segments, chatId);
-
-  useEffect(() => {
-    if (!narrow) useOverlays.getState().set({ sidebarDrawer: false });
-  }, [narrow]);
 
   const first = segments[0];
   if (first === undefined || FULL_WINDOW_ROUTES.has(first)) {
@@ -70,34 +64,17 @@ export function AppFrame({ children }: PropsWithChildren) {
   }
 
   const place = placeOf(segments);
-  const collapsed = collapsedByHand || narrow;
   const onePane = width < ONE_PANE_AT;
   const showList = place !== "requests" && !(onePane && (chatId || segments.length > 2 || DIALOG_SEGMENTS.has(first)));
   const showDetail = !onePane || !showList;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <WindowTitle place={place} chatId={chatId} collapsed={collapsed} drawer={drawer} />
+      <WindowTitle place={place} chatId={chatId} />
       <UpdateBanner />
       <View style={{ flex: 1, minHeight: 0, flexDirection: "row" }}>
-        {drawer ? (
-          <Pressable
-            accessibilityLabel="Close the sidebar"
-            onPress={closeDrawer}
-            style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, zIndex: Layer.drawer }}
-          />
-        ) : null}
-        <View
-          {...region("sidebar")}
-          style={drawer ? { width: Layout["sidebar-collapsed"], zIndex: Layer.drawer } : undefined}
-        >
-          {drawer ? (
-            <View style={{ position: "absolute", top: 0, bottom: 0, left: 0, boxShadow: Shadow.popover }}>
-              <Places place={place} collapsed={false} />
-            </View>
-          ) : (
-            <Places place={place} collapsed={collapsed} />
-          )}
+        <View {...region("sidebar")} style={{ zIndex: Layer.popover }}>
+          <Places place={place} />
         </View>
         {showList ? (
           <View
@@ -126,51 +103,69 @@ export function AppFrame({ children }: PropsWithChildren) {
   );
 }
 
-function Places({ place, collapsed }: { place: PlaceId; collapsed: boolean }) {
+const appIcon = require("@/assets/images/favicon.png") as number;
+
+function Places({ place }: { place: PlaceId }) {
+  const colors = useThemeColors();
   const attention = useChatStore((s) => protocolsNeedAttention(s.protocols));
   const requests = useChatStore((s) => splitRequests(s.chats).requests.length);
-  const main = PLACES.filter((entry) => entry.id !== "requests" && entry.id !== "archive");
-  const folders = PLACES.filter((entry) => entry.id === "requests" || entry.id === "archive");
-  const item = (entry: (typeof PLACES)[number], index: number) => (
-    <SidebarItem
-      key={entry.id}
-      place={{
-        ...entry,
-        keys: ["mod", String(index + 1)],
-        count: entry.id === "requests" ? requests : undefined,
-        news: entry.id === "settings" ? attention : entry.id === "requests" && requests > 0,
-        testID: `place-${entry.id}`,
-      }}
-      current={place === entry.id}
-      collapsed={collapsed}
-      onPress={() => {
-        closeDrawer();
-        openPlace(entry.id);
-      }}
-    />
-  );
+  const account = useAccountStore((s) => activeAccount(s)?.label);
+  const settings = PLACES.find((entry) => entry.id === "settings");
+  const item = (entry: (typeof PLACES)[number]) => {
+    const index = (RAIL.flat() as readonly PlaceId[]).indexOf(entry.id);
+    const waiting = entry.id === "requests" ? requests : 0;
+    return (
+      <SidebarItem
+        key={entry.id}
+        place={{
+          ...entry,
+          keys: index < 0 ? ["mod", ","] : ["mod", String(index + 1)],
+          count: waiting,
+          news: entry.id === "settings" && attention,
+          name: waiting
+            ? `${entry.label}, ${waiting} waiting`
+            : entry.id === "settings" && attention
+              ? `${entry.label}, a protocol needs attention`
+              : undefined,
+          testID: `place-${entry.id}`,
+        }}
+        current={place === entry.id}
+        onPress={() => openPlace(entry.id)}
+      />
+    );
+  };
   return (
-    <Sidebar collapsed={collapsed}>
-      <View style={{ height: 12 }} />
-      {main.map((entry) => item(entry, PLACES.indexOf(entry)))}
-      {collapsed ? <View style={{ height: 16 }} /> : <SidebarGroup label="Folders" />}
-      {folders.map((entry) => item(entry, PLACES.indexOf(entry)))}
+    <Sidebar app={<Image source={appIcon} accessibilityLabel="Statim" style={{ width: 20, height: 20 }} />}>
+      {RAIL.map((group, at) => (
+        <Fragment key={group.join()}>
+          {at > 0 ? <SidebarGroup /> : null}
+          {group.map((id) => item(PLACES.find((entry) => entry.id === id) ?? PLACES[0]))}
+        </Fragment>
+      ))}
+      <SidebarEnd>
+        {account ? (
+          <SidebarItem
+            place={{
+              id: "account",
+              label: account,
+              icon: "circle-user",
+              name: `Account: ${account}`,
+              testID: "place-account",
+            }}
+            current={false}
+            onPress={() => openTab("/accounts")}
+          >
+            <Avatar size={20} shape="square" label={account} ring={colors.side} />
+          </SidebarItem>
+        ) : null}
+        {settings ? item(settings) : null}
+      </SidebarEnd>
     </Sidebar>
   );
 }
 
 /** Where you are, in the title bar and as the window's title: `Alice — Statim`. */
-function WindowTitle({
-  place,
-  chatId,
-  collapsed,
-  drawer,
-}: {
-  place: PlaceId;
-  chatId?: string;
-  collapsed: boolean;
-  drawer: boolean;
-}) {
+function WindowTitle({ place, chatId }: { place: PlaceId; chatId?: string }) {
   const chat = useChatStore((s) => (chatId ? s.chats.find((entry) => entry.id === chatId) : undefined));
   const { titleOf } = useChatTitles(chat ? [chat] : []);
   const label = PLACES.find((entry) => entry.id === place)?.label ?? "Statim";
@@ -189,14 +184,6 @@ function WindowTitle({
       item={item}
       leading={
         <>
-          {collapsed ? (
-            <IconButton
-              icon="panel-left"
-              label={drawer ? "Close the sidebar" : "Expand the sidebar"}
-              size="sm"
-              onPress={() => run("toggle-sidebar")}
-            />
-          ) : null}
           <IconButton icon="arrow-left" label="Back" size="sm" onPress={() => run("back")} />
           <IconButton icon="arrow-right" label="Forward" size="sm" onPress={() => run("forward")} />
         </>

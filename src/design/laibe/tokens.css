@@ -61,10 +61,7 @@
   --control-md: 32px;
   --control-lg: 36px;
   --control-touch: 44px;
-  --layout-sidebar: 232px;
-  --layout-sidebar-min: 200px;
-  --layout-sidebar-max: 320px;
-  --layout-sidebar-collapsed: 48px;
+  --layout-sidebar: 48px;
   --layout-list: 360px;
   --layout-list-min: 280px;
   --layout-list-max: 480px;

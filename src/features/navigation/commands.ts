@@ -1,5 +1,4 @@
 import { type Href, router } from "expo-router";
-import { Dimensions } from "react-native";
 import { create } from "zustand";
 
 import { orderChats, prefsFor } from "@/core/messaging/chat-prefs";
@@ -36,7 +35,7 @@ export interface Command {
   run(scope: CommandScope): void;
 }
 
-/** The app's places: the sidebar on the desktop, the tab bar's first three on a phone, `G` and ⌘1… everywhere. */
+/** The app's places: the sidebar on the desktop, the tab bar's first three on a phone, `G` then a letter everywhere. */
 export const PLACES = [
   { id: "chats", label: "Chats", icon: "messages-square", href: "/chats", chord: "c" },
   { id: "contacts", label: "Contacts", icon: "contact-round", href: "/contacts", chord: "n" },
@@ -46,6 +45,12 @@ export const PLACES = [
 ] as const satisfies readonly { id: string; label: string; icon: IconName; href: Href; chord: string }[];
 
 export type PlaceId = (typeof PLACES)[number]["id"];
+
+/** The sidebar's groups top to bottom, which ⌘1… follow; settings sits at its foot under ⌘,. */
+export const RAIL = [
+  ["chats", "contacts"],
+  ["requests", "archive"],
+] as const satisfies readonly (readonly PlaceId[])[];
 
 /** Settings pages the palette reaches by name. */
 const SETTINGS_PAGES = [
@@ -83,28 +88,14 @@ export function placeOf(segments: readonly string[]): PlaceId {
 interface Overlays {
   palette: boolean;
   shortcuts: boolean;
-  sidebarCollapsed: boolean;
-  /** The sidebar expanded over the list while the window is too narrow for it. */
-  sidebarDrawer: boolean;
   set(change: Partial<Omit<Overlays, "set">>): void;
 }
 
 export const useOverlays = create<Overlays>((set) => ({
   palette: false,
   shortcuts: false,
-  sidebarCollapsed: false,
-  sidebarDrawer: false,
   set: (change) => set(change),
 }));
-
-/** Below this width the sidebar collapses to icons, and expanding it opens it as a drawer. */
-export const COLLAPSE_AT = 1100;
-
-export function toggleSidebar(width: number): void {
-  const { sidebarCollapsed, sidebarDrawer, set } = useOverlays.getState();
-  if (width < COLLAPSE_AT) set({ sidebarDrawer: !sidebarDrawer });
-  else set({ sidebarCollapsed: !sidebarCollapsed });
-}
 
 /** Accepted chats in the list's order, archived ones aside. */
 function listedChats(): ChatId[] {
@@ -267,16 +258,17 @@ export const COMMANDS: readonly Command[] = [
     keys: ["mod", "z"],
     run: () => void runNewestToastAction(),
   },
-  ...PLACES.map(
-    (place, index): Command => ({
-      id: `go-${place.id}`,
+  ...RAIL.flat().map((id, index): Command => {
+    const place = PLACES.find((entry) => entry.id === id) ?? PLACES[0];
+    return {
+      id: `go-${id}`,
       label: place.label,
       group: "Go to",
       icon: place.icon,
       keys: ["mod", String(index + 1)],
-      run: () => openPlace(place.id),
-    }),
-  ),
+      run: () => openPlace(id),
+    };
+  }),
   ...PLACES.map(
     (place): Command => ({
       id: `chord-${place.id}`,
@@ -344,14 +336,6 @@ export const COMMANDS: readonly Command[] = [
     icon: "arrow-right",
     keys: ["mod", "]"],
     run: () => history("forward"),
-  },
-  {
-    id: "toggle-sidebar",
-    label: "Collapse or expand the sidebar",
-    group: "Window",
-    icon: "panel-left",
-    keys: ["mod", "\\"],
-    run: () => toggleSidebar(Dimensions.get("window").width),
   },
   { id: "next-region", label: "Next region", group: "Window", keys: ["f6"], run: () => moveRegion(1) },
   {

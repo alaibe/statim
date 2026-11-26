@@ -21,6 +21,8 @@ export interface AvatarProps {
   /** An agent's or a plugin's mark, in place of initials. */
   icon?: IconName;
   presence?: "online" | "away";
+  /** The surface it sits on, for the presence dot's ring; `bg` by default. */
+  ring?: string;
 }
 
 /** Initials are one or two letters: a name's first two words, its first two characters, or an address's after `0x`. */
@@ -33,7 +35,7 @@ export function initialsOf(label: string): string {
 }
 
 /** An image when there is one, otherwise initials in `muted` on `hover`: a list of avatars stays ink. */
-export function Avatar({ size = 40, shape = "circle", label, image, emoji, icon, presence }: AvatarProps) {
+export function Avatar({ size = 40, shape = "circle", label, image, emoji, icon, presence, ring }: AvatarProps) {
   const colors = useThemeColors();
   const loaded = useLoadableUri(typeof image === "string" ? image : "");
   const radius = shape === "square" ? Radius.sm : size / 2;
@@ -92,7 +94,7 @@ export function Avatar({ size = 40, shape = "circle", label, image, emoji, icon,
           height: dot,
           borderRadius: Radius.full,
           backgroundColor: presence === "online" ? colors.success : colors.subtle,
-          boxShadow: `0 0 0 2px ${colors.bg}`,
+          boxShadow: `0 0 0 2px ${ring ?? colors.bg}`,
         }}
       />
     </View>
@@ -104,10 +106,12 @@ interface BadgeProps {
   count?: number;
   /** Unread or waiting for the person in `accent`; informational in `hover` and `muted`. */
   tone?: "accent" | "info";
+  /** The surface it sits on, for its 2px ring; `bg` by default. */
+  ring?: string;
 }
 
-/** On an icon or an avatar, top right; lists and the sidebar show counts as plain text instead. */
-export function Badge({ count, tone = "accent" }: BadgeProps) {
+/** On an icon or an avatar, the sidebar's included, top right; lists show counts as plain text instead. */
+export function Badge({ count, tone = "accent", ring }: BadgeProps) {
   const colors = useThemeColors();
   if (!count) {
     return (
@@ -132,7 +136,7 @@ export function Badge({ count, tone = "accent" }: BadgeProps) {
         justifyContent: "center",
         borderRadius: Radius.full,
         backgroundColor: tone === "accent" ? colors.accent : colors.hover,
-        boxShadow: `0 0 0 2px ${colors.bg}`,
+        boxShadow: `0 0 0 2px ${ring ?? colors.bg}`,
       }}
     >
       <RNText

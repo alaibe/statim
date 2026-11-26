@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { COMMANDS, hintsFor, menuCommand, toggleSidebar, useOverlays } from "./commands";
+import { COMMANDS, hintsFor, menuCommand } from "./commands";
 import { commandFor, keysOf } from "./keys";
 import { openChat } from "./open";
 
@@ -19,7 +19,6 @@ describe("the command registry", () => {
       ["/"],
       ["mod", "n"],
       ["mod", "1"],
-      ["mod", "\\"],
       ["f6"],
       ["shift", "f6"],
       ["mod", "["],
@@ -61,16 +60,6 @@ describe("the command registry", () => {
     expect(prefix).toBe("chat:");
     menuCommand(`${prefix}xmtp:abc`)?.run({ segments: [] });
     expect(openChat).toHaveBeenCalledWith("xmtp:abc");
-  });
-
-  it("collapses the sidebar at full width and opens it as a drawer below 1100", () => {
-    toggleSidebar(1280);
-    expect(useOverlays.getState()).toMatchObject({ sidebarCollapsed: true, sidebarDrawer: false });
-    toggleSidebar(1280);
-    toggleSidebar(900);
-    expect(useOverlays.getState()).toMatchObject({ sidebarCollapsed: false, sidebarDrawer: true });
-    toggleSidebar(900);
-    expect(useOverlays.getState().sidebarDrawer).toBe(false);
   });
 
   it("shows at most five hints, the list's starting with J/K", () => {

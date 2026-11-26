@@ -140,7 +140,6 @@ fn go(app: &AppHandle) -> tauri::Result<Submenu<Wry>> {
             &separator(app)?,
             &page(app, "go-chats", "Chats", Some("CmdOrCtrl+1"))?,
             &page(app, "go-contacts", "Contacts", Some("CmdOrCtrl+2"))?,
-            &page(app, "go-settings", "Settings", Some("CmdOrCtrl+3"))?,
             &separator(app)?,
             &page(app, "filter-all", "All Chats", None)?,
             &page(app, "filter-unread", "Unread", None)?,
@@ -148,8 +147,8 @@ fn go(app: &AppHandle) -> tauri::Result<Submenu<Wry>> {
             &page(app, "filter-dms", "DMs", None)?,
             &page(app, "filter-groups", "Groups", None)?,
             &separator(app)?,
-            &page(app, "go-requests", "Requests", Some("CmdOrCtrl+4"))?,
-            &page(app, "go-archive", "Archive", Some("CmdOrCtrl+5"))?,
+            &page(app, "go-requests", "Requests", Some("CmdOrCtrl+3"))?,
+            &page(app, "go-archive", "Archive", Some("CmdOrCtrl+4"))?,
             &page(app, "blocked", "Blocked", None)?,
         ],
     )
