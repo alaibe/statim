@@ -68,8 +68,9 @@ function RootLayout() {
   useEffect(() => {
     nativewindColorScheme.set(applied);
   }, [applied]);
-  const [fontsLoaded] = useFonts(FONTS);
-  if (!fontsLoaded) return null;
+  const [fontsLoaded, fontError] = useFonts(FONTS);
+  // WKWebView's user agent has no "Safari", so expo-font waits on FontFaceObserver, which times out at launch there.
+  if (!fontsLoaded && !fontError && process.env.EXPO_OS !== "web") return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
