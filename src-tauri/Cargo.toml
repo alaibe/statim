@@ -1,6 +1,6 @@
 [package]
 name = "statim"
-version = "0.7.18"
+version = "0.7.19"
 description = "A self-custodial messenger."
 edition = "2021"
 # matrix-sdk 0.19 needs 1.96.
